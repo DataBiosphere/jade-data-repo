@@ -128,7 +128,7 @@ public class AzureSynapsePdao {
           + ") AS rows;";
 
   private static final String queryColumnsFromExternalTableTemplate =
-      "SELECT DISTINCT <refCol> FROM [<tableName>];";
+      "SELECT DISTINCT <refCol> FROM [<tableName>] WHERE <refCol> IS NOT NULL;";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 

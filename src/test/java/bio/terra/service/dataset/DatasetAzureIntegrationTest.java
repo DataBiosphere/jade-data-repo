@@ -48,6 +48,7 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -636,6 +637,41 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
+    clearEnvironment();
+  }
+
+  @Test
+  public void testDatasetCombinedIngest() throws Exception {
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward, profileId, "dataset-ingest-combined-azure.json", CloudPlatform.AZURE);
+    datasetId = summaryModel.getId();
+
+    String controlFileContents;
+    try (var resourceStream =
+        this.getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
+      controlFileContents = new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    String controlFile =
+        blobIOTestUtility.uploadFileWithContents(
+            "dataset-files-ingest-combined.json", controlFileContents);
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(controlFile)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("azureCombinedIngestTest"));
+
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
+
     clearEnvironment();
   }
 

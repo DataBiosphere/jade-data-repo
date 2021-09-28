@@ -136,7 +136,7 @@ public class GcsPdaoTest {
   }
 
   private List<String> getGcsFilesLines(String path, String projectId) {
-    try (var stream = gcsPdao.getGcsFilesLinesStream(path, projectId)) {
+    try (var stream = gcsPdao.getBlobsLinesStream(path, projectId)) {
       return stream.collect(Collectors.toList());
     }
   }

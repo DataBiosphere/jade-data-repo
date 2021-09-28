@@ -48,6 +48,7 @@ public class FireStoreDirectoryEntry {
   public static final String CHECKSUM_CRC32C_FIELD_NAME = "checksum_crc32c";
   public static final String CHECKSUM_MD5_FIELD_NAME = "checksum_md5";
   public static final String SIZE_FIELD_NAME = "size";
+  public static final String LOAD_TAG_FIELD_NAME = "loadTag";
 
   public FireStoreDirectoryEntry() {}
 
@@ -152,7 +153,8 @@ public class FireStoreDirectoryEntry {
         .fileCreatedDate(getFileCreatedDate())
         .checksumCrc32c(getChecksumCrc32c())
         .checksumMd5(getChecksumMd5())
-        .size(getSize());
+        .size(getSize())
+        .loadTag(getLoadTag());
   }
 
   @Override
@@ -167,6 +169,7 @@ public class FireStoreDirectoryEntry {
         .append("checksumCrc32c", checksumCrc32c)
         .append("checksumMd5", checksumMd5)
         .append("size", size)
+        .append("loadTag", loadTag)
         .toString();
   }
 
@@ -187,7 +190,8 @@ public class FireStoreDirectoryEntry {
         && Objects.equals(fileCreatedDate, that.fileCreatedDate)
         && Objects.equals(checksumCrc32c, that.checksumCrc32c)
         && Objects.equals(checksumMd5, that.checksumMd5)
-        && Objects.equals(size, that.size);
+        && Objects.equals(size, that.size)
+        && Objects.equals(loadTag, that.loadTag);
   }
 
   @Override
@@ -201,7 +205,8 @@ public class FireStoreDirectoryEntry {
         fileCreatedDate,
         checksumCrc32c,
         checksumMd5,
-        size);
+        size,
+        loadTag);
   }
 
   public static FireStoreDirectoryEntry fromTableEntity(TableEntity entity) {
@@ -214,7 +219,8 @@ public class FireStoreDirectoryEntry {
         .fileCreatedDate((String) entity.getProperty(FILE_CREATED_DATE_FIELD_NAME))
         .checksumCrc32c((String) entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME))
         .checksumMd5((String) entity.getProperty(CHECKSUM_MD5_FIELD_NAME))
-        .size((Long) entity.getProperty(SIZE_FIELD_NAME));
+        .size((Long) entity.getProperty(SIZE_FIELD_NAME))
+        .loadTag((String) entity.getProperty(LOAD_TAG_FIELD_NAME));
   }
 
   public static TableEntity toTableEntity(
@@ -228,6 +234,7 @@ public class FireStoreDirectoryEntry {
         .addProperty(FILE_CREATED_DATE_FIELD_NAME, f.getFileCreatedDate())
         .addProperty(CHECKSUM_CRC32C_FIELD_NAME, f.getChecksumCrc32c())
         .addProperty(CHECKSUM_MD5_FIELD_NAME, f.getChecksumMd5())
-        .addProperty(SIZE_FIELD_NAME, f.getSize());
+        .addProperty(SIZE_FIELD_NAME, f.getSize())
+        .addProperty(LOAD_TAG_FIELD_NAME, f.getLoadTag());
   }
 }

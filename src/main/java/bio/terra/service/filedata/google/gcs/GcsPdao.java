@@ -11,6 +11,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
@@ -52,7 +53,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
-public class GcsPdao {
+public class GcsPdao implements CloudFileReader {
   private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
 
   private final GcsProjectFactory gcsProjectFactory;
@@ -83,22 +84,24 @@ public class GcsPdao {
   }
 
   /**
-   * Get all the lines from any files matching the path as a Stream, including wildcarded paths
+   * Get all the lines from any files matching the blobUrl as a Stream, including wildcarded paths
    *
    * <p>It is important that the stream returned by this method be guaranteed to closed. Since this
    * is a stream from IO, we need to make sure that the handle is closed. This can be done by
    * wrapping the stream in a try-block once the stream is used for a terminal operation.
    *
-   * @param path path to files, or path including wildcard referring to many files
-   * @param projectId Project ID to use for storage service in case of requester pays bucket
-   * @return All of the lines from all of the files matching the path, as a Stream
+   * @param blobUrl blobUrl to files, or blobUrl including wildcard referring to many files
+   * @param cloudEncapsulationId Project ID to use for storage service in case of requester pays
+   *     bucket
+   * @return All of the lines from all of the files matching the blobUrl, as a Stream
    */
-  public Stream<String> getGcsFilesLinesStream(String path, String projectId) {
-    Storage storage = gcsProjectFactory.getStorage(projectId);
-    int lastWildcard = path.lastIndexOf("*");
-    String prefixPath = lastWildcard >= 0 ? path.substring(0, lastWildcard) : path;
-    return listGcsFiles(prefixPath, projectId, storage)
-        .flatMap(blob -> getBlobLinesStream(blob, projectId, storage));
+  @Override
+  public Stream<String> getBlobsLinesStream(String blobUrl, String cloudEncapsulationId) {
+    Storage storage = gcsProjectFactory.getStorage(cloudEncapsulationId);
+    int lastWildcard = blobUrl.lastIndexOf("*");
+    String prefixPath = lastWildcard >= 0 ? blobUrl.substring(0, lastWildcard) : blobUrl;
+    return listGcsFiles(prefixPath, cloudEncapsulationId, storage)
+        .flatMap(blob -> getBlobLinesStream(blob, cloudEncapsulationId, storage));
   }
 
   @SuppressFBWarnings("OS_OPEN_STREAM")
@@ -129,7 +132,8 @@ public class GcsPdao {
    * @param contentsToWrite contents to write to file
    * @param projectId project for billing
    */
-  public void writeStreamToGcsFile(String path, Stream<String> contentsToWrite, String projectId) {
+  public void writeStreamToCloudFile(
+      String path, Stream<String> contentsToWrite, String projectId) {
     logger.info("Writing contents to {}", path);
     Storage storage = gcsProjectFactory.getStorage(projectId);
     var blob = getBlobFromGsPath(storage, path, projectId);

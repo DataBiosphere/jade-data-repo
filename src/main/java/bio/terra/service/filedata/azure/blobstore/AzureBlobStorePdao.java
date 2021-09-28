@@ -5,7 +5,10 @@ import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
+import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedWriter;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
@@ -17,6 +20,7 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
@@ -24,12 +28,15 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AzureBlobStorePdao {
+public class AzureBlobStorePdao implements CloudFileReader {
 
   private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
   private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
@@ -113,6 +120,48 @@ public class AzureBlobStorePdao {
         .checksumMd5(Base64.getEncoder().encodeToString((blobProperties.getContentMd5())))
         .size(blobProperties.getBlobSize())
         .bucketResourceId(storageAccountResource.getResourceId().toString());
+  }
+
+  /**
+   * Gets all the lines from a source Azure blob as a Stream of strings. This stream MUST be
+   * explicitly closed by the calling method.
+   *
+   * @param blobUrl url to a source blob
+   * @param tenantId tenantId as String for interface compatibility
+   * @return A Stream of String lines.
+   */
+  @SuppressFBWarnings("OS_OPEN_STREAM")
+  @Override
+  public Stream<String> getBlobsLinesStream(String blobUrl, String tenantId) {
+    UUID tenantUuid = UUID.fromString(tenantId);
+    String signedBlobUrl = getOrSignUrlStringForSourceFactory(blobUrl, tenantUuid);
+    AzureBlobStoreBufferedReader azureBlobStoreBufferedReader =
+        new AzureBlobStoreBufferedReader(signedBlobUrl);
+    return azureBlobStoreBufferedReader.lines();
+  }
+
+  public void writeBlobLines(String signedPath, Stream<String> lines) {
+    var newLine = "\n";
+    try (AzureBlobStoreBufferedWriter writer = new AzureBlobStoreBufferedWriter(signedPath)) {
+      lines.forEach(
+          line -> {
+            try {
+              writer.write(line);
+              writer.write(newLine);
+            } catch (IOException ex) {
+              throw new AzureResourceException(
+                  String.format(
+                      "Could not write to Azure file at %s. Line: %s",
+                      BlobUrlParts.parse(signedPath).getBlobName(), line),
+                  ex);
+            }
+          });
+    } catch (IOException ex) {
+      throw new AzureResourceException(
+          String.format(
+              "Could not write to Azure file at %s", BlobUrlParts.parse(signedPath).getBlobName()),
+          ex);
+    }
   }
 
   public BlobContainerClientFactory buildSourceClientFactory(UUID tenantId, String blobUrl) {
@@ -259,12 +308,23 @@ public class AzureBlobStorePdao {
   public BlobUrlParts getOrSignUrlForTargetFactory(
       String dataSourceUrl,
       BillingProfileModel profileModel,
-      AzureStorageAccountResource storageAccount) {
+      AzureStorageAccountResource storageAccount,
+      ContainerType containerType) {
+    return BlobUrlParts.parse(
+        getOrSignUrlStringForTargetFactory(
+            dataSourceUrl, profileModel, storageAccount, containerType));
+  }
+
+  public String getOrSignUrlStringForTargetFactory(
+      String dataSourceUrl,
+      BillingProfileModel profileModel,
+      AzureStorageAccountResource storageAccount,
+      ContainerType containerType) {
     BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
     String blobName = ingestControlFileBlobUrl.getBlobName();
 
     BlobContainerClientFactory targetDataClientFactory =
-        getTargetDataClientFactory(profileModel, storageAccount, ContainerType.METADATA, false);
+        getTargetDataClientFactory(profileModel, storageAccount, containerType, false);
 
     // Given the sas token, rebuild a signed url
     BlobSasTokenOptions options =
@@ -275,9 +335,7 @@ public class AzureBlobStorePdao {
                 .setListPermission(true)
                 .setWritePermission(true),
             AzureBlobStorePdao.class.getName());
-    String signedURL =
-        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
-    return BlobUrlParts.parse(signedURL);
+    return targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
   }
 
   @VisibleForTesting

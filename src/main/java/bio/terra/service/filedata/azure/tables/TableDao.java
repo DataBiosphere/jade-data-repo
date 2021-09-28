@@ -10,6 +10,8 @@ import bio.terra.service.filedata.FSDir;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSItem;
 import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.VirtualFileSystemUtils;
+import bio.terra.service.filedata.VirutalFileSystemHelper;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;

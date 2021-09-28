@@ -76,7 +76,7 @@ public class SearchServiceTest {
 
   @Before
   public void setup() throws Exception {
-    service = new SearchService(bigQueryPdao, snapshotSearchMetadataDao, client);
+    service = new SearchService(bigQueryPdao, client);
 
     searchIndexRequest = getSearchIndexRequest();
     snapshot = getSnapshot();

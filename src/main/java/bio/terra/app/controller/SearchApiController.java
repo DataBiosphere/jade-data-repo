@@ -85,11 +85,13 @@ public class SearchApiController implements SearchApi {
   }
 
   @Override
-  public ResponseEntity<Object> enumerateSnapshotSearch() {
-    List<UUID> authorizedSnapshotIds =
+  public ResponseEntity<String> enumerateSnapshotSearch() {
+    List<UUID> ids =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
-    Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(authorizedSnapshotIds);
-    return ResponseEntity.ok(metadata.values());
+    Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(ids);
+    // Create the JSON result "by hand" to avoid having to round trip the data to JsonNode.
+    String response = String.format("{ \"result\": [ %s ] }", String.join(",", metadata.values()));
+    return ResponseEntity.ok(response);
   }
 
   @Override
@@ -159,7 +161,7 @@ public class SearchApiController implements SearchApi {
               + getAuthenticatedInfo().getEmail()
               + "' does not have required action: "
               + IamAction.READ_DATA
-              + " on snapshot ids"
+              + " on snapshot ids "
               + inaccessibleIds);
     }
 

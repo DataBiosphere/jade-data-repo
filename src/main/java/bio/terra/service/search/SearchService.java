@@ -46,20 +46,15 @@ import org.springframework.stereotype.Component;
 public class SearchService {
 
   private final BigQueryPdao bigQueryPdao;
-  private final SnapshotSearchMetadataDao snapshotSearchMetadataDao;
   private final RestHighLevelClient client;
 
   @Value("${elasticsearch.numShards}")
   private int NUM_SHARDS;
 
   @Autowired
-  public SearchService(
-      BigQueryPdao bigQueryPdao,
-      SnapshotSearchMetadataDao snapshotSearchMetadataDao,
-      RestHighLevelClient client) {
+  public SearchService(BigQueryPdao bigQueryPdao, RestHighLevelClient client) {
     this.bigQueryPdao = bigQueryPdao;
     this.client = client;
-    this.snapshotSearchMetadataDao = snapshotSearchMetadataDao;
   }
 
   private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {

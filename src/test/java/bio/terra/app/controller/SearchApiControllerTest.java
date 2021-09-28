@@ -23,6 +23,7 @@ import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -86,12 +87,17 @@ public class SearchApiControllerTest {
   @Test
   public void testEnumerateSnapshotSearch() throws Exception {
     var endpoint = "/api/repository/v1/search/metadata";
-    List<UUID> uuids = List.of(UUID.randomUUID());
+    var json = "{\"test\":\"data\"}";
+    UUID uuid = UUID.randomUUID();
+    List<UUID> uuids = List.of(uuid);
     when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
         .thenReturn(uuids);
-    mvc.perform(get(endpoint)).andExpect(status().isOk());
+    when(snapshotMetadataDao.getMetadata(uuids)).thenReturn(Map.of(uuid, json));
+    mvc.perform(get(endpoint))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.result[0].test").value("data"));
     verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
-    verify(snapshotMetadataDao).getMetadata(eq(uuids));
+    verify(snapshotMetadataDao).getMetadata(uuids);
   }
 
   @Test

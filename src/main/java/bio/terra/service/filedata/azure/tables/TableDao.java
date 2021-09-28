@@ -14,6 +14,7 @@ import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
@@ -52,6 +53,7 @@ public class TableDao {
   private final TableFileDao fileDao;
   private final AzureAuthService azureAuthService;
   private final ConfigurationService configurationService;
+  private final ResourceService resourceService;
   private final PerformanceLogger performanceLogger;
 
   @Autowired
@@ -61,11 +63,13 @@ public class TableDao {
       AzureAuthService azureAuthService,
       FileMetadataUtils fileMetadataUtils,
       ConfigurationService configurationService,
+      ResourceService resourceService,
       PerformanceLogger performanceLogger) {
     this.directoryDao = directoryDao;
     this.fileDao = fileDao;
     this.azureAuthService = azureAuthService;
     this.configurationService = configurationService;
+    this.resourceService = resourceService;
     this.performanceLogger = performanceLogger;
   }
 
@@ -121,12 +125,15 @@ public class TableDao {
     return fileDao.retrieveFileMetadata(tableServiceClient, fileId);
   }
 
-  public void snapshotCompute(Snapshot snapshot, AzureStorageAuthInfo storageAuthInfo)
+  public void snapshotCompute(
+      Snapshot snapshot,
+      TableServiceClient snapshotTableServiceClient,
+      TableServiceClient datasetTableServiceClient)
       throws InterruptedException {
-    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+
     String snapshotId = snapshot.getId().toString();
     FireStoreDirectoryEntry topDir =
-        directoryDao.retrieveByPath(tableServiceClient, snapshotId, "/");
+        directoryDao.retrieveByPath(snapshotTableServiceClient, snapshotId, "/");
     // If topDir is null, it means no files were added to the snapshot file system in the previous
     // step. So there is nothing to compute
     if (topDir != null) {
@@ -136,7 +143,8 @@ public class TableDao {
 
       String retrieveTimer = performanceLogger.timerStart();
 
-      StorageTableFileSystemHelper helper = getHelper(tableServiceClient);
+      StorageTableFileSystemHelper helper =
+          getHelper(datasetTableServiceClient, snapshotTableServiceClient);
       VirtualFileSystemUtils.computeDirectory(helper, topDir, updateBatch);
 
       performanceLogger.timerEndAndLog(
@@ -146,7 +154,7 @@ public class TableDao {
           "tableDao.computeDirectoryGetMetadata");
 
       // Write the last batch out
-      directoryDao.batchStoreDirectoryEntry(tableServiceClient, updateBatch);
+      directoryDao.batchStoreDirectoryEntry(snapshotTableServiceClient, updateBatch);
     }
   }
 
@@ -391,11 +399,14 @@ public class TableDao {
   }
 
   // TODO: Implement computeDirectory to recursively compute the size and checksums of a directory
-  public StorageTableFileSystemHelper getHelper(TableServiceClient tableServiceClient) {
+
+  public StorageTableFileSystemHelper getHelper(
+      TableServiceClient datasetTableServiceClient, TableServiceClient snapshotTableServiceClient) {
     return new StorageTableFileSystemHelper(
         directoryDao,
         fileDao,
-        tableServiceClient,
+        datasetTableServiceClient,
+        snapshotTableServiceClient,
         configurationService.getParameterValue(ConfigEnum.AZURE_SNAPSHOT_BATCH_SIZE));
   }
 
@@ -403,29 +414,32 @@ public class TableDao {
 
     private final TableDirectoryDao directoryDao;
     private final TableFileDao fileDao;
-    private final TableServiceClient tableServiceClient;
+    private final TableServiceClient datasetTableServiceClient;
+    private final TableServiceClient snapshotTableServiceClient;
     private final Integer snapshotBatchSize;
 
     StorageTableFileSystemHelper(
         TableDirectoryDao directoryDao,
         TableFileDao fileDao,
-        TableServiceClient tableServiceClient,
+        TableServiceClient datasetTableServiceClient,
+        TableServiceClient snapshotTableServiceClient,
         Integer snapshotBatchSize) {
       this.directoryDao = directoryDao;
       this.fileDao = fileDao;
-      this.tableServiceClient = tableServiceClient;
+      this.datasetTableServiceClient = datasetTableServiceClient;
+      this.snapshotTableServiceClient = snapshotTableServiceClient;
       this.snapshotBatchSize = snapshotBatchSize;
     }
 
     @Override
     public List<FireStoreFile> batchRetrieveFileMetadata(
         Map.Entry<String, List<FireStoreDirectoryEntry>> entry) {
-      return fileDao.batchRetrieveFileMetadata(tableServiceClient, entry.getValue());
+      return fileDao.batchRetrieveFileMetadata(datasetTableServiceClient, entry.getValue());
     }
 
     @Override
     public List<FireStoreDirectoryEntry> enumerateDirectory(String dirPath) {
-      return directoryDao.enumerateDirectory(tableServiceClient, dirPath);
+      return directoryDao.enumerateDirectory(snapshotTableServiceClient, dirPath);
     }
 
     @Override
@@ -434,7 +448,7 @@ public class TableDao {
       updateBatch.add(entry);
       if (updateBatch.size() >= snapshotBatchSize) {
         logger.info("Snapshot compute updating batch of {} directory entries", snapshotBatchSize);
-        directoryDao.batchStoreDirectoryEntry(tableServiceClient, updateBatch);
+        directoryDao.batchStoreDirectoryEntry(snapshotTableServiceClient, updateBatch);
         updateBatch.clear();
       }
     }

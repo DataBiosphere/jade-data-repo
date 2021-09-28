@@ -528,34 +528,34 @@ public class FireStoreDao {
     return new FirestoreFileSystemHelper(
         fileDao,
         directoryDao,
-        configurationService,
         datasetFirestore,
         snapshotFirestore,
-        snapshotId);
+        snapshotId,
+        configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE));
   }
 
   static class FirestoreFileSystemHelper implements VirutalFileSystemHelper {
 
     private final FireStoreFileDao fileDao;
     private final FireStoreDirectoryDao directoryDao;
-    private final ConfigurationService configurationService;
     private final Firestore datasetFirestore;
     private final Firestore snapshotFirestore;
     private final String snapshotId;
+    private final Integer snapshotBatchSize;
 
     FirestoreFileSystemHelper(
         FireStoreFileDao fileDao,
         FireStoreDirectoryDao directoryDao,
-        ConfigurationService configurationService,
         Firestore datasetFirestore,
         Firestore snapshotFirestore,
-        String snapshotId) {
+        String snapshotId,
+        Integer snapshotBatchSize) {
       this.fileDao = fileDao;
       this.directoryDao = directoryDao;
       this.datasetFirestore = datasetFirestore;
       this.snapshotFirestore = snapshotFirestore;
       this.snapshotId = snapshotId;
-      this.configurationService = configurationService;
+      this.snapshotBatchSize = snapshotBatchSize;
     }
 
     @Override
@@ -576,9 +576,8 @@ public class FireStoreDao {
         throws InterruptedException {
 
       updateBatch.add(entry);
-      int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
-      if (updateBatch.size() >= batchSize) {
-        logger.info("Snapshot compute updating batch of {} directory entries", batchSize);
+      if (updateBatch.size() >= snapshotBatchSize) {
+        logger.info("Snapshot compute updating batch of {} directory entries", snapshotBatchSize);
         directoryDao.batchStoreDirectoryEntry(snapshotFirestore, snapshotId, updateBatch);
         updateBatch.clear();
       }

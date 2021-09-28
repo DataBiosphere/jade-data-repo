@@ -45,7 +45,7 @@ def get_files(hit):
     return files
 
 
-def get_samples(hit):
+def get_sample_ids(hit):
     samples = []
     for sample in hit["samples"]:
         for id in sample["id"]:
@@ -54,8 +54,84 @@ def get_samples(hit):
     return samples
 
 
-def get_donors(hit):
-    assert len(hit["donorOrganisms"]) <= 1
+def get_modalities(hit):
+    modalityMap = {
+        "10x sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10X 3' v1 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10x 3' v2": ["TerraCoreValueSets:Transcriptomic"],
+        "10x 3' v2 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10X 3' v2 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10X 3' V2 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10x 3' V2 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10x 3' v3": ["TerraCoreValueSets:Transcriptomic"],
+        "10x 3' v3 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10X 3' v3 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10x 5' v1": ["TerraCoreValueSets:Transcriptomic"],
+        "10X 5' v2 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10x v2 3'": ["TerraCoreValueSets:Transcriptomic"],
+        "10x v2 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10X v2 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "10x v3 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "CITE-seq": [
+            "TerraCoreValueSets:Transcriptomic",
+            "TerraCoreValueSets:Proteomic",
+        ],
+        "Smart-seq": ["TerraCoreValueSets:Transcriptomic"],
+        "Smart-Seq": ["TerraCoreValueSets:Transcriptomic"],
+        "Smart-seq2": ["TerraCoreValueSets:Transcriptomic"],
+        "Smart-like": ["TerraCoreValueSets:Transcriptomic"],
+        "Drop-seq": ["TerraCoreValueSets:Transcriptomic"],
+        "Drop-Seq": ["TerraCoreValueSets:Transcriptomic"],
+        "10X Feature Barcoding technology for cell surface proteins": [
+            "TerraCoreValueSets:Transcriptomic",
+            "TerraCoreValueSets:Proteomic",
+        ],
+        "10X Gene Expression Library": [
+            "TerraCoreValueSets:Transcriptomic",
+            "TerraCoreValueSets:Proteomic",
+        ],
+        "10x Ig enrichment": ["TerraCoreValueSets:Transcriptomic"],
+        "10x TCR enrichment": ["TerraCoreValueSets:Transcriptomic"],
+        "10X TCR enrichment": ["TerraCoreValueSets:Transcriptomic"],
+        "Fluidigm C1-based library preparation": ["TerraCoreValueSets:Transcriptomic"],
+        "barcoded plate-based single cell RNA-seq": [
+            "TerraCoreValueSets:Transcriptomic"
+        ],
+        "cDNA library construction": ["TerraCoreValueSets:Transcriptomic"],
+        "ATAC 10x v1": ["TerraCoreValueSets:Epigenomic"],
+        "inDrop": ["TerraCoreValueSets:Transcriptomic"],
+        "DNA library construction": ["TerraCoreValueSets:Genomic"],
+        "sci-CAR": ["TerraCoreValueSets:Transcriptomic"],
+        "sci-RNA-seq": ["TerraCoreValueSets:Transcriptomic"],
+        "DroNc-Seq": ["TerraCoreValueSets:Transcriptomic"],
+        "MARS-seq": ["TerraCoreValueSets:Transcriptomic"],
+    }
+
+    assayTypeMap = {
+        "single cell": "scRNA-seq",
+        "single nucleus": "snRNA-seq",
+        "bulk cell": "RNA-seq",
+        "bulk nuclei": "nuc-seq",
+    }
+
+    assays = []
+    assayTypes = []
+    modalities = []
+    for protocol in hit["protocols"]:
+        if "libraryConstructionApproach" in protocol:
+            for assay in protocol["libraryConstructionApproach"]:
+                assert assay in modalityMap
+                assays.append(assay)
+                modalities.extend(modalityMap[assay])
+        if "nucleicAcidSource" in protocol:
+            for source in protocol["nucleicAcidSource"]:
+                assayTypes.append(assayTypeMap[source])
+
+    return list(set(assays)), list(set(modalities)), list(set(assayTypes))
+
+
+def get_content(hit, dataTypes):
+    assert len(hit["donorOrganisms"]) in [0, 1]
 
     genus = []
     disease = []
@@ -64,9 +140,7 @@ def get_donors(hit):
         genus.extend(filter(None, donor["genusSpecies"]))
         disease.extend(filter(None, donor["disease"]))
 
-    donors = {"genus": genus, "disease": disease}
-
-    return donors
+    return {"genus": genus, "disease": disease, "dataType": dataTypes}
 
 
 with open("hca-projects.json", "r") as f:
@@ -74,6 +148,8 @@ with open("hca-projects.json", "r") as f:
 
 with open("hca-snapshots.json", "r") as f:
     snapshots = json.load(f)
+
+assert len(projects) == 1
 
 data = []
 for hit in projects[0]["hits"]:
@@ -85,7 +161,9 @@ for hit in projects[0]["hits"]:
     project = hit["projects"][0]
     snapshot = snapshots[project["projectId"]]
 
-    get_samples(hit)
+    get_sample_ids(hit)
+
+    assays, modalities, assayTypes = get_modalities(hit)
 
     obj = {
         "dct:identifier": snapshot["id"],
@@ -108,6 +186,8 @@ for hit in projects[0]["hits"]:
                 "dct:modified": now(),
             }
         ],
+        "TerraCore:hasDataModality": modalities,
+        "TerraCore:hasAssayType": assays,
         "storage": snapshot["storage"],
         "counts": {
             "donors": sum(d["donorCount"] for d in hit["donorOrganisms"]),
@@ -115,7 +195,7 @@ for hit in projects[0]["hits"]:
             "files": sum(f["count"] for f in hit["fileTypeSummaries"]),
         },
         "files": get_files(hit),
-        "donors": get_donors(hit),
+        "content": get_content(hit, assayTypes),
         "contributors": project["contributors"],
     }
     data.append(obj)

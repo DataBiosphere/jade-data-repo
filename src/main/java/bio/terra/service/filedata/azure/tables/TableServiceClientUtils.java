@@ -7,6 +7,9 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.ListTablesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableItem;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TableServiceClientUtils {
 
@@ -34,5 +37,25 @@ public class TableServiceClientUtils {
     PagedIterable<TableItem> retrievedTableItems =
         tableServiceClient.listTables(options, null, null);
     return retrievedTableItems.iterator().hasNext();
+  }
+
+  public static List<TableEntity> filterTable(
+      TableServiceClient tableServiceClient, String tableName, String filter) {
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
+    ListEntitiesOptions options = new ListEntitiesOptions().setFilter(filter);
+    if (TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName, options)) {
+      return tableClient.listEntities(options, null, null).stream().collect(Collectors.toList());
+    }
+    return Collections.emptyList();
+  }
+
+  public static List<TableEntity> batchRetrieveFiles(
+      TableServiceClient tableServiceClient, String tableName, List<String> fileIdArray) {
+    String filter =
+        fileIdArray.stream()
+            // maybe wrap or cause in parenthesis
+            .map(refId -> String.format("fileId eq '%s'", refId))
+            .collect(Collectors.joining(" or "));
+    return filterTable(tableServiceClient, tableName, filter);
   }
 }

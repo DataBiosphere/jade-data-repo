@@ -180,26 +180,22 @@ public class TableDirectoryDao {
   public List<String> validateRefIds(
       TableServiceClient tableServiceClient, List<String> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     return ListUtils.partition(refIdArray, MAX_FILTER_CLAUSES).stream()
         .flatMap(
-            refIds -> {
-              String filter =
-                  refIds.stream()
-                      .map(refId -> String.format("fileId eq '%s'", refId))
-                      .collect(Collectors.joining(" or "));
-              ListEntitiesOptions options = new ListEntitiesOptions().setFilter(filter);
-              // Check to see if table has entities to avoid NPEs
-              if (!TableServiceClientUtils.tableHasEntries(
-                  tableServiceClient, TABLE_NAME, options)) {
-                return refIds.stream();
+            refIdChunk -> {
+              List<TableEntity> fileRefs =
+                  TableServiceClientUtils.batchRetrieveFiles(
+                      tableServiceClient, TABLE_NAME, refIdChunk);
+              // if no files were retrieved, then every file in list is not valid
+              if (fileRefs.isEmpty()) {
+                return refIdChunk.stream();
               }
-              PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+              // if any files were retrieved, then remove from invalid list
               Set<String> validRefIds =
-                  entities.stream()
+                  fileRefs.stream()
                       .map(e -> e.getProperty("fileId").toString())
                       .collect(Collectors.toSet());
-              return refIds.stream().filter(id -> !validRefIds.contains(id));
+              return refIdChunk.stream().filter(id -> !validRefIds.contains(id));
             })
         .collect(Collectors.toList());
   }

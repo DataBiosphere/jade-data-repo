@@ -179,7 +179,7 @@ public class TableDaoConnectedTest {
     directories.add("/_dr_" + datasetNamePlaceholder + "/test/path");
     String baseTargetPath = "/_dr_" + datasetNamePlaceholder + targetBasePathFormat;
     for (int i = 0; i < numFilesToLoad; i++) {
-      directories.add(String.format(baseTargetPath, i));
+      directories.add(String.format(baseTargetPath, "path", i));
     }
     directories.add("/_dr_" + datasetNamePlaceholder + "/test/diffpath");
     directories.add(

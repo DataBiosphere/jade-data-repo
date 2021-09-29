@@ -109,7 +109,14 @@ public class TableDirectoryDao {
       // time upsert rather than create so that it does not fail if it already exists
       tableClient.upsertEntity(entity);
     }
+    createEntityForPath(tableClient, collectionId, tableName, createEntry);
+  }
 
+  private void createEntityForPath(
+      TableClient tableClient,
+      String collectionId,
+      String tableName,
+      FireStoreDirectoryEntry createEntry) {
     String fullPath = fileMetadataUtils.getFullPath(createEntry.getPath(), createEntry.getName());
     String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
     String partitionKey = getPartitionKey(collectionId, lookupPath);
@@ -430,8 +437,6 @@ public class TableDirectoryDao {
         topDir);
   }
 
-  // TODO - make sure these are actually adding the right entries
-  // TODO - Figure out why you can't see the entries in azure portal
   private void batchStoreDirectoryEntry(
       TableServiceClient snapshotTableServiceClient,
       String snapshotId,
@@ -439,19 +444,8 @@ public class TableDirectoryDao {
     String tableName =
         StorageTableUtils.toTableName(
             snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
-    logger.info("Num Snapshot entries: {}", snapshotEntries.size());
     TableClient tableClient = snapshotTableServiceClient.getTableClient(tableName);
-    snapshotEntries.stream()
-        .forEach(
-            entry -> {
-              String fullPath = fileMetadataUtils.getFullPath(entry.getPath(), entry.getName());
-              String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
-              String partitionKey = getPartitionKey(snapshotId, lookupPath);
-              String rowKey = encodePathAsAzureRowKey(lookupPath);
-              TableEntity createEntryEntity =
-                  FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, entry);
-              logger.info("Creating directory entry for {} in table {}", fullPath, tableName);
-              tableClient.createEntity(createEntryEntity);
-            });
+    snapshotEntries.forEach(
+        snapshotEntry -> createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry));
   }
 }

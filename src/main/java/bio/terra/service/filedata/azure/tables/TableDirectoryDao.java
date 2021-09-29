@@ -416,8 +416,4 @@ public class TableDirectoryDao {
     snapshotEntries.forEach(
         snapshotEntry -> createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry));
   }
-  public void batchStoreDirectoryEntry(
-      TableServiceClient tableServiceClient, List<FireStoreDirectoryEntry> updateBatch) {
-    updateBatch.forEach(entry -> createDirectoryEntry(tableServiceClient, entry));
-  }
 }

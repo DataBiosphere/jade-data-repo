@@ -134,8 +134,11 @@ public class TableDao {
       throws InterruptedException {
 
     String snapshotId = snapshot.getId().toString();
+    String snapshotTableName =
+        StorageTableUtils.toTableName(
+            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
     FireStoreDirectoryEntry topDir =
-        directoryDao.retrieveByPath(snapshotTableServiceClient, snapshotId, "/");
+        directoryDao.retrieveByPath(snapshotTableServiceClient, snapshotId, snapshotTableName, "/");
     // If topDir is null, it means no files were added to the snapshot file system in the previous
     // step. So there is nothing to compute
     if (topDir != null) {
@@ -146,7 +149,7 @@ public class TableDao {
       String retrieveTimer = performanceLogger.timerStart();
 
       StorageTableFileSystemHelper helper =
-          getHelper(datasetTableServiceClient, snapshotTableServiceClient);
+          getHelper(datasetTableServiceClient, snapshotTableServiceClient, snapshotId);
       VirtualFileSystemUtils.computeDirectory(helper, topDir, updateBatch);
 
       performanceLogger.timerEndAndLog(
@@ -156,7 +159,7 @@ public class TableDao {
           "tableDao.computeDirectoryGetMetadata");
 
       // Write the last batch out
-      directoryDao.batchStoreDirectoryEntry(snapshotTableServiceClient, updateBatch);
+      directoryDao.batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, updateBatch);
     }
   }
 
@@ -403,12 +406,13 @@ public class TableDao {
   // TODO: Implement computeDirectory to recursively compute the size and checksums of a directory
 
   public StorageTableFileSystemHelper getHelper(
-      TableServiceClient datasetTableServiceClient, TableServiceClient snapshotTableServiceClient) {
+      TableServiceClient datasetTableServiceClient, TableServiceClient snapshotTableServiceClient, String snapshotId) {
     return new StorageTableFileSystemHelper(
         directoryDao,
         fileDao,
         datasetTableServiceClient,
         snapshotTableServiceClient,
+        snapshotId,
         configurationService.getParameterValue(ConfigEnum.AZURE_SNAPSHOT_BATCH_SIZE));
   }
 
@@ -418,19 +422,25 @@ public class TableDao {
     private final TableFileDao fileDao;
     private final TableServiceClient datasetTableServiceClient;
     private final TableServiceClient snapshotTableServiceClient;
+    private final String snapshotId;
     private final Integer snapshotBatchSize;
+    private final String snapshotTableName;
 
     StorageTableFileSystemHelper(
         TableDirectoryDao directoryDao,
         TableFileDao fileDao,
         TableServiceClient datasetTableServiceClient,
         TableServiceClient snapshotTableServiceClient,
-        Integer snapshotBatchSize) {
+        String snapshotId, Integer snapshotBatchSize) {
       this.directoryDao = directoryDao;
       this.fileDao = fileDao;
       this.datasetTableServiceClient = datasetTableServiceClient;
       this.snapshotTableServiceClient = snapshotTableServiceClient;
+      this.snapshotId = snapshotId;
       this.snapshotBatchSize = snapshotBatchSize;
+      this.snapshotTableName =
+          StorageTableUtils.toTableName(
+              snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
     }
 
     @Override
@@ -441,7 +451,7 @@ public class TableDao {
 
     @Override
     public List<FireStoreDirectoryEntry> enumerateDirectory(String dirPath) {
-      return directoryDao.enumerateDirectory(snapshotTableServiceClient, dirPath);
+      return directoryDao.enumerateDirectory(snapshotTableServiceClient, snapshotTableName, dirPath);
     }
 
     @Override
@@ -450,7 +460,7 @@ public class TableDao {
       updateBatch.add(entry);
       if (updateBatch.size() >= snapshotBatchSize) {
         logger.info("Snapshot compute updating batch of {} directory entries", snapshotBatchSize);
-        directoryDao.batchStoreDirectoryEntry(snapshotTableServiceClient, updateBatch);
+        directoryDao.batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, updateBatch);
         updateBatch.clear();
       }
     }

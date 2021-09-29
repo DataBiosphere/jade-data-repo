@@ -32,7 +32,8 @@ public class StorageTableUtils {
 
   public enum StorageTableNameSuffix {
     SNAPSHOT("snapshot"),
-    LOAD_HISTORY("loadHistory");
+    LOAD_HISTORY("loadHistory"),
+    DEPENDENCIES("dependencies");
 
     public final String label;
 

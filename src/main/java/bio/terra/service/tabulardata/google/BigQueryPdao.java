@@ -849,16 +849,17 @@ public class BigQueryPdao {
     }
     LoadJobConfiguration configuration = loadBuilder.build();
     Job loadJob;
-    try {
-      loadJob = ingestData(bigQuery, path, configuration);
-    } catch (IngestFailureException e) {
-      // Try ingesting without the datarepo_row_id column
+
+    if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV
+        && ingestRequest.isCsvAddRowIds()) {
+      // Ingest without the datarepo_row_id column
       Schema noRowIds = buildSchema(targetTable, false);
       loadBuilder.setSchema(noRowIds);
       loadJob = ingestData(bigQuery, path, loadBuilder.build());
-
       // Then add the datarepo_row_id column to the schema
       updateSchema(bigQuery, bqDatasetId, stagingTableName, schema);
+    } else {
+      loadJob = ingestData(bigQuery, path, configuration);
     }
 
     JobStatistics.LoadStatistics loadStatistics = loadJob.getStatistics();
@@ -871,9 +872,9 @@ public class BigQueryPdao {
     return pdaoLoadStatistics;
   }
 
-  private void updateSchema(BigQuery bigQuery, String bqDatasetId, String stagingTableName, Schema newSchema) {
-    com.google.cloud.bigquery.Table table =
-        bigQuery.getTable(bqDatasetId, stagingTableName);
+  private void updateSchema(
+      BigQuery bigQuery, String bqDatasetId, String stagingTableName, Schema newSchema) {
+    com.google.cloud.bigquery.Table table = bigQuery.getTable(bqDatasetId, stagingTableName);
     com.google.cloud.bigquery.Table updatedTable =
         table.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
     updatedTable.update();

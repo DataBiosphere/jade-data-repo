@@ -65,6 +65,7 @@ import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
@@ -821,7 +822,8 @@ public class BigQueryPdao {
 
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
     BigQuery bigQuery = bigQueryProject.getBigQuery();
-    TableId tableId = TableId.of(prefixName(dataset.getName()), stagingTableName);
+    String bqDatasetId = prefixName(dataset.getName());
+    TableId tableId = TableId.of(bqDatasetId, stagingTableName);
     Schema schema = buildSchema(targetTable, true); // Source does not have row_id
     LoadJobConfiguration.Builder loadBuilder =
         LoadJobConfiguration.builder(tableId, path)
@@ -846,7 +848,39 @@ public class BigQueryPdao {
           (ingestRequest.getCsvNullMarker() == null) ? "" : ingestRequest.getCsvNullMarker());
     }
     LoadJobConfiguration configuration = loadBuilder.build();
+    Job loadJob;
+    try {
+      loadJob = ingestData(bigQuery, path, configuration);
+    } catch (IngestFailureException e) {
+      // Try ingesting without the datarepo_row_id column
+      Schema noRowIds = buildSchema(targetTable, false);
+      loadBuilder.setSchema(noRowIds);
+      loadJob = ingestData(bigQuery, path, loadBuilder.build());
 
+      // Then add the datarepo_row_id column to the schema
+      updateSchema(bigQuery, bqDatasetId, stagingTableName, schema);
+    }
+
+    JobStatistics.LoadStatistics loadStatistics = loadJob.getStatistics();
+    PdaoLoadStatistics pdaoLoadStatistics =
+        new PdaoLoadStatistics()
+            .badRecords(loadStatistics.getBadRecords())
+            .rowCount(loadStatistics.getOutputRows())
+            .startTime(Instant.ofEpochMilli(loadStatistics.getStartTime()))
+            .endTime(Instant.ofEpochMilli(loadStatistics.getEndTime()));
+    return pdaoLoadStatistics;
+  }
+
+  private void updateSchema(BigQuery bigQuery, String bqDatasetId, String stagingTableName, Schema newSchema) {
+    com.google.cloud.bigquery.Table table =
+        bigQuery.getTable(bqDatasetId, stagingTableName);
+    com.google.cloud.bigquery.Table updatedTable =
+        table.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
+    updatedTable.update();
+  }
+
+  private Job ingestData(BigQuery bigQuery, String path, LoadJobConfiguration configuration)
+      throws InterruptedException {
     Job loadJob = bigQuery.create(JobInfo.of(configuration));
     Instant loadJobMaxTime = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(20L));
     while (!loadJob.isDone()) {
@@ -883,17 +917,7 @@ public class BigQueryPdao {
       throw new IngestFailureException(
           "Ingest failed with " + loadErrors.size() + " errors - see error details", loadErrors);
     }
-
-    // Job completed successfully
-    JobStatistics.LoadStatistics loadStatistics = loadJob.getStatistics();
-
-    PdaoLoadStatistics pdaoLoadStatistics =
-        new PdaoLoadStatistics()
-            .badRecords(loadStatistics.getBadRecords())
-            .rowCount(loadStatistics.getOutputRows())
-            .startTime(Instant.ofEpochMilli(loadStatistics.getStartTime()))
-            .endTime(Instant.ofEpochMilli(loadStatistics.getEndTime()));
-    return pdaoLoadStatistics;
+    return loadJob;
   }
 
   private static final String addRowIdsToStagingTableTemplate =

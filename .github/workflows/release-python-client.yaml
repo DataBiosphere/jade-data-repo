@@ -36,6 +36,7 @@ jobs:
           openapi-generator-cli generate \
           -i src/main/resources/api/data-repository-openapi.yaml \
           -g python \
+          -o data-repo-client \
           --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER} \
           --skip-validate-spec
 #      - name: Generate Python client with openapi-generator

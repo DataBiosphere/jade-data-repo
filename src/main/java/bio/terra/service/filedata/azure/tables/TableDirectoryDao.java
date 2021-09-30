@@ -346,7 +346,7 @@ public class TableDirectoryDao {
       List<String> fileIds) {
     LRUMap<String, Boolean> pathMap = new LRUMap<>(MAX_FILTER_CLAUSES);
     storeTopDirectory(snapshotTableServiceClient, snapshotId, datasetDirName);
-    ListUtils.partition(fileIds, MAX_FILTER_CLAUSES).stream()
+    ListUtils.partition(fileIds, MAX_FILTER_CLAUSES)
         .forEach(
             fileIdsBatch -> {
               List<TableEntity> entities =

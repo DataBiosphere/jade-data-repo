@@ -30,7 +30,7 @@ jobs:
       - name: set version to 4.3.1
         run: openapi-generator-cli version-manager set 4.3.1
       - name: make output directory
-        run: pwd
+        run: mkdir -p github/workspace/data-repo-client
       - name: Generate Python client
         run: |
           openapi-generator-cli generate \

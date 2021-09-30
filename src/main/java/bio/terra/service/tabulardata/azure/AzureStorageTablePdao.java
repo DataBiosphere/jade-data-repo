@@ -1,9 +1,10 @@
 package bio.terra.service.tabulardata.azure;
 
+import static bio.terra.service.common.azure.StorageTableUtils.NameSuffix.LOAD_HISTORY;
+
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.service.common.azure.StorageTableUtils;
-import bio.terra.service.common.azure.StorageTableUtils.StorageTableNameSuffix;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.tabulardata.LoadHistoryUtil;
 import com.azure.data.tables.TableClient;
@@ -50,7 +51,7 @@ public class AzureStorageTablePdao {
     if (loadHistoryArray.isEmpty()) {
       return;
     }
-    var tableName = StorageTableUtils.toTableName(datasetId, StorageTableNameSuffix.LOAD_HISTORY);
+    var tableName = StorageTableUtils.toTableName(datasetId, LOAD_HISTORY);
     TableClient client = serviceClient.createTableIfNotExists(tableName);
     // if the table already exists, the returned client is null and we have to get it explicitly
     if (client == null) {
@@ -110,8 +111,7 @@ public class AzureStorageTablePdao {
       int offset,
       int limit) {
     var tableClient =
-        tableServiceClient.getTableClient(
-            StorageTableUtils.toTableName(datasetId, StorageTableNameSuffix.LOAD_HISTORY));
+        tableServiceClient.getTableClient(StorageTableUtils.toTableName(datasetId, LOAD_HISTORY));
     var internalLoadTag = computeInternalLoadTag(loadTag);
     ListEntitiesOptions options =
         new ListEntitiesOptions()

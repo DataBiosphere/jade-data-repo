@@ -1,7 +1,8 @@
 package bio.terra.service.filedata.azure.tables;
 
+import static bio.terra.service.common.azure.StorageTableUtils.NameSuffix.DEPENDENCIES;
+
 import bio.terra.service.common.azure.StorageTableUtils;
-import bio.terra.service.common.azure.StorageTableUtils.StorageTableNameSuffix;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
@@ -33,8 +34,7 @@ public class TableDependencyDao {
 
     // We construct the snapshot file system without using transactions. We can get away with that,
     // because no one can access this snapshot during its creation.
-    String dependencyTableName =
-        StorageTableUtils.toTableName(datasetId, StorageTableNameSuffix.DEPENDENCIES);
+    String dependencyTableName = StorageTableUtils.toTableName(datasetId, DEPENDENCIES);
     tableServiceClient.createTableIfNotExists(dependencyTableName);
     TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
     // The partition size is one less than the MAX_FILTER_CLAUSES to account for the snapshotId
@@ -76,8 +76,7 @@ public class TableDependencyDao {
 
   public void deleteSnapshotFileDependencies(
       TableServiceClient tableServiceClient, UUID datasetId, UUID snapshotId) {
-    String dependencyTableName =
-        StorageTableUtils.toTableName(datasetId, StorageTableNameSuffix.DEPENDENCIES);
+    String dependencyTableName = StorageTableUtils.toTableName(datasetId, DEPENDENCIES);
     ;
     if (TableServiceClientUtils.tableHasEntries(tableServiceClient, dependencyTableName)) {
       TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);

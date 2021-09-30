@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
+import static bio.terra.service.common.azure.StorageTableUtils.NameSuffix.SNAPSHOT;
+
 import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
@@ -374,7 +376,7 @@ public class TableDirectoryDao {
                   batchRetrieveByPath(
                       datasetTableServiceClient,
                       datasetId,
-                      StorageTableUtils.getDatasetTableName(),
+                      StorageTableUtils.DATASET_TABLE_NAME,
                       newPaths);
 
               // Create snapshot file system entries
@@ -407,9 +409,7 @@ public class TableDirectoryDao {
   @VisibleForTesting
   void storeTopDirectory(TableServiceClient tableServiceClient, String snapshotId, String dirName) {
     String dirPath = "/" + dirName;
-    String snapshotTableName =
-        StorageTableUtils.toTableName(
-            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
+    String snapshotTableName = StorageTableUtils.toTableName(snapshotId, SNAPSHOT);
 
     // Check if top directory already exists
     TableEntity directoryEntry =
@@ -434,9 +434,7 @@ public class TableDirectoryDao {
       TableServiceClient snapshotTableServiceClient,
       String snapshotId,
       List<FireStoreDirectoryEntry> snapshotEntries) {
-    String tableName =
-        StorageTableUtils.toTableName(
-            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
+    String tableName = StorageTableUtils.toTableName(snapshotId, SNAPSHOT);
     TableClient tableClient = snapshotTableServiceClient.getTableClient(tableName);
     snapshotEntries.forEach(
         snapshotEntry -> createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry));

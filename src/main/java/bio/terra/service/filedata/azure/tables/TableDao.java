@@ -1,7 +1,8 @@
 package bio.terra.service.filedata.azure.tables;
 
+import static bio.terra.service.common.azure.StorageTableUtils.DATASET_TABLE_NAME;
+
 import bio.terra.model.CloudPlatform;
-import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -121,8 +122,7 @@ public class TableDao {
       fileDao.deleteFilesFromDataset(tableServiceClient, func);
     }
     logger.info("deleting directory entries");
-    directoryDao.deleteDirectoryEntriesFromCollection(
-        tableServiceClient, StorageTableUtils.getDatasetTableName());
+    directoryDao.deleteDirectoryEntriesFromCollection(tableServiceClient, DATASET_TABLE_NAME);
   }
 
   public FireStoreDirectoryEntry lookupDirectoryEntryByPath(
@@ -133,8 +133,7 @@ public class TableDao {
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
     String datasetId = dataset.getId().toString();
-    return directoryDao.retrieveByPath(
-        tableServiceClient, datasetId, StorageTableUtils.getDatasetTableName(), path);
+    return directoryDao.retrieveByPath(tableServiceClient, datasetId, DATASET_TABLE_NAME, path);
   }
 
   public FireStoreFile lookupFile(String fileId, AzureStorageAuthInfo storageAuthInfo) {
@@ -166,10 +165,7 @@ public class TableDao {
             storageAuthInfo.getStorageAccountResourceName());
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
         directoryDao.retrieveByPath(
-            tableServiceClient,
-            datasetId.toString(),
-            StorageTableUtils.getDatasetTableName(),
-            fullPath);
+            tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, fullPath);
     return retrieveWorker(
         tableServiceClient,
         tableServiceClient,
@@ -200,8 +196,7 @@ public class TableDao {
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveById(
-            tableServiceClient, StorageTableUtils.getDatasetTableName(), fileId);
+        directoryDao.retrieveById(tableServiceClient, DATASET_TABLE_NAME, fileId);
     return retrieveWorker(
         tableServiceClient,
         tableServiceClient,
@@ -300,8 +295,7 @@ public class TableDao {
     if (level != 0) {
       List<FSItem> fsContents = new ArrayList<>();
       List<FireStoreDirectoryEntry> dirContents =
-          directoryDao.enumerateDirectory(
-              tableServiceClient, StorageTableUtils.getDatasetTableName(), fullPath);
+          directoryDao.enumerateDirectory(tableServiceClient, DATASET_TABLE_NAME, fullPath);
       for (FireStoreDirectoryEntry fso : dirContents) {
         if (fso.getIsFileRef()) {
           // Files that are in the middle of being ingested can have a directory entry, but not yet

@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure;
 
+import static bio.terra.service.common.azure.StorageTableUtils.DATASET_TABLE_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -14,7 +15,6 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
-import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.FSItem;
@@ -153,10 +153,7 @@ public class AzureIngestFileConnectedTest {
     try {
       tableDao.deleteFileMetadata(fileId, storageAuthInfo);
       tableDirectoryDao.deleteDirectoryEntry(
-          tableServiceClient,
-          datasetId.toString(),
-          StorageTableUtils.getDatasetTableName(),
-          fileId);
+          tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, fileId);
     } catch (Exception ex) {
       logger.error("Unable to clean up metadata for fileId {}", fileId, ex);
     }
@@ -177,10 +174,7 @@ public class AzureIngestFileConnectedTest {
 
     FireStoreDirectoryEntry de =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient,
-            datasetId.toString(),
-            StorageTableUtils.getDatasetTableName(),
-            targetPath);
+            tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, targetPath);
     assertThat("directory should not yet exist.", de, equalTo(null));
 
     // 4 - IngestFileAzureDirectoryStep
@@ -195,18 +189,12 @@ public class AzureIngestFileConnectedTest {
             .datasetId(datasetId.toString())
             .loadTag(fileLoadModel.getLoadTag());
     tableDirectoryDao.createDirectoryEntry(
-        tableServiceClient,
-        datasetId.toString(),
-        StorageTableUtils.getDatasetTableName(),
-        newEntry);
+        tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, newEntry);
 
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient,
-            datasetId.toString(),
-            StorageTableUtils.getDatasetTableName(),
-            targetPath);
+            tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, targetPath);
     assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
 
     // 5 - IngestFileAzurePrimaryDataStep

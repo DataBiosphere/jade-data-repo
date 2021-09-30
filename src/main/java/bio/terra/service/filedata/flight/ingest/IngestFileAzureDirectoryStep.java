@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import static bio.terra.service.common.azure.StorageTableUtils.DATASET_TABLE_NAME;
+import static bio.terra.service.common.azure.StorageTableName.DATASET_TABLE;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
@@ -89,7 +89,8 @@ public class IngestFileAzureDirectoryStep implements Step {
                 .name(fileMetadataUtils.getName(targetPath))
                 .datasetId(datasetId.toString())
                 .loadTag(loadModel.getLoadTag());
-        tableDao.createDirectoryEntry(newEntry, storageAuthInfo, datasetId, DATASET_TABLE_NAME);
+        tableDao.createDirectoryEntry(
+            newEntry, storageAuthInfo, datasetId, DATASET_TABLE.toTableName());
       } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION)
           && !StringUtils.equals(existingEntry.getFileId(), fileId)) {
         // (b) We are in a re-run of a load job. Try to get the file entry.
@@ -120,7 +121,8 @@ public class IngestFileAzureDirectoryStep implements Step {
             context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
       try {
-        tableDao.deleteDirectoryEntry(fileId, storageAuthInfo, dataset.getId(), DATASET_TABLE_NAME);
+        tableDao.deleteDirectoryEntry(
+            fileId, storageAuthInfo, dataset.getId(), DATASET_TABLE.toTableName());
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
       }

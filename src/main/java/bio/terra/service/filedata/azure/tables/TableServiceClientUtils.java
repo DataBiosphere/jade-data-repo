@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static bio.terra.service.common.azure.StorageTableUtils.DATASET_TABLE_NAME;
+import static bio.terra.service.common.azure.StorageTableName.DATASET_TABLE;
 
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
@@ -62,7 +62,7 @@ public class TableServiceClientUtils {
             // maybe wrap or cause in parenthesis
             .map(refId -> String.format("fileId eq '%s'", refId))
             .collect(Collectors.joining(" or "));
-    return filterTable(tableServiceClient, DATASET_TABLE_NAME, filter);
+    return filterTable(tableServiceClient, DATASET_TABLE.toTableName(), filter);
   }
 
   public static int getTableEntryCount(

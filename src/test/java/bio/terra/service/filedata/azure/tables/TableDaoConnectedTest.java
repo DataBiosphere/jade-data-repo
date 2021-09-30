@@ -1,7 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static bio.terra.service.common.azure.StorageTableUtils.DATASET_TABLE_NAME;
-import static bio.terra.service.common.azure.StorageTableUtils.NameSuffix.SNAPSHOT;
+import static bio.terra.service.common.azure.StorageTableName.DATASET_TABLE;
+import static bio.terra.service.common.azure.StorageTableName.SNAPSHOT_TABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -79,7 +79,7 @@ public class TableDaoConnectedTest {
         dataset.getName(),
         datasetId,
         snapshotId,
-        SNAPSHOT.toTableName(snapshotId),
+        SNAPSHOT_TABLE.toTableName(snapshotId),
         loadTag);
 
     // Add three files with the same base path
@@ -110,24 +110,24 @@ public class TableDaoConnectedTest {
             refId -> {
               boolean success =
                   tableDirectoryDao.deleteDirectoryEntry(
-                      tableServiceClient, datasetId, DATASET_TABLE_NAME, refId);
+                      tableServiceClient, datasetId, DATASET_TABLE.toTableName(), refId);
               logger.info("Delete {}: {}", refId, success);
             });
 
     // delete entire snapshot table
     tableDirectoryDao.deleteDirectoryEntriesFromCollection(
-        tableServiceClient, SNAPSHOT.toTableName(snapshotId));
+        tableServiceClient, SNAPSHOT_TABLE.toTableName(snapshotId));
   }
 
   @Test
   public void testAddFilesToSnapshot() {
     // First, make sure the directory entries exist in the dataset's storage table
-    checkThatEntriesExist(datasetId, DATASET_TABLE_NAME, false);
+    checkThatEntriesExist(datasetId, DATASET_TABLE.toTableName(), false);
 
     tableDao.addFilesToSnapshot(tableServiceClient, tableServiceClient, dataset, snapshot, refIds);
 
     // Now make sure that the same directory entries exist in the snapshot's storage table
-    checkThatEntriesExist(snapshotId, SNAPSHOT.toTableName(snapshotId), true);
+    checkThatEntriesExist(snapshotId, SNAPSHOT_TABLE.toTableName(snapshotId), true);
   }
 
   private void createFileDirectoryEntry(String fileId, String targetPath) {
@@ -140,12 +140,12 @@ public class TableDaoConnectedTest {
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
     tableDirectoryDao.createDirectoryEntry(
-        tableServiceClient, datasetId, DATASET_TABLE_NAME, newEntry);
+        tableServiceClient, datasetId, DATASET_TABLE.toTableName(), newEntry);
 
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId, DATASET_TABLE_NAME, targetPath);
+            tableServiceClient, datasetId, DATASET_TABLE.toTableName(), targetPath);
     assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
   }
 

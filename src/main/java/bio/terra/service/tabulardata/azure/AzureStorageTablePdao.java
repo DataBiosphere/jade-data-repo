@@ -1,10 +1,10 @@
 package bio.terra.service.tabulardata.azure;
 
-import static bio.terra.service.common.azure.StorageTableUtils.NameSuffix.LOAD_HISTORY;
+import static bio.terra.service.common.azure.StorageTableName.LOAD_HISTORY_TABLE;
 
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
-import bio.terra.service.common.azure.StorageTableUtils;
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.tabulardata.LoadHistoryUtil;
 import com.azure.data.tables.TableClient;
@@ -33,7 +33,7 @@ public class AzureStorageTablePdao {
    * Store the results of a bulk file load in an Azure Storage Table
    *
    * <p>The table name will be the result of the dataset id passed through {@link
-   * StorageTableUtils#toTableName} Entities will be partitioned on the loadTag and their row keys
+   * StorageTableName#toTableName} Entities will be partitioned on the loadTag and their row keys
    * will be the value of {@link BulkLoadHistoryModel#getFileId()}
    *
    * @param serviceClient A service client for the dataset
@@ -51,7 +51,7 @@ public class AzureStorageTablePdao {
     if (loadHistoryArray.isEmpty()) {
       return;
     }
-    var tableName = LOAD_HISTORY.toTableName(datasetId);
+    var tableName = LOAD_HISTORY_TABLE.toTableName(datasetId);
     TableClient client = serviceClient.createTableIfNotExists(tableName);
     // if the table already exists, the returned client is null and we have to get it explicitly
     if (client == null) {
@@ -110,7 +110,7 @@ public class AzureStorageTablePdao {
       String loadTag,
       int offset,
       int limit) {
-    var tableClient = tableServiceClient.getTableClient(LOAD_HISTORY.toTableName(datasetId));
+    var tableClient = tableServiceClient.getTableClient(LOAD_HISTORY_TABLE.toTableName(datasetId));
     var internalLoadTag = computeInternalLoadTag(loadTag);
     ListEntitiesOptions options =
         new ListEntitiesOptions()

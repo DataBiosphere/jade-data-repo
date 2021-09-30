@@ -1,8 +1,8 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static bio.terra.service.common.azure.StorageTableUtils.NameSuffix.SNAPSHOT;
+import static bio.terra.service.common.azure.StorageTableName.DATASET_TABLE;
+import static bio.terra.service.common.azure.StorageTableName.SNAPSHOT_TABLE;
 
-import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -375,10 +375,7 @@ public class TableDirectoryDao {
                   fileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
               List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                   batchRetrieveByPath(
-                      datasetTableServiceClient,
-                      datasetId,
-                      StorageTableUtils.DATASET_TABLE_NAME,
-                      newPaths);
+                      datasetTableServiceClient, datasetId, DATASET_TABLE.toTableName(), newPaths);
 
               // Create snapshot file system entries
               List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
@@ -410,7 +407,7 @@ public class TableDirectoryDao {
   @VisibleForTesting
   void storeTopDirectory(TableServiceClient tableServiceClient, UUID snapshotId, String dirName) {
     String dirPath = "/" + dirName;
-    String snapshotTableName = SNAPSHOT.toTableName(snapshotId);
+    String snapshotTableName = SNAPSHOT_TABLE.toTableName(snapshotId);
 
     // Check if top directory already exists
     TableEntity directoryEntry =
@@ -435,7 +432,7 @@ public class TableDirectoryDao {
       TableServiceClient snapshotTableServiceClient,
       UUID snapshotId,
       List<FireStoreDirectoryEntry> snapshotEntries) {
-    String tableName = SNAPSHOT.toTableName(snapshotId);
+    String tableName = SNAPSHOT_TABLE.toTableName(snapshotId);
     TableClient tableClient = snapshotTableServiceClient.getTableClient(tableName);
     snapshotEntries.forEach(
         snapshotEntry -> createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry));

@@ -3090,6 +3090,7 @@ components:
           default: ""
         csv_add_row_ids:
           type: boolean
+          description: Whether the data repo should generate datarepo_row_ids on CSV ingest. Defaults to true.
           default: true
         resolve_existing_files:
           type: boolean

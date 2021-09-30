@@ -877,7 +877,12 @@ public class BigQueryPdao {
     com.google.cloud.bigquery.Table table = bigQuery.getTable(bqDatasetId, stagingTableName);
     com.google.cloud.bigquery.Table updatedTable =
         table.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
-    updatedTable.update();
+    try {
+      updatedTable.update();
+    } catch (BigQueryException e) {
+      throw new IngestFailureException(
+          "Failure adding " + PDAO_ROW_ID_COLUMN + " to the staging table schema", e);
+    }
   }
 
   private Job ingestData(BigQuery bigQuery, String path, LoadJobConfiguration configuration)

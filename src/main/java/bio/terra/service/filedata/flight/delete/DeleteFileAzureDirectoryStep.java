@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.flight.delete;
 
-import static bio.terra.service.common.azure.StorageTableUtils.DATASET_TABLE_NAME;
+import static bio.terra.service.common.azure.StorageTableName.DATASET_TABLE;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DeleteResponseModel;
@@ -31,7 +31,7 @@ public class DeleteFileAzureDirectoryStep implements Step {
     try {
       boolean found =
           tableDao.deleteDirectoryEntry(
-              fileId, storageAuthInfo, dataset.getId(), DATASET_TABLE_NAME);
+              fileId, storageAuthInfo, dataset.getId(), DATASET_TABLE.toTableName());
       DeleteResponseModel.ObjectStateEnum state =
           (found)
               ? DeleteResponseModel.ObjectStateEnum.DELETED

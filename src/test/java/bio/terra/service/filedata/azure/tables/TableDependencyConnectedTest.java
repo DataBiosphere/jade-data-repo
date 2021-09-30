@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static bio.terra.service.common.azure.StorageTableUtils.NameSuffix.DEPENDENCIES;
+import static bio.terra.service.common.azure.StorageTableName.DEPENDENCIES_TABLE;
 import static org.junit.Assert.*;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
@@ -60,7 +60,7 @@ public class TableDependencyConnectedTest {
 
   @Test
   public void testCreateDeleteDependencyEntries() {
-    String tableName = DEPENDENCIES.toTableName(DATASET_ID);
+    String tableName = DEPENDENCIES_TABLE.toTableName(DATASET_ID);
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
 
     // Add snapshot file dependency

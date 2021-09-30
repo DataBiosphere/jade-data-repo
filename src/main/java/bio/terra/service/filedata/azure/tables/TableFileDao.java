@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static bio.terra.service.common.azure.StorageTableUtils.FILES_TABLE_NAME;
+import static bio.terra.service.common.azure.StorageTableName.FILES_TABLE;
 
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -45,15 +45,15 @@ public class TableFileDao {
   }
 
   public void createFileMetadata(TableServiceClient tableServiceClient, FireStoreFile newFile) {
-    tableServiceClient.createTableIfNotExists(FILES_TABLE_NAME);
-    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE_NAME);
+    tableServiceClient.createTableIfNotExists(FILES_TABLE.toTableName());
+    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
     TableEntity entity = FireStoreFile.toTableEntity(PARTITION_KEY, newFile);
     logger.info("creating file metadata for fileId {}", newFile.getFileId());
     tableClient.createEntity(entity);
   }
 
   public boolean deleteFileMetadata(TableServiceClient tableServiceClient, String fileId) {
-    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE_NAME);
+    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
     try {
       logger.info("deleting file metadata for fileId {}", fileId);
       TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
@@ -67,7 +67,7 @@ public class TableFileDao {
   }
 
   public FireStoreFile retrieveFileMetadata(TableServiceClient tableServiceClient, String fileId) {
-    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE_NAME);
+    TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
     TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
     return FireStoreFile.fromTableEntity(entity);
   }
@@ -113,8 +113,8 @@ public class TableFileDao {
 
   void deleteFilesFromDataset(
       TableServiceClient tableServiceClient, InterruptibleConsumer<FireStoreFile> func) {
-    if (TableServiceClientUtils.tableHasEntries(tableServiceClient, FILES_TABLE_NAME)) {
-      TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE_NAME);
+    if (TableServiceClientUtils.tableHasEntries(tableServiceClient, FILES_TABLE.toTableName())) {
+      TableClient tableClient = tableServiceClient.getTableClient(FILES_TABLE.toTableName());
       scanTableObjects(
           tableClient,
           entity -> {

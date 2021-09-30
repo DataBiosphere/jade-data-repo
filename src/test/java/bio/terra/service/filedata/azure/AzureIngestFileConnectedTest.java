@@ -153,7 +153,7 @@ public class AzureIngestFileConnectedTest {
     try {
       tableDao.deleteFileMetadata(fileId, storageAuthInfo);
       tableDirectoryDao.deleteDirectoryEntry(
-          tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, fileId);
+          tableServiceClient, datasetId, DATASET_TABLE_NAME, fileId);
     } catch (Exception ex) {
       logger.error("Unable to clean up metadata for fileId {}", fileId, ex);
     }
@@ -174,7 +174,7 @@ public class AzureIngestFileConnectedTest {
 
     FireStoreDirectoryEntry de =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, targetPath);
+            tableServiceClient, datasetId, DATASET_TABLE_NAME, targetPath);
     assertThat("directory should not yet exist.", de, equalTo(null));
 
     // 4 - IngestFileAzureDirectoryStep
@@ -189,12 +189,12 @@ public class AzureIngestFileConnectedTest {
             .datasetId(datasetId.toString())
             .loadTag(fileLoadModel.getLoadTag());
     tableDirectoryDao.createDirectoryEntry(
-        tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, newEntry);
+        tableServiceClient, datasetId, DATASET_TABLE_NAME, newEntry);
 
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, targetPath);
+            tableServiceClient, datasetId, DATASET_TABLE_NAME, targetPath);
     assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
 
     // 5 - IngestFileAzurePrimaryDataStep

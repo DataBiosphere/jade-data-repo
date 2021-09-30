@@ -111,7 +111,7 @@ public class TableDaoConnectedTest {
             refId -> {
               boolean success =
                   tableDirectoryDao.deleteDirectoryEntry(
-                      tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, refId);
+                      tableServiceClient, datasetId, DATASET_TABLE_NAME, refId);
               logger.info("Delete {}: {}", refId, success);
             });
 
@@ -123,13 +123,12 @@ public class TableDaoConnectedTest {
   @Test
   public void testAddFilesToSnapshot() {
     // First, make sure the directory entries exist in the dataset's storage table
-    checkThatEntriesExist(datasetId.toString(), DATASET_TABLE_NAME, false);
+    checkThatEntriesExist(datasetId, DATASET_TABLE_NAME, false);
 
     tableDao.addFilesToSnapshot(tableServiceClient, tableServiceClient, dataset, snapshot, refIds);
 
     // Now make sure that the same directory entries exist in the snapshot's storage table
-    checkThatEntriesExist(
-        snapshotId.toString(), StorageTableUtils.toTableName(snapshotId, SNAPSHOT), true);
+    checkThatEntriesExist(snapshotId, StorageTableUtils.toTableName(snapshotId, SNAPSHOT), true);
   }
 
   private void createFileDirectoryEntry(String fileId, String targetPath) {
@@ -142,16 +141,16 @@ public class TableDaoConnectedTest {
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
     tableDirectoryDao.createDirectoryEntry(
-        tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, newEntry);
+        tableServiceClient, datasetId, DATASET_TABLE_NAME, newEntry);
 
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, targetPath);
+            tableServiceClient, datasetId, DATASET_TABLE_NAME, targetPath);
     assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
   }
 
-  private void checkThatEntriesExist(String collectionId, String tableName, boolean isSnapshot) {
+  private void checkThatEntriesExist(UUID collectionId, String tableName, boolean isSnapshot) {
     // For Snapshot lookups, we include the dataset name in the file path
     // This is excluded for datasets
     String datasetNamePlaceholder = "";

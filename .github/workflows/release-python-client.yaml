@@ -1,10 +1,9 @@
 name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
-on: push
-# will change this before merging!!! keeping so i can debug pushing to pypi for realsies
-#  workflow_dispatch: {}
-#  schedule:
-#    - cron: '0 3 * * *' # Nightly 10:00 pm EST; 3AM UTC
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 3 * * *' # Nightly 10:00 pm EST; 3AM UTC
 
 jobs:
   build-n-publish:

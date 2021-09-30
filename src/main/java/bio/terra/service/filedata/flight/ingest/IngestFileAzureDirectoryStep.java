@@ -19,6 +19,7 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.data.tables.models.TableServiceException;
+import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +48,7 @@ public class IngestFileAzureDirectoryStep implements Step {
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     workingMap.put(FileMapKeys.LOAD_COMPLETED, false);
 
-    String datasetId = dataset.getId().toString();
+    UUID datasetId = dataset.getId();
     String targetPath = loadModel.getTargetPath();
 
     String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
@@ -86,7 +87,7 @@ public class IngestFileAzureDirectoryStep implements Step {
                 .isFileRef(true)
                 .path(fileMetadataUtils.getDirectoryPath(targetPath))
                 .name(fileMetadataUtils.getName(targetPath))
-                .datasetId(datasetId)
+                .datasetId(datasetId.toString())
                 .loadTag(loadModel.getLoadTag());
         tableDao.createDirectoryEntry(newEntry, storageAuthInfo, datasetId, DATASET_TABLE_NAME);
       } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION)
@@ -119,8 +120,7 @@ public class IngestFileAzureDirectoryStep implements Step {
             context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
       try {
-        tableDao.deleteDirectoryEntry(
-            fileId, storageAuthInfo, dataset.getId().toString(), DATASET_TABLE_NAME);
+        tableDao.deleteDirectoryEntry(fileId, storageAuthInfo, dataset.getId(), DATASET_TABLE_NAME);
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
       }

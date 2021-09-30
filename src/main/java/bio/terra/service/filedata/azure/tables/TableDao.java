@@ -69,7 +69,7 @@ public class TableDao {
   public void createDirectoryEntry(
       FireStoreDirectoryEntry newEntry,
       AzureStorageAuthInfo storageAuthInfo,
-      String collectionId,
+      UUID collectionId,
       String tableName) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(
@@ -80,7 +80,7 @@ public class TableDao {
   }
 
   public boolean deleteDirectoryEntry(
-      String fileId, AzureStorageAuthInfo storageAuthInfo, String collectionId, String tableName) {
+      String fileId, AzureStorageAuthInfo storageAuthInfo, UUID collectionId, String tableName) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(
             storageAuthInfo.getSubscriptionId(),
@@ -132,8 +132,8 @@ public class TableDao {
             storageAuthInfo.getSubscriptionId(),
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
-    String datasetId = dataset.getId().toString();
-    return directoryDao.retrieveByPath(tableServiceClient, datasetId, DATASET_TABLE_NAME, path);
+    return directoryDao.retrieveByPath(
+        tableServiceClient, dataset.getId(), DATASET_TABLE_NAME, path);
   }
 
   public FireStoreFile lookupFile(String fileId, AzureStorageAuthInfo storageAuthInfo) {
@@ -164,8 +164,7 @@ public class TableDao {
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveByPath(
-            tableServiceClient, datasetId.toString(), DATASET_TABLE_NAME, fullPath);
+        directoryDao.retrieveByPath(tableServiceClient, datasetId, DATASET_TABLE_NAME, fullPath);
     return retrieveWorker(
         tableServiceClient,
         tableServiceClient,
@@ -362,16 +361,14 @@ public class TableDao {
       Dataset dataset,
       Snapshot snapshot,
       List<String> refIds) {
-    String datasetId = dataset.getId().toString();
     String datasetDirName = dataset.getName();
-    String snapshotId = snapshot.getId().toString();
 
     directoryDao.addEntriesToSnapshot(
         datasetTableServiceClient,
         snapshotTableServiceClient,
-        datasetId,
+        dataset.getId(),
         datasetDirName,
-        snapshotId,
+        snapshot.getId(),
         refIds);
   }
 

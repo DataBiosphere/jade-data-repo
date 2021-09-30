@@ -74,6 +74,10 @@ public class TableDirectoryDao {
     return path.replaceAll("/", " ");
   }
 
+  public String getCollectionPartitionKey(UUID collectionId, String path) {
+    return getPartitionKey(collectionId.toString(), path);
+  }
+
   public String getPartitionKey(String prefix, String path) {
     String parentDir = fileMetadataUtils.getDirectoryPath(path);
     return prefix + encodePathAsAzureRowKey(parentDir);
@@ -83,7 +87,7 @@ public class TableDirectoryDao {
   // the entry. Existence checking is handled at upper layers.
   public void createDirectoryEntry(
       TableServiceClient tableServiceClient,
-      String collectionId,
+      UUID collectionId,
       String tableName,
       FireStoreDirectoryEntry createEntry) {
 
@@ -104,7 +108,7 @@ public class TableDirectoryDao {
       }
 
       FireStoreDirectoryEntry dirToCreate = fileMetadataUtils.makeDirectoryEntry(testPath);
-      String partitionKey = getPartitionKey(collectionId, testPath);
+      String partitionKey = getCollectionPartitionKey(collectionId, testPath);
       String rowKey = encodePathAsAzureRowKey(testPath);
       TableEntity entity = FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, dirToCreate);
       logger.info("Upserting directory entry for {} in table {}", testPath, tableName);
@@ -118,12 +122,12 @@ public class TableDirectoryDao {
 
   private void createEntityForPath(
       TableClient tableClient,
-      String collectionId,
+      UUID collectionId,
       String tableName,
       FireStoreDirectoryEntry createEntry) {
     String fullPath = fileMetadataUtils.getFullPath(createEntry.getPath(), createEntry.getName());
     String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
-    String partitionKey = getPartitionKey(collectionId, lookupPath);
+    String partitionKey = getCollectionPartitionKey(collectionId, lookupPath);
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     TableEntity createEntryEntity =
         FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, createEntry);
@@ -133,7 +137,7 @@ public class TableDirectoryDao {
 
   // true - directory entry existed and was deleted; false - directory entry did not exist
   public boolean deleteDirectoryEntry(
-      TableServiceClient tableServiceClient, String collectionId, String tableName, String fileId) {
+      TableServiceClient tableServiceClient, UUID collectionId, String tableName, String fileId) {
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
 
     // Look up the directory entry by id. If it doesn't exist, we're done
@@ -206,10 +210,7 @@ public class TableDirectoryDao {
 
   // Returns null if not found - upper layers do any throwing
   public FireStoreDirectoryEntry retrieveByPath(
-      TableServiceClient tableServiceClient,
-      String collectionId,
-      String tableName,
-      String fullPath) {
+      TableServiceClient tableServiceClient, UUID collectionId, String tableName, String fullPath) {
     String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
     TableEntity entity = lookupByFilePath(tableServiceClient, collectionId, tableName, lookupPath);
     return Optional.ofNullable(entity)
@@ -219,7 +220,7 @@ public class TableDirectoryDao {
 
   public List<FireStoreDirectoryEntry> batchRetrieveByPath(
       TableServiceClient tableServiceClient,
-      String collectionId,
+      UUID collectionId,
       String tableName,
       List<String> fullPaths) {
     List<TableEntity> entities =
@@ -274,11 +275,11 @@ public class TableDirectoryDao {
 
   TableEntity lookupByFilePath(
       TableServiceClient tableServiceClient,
-      String collectionId,
+      UUID collectionId,
       String tableName,
       String lookupPath) {
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
-    String partitionKey = getPartitionKey(collectionId, lookupPath);
+    String partitionKey = getCollectionPartitionKey(collectionId, lookupPath);
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     try {
       return tableClient.getEntity(partitionKey, rowKey);
@@ -339,9 +340,9 @@ public class TableDirectoryDao {
   public void addEntriesToSnapshot(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
-      String datasetId,
+      UUID datasetId,
       String datasetDirName,
-      String snapshotId,
+      UUID snapshotId,
       List<String> fileIds) {
     LRUMap<String, Boolean> pathMap = new LRUMap<>(MAX_FILTER_CLAUSES);
     storeTopDirectory(snapshotTableServiceClient, snapshotId, datasetDirName);
@@ -407,7 +408,7 @@ public class TableDirectoryDao {
    * @param dirName Dataset name, used as top directory name
    */
   @VisibleForTesting
-  void storeTopDirectory(TableServiceClient tableServiceClient, String snapshotId, String dirName) {
+  void storeTopDirectory(TableServiceClient tableServiceClient, UUID snapshotId, String dirName) {
     String dirPath = "/" + dirName;
     String snapshotTableName = StorageTableUtils.toTableName(snapshotId, SNAPSHOT);
 
@@ -432,7 +433,7 @@ public class TableDirectoryDao {
 
   void batchStoreDirectoryEntry(
       TableServiceClient snapshotTableServiceClient,
-      String snapshotId,
+      UUID snapshotId,
       List<FireStoreDirectoryEntry> snapshotEntries) {
     String tableName = StorageTableUtils.toTableName(snapshotId, SNAPSHOT);
     TableClient tableClient = snapshotTableServiceClient.getTableClient(tableName);

@@ -28,12 +28,11 @@ jobs:
         run: openapi-generator-cli version-manager set 4.3.1
       - name: Generate Python client
         run: |
-          openapi-generator-cli version
-          openapi-generator-cli generate
-          -i src/main/resources/api/data-repository-openapi.yaml
-          -g python
-          -o /github/workspace/data-repo-client
-          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER}
+          openapi-generator-cli generate \
+          -i src/main/resources/api/data-repository-openapi.yaml \
+          -g python \
+          -o /github/workspace/data-repo-client \
+          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER} \
           --skip-validate-spec
 #      - name: Generate Python client with openapi-generator
 #        # openapi-generator-cli generate -i src/main/resources/api/data-repository-openapi.yaml -g python -o ../data-repo-client --package-name data_repo_client

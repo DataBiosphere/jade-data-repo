@@ -406,7 +406,9 @@ public class TableDao {
   // TODO: Implement computeDirectory to recursively compute the size and checksums of a directory
 
   public StorageTableFileSystemHelper getHelper(
-      TableServiceClient datasetTableServiceClient, TableServiceClient snapshotTableServiceClient, String snapshotId) {
+      TableServiceClient datasetTableServiceClient,
+      TableServiceClient snapshotTableServiceClient,
+      String snapshotId) {
     return new StorageTableFileSystemHelper(
         directoryDao,
         fileDao,
@@ -431,7 +433,8 @@ public class TableDao {
         TableFileDao fileDao,
         TableServiceClient datasetTableServiceClient,
         TableServiceClient snapshotTableServiceClient,
-        String snapshotId, Integer snapshotBatchSize) {
+        String snapshotId,
+        Integer snapshotBatchSize) {
       this.directoryDao = directoryDao;
       this.fileDao = fileDao;
       this.datasetTableServiceClient = datasetTableServiceClient;
@@ -451,7 +454,8 @@ public class TableDao {
 
     @Override
     public List<FireStoreDirectoryEntry> enumerateDirectory(String dirPath) {
-      return directoryDao.enumerateDirectory(snapshotTableServiceClient, snapshotTableName, dirPath);
+      return directoryDao.enumerateDirectory(
+          snapshotTableServiceClient, snapshotTableName, dirPath);
     }
 
     @Override

@@ -9,7 +9,6 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.Names;
-import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
@@ -80,7 +79,7 @@ public class TableDaoConnectedTest {
         dataset.getName(),
         datasetId,
         snapshotId,
-        StorageTableUtils.toTableName(snapshotId, SNAPSHOT),
+        SNAPSHOT.toTableName(snapshotId),
         loadTag);
 
     // Add three files with the same base path
@@ -117,7 +116,7 @@ public class TableDaoConnectedTest {
 
     // delete entire snapshot table
     tableDirectoryDao.deleteDirectoryEntriesFromCollection(
-        tableServiceClient, StorageTableUtils.toTableName(snapshotId, SNAPSHOT));
+        tableServiceClient, SNAPSHOT.toTableName(snapshotId));
   }
 
   @Test
@@ -128,7 +127,7 @@ public class TableDaoConnectedTest {
     tableDao.addFilesToSnapshot(tableServiceClient, tableServiceClient, dataset, snapshot, refIds);
 
     // Now make sure that the same directory entries exist in the snapshot's storage table
-    checkThatEntriesExist(snapshotId, StorageTableUtils.toTableName(snapshotId, SNAPSHOT), true);
+    checkThatEntriesExist(snapshotId, SNAPSHOT.toTableName(snapshotId), true);
   }
 
   private void createFileDirectoryEntry(String fileId, String targetPath) {

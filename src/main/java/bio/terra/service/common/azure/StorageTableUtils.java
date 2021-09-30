@@ -7,21 +7,6 @@ public class StorageTableUtils {
   public static final String DATASET_TABLE_NAME = "dataset";
   public static final String FILES_TABLE_NAME = "files";
 
-  /**
-   * Generate a Storage Table name from a UUID
-   *
-   * @param resourceId The datasetId or snapshotId to be used as root of the table name
-   * @param suffix suffix for storage table Name
-   * @return A valid azure storage table name
-   */
-  public static String toTableName(String resourceId, NameSuffix suffix) {
-    return "datarepo" + resourceId.replaceAll("-", "") + suffix.getLabel();
-  }
-
-  public static String toTableName(UUID resourceId, NameSuffix suffix) {
-    return toTableName(resourceId.toString(), suffix);
-  }
-
   public enum NameSuffix {
     SNAPSHOT("snapshot"),
     LOAD_HISTORY("loadHistory"),
@@ -33,8 +18,14 @@ public class StorageTableUtils {
       this.label = label;
     }
 
-    String getLabel() {
-      return this.label;
+    /**
+     * Generate a Storage Table name from a UUID
+     *
+     * @param resourceId The datasetId or snapshotId to be used as root of the table name
+     * @return A valid azure storage table name
+     */
+    public String toTableName(UUID resourceId) {
+      return "datarepo" + resourceId.toString().replaceAll("-", "") + this.label;
     }
   }
 }

@@ -51,7 +51,7 @@ public class AzureStorageTablePdao {
     if (loadHistoryArray.isEmpty()) {
       return;
     }
-    var tableName = StorageTableUtils.toTableName(datasetId, LOAD_HISTORY);
+    var tableName = LOAD_HISTORY.toTableName(datasetId);
     TableClient client = serviceClient.createTableIfNotExists(tableName);
     // if the table already exists, the returned client is null and we have to get it explicitly
     if (client == null) {
@@ -110,8 +110,7 @@ public class AzureStorageTablePdao {
       String loadTag,
       int offset,
       int limit) {
-    var tableClient =
-        tableServiceClient.getTableClient(StorageTableUtils.toTableName(datasetId, LOAD_HISTORY));
+    var tableClient = tableServiceClient.getTableClient(LOAD_HISTORY.toTableName(datasetId));
     var internalLoadTag = computeInternalLoadTag(loadTag);
     ListEntitiesOptions options =
         new ListEntitiesOptions()

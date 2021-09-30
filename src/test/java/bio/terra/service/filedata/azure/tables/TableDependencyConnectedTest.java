@@ -1,12 +1,12 @@
 package bio.terra.service.filedata.azure.tables;
 
+import static bio.terra.service.common.azure.StorageTableUtils.NameSuffix.DEPENDENCIES;
 import static org.junit.Assert.*;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.service.common.azure.StorageTableUtils;
-import bio.terra.service.common.azure.StorageTableUtils.StorageTableNameSuffix;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
@@ -61,8 +61,7 @@ public class TableDependencyConnectedTest {
 
   @Test
   public void testCreateDeleteDependencyEntries() {
-    String tableName =
-        StorageTableUtils.toTableName(DATASET_ID, StorageTableNameSuffix.DEPENDENCIES);
+    String tableName = StorageTableUtils.toTableName(DATASET_ID, DEPENDENCIES);
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
 
     // Add snapshot file dependency

@@ -1,5 +1,6 @@
 package bio.terra.common.fixtures;
 
+import static bio.terra.service.common.azure.StorageTableUtils.NameSuffix.LOAD_HISTORY;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -46,7 +47,6 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.common.azure.StorageTableUtils;
-import bio.terra.service.common.azure.StorageTableUtils.StorageTableNameSuffix;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -987,7 +987,7 @@ public class ConnectedOperations {
   }
 
   public void deleteLoadHistory(UUID datasetId, TableServiceClient serviceClient) {
-    var tableName = StorageTableUtils.toTableName(datasetId, StorageTableNameSuffix.LOAD_HISTORY);
+    var tableName = StorageTableUtils.toTableName(datasetId, LOAD_HISTORY);
     serviceClient.deleteTable(tableName);
   }
 }

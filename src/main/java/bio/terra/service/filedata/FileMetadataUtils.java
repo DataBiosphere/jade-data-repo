@@ -9,17 +9,13 @@ import java.util.List;
 import java.util.UUID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
-@Component
 public class FileMetadataUtils {
   public static final String ROOT_DIR_NAME = "/_dr_";
 
-  @Autowired
   public FileMetadataUtils() {}
 
-  public String getDirectoryPath(String path) {
+  public static String getDirectoryPath(String path) {
     Path pathParts = Paths.get(path);
     Path parentDirectory = pathParts.getParent();
     if (pathParts.getNameCount() <= 1) {
@@ -29,7 +25,7 @@ public class FileMetadataUtils {
     return parentDirectory.toString();
   }
 
-  public String getName(String path) {
+  public static String getName(String path) {
     Path pathParts = Paths.get(path);
     Path fileName = pathParts.getFileName();
     if (fileName != null) {
@@ -38,7 +34,7 @@ public class FileMetadataUtils {
     return StringUtils.EMPTY;
   }
 
-  public String getFullPath(String dirPath, String name) {
+  public static String getFullPath(String dirPath, String name) {
     // Originally, this was a method in FireStoreDirectoryEntry, but the Firestore client complained
     // about it,
     // because it was not a set/get for an actual class member. Very picky, that!
@@ -53,7 +49,7 @@ public class FileMetadataUtils {
     return path + '/' + name;
   }
 
-  public FireStoreDirectoryEntry makeDirectoryEntry(String lookupDirPath) {
+  public static FireStoreDirectoryEntry makeDirectoryEntry(String lookupDirPath) {
     // We have some special cases to deal with at the top of the directory tree.
     String fullPath = makePathFromLookupPath(lookupDirPath);
     String dirPath = getDirectoryPath(fullPath);
@@ -77,18 +73,18 @@ public class FileMetadataUtils {
 
   // Do some tidying of the full path: slash on front - no slash trailing
   // and prepend the root directory name
-  public String makeLookupPath(String fullPath) {
+  public static String makeLookupPath(String fullPath) {
     String temp = StringUtils.prependIfMissing(fullPath, "/");
     temp = StringUtils.removeEnd(temp, "/");
     temp = StringUtils.prependIfMissing(temp, ROOT_DIR_NAME);
     return temp;
   }
 
-  public String makePathFromLookupPath(String lookupPath) {
+  public static String makePathFromLookupPath(String lookupPath) {
     return StringUtils.removeStart(lookupPath, ROOT_DIR_NAME);
   }
 
-  public List<String> findNewDirectoryPaths(
+  public static List<String> findNewDirectoryPaths(
       List<FireStoreDirectoryEntry> datasetEntries, LRUMap<String, Boolean> pathMap) {
 
     List<String> pathsToCheck = new ArrayList<>();

@@ -65,7 +65,6 @@ public class TableDirectoryDaoConnectedTest {
   @Autowired SynapseUtils synapseUtils;
   @Autowired AzureAuthService azureAuthService;
   @Autowired TableDirectoryDao tableDirectoryDao;
-  @Autowired FileMetadataUtils fileMetadataUtils;
   @Autowired TableDao tableDao;
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired FileService fileService;
@@ -145,11 +144,11 @@ public class TableDirectoryDaoConnectedTest {
     assertThat(
         "FireStoreDirectoryEntry should now exist",
         fileEntry1.getPath(),
-        equalTo(fileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName1)));
+        equalTo(FileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName1)));
     assertThat(
         "FireStoreDirectoryEntry should now exist",
         fileEntry2.getPath(),
-        equalTo(fileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName2)));
+        equalTo(FileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName2)));
 
     // Delete File 1's directory entry
     boolean deleteEntry =
@@ -247,8 +246,8 @@ public class TableDirectoryDaoConnectedTest {
         new FireStoreDirectoryEntry()
             .fileId(fileId.toString())
             .isFileRef(true)
-            .path(fileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName))
-            .name(fileMetadataUtils.getName(sharedTargetPath + fileName))
+            .path(FileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName))
+            .name(FileMetadataUtils.getName(sharedTargetPath + fileName))
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
     tableDirectoryDao.createDirectoryEntry(

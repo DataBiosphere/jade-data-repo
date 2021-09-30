@@ -48,8 +48,6 @@ public class FireStoreDaoTest {
 
   @Autowired private FireStoreUtils fireStoreUtils;
 
-  @Autowired private FileMetadataUtils fileMetadataUtils;
-
   @Autowired private FireStoreDependencyDao fireStoreDependencyDao;
 
   private Firestore firestore;
@@ -188,8 +186,8 @@ public class FireStoreDaoTest {
     return new FireStoreDirectoryEntry()
         .fileId(fileId)
         .isFileRef(true)
-        .path(fileMetadataUtils.getDirectoryPath(fullPath))
-        .name(fileMetadataUtils.getName(fullPath))
+        .path(FileMetadataUtils.getDirectoryPath(fullPath))
+        .name(FileMetadataUtils.getName(fullPath))
         .datasetId(collectionId)
         .size(size)
         .checksumCrc32c(fireStoreUtils.computeCrc32c(fullPath))

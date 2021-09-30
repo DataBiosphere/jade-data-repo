@@ -49,7 +49,6 @@ public class TableDao {
   private final TableDirectoryDao directoryDao;
   private final TableFileDao fileDao;
   private final AzureAuthService azureAuthService;
-  private final FileMetadataUtils fileMetadataUtils;
   private final ConfigurationService configurationService;
 
   @Autowired
@@ -57,12 +56,10 @@ public class TableDao {
       TableDirectoryDao directoryDao,
       TableFileDao fileDao,
       AzureAuthService azureAuthService,
-      FileMetadataUtils fileMetadataUtils,
       ConfigurationService configurationService) {
     this.directoryDao = directoryDao;
     this.fileDao = fileDao;
     this.azureAuthService = azureAuthService;
-    this.fileMetadataUtils = fileMetadataUtils;
     this.configurationService = configurationService;
   }
 
@@ -279,7 +276,7 @@ public class TableDao {
     }
 
     String fullPath =
-        fileMetadataUtils.getFullPath(
+        FileMetadataUtils.getFullPath(
             fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
 
     FSDir fsDir = new FSDir();
@@ -329,7 +326,7 @@ public class TableDao {
     }
 
     String fullPath =
-        fileMetadataUtils.getFullPath(
+        FileMetadataUtils.getFullPath(
             fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
     String fileId = fireStoreDirectoryEntry.getFileId();
 

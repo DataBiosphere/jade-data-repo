@@ -63,12 +63,9 @@ import org.springframework.stereotype.Component;
 public class TableDirectoryDao {
   private final Logger logger = LoggerFactory.getLogger(TableDirectoryDao.class);
   private static final int MAX_FILTER_CLAUSES = 15;
-  private final FileMetadataUtils fileMetadataUtils;
 
   @Autowired
-  public TableDirectoryDao(FileMetadataUtils fileMetadataUtils) {
-    this.fileMetadataUtils = fileMetadataUtils;
-  }
+  public TableDirectoryDao() {}
 
   public String encodePathAsAzureRowKey(String path) {
     return path.replaceAll("/", " ");
@@ -79,7 +76,7 @@ public class TableDirectoryDao {
   }
 
   public String getPartitionKey(String prefix, String path) {
-    String parentDir = fileMetadataUtils.getDirectoryPath(path);
+    String parentDir = FileMetadataUtils.getDirectoryPath(path);
     return prefix + encodePathAsAzureRowKey(parentDir);
   }
 
@@ -97,17 +94,17 @@ public class TableDirectoryDao {
     // Walk up the lookup directory path, finding missing directories we get to an
     // existing one
     // We will create the ROOT_DIR_NAME directory here if it does not exist.
-    String lookupDirPath = fileMetadataUtils.makeLookupPath(createEntry.getPath());
+    String lookupDirPath = FileMetadataUtils.makeLookupPath(createEntry.getPath());
     for (String testPath = lookupDirPath;
         !testPath.isEmpty();
-        testPath = fileMetadataUtils.getDirectoryPath(testPath)) {
+        testPath = FileMetadataUtils.getDirectoryPath(testPath)) {
 
       // !!! In this case we are using a lookup path
       if (lookupByFilePath(tableServiceClient, collectionId, tableName, testPath) != null) {
         break;
       }
 
-      FireStoreDirectoryEntry dirToCreate = fileMetadataUtils.makeDirectoryEntry(testPath);
+      FireStoreDirectoryEntry dirToCreate = FileMetadataUtils.makeDirectoryEntry(testPath);
       String partitionKey = getCollectionPartitionKey(collectionId, testPath);
       String rowKey = encodePathAsAzureRowKey(testPath);
       TableEntity entity = FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, dirToCreate);
@@ -125,8 +122,8 @@ public class TableDirectoryDao {
       UUID collectionId,
       String tableName,
       FireStoreDirectoryEntry createEntry) {
-    String fullPath = fileMetadataUtils.getFullPath(createEntry.getPath(), createEntry.getName());
-    String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
+    String fullPath = FileMetadataUtils.getFullPath(createEntry.getPath(), createEntry.getName());
+    String lookupPath = FileMetadataUtils.makeLookupPath(fullPath);
     String partitionKey = getCollectionPartitionKey(collectionId, lookupPath);
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     TableEntity createEntryEntity =
@@ -148,11 +145,11 @@ public class TableDirectoryDao {
     tableClient.deleteEntity(leafEntity);
 
     FireStoreDirectoryEntry leafEntry = FireStoreDirectoryEntry.fromTableEntity(leafEntity);
-    String lookupPath = fileMetadataUtils.makeLookupPath(leafEntry.getPath());
+    String lookupPath = FileMetadataUtils.makeLookupPath(leafEntry.getPath());
     while (!lookupPath.isEmpty()) {
       // If there are no entries that share this path as their directory path,
       // delete the directory entry
-      String filterPath = fileMetadataUtils.makePathFromLookupPath(lookupPath);
+      String filterPath = FileMetadataUtils.makePathFromLookupPath(lookupPath);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("path eq '%s'", filterPath));
       if (TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName, options)) {
@@ -163,7 +160,7 @@ public class TableDirectoryDao {
       if (entity != null) {
         tableClient.deleteEntity(entity);
       }
-      lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
+      lookupPath = FileMetadataUtils.getDirectoryPath(lookupPath);
     }
     return true;
   }
@@ -211,7 +208,7 @@ public class TableDirectoryDao {
   // Returns null if not found - upper layers do any throwing
   public FireStoreDirectoryEntry retrieveByPath(
       TableServiceClient tableServiceClient, UUID collectionId, String tableName, String fullPath) {
-    String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
+    String lookupPath = FileMetadataUtils.makeLookupPath(fullPath);
     TableEntity entity = lookupByFilePath(tableServiceClient, collectionId, tableName, lookupPath);
     return Optional.ofNullable(entity)
         .map(d -> FireStoreDirectoryEntry.fromTableEntity(entity))
@@ -231,7 +228,7 @@ public class TableDirectoryDao {
                         tableServiceClient,
                         collectionId,
                         tableName,
-                        fileMetadataUtils.makeLookupPath(path)))
+                        FileMetadataUtils.makeLookupPath(path)))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
     return entities.stream()
@@ -372,7 +369,7 @@ public class TableDirectoryDao {
 
               // Find directory paths that need to be created; plus add to the cache
               List<String> newPaths =
-                  fileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
+                  FileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
               List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                   batchRetrieveByPath(
                       datasetTableServiceClient, datasetId, DATASET_TABLE.toTableName(), newPaths);

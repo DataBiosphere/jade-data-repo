@@ -55,7 +55,6 @@ public class TableDirectoryDaoTest {
   @MockBean private AzureAuthService authService;
   @MockBean private TableServiceClient tableServiceClient;
   @MockBean private TableClient tableClient;
-  @Autowired private FileMetadataUtils fileMetadataUtils;
   @Autowired private TableDirectoryDao dao;
 
   @Before
@@ -78,7 +77,7 @@ public class TableDirectoryDaoTest {
             .addProperty(FireStoreDirectoryEntry.IS_FILE_REF_FIELD_NAME, true)
             .addProperty(
                 FireStoreDirectoryEntry.PATH_FIELD_NAME,
-                fileMetadataUtils.getDirectoryPath(FULL_PATH))
+                FileMetadataUtils.getDirectoryPath(FULL_PATH))
             .addProperty(FireStoreDirectoryEntry.NAME_FIELD_NAME, "file.json")
             .addProperty(FireStoreDirectoryEntry.DATASET_ID_FIELD_NAME, DATASET_ID)
             .addProperty(FireStoreDirectoryEntry.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")

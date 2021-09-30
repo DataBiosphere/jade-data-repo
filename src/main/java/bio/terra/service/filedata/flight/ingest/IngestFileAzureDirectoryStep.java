@@ -21,20 +21,13 @@ import bio.terra.stairway.StepStatus;
 import com.azure.data.tables.models.TableServiceException;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class IngestFileAzureDirectoryStep implements Step {
-  private static final Logger logger = LoggerFactory.getLogger(IngestFileDirectoryStep.class);
-
   private final TableDao tableDao;
-  private final FileMetadataUtils fileMetadataUtils;
   private final Dataset dataset;
 
-  public IngestFileAzureDirectoryStep(
-      TableDao tableDao, FileMetadataUtils fileMetadataUtils, Dataset dataset) {
+  public IngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset) {
     this.tableDao = tableDao;
-    this.fileMetadataUtils = fileMetadataUtils;
     this.dataset = dataset;
   }
 
@@ -85,8 +78,8 @@ public class IngestFileAzureDirectoryStep implements Step {
             new FireStoreDirectoryEntry()
                 .fileId(fileId)
                 .isFileRef(true)
-                .path(fileMetadataUtils.getDirectoryPath(targetPath))
-                .name(fileMetadataUtils.getName(targetPath))
+                .path(FileMetadataUtils.getDirectoryPath(targetPath))
+                .name(FileMetadataUtils.getName(targetPath))
                 .datasetId(datasetId.toString())
                 .loadTag(loadModel.getLoadTag());
         tableDao.createDirectoryEntry(

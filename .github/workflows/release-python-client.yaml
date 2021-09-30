@@ -4,6 +4,9 @@ on: push
 #  workflow_dispatch: {}
 #  schedule:
 #    - cron: '0 3 * * *' # Nightly 10:00 pm EST; 3AM UTC
+
+#### /github/workspace/data-repo-client/data_repo_client/models/access_info_big_query_model.py
+#### /Users/myessail/broad/jade-data-repo/../data-repo-client/data_repo_client/models/access_info_big_query_model.py
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
@@ -26,6 +29,8 @@ jobs:
         run: npm install @openapitools/openapi-generator-cli -g
       - name: set version to 4.3.1
         run: openapi-generator-cli version-manager set 4.3.1
+      - name: make output directory
+        run: mkdir -p /github/workspace/data-repo-client
       - name: Generate Python client
         run: |
           openapi-generator-cli generate \

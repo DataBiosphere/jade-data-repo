@@ -437,7 +437,7 @@ public class TableDirectoryDao {
         topDir);
   }
 
-  private void batchStoreDirectoryEntry(
+  void batchStoreDirectoryEntry(
       TableServiceClient snapshotTableServiceClient,
       String snapshotId,
       List<FireStoreDirectoryEntry> snapshotEntries) {

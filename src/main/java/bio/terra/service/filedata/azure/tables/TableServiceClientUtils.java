@@ -17,6 +17,9 @@ public class TableServiceClientUtils {
 
   public static boolean tableHasEntries(
       TableServiceClient tableServiceClient, String tableName, ListEntitiesOptions options) {
+    if (options == null) {
+      options = new ListEntitiesOptions();
+    }
     if (tableExists(tableServiceClient, tableName)) {
       TableClient tableClient = tableServiceClient.getTableClient(tableName);
       options.setTop(1);
@@ -63,7 +66,10 @@ public class TableServiceClientUtils {
 
   public static int getTableEntryCount(
       TableServiceClient tableServiceClient, String tableName, ListEntitiesOptions options) {
-    if (tableHasEntries(tableServiceClient, tableName)) {
+    if (options == null) {
+      options = new ListEntitiesOptions();
+    }
+    if (tableHasEntries(tableServiceClient, tableName, options)) {
       TableClient tableClient = tableServiceClient.getTableClient(tableName);
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
       return Iterables.size(entities);

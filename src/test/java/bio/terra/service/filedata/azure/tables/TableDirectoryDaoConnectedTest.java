@@ -260,25 +260,4 @@ public class TableDirectoryDaoConnectedTest {
         StorageTableUtils.getDatasetTableName(),
         sharedTargetPath + fileName);
   }
-
-  @Test
-  public void testDirectoryTableCreateDelete() {
-    tableName = Names.randomizeName("testTable123").replaceAll("_", "");
-    TableClient tableClient = tableServiceClient.getTableClient(tableName);
-
-    boolean tableExists = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should not exist", tableExists, equalTo(false));
-
-    tableServiceClient.createTableIfNotExists(tableName);
-    boolean tableExistsNow = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should exist", tableExistsNow, equalTo(true));
-
-    boolean tableNoEntries = TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
-    assertThat("table should have no entries", tableNoEntries, equalTo(false));
-
-    tableClient.deleteTable();
-    boolean tableExistsAfterDelete =
-        TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should not exist after delete", tableExistsAfterDelete, equalTo(false));
-  }
 }

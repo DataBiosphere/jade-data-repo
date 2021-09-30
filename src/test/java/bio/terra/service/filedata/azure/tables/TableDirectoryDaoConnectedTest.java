@@ -11,6 +11,7 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
 import bio.terra.service.common.azure.StorageTableUtils;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
@@ -48,10 +49,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class TableDirectoryDaoConnectedTest {
   private static final Logger logger =
       LoggerFactory.getLogger(TableDirectoryDaoConnectedTest.class);
+  private Dataset dataset;
   private UUID datasetId;
+  private UUID snapshotId;
   private TableServiceClient tableServiceClient;
   private List<String> directoryEntriesToCleanup = new ArrayList<>();
-  private String tableName;
+  private String snapshotTableName;
 
   @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired ConnectedOperations connectedOperations;
@@ -71,6 +74,8 @@ public class TableDirectoryDaoConnectedTest {
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
     datasetId = UUID.randomUUID();
+    dataset = new Dataset().id(datasetId).name(Names.randomizeName("datasetName"));
+    snapshotId = UUID.randomUUID();
     tableServiceClient =
         new TableServiceClientBuilder()
             .credential(
@@ -96,16 +101,39 @@ public class TableDirectoryDaoConnectedTest {
         logger.debug("Directory entry either already deleted or unable to delete {}", entry, ex);
       }
     }
-    if (tableName != null) {
+    if (snapshotTableName != null) {
       try {
-        TableClient tableClient = tableServiceClient.getTableClient(tableName);
+        TableClient tableClient = tableServiceClient.getTableClient(snapshotTableName);
         tableClient.deleteTable();
       } catch (Exception ex) {
-        logger.error("Unable to delete table {}", tableName, ex);
+        logger.error("Unable to delete table {}", snapshotTableName, ex);
       }
     }
 
     connectedOperations.teardown();
+  }
+
+  @Test
+  public void testStoreTopDirectory() {
+    tableDirectoryDao.storeTopDirectory(
+        tableServiceClient, snapshotId.toString(), dataset.getName());
+
+    snapshotTableName =
+        StorageTableUtils.toTableName(
+            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
+    int count = TableServiceClientUtils.getTableEntryCount(tableServiceClient, snapshotTableName);
+    assertThat("Store top directory should add two entries to snapshot table.", count, equalTo(2));
+
+    // get directories to confirm the correct ones are added
+    List<String> directories = new ArrayList();
+    directories.add("/");
+    directories.add("/_dr_");
+
+    List<FireStoreDirectoryEntry> datasetDirectoryEntries =
+        tableDirectoryDao.batchRetrieveByPath(
+            tableServiceClient, snapshotId.toString(), snapshotTableName, directories);
+    datasetDirectoryEntries.forEach(d -> directoryEntriesToCleanup.add(d.getFileId()));
+    assertThat("Retrieved entries for all paths", datasetDirectoryEntries.size(), equalTo(2));
   }
 
   @Test

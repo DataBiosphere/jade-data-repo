@@ -76,4 +76,8 @@ public class TableServiceClientUtils {
     }
     return 0;
   }
+
+  public static int getTableEntryCount(TableServiceClient tableServiceClient, String tableName) {
+    return getTableEntryCount(tableServiceClient, tableName, null);
+  }
 }

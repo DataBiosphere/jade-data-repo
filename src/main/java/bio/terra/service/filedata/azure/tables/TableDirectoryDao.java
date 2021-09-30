@@ -410,7 +410,7 @@ public class TableDirectoryDao {
   @VisibleForTesting
   void storeTopDirectory(TableServiceClient tableServiceClient, UUID snapshotId, String dirName) {
     String dirPath = "/" + dirName;
-    String snapshotTableName = StorageTableUtils.toTableName(snapshotId, SNAPSHOT);
+    String snapshotTableName = SNAPSHOT.toTableName(snapshotId);
 
     // Check if top directory already exists
     TableEntity directoryEntry =
@@ -435,7 +435,7 @@ public class TableDirectoryDao {
       TableServiceClient snapshotTableServiceClient,
       UUID snapshotId,
       List<FireStoreDirectoryEntry> snapshotEntries) {
-    String tableName = StorageTableUtils.toTableName(snapshotId, SNAPSHOT);
+    String tableName = SNAPSHOT.toTableName(snapshotId);
     TableClient tableClient = snapshotTableServiceClient.getTableClient(tableName);
     snapshotEntries.forEach(
         snapshotEntry -> createEntityForPath(tableClient, snapshotId, tableName, snapshotEntry));

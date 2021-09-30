@@ -46,7 +46,6 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -987,7 +986,7 @@ public class ConnectedOperations {
   }
 
   public void deleteLoadHistory(UUID datasetId, TableServiceClient serviceClient) {
-    var tableName = StorageTableUtils.toTableName(datasetId, LOAD_HISTORY);
+    var tableName = LOAD_HISTORY.toTableName(datasetId);
     serviceClient.deleteTable(tableName);
   }
 }

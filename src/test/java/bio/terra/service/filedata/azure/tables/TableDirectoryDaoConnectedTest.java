@@ -12,7 +12,6 @@ import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
-import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FileMetadataUtils;
@@ -116,7 +115,7 @@ public class TableDirectoryDaoConnectedTest {
   public void testStoreTopDirectory() {
     tableDirectoryDao.storeTopDirectory(tableServiceClient, snapshotId, dataset.getName());
 
-    snapshotTableName = StorageTableUtils.toTableName(snapshotId, SNAPSHOT);
+    snapshotTableName = SNAPSHOT.toTableName(snapshotId);
     int count = TableServiceClientUtils.getTableEntryCount(tableServiceClient, snapshotTableName);
     assertThat("Store top directory should add two entries to snapshot table.", count, equalTo(2));
 

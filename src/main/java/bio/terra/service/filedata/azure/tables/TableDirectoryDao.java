@@ -11,6 +11,7 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
+import com.google.common.annotations.VisibleForTesting;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -392,24 +393,32 @@ public class TableDirectoryDao {
             });
   }
 
-  private void storeTopDirectory(
-      TableServiceClient tableServiceClient, String snapshotId, String dirName) {
-    // We have to create the top directory structure for the dataset and the root folder.
-    // Those components cannot be copied from the dataset, but have to be created new
-    // in the snapshot directory. We probe to see if the dirName directory exists. If not,
-    // we use the createFileRef path to construct it and the parent, if necessary.
+  /**
+   * Method used during snapshot create to add the first directory entry We have to create the top
+   * directory structure for the dataset and the root folder. Those components cannot be copied from
+   * the dataset, but have to be created new in the snapshot directory. We probe to see if the
+   * dirName directory exists. If not, we use the createFileRef path to construct it and the parent,
+   * if necessary.
+   *
+   * @param tableServiceClient
+   * @param snapshotId
+   * @param dirName Dataset name, used as top directory name
+   */
+  @VisibleForTesting
+  void storeTopDirectory(TableServiceClient tableServiceClient, String snapshotId, String dirName) {
     String dirPath = "/" + dirName;
+    String snapshotTableName =
+        StorageTableUtils.toTableName(
+            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
+
+    // Check if top directory already exists
     TableEntity directoryEntry =
-        lookupByFilePath(
-            tableServiceClient,
-            snapshotId,
-            StorageTableUtils.toTableName(
-                snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT),
-            dirPath);
+        lookupByFilePath(tableServiceClient, snapshotId, snapshotTableName, dirPath);
     if (directoryEntry != null) {
       return;
     }
 
+    // Top directory does not exists, so create it
     FireStoreDirectoryEntry topDir =
         new FireStoreDirectoryEntry()
             .fileId(UUID.randomUUID().toString())
@@ -418,12 +427,7 @@ public class TableDirectoryDao {
             .name(dirName)
             .fileCreatedDate(Instant.now().toString());
 
-    createDirectoryEntry(
-        tableServiceClient,
-        snapshotId,
-        StorageTableUtils.toTableName(
-            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT),
-        topDir);
+    createDirectoryEntry(tableServiceClient, snapshotId, snapshotTableName, topDir);
   }
 
   void batchStoreDirectoryEntry(

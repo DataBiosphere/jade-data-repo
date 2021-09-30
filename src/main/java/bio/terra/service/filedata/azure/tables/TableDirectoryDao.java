@@ -105,6 +105,7 @@ public class TableDirectoryDao {
       String rowKey = encodePathAsAzureRowKey(testPath);
       TableEntity entity = FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, dirToCreate);
       logger.info("Upserting directory entry for {} in table {}", testPath, tableName);
+      // For file ingest worker flights,
       // It's possible that another thread is trying to write the same directory entity at the same
       // time upsert rather than create so that it does not fail if it already exists
       tableClient.upsertEntity(entity);
@@ -218,8 +219,6 @@ public class TableDirectoryDao {
       String collectionId,
       String tableName,
       List<String> fullPaths) {
-    // I don't see a batch way to "getEntity". We could switch to listEntities w/ a query
-    // BUt, this is not efficient!
     List<TableEntity> entities =
         fullPaths.stream()
             .map(
@@ -334,8 +333,6 @@ public class TableDirectoryDao {
   //      a. File references are usually unique in the datasets we know about
   //      b. Directories are cached, so will be overwritten based on the effectiveness of the cache
 
-  // Q - Do we need to support different table service clients for snapshots?? (like the dataset vs.
-  // snapshot firestore?)
   public void addEntriesToSnapshot(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
@@ -372,9 +369,6 @@ public class TableDirectoryDao {
               // Find directory paths that need to be created; plus add to the cache
               List<String> newPaths =
                   fileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
-              // TODO - Do we expect for this to return something??
-              // Should it only return successfully when the snapshot has already ingested a file at
-              // this filepath??
               List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                   batchRetrieveByPath(
                       datasetTableServiceClient,
@@ -398,7 +392,6 @@ public class TableDirectoryDao {
             });
   }
 
-  // TODO - add test
   private void storeTopDirectory(
       TableServiceClient tableServiceClient, String snapshotId, String dirName) {
     // We have to create the top directory structure for the dataset and the root folder.
@@ -406,10 +399,6 @@ public class TableDirectoryDao {
     // in the snapshot directory. We probe to see if the dirName directory exists. If not,
     // we use the createFileRef path to construct it and the parent, if necessary.
     String dirPath = "/" + dirName;
-    // TODO - will this correctly lookup within the snapshot directory? This is usually used for
-    // datasets
-    // Also, should it matter that's it's returning a TableEntity vs. a DocumentSnapshot? I think
-    // those two are just the native entity for firestore vs. storage tables
     TableEntity directoryEntry =
         lookupByFilePath(
             tableServiceClient,

@@ -18,25 +18,37 @@ jobs:
         run: |
           CURRENT_SEMVER=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "CURRENT_SEMVER=${CURRENT_SEMVER}" >> "$GITHUB_ENV"
-      - name: Generate Python client with openapi-generator
-        # openapi-generator-cli generate -i src/main/resources/api/data-repository-openapi.yaml -g python -o ../data-repo-client --package-name data_repo_client
-        # -c /github/workspace/${{ inputs.config-file }} \
-        uses: docker://openapitools/openapi-generator-cli:v4.3.1
+      - name: Use Node.js ${{matrix.node-version }}
+        uses: actions/setup-node@v2
         with:
-          args: generate \
-            -i /github/workspace/src/main/resources/api/data-repository-openapi.yaml \
-            -g python \
-            -o /github/workspace/data-repo-client \
-            --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER} \
-            --skip-validate-spec
-#        run: |
-#          docker run -u 1001 --rm --workdir /github/workspace -v "$GITHUB_WORKSPACE":"/github/workspace" \
-#          openapitools/openapi-generator-cli:v4.3.1 generate \
-#          -i /github/workspace/src/main/resources/api/data-repository-openapi.yaml \
-#          -g python \
-#          -o /github/workspace/data-repo-client \
-#          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER} \
-#          --skip-validate-spec
+          node-version: 14
+      - name: Install openapi-generator-cli
+        run: npm install @openapitools/openapi-generator-cli -g
+      - name: set version to 4.3.1
+        run: openapi-generator-cli version-manager set 4.3.1
+      - name: Generate Python client
+        run: |
+          openapi-generator-cli generate -i src/main/resources/api/data-repository-openapi.yaml -g python -o /github/workspace/data-repo-client
+          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER}
+#      - name: Generate Python client with openapi-generator
+#        # openapi-generator-cli generate -i src/main/resources/api/data-repository-openapi.yaml -g python -o ../data-repo-client --package-name data_repo_client
+#        # -c /github/workspace/${{ inputs.config-file }} \
+#        uses: docker://openapitools/openapi-generator-cli:v4.3.1
+#        with:
+#          args: generate \
+#            -i /github/workspace/src/main/resources/api/data-repository-openapi.yaml \
+#            -g python \
+#            -o /github/workspace/data-repo-client \
+#            --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER} \
+#            --skip-validate-spec
+##        run: |
+##          docker run -u 1001 --rm --workdir /github/workspace -v "$GITHUB_WORKSPACE":"/github/workspace" \
+##          openapitools/openapi-generator-cli:v4.3.1 generate \
+##          -i /github/workspace/src/main/resources/api/data-repository-openapi.yaml \
+##          -g python \
+##          -o /github/workspace/data-repo-client \
+##          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,packageVersion=${CURRENT_SEMVER} \
+##          --skip-validate-spec
       - name: Install pypa/build
         working-directory: ./data-repo-client
         run: >-

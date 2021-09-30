@@ -3090,7 +3090,7 @@ components:
           default: ""
         csv_add_row_ids:
           type: boolean
-          default: false
+          default: true
         resolve_existing_files:
           type: boolean
           default: false

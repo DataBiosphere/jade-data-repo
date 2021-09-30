@@ -1,6 +1,6 @@
-datarepo_row_id,id,participant_id,date_collected
-8c52c63e-8d9f-4cfc-82d0-0f916b2404c1,sample1,participant_1,2019-02-27
-13ae488a-e33f-4ee6-ba30-c1fca4d96b63,sample2,participant_1,2019-02-27
-e267095a-54e0-4145-9de5-3195b07a6a26,sample3,participant_1,2019-02-27
-ccacc2d2-1c36-438b-8eaf-c630f6745f4d,sample4,participant_2,2019-02-27
-90128cc7-69f3-4328-9a5f-47c1bd698ca8,sample5,participant_2,2019-02-27
+id,participant_id,date_collected
+sample1,participant_1,2019-02-27
+sample2,participant_1,2019-02-27
+sample3,participant_1,2019-02-27
+sample4,participant_2,2019-02-27
+sample5,participant_2,2019-02-27

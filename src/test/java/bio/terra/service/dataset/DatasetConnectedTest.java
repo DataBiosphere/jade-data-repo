@@ -712,8 +712,8 @@ public class DatasetConnectedTest {
   }
 
   @Test
-  public void testCSVIngestAddRowIds() throws Exception {
-    String resourceFileName = "snapshot-test-dataset-data-no-row-ids.csv";
+  public void testCSVIngestIncludingRowIds() throws Exception {
+    String resourceFileName = "snapshot-test-dataset-data-row-ids.csv";
     String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID().toString();
     String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
     // ingest the table
@@ -724,7 +724,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath)
-            .csvAddRowIds(true);
+            .csvAddRowIds(false);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
     String columns = PdaoConstant.PDAO_ROW_ID_COLUMN + ",thecolumn";

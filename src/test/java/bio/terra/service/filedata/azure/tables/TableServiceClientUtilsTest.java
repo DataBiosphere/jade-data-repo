@@ -10,7 +10,6 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -21,8 +20,6 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -45,9 +42,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Connected.class)
 public class TableServiceClientUtilsTest {
   private static final Logger logger = LoggerFactory.getLogger(TableServiceClientUtilsTest.class);
-  private UUID datasetId;
   private TableServiceClient tableServiceClient;
-  private List<String> directoryEntriesToCleanup = new ArrayList<>();
   private String tableName;
 
   @Autowired AzureSynapsePdao azureSynapsePdao;
@@ -58,7 +53,6 @@ public class TableServiceClientUtilsTest {
   @Autowired SynapseUtils synapseUtils;
   @Autowired AzureAuthService azureAuthService;
   @Autowired TableDirectoryDao tableDirectoryDao;
-  @Autowired FileMetadataUtils fileMetadataUtils;
   @Autowired TableDao tableDao;
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired FileService fileService;
@@ -67,7 +61,6 @@ public class TableServiceClientUtilsTest {
   @Before
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
-    datasetId = UUID.randomUUID();
     tableServiceClient =
         new TableServiceClientBuilder()
             .credential(

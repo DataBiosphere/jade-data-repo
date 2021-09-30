@@ -44,7 +44,6 @@ public class TableDaoConnectedTest {
   @Autowired TableDao tableDao;
   @Autowired TableFileDao tableFileDao;
   @Autowired TableDirectoryDao tableDirectoryDao;
-  @Autowired FileMetadataUtils fileMetadataUtils;
   private TableServiceClient tableServiceClient;
   private UUID datasetId;
   private Dataset dataset;
@@ -135,8 +134,8 @@ public class TableDaoConnectedTest {
         new FireStoreDirectoryEntry()
             .fileId(fileId)
             .isFileRef(true)
-            .path(fileMetadataUtils.getDirectoryPath(targetPath))
-            .name(fileMetadataUtils.getName(targetPath))
+            .path(FileMetadataUtils.getDirectoryPath(targetPath))
+            .name(FileMetadataUtils.getName(targetPath))
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
     tableDirectoryDao.createDirectoryEntry(

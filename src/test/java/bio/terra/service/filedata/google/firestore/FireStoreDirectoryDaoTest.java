@@ -39,8 +39,6 @@ public class FireStoreDirectoryDaoTest {
 
   @Autowired private FireStoreDirectoryDao directoryDao;
 
-  @Autowired private FileMetadataUtils fileMetadataUtils;
-
   @Autowired private ConfigurationService configurationService;
 
   private String pretendDatasetId;
@@ -181,8 +179,8 @@ public class FireStoreDirectoryDaoTest {
     return new FireStoreDirectoryEntry()
         .fileId(UUID.randomUUID().toString())
         .isFileRef(true)
-        .path(fileMetadataUtils.getDirectoryPath(fullPath))
-        .name(fileMetadataUtils.getName(fullPath))
+        .path(FileMetadataUtils.getDirectoryPath(fullPath))
+        .name(FileMetadataUtils.getName(fullPath))
         .datasetId(pretendDatasetId);
   }
 }

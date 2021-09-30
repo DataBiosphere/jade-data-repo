@@ -72,7 +72,6 @@ public class AzureIngestFileConnectedTest {
   @Autowired SynapseUtils synapseUtils;
   @Autowired AzureAuthService azureAuthService;
   @Autowired TableDirectoryDao tableDirectoryDao;
-  @Autowired FileMetadataUtils fileMetadataUtils;
   @Autowired TableDao tableDao;
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired FileService fileService;
@@ -184,8 +183,8 @@ public class AzureIngestFileConnectedTest {
         new FireStoreDirectoryEntry()
             .fileId(fileId)
             .isFileRef(true)
-            .path(fileMetadataUtils.getDirectoryPath(targetPath))
-            .name(fileMetadataUtils.getName(targetPath))
+            .path(FileMetadataUtils.getDirectoryPath(targetPath))
+            .name(FileMetadataUtils.getName(targetPath))
             .datasetId(datasetId.toString())
             .loadTag(fileLoadModel.getLoadTag());
     tableDirectoryDao.createDirectoryEntry(

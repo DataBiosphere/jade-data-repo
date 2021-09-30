@@ -55,7 +55,6 @@ public class FireStoreDao {
 
   private final FireStoreDirectoryDao directoryDao;
   private final FireStoreFileDao fileDao;
-  private final FileMetadataUtils fileMetadataUtils;
   private final FireStoreUtils fireStoreUtils;
   private final ConfigurationService configurationService;
   private final PerformanceLogger performanceLogger;
@@ -64,13 +63,11 @@ public class FireStoreDao {
   public FireStoreDao(
       FireStoreDirectoryDao directoryDao,
       FireStoreFileDao fileDao,
-      FileMetadataUtils fileMetadataUtils,
       FireStoreUtils fireStoreUtils,
       ConfigurationService configurationService,
       PerformanceLogger performanceLogger) {
     this.directoryDao = directoryDao;
     this.fileDao = fileDao;
-    this.fileMetadataUtils = fileMetadataUtils;
     this.fireStoreUtils = fireStoreUtils;
     this.configurationService = configurationService;
     this.performanceLogger = performanceLogger;
@@ -318,7 +315,7 @@ public class FireStoreDao {
               .collectionId(UUID.fromString(entry.getDatasetId()))
               .datasetId(UUID.fromString(entry.getDatasetId()))
               .createdDate(Instant.parse(file.getFileCreatedDate()))
-              .path(fileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
+              .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
               .checksumCrc32c(file.getChecksumCrc32c())
               .checksumMd5(file.getChecksumMd5())
               .size(file.getSize())
@@ -415,7 +412,7 @@ public class FireStoreDao {
     }
 
     String fullPath =
-        fileMetadataUtils.getFullPath(
+        FileMetadataUtils.getFullPath(
             fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
 
     FSDir fsDir = new FSDir();
@@ -464,7 +461,7 @@ public class FireStoreDao {
     }
 
     String fullPath =
-        fileMetadataUtils.getFullPath(
+        FileMetadataUtils.getFullPath(
             fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
     String fileId = fireStoreDirectoryEntry.getFileId();
 
@@ -507,7 +504,7 @@ public class FireStoreDao {
       List<FireStoreDirectoryEntry> updateBatch)
       throws InterruptedException {
 
-    String fullPath = fileMetadataUtils.getFullPath(dirEntry.getPath(), dirEntry.getName());
+    String fullPath = FileMetadataUtils.getFullPath(dirEntry.getPath(), dirEntry.getName());
     List<FireStoreDirectoryEntry> enumDir =
         directoryDao.enumerateDirectory(snapshotFirestore, snapshotId, fullPath);
 

@@ -13,7 +13,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
@@ -44,7 +43,6 @@ public class FileIngestFlight extends Flight {
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
-    FileMetadataUtils fileMetadataUtils = appContext.getBean(FileMetadataUtils.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
@@ -129,7 +127,7 @@ public class FileIngestFlight extends Flight {
 
     if (platform.isGcp()) {
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-      addStep(new IngestFileDirectoryStep(fileDao, fileMetadataUtils, dataset), randomBackoffRetry);
+      addStep(new IngestFileDirectoryStep(fileDao, dataset), randomBackoffRetry);
       addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
       addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
       addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
@@ -143,9 +141,7 @@ public class FileIngestFlight extends Flight {
           new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
           randomBackoffRetry);
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset));
-      addStep(
-          new IngestFileAzureDirectoryStep(azureTableDao, fileMetadataUtils, dataset),
-          randomBackoffRetry);
+      addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), randomBackoffRetry);
       addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), randomBackoffRetry);
     }

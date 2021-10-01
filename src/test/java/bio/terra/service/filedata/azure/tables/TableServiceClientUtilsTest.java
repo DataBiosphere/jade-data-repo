@@ -5,16 +5,10 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
-import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.FileService;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
@@ -45,17 +39,9 @@ public class TableServiceClientUtilsTest {
   private TableServiceClient tableServiceClient;
   private String tableName;
 
-  @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired DatasetService datasetService;
   @MockBean private IamProviderInterface samService;
-  @Autowired SynapseUtils synapseUtils;
-  @Autowired AzureAuthService azureAuthService;
-  @Autowired TableDirectoryDao tableDirectoryDao;
-  @Autowired TableDao tableDao;
-  @Autowired AzureBlobStorePdao azureBlobStorePdao;
-  @Autowired FileService fileService;
   @Autowired AzureUtils azureUtils;
 
   @Before

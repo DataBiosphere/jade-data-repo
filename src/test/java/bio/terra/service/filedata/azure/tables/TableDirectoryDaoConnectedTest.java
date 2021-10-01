@@ -2,6 +2,7 @@ package bio.terra.service.filedata.azure.tables;
 
 import static bio.terra.service.common.azure.StorageTableName.DATASET_TABLE;
 import static bio.terra.service.common.azure.StorageTableName.SNAPSHOT_TABLE;
+import static bio.terra.service.filedata.azure.tables.TableServiceClientUtils.tableHasEntries;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNull;
@@ -16,9 +17,13 @@ import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.iam.IamProviderInterface;
 import com.azure.core.credential.AzureNamedKeyCredential;
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
+import com.azure.data.tables.models.ListEntitiesOptions;
+import com.azure.data.tables.models.TableEntity;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -102,7 +107,7 @@ public class TableDirectoryDaoConnectedTest {
     tableDirectoryDao.storeTopDirectory(tableServiceClient, snapshotId, dataset.getName());
 
     snapshotTableName = SNAPSHOT_TABLE.toTableName(snapshotId);
-    int count = TableServiceClientUtils.getTableEntryCount(tableServiceClient, snapshotTableName);
+    int count = getTableEntryCount(tableServiceClient, snapshotTableName);
     assertThat("Store top directory should add two entries to snapshot table.", count, equalTo(2));
 
     // get directories to confirm the correct ones are added
@@ -244,5 +249,15 @@ public class TableDirectoryDaoConnectedTest {
     // test that directory entry now exists
     return tableDirectoryDao.retrieveByPath(
         tableServiceClient, datasetId, DATASET_TABLE.toTableName(), sharedTargetPath + fileName);
+  }
+
+  private int getTableEntryCount(TableServiceClient tableServiceClient, String tableName) {
+    ListEntitiesOptions options = new ListEntitiesOptions();
+    if (tableHasEntries(tableServiceClient, tableName, options)) {
+      TableClient tableClient = tableServiceClient.getTableClient(tableName);
+      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+      return Iterables.size(entities);
+    }
+    return 0;
   }
 }

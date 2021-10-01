@@ -291,11 +291,10 @@ public class TableDirectoryDao {
     try {
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", fileId));
-      int count =
-          TableServiceClientUtils.getTableEntryCount(tableServiceClient, tableName, options);
-      if (count < 1) {
+      if (!TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName, options)) {
         return null;
-      } else if (count > 1) {
+      } else if (!TableServiceClientUtils.tableHasSingleEntry(
+          tableServiceClient, tableName, options)) {
         throw new FileSystemAbortTransactionException(
             String.format("lookupByFileId found too many entries for fileId %s", fileId));
       }

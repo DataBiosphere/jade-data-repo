@@ -79,6 +79,7 @@ public class TableServiceClientUtils {
     if (options == null) {
       options = new ListEntitiesOptions();
     }
+    options.setTop(2);
     if (tableHasEntries(tableServiceClient, tableName, options)) {
       TableClient tableClient = tableServiceClient.getTableClient(tableName);
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);

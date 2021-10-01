@@ -157,7 +157,6 @@ public class TableDaoConnectedTest {
     }
 
     List<String> directories = new ArrayList();
-    directories.add("/");
     directories.add("/_dr_");
     directories.add("/_dr_" + datasetNamePlaceholder + "/test");
     directories.add("/_dr_" + datasetNamePlaceholder + "/test/path");
@@ -168,7 +167,7 @@ public class TableDaoConnectedTest {
     directories.add("/_dr_" + datasetNamePlaceholder + "/test/diffpath");
     directories.add(
         "/_dr_" + datasetNamePlaceholder + String.format(targetBasePathFormat, "diffpath", "diff"));
-    int expectedNum = 6 + numFilesToLoad;
+    int expectedNum = 5 + numFilesToLoad;
     List<FireStoreDirectoryEntry> datasetDirectoryEntries =
         tableDirectoryDao.batchRetrieveByPath(
             tableServiceClient, collectionId, tableName, directories);

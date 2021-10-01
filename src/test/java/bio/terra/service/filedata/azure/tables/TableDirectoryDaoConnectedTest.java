@@ -113,13 +113,22 @@ public class TableDirectoryDaoConnectedTest {
     // get directories to confirm the correct ones are added
     List<String> directories = new ArrayList();
     directories.add("/");
-    directories.add("/_dr_");
+    directories.add("/" + dataset.getName());
 
     List<FireStoreDirectoryEntry> datasetDirectoryEntries =
         tableDirectoryDao.batchRetrieveByPath(
             tableServiceClient, snapshotId, snapshotTableName, directories);
     datasetDirectoryEntries.forEach(d -> directoryEntriesToCleanup.add(d.getFileId()));
     assertThat("Retrieved entries for all paths", datasetDirectoryEntries.size(), equalTo(2));
+
+    // Test that batchRetrieveByPath only returns unique entries
+    List<String> nonUniqueDirectories = new ArrayList();
+    nonUniqueDirectories.add("/" + dataset.getName());
+    nonUniqueDirectories.add("/_dr_/" + dataset.getName());
+    List<FireStoreDirectoryEntry> uniqueDatasetDirectoryEntries =
+        tableDirectoryDao.batchRetrieveByPath(
+            tableServiceClient, snapshotId, snapshotTableName, nonUniqueDirectories);
+    assertThat("Only 1 unique path", uniqueDatasetDirectoryEntries.size(), equalTo(1));
   }
 
   @Test

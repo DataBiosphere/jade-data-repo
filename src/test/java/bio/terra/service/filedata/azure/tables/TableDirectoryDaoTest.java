@@ -113,12 +113,15 @@ public class TableDirectoryDaoTest {
     try (MockedStatic<TableServiceClientUtils> utils =
         Mockito.mockStatic(TableServiceClientUtils.class)) {
       utils
+          .when(() -> TableServiceClientUtils.tableHasEntries(any(), any(), any()))
+          .thenReturn(true);
+      utils
           .when(() -> TableServiceClientUtils.tableHasSingleEntry(any(), any(), any()))
           .thenReturn(true);
       FireStoreDirectoryEntry response =
           dao.retrieveById(tableServiceClient, DATASET_TABLE.toTableName(), FILE_ID);
       assertThat(
-          "retrieveById returns the correct directory entry", directoryEntry, equalTo(response));
+          "retrieveById returns the correct directory entry", response, equalTo(directoryEntry));
     }
   }
 

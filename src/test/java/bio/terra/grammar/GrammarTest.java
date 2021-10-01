@@ -100,12 +100,9 @@ public class GrammarTest {
   }
 
   @Test(expected = InvalidQueryException.class)
-  public void testWhere1000Genomes() {
-    Query.parse(
-        "SELECT 1000GenomesDataset.sample_info.datarepo_row_id FROM 1000GenomesDataset"
-            + ".sample_info JOIN a1000GenomesDataset.pedigree ON 1000GenomesDataset.pedigree.Family_ID = "
-            + "1000GenomesDataset.sample_info.Family_ID WHERE 1000GenomesDataset.pedigree.Relationship IN (\"child\") "
-            + "AND 1000GenomesDataset.sample_info.Gender  IN (\"male\")");
+  public void test1000Genomes() {
+    // SQL table names cannot start with a number
+    Query.parse("SELECT 1000GenomesDataset.sample_info.datarepo_row_id FROM 1000GenomesDataset");
   }
 
   @Test(expected = InvalidQueryException.class)

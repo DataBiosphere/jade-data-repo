@@ -222,13 +222,9 @@ public class TableDirectoryDao {
       List<String> fullPaths) {
     List<TableEntity> entities =
         fullPaths.stream()
-            .map(
-                path ->
-                    lookupByFilePath(
-                        tableServiceClient,
-                        collectionId,
-                        tableName,
-                        FileMetadataUtils.makeLookupPath(path)))
+            .map(FileMetadataUtils::makeLookupPath)
+            .distinct()
+            .map(path -> lookupByFilePath(tableServiceClient, collectionId, tableName, path))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
     return entities.stream()

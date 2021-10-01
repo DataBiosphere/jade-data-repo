@@ -87,9 +87,9 @@ public class TableServiceClientUtilsTest {
     boolean tableNoEntries = TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
     assertThat("table should have no entries", tableNoEntries, equalTo(false));
 
-    int tableZeroEntryCount =
-        TableServiceClientUtils.getTableEntryCount(tableServiceClient, tableName, null);
-    assertThat("table should have zero entries", tableZeroEntryCount, equalTo(0));
+    boolean tableZeroEntryCount =
+        TableServiceClientUtils.tableHasSingleEntry(tableServiceClient, tableName, null);
+    assertThat("table should have zero entries", tableZeroEntryCount, equalTo(false));
 
     // add an entry to the table
     tableClient.createEntity(new TableEntity("test1", UUID.randomUUID().toString()));
@@ -97,15 +97,15 @@ public class TableServiceClientUtilsTest {
         TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
     assertThat("table should have one entry", tableHasEntries, equalTo(true));
 
-    int tableOneEntryCount =
-        TableServiceClientUtils.getTableEntryCount(tableServiceClient, tableName, null);
-    assertThat("table should have one entry", tableOneEntryCount, equalTo(1));
+    boolean tableOneEntry =
+        TableServiceClientUtils.tableHasSingleEntry(tableServiceClient, tableName, null);
+    assertThat("table should have one entry", tableOneEntry, equalTo(true));
 
     // add a second entry to the table
     tableClient.createEntity(new TableEntity("test2", UUID.randomUUID().toString()));
-    int tableTwoEntryCount =
-        TableServiceClientUtils.getTableEntryCount(tableServiceClient, tableName, null);
-    assertThat("table should have two entries", tableTwoEntryCount, equalTo(2));
+    boolean tableTwoEntry =
+        TableServiceClientUtils.tableHasSingleEntry(tableServiceClient, tableName, null);
+    assertThat("table should have two entries", tableTwoEntry, equalTo(false));
 
     tableClient.deleteTable();
     boolean tableExistsAfterDelete =

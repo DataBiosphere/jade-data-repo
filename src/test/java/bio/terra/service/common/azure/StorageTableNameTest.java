@@ -1,7 +1,5 @@
 package bio.terra.service.common.azure;
 
-import static bio.terra.service.common.azure.StorageTableName.DATASET_TABLE;
-import static bio.terra.service.common.azure.StorageTableName.SNAPSHOT_TABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -16,26 +14,26 @@ public class StorageTableNameTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void snapshotToTableNameNoParam() {
-    SNAPSHOT_TABLE.toTableName();
+    StorageTableName.SNAPSHOT.toTableName();
   }
 
   @Test
   public void snapshotToTableNameWithParam() {
     UUID snapshotId = UUID.randomUUID();
     String expectedTableName = "datarepo" + snapshotId.toString().replaceAll("-", "") + "snapshot";
-    String snapshotTableName = SNAPSHOT_TABLE.toTableName(snapshotId);
+    String snapshotTableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
     assertThat(
         "expected snapshot table name should match", snapshotTableName, equalTo(expectedTableName));
   }
 
   @Test
   public void datasetToTableNameNoParam() {
-    String datasetTableName = DATASET_TABLE.toTableName();
+    String datasetTableName = StorageTableName.DATASET.toTableName();
     assertThat("expected snapshot table name should match", datasetTableName, equalTo("dataset"));
   }
 
   @Test(expected = NotImplementedException.class)
   public void datasetToTableNameWithParam() {
-    DATASET_TABLE.toTableName(UUID.randomUUID());
+    StorageTableName.DATASET.toTableName(UUID.randomUUID());
   }
 }

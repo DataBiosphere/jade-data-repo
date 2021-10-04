@@ -1,6 +1,5 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static bio.terra.service.common.azure.StorageTableName.DATASET_TABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -11,6 +10,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -91,14 +91,18 @@ public class TableDirectoryDaoTest {
   public void testRetrieveByPath() {
     when(tableClient.getEntity(PARTITION_KEY, ROW_KEY)).thenReturn(entity);
     FireStoreDirectoryEntry response =
-        dao.retrieveByPath(tableServiceClient, DATASET_ID, DATASET_TABLE.toTableName(), FULL_PATH);
+        dao.retrieveByPath(
+            tableServiceClient, DATASET_ID, StorageTableName.DATASET.toTableName(), FULL_PATH);
     assertEquals("The same entry is returned", directoryEntry, response);
 
     when(tableClient.getEntity(PARTITION_KEY, NONEXISTENT_ROW_KEY))
         .thenThrow(TableServiceException.class);
     FireStoreDirectoryEntry nonExistentEntry =
         dao.retrieveByPath(
-            tableServiceClient, DATASET_ID, DATASET_TABLE.toTableName(), NONEXISTENT_PATH);
+            tableServiceClient,
+            DATASET_ID,
+            StorageTableName.DATASET.toTableName(),
+            NONEXISTENT_PATH);
     assertNull("The entry does not exist", nonExistentEntry);
   }
 
@@ -119,7 +123,7 @@ public class TableDirectoryDaoTest {
           .when(() -> TableServiceClientUtils.tableHasSingleEntry(any(), any(), any()))
           .thenReturn(true);
       FireStoreDirectoryEntry response =
-          dao.retrieveById(tableServiceClient, DATASET_TABLE.toTableName(), FILE_ID);
+          dao.retrieveById(tableServiceClient, StorageTableName.DATASET.toTableName(), FILE_ID);
       assertThat(
           "retrieveById returns the correct directory entry", response, equalTo(directoryEntry));
     }
@@ -134,7 +138,8 @@ public class TableDirectoryDaoTest {
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
     FireStoreDirectoryEntry response =
-        dao.retrieveById(tableServiceClient, DATASET_TABLE.toTableName(), "nonexistentId");
+        dao.retrieveById(
+            tableServiceClient, StorageTableName.DATASET.toTableName(), "nonexistentId");
     assertNull("The entry does not exist", response);
   }
 
@@ -160,7 +165,7 @@ public class TableDirectoryDaoTest {
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
     List<FireStoreDirectoryEntry> response =
-        dao.enumerateDirectory(tableServiceClient, DATASET_TABLE.toTableName(), FILE_ID);
+        dao.enumerateDirectory(tableServiceClient, StorageTableName.DATASET.toTableName(), FILE_ID);
     assertEquals(response.get(0), directoryEntry);
   }
 }

@@ -51,7 +51,7 @@ public class TableDirectoryDaoConnectedTest {
   private UUID datasetId;
   private UUID snapshotId;
   private TableServiceClient tableServiceClient;
-  private List<String> directoryEntriesToCleanup = new ArrayList<>();
+  private List<String> directoryEntriesToCleanup = new ArrayList();
   private String snapshotTableName;
 
   @Autowired ConnectedOperations connectedOperations;
@@ -109,7 +109,7 @@ public class TableDirectoryDaoConnectedTest {
     assertThat("Store top directory should add two entries to snapshot table.", count, equalTo(2));
 
     // get directories to confirm the correct ones are added
-    List<String> directories = new ArrayList<>();
+    List<String> directories = new ArrayList();
     directories.add("/");
     directories.add("/" + dataset.getName());
 
@@ -120,7 +120,7 @@ public class TableDirectoryDaoConnectedTest {
     assertThat("Retrieved entries for all paths", datasetDirectoryEntries.size(), equalTo(2));
 
     // Test that batchRetrieveByPath only returns unique entries
-    List<String> nonUniqueDirectories = new ArrayList<>();
+    List<String> nonUniqueDirectories = new ArrayList();
     nonUniqueDirectories.add("/" + dataset.getName());
     nonUniqueDirectories.add("/_dr_/" + dataset.getName());
     List<FireStoreDirectoryEntry> uniqueDatasetDirectoryEntries =

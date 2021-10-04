@@ -70,7 +70,7 @@ public class TableDaoConnectedTest {
             .buildClient();
     datasetId = UUID.randomUUID();
     dataset = new Dataset().id(datasetId).name(Names.randomizeName("dataset"));
-    refIds = new ArrayList<>();
+    refIds = new ArrayList();
     snapshotId = UUID.randomUUID();
     snapshot = new Snapshot().id(snapshotId);
     loadTag = Names.randomizeName("loadTag");
@@ -158,7 +158,7 @@ public class TableDaoConnectedTest {
       datasetNamePlaceholder = "/" + dataset.getName();
     }
 
-    List<String> directories = new ArrayList<>();
+    List<String> directories = new ArrayList();
     directories.add("/_dr_");
     directories.add(String.format("/_dr_%s/%s", datasetNamePlaceholder, uniqueTestDirectory));
     directories.add(String.format("/_dr_%s/%s/path", datasetNamePlaceholder, uniqueTestDirectory));

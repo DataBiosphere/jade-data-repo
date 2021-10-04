@@ -45,15 +45,12 @@ public enum StorageTableName {
    * @return A valid azure storage table name
    */
   public String toTableName(UUID resourceId) {
-    if (resourceId == null) {
-      throw new InvalidParameterException(
-          "Resource Id must be provided for this storage table type.");
-    }
     return "datarepo" + resourceId.toString().replaceAll("-", "") + label;
   }
 
   // TODO - With DR-2127, move remove special case for dataset
   public String toTableName() {
-    return toTableName(null);
+    throw new InvalidParameterException(
+        "Resource Id must be provided for this storage table type.");
   }
 }

@@ -210,7 +210,7 @@ public class TableDirectoryDao {
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
     return entities.stream()
-        .map(entity -> FireStoreDirectoryEntry.fromTableEntity(entity))
+        .map(FireStoreDirectoryEntry::fromTableEntity)
         .collect(Collectors.toList());
   }
 

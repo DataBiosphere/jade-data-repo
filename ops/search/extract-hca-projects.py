@@ -4,7 +4,7 @@ import json
 from urllib.request import urlopen
 from urllib.error import HTTPError
 
-url = "https://service.azul.data.humancellatlas.org/index/projects?catalog=dcp8&size=1000&sort=projectTitle&order=desc"
+url = "https://service.azul.data.humancellatlas.org/index/projects?catalog=dcp9&size=1000&sort=projectTitle&order=desc"
 
 projects = []
 while url:

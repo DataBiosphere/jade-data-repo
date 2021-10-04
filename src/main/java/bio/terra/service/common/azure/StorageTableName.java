@@ -17,7 +17,7 @@ public enum StorageTableName {
     }
 
     public String toTableName() {
-      return this.label;
+      return label;
     }
   },
   FILES_TABLE("files") {
@@ -28,7 +28,7 @@ public enum StorageTableName {
     }
 
     public String toTableName() {
-      return this.label;
+      return label;
     }
   };
 
@@ -49,7 +49,7 @@ public enum StorageTableName {
       throw new InvalidParameterException(
           "Resource Id must be provided for this storage table type.");
     }
-    return "datarepo" + resourceId.toString().replaceAll("-", "") + this.label;
+    return "datarepo" + resourceId.toString().replaceAll("-", "") + label;
   }
 
   // TODO - With DR-2127, move remove special case for dataset

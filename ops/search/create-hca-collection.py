@@ -91,6 +91,7 @@ def get_modalities(hit):
             "TerraCoreValueSets:Proteomic",
         ],
         "10x Ig enrichment": ["TerraCoreValueSets:Transcriptomic"],
+        "10X Ig enrichment": ["TerraCoreValueSets:Transcriptomic"],
         "10x TCR enrichment": ["TerraCoreValueSets:Transcriptomic"],
         "10X TCR enrichment": ["TerraCoreValueSets:Transcriptomic"],
         "Fluidigm C1-based library preparation": ["TerraCoreValueSets:Transcriptomic"],
@@ -107,7 +108,7 @@ def get_modalities(hit):
         "MARS-seq": ["TerraCoreValueSets:Transcriptomic"],
     }
 
-    assayTypeMap = {
+    categoryMap = {
         "single cell": "scRNA-seq",
         "single nucleus": "snRNA-seq",
         "bulk cell": "RNA-seq",
@@ -115,7 +116,7 @@ def get_modalities(hit):
     }
 
     assays = []
-    assayTypes = []
+    categories = []
     modalities = []
     for protocol in hit["protocols"]:
         if "libraryConstructionApproach" in protocol:
@@ -125,12 +126,12 @@ def get_modalities(hit):
                 modalities.extend(modalityMap[assay])
         if "nucleicAcidSource" in protocol:
             for source in protocol["nucleicAcidSource"]:
-                assayTypes.append(assayTypeMap[source])
+                categories.append(categoryMap[source])
 
-    return list(set(assays)), list(set(modalities)), list(set(assayTypes))
+    return list(set(assays)), list(set(modalities)), list(set(categories))
 
 
-def get_content(hit, dataTypes):
+def get_genus_disease(hit):
     assert len(hit["donorOrganisms"]) in [0, 1]
 
     genus = []
@@ -140,7 +141,7 @@ def get_content(hit, dataTypes):
         genus.extend(filter(None, donor["genusSpecies"]))
         disease.extend(filter(None, donor["disease"]))
 
-    return {"genus": genus, "disease": disease, "dataType": dataTypes}
+    return {"genus": genus, "disease": disease}
 
 
 with open("hca-projects.json", "r") as f:
@@ -163,7 +164,7 @@ for hit in projects[0]["hits"]:
 
     get_sample_ids(hit)
 
-    assays, modalities, assayTypes = get_modalities(hit)
+    assays, modalities, categories = get_modalities(hit)
 
     obj = {
         "dct:identifier": snapshot["id"],
@@ -181,13 +182,22 @@ for hit in projects[0]["hits"]:
                 "dct:title": "Human Cell Atlas",
                 "dct:description": "The Human Cell Atlas (HCA) data collection contains comprehensive reference maps of all human cells - the fundamental units of life - as a basis for understanding fundamental human biological processes and diagnosing, monitoring, and treating disease.",
                 "dct:creator": hca_creator(),
-                "dct:publisher": "Data Explorer Team",
+                "dct:publisher": "Human Cell Atlas",
                 "dct:issued": now(),
                 "dct:modified": now(),
             }
         ],
-        "TerraCore:hasDataModality": modalities,
-        "TerraCore:hasAssayType": assays,
+        "prov:wasGeneratedBy": [
+            {
+                "TerraCore:hasAssayType": assays,
+            },
+            {
+                "TerraCore:hasDataModality": modalities,
+            },
+            {
+                "TerraCore:hasAssayCategory": categories,
+            },
+        ],
         "storage": snapshot["storage"],
         "counts": {
             "donors": sum(d["donorCount"] for d in hit["donorOrganisms"]),
@@ -195,7 +205,7 @@ for hit in projects[0]["hits"]:
             "files": sum(f["count"] for f in hit["fileTypeSummaries"]),
         },
         "files": get_files(hit),
-        "content": get_content(hit, assayTypes),
+        "samples": get_genus_disease(hit),
         "contributors": project["contributors"],
     }
     data.append(obj)

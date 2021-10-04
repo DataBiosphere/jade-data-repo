@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
@@ -78,18 +77,18 @@ public class TableServiceClientUtilsTest {
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
 
     boolean tableExists = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should not exist", tableExists, equalTo(false));
+    assertThat("table should not exist", !tableExists);
 
     tableServiceClient.createTableIfNotExists(tableName);
     boolean tableExistsNow = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
     assertThat("table should exist", tableExistsNow);
 
     boolean tableNoEntries = TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
-    assertThat("table should have no entries", tableNoEntries, equalTo(false));
+    assertThat("table should have no entries", !tableNoEntries);
 
-    boolean tableZeroEntryCount =
+    boolean tableZeroEntry =
         TableServiceClientUtils.tableHasSingleEntry(tableServiceClient, tableName, null);
-    assertThat("table should have zero entries", tableZeroEntryCount, equalTo(false));
+    assertThat("table should have zero entries", !tableZeroEntry);
 
     // add an entry to the table
     tableClient.createEntity(new TableEntity("test1", UUID.randomUUID().toString()));
@@ -105,11 +104,11 @@ public class TableServiceClientUtilsTest {
     tableClient.createEntity(new TableEntity("test2", UUID.randomUUID().toString()));
     boolean tableTwoEntry =
         TableServiceClientUtils.tableHasSingleEntry(tableServiceClient, tableName, null);
-    assertThat("table should have two entries", tableTwoEntry, equalTo(false));
+    assertThat("table should have two entries", !tableTwoEntry);
 
     tableClient.deleteTable();
     boolean tableExistsAfterDelete =
         TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should not exist after delete", tableExistsAfterDelete, equalTo(false));
+    assertThat("table should not exist after delete", !tableExistsAfterDelete);
   }
 }

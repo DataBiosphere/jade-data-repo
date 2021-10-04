@@ -128,8 +128,8 @@ public class TableDirectoryDao {
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     TableEntity createEntryEntity =
         FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, createEntry);
-    logger.info("Creating directory entry for {} in table {}", fullPath, tableName);
-    tableClient.createEntity(createEntryEntity);
+    logger.info("Upserting directory entry for {} in table {}", fullPath, tableName);
+    tableClient.upsertEntity(createEntryEntity);
   }
 
   // true - directory entry existed and was deleted; false - directory entry did not exist
@@ -185,24 +185,6 @@ public class TableDirectoryDao {
     return Optional.ofNullable(entity)
         .map(d -> FireStoreDirectoryEntry.fromTableEntity(entity))
         .orElse(null);
-  }
-
-  // returns empty list if no items are found
-  public List<FireStoreDirectoryEntry> batchRetrieveById(
-      TableServiceClient tableServiceClient, List<String> fileIds) {
-    List<TableEntity> entities = batchLookupByFileId(tableServiceClient, fileIds);
-    return entities.stream()
-        .map(
-            entity -> {
-              FireStoreDirectoryEntry directoryEntry =
-                  FireStoreDirectoryEntry.fromTableEntity(entity);
-              if (!directoryEntry.getIsFileRef()) {
-                throw new FileSystemExecutionException(
-                    "Directories are not supported as references");
-              }
-              return directoryEntry;
-            })
-        .collect(Collectors.toList());
   }
 
   // Returns null if not found - upper layers do any throwing

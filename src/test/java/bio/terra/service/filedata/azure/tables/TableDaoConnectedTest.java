@@ -52,10 +52,12 @@ public class TableDaoConnectedTest {
   private List<String> refIds;
   private String loadTag;
   private int numFilesToLoad;
-  private String targetBasePathFormat = "/test/%s/file-%s.json";
+  private String uniqueTestDirectory;
+  private String targetBasePathFormat = "/%s/%s/file-%s.json";
 
   @Before
   public void setUp() {
+    uniqueTestDirectory = UUID.randomUUID().toString().replace("-", "");
     tableServiceClient =
         new TableServiceClientBuilder()
             .credential(
@@ -89,7 +91,7 @@ public class TableDaoConnectedTest {
     for (int i = 0; i < numFilesToLoad; i++) {
       String fileId = UUID.randomUUID().toString();
       refIds.add(fileId);
-      String targetPath = String.format(targetBasePathFormat, "path", i);
+      String targetPath = String.format(targetBasePathFormat, uniqueTestDirectory, "path", i);
       createFileDirectoryEntry(fileId, targetPath);
     }
 
@@ -98,7 +100,8 @@ public class TableDaoConnectedTest {
     // New entries: /_dr_/test/diffpath and one for the 1 file
     String diffFileId = UUID.randomUUID().toString();
     refIds.add(diffFileId);
-    createFileDirectoryEntry(diffFileId, String.format(targetBasePathFormat, "diffpath", "diff"));
+    createFileDirectoryEntry(
+        diffFileId, String.format(targetBasePathFormat, uniqueTestDirectory, "diffpath", "diff"));
   }
 
   @After
@@ -158,15 +161,21 @@ public class TableDaoConnectedTest {
 
     List<String> directories = new ArrayList();
     directories.add("/_dr_");
-    directories.add("/_dr_" + datasetNamePlaceholder + "/test");
-    directories.add("/_dr_" + datasetNamePlaceholder + "/test/path");
+    directories.add(String.format("/_dr_%s/%s", datasetNamePlaceholder, uniqueTestDirectory));
+    directories.add(String.format("/_dr_%s/%s/path", datasetNamePlaceholder, uniqueTestDirectory));
     String baseTargetPath = "/_dr_" + datasetNamePlaceholder + targetBasePathFormat;
     for (int i = 0; i < numFilesToLoad; i++) {
-      directories.add(String.format(baseTargetPath, "path", i));
+      directories.add(String.format(baseTargetPath, uniqueTestDirectory, "path", i));
     }
-    directories.add("/_dr_" + datasetNamePlaceholder + "/test/diffpath");
     directories.add(
-        "/_dr_" + datasetNamePlaceholder + String.format(targetBasePathFormat, "diffpath", "diff"));
+        String.format("/_dr_%s/%s/diffpath", datasetNamePlaceholder, uniqueTestDirectory));
+    directories.add(
+        String.format(
+            "/_dr_%s" + targetBasePathFormat,
+            datasetNamePlaceholder,
+            uniqueTestDirectory,
+            "diffpath",
+            "diff"));
     int expectedNum = 5 + numFilesToLoad;
     List<FireStoreDirectoryEntry> datasetDirectoryEntries =
         tableDirectoryDao.batchRetrieveByPath(

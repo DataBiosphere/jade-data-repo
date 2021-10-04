@@ -1,6 +1,7 @@
 package bio.terra.service.common.azure;
 
 import bio.terra.common.exception.NotImplementedException;
+import java.util.Objects;
 import java.util.UUID;
 
 public enum StorageTableName {
@@ -44,6 +45,7 @@ public enum StorageTableName {
    * @return A valid azure storage table name
    */
   public String toTableName(UUID resourceId) {
+    Objects.requireNonNull(resourceId, "Resource Id must be provided for this storage table type.");
     return "datarepo" + resourceId.toString().replaceAll("-", "") + label;
   }
 

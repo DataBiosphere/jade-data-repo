@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -400,9 +401,9 @@ public class FireStoreDirectoryDao {
           batchRetrieveById(datasetFirestore, datasetId, batch);
 
       // Find directory paths that need to be created; plus add to the cache
-      List<String> newPaths = FileMetadataUtils.findNewDirectoryPaths(datasetEntries, pathMap);
+      Set<String> newPaths = FileMetadataUtils.findNewDirectoryPaths(datasetEntries, pathMap);
       List<FireStoreDirectoryEntry> datasetDirectoryEntries =
-          batchRetrieveByPath(datasetFirestore, datasetId, newPaths);
+          batchRetrieveByPath(datasetFirestore, datasetId, new ArrayList<>(newPaths));
 
       // Create snapshot file system entries
       List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();

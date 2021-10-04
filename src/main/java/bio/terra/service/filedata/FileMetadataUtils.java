@@ -5,8 +5,9 @@ import com.google.common.annotations.VisibleForTesting;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
@@ -85,10 +86,10 @@ public class FileMetadataUtils {
     return StringUtils.removeStart(lookupPath, ROOT_DIR_NAME);
   }
 
-  public static List<String> findNewDirectoryPaths(
+  public static Set<String> findNewDirectoryPaths(
       List<FireStoreDirectoryEntry> datasetEntries, LRUMap<String, Boolean> pathMap) {
 
-    List<String> pathsToCheck = new ArrayList<>();
+    Set<String> pathsToCheck = new HashSet<>();
     for (FireStoreDirectoryEntry entry : datasetEntries) {
       // Only probe the real directories - not leaf file reference or the root
       String lookupDirPath = makeLookupPath(entry.getPath());
@@ -97,11 +98,13 @@ public class FileMetadataUtils {
           testPath = getDirectoryPath(testPath)) {
 
         // check the cache
-        if (pathMap.get(testPath) == null) {
-          // not in the cache: add to checklist and a to cache
-          pathsToCheck.add(testPath);
-          pathMap.put(testPath, true);
-        }
+        pathMap.computeIfAbsent(
+            testPath,
+            s -> {
+              // not in the cache: add to checklist and a to cache
+              pathsToCheck.add(s);
+              return true;
+            });
       }
     }
     return pathsToCheck;

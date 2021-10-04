@@ -23,7 +23,9 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -109,7 +111,7 @@ public class TableDirectoryDaoConnectedTest {
     assertThat("Store top directory should add two entries to snapshot table.", count, equalTo(2));
 
     // get directories to confirm the correct ones are added
-    List<String> directories = new ArrayList();
+    Set<String> directories = new HashSet<>();
     directories.add("/");
     directories.add("/" + dataset.getName());
 
@@ -120,7 +122,7 @@ public class TableDirectoryDaoConnectedTest {
     assertThat("Retrieved entries for all paths", datasetDirectoryEntries.size(), equalTo(2));
 
     // Test that batchRetrieveByPath only returns unique entries
-    List<String> nonUniqueDirectories = new ArrayList();
+    Set<String> nonUniqueDirectories = new HashSet<>();
     nonUniqueDirectories.add("/" + dataset.getName());
     nonUniqueDirectories.add("/_dr_/" + dataset.getName());
     List<FireStoreDirectoryEntry> uniqueDatasetDirectoryEntries =

@@ -82,7 +82,7 @@ public class TableServiceClientUtilsTest {
 
     tableServiceClient.createTableIfNotExists(tableName);
     boolean tableExistsNow = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should exist", tableExistsNow, equalTo(true));
+    assertThat("table should exist", tableExistsNow);
 
     boolean tableNoEntries = TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
     assertThat("table should have no entries", tableNoEntries, equalTo(false));
@@ -95,11 +95,11 @@ public class TableServiceClientUtilsTest {
     tableClient.createEntity(new TableEntity("test1", UUID.randomUUID().toString()));
     boolean tableHasEntries =
         TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
-    assertThat("table should have one entry", tableHasEntries, equalTo(true));
+    assertThat("table should have one entry", tableHasEntries);
 
     boolean tableOneEntry =
         TableServiceClientUtils.tableHasSingleEntry(tableServiceClient, tableName, null);
-    assertThat("table should have one entry", tableOneEntry, equalTo(true));
+    assertThat("table should have one entry", tableOneEntry);
 
     // add a second entry to the table
     tableClient.createEntity(new TableEntity("test2", UUID.randomUUID().toString()));

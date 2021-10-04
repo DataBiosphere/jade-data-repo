@@ -1,6 +1,7 @@
 package bio.terra.service.filedata;
 
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -11,7 +12,7 @@ import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
 
 public class FileMetadataUtils {
-  public static final String ROOT_DIR_NAME = "/_dr_";
+  @VisibleForTesting protected static final String ROOT_DIR_NAME = "/_dr_";
 
   public FileMetadataUtils() {}
 

@@ -474,6 +474,11 @@ public class DatasetIntegrationTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
     dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
+
+    assertThat(
+        "All 4 rows were ingested, including the one with duplicate files",
+        ingestResponse.getRowCount(),
+        equalTo(4L));
   }
 
   private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)

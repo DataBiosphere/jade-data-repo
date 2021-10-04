@@ -253,7 +253,8 @@ public final class IngestUtils {
                 fileRefColumnNames.stream()
                     .map(node::get)
                     .filter(n -> n != null && n.isObject())
-                    .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class)));
+                    .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class)))
+        .distinct();
   }
 
   public static void checkForLargeIngestRequests(long numLines, long maxIngestRows) {

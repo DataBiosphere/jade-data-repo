@@ -320,8 +320,7 @@ public class TableDirectoryDao {
       String datasetDirName,
       UUID snapshotId,
       List<String> fileIds) {
-    int cacheSize =
-        configurationService.getParameterValue(ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE);
+    int cacheSize = configurationService.getParameterValue(ConfigEnum.SNAPSHOT_CACHE_SIZE);
     LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
     storeTopDirectory(snapshotTableServiceClient, snapshotId, datasetDirName);
     ListUtils.partition(fileIds, MAX_FILTER_CLAUSES)

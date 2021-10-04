@@ -2,33 +2,48 @@
 
 import json, os
 from urllib.request import Request, urlopen
-from urllib.error import HTTPError
+from tqdm import tqdm
 
-api = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/search/{id}/metadata"
+upsert_url = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/search/{id}/metadata"
+policy_url = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/snapshots/{id}/policies/steward/members"
 
 
-def endpoint(snapshot):
-    auth, token = os.environ["AUTH_TOKEN"].split(": ", 1)
+def auth_token():
+    return os.environ["AUTH_TOKEN"].split(": ", 1)
 
-    url = api.format(id=snapshot["dct:identifier"])
-    data = bytes(json.dumps(snapshot), "utf8")
-    method = "PUT"
 
-    req = Request(url, data=data, method=method)
-    req.add_header("accept", "application/json")
-    req.add_header(auth, token)
+def user_email():
+    return os.environ["USER_EMAIL"]
 
-    try:
-        res = urlopen(req)
-    except HTTPError as err:
-        if err.code == 401:
-            raise err
-        if err.code == 404:
-            raise err
+
+def api_request(id, url, obj, method):
+    auth, token = auth_token()
+
+    url = url.format(id=id)
+    data = json.dumps(obj).encode("utf-8")
+
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        auth: token,
+    }
+
+    req = Request(url, data=data, headers=headers, method=method)
+    res = urlopen(req)
+
+
+def policy(snapshot):
+    email = {"email": user_email()}
+    api_request(snapshot["dct:identifier"], policy_url, email, "POST")
+
+
+def upsert(snapshot):
+    api_request(snapshot["dct:identifier"], upsert_url, snapshot, "PUT")
 
 
 with open("hca-collection.json", "r") as f:
     collection = json.load(f)
 
-for snapshot in collection["data"]:
-    endpoint(snapshot)
+for snapshot in tqdm(collection["data"]):
+    policy(snapshot)
+    upsert(snapshot)

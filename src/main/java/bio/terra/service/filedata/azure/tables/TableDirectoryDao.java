@@ -205,15 +205,12 @@ public class TableDirectoryDao {
       UUID collectionId,
       String tableName,
       Set<String> fullPaths) {
-    List<TableEntity> entities =
-        fullPaths.stream()
-            .map(FileMetadataUtils::makeLookupPath)
-            // Possible to pass in path both with and without prefix
-            .distinct()
-            .map(path -> lookupByFilePath(tableServiceClient, collectionId, tableName, path))
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-    return entities.stream()
+    return fullPaths.stream()
+        .map(FileMetadataUtils::makeLookupPath)
+        // Possible to pass in path both with and without prefix, so want to check for uniqueness
+        .distinct()
+        .map(path -> lookupByFilePath(tableServiceClient, collectionId, tableName, path))
+        .filter(Objects::nonNull)
         .map(FireStoreDirectoryEntry::fromTableEntity)
         .collect(Collectors.toList());
   }

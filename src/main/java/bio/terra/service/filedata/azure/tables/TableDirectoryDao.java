@@ -208,7 +208,8 @@ public class TableDirectoryDao {
     List<TableEntity> entities =
         fullPaths.stream()
             .map(FileMetadataUtils::makeLookupPath)
-            .distinct() // Still need this b/c could pass in path both with and without prefix
+            // Possible to pass in path both with and without prefix
+            .distinct()
             .map(path -> lookupByFilePath(tableServiceClient, collectionId, tableName, path))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());

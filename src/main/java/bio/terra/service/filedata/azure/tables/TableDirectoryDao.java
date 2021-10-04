@@ -16,6 +16,7 @@ import com.azure.data.tables.models.TableServiceException;
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -204,7 +205,7 @@ public class TableDirectoryDao {
       TableServiceClient tableServiceClient,
       UUID collectionId,
       String tableName,
-      Set<String> fullPaths) {
+      Collection<String> fullPaths) {
     return fullPaths.stream()
         .map(FileMetadataUtils::makeLookupPath)
         // Possible to pass in path both with and without prefix, so want to check for uniqueness

@@ -87,7 +87,7 @@ public class ApplicationConfiguration {
   private int firestoreSnapshotBatchSize;
 
   /** Size of cache of directories maintain when building the snapshot file system */
-  private int firestoreSnapshotCacheSize;
+  private int snapshotCacheSize;
 
   /** Size of batches to operate on when validating file system directory entry ids */
   private int firestoreValidateBatchSize;
@@ -255,12 +255,12 @@ public class ApplicationConfiguration {
     this.firestoreSnapshotBatchSize = firestoreSnapshotBatchSize;
   }
 
-  public int getFirestoreSnapshotCacheSize() {
-    return firestoreSnapshotCacheSize;
+  public int getSnapshotCacheSize() {
+    return snapshotCacheSize;
   }
 
-  public void setFirestoreSnapshotCacheSize(int firestoreSnapshotCacheSize) {
-    this.firestoreSnapshotCacheSize = firestoreSnapshotCacheSize;
+  public void setSnapshotCacheSize(int snapshotCacheSize) {
+    this.snapshotCacheSize = snapshotCacheSize;
   }
 
   public int getFirestoreValidateBatchSize() {

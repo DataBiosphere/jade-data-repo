@@ -378,8 +378,7 @@ public class FireStoreDirectoryDao {
         batches.size(),
         batchSize);
 
-    int cacheSize =
-        configurationService.getParameterValue(ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE);
+    int cacheSize = configurationService.getParameterValue(ConfigEnum.SNAPSHOT_CACHE_SIZE);
     LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
 
     // Create the top directory structure (/_dr_/<datasetDirName>)

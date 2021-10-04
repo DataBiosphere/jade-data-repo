@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.common.azure.StorageTableName;
-
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;

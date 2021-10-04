@@ -403,7 +403,7 @@ public class FireStoreDirectoryDao {
       // Find directory paths that need to be created; plus add to the cache
       Set<String> newPaths = FileMetadataUtils.findNewDirectoryPaths(datasetEntries, pathMap);
       List<FireStoreDirectoryEntry> datasetDirectoryEntries =
-          batchRetrieveByPath(datasetFirestore, datasetId, new ArrayList<>(newPaths));
+          batchRetrieveByPath(datasetFirestore, datasetId, List.copyOf(newPaths));
 
       // Create snapshot file system entries
       List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
@@ -485,7 +485,7 @@ public class FireStoreDirectoryDao {
             paths,
             path -> {
               DocumentReference docRef =
-                  datasetCollection.document(encodePathAsFirestoreDocumentName((String) path));
+                  datasetCollection.document(encodePathAsFirestoreDocumentName(path));
               return docRef.get();
             });
 

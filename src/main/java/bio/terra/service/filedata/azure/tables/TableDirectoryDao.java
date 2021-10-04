@@ -63,7 +63,7 @@ import org.springframework.stereotype.Component;
 public class TableDirectoryDao {
   private final Logger logger = LoggerFactory.getLogger(TableDirectoryDao.class);
   private static final int MAX_FILTER_CLAUSES = 15;
-  private ConfigurationService configurationService;
+  private final ConfigurationService configurationService;
 
   @Autowired
   public TableDirectoryDao(ConfigurationService configurationService) {

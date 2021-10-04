@@ -1,6 +1,9 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.common.azure.StorageTableName;
+
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -61,9 +64,12 @@ import org.springframework.stereotype.Component;
 public class TableDirectoryDao {
   private final Logger logger = LoggerFactory.getLogger(TableDirectoryDao.class);
   private static final int MAX_FILTER_CLAUSES = 15;
+  private ConfigurationService configurationService;
 
   @Autowired
-  public TableDirectoryDao() {}
+  public TableDirectoryDao(ConfigurationService configurationService) {
+    this.configurationService = configurationService;
+  }
 
   public String encodePathAsAzureRowKey(String path) {
     return path.replaceAll("/", " ");
@@ -199,11 +205,11 @@ public class TableDirectoryDao {
       TableServiceClient tableServiceClient,
       UUID collectionId,
       String tableName,
-      List<String> fullPaths) {
+      Set<String> fullPaths) {
     List<TableEntity> entities =
         fullPaths.stream()
             .map(FileMetadataUtils::makeLookupPath)
-            .distinct()
+            .distinct() // Still need this b/c could pass in path both with and without prefix
             .map(path -> lookupByFilePath(tableServiceClient, collectionId, tableName, path))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
@@ -303,9 +309,8 @@ public class TableDirectoryDao {
   // 2. Cache directory paths so that we do not due extra lookups or creates on shared directory
   // structure
   // 3. Rewrite rather than read, check existence, and then write. The logic here is that there is
-  // no contention
-  //    so the writing doesn't generate conflicts, and the typical use case is that overwrites will
-  // be rare:
+  // no contention so the writing doesn't generate conflicts, and the typical use case is that
+  // overwrites will be rare:
   //      a. File references are usually unique in the datasets we know about
   //      b. Directories are cached, so will be overwritten based on the effectiveness of the cache
 
@@ -316,7 +321,9 @@ public class TableDirectoryDao {
       String datasetDirName,
       UUID snapshotId,
       List<String> fileIds) {
-    LRUMap<String, Boolean> pathMap = new LRUMap<>(MAX_FILTER_CLAUSES);
+    int cacheSize =
+        configurationService.getParameterValue(ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE);
+    LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
     storeTopDirectory(snapshotTableServiceClient, snapshotId, datasetDirName);
     ListUtils.partition(fileIds, MAX_FILTER_CLAUSES)
         .forEach(
@@ -343,7 +350,7 @@ public class TableDirectoryDao {
               }
 
               // Find directory paths that need to be created; plus add to the cache
-              List<String> newPaths =
+              Set<String> newPaths =
                   FileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
               List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                   batchRetrieveByPath(

@@ -16,9 +16,7 @@ import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -160,7 +158,7 @@ public class TableDaoConnectedTest {
       datasetNamePlaceholder = "/" + dataset.getName();
     }
 
-    Set<String> directories = new HashSet<>();
+    List<String> directories = new ArrayList<>();
     directories.add("/_dr_");
     directories.add(String.format("/_dr_%s/%s", datasetNamePlaceholder, uniqueTestDirectory));
     directories.add(String.format("/_dr_%s/%s/path", datasetNamePlaceholder, uniqueTestDirectory));

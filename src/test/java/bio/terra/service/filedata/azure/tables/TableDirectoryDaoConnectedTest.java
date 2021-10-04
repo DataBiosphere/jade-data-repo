@@ -2,7 +2,6 @@ package bio.terra.service.filedata.azure.tables;
 
 import static bio.terra.service.common.azure.StorageTableName.DATASET_TABLE;
 import static bio.terra.service.common.azure.StorageTableName.SNAPSHOT_TABLE;
-import static bio.terra.service.filedata.azure.tables.TableServiceClientUtils.tableHasEntries;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNull;
@@ -262,7 +261,7 @@ public class TableDirectoryDaoConnectedTest {
 
   private int getTableEntryCount(TableServiceClient tableServiceClient, String tableName) {
     ListEntitiesOptions options = new ListEntitiesOptions();
-    if (tableHasEntries(tableServiceClient, tableName, options)) {
+    if (TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName, options)) {
       TableClient tableClient = tableServiceClient.getTableClient(tableName);
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
       return Iterables.size(entities);

@@ -1,7 +1,10 @@
 package bio.terra.service.filedata.azure.tables;
 
 import static bio.terra.service.common.azure.StorageTableName.DEPENDENCIES_TABLE;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
@@ -86,9 +89,10 @@ public class TableDependencyConnectedTest {
 
   private void assertEntityCorrect(
       TableEntity entity, UUID snapshotId, String fileId, Long refCount) {
-    assertEquals(
-        entity.getProperty(FireStoreDependency.SNAPSHOT_ID_FIELD_NAME), snapshotId.toString());
-    assertEquals(entity.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME), fileId);
-    assertEquals(entity.getProperty(FireStoreDependency.REF_COUNT_FIELD_NAME), refCount);
+    assertThat(
+        snapshotId.toString(),
+        equalTo(entity.getProperty(FireStoreDependency.SNAPSHOT_ID_FIELD_NAME)));
+    assertThat(fileId, equalTo(entity.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME)));
+    assertThat(refCount, equalTo(entity.getProperty(FireStoreDependency.REF_COUNT_FIELD_NAME)));
   }
 }

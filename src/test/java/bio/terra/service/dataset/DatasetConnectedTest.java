@@ -515,7 +515,7 @@ public class DatasetConnectedTest {
   @Test
   public void testRepeatedSoftDelete() throws Exception {
     // load a CSV file that contains the table rows to load into the test bucket
-    String resourceFileName = "snapshot-test-dataset-data.csv";
+    String resourceFileName = "snapshot-test-dataset-data-row-ids.csv";
     String dirInCloud = "scratch/testRepeatedSoftDelete/" + UUID.randomUUID().toString();
     String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
     // ingest the table
@@ -525,6 +525,7 @@ public class DatasetConnectedTest {
             .table(tableName)
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
+            .csvAddRowIds(false)
             .path(tableIngestInputFilePath);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
@@ -591,7 +592,7 @@ public class DatasetConnectedTest {
   @Test
   public void testConcurrentSoftDeletes() throws Exception {
     // load a CSV file that contains the table rows to load into the test bucket
-    String resourceFileName = "snapshot-test-dataset-data.csv";
+    String resourceFileName = "snapshot-test-dataset-data-row-ids.csv";
     String dirInCloud = "scratch/testConcurrentSoftDeletes/" + UUID.randomUUID().toString();
     String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
     // ingest the table
@@ -601,6 +602,7 @@ public class DatasetConnectedTest {
             .table(tableName)
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
+            .csvAddRowIds(false)
             .path(tableIngestInputFilePath);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
@@ -753,7 +755,7 @@ public class DatasetConnectedTest {
   @Test
   public void testBadSoftDelete() throws Exception {
     // load a CSV file that contains the table rows to load into the test bucket
-    String resourceFileName = "snapshot-test-dataset-data.csv";
+    String resourceFileName = "snapshot-test-dataset-data-row-ids.csv";
     String dirInCloud = "scratch/testBadSoftDelete/" + UUID.randomUUID().toString();
     String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
 
@@ -764,6 +766,7 @@ public class DatasetConnectedTest {
             .table(tableName)
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
+            .csvAddRowIds(false)
             .path(tableIngestInputFilePath);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 

@@ -1,9 +1,8 @@
 package bio.terra.service.filedata.flight.delete;
 
-import static bio.terra.service.common.azure.StorageTableName.DATASET_TABLE;
-
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
@@ -31,7 +30,7 @@ public class DeleteFileAzureDirectoryStep implements Step {
     try {
       boolean found =
           tableDao.deleteDirectoryEntry(
-              fileId, storageAuthInfo, dataset.getId(), DATASET_TABLE.toTableName());
+              fileId, storageAuthInfo, dataset.getId(), StorageTableName.DATASET.toTableName());
       DeleteResponseModel.ObjectStateEnum state =
           (found)
               ? DeleteResponseModel.ObjectStateEnum.DELETED

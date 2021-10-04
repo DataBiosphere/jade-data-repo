@@ -5,10 +5,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 public enum StorageTableName {
-  SNAPSHOT_TABLE("snapshot"),
-  LOAD_HISTORY_TABLE("loadHistory"),
-  DEPENDENCIES_TABLE("dependencies"),
-  DATASET_TABLE("dataset") {
+  SNAPSHOT("snapshot"),
+  LOAD_HISTORY("loadHistory"),
+  DEPENDENCIES("dependencies"),
+  DATASET("dataset") {
     // TODO - With DR-2127, move remove special case for dataset
     @Override
     public String toTableName(UUID resourceId) {

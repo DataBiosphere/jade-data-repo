@@ -4,7 +4,6 @@ import static bio.terra.service.common.azure.StorageTableName.LOAD_HISTORY_TABLE
 
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
-import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.tabulardata.LoadHistoryUtil;
 import com.azure.data.tables.TableClient;
@@ -32,9 +31,9 @@ public class AzureStorageTablePdao {
   /**
    * Store the results of a bulk file load in an Azure Storage Table
    *
-   * <p>The table name will be the result of the dataset id passed through {@link
-   * StorageTableName#toTableName} Entities will be partitioned on the loadTag and their row keys
-   * will be the value of {@link BulkLoadHistoryModel#getFileId()}
+   * <p>The table name will be the result of the dataset id passed through
+   * {@Link:StorageTableName.toTableName(resourceId)} Entities will be partitioned on the loadTag
+   * and their row keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
    *
    * @param serviceClient A service client for the dataset
    * @param datasetId the id of the dataset

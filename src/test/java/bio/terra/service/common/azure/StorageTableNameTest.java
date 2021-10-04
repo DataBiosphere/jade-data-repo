@@ -7,7 +7,6 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.NotImplementedException;
-import java.security.InvalidParameterException;
 import java.util.UUID;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -15,7 +14,7 @@ import org.junit.experimental.categories.Category;
 @Category(Unit.class)
 public class StorageTableNameTest {
 
-  @Test(expected = InvalidParameterException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void snapshotToTableNameNoParam() {
     SNAPSHOT_TABLE.toTableName();
   }

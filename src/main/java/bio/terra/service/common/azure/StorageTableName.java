@@ -1,7 +1,6 @@
 package bio.terra.service.common.azure;
 
 import bio.terra.common.exception.NotImplementedException;
-import java.security.InvalidParameterException;
 import java.util.UUID;
 
 public enum StorageTableName {
@@ -50,7 +49,6 @@ public enum StorageTableName {
 
   // TODO - With DR-2127, move remove special case for dataset
   public String toTableName() {
-    throw new InvalidParameterException(
-        "Resource Id must be provided for this storage table type.");
+    throw new IllegalArgumentException("Resource Id must be provided for this storage table type.");
   }
 }

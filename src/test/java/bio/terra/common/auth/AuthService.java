@@ -1,6 +1,8 @@
 package bio.terra.common.auth;
 
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamProviderInterface;
 import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -38,6 +40,7 @@ public class AuthService {
   private List<String> userLoginScopes =
       List.of(
           "openid", "email", "profile", "https://www.googleapis.com/auth/cloud-billing.readonly");
+  private List<String> samUserLoginScopes = List.of("openid", "email", "profile");
   private List<String> directAccessScopes =
       List.of(
           "https://www.googleapis.com/auth/bigquery",
@@ -48,17 +51,22 @@ public class AuthService {
   private String saEmail;
   private Map<String, GoogleCredential> userTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
+  private Map<String, String> petAccountTokens =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(TimeUnit.MINUTES.toMillis(55)));
   private Map<String, GoogleCredential> directAccessTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
   private TestConfiguration testConfig;
+  private IamProviderInterface iamProvider;
 
   @Autowired
-  public AuthService(TestConfiguration testConfig) throws Exception {
+  public AuthService(TestConfiguration testConfig, IamProviderInterface iamProvider)
+      throws Exception {
     this.testConfig = testConfig;
     Optional<String> pemfilename = Optional.ofNullable(testConfig.getJadePemFileName());
     pemfilename.ifPresent(s -> pemfile = new File(s));
     saEmail = testConfig.getJadeEmail();
     httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+    this.iamProvider = iamProvider;
   }
 
   public String getAuthToken(String userEmail) {
@@ -66,6 +74,13 @@ public class AuthService {
       userTokens.put(userEmail, makeToken(userEmail));
     }
     return userTokens.get(userEmail).getAccessToken();
+  }
+
+  public String getPetAccountAuthToken(String userEmail) {
+    if (!petAccountTokens.containsKey(userEmail)) {
+      petAccountTokens.put(userEmail, makePetAccountToken(userEmail));
+    }
+    return petAccountTokens.get(userEmail);
   }
 
   public String getDirectAccessAuthToken(String userEmail) {
@@ -114,5 +129,18 @@ public class AuthService {
 
   private GoogleCredential makeToken(String userEmail) {
     return makeTokenForScopes(userEmail, userLoginScopes);
+  }
+
+  private String makePetAccountToken(String userEmail) {
+    try {
+      return iamProvider
+          .getPetToken(
+              new AuthenticatedUserRequest()
+                  .token(Optional.of(makeToken(userEmail).getAccessToken())),
+              samUserLoginScopes)
+          .replaceAll("\\.+$", "");
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

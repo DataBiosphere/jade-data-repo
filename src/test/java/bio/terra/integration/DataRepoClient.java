@@ -66,7 +66,22 @@ public class DataRepoClient {
   public <T> DataRepoResponse<T> post(
       TestConfiguration.User user, String path, String json, Class<T> responseClass)
       throws Exception {
-    HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(user));
+    return post(user, path, json, responseClass, false);
+  }
+
+  public <T> DataRepoResponse<T> post(
+      TestConfiguration.User user,
+      String path,
+      String json,
+      Class<T> responseClass,
+      boolean usePetAccount)
+      throws Exception {
+    HttpEntity<String> entity;
+    if (usePetAccount) {
+      entity = new HttpEntity<>(json, getHeadersForPet(user));
+    } else {
+      entity = new HttpEntity<>(json, getHeaders(user));
+    }
     return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
   }
 
@@ -249,6 +264,13 @@ public class DataRepoClient {
   private HttpHeaders getHeaders(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
     copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
+    copy.set("From", user.getEmail());
+    return copy;
+  }
+
+  private HttpHeaders getHeadersForPet(TestConfiguration.User user) {
+    HttpHeaders copy = new HttpHeaders(headers);
+    copy.setBearerAuth(authService.getPetAccountAuthToken(user.getEmail()));
     copy.set("From", user.getEmail());
     return copy;
   }

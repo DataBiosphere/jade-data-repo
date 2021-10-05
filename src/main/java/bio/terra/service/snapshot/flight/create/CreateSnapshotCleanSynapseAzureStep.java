@@ -17,7 +17,7 @@ public class CreateSnapshotCleanSynapseAzureStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    // TODO 
+    // TODO - switch to reference snapshot sources instead of ingest
     azureSynapsePdao.dropTables(
         Arrays.asList(IngestUtils.getSynapseTableName(context.getFlightId())));
     azureSynapsePdao.dropDataSources(

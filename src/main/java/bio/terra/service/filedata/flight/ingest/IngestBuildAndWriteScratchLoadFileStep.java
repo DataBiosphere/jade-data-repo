@@ -4,6 +4,7 @@ import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
@@ -51,10 +52,18 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
               .filter(fileResultModel -> fileResultModel.getState() == BulkLoadFileState.SUCCEEDED)
               .collect(
                   Collectors.toMap(
-                      fileResultModel ->
-                          Objects.hash(
-                              fileResultModel.getSourcePath(), fileResultModel.getTargetPath()),
+                      fileResultModel -> Objects.hash(fileResultModel.getTargetPath()),
                       BulkLoadFileResultModel::getFileId));
+
+      // Part 1.1 -> Add in the already-ingested files, if told to do so
+      if (ingestRequest.isResolveExistingFiles()) {
+        List<FileModel> existingFiles =
+            workingMap.get(IngestMapKeys.COMBINED_EXISTING_FILES, List.class);
+        existingFiles.stream()
+            .forEach(
+                fileModel ->
+                    pathToFileIdMap.put(Objects.hash(fileModel.getPath()), fileModel.getFileId()));
+      }
 
       AtomicLong failedRowCount = new AtomicLong();
 
@@ -70,8 +79,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
                         BulkLoadFileModel fileModel =
                             Objects.requireNonNull(
                                 objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
-                        int fileKey =
-                            Objects.hash(fileModel.getSourcePath(), fileModel.getTargetPath());
+                        int fileKey = Objects.hash(fileModel.getTargetPath());
                         if (pathToFileIdMap.containsKey(fileKey)) {
                           String fileId = pathToFileIdMap.get(fileKey);
                           ((ObjectNode) node).put(columnName, fileId);

@@ -3088,6 +3088,9 @@ components:
         csv_null_marker:
           type: string
           default: ""
+        resolve_existing_files:
+          type: boolean
+          default: false
       description: >
         Request to ingest data from a file in GCS into a table in a dataset.
         The ingest source must be readable by the DR manager.

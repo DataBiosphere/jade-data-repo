@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -230,6 +231,17 @@ public class FireStoreDao {
         enumerateDepth,
         fireStoreDirectoryEntry,
         fullPath);
+  }
+
+  public boolean pathExists(FSContainerInterface container, String fullPath)
+      throws InterruptedException {
+    Firestore fsItemFirestore =
+        FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
+    String containerId = container.getId().toString();
+
+    FireStoreDirectoryEntry fireStoreDirectoryEntry =
+        directoryDao.retrieveByPath(fsItemFirestore, containerId, fullPath);
+    return Objects.nonNull(fireStoreDirectoryEntry);
   }
 
   /**

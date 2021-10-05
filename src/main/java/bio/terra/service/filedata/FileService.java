@@ -186,6 +186,29 @@ public class FileService {
     return fileModelFromFSItem(fsItem);
   }
 
+  public boolean pathExists(String datasetId, String path) {
+    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      try {
+        return fileDao.pathExists(dataset, path);
+      } catch (InterruptedException ex) {
+        throw new FileSystemExecutionException(
+            "Unexpected interruption during file system processing", ex);
+      }
+    } else {
+      BillingProfileModel billingProfileModel =
+          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
+      AzureStorageAccountResource storageAccountResource =
+          resourceService.getStorageAccount(dataset, billingProfileModel);
+      AzureStorageAuthInfo storageAuthInfo =
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+              billingProfileModel, storageAccountResource);
+      return tableDao.pathExists(UUID.fromString(datasetId), path, storageAuthInfo);
+    }
+  }
+
   /**
    * Note that this method will only return a file if the encompassing dataset is NOT exclusively
    * locked. It is intended for user-facing calls (e.g. from RepositoryApiController), not internal

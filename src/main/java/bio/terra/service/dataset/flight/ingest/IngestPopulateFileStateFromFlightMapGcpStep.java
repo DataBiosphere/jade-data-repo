@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight.ingest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
@@ -22,8 +23,9 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      Predicate<FlightContext> skipCondition) {
-    super(loadService, objectMapper, dataset, batchSize, skipCondition);
+      Predicate<FlightContext> skipCondition,
+      FileService fileService) {
+    super(loadService, objectMapper, dataset, batchSize, skipCondition, fileService);
     this.gcsPdao = gcsPdao;
   }
 

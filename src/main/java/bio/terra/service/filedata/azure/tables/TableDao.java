@@ -15,6 +15,7 @@ import com.azure.data.tables.TableServiceClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -162,6 +163,17 @@ public class TableDao {
         enumerateDepth,
         fireStoreDirectoryEntry,
         fullPath);
+  }
+
+  public boolean pathExists(UUID datasetId, String fullPath, AzureStorageAuthInfo storageAuthInfo) {
+    TableServiceClient tableServiceClient =
+        azureAuthService.getTableServiceClient(
+            storageAuthInfo.getSubscriptionId(),
+            storageAuthInfo.getResourceGroupName(),
+            storageAuthInfo.getStorageAccountResourceName());
+    FireStoreDirectoryEntry fireStoreDirectoryEntry =
+        directoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), fullPath);
+    return Objects.nonNull(fireStoreDirectoryEntry);
   }
 
   /**

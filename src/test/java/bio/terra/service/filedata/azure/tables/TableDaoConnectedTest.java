@@ -60,6 +60,7 @@ public class TableDaoConnectedTest {
   private String targetBasePathFormat = "/test/%s/file-%s.json";
   private String endpoint;
   private String uniqueTestDirectory;
+
   @Before
   public void setUp() {
     endpoint =
@@ -229,12 +230,7 @@ public class TableDaoConnectedTest {
       fileIdList.add(fireStoreDirectoryEntry.getFileId());
     }
     tableDirectoryDao.addEntriesToSnapshot(
-        tableServiceClient,
-        tableServiceClient,
-        datasetId,
-        "dataset",
-        snapshotId,
-        fileIdList);
+        tableServiceClient, tableServiceClient, datasetId, "dataset", snapshotId, fileIdList);
 
     //     Validate we cannot lookup dataset files in the snapshot
     for (FireStoreDirectoryEntry dsetObject : dsetObjects) {
@@ -254,10 +250,7 @@ public class TableDaoConnectedTest {
     // Check the accumulated size on the root dir
     FireStoreDirectoryEntry snapObject =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient,
-            snapshotId,
-            StorageTableName.SNAPSHOT.toTableName(snapshotId),
-            "/");
+            tableServiceClient, snapshotId, StorageTableName.SNAPSHOT.toTableName(snapshotId), "/");
     assertNotNull("root exists", snapObject);
     assertThat("Total size is correct", snapObject.getSize(), equalTo(15L));
     assertThat(

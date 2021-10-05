@@ -16,7 +16,6 @@ import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
@@ -55,7 +54,6 @@ public class TableDao {
   private final TableFileDao fileDao;
   private final AzureAuthService azureAuthService;
   private final ConfigurationService configurationService;
-  private final ResourceService resourceService;
   private final PerformanceLogger performanceLogger;
 
   @Autowired
@@ -63,15 +61,12 @@ public class TableDao {
       TableDirectoryDao directoryDao,
       TableFileDao fileDao,
       AzureAuthService azureAuthService,
-      FileMetadataUtils fileMetadataUtils,
       ConfigurationService configurationService,
-      ResourceService resourceService,
       PerformanceLogger performanceLogger) {
     this.directoryDao = directoryDao;
     this.fileDao = fileDao;
     this.azureAuthService = azureAuthService;
     this.configurationService = configurationService;
-    this.resourceService = resourceService;
     this.performanceLogger = performanceLogger;
   }
 
@@ -134,8 +129,7 @@ public class TableDao {
       throws InterruptedException {
 
     UUID snapshotId = snapshot.getId();
-    String snapshotTableName =
-        StorageTableName.SNAPSHOT.toTableName(snapshotId);
+    String snapshotTableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
     FireStoreDirectoryEntry topDir =
         directoryDao.retrieveByPath(snapshotTableServiceClient, snapshotId, snapshotTableName, "/");
     // If topDir is null, it means no files were added to the snapshot file system in the previous
@@ -440,8 +434,7 @@ public class TableDao {
       this.snapshotTableServiceClient = snapshotTableServiceClient;
       this.snapshotId = snapshotId;
       this.snapshotBatchSize = snapshotBatchSize;
-      this.snapshotTableName =
-          StorageTableName.SNAPSHOT.toTableName(snapshotId);
+      this.snapshotTableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
     }
 
     @Override

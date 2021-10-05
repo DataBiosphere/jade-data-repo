@@ -1,3 +1,3 @@
-id,age
-participant_1,23
-participant_2,42
+datarepo_row_id,id,age
+bfa4b311-f330-4d22-bae5-bfcea0b5493d,participant_1,23
+1b56ff84-a8ab-44df-9d9c-70809f6f9710,participant_2,42

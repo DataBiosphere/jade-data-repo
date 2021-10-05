@@ -7,6 +7,7 @@ import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
+import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -14,6 +15,10 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.tables.TableDao;
+import bio.terra.service.filedata.flight.ingest.IngestCreateAzureStorageAccountStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -57,6 +62,10 @@ public class SnapshotCreateFlight extends Flight {
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     PerformanceLogger performanceLogger = appContext.getBean(PerformanceLogger.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    AzureSynapsePdao azureSynapsePdao = appContext.getBean(AzureSynapsePdao.class);
+    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
+    TableDao tableDao = appContext.getBean(TableDao.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -88,6 +97,11 @@ public class SnapshotCreateFlight extends Flight {
     addStep(
         new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
 
+    if (platform.isAzure()) {
+      // This will need to stay even after DR-2107
+      addStep(new IngestCreateAzureStorageAccountStep(datasetService, resourceService));
+    }
+
     // Get a new google project from RBS and store it in the working map
     addStep(new GetResourceBufferProjectStep(bufferService));
 
@@ -107,71 +121,96 @@ public class SnapshotCreateFlight extends Flight {
     // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
     switch (snapshotReq.getContents().get(0).getMode()) {
       case BYASSET:
-        addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
-        addStep(
-            new CreateSnapshotPrimaryDataAssetStep(
-                bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
-        break;
+        if (platform.isGcp()) {
+          addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
+          addStep(
+              new CreateSnapshotPrimaryDataAssetStep(
+                  bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
+          break;
+        } else {
+          throw new NotImplementedException("By Asset Snapshots are not yet supported in Azure datasets.");
+        }
       case BYFULLVIEW:
-        addStep(
-            new CreateSnapshotPrimaryDataFullViewStep(
-                bigQueryPdao, datasetService, snapshotDao, snapshotService, snapshotReq));
+        if (platform.isGcp()) {
+          addStep(
+              new CreateSnapshotPrimaryDataFullViewGcpStep(
+                  bigQueryPdao, datasetService, snapshotDao, snapshotService, snapshotReq));
+        } else if (platform.isAzure()) {
+          addStep(new CreateSnapshotTargetDataSourceAzureStep(azureSynapsePdao, azureBlobStorePdao));
+          addStep(new CreateSnapshotParquetFilesAzureStep(azureSynapsePdao, datasetService));
+          addStep(new CreateSnapshotCountTableRowsAzureStep(azureSynapsePdao, snapshotDao, snapshotReq));
+          addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao));
+        }
         break;
       case BYQUERY:
-        addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
-        addStep(
-            new CreateSnapshotPrimaryDataQueryStep(
-                bigQueryPdao, datasetService, snapshotService, snapshotDao, snapshotReq));
-        break;
+        if (platform.isGcp()) {
+          addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
+          addStep(
+              new CreateSnapshotPrimaryDataQueryStep(
+                  bigQueryPdao, datasetService, snapshotService, snapshotDao, snapshotReq));
+          break;
+        } else {
+          throw new NotImplementedException("By Query Snapshots are not yet supported in Azure datasets.");
+        }
+
       case BYROWID:
-        addStep(
-            new CreateSnapshotPrimaryDataRowIdsStep(
-                bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
-        break;
+        if (platform.isGcp()) {
+          addStep(
+              new CreateSnapshotPrimaryDataRowIdsStep(
+                  bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
+          break;
+        } else {
+        throw new NotImplementedException("By Row ID Snapshots are not yet supported in Azure datasets.");
+      }
       default:
         throw new InvalidSnapshotException("Snapshot does not have required mode information");
     }
 
-    // compute the row counts for each of the snapshot tables and store in metadata
-    addStep(new CountSnapshotTableRowsStep(bigQueryPdao, snapshotDao, snapshotReq));
+    if (platform.isGcp()) {
+      // compute the row counts for each of the snapshot tables and store in metadata
+      addStep(new CountSnapshotTableRowsStep(bigQueryPdao, snapshotDao, snapshotReq));
+    }
 
     // Create the IAM resource and readers for the snapshot
     // The IAM code contains retries, so we don't make a retry rule here.
     addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq));
 
-    // Make the firestore file system for the snapshot
-    addStep(
-        new CreateSnapshotFireStoreDataStep(
-            bigQueryPdao,
-            snapshotService,
-            dependencyDao,
-            datasetService,
-            snapshotReq,
-            fileDao,
-            performanceLogger));
-
-    // Calculate checksums and sizes for all directories in the snapshot
-    addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
-
-    // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes.
-    // The max
-    // operation timeout is generous.
-    RetryRule pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
-
-    // Apply the IAM readers to the BQ dataset
-    addStep(
-        new SnapshotAuthzTabularAclStep(bigQueryPdao, snapshotService, configService),
-        pdaoAclRetryRule);
-
-    // Apply the IAM readers to the GCS files
     if (platform.isGcp()) {
+      // Make the firestore file system for the snapshot
+      addStep(
+          new CreateSnapshotFireStoreDataStep(
+              bigQueryPdao,
+              snapshotService,
+              dependencyDao,
+              datasetService,
+              snapshotReq,
+              fileDao,
+              performanceLogger));
+
+      // Calculate checksums and sizes for all directories in the snapshot
+      addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
+
+      // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes.
+      // The max
+      // operation timeout is generous.
+      RetryRule pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
+
+      // Apply the IAM readers to the BQ dataset
+      addStep(
+          new SnapshotAuthzTabularAclStep(bigQueryPdao, snapshotService, configService),
+          pdaoAclRetryRule);
+
+      // Apply the IAM readers to the GCS files
       addStep(
           new SnapshotAuthzFileAclStep(
               dependencyDao, snapshotService, gcsPdao, datasetService, configService),
           pdaoAclRetryRule);
-    }
 
-    addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
+      addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
+    } else if (platform.isAzure()) {
+      addStep(new CreateSnapshotStorageTableDataStep(tableDao));
+      addStep(new CreateSnapshotStorageTableDependenciesStep(tableDao));
+    }
 
     // unlock the snapshot metadata row
     addStep(new UnlockSnapshotStep(snapshotDao, null));

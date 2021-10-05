@@ -210,15 +210,18 @@ public class SamIam implements IamProviderInterface {
 
   private void createDatasetResourceInner(AuthenticatedUserRequest userReq, UUID datasetId)
       throws ApiException {
+    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
     req.setResourceId(datasetId.toString());
     req.addPoliciesItem(
         IamRole.ADMIN.toString(),
         createAccessPolicyOne(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
     req.addPoliciesItem(
-        IamRole.STEWARD.toString(), createAccessPolicyOne(IamRole.STEWARD, userReq.getEmail()));
+        IamRole.STEWARD.toString(),
+        createAccessPolicyOne(IamRole.STEWARD, userStatusInfo.getUserEmail()));
     req.addPoliciesItem(
-        IamRole.CUSTODIAN.toString(), createAccessPolicyOne(IamRole.CUSTODIAN, userReq.getEmail()));
+        IamRole.CUSTODIAN.toString(),
+        createAccessPolicyOne(IamRole.CUSTODIAN, userStatusInfo.getUserEmail()));
     req.addPoliciesItem(
         IamRole.SNAPSHOT_CREATOR.toString(), createAccessPolicy(IamRole.SNAPSHOT_CREATOR, null));
 
@@ -264,13 +267,15 @@ public class SamIam implements IamProviderInterface {
   private void createSnapshotResourceInner(
       AuthenticatedUserRequest userReq, UUID snapshotId, List<String> readersList)
       throws ApiException {
+    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
     req.setResourceId(snapshotId.toString());
     req.addPoliciesItem(
         IamRole.ADMIN.toString(),
         createAccessPolicyOne(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
     req.addPoliciesItem(
-        IamRole.STEWARD.toString(), createAccessPolicyOne(IamRole.STEWARD, userReq.getEmail()));
+        IamRole.STEWARD.toString(),
+        createAccessPolicyOne(IamRole.STEWARD, userStatusInfo.getUserEmail()));
     req.addPoliciesItem(IamRole.READER.toString(), createAccessPolicy(IamRole.READER, readersList));
     req.addPoliciesItem(
         IamRole.DISCOVERER.toString(), createAccessPolicy(IamRole.DISCOVERER, null));
@@ -319,13 +324,19 @@ public class SamIam implements IamProviderInterface {
 
   private void createProfileResourceInner(AuthenticatedUserRequest userReq, String profileId)
       throws ApiException {
+    // Note: we look up the actual user info to make sure that the proxy user is correctly added
+    // as OWNER when a pet account is used but expect the flight to fail since the pet service
+    // account likely doesn't have access to the billing account (though the proxy user could be
+    // granted permissions to the Google billing account)
+    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
     req.setResourceId(profileId);
     req.addPoliciesItem(
         IamRole.ADMIN.toString(),
         createAccessPolicyOne(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
     req.addPoliciesItem(
-        IamRole.OWNER.toString(), createAccessPolicyOne(IamRole.OWNER, userReq.getEmail()));
+        IamRole.OWNER.toString(),
+        createAccessPolicyOne(IamRole.OWNER, userStatusInfo.getUserEmail()));
     req.addPoliciesItem(IamRole.USER.toString(), createAccessPolicy(IamRole.USER, null));
 
     ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
@@ -480,6 +491,45 @@ public class SamIam implements IamProviderInterface {
     }
   }
 
+  @Override
+  public RepositoryStatusModelSystems samStatus() {
+    try {
+      return SamRetry.retry(
+          configurationService,
+          () -> {
+            StatusApi samApi = samStatusApi();
+            SystemStatus status = samApi.getSystemStatus();
+            return new RepositoryStatusModelSystems()
+                .ok(status.getOk())
+                .message(status.getSystems().toString());
+          });
+    } catch (Exception ex) {
+      String errorMsg = "Sam status check failed";
+      logger.error(errorMsg, ex);
+      return new RepositoryStatusModelSystems().ok(false).message(errorMsg + ": " + ex.toString());
+    }
+  }
+
+  @Override
+  public String getPetToken(AuthenticatedUserRequest userReq, List<String> scopes)
+      throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getPetTokenInner(userReq, scopes));
+  }
+
+  private String getPetTokenInner(AuthenticatedUserRequest userReq, List<String> scopes)
+      throws ApiException {
+    return samGoogleApi(userReq.getRequiredToken()).getArbitraryPetServiceAccountToken(scopes);
+  }
+
+  private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {
+    UserStatusInfo userStatusInfo = getUserInfo(userReq);
+    if (!userStatusInfo.isEnabled()) {
+      throw new IamForbiddenException(
+          String.format("User %s is not enabled in Terra", userStatusInfo.getUserEmail()));
+    }
+    return userStatusInfo;
+  }
+
   AccessPolicyMembership createAccessPolicyOne(IamRole role, String email) {
     return createAccessPolicy(role, Collections.singletonList(email));
   }
@@ -616,25 +666,6 @@ public class SamIam implements IamProviderInterface {
         {
           return new IamInternalServerErrorException(message, samEx);
         }
-    }
-  }
-
-  @Override
-  public RepositoryStatusModelSystems samStatus() {
-    try {
-      return SamRetry.retry(
-          configurationService,
-          () -> {
-            StatusApi samApi = samStatusApi();
-            SystemStatus status = samApi.getSystemStatus();
-            return new RepositoryStatusModelSystems()
-                .ok(status.getOk())
-                .message(status.getSystems().toString());
-          });
-    } catch (Exception ex) {
-      String errorMsg = "Sam status check failed";
-      logger.error(errorMsg, ex);
-      return new RepositoryStatusModelSystems().ok(false).message(errorMsg + ": " + ex.toString());
     }
   }
 

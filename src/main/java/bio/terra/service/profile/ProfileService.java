@@ -59,7 +59,7 @@ public class ProfileService {
   }
 
   /**
-   * Create a new billing profile providing an valid google billing account We make the following
+   * Create a new billing profile providing a valid google billing account We make the following
    * checks:
    *
    * <ul>

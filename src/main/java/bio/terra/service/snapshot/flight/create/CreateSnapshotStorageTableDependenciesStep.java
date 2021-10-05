@@ -1,22 +1,13 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
-import bio.terra.model.FileLoadModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.FSFileInfo;
-import bio.terra.service.filedata.FSItem;
-import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
-import com.azure.data.tables.models.TableServiceException;
 
 public class CreateSnapshotStorageTableDependenciesStep implements Step {
   private final TableDao tableDao;
@@ -32,6 +23,8 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
         FlightUtils.getContextValue(
             context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
+    // TODO - add call
+    // tableDepedencyDao.storeSnapshotFileDependencies
 
     return StepResult.getStepResultSuccess();
   }

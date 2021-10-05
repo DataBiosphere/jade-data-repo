@@ -122,13 +122,15 @@ public class SnapshotCreateFlight extends Flight {
     switch (snapshotReq.getContents().get(0).getMode()) {
       case BYASSET:
         if (platform.isGcp()) {
-          addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
+          addStep(
+              new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
           addStep(
               new CreateSnapshotPrimaryDataAssetStep(
                   bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
           break;
         } else {
-          throw new NotImplementedException("By Asset Snapshots are not yet supported in Azure datasets.");
+          throw new NotImplementedException(
+              "By Asset Snapshots are not yet supported in Azure datasets.");
         }
       case BYFULLVIEW:
         if (platform.isGcp()) {
@@ -136,9 +138,15 @@ public class SnapshotCreateFlight extends Flight {
               new CreateSnapshotPrimaryDataFullViewGcpStep(
                   bigQueryPdao, datasetService, snapshotDao, snapshotService, snapshotReq));
         } else if (platform.isAzure()) {
-          addStep(new CreateSnapshotTargetDataSourceAzureStep(azureSynapsePdao, azureBlobStorePdao));
+          addStep(
+              new CreateSnapshotSourceDatasetDataSourceAzureStep(
+                  azureSynapsePdao, azureBlobStorePdao));
+          addStep(
+              new CreateSnapshotTargetDataSourceAzureStep(azureSynapsePdao, azureBlobStorePdao));
           addStep(new CreateSnapshotParquetFilesAzureStep(azureSynapsePdao, datasetService));
-          addStep(new CreateSnapshotCountTableRowsAzureStep(azureSynapsePdao, snapshotDao, snapshotReq));
+          addStep(
+              new CreateSnapshotCountTableRowsAzureStep(
+                  azureSynapsePdao, snapshotDao, snapshotReq));
           addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao));
         }
         break;
@@ -150,7 +158,8 @@ public class SnapshotCreateFlight extends Flight {
                   bigQueryPdao, datasetService, snapshotService, snapshotDao, snapshotReq));
           break;
         } else {
-          throw new NotImplementedException("By Query Snapshots are not yet supported in Azure datasets.");
+          throw new NotImplementedException(
+              "By Query Snapshots are not yet supported in Azure datasets.");
         }
 
       case BYROWID:
@@ -160,8 +169,9 @@ public class SnapshotCreateFlight extends Flight {
                   bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
           break;
         } else {
-        throw new NotImplementedException("By Row ID Snapshots are not yet supported in Azure datasets.");
-      }
+          throw new NotImplementedException(
+              "By Row ID Snapshots are not yet supported in Azure datasets.");
+        }
       default:
         throw new InvalidSnapshotException("Snapshot does not have required mode information");
     }
@@ -210,6 +220,8 @@ public class SnapshotCreateFlight extends Flight {
     } else if (platform.isAzure()) {
       addStep(new CreateSnapshotStorageTableDataStep(tableDao));
       addStep(new CreateSnapshotStorageTableDependenciesStep(tableDao));
+      // Calculate checksums and sizes for all directories in the snapshot
+      addStep(new CreateSnapshotStorageTableComputeStep(snapshotService, snapshotReq, fileDao));
     }
 
     // unlock the snapshot metadata row

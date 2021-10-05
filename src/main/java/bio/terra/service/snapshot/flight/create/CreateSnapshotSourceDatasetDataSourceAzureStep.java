@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.create;
 import static bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -18,12 +19,11 @@ import com.azure.storage.blob.BlobUrlParts;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-// TODO - this is the exact same step as used for ingest - find way to share code
-public class CreateSnapshotTargetDataSourceAzureStep implements Step {
+public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
   private AzureSynapsePdao azureSynapsePdao;
   private AzureBlobStorePdao azureBlobStorePdao;
 
-  public CreateSnapshotTargetDataSourceAzureStep(
+  public CreateSnapshotSourceDatasetDataSourceAzureStep(
       AzureSynapsePdao azureSynapsePdao, AzureBlobStorePdao azureBlobStorePdao) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.azureBlobStorePdao = azureBlobStorePdao;
@@ -31,27 +31,27 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
     FlightMap workingMap = context.getWorkingMap();
-    String flightId = context.getFlightId();
-    BillingProfileModel billingProfile =
+    BillingProfileModel billingProfileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
-    AzureStorageAccountResource storageAccountResource =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+    final BlobUrlParts signedBlobUrlParts;
 
-    String parquetDestinationLocation =
-        IngestUtils.getParquetTargetLocationURL(storageAccountResource);
-    BlobUrlParts targetSignUrlBlob =
+    // TODO - This path should be the parquet file location for the source dataset
+    String path = "";
+    // TODO - this will be the dataset storage account
+    AzureStorageAccountResource storageAccount =
+        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+    signedBlobUrlParts =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetDestinationLocation,
-            billingProfile,
-            storageAccountResource,
-            ContainerType.METADATA);
+            path, billingProfileModel, storageAccount, ContainerType.SCRATCH);
+
     try {
       azureSynapsePdao.createExternalDataSource(
-          targetSignUrlBlob,
-          IngestUtils.getTargetScopedCredentialName(flightId),
-          IngestUtils.getTargetDataSourceName(flightId));
+          signedBlobUrlParts,
+          IngestUtils.getIngestRequestScopedCredentialName(context.getFlightId()),
+          IngestUtils.getIngestRequestDataSourceName(context.getFlightId()));
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
@@ -61,8 +61,10 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    azureSynapsePdao.dropTables(
-        Arrays.asList(IngestUtils.getSynapseTableName(context.getFlightId())));
+    azureSynapsePdao.dropDataSources(
+        Arrays.asList(IngestUtils.getIngestRequestDataSourceName(context.getFlightId())));
+    azureSynapsePdao.dropScopedCredentials(
+        Arrays.asList(IngestUtils.getIngestRequestScopedCredentialName(context.getFlightId())));
 
     return StepResult.getStepResultSuccess();
   }

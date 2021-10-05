@@ -262,13 +262,14 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
 
-  public void createSnapshotParquetFiles(
+  public int createSnapshotParquetFiles(
       List<DatasetTable> tables,
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
       String datasetFlightId)
       throws SQLException {
+    int count = 0;
     for (DatasetTable table : tables) {
       // Create a copy of each dataset "table" (parquet file)
       List<SynapseColumn> columns =
@@ -288,8 +289,9 @@ public class AzureSynapsePdao {
               .add("ingestFileName", datasetParquetFileName)
               .add("ingestFileDataSourceName", datasetDataSourceName)
               .add("columns", columns);
-      executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
+      count += executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
     }
+    return count;
   }
 
   public void dropTables(List<String> tableNames) {

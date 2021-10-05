@@ -177,12 +177,7 @@ public class SamIamTest {
   public void testGetUserInfo() throws ApiException {
     final String userSubjectId = "userid";
     final String userEmail = "a@a.com";
-    when(samUsersApi.getUserStatusInfo())
-        .thenReturn(
-            new org.broadinstitute.dsde.workbench.client.sam.model.UserStatusInfo()
-                .userSubjectId(userSubjectId)
-                .userEmail(userEmail)
-                .enabled(true));
+    mockUserInfo(userSubjectId, userEmail);
 
     assertThat(samIam.getUserInfo(userReq))
         .isEqualTo(
@@ -247,6 +242,10 @@ public class SamIamTest {
 
   @Test
   public void testCreateDataset() throws InterruptedException, ApiException {
+    final String userSubjectId = "userid";
+    final String userEmail = "a@a.com";
+    mockUserInfo(userSubjectId, userEmail);
+
     final UUID datasetId = UUID.randomUUID();
     // Note: in our case, policies have a 1:1 relationship with roles
     final List<IamRole> allPolicies =
@@ -270,6 +269,10 @@ public class SamIamTest {
 
   @Test
   public void testCreateSnapshot() throws InterruptedException, ApiException {
+    final String userSubjectId = "userid";
+    final String userEmail = "a@a.com";
+    mockUserInfo(userSubjectId, userEmail);
+
     final UUID snapshotId = UUID.randomUUID();
     // Note: in our case, policies have a 1:1 relationship with roles
     final List<IamRole> allPolicies =
@@ -292,6 +295,10 @@ public class SamIamTest {
 
   @Test
   public void testCreateProfile() throws InterruptedException, ApiException {
+    final String userSubjectId = "userid";
+    final String userEmail = "a@a.com";
+    mockUserInfo(userSubjectId, userEmail);
+
     final UUID profileId = UUID.randomUUID();
     // Note: in our case, policies have a 1:1 relationship with roles
     final List<IamRole> allPolicies = List.of(IamRole.ADMIN, IamRole.OWNER, IamRole.USER);
@@ -351,5 +358,14 @@ public class SamIamTest {
             id.toString(),
             IamRole.OWNER.toString(),
             userEmail);
+  }
+
+  private void mockUserInfo(String userSubjectId, String userEmail) throws ApiException {
+    when(samUsersApi.getUserStatusInfo())
+        .thenReturn(
+            new org.broadinstitute.dsde.workbench.client.sam.model.UserStatusInfo()
+                .userSubjectId(userSubjectId)
+                .userEmail(userEmail)
+                .enabled(true));
   }
 }

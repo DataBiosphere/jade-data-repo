@@ -20,6 +20,7 @@ import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DataDeletionGcsFileModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -199,6 +200,25 @@ public class DatasetIntegrationTest extends UsersBase {
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
+  }
+
+  @Test
+  public void datasetHappyPathWithPet() throws Exception {
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward(), profileId, "it-dataset-omop.json", CloudPlatform.GCP, true);
+    datasetId = summaryModel.getId();
+
+    logger.info("dataset id is " + summaryModel.getId());
+    assertThat(summaryModel.getName(), startsWith(omopDatasetName));
+    assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
+
+    // We just need to validate the steward is able to read back the dataset (e.g. the pet account
+    // resolved correctly)
+    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
+
+    assertThat(datasetModel.getName(), startsWith(omopDatasetName));
+    assertThat(datasetModel.getDescription(), equalTo(omopDatasetDesc));
   }
 
   @Test

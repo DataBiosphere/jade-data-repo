@@ -133,10 +133,9 @@ public class TableDao {
       TableServiceClient datasetTableServiceClient)
       throws InterruptedException {
 
-    String snapshotId = snapshot.getId().toString();
+    UUID snapshotId = snapshot.getId();
     String snapshotTableName =
-        StorageTableUtils.toTableName(
-            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
+        StorageTableName.SNAPSHOT.toTableName(snapshotId);
     FireStoreDirectoryEntry topDir =
         directoryDao.retrieveByPath(snapshotTableServiceClient, snapshotId, snapshotTableName, "/");
     // If topDir is null, it means no files were added to the snapshot file system in the previous
@@ -154,7 +153,7 @@ public class TableDao {
 
       performanceLogger.timerEndAndLog(
           retrieveTimer,
-          snapshotId, // not a flight, so no job id
+          snapshotId.toString(), // not a flight, so no job id
           this.getClass().getName(),
           "tableDao.computeDirectoryGetMetadata");
 
@@ -408,7 +407,7 @@ public class TableDao {
   public StorageTableFileSystemHelper getHelper(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
-      String snapshotId) {
+      UUID snapshotId) {
     return new StorageTableFileSystemHelper(
         directoryDao,
         fileDao,
@@ -424,7 +423,7 @@ public class TableDao {
     private final TableFileDao fileDao;
     private final TableServiceClient datasetTableServiceClient;
     private final TableServiceClient snapshotTableServiceClient;
-    private final String snapshotId;
+    private final UUID snapshotId;
     private final Integer snapshotBatchSize;
     private final String snapshotTableName;
 
@@ -433,7 +432,7 @@ public class TableDao {
         TableFileDao fileDao,
         TableServiceClient datasetTableServiceClient,
         TableServiceClient snapshotTableServiceClient,
-        String snapshotId,
+        UUID snapshotId,
         Integer snapshotBatchSize) {
       this.directoryDao = directoryDao;
       this.fileDao = fileDao;
@@ -442,8 +441,7 @@ public class TableDao {
       this.snapshotId = snapshotId;
       this.snapshotBatchSize = snapshotBatchSize;
       this.snapshotTableName =
-          StorageTableUtils.toTableName(
-              snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
+          StorageTableName.SNAPSHOT.toTableName(snapshotId);
     }
 
     @Override

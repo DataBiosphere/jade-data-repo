@@ -220,7 +220,7 @@ public class TableDaoConnectedTest {
     fileObjects.addAll(dsetObjects);
     for (FireStoreDirectoryEntry fireStoreDirectoryEntry : fileObjects) {
       tableDirectoryDao.createDirectoryEntry(
-          tableServiceClient, datasetId.toString(), "dataset", fireStoreDirectoryEntry);
+          tableServiceClient, datasetId, "dataset", fireStoreDirectoryEntry);
     }
 
     // Make the snapshot file system
@@ -231,9 +231,9 @@ public class TableDaoConnectedTest {
     tableDirectoryDao.addEntriesToSnapshot(
         tableServiceClient,
         tableServiceClient,
-        datasetId.toString(),
+        datasetId,
         "dataset",
-        snapshotId.toString(),
+        snapshotId,
         fileIdList);
 
     //     Validate we cannot lookup dataset files in the snapshot
@@ -241,22 +241,22 @@ public class TableDaoConnectedTest {
       FireStoreDirectoryEntry snapObject =
           tableDirectoryDao.retrieveById(
               tableServiceClient,
-              StorageTableUtils.toTableName(snapshotId, StorageTableNameSuffix.SNAPSHOT),
+              StorageTableName.SNAPSHOT.toTableName(snapshotId),
               dsetObject.getFileId());
       assertNull("object not found in snapshot", snapObject);
     }
 
     // Compute the size and checksums
     FireStoreDirectoryEntry topDir =
-        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), "dataset", "/");
+        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId, "dataset", "/");
     tableDao.snapshotCompute(snapshot, tableServiceClient, tableServiceClient);
 
     // Check the accumulated size on the root dir
     FireStoreDirectoryEntry snapObject =
         tableDirectoryDao.retrieveByPath(
             tableServiceClient,
-            snapshotId.toString(),
-            StorageTableUtils.toTableName(snapshotId, StorageTableNameSuffix.SNAPSHOT),
+            snapshotId,
+            StorageTableName.SNAPSHOT.toTableName(snapshotId),
             "/");
     assertNotNull("root exists", snapObject);
     assertThat("Total size is correct", snapObject.getSize(), equalTo(15L));

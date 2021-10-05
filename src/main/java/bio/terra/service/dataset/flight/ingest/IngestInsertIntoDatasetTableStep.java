@@ -49,10 +49,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
       BulkLoadArrayResultModel fileLoadResults =
           workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
       ingestResponse.loadResult(fileLoadResults);
-      Long failedRowCount = 0L;
-      if (workingMap.containsKey(IngestMapKeys.COMBINED_FAILED_ROW_COUNT)) {
-        failedRowCount = workingMap.get(IngestMapKeys.COMBINED_FAILED_ROW_COUNT, Long.class);
-      }
+      long failedRowCount = workingMap.get(IngestMapKeys.COMBINED_FAILED_ROW_COUNT, Long.class);
       ingestResponse.badRowCount(ingestResponse.getBadRowCount() + failedRowCount);
       ingestResponse.rowCount(ingestResponse.getRowCount() + failedRowCount);
     }

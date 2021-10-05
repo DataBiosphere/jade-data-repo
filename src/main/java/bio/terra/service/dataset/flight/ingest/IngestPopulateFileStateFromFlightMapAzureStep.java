@@ -19,13 +19,13 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
 
   public IngestPopulateFileStateFromFlightMapAzureStep(
       LoadService loadService,
+      FileService fileService,
       AzureBlobStorePdao azureBlobStorePdao,
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      Predicate<FlightContext> skipCondition,
-      FileService fileService) {
-    super(loadService, objectMapper, dataset, batchSize, skipCondition, fileService);
+      Predicate<FlightContext> skipCondition) {
+    super(loadService, fileService, objectMapper, dataset, batchSize, skipCondition);
     this.azureBlobStorePdao = azureBlobStorePdao;
   }
 

@@ -15,7 +15,7 @@ import com.azure.data.tables.TableServiceClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -165,7 +165,8 @@ public class TableDao {
         fullPath);
   }
 
-  public boolean pathExists(UUID datasetId, String fullPath, AzureStorageAuthInfo storageAuthInfo) {
+  public Optional<FSItem> lookupOptionalPath(
+      UUID datasetId, String fullPath, AzureStorageAuthInfo storageAuthInfo, int enumerateDepth) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(
             storageAuthInfo.getSubscriptionId(),
@@ -173,7 +174,16 @@ public class TableDao {
             storageAuthInfo.getStorageAccountResourceName());
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
         directoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), fullPath);
-    return Objects.nonNull(fireStoreDirectoryEntry);
+    return Optional.ofNullable(fireStoreDirectoryEntry)
+        .map(
+            entry ->
+                retrieveWorker(
+                    tableServiceClient,
+                    tableServiceClient,
+                    datasetId.toString(),
+                    enumerateDepth,
+                    entry,
+                    fullPath));
   }
 
   /**

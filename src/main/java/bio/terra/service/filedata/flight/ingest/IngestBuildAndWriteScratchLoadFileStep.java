@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -57,12 +58,11 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
 
       // Part 1.1 -> Add in the already-ingested files, if told to do so
       if (ingestRequest.isResolveExistingFiles()) {
-        List<FileModel> existingFiles =
-            workingMap.get(IngestMapKeys.COMBINED_EXISTING_FILES, List.class);
-        existingFiles.stream()
-            .forEach(
-                fileModel ->
-                    pathToFileIdMap.put(Objects.hash(fileModel.getPath()), fileModel.getFileId()));
+        Set<FileModel> existingFiles =
+            workingMap.get(IngestMapKeys.COMBINED_EXISTING_FILES, Set.class);
+        existingFiles.forEach(
+            fileModel ->
+                pathToFileIdMap.put(Objects.hash(fileModel.getPath()), fileModel.getFileId()));
       }
 
       AtomicLong failedRowCount = new AtomicLong();

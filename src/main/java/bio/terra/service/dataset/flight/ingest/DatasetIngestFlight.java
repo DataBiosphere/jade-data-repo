@@ -246,12 +246,12 @@ public class DatasetIngestFlight extends Flight {
     addStep(
         new IngestPopulateFileStateFromFlightMapGcpStep(
             loadService,
+            fileService,
             gcsPdao,
             appConfig.objectMapper(),
             dataset,
             appConfig.getLoadFilePopulateBatchSize(),
-            ingestSkipCondition,
-            fileService));
+            ingestSkipCondition));
 
     // Load the files!
     addStep(
@@ -345,12 +345,12 @@ public class DatasetIngestFlight extends Flight {
     addStep(
         new IngestPopulateFileStateFromFlightMapAzureStep(
             loadService,
+            fileService,
             azureBlobStorePdao,
             appConfig.objectMapper(),
             dataset,
             appConfig.getLoadFilePopulateBatchSize(),
-            ingestSkipCondition,
-            fileService));
+            ingestSkipCondition));
 
     // Load the files!
     addStep(

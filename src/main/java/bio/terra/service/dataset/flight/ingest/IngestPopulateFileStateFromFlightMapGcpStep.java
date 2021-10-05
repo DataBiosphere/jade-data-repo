@@ -19,13 +19,13 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
 
   public IngestPopulateFileStateFromFlightMapGcpStep(
       LoadService loadService,
+      FileService fileService,
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      Predicate<FlightContext> skipCondition,
-      FileService fileService) {
-    super(loadService, objectMapper, dataset, batchSize, skipCondition, fileService);
+      Predicate<FlightContext> skipCondition) {
+    super(loadService, fileService, objectMapper, dataset, batchSize, skipCondition);
     this.gcsPdao = gcsPdao;
   }
 

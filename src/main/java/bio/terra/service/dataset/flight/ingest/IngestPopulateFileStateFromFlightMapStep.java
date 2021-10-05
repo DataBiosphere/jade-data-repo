@@ -15,10 +15,15 @@ import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import org.apache.commons.lang.StringUtils;
 
 public abstract class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
 
@@ -30,17 +35,17 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
 
   public IngestPopulateFileStateFromFlightMapStep(
       LoadService loadService,
+      FileService fileService,
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      Predicate<FlightContext> skipCondition,
-      FileService fileService) {
+      Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.loadService = loadService;
+    this.fileService = fileService;
     this.objectMapper = objectMapper;
     this.dataset = dataset;
     this.batchSize = batchSize;
-    this.fileService = fileService;
   }
 
   @Override
@@ -56,11 +61,12 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
     List<String> errors = new ArrayList<>();
     try (var bulkFileLoadModels = getModelsStream(ingestRequest, fileColumns, errors)) {
 
-      List<FileModel> existingFiles = new ArrayList<>();
-
       if (ingestRequest.isResolveExistingFiles()) {
+        Set<FileModel> existingFiles = new HashSet<>();
         var toIngest =
-            bulkFileLoadModels.flatMap(fileModel -> fileNotIngested(fileModel, existingFiles));
+            bulkFileLoadModels
+                .map(fileModel -> fileToIngest(fileModel, existingFiles))
+                .filter(Objects::nonNull);
         loadService.populateFiles(loadId, toIngest, batchSize);
         workingMap.put(IngestMapKeys.COMBINED_EXISTING_FILES, existingFiles);
       } else {
@@ -88,20 +94,20 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
    * @param collector A place to put the FileModels that already exist
    * @return A Stream of BulkLoadFileModel if it needs to be ingested, or an empty Stream if not.
    */
-  private Stream<BulkLoadFileModel> fileNotIngested(
-      BulkLoadFileModel bulkLoadModel, List<FileModel> collector) {
-    int depth = bulkLoadModel.getTargetPath().replaceAll("[^/]*", "").length();
-    boolean pathExists =
-        fileService.pathExists(dataset.getId().toString(), bulkLoadModel.getTargetPath());
-    if (pathExists) {
-      // The file already exists. Add it to the collection.
-      FileModel file =
-          fileService.lookupPath(dataset.getId().toString(), bulkLoadModel.getTargetPath(), depth);
-      collector.add(file);
-      return Stream.empty();
+  private BulkLoadFileModel fileToIngest(
+      BulkLoadFileModel bulkLoadModel, Set<FileModel> collector) {
+    int depth = StringUtils.countMatches(bulkLoadModel.getTargetPath(), "/");
+    ;
+    Optional<FileModel> file =
+        fileService.lookupOptionalPath(
+            dataset.getId().toString(), bulkLoadModel.getTargetPath(), depth);
+    if (file.isPresent()) {
+      // File exists. Don't ingest it, but add it to the collector.
+      collector.add(file.get());
+      return null;
     } else {
       // File doesn't exist. Ingest it!
-      return Stream.of(bulkLoadModel);
+      return bulkLoadModel;
     }
   }
 

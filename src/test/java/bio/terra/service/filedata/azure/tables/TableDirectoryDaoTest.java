@@ -75,7 +75,7 @@ public class TableDirectoryDaoTest {
                 FireStoreDirectoryEntry.PATH_FIELD_NAME,
                 fileMetadataUtils.getDirectoryPath(FULL_PATH))
             .addProperty(FireStoreDirectoryEntry.NAME_FIELD_NAME, "file.json")
-            .addProperty(FireStoreDirectoryEntry.DATASET_ID_FIELD_NAME, DATASET_ID)
+            .addProperty(FireStoreDirectoryEntry.DATASET_ID_FIELD_NAME, DATASET_ID.toString())
             .addProperty(FireStoreDirectoryEntry.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
             .addProperty(FireStoreDirectoryEntry.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
             .addProperty(FireStoreDirectoryEntry.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")

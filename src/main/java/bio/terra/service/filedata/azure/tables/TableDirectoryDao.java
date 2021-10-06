@@ -85,12 +85,13 @@ public class TableDirectoryDao {
     // existing one
     // We will create the ROOT_DIR_NAME directory here if it does not exist.
     String lookupDirPath = fileMetadataUtils.makeLookupPath(createEntry.getPath());
+    UUID datasetUuid = UUID.fromString(datasetId);
     for (String testPath = lookupDirPath;
         !testPath.isEmpty();
         testPath = fileMetadataUtils.getDirectoryPath(testPath)) {
 
       // !!! In this case we are using a lookup path
-      if (lookupByFilePath(tableServiceClient, UUID.fromString(datasetId), testPath) != null) {
+      if (lookupByFilePath(tableServiceClient, datasetUuid, testPath) != null) {
         break;
       }
 

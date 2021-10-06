@@ -3091,6 +3091,9 @@ components:
         resolve_existing_files:
           type: boolean
           default: false
+          description: >
+            When true, the combined ingest will look for files that already exist and substitute their
+            fileIds in instead of ingesting duplicate files.
       description: >
         Request to ingest data from a file in GCS into a table in a dataset.
         The ingest source must be readable by the DR manager.

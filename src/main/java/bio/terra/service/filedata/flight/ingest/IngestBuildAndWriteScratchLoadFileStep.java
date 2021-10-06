@@ -49,21 +49,19 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
           workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
 
       // Part 1 -> Build the src-target hash to file id Map
-      Map<Integer, String> pathToFileIdMap =
+      Map<String, String> pathToFileIdMap =
           result.getLoadFileResults().stream()
               .filter(fileResultModel -> fileResultModel.getState() == BulkLoadFileState.SUCCEEDED)
               .collect(
                   Collectors.toMap(
-                      fileResultModel -> fileResultModel.getTargetPath().hashCode(),
-                      BulkLoadFileResultModel::getFileId));
+                      BulkLoadFileResultModel::getTargetPath, BulkLoadFileResultModel::getFileId));
 
       // Part 1.1 -> Add in the already-ingested files, if told to do so
       if (ingestRequest.isResolveExistingFiles()) {
         Set<FileModel> existingFiles =
             FlightUtils.getTyped(workingMap, IngestMapKeys.COMBINED_EXISTING_FILES);
         existingFiles.forEach(
-            fileModel ->
-                pathToFileIdMap.put(fileModel.getPath().hashCode(), fileModel.getFileId()));
+            fileModel -> pathToFileIdMap.put(fileModel.getPath(), fileModel.getFileId()));
       }
 
       AtomicLong failedRowCount = new AtomicLong();
@@ -80,7 +78,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
                         BulkLoadFileModel fileModel =
                             Objects.requireNonNull(
                                 objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
-                        int fileKey = fileModel.getTargetPath().hashCode();
+                        String fileKey = fileModel.getTargetPath();
                         if (pathToFileIdMap.containsKey(fileKey)) {
                           String fileId = pathToFileIdMap.get(fileKey);
                           ((ObjectNode) node).put(columnName, fileId);

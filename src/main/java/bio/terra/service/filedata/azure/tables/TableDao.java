@@ -67,49 +67,29 @@ public class TableDao {
       AzureStorageAuthInfo storageAuthInfo,
       UUID collectionId,
       String tableName) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     directoryDao.createDirectoryEntry(tableServiceClient, collectionId, tableName, newEntry);
   }
 
   public boolean deleteDirectoryEntry(
       String fileId, AzureStorageAuthInfo storageAuthInfo, UUID collectionId, String tableName) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return directoryDao.deleteDirectoryEntry(tableServiceClient, collectionId, tableName, fileId);
   }
 
   public void createFileMetadata(FireStoreFile newFile, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     fileDao.createFileMetadata(tableServiceClient, newFile);
   }
 
   public boolean deleteFileMetadata(String fileId, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return fileDao.deleteFileMetadata(tableServiceClient, fileId);
   }
 
   public void deleteFilesFromDataset(
       AzureStorageAuthInfo storageAuthInfo, InterruptibleConsumer<FireStoreFile> func) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     if (configurationService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
       // If we didn't load files, don't try to delete them
       fileDao.deleteFilesFromDataset(tableServiceClient, f -> {});
@@ -124,21 +104,13 @@ public class TableDao {
 
   public FireStoreDirectoryEntry lookupDirectoryEntryByPath(
       Dataset dataset, String path, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return directoryDao.retrieveByPath(
         tableServiceClient, dataset.getId(), StorageTableName.DATASET.toTableName(), path);
   }
 
   public FireStoreFile lookupFile(String fileId, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return fileDao.retrieveFileMetadata(tableServiceClient, fileId);
   }
 
@@ -155,11 +127,7 @@ public class TableDao {
   // TODO - Azure snapshot: Support passing in snapshotID
   public FSItem retrieveByPath(
       UUID datasetId, String fullPath, int enumerateDepth, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
         directoryDao.retrieveByPath(
             tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), fullPath);
@@ -187,11 +155,7 @@ public class TableDao {
   // TODO - Azure snapshot: Support passing in snapshotID
   public FSItem retrieveById(
       UUID datasetId, String fileId, int enumerateDepth, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
         directoryDao.retrieveById(
             tableServiceClient, StorageTableName.DATASET.toTableName(), fileId);

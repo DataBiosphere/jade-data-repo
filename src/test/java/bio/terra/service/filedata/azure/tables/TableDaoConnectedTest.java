@@ -232,7 +232,7 @@ public class TableDaoConnectedTest {
     tableDirectoryDao.addEntriesToSnapshot(
         tableServiceClient, tableServiceClient, datasetId, "dataset", snapshotId, fileIdList);
 
-    //     Validate we cannot lookup dataset files in the snapshot
+    // Validate we cannot lookup dataset files in the snapshot
     for (FireStoreDirectoryEntry dsetObject : dsetObjects) {
       FireStoreDirectoryEntry snapObject =
           tableDirectoryDao.retrieveById(
@@ -271,7 +271,6 @@ public class TableDaoConnectedTest {
             .bucketResourceId("test")
             .fileCreatedDate(Instant.now().toString())
             .gspath(endpoint + "/" + fullPath)
-            .checksumCrc32c(VirtualFileSystemUtils.computeCrc32c(fullPath))
             .checksumMd5(VirtualFileSystemUtils.computeMd5(fullPath))
             .size(size);
 
@@ -284,7 +283,6 @@ public class TableDaoConnectedTest {
         .name(FileMetadataUtils.getName(fullPath))
         .datasetId(datasetId.toString())
         .size(size)
-        .checksumCrc32c(VirtualFileSystemUtils.computeCrc32c(fullPath))
         .checksumMd5(VirtualFileSystemUtils.computeMd5(fullPath));
   }
 }

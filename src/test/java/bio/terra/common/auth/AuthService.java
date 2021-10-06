@@ -40,7 +40,6 @@ public class AuthService {
   private List<String> userLoginScopes =
       List.of(
           "openid", "email", "profile", "https://www.googleapis.com/auth/cloud-billing.readonly");
-  private List<String> samUserLoginScopes = List.of("openid", "email", "profile");
   private List<String> directAccessScopes =
       List.of(
           "https://www.googleapis.com/auth/bigquery",
@@ -137,7 +136,7 @@ public class AuthService {
           .getPetToken(
               new AuthenticatedUserRequest()
                   .token(Optional.of(makeToken(userEmail).getAccessToken())),
-              samUserLoginScopes)
+              userLoginScopes)
           .replaceAll("\\.+$", "");
     } catch (InterruptedException e) {
       throw new RuntimeException(e);

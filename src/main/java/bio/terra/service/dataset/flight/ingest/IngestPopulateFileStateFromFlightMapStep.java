@@ -97,7 +97,6 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
   private BulkLoadFileModel fileToIngest(
       BulkLoadFileModel bulkLoadModel, Set<FileModel> collector) {
     int depth = StringUtils.countMatches(bulkLoadModel.getTargetPath(), "/");
-    ;
     Optional<FileModel> file =
         fileService.lookupOptionalPath(
             dataset.getId().toString(), bulkLoadModel.getTargetPath(), depth);

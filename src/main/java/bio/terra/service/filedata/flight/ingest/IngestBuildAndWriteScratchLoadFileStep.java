@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
@@ -15,6 +16,7 @@ import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,16 +55,16 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
               .filter(fileResultModel -> fileResultModel.getState() == BulkLoadFileState.SUCCEEDED)
               .collect(
                   Collectors.toMap(
-                      fileResultModel -> Objects.hash(fileResultModel.getTargetPath()),
+                      fileResultModel -> fileResultModel.getTargetPath().hashCode(),
                       BulkLoadFileResultModel::getFileId));
 
       // Part 1.1 -> Add in the already-ingested files, if told to do so
       if (ingestRequest.isResolveExistingFiles()) {
         Set<FileModel> existingFiles =
-            workingMap.get(IngestMapKeys.COMBINED_EXISTING_FILES, Set.class);
+            FlightUtils.getTyped(workingMap, IngestMapKeys.COMBINED_EXISTING_FILES);
         existingFiles.forEach(
             fileModel ->
-                pathToFileIdMap.put(Objects.hash(fileModel.getPath()), fileModel.getFileId()));
+                pathToFileIdMap.put(fileModel.getPath().hashCode(), fileModel.getFileId()));
       }
 
       AtomicLong failedRowCount = new AtomicLong();
@@ -79,7 +81,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
                         BulkLoadFileModel fileModel =
                             Objects.requireNonNull(
                                 objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
-                        int fileKey = Objects.hash(fileModel.getTargetPath());
+                        int fileKey = fileModel.getTargetPath().hashCode();
                         if (pathToFileIdMap.containsKey(fileKey)) {
                           String fileId = pathToFileIdMap.get(fileKey);
                           ((ObjectNode) node).put(columnName, fileId);

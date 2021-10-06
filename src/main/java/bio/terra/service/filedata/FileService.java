@@ -207,7 +207,7 @@ public class FileService {
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
-      file = tableDao.lookupOptionalPath(UUID.fromString(datasetId), path, storageAuthInfo, depth);
+      file = tableDao.lookupOptionalPath(dataset.getId(), path, storageAuthInfo, depth);
     }
     return file.map(this::fileModelFromFSItem);
   }

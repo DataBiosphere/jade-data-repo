@@ -6,6 +6,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.RetryRuleRandomBackoff;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.BigQueryException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -85,5 +86,9 @@ public final class FlightUtils {
       value = context.getWorkingMap().get(key, clazz);
     }
     return value;
+  }
+
+  public static <T> T getTyped(FlightMap workingMap, String key) {
+    return workingMap.get(key, new TypeReference<>() {});
   }
 }

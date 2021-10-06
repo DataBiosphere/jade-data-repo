@@ -171,7 +171,7 @@ public class AzureIngestFileConnectedTest {
     // Check if directory already exists - it should not yet
 
     FireStoreDirectoryEntry de =
-        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), targetPath);
+        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId, targetPath);
     assertThat("directory should not yet exist.", de, equalTo(null));
 
     // 4 - IngestFileAzureDirectoryStep
@@ -189,7 +189,7 @@ public class AzureIngestFileConnectedTest {
 
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =
-        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), targetPath);
+        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId, targetPath);
     assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
 
     // 5 - IngestFileAzurePrimaryDataStep

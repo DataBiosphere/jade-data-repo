@@ -123,8 +123,7 @@ public class TableDao {
             storageAuthInfo.getSubscriptionId(),
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
-    String datasetId = dataset.getId().toString();
-    return directoryDao.retrieveByPath(tableServiceClient, datasetId, path);
+    return directoryDao.retrieveByPath(tableServiceClient, dataset.getId(), path);
   }
 
   public FireStoreFile lookupFile(String fileId, AzureStorageAuthInfo storageAuthInfo) {
@@ -155,7 +154,7 @@ public class TableDao {
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), fullPath);
+        directoryDao.retrieveByPath(tableServiceClient, datasetId, fullPath);
     return retrieveWorker(
         tableServiceClient,
         tableServiceClient,
@@ -173,7 +172,7 @@ public class TableDao {
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), fullPath);
+        directoryDao.retrieveByPath(tableServiceClient, datasetId, fullPath);
     return Optional.ofNullable(fireStoreDirectoryEntry)
         .map(
             entry ->

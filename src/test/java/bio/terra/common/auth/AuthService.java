@@ -51,7 +51,7 @@ public class AuthService {
   private Map<String, GoogleCredential> userTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
   private Map<String, String> petAccountTokens =
-      Collections.synchronizedMap(new PassiveExpiringMap<>(TimeUnit.MINUTES.toMillis(55)));
+      Collections.synchronizedMap(new PassiveExpiringMap<>(55, TimeUnit.MINUTES));
   private Map<String, GoogleCredential> directAccessTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
   private TestConfiguration testConfig;
@@ -69,24 +69,17 @@ public class AuthService {
   }
 
   public String getAuthToken(String userEmail) {
-    if (!userTokens.containsKey(userEmail)) {
-      userTokens.put(userEmail, makeToken(userEmail));
-    }
-    return userTokens.get(userEmail).getAccessToken();
+    return userTokens.computeIfAbsent(userEmail, this::makeToken).getAccessToken();
   }
 
   public String getPetAccountAuthToken(String userEmail) {
-    if (!petAccountTokens.containsKey(userEmail)) {
-      petAccountTokens.put(userEmail, makePetAccountToken(userEmail));
-    }
-    return petAccountTokens.get(userEmail);
+    return petAccountTokens.computeIfAbsent(userEmail, this::makePetAccountToken);
   }
 
   public String getDirectAccessAuthToken(String userEmail) {
-    if (!directAccessTokens.containsKey(userEmail)) {
-      directAccessTokens.put(userEmail, makeDirectAccessToken(userEmail));
-    }
-    return directAccessTokens.get(userEmail).getAccessToken();
+    return directAccessTokens
+        .computeIfAbsent(userEmail, this::makeDirectAccessToken)
+        .getAccessToken();
   }
 
   private GoogleCredential buildCredential(String email, List<String> scopes)

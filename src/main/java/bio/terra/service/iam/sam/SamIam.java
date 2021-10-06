@@ -506,7 +506,7 @@ public class SamIam implements IamProviderInterface {
     } catch (Exception ex) {
       String errorMsg = "Sam status check failed";
       logger.error(errorMsg, ex);
-      return new RepositoryStatusModelSystems().ok(false).message(errorMsg + ": " + ex.toString());
+      return new RepositoryStatusModelSystems().ok(false).message(errorMsg + ": " + ex);
     }
   }
 

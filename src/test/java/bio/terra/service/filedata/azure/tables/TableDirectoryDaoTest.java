@@ -38,7 +38,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Unit.class)
 public class TableDirectoryDaoTest {
   private static final String FULL_PATH = "/directory/file.json";
-  private static final String DATASET_ID = UUID.randomUUID().toString();
+  private static final UUID DATASET_ID = UUID.randomUUID();
   private static final String PARTITION_KEY = DATASET_ID + " _dr_ directory";
   private static final String ROW_KEY = " _dr_ directory file.json";
   private static final String NONEXISTENT_PATH = "/directory/nonexistent.json";
@@ -75,7 +75,7 @@ public class TableDirectoryDaoTest {
                 FireStoreDirectoryEntry.PATH_FIELD_NAME,
                 fileMetadataUtils.getDirectoryPath(FULL_PATH))
             .addProperty(FireStoreDirectoryEntry.NAME_FIELD_NAME, "file.json")
-            .addProperty(FireStoreDirectoryEntry.DATASET_ID_FIELD_NAME, DATASET_ID)
+            .addProperty(FireStoreDirectoryEntry.DATASET_ID_FIELD_NAME, DATASET_ID.toString())
             .addProperty(FireStoreDirectoryEntry.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
             .addProperty(FireStoreDirectoryEntry.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
             .addProperty(FireStoreDirectoryEntry.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")

@@ -15,6 +15,7 @@ import com.azure.data.tables.TableServiceClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -122,8 +123,7 @@ public class TableDao {
             storageAuthInfo.getSubscriptionId(),
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
-    String datasetId = dataset.getId().toString();
-    return directoryDao.retrieveByPath(tableServiceClient, datasetId, path);
+    return directoryDao.retrieveByPath(tableServiceClient, dataset.getId(), path);
   }
 
   public FireStoreFile lookupFile(String fileId, AzureStorageAuthInfo storageAuthInfo) {
@@ -154,7 +154,7 @@ public class TableDao {
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), fullPath);
+        directoryDao.retrieveByPath(tableServiceClient, datasetId, fullPath);
     return retrieveWorker(
         tableServiceClient,
         tableServiceClient,
@@ -162,6 +162,27 @@ public class TableDao {
         enumerateDepth,
         fireStoreDirectoryEntry,
         fullPath);
+  }
+
+  public Optional<FSItem> lookupOptionalPath(
+      UUID datasetId, String fullPath, AzureStorageAuthInfo storageAuthInfo, int enumerateDepth) {
+    TableServiceClient tableServiceClient =
+        azureAuthService.getTableServiceClient(
+            storageAuthInfo.getSubscriptionId(),
+            storageAuthInfo.getResourceGroupName(),
+            storageAuthInfo.getStorageAccountResourceName());
+    FireStoreDirectoryEntry fireStoreDirectoryEntry =
+        directoryDao.retrieveByPath(tableServiceClient, datasetId, fullPath);
+    return Optional.ofNullable(fireStoreDirectoryEntry)
+        .map(
+            entry ->
+                retrieveWorker(
+                    tableServiceClient,
+                    tableServiceClient,
+                    datasetId.toString(),
+                    enumerateDepth,
+                    entry,
+                    fullPath));
   }
 
   /**

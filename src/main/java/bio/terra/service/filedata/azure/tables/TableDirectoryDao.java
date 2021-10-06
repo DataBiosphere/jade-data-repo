@@ -13,6 +13,7 @@ import com.azure.data.tables.models.TableServiceException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
@@ -84,12 +85,13 @@ public class TableDirectoryDao {
     // existing one
     // We will create the ROOT_DIR_NAME directory here if it does not exist.
     String lookupDirPath = fileMetadataUtils.makeLookupPath(createEntry.getPath());
+    UUID datasetUuid = UUID.fromString(datasetId);
     for (String testPath = lookupDirPath;
         !testPath.isEmpty();
         testPath = fileMetadataUtils.getDirectoryPath(testPath)) {
 
       // !!! In this case we are using a lookup path
-      if (lookupByFilePath(tableServiceClient, datasetId, testPath) != null) {
+      if (lookupByFilePath(tableServiceClient, datasetUuid, testPath) != null) {
         break;
       }
 
@@ -137,7 +139,8 @@ public class TableDirectoryDao {
       if (TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
         break;
       }
-      TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
+      TableEntity entity =
+          lookupByFilePath(tableServiceClient, UUID.fromString(datasetId), lookupPath);
       if (entity != null) {
         tableClient.deleteEntity(entity);
       }
@@ -169,7 +172,7 @@ public class TableDirectoryDao {
 
   // Returns null if not found - upper layers do any throwing
   public FireStoreDirectoryEntry retrieveByPath(
-      TableServiceClient tableServiceClient, String datasetId, String fullPath) {
+      TableServiceClient tableServiceClient, UUID datasetId, String fullPath) {
     String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
     TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
     return Optional.ofNullable(entity)
@@ -217,9 +220,9 @@ public class TableDirectoryDao {
   }
 
   private TableEntity lookupByFilePath(
-      TableServiceClient tableServiceClient, String datasetId, String lookupPath) {
+      TableServiceClient tableServiceClient, UUID datasetId, String lookupPath) {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    String partitionKey = getPartitionKey(datasetId, lookupPath);
+    String partitionKey = getPartitionKey(datasetId.toString(), lookupPath);
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     try {
       return tableClient.getEntity(partitionKey, rowKey);

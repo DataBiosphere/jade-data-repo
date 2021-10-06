@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -230,6 +231,34 @@ public class FireStoreDao {
         enumerateDepth,
         fireStoreDirectoryEntry,
         fullPath);
+  }
+
+  public Optional<FSItem> lookupOptionalPath(
+      FSContainerInterface container, String fullPath, int enumerateDepth)
+      throws InterruptedException {
+    Firestore fsItemFirestore =
+        FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
+    Firestore metadataFirestore = container.firestoreConnection().getFirestore();
+    String containerId = container.getId().toString();
+
+    FireStoreDirectoryEntry fireStoreDirectoryEntry =
+        directoryDao.retrieveByPath(fsItemFirestore, containerId, fullPath);
+    return Optional.ofNullable(fireStoreDirectoryEntry)
+        .map(
+            entry -> {
+              try {
+                return retrieveWorker(
+                    fsItemFirestore,
+                    metadataFirestore,
+                    containerId,
+                    enumerateDepth,
+                    entry,
+                    fullPath);
+              } catch (InterruptedException ex) {
+                throw new FileSystemExecutionException(
+                    "Unexpected interruption during file system processing", ex);
+              }
+            });
   }
 
   /**

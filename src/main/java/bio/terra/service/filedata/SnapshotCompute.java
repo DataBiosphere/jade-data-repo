@@ -17,17 +17,17 @@ import org.apache.commons.codec.digest.PureJavaCrc32C;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
-public class VirtualFileSystemUtils {
+public class SnapshotCompute {
 
   // Recursively compute the size and checksums of a directory
   public static FireStoreDirectoryEntry computeDirectory(
-      VirutalFileSystemHelper fileSystemHelper,
+      SnapshotComputeHelper computeHelper,
       FireStoreDirectoryEntry dirEntry,
       List<FireStoreDirectoryEntry> updateBatch)
       throws InterruptedException {
 
-    String fullPath = VirtualFileSystemUtils.getFullPath(dirEntry.getPath(), dirEntry.getName());
-    List<FireStoreDirectoryEntry> enumDir = fileSystemHelper.enumerateDirectory(fullPath);
+    String fullPath = SnapshotCompute.getFullPath(dirEntry.getPath(), dirEntry.getName());
+    List<FireStoreDirectoryEntry> enumDir = computeHelper.enumerateDirectory(fullPath);
 
     List<FireStoreDirectoryEntry> enumComputed = new ArrayList<>();
 
@@ -39,7 +39,7 @@ public class VirtualFileSystemUtils {
               .map(
                   f -> {
                     try {
-                      return computeDirectory(fileSystemHelper, f, updateBatch);
+                      return computeDirectory(computeHelper, f, updateBatch);
                     } catch (InterruptedException e) {
                       throw new DirectoryMetadataComputeException(
                           "Error computing directory metadata", e);
@@ -49,11 +49,11 @@ public class VirtualFileSystemUtils {
     }
 
     // Collect metadata for file objects in the directory
-    VirtualFileSystemUtils.collectDirectoryContentMetadata(enumDir, enumComputed, fileSystemHelper);
+    SnapshotCompute.collectDirectoryContentMetadata(enumDir, enumComputed, computeHelper);
 
     // Compute this directory's checksums and size
-    VirtualFileSystemUtils.updateDirectoryEntryChecksums(dirEntry, enumComputed);
-    fileSystemHelper.updateEntry(dirEntry, updateBatch);
+    SnapshotCompute.updateDirectoryEntryChecksums(dirEntry, enumComputed);
+    computeHelper.updateEntry(dirEntry, updateBatch);
 
     return dirEntry;
   }
@@ -61,7 +61,7 @@ public class VirtualFileSystemUtils {
   public static void collectDirectoryContentMetadata(
       List<FireStoreDirectoryEntry> enumDir,
       List<FireStoreDirectoryEntry> enumComputed,
-      VirutalFileSystemHelper fileGetter)
+      SnapshotComputeHelper computeHelper)
       throws InterruptedException {
     // Collect metadata for file objects in the directory
     try (Stream<FireStoreDirectoryEntry> stream = enumDir.stream()) {
@@ -74,7 +74,7 @@ public class VirtualFileSystemUtils {
       for (Map.Entry<String, List<FireStoreDirectoryEntry>> entry :
           fileRefsByDatasetId.entrySet()) {
         // Retrieve the file metadata from Firestore
-        final List<FireStoreFile> fireStoreFiles = fileGetter.batchRetrieveFileMetadata(entry);
+        final List<FireStoreFile> fireStoreFiles = computeHelper.batchRetrieveFileMetadata(entry);
 
         final AtomicInteger index = new AtomicInteger(0);
         enumComputed.addAll(

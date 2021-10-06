@@ -12,8 +12,8 @@ import bio.terra.service.filedata.FSDir;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSItem;
 import bio.terra.service.filedata.FileMetadataUtils;
-import bio.terra.service.filedata.VirtualFileSystemUtils;
-import bio.terra.service.filedata.VirutalFileSystemHelper;
+import bio.terra.service.filedata.SnapshotCompute;
+import bio.terra.service.filedata.SnapshotComputeHelper;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.snapshot.Snapshot;
@@ -187,8 +187,8 @@ public class FireStoreDao {
 
       String retrieveTimer = performanceLogger.timerStart();
 
-      FirestoreFileSystemHelper helper = getHelper(datasetFirestore, snapshotFirestore, snapshotId);
-      VirtualFileSystemUtils.computeDirectory(helper, topDir, updateBatch);
+      FirestoreComputeHelper helper = getHelper(datasetFirestore, snapshotFirestore, snapshotId);
+      SnapshotCompute.computeDirectory(helper, topDir, updateBatch);
 
       performanceLogger.timerEndAndLog(
           retrieveTimer,
@@ -523,9 +523,9 @@ public class FireStoreDao {
     return fsFile;
   }
 
-  public FirestoreFileSystemHelper getHelper(
+  public FirestoreComputeHelper getHelper(
       Firestore datasetFirestore, Firestore snapshotFirestore, String snapshotId) {
-    return new FirestoreFileSystemHelper(
+    return new FirestoreComputeHelper(
         fileDao,
         directoryDao,
         datasetFirestore,
@@ -534,7 +534,7 @@ public class FireStoreDao {
         configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE));
   }
 
-  static class FirestoreFileSystemHelper implements VirutalFileSystemHelper {
+  static class FirestoreComputeHelper implements SnapshotComputeHelper {
 
     private final FireStoreFileDao fileDao;
     private final FireStoreDirectoryDao directoryDao;
@@ -543,7 +543,7 @@ public class FireStoreDao {
     private final String snapshotId;
     private final Integer snapshotBatchSize;
 
-    FirestoreFileSystemHelper(
+    FirestoreComputeHelper(
         FireStoreFileDao fileDao,
         FireStoreDirectoryDao directoryDao,
         Firestore datasetFirestore,

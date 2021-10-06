@@ -14,7 +14,7 @@ import bio.terra.common.fixtures.Names;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
-import bio.terra.service.filedata.VirtualFileSystemUtils;
+import bio.terra.service.filedata.SnapshotCompute;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.snapshot.Snapshot;
@@ -274,7 +274,7 @@ public class TableDaoConnectedTest {
             .bucketResourceId("test")
             .fileCreatedDate(Instant.now().toString())
             .gspath(endpoint + "/" + fullPath)
-            .checksumMd5(VirtualFileSystemUtils.computeMd5(fullPath))
+            .checksumMd5(SnapshotCompute.computeMd5(fullPath))
             .size(size);
 
     tableFileDao.createFileMetadata(tableServiceClient, newFile);
@@ -286,6 +286,6 @@ public class TableDaoConnectedTest {
         .name(FileMetadataUtils.getName(fullPath))
         .datasetId(datasetId.toString())
         .size(size)
-        .checksumMd5(VirtualFileSystemUtils.computeMd5(fullPath));
+        .checksumMd5(SnapshotCompute.computeMd5(fullPath));
   }
 }

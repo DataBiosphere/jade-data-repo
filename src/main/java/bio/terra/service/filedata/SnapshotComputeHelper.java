@@ -7,9 +7,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public interface VirutalFileSystemHelper {
+public interface SnapshotComputeHelper {
 
-  Logger logger = LoggerFactory.getLogger(VirtualFileSystemUtils.class);
+  Logger logger = LoggerFactory.getLogger(SnapshotCompute.class);
 
   List<FireStoreFile> batchRetrieveFileMetadata(
       Map.Entry<String, List<FireStoreDirectoryEntry>> entry) throws InterruptedException;

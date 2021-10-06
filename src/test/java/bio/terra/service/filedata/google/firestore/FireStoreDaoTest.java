@@ -11,7 +11,7 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.common.category.Connected;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
-import bio.terra.service.filedata.VirtualFileSystemUtils;
+import bio.terra.service.filedata.SnapshotCompute;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import com.google.cloud.firestore.Firestore;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -156,8 +156,8 @@ public class FireStoreDaoTest {
     // Compute the size and checksums
     FireStoreDirectoryEntry topDir = directoryDao.retrieveByPath(firestore, snapshotId, "/");
     List<FireStoreDirectoryEntry> updateBatch = new ArrayList<>();
-    FireStoreDao.FirestoreFileSystemHelper helper = dao.getHelper(firestore, firestore, snapshotId);
-    VirtualFileSystemUtils.computeDirectory(helper, topDir, updateBatch);
+    FireStoreDao.FirestoreComputeHelper helper = dao.getHelper(firestore, firestore, snapshotId);
+    SnapshotCompute.computeDirectory(helper, topDir, updateBatch);
     directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
 
     // Check the accumulated size on the root dir
@@ -179,8 +179,8 @@ public class FireStoreDaoTest {
             .bucketResourceId("test")
             .fileCreatedDate(Instant.now().toString())
             .gspath("gs://" + datasetId + "/" + fileId)
-            .checksumCrc32c(VirtualFileSystemUtils.computeCrc32c(fullPath))
-            .checksumMd5(VirtualFileSystemUtils.computeMd5(fullPath))
+            .checksumCrc32c(SnapshotCompute.computeCrc32c(fullPath))
+            .checksumMd5(SnapshotCompute.computeMd5(fullPath))
             .size(size);
 
     fileDao.createFileMetadata(firestore, datasetId, newFile);
@@ -192,7 +192,7 @@ public class FireStoreDaoTest {
         .name(FileMetadataUtils.getName(fullPath))
         .datasetId(collectionId)
         .size(size)
-        .checksumCrc32c(VirtualFileSystemUtils.computeCrc32c(fullPath))
-        .checksumMd5(VirtualFileSystemUtils.computeMd5(fullPath));
+        .checksumCrc32c(SnapshotCompute.computeCrc32c(fullPath))
+        .checksumMd5(SnapshotCompute.computeMd5(fullPath));
   }
 }

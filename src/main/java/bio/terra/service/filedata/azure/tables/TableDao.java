@@ -10,8 +10,8 @@ import bio.terra.service.filedata.FSDir;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSItem;
 import bio.terra.service.filedata.FileMetadataUtils;
-import bio.terra.service.filedata.VirtualFileSystemUtils;
-import bio.terra.service.filedata.VirutalFileSystemHelper;
+import bio.terra.service.filedata.SnapshotCompute;
+import bio.terra.service.filedata.SnapshotComputeHelper;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
@@ -141,9 +141,9 @@ public class TableDao {
 
       String retrieveTimer = performanceLogger.timerStart();
 
-      StorageTableFileSystemHelper helper =
+      StorageTableComputeHelper helper =
           getHelper(datasetTableServiceClient, snapshotTableServiceClient, snapshotId);
-      VirtualFileSystemUtils.computeDirectory(helper, topDir, updateBatch);
+      SnapshotCompute.computeDirectory(helper, topDir, updateBatch);
 
       performanceLogger.timerEndAndLog(
           retrieveTimer,
@@ -398,11 +398,11 @@ public class TableDao {
 
   // TODO: Implement computeDirectory to recursively compute the size and checksums of a directory
 
-  public StorageTableFileSystemHelper getHelper(
+  public StorageTableComputeHelper getHelper(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
       UUID snapshotId) {
-    return new StorageTableFileSystemHelper(
+    return new StorageTableComputeHelper(
         directoryDao,
         fileDao,
         datasetTableServiceClient,
@@ -411,7 +411,7 @@ public class TableDao {
         configurationService.getParameterValue(ConfigEnum.AZURE_SNAPSHOT_BATCH_SIZE));
   }
 
-  static class StorageTableFileSystemHelper implements VirutalFileSystemHelper {
+  static class StorageTableComputeHelper implements SnapshotComputeHelper {
 
     private final TableDirectoryDao directoryDao;
     private final TableFileDao fileDao;
@@ -421,7 +421,7 @@ public class TableDao {
     private final Integer snapshotBatchSize;
     private final String snapshotTableName;
 
-    StorageTableFileSystemHelper(
+    StorageTableComputeHelper(
         TableDirectoryDao directoryDao,
         TableFileDao fileDao,
         TableServiceClient datasetTableServiceClient,

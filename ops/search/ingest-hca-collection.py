@@ -44,6 +44,7 @@ def upsert(snapshot):
 with open("hca-collection.json", "r") as f:
     collection = json.load(f)
 
+#TODO: remove steward policy after upsert?
 for snapshot in tqdm(collection["data"]):
     policy(snapshot)
     upsert(snapshot)

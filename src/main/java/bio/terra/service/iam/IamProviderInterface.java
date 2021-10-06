@@ -157,6 +157,17 @@ public interface IamProviderInterface {
       String userEmail)
       throws InterruptedException;
 
+  /**
+   * Return a Google access token for an arbitrary pet service account associated with the logged in
+   * user
+   *
+   * @param userReq authenticated user
+   * @param scopes List of scopes to request for the token
+   * @return A string access token
+   */
+  String getPetToken(AuthenticatedUserRequest userReq, List<String> scopes)
+      throws InterruptedException;
+
   UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq);
 
   /**

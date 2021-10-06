@@ -1,7 +1,9 @@
 package bio.terra.service.filedata.azure.tables;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -206,15 +208,16 @@ public class TableDaoConnectedTest {
 
     // Make files that will be in the snapshot
     List<FireStoreDirectoryEntry> snapObjects = new ArrayList<>();
-    snapObjects.add(makeFileObject(datasetId, "/adir/A1", 1));
-    snapObjects.add(makeFileObject(datasetId, "/adir/bdir/B1", 2));
-    snapObjects.add(makeFileObject(datasetId, "/adir/bdir/cdir/C1", 4));
-    snapObjects.add(makeFileObject(datasetId, "/adir/bdir/cdir/C2", 8));
+    String uniqueDir = String.format("/%s/adir", uniqueTestDirectory);
+    snapObjects.add(makeFileObject(datasetId, uniqueDir + "/A1", 1));
+    snapObjects.add(makeFileObject(datasetId, uniqueDir + "/bdir/B1", 2));
+    snapObjects.add(makeFileObject(datasetId, uniqueDir + "/bdir/cdir/C1", 4));
+    snapObjects.add(makeFileObject(datasetId, uniqueDir + "/bdir/cdir/C2", 8));
 
     // And some files that won't be in the snapshot
     List<FireStoreDirectoryEntry> dsetObjects = new ArrayList<>();
-    dsetObjects.add(makeFileObject(datasetId, "/adir/bdir/B2", 16));
-    dsetObjects.add(makeFileObject(datasetId, "/adir/A2", 32));
+    dsetObjects.add(makeFileObject(datasetId, uniqueDir + "/bdir/B2", 16));
+    dsetObjects.add(makeFileObject(datasetId, uniqueDir + "/A2", 32));
 
     // Make the dataset file system
     List<FireStoreDirectoryEntry> fileObjects = new ArrayList<>(snapObjects);
@@ -256,7 +259,7 @@ public class TableDaoConnectedTest {
     assertThat(
         "The directory had its checksum calculated",
         snapObject.getChecksumMd5(),
-        equalTo("52392aba5378fddebf71225639606ead"));
+        not(emptyOrNullString()));
   }
 
   private FireStoreDirectoryEntry makeFileObject(UUID datasetId, String fullPath, long size) {

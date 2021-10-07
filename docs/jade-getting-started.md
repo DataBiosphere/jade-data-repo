@@ -83,7 +83,7 @@ team, a [Brewfile](https://github.com/Homebrew/homebrew-bundle) is used:
 ```
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 curl -LO https://raw.githubusercontent.com/DataBiosphere/jade-data-repo/develop/docs/Brewfile
-brew bundle install
+brew bundle --no-lock install
 ```
 
 The Brewfile automatically installs the following tools:

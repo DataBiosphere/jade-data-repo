@@ -1,0 +1,22 @@
+package bio.terra.service.dataset.flight.delete;
+
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.service.snapshot.SnapshotDao;
+import java.util.UUID;
+
+public class DeleteDatasetGcpValidateStep extends DeleteDatasetValidateStep {
+
+  public DeleteDatasetGcpValidateStep(SnapshotDao snapshotDao,
+      FireStoreDependencyDao dependencyDao,
+      DatasetService datasetService, UUID datasetId) {
+    super(snapshotDao, dependencyDao, datasetService, datasetId);
+  }
+
+  @Override
+  boolean hasSnapshotReference(Dataset dataset)
+      throws InterruptedException {
+    return dependencyDao.datasetHasSnapshotReference(dataset);
+  }
+}

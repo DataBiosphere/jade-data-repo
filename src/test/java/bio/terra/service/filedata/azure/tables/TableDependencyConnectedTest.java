@@ -14,6 +14,7 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import java.util.List;
 import java.util.UUID;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -81,6 +82,25 @@ public class TableDependencyConnectedTest {
     dependencyDao.deleteSnapshotFileDependencies(tableServiceClient, DATASET_ID, SNAPSHOT_ID2);
     assertThrows(
         TableServiceException.class, () -> tableClient.getEntity(SNAPSHOT_ID2.toString(), FILE_ID));
+  }
+
+  @Test
+  public void testDatasetHasSnapshotReference() {
+    String tableName = dependencyDao.getDatasetDependencyTableName(DATASET_ID);
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
+
+    // Add snapshot file dependency
+    dependencyDao.storeSnapshotFileDependencies(
+        tableServiceClient, DATASET_ID, SNAPSHOT_ID, REF_IDS);
+    TableEntity createdEntity = tableClient.getEntity(SNAPSHOT_ID.toString(), FILE_ID);
+    assertEntityCorrect(createdEntity, SNAPSHOT_ID, FILE_ID, 1L);
+
+    Assert.assertTrue(dependencyDao.datasetHasSnapshotReference(tableServiceClient, DATASET_ID));
+  }
+
+  @Test
+  public void testDatasetDoesntHaveSnapshotReference() {
+    Assert.assertFalse(dependencyDao.datasetHasSnapshotReference(tableServiceClient, DATASET_ID));
   }
 
   private void assertEntityCorrect(

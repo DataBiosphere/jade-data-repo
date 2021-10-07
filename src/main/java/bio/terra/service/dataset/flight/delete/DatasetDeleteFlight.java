@@ -70,7 +70,7 @@ public class DatasetDeleteFlight extends Flight {
     }
     if (platform.isGcp()) {
       // TODO: Do this check for Azure datasets
-      addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
+      addStep(new DeleteDatasetGcpValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
       addStep(
           new DeleteDatasetPrimaryDataStep(
               bigQueryPdao, gcsPdao, fileDao, datasetService, datasetId, configService),
@@ -83,6 +83,7 @@ public class DatasetDeleteFlight extends Flight {
           new DeleteDatasetAuthzBqAclsStep(
               iamClient, datasetService, resourceService, datasetId, userReq));
     } else if (platform.isAzure()) {
+      addStep(new DeleteDatasetAzureValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
       addStep(
           new DeleteDatasetAzurePrimaryDataStep(
               azureBlobStorePdao,

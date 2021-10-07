@@ -13,9 +13,9 @@ import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
 
-public class DeleteDatasetValidateStep implements Step {
+public abstract class DeleteDatasetValidateStep implements Step {
   private SnapshotDao snapshotDao;
-  private FireStoreDependencyDao dependencyDao;
+  protected FireStoreDependencyDao dependencyDao;
   private DatasetService datasetService;
   private UUID datasetId;
 
@@ -40,7 +40,7 @@ public class DeleteDatasetValidateStep implements Step {
     }
     // Sanity check - validate that there are no stray file references. There should be none left
     // if there are no snapshots returned from retrieveSnapshotsForDataset.
-    if (dependencyDao.datasetHasSnapshotReference(dataset)) {
+    if (hasSnapshotReference(dataset)) {
       throw new FileSystemCorruptException(
           "File system has snapshot dependencies; metadata does not");
     }
@@ -52,4 +52,6 @@ public class DeleteDatasetValidateStep implements Step {
     // no undo is possible
     return StepResult.getStepResultSuccess();
   }
+
+  abstract boolean hasSnapshotReference(Dataset dataset) throws InterruptedException;
 }

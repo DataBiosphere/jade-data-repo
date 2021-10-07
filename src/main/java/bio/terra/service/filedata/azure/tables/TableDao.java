@@ -143,13 +143,10 @@ public class TableDao {
 
   public Optional<FSItem> lookupOptionalPath(
       UUID datasetId, String fullPath, AzureStorageAuthInfo storageAuthInfo, int enumerateDepth) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveByPath(tableServiceClient, datasetId, fullPath);
+        directoryDao.retrieveByPath(
+            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), fullPath);
     return Optional.ofNullable(fireStoreDirectoryEntry)
         .map(
             entry ->

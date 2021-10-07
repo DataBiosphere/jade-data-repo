@@ -138,7 +138,7 @@ public class SnapshotCreateFlight extends Flight {
         } else if (platform.isAzure()) {
           addStep(
               new CreateSnapshotSourceDatasetDataSourceAzureStep(
-                  azureSynapsePdao, azureBlobStorePdao));
+                  azureSynapsePdao, azureBlobStorePdao, datasetService));
           addStep(
               new CreateSnapshotTargetDataSourceAzureStep(azureSynapsePdao, azureBlobStorePdao));
           addStep(new CreateSnapshotParquetFilesAzureStep(azureSynapsePdao, datasetService));

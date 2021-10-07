@@ -1,10 +1,10 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -37,7 +37,7 @@ public class CreateSnapshotAzureStorageAccountStep implements Step {
     // TODO - switch this to use new method provided in DR-2155
     AzureStorageAccountResource storageAccountResource =
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
-    workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
+    workingMap.put(CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_INFO, storageAccountResource);
     return StepResult.getStepResultSuccess();
   }
 

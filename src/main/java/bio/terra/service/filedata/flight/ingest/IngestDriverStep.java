@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.flight.ingest.SkippableStep;
@@ -123,7 +124,8 @@ public class IngestDriverStep extends SkippableStep {
     BillingProfileModel billingProfileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccountResource =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+        workingMap.get(
+            CommonMapKeys.DATASET_STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
 
     try {
       // Check for launch orphans - these are loads in the RUNNING state that never
@@ -337,7 +339,7 @@ public class IngestDriverStep extends SkippableStep {
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
-      inputParameters.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
+      inputParameters.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_INFO, storageAccountResource);
       inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
 
       if (platform == CloudPlatform.AZURE) {

@@ -2,10 +2,10 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -54,7 +54,8 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccount =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+        workingMap.get(
+            CommonMapKeys.DATASET_STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
     BlobContainerClient containerClient =
         azureContainerPdao.getOrCreateContainer(
             billingProfile, storageAccount, AzureStorageAccountResource.ContainerType.SCRATCH);
@@ -69,7 +70,8 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccount =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+        workingMap.get(
+            CommonMapKeys.DATASET_STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
     String signedPath =
         azureBlobStorePdao.signFile(
             billingProfile,

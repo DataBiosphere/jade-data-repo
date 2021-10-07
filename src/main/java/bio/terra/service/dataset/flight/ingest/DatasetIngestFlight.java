@@ -15,6 +15,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
@@ -76,6 +77,7 @@ public class DatasetIngestFlight extends Flight {
     TableDirectoryDao tableDirectoryDao = appContext.getBean(TableDirectoryDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
+    FileService fileService = appContext.getBean(FileService.class);
 
     IngestRequestModel ingestRequestModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
@@ -128,6 +130,7 @@ public class DatasetIngestFlight extends Flight {
             datasetService,
             bigQueryPdao,
             configService,
+            fileService,
             ingestRequestModel,
             userReq,
             dataset,
@@ -145,6 +148,7 @@ public class DatasetIngestFlight extends Flight {
             datasetService,
             azureBlobStorePdao,
             configService,
+            fileService,
             ingestRequestModel,
             dataset,
             profileId,
@@ -184,6 +188,7 @@ public class DatasetIngestFlight extends Flight {
       DatasetService datasetService,
       BigQueryPdao bigQueryPdao,
       ConfigurationService configService,
+      FileService fileService,
       IngestRequestModel ingestRequest,
       AuthenticatedUserRequest userReq,
       Dataset dataset,
@@ -241,6 +246,7 @@ public class DatasetIngestFlight extends Flight {
     addStep(
         new IngestPopulateFileStateFromFlightMapGcpStep(
             loadService,
+            fileService,
             gcsPdao,
             appConfig.objectMapper(),
             dataset,
@@ -301,6 +307,7 @@ public class DatasetIngestFlight extends Flight {
       DatasetService datasetService,
       AzureBlobStorePdao azureBlobStorePdao,
       ConfigurationService configService,
+      FileService fileService,
       IngestRequestModel ingestRequest,
       Dataset dataset,
       UUID profileId,
@@ -338,6 +345,7 @@ public class DatasetIngestFlight extends Flight {
     addStep(
         new IngestPopulateFileStateFromFlightMapAzureStep(
             loadService,
+            fileService,
             azureBlobStorePdao,
             appConfig.objectMapper(),
             dataset,

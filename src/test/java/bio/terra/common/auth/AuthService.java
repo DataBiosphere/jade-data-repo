@@ -1,6 +1,8 @@
 package bio.terra.common.auth;
 
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamProviderInterface;
 import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -48,31 +50,36 @@ public class AuthService {
   private String saEmail;
   private Map<String, GoogleCredential> userTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
+  private Map<String, String> petAccountTokens =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(55, TimeUnit.MINUTES));
   private Map<String, GoogleCredential> directAccessTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
   private TestConfiguration testConfig;
+  private IamProviderInterface iamProvider;
 
   @Autowired
-  public AuthService(TestConfiguration testConfig) throws Exception {
+  public AuthService(TestConfiguration testConfig, IamProviderInterface iamProvider)
+      throws Exception {
     this.testConfig = testConfig;
     Optional<String> pemfilename = Optional.ofNullable(testConfig.getJadePemFileName());
     pemfilename.ifPresent(s -> pemfile = new File(s));
     saEmail = testConfig.getJadeEmail();
     httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+    this.iamProvider = iamProvider;
   }
 
   public String getAuthToken(String userEmail) {
-    if (!userTokens.containsKey(userEmail)) {
-      userTokens.put(userEmail, makeToken(userEmail));
-    }
-    return userTokens.get(userEmail).getAccessToken();
+    return userTokens.computeIfAbsent(userEmail, this::makeToken).getAccessToken();
+  }
+
+  public String getPetAccountAuthToken(String userEmail) {
+    return petAccountTokens.computeIfAbsent(userEmail, this::makePetAccountToken);
   }
 
   public String getDirectAccessAuthToken(String userEmail) {
-    if (!directAccessTokens.containsKey(userEmail)) {
-      directAccessTokens.put(userEmail, makeDirectAccessToken(userEmail));
-    }
-    return directAccessTokens.get(userEmail).getAccessToken();
+    return directAccessTokens
+        .computeIfAbsent(userEmail, this::makeDirectAccessToken)
+        .getAccessToken();
   }
 
   private GoogleCredential buildCredential(String email, List<String> scopes)
@@ -114,5 +121,18 @@ public class AuthService {
 
   private GoogleCredential makeToken(String userEmail) {
     return makeTokenForScopes(userEmail, userLoginScopes);
+  }
+
+  private String makePetAccountToken(String userEmail) {
+    try {
+      return iamProvider
+          .getPetToken(
+              new AuthenticatedUserRequest()
+                  .token(Optional.of(makeToken(userEmail).getAccessToken())),
+              userLoginScopes)
+          .replaceAll("\\.+$", "");
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

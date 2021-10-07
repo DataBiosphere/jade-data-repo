@@ -73,7 +73,7 @@ public class IamService {
           new AuthorizedCacheKey(userReqNoId, iamResourceType, resourceId, action);
       AuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
       if (authorizedCacheValue != null) { // check if it's in the cache
-        // check if it's still in the alloted time
+        // check if it's still in the allotted time
         if (Instant.now().isBefore(authorizedCacheValue.getTimeout())) {
           logger.debug("Using the cache!");
           return authorizedCacheValue.isAuthorized();

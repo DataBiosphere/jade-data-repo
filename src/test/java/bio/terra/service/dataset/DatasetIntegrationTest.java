@@ -20,6 +20,7 @@ import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DataDeletionGcsFileModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -199,6 +200,25 @@ public class DatasetIntegrationTest extends UsersBase {
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
+  }
+
+  @Test
+  public void datasetHappyPathWithPet() throws Exception {
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward(), profileId, "it-dataset-omop.json", CloudPlatform.GCP, true);
+    datasetId = summaryModel.getId();
+
+    logger.info("dataset id is " + summaryModel.getId());
+    assertThat(summaryModel.getName(), startsWith(omopDatasetName));
+    assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
+
+    // We just need to validate the steward is able to read back the dataset (e.g. the pet account
+    // resolved correctly)
+    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
+
+    assertThat(datasetModel.getName(), startsWith(omopDatasetName));
+    assertThat(datasetModel.getDescription(), equalTo(omopDatasetDesc));
   }
 
   @Test
@@ -468,12 +488,70 @@ public class DatasetIntegrationTest extends UsersBase {
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
             .table("sample_vcf")
-            .path("gs://jade-testdata-useastregion/dataset-ingest-combined-control.json");
+            .path(
+                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates.json");
 
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
     dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
+
+    assertThat(
+        "All 4 rows were ingested, including the one with duplicate files",
+        ingestResponse.getRowCount(),
+        equalTo(4L));
+
+    IngestRequestModel secondIngestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .resolveExistingFiles(true)
+            .path(
+                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-2.json");
+
+    IngestResponseModel secondIngestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, secondIngestRequest);
+
+    assertThat(
+        "A row with a different load tag but same files ingested correctly",
+        secondIngestResponse.getRowCount(),
+        equalTo(2L));
+
+    assertThat(
+        "Only 2 files were loaded because the other 2 already exist",
+        secondIngestResponse.getLoadResult().getLoadSummary().getTotalFiles(),
+        equalTo(2));
+
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+
+    assertTableCount(bigQuery, dataset, "sample_vcf", 6L);
+
+    IngestRequestModel thirdIngestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(
+                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-3.json");
+
+    DataRepoResponse<IngestResponseModel> thirdIngestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, thirdIngestRequest);
+
+    IngestResponseModel thirdResponseModel = thirdIngestResponse.getResponseObject().orElseThrow();
+
+    assertThat(
+        "Row ingest fails when duplicate files present and not told to resolve",
+        thirdResponseModel.getBadRowCount(),
+        equalTo(1L));
+
+    assertThat(
+        "Files fail to ingest if already exist and not told to resolve",
+        thirdResponseModel.getLoadResult().getLoadSummary().getFailedFiles(),
+        equalTo(2));
   }
 
   private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)

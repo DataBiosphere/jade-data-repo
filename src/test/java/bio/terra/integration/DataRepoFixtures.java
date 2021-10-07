@@ -154,7 +154,11 @@ public class DataRepoFixtures {
   // datasets
 
   private DataRepoResponse<JobModel> createDatasetRaw(
-      TestConfiguration.User user, UUID profileId, String filename, CloudPlatform cloudPlatform)
+      TestConfiguration.User user,
+      UUID profileId,
+      String filename,
+      CloudPlatform cloudPlatform,
+      boolean usePetAccount)
       throws Exception {
     DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
     requestModel.setDefaultProfileId(profileId);
@@ -164,7 +168,8 @@ public class DataRepoFixtures {
     }
     String json = TestUtils.mapToJson(requestModel);
 
-    return dataRepoClient.post(user, "/api/repository/v1/datasets", json, JobModel.class);
+    return dataRepoClient.post(
+        user, "/api/repository/v1/datasets", json, JobModel.class, usePetAccount);
   }
 
   public DatasetSummaryModel createDataset(
@@ -175,8 +180,18 @@ public class DataRepoFixtures {
   public DatasetSummaryModel createDataset(
       TestConfiguration.User user, UUID profileId, String filename, CloudPlatform cloudPlatform)
       throws Exception {
+    return createDataset(user, profileId, filename, cloudPlatform, false);
+  }
+
+  public DatasetSummaryModel createDataset(
+      TestConfiguration.User user,
+      UUID profileId,
+      String filename,
+      CloudPlatform cloudPlatform,
+      boolean usePetAccount)
+      throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, filename, cloudPlatform);
+        createDatasetRaw(user, profileId, filename, cloudPlatform, usePetAccount);
     assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "dataset create launch response is present", jobResponse.getResponseObject().isPresent());
@@ -204,7 +219,7 @@ public class DataRepoFixtures {
       CloudPlatform cloudPlatform)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, filename, cloudPlatform);
+        createDatasetRaw(user, profileId, filename, cloudPlatform, false);
     assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "dataset create launch response is present", jobResponse.getResponseObject().isPresent());
@@ -367,7 +382,8 @@ public class DataRepoFixtures {
       String datasetName,
       UUID profileId,
       SnapshotRequestModel requestModel,
-      boolean randomizeName)
+      boolean randomizeName,
+      boolean usePetAccount)
       throws Exception {
 
     if (randomizeName) {
@@ -377,7 +393,8 @@ public class DataRepoFixtures {
     requestModel.setProfileId(profileId);
     String json = TestUtils.mapToJson(requestModel);
 
-    return dataRepoClient.post(user, "/api/repository/v1/snapshots", json, JobModel.class);
+    return dataRepoClient.post(
+        user, "/api/repository/v1/snapshots", json, JobModel.class, usePetAccount);
   }
 
   public SnapshotSummaryModel createSnapshotWithRequest(
@@ -397,7 +414,21 @@ public class DataRepoFixtures {
       boolean randomizeName)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createSnapshotRaw(user, datasetName, profileId, snapshotRequest, randomizeName);
+        createSnapshotRaw(user, datasetName, profileId, snapshotRequest, randomizeName, false);
+    return finishCreateSnapshot(user, jobResponse);
+  }
+
+  public SnapshotSummaryModel createSnapshotWithRequest(
+      TestConfiguration.User user,
+      String datasetName,
+      UUID profileId,
+      SnapshotRequestModel snapshotRequest,
+      boolean randomizeName,
+      boolean usePetAccount)
+      throws Exception {
+    DataRepoResponse<JobModel> jobResponse =
+        createSnapshotRaw(
+            user, datasetName, profileId, snapshotRequest, randomizeName, usePetAccount);
     return finishCreateSnapshot(user, jobResponse);
   }
 
@@ -414,9 +445,20 @@ public class DataRepoFixtures {
       String filename,
       boolean randomizeName)
       throws Exception {
+    return createSnapshot(user, datasetName, profileId, filename, randomizeName, false);
+  }
+
+  public SnapshotSummaryModel createSnapshot(
+      TestConfiguration.User user,
+      String datasetName,
+      UUID profileId,
+      String filename,
+      boolean randomizeName,
+      boolean usePetAccount)
+      throws Exception {
     SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
     DataRepoResponse<JobModel> jobResponse =
-        createSnapshotRaw(user, datasetName, profileId, requestModel, randomizeName);
+        createSnapshotRaw(user, datasetName, profileId, requestModel, randomizeName, usePetAccount);
     return finishCreateSnapshot(user, jobResponse);
   }
 

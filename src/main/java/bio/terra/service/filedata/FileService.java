@@ -36,6 +36,7 @@ import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,6 +185,31 @@ public class FileService {
           "Unexpected interruption during file system processing", ex);
     }
     return fileModelFromFSItem(fsItem);
+  }
+
+  public Optional<FileModel> lookupOptionalPath(String datasetId, String path, int depth) {
+    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    final Optional<FSItem> file;
+    if (cloudPlatformWrapper.isGcp()) {
+      try {
+        file = fileDao.lookupOptionalPath(dataset, path, depth);
+      } catch (InterruptedException ex) {
+        throw new FileSystemExecutionException(
+            "Unexpected interruption during file system processing", ex);
+      }
+    } else {
+      BillingProfileModel billingProfileModel =
+          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
+      AzureStorageAccountResource storageAccountResource =
+          resourceService.getStorageAccount(dataset, billingProfileModel);
+      AzureStorageAuthInfo storageAuthInfo =
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+              billingProfileModel, storageAccountResource);
+      file = tableDao.lookupOptionalPath(dataset.getId(), path, storageAuthInfo, depth);
+    }
+    return file.map(this::fileModelFromFSItem);
   }
 
   /**

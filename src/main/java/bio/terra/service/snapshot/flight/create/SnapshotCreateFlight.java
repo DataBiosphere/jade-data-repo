@@ -2,7 +2,6 @@ package bio.terra.service.snapshot.flight.create;
 
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -19,7 +18,6 @@ import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
-import bio.terra.service.filedata.flight.ingest.IngestCreateAzureStorageAccountStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -63,7 +61,6 @@ public class SnapshotCreateFlight extends Flight {
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     PerformanceLogger performanceLogger = appContext.getBean(PerformanceLogger.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
-    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     AzureSynapsePdao azureSynapsePdao = appContext.getBean(AzureSynapsePdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     TableDao tableDao = appContext.getBean(TableDao.class);
@@ -100,7 +97,7 @@ public class SnapshotCreateFlight extends Flight {
 
     if (platform.isAzure()) {
       // This will need to stay even after DR-2107
-      addStep(new IngestCreateAzureStorageAccountStep(datasetService, resourceService));
+      addStep(new CreateSnapshotCreateAzureStorageAccountStep(datasetService, resourceService));
     }
 
     // Get a new google project from RBS and store it in the working map

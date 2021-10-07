@@ -3,7 +3,6 @@ package bio.terra.service.snapshot.flight.create;
 import static bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -31,7 +30,7 @@ public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
+    //    IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
     FlightMap workingMap = context.getWorkingMap();
     BillingProfileModel billingProfileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);

@@ -31,17 +31,13 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
 
-    long updateCount;
     try {
-      // TODO - is this actually the row count?
-      // TODO - if it is, can we put in working map to use in count step?
-      updateCount =
-          azureSynapsePdao.createSnapshotParquetFiles(
-              dataset.getTables(),
-              snapshotId,
-              IngestUtils.getTargetDataSourceName(context.getFlightId()),
-              IngestUtils.getIngestRequestDataSourceName(context.getFlightId()),
-              context.getFlightId());
+      azureSynapsePdao.createSnapshotParquetFiles(
+          dataset.getTables(),
+          snapshotId,
+          IngestUtils.getTargetDataSourceName(context.getFlightId()),
+          IngestUtils.getIngestRequestDataSourceName(context.getFlightId()),
+          context.getFlightId());
 
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

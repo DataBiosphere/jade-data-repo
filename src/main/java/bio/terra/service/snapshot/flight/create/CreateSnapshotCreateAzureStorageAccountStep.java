@@ -1,4 +1,4 @@
-package bio.terra.service.filedata.flight.ingest;
+package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.CreateAzureStorageAccountStep;
 import bio.terra.model.BillingProfileModel;
@@ -9,11 +9,11 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 
-public class IngestCreateAzureStorageAccountStep extends CreateAzureStorageAccountStep {
+public class CreateSnapshotCreateAzureStorageAccountStep extends CreateAzureStorageAccountStep {
 
   private ResourceService resourceService;
 
-  public IngestCreateAzureStorageAccountStep(
+  public CreateSnapshotCreateAzureStorageAccountStep(
       DatasetService datasetService, ResourceService resourceService) {
     super(datasetService, resourceService);
     this.resourceService = resourceService;
@@ -22,6 +22,7 @@ public class IngestCreateAzureStorageAccountStep extends CreateAzureStorageAccou
   public AzureStorageAccountResource getOrCreateStorageAccount(
       Dataset dataset, BillingProfileModel billingProfile, String flightId)
       throws InterruptedException {
+    // TODO - replace w/ changes from trevyn's PR
     return resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
   }
 

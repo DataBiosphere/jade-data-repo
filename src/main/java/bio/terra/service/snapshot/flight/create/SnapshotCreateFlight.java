@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;

@@ -131,10 +131,6 @@ gcloud auth application-default login
 gcloud auth configure-docker
 ```
 
-To configure IntelliJ IDEA, first launch it. Once it is launched, go to IntelliJ
-IDEA -> Preferences -> Plugins, then click in the search box and install
-**Cloud Code**, which integrates Google Cloud features with IntelliJ IDEA.
-
 Also, [Skaffold](https://github.com/GoogleContainerTools/skaffold) cannot be
 automatically installed through Homebrew as newer versions are incompatible with
 our development environment. Skaffold facilitates the continuous development of

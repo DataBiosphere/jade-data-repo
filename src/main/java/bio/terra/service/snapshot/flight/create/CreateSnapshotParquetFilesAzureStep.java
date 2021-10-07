@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -12,6 +13,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 public class CreateSnapshotParquetFilesAzureStep implements Step {
@@ -30,13 +32,14 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
+    List<DatasetTable> tables = dataset.getTables();
 
     try {
       azureSynapsePdao.createSnapshotParquetFiles(
-          dataset.getTables(),
+          tables,
           snapshotId,
-          IngestUtils.getTargetDataSourceName(context.getFlightId()),
           IngestUtils.getIngestRequestDataSourceName(context.getFlightId()),
+          IngestUtils.getTargetDataSourceName(context.getFlightId()),
           context.getFlightId());
 
     } catch (SQLException ex) {

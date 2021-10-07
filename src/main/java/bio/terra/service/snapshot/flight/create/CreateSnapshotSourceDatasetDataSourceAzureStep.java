@@ -2,9 +2,6 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.common.CommonMapKeys;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -18,12 +15,10 @@ import bio.terra.stairway.StepStatus;
 import com.azure.storage.blob.BlobUrlParts;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.List;
 
 public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
   private AzureSynapsePdao azureSynapsePdao;
   private AzureBlobStorePdao azureBlobStorePdao;
-
 
   public CreateSnapshotSourceDatasetDataSourceAzureStep(
       AzureSynapsePdao azureSynapsePdao, AzureBlobStorePdao azureBlobStorePdao) {

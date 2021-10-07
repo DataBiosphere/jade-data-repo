@@ -29,7 +29,9 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
   private DatasetService datasetService;
 
   public CreateSnapshotTargetDataSourceAzureStep(
-      AzureSynapsePdao azureSynapsePdao, AzureBlobStorePdao azureBlobStorePdao, DatasetService datasetService) {
+      AzureSynapsePdao azureSynapsePdao,
+      AzureBlobStorePdao azureBlobStorePdao,
+      DatasetService datasetService) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.datasetService = datasetService;
@@ -65,7 +67,6 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
       }
     }
-
 
     return StepResult.getStepResultSuccess();
   }

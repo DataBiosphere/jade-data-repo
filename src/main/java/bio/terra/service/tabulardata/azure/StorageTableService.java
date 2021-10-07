@@ -35,7 +35,7 @@ public class StorageTableService {
       throws InterruptedException {
     var billingProfile = dataset.getDatasetSummary().getDefaultBillingProfile();
     var storageAccountResource =
-        resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
+        resourceService.getOrCreateDatasetStorageAccount(dataset, billingProfile, flightId);
     TableServiceClient serviceClient =
         azureAuthService.getTableServiceClient(
             billingProfile.getSubscriptionId(),

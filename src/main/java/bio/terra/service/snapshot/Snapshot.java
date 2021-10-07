@@ -4,6 +4,7 @@ import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.time.Instant;
@@ -26,6 +27,7 @@ public class Snapshot implements FSContainerInterface {
   private UUID profileId;
   private UUID projectResourceId;
   private GoogleProjectResource projectResource;
+  private AzureStorageAccountResource storageAccountResource;
   private List<Relationship> relationships = Collections.emptyList();
 
   public UUID getId() {
@@ -124,6 +126,15 @@ public class Snapshot implements FSContainerInterface {
 
   public Snapshot projectResource(GoogleProjectResource projectResource) {
     this.projectResource = projectResource;
+    return this;
+  }
+
+  public AzureStorageAccountResource getStorageAccountResource() {
+    return storageAccountResource;
+  }
+
+  public Snapshot setStorageAccountResource(AzureStorageAccountResource storageAccountResource) {
+    this.storageAccountResource = storageAccountResource;
     return this;
   }
 

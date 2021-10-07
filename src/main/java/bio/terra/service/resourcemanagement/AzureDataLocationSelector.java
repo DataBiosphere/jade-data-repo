@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class AzureDataLocationSelector {
 
-  public String storageAccountNameForDataset(
+  public String createStorageAccountName(
       String prefix, String datasetName, BillingProfileModel billingProfile) {
     int maxStorageAccountNameLength = 24;
     int randomLength = maxStorageAccountNameLength - prefix.length();

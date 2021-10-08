@@ -59,7 +59,6 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
@@ -861,15 +860,7 @@ public class BigQueryPdao {
     } else {
       loadJob = ingestData(bigQuery, path, configuration);
     }
-
-    JobStatistics.LoadStatistics loadStatistics = loadJob.getStatistics();
-    PdaoLoadStatistics pdaoLoadStatistics =
-        new PdaoLoadStatistics()
-            .badRecords(loadStatistics.getBadRecords())
-            .rowCount(loadStatistics.getOutputRows())
-            .startTime(Instant.ofEpochMilli(loadStatistics.getStartTime()))
-            .endTime(Instant.ofEpochMilli(loadStatistics.getEndTime()));
-    return pdaoLoadStatistics;
+    return new PdaoLoadStatistics(loadJob.getStatistics());
   }
 
   private void updateSchema(

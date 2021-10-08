@@ -49,8 +49,8 @@ public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
     try {
       azureSynapsePdao.createExternalDataSource(
           snapshotSignUrlBlob,
-          IngestUtils.getIngestRequestScopedCredentialName(context.getFlightId()),
-          IngestUtils.getIngestRequestDataSourceName(context.getFlightId()));
+          IngestUtils.getSourceDatasetScopedCredentialName(context.getFlightId()),
+          IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()));
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
@@ -61,9 +61,9 @@ public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     azureSynapsePdao.dropDataSources(
-        Arrays.asList(IngestUtils.getIngestRequestDataSourceName(context.getFlightId())));
+        Arrays.asList(IngestUtils.getSourceDatasetDataSourceName(context.getFlightId())));
     azureSynapsePdao.dropScopedCredentials(
-        Arrays.asList(IngestUtils.getIngestRequestScopedCredentialName(context.getFlightId())));
+        Arrays.asList(IngestUtils.getSourceDatasetScopedCredentialName(context.getFlightId())));
 
     return StepResult.getStepResultSuccess();
   }

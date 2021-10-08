@@ -73,6 +73,7 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
+    // TODO - drop data sources, etc.
     azureSynapsePdao.dropTables(
         Arrays.asList(IngestUtils.getSynapseTableName(context.getFlightId())));
 

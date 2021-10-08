@@ -1,7 +1,6 @@
-package bio.terra.common;
+package bio.terra.service.common;
 
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;

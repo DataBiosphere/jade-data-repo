@@ -38,7 +38,7 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
       azureSynapsePdao.createSnapshotParquetFiles(
           tables,
           snapshotId,
-          IngestUtils.getIngestRequestDataSourceName(context.getFlightId()),
+          IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
           IngestUtils.getTargetDataSourceName(context.getFlightId()),
           context.getFlightId());
 
@@ -52,7 +52,7 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     azureSynapsePdao.dropTables(
-        Arrays.asList(IngestUtils.getIngestRequestDataSourceName(context.getFlightId())));
+        Arrays.asList(IngestUtils.getSourceDatasetDataSourceName(context.getFlightId())));
     return StepResult.getStepResultSuccess();
   }
 }

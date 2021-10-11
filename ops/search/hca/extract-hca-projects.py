@@ -4,9 +4,11 @@ import json
 from urllib.request import urlopen
 from urllib.error import HTTPError
 
+#todo: refactor to use request library
 url = "https://service.azul.data.humancellatlas.org/index/projects?catalog=dcp9&size=1000&sort=projectTitle&order=desc"
 
 projects = []
+
 while url:
     try:
         res = urlopen(url)
@@ -16,7 +18,6 @@ while url:
         if err.code == 404:
             print(err)
             continue
-
     obj = json.load(res)
 
     url = obj["pagination"]["next"]

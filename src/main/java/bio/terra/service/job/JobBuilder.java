@@ -9,9 +9,16 @@ import java.util.Set;
 
 public class JobBuilder {
 
-  private JobService jobServiceRef;
-  private Class<? extends Flight> flightClass;
-  private FlightMap jobParameterMap;
+  private final JobService jobServiceRef;
+  private final Class<? extends Flight> flightClass;
+  private final FlightMap jobParameterMap;
+
+  private static final Set<JobMapKeys> REQUIRED_KEYS =
+      EnumSet.of(
+          JobMapKeys.DESCRIPTION,
+          JobMapKeys.REQUEST,
+          JobMapKeys.AUTH_USER_INFO,
+          JobMapKeys.SUBJECT_ID);
 
   // constructor only takes required parameters
   public JobBuilder(
@@ -24,22 +31,25 @@ public class JobBuilder {
     this.flightClass = flightClass;
 
     // initialize with required parameters
-    this.jobParameterMap = new FlightMap();
+    jobParameterMap = new FlightMap();
     JobMapKeys.DESCRIPTION.put(jobParameterMap, description);
-    JobMapKeys.REQUEST.put(jobParameterMap, request);
+    // To support JobBuilder's constructor, some code passes `null` for `REQUEST` keys. Instead
+    // the code could provide a constructor override that omits the unneeded parameter.
+    if (request != null) {
+      JobMapKeys.REQUEST.put(jobParameterMap, request);
+    }
     JobMapKeys.AUTH_USER_INFO.put(jobParameterMap, userReq);
     JobMapKeys.SUBJECT_ID.put(jobParameterMap, userReq.getSubjectId());
   }
 
-  private static final Set<JobMapKeys> REQUIRED_KEYS =
-      EnumSet.of(
-          JobMapKeys.DESCRIPTION,
-          JobMapKeys.REQUEST,
-          JobMapKeys.AUTH_USER_INFO,
-          JobMapKeys.SUBJECT_ID);
-
-  // use addParameter method for optional parameter
-  // returns the JobBuilder object to allow method chaining
+  /**
+   * Call this method to add an optional parameter. The JobBuilder object is returned to allow
+   * method chaining.
+   *
+   * @param key the parameter key
+   * @param val the parameter value
+   * @return the current object
+   */
   public JobBuilder addParameter(JobMapKeys key, Object val) {
     // check that keyName doesn't match one of the required parameter names
     // i.e. disallow overwriting one of the required parameters
@@ -63,11 +73,5 @@ public class JobBuilder {
   // submits this job to stairway and returns the jobId immediately
   public String submit() {
     return jobServiceRef.submit(flightClass, jobParameterMap);
-  }
-
-  // submits this job to stairway, waits until it finishes, then returns an instance of the result
-  // class
-  public <T> T submitAndWait(Class<T> resultClass) {
-    return jobServiceRef.submitAndWait(flightClass, jobParameterMap, resultClass);
   }
 }

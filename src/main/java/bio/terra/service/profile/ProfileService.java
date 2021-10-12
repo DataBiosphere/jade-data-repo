@@ -15,6 +15,7 @@ import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
+import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.azure.AzureAuthzService;
@@ -141,8 +142,7 @@ public class ProfileService {
     }
 
     String description = String.format("Delete billing profile id '%s'", id);
-    return jobService
-        .newJob(description, ProfileDeleteFlight.class, null, user)
+    return new JobBuilder(description, ProfileDeleteFlight.class, null, user, jobService)
         .addParameter(ProfileMapKeys.PROFILE_ID, id)
         .addParameter(JobMapKeys.CLOUD_PLATFORM, platform)
         .submit();

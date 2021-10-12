@@ -2,29 +2,35 @@ package bio.terra.service.profile;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.job.JobBuilder;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.azure.AzureAuthzService;
+import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.profile.flight.create.ProfileCreateFlight;
+import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
+import java.util.Objects;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,7 +73,7 @@ public class ProfileServiceUnitTest {
         .thenReturn(jobBuilder);
 
     String result = profileService.createProfile(billingProfileRequestModel, user);
-    verify(jobBuilder, times(1)).submit();
+    verify(jobBuilder).submit();
     assertEquals(result, jobId);
   }
 
@@ -88,13 +94,13 @@ public class ProfileServiceUnitTest {
         .thenReturn(jobBuilder);
 
     String result = profileService.updateProfile(billingProfileUpdateModel, user);
-    verify(iamService, times(1))
+    verify(iamService)
         .verifyAuthorization(
             eq(user),
             eq(IamResourceType.SPEND_PROFILE),
             eq(updateId.toString()),
             eq(IamAction.UPDATE_BILLING_ACCOUNT));
-    verify(jobBuilder, times(1)).submit();
+    verify(jobBuilder).submit();
     assertEquals(result, jobId);
   }
 
@@ -113,40 +119,27 @@ public class ProfileServiceUnitTest {
     profileService.updateProfile(billingProfileUpdateModel, user);
   }
 
-  // FIXME rewrite test to use jobService mock instead of mocking jobBuilder
-  /*
-    @Test
-    public void testDeleteProfile() {
-      var jobBuilder = mock(JobBuilder.class);
+  @Test
+  public void testDeleteProfile() {
+    UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+    var billingProfileModel = new BillingProfileModel();
+    billingProfileModel.setCloudPlatform(CloudPlatform.GCP);
+    when(profileDao.getBillingProfileById(deleteId)).thenReturn(billingProfileModel);
 
-      String jobId = "id";
-      when(jobBuilder.submit()).thenReturn(jobId);
-      UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-      when(jobBuilder.addParameter(eq(ProfileMapKeys.PROFILE_ID), eq(deleteId)))
-          .thenReturn(jobBuilder);
-      when(jobBuilder.addParameter(
-              eq(JobMapKeys.CLOUD_PLATFORM.getKeyName()), eq(CloudPlatform.GCP.name())))
-          .thenReturn(jobBuilder);
+    var user = new AuthenticatedUserRequest().subjectId("");
 
-      var billingProfileModel = new BillingProfileModel();
-      billingProfileModel.setCloudPlatform(CloudPlatform.GCP);
-      when(profileDao.getBillingProfileById(deleteId)).thenReturn(billingProfileModel);
-
-      var user = new AuthenticatedUserRequest();
-      when(jobService.newJob(anyString(), eq(ProfileDeleteFlight.class), eq(null), eq(user)))
-          .thenReturn(jobBuilder);
-
-      String result = profileService.deleteProfile(deleteId, user);
-      verify(iamService, times(1))
-          .verifyAuthorization(
-              eq(user),
-              eq(IamResourceType.SPEND_PROFILE),
-              eq(deleteId.toString()),
-              eq(IamAction.DELETE));
-      verify(jobBuilder, times(1)).submit();
-      assertEquals(result, jobId);
-    }
-  */
+    profileService.deleteProfile(deleteId, user);
+    verify(iamService)
+        .verifyAuthorization(
+            user, IamResourceType.SPEND_PROFILE, deleteId.toString(), IamAction.DELETE);
+    verify(jobService)
+        .submit(
+            eq(ProfileDeleteFlight.class),
+            argThat(
+                map ->
+                    Objects.equals(map.get(ProfileMapKeys.PROFILE_ID, UUID.class), deleteId)
+                        && Objects.equals(JobMapKeys.CLOUD_PLATFORM.get(map), CloudPlatform.GCP)));
+  }
 
   @Test(expected = IamForbiddenException.class)
   public void testDeleteProfileNoAccess() {

@@ -33,6 +33,7 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -235,6 +236,8 @@ public class JobService {
     }
   }
 
+  // NOTE: This seems like a pointless method that could be replaced with direct calls to the
+  // JobBuilder constructor.
   // creates a new JobBuilder object and returns it.
   public JobBuilder newJob(
       String description,
@@ -245,8 +248,9 @@ public class JobService {
   }
 
   // submit a new job to stairway
-  // protected method intended to be called only from JobBuilder
-  protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap) {
+  // Intended to be called only from JobBuilder
+  @VisibleForTesting
+  public String submit(Class<? extends Flight> flightClass, FlightMap parameterMap) {
     if (isRunning.get()) {
       String jobId = createJobId();
       try {
@@ -260,17 +264,6 @@ public class JobService {
     }
 
     throw new JobServiceShutdownException("Job service is shut down. Cannot accept a flight");
-  }
-
-  // submit a new job to stairway, wait for it to finish, then return the result
-  // protected method intended to be called only from JobBuilder
-  protected <T> T submitAndWait(
-      Class<? extends Flight> flightClass, FlightMap parameterMap, Class<T> resultClass) {
-    String jobId = submit(flightClass, parameterMap);
-    waitForJob(jobId);
-    AuthenticatedUserRequest userReq = JobMapKeys.AUTH_USER_INFO.get(parameterMap);
-
-    return retrieveJobResult(jobId, resultClass, userReq).getResult();
   }
 
   void waitForJob(String jobId) {

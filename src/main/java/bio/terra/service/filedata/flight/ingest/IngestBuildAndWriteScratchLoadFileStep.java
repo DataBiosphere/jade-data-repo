@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.Column;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -7,6 +8,7 @@ import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.SkippableStep;
@@ -15,24 +17,29 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Spliterators;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
   protected final ObjectMapper objectMapper;
+  protected final Dataset dataset;
 
   public IngestBuildAndWriteScratchLoadFileStep(
-      ObjectMapper objectMapper, Predicate<FlightContext> skipCondition) {
+      ObjectMapper objectMapper, Dataset dataset, Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.objectMapper = objectMapper;
+    this.dataset = dataset;
   }
 
   @Override
@@ -43,8 +50,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
     List<String> errors = new ArrayList<>();
     try (Stream<JsonNode> jsonNodes = getJsonNodesFromCloudFile(ingestRequest, errors)) {
 
-      List<String> fileColumns =
-          workingMap.get(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, List.class);
+      List<Column> fileColumns = IngestUtils.getDatasetFileRefColumns(dataset, ingestRequest);
       BulkLoadArrayResultModel result =
           workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
 
@@ -71,22 +77,15 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
           jsonNodes
               .peek(
                   node -> {
-                    for (var columnName : fileColumns) {
+                    for (var column : fileColumns) {
+                      String columnName = column.getName();
                       JsonNode fileRefNode = node.get(columnName);
                       if (fileRefNode != null && fileRefNode.isObject()) {
-                        // replace
-                        BulkLoadFileModel fileModel =
-                            Objects.requireNonNull(
-                                objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
-                        String fileKey = fileModel.getTargetPath();
-                        if (pathToFileIdMap.containsKey(fileKey)) {
-                          String fileId = pathToFileIdMap.get(fileKey);
-                          ((ObjectNode) node).put(columnName, fileId);
-                        } else {
-                          // If the file wasn't ingest, clear the node.
-                          ((ObjectNode) node).removeAll();
-                          failedRowCount.getAndIncrement();
-                        }
+                        replaceJsonObject(
+                            node, fileRefNode, columnName, pathToFileIdMap, failedRowCount);
+                      } else if (fileRefNode != null && fileRefNode.isArray()) {
+                        replaceJsonArray(
+                            node, fileRefNode, columnName, pathToFileIdMap, failedRowCount);
                       }
                     }
                   })
@@ -107,6 +106,58 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
       workingMap.put(IngestMapKeys.COMBINED_FAILED_ROW_COUNT, failedRowCount.get());
 
       return StepResult.getStepResultSuccess();
+    }
+  }
+
+  private void replaceJsonObject(
+      JsonNode node,
+      JsonNode fileRefNode,
+      String columnName,
+      Map<String, String> pathToFileIdMap,
+      AtomicLong failedRowCount) {
+    // replace
+    BulkLoadFileModel fileModel =
+        Objects.requireNonNull(objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
+    String fileKey = fileModel.getTargetPath();
+    if (pathToFileIdMap.containsKey(fileKey)) {
+      String fileId = pathToFileIdMap.get(fileKey);
+      ((ObjectNode) node).put(columnName, fileId);
+    } else {
+      // If the file wasn't ingested, clear the node.
+      ((ObjectNode) node).removeAll();
+      failedRowCount.getAndIncrement();
+    }
+  }
+
+  private void replaceJsonArray(
+      JsonNode node,
+      JsonNode fileRefNode,
+      String columnName,
+      Map<String, String> pathToFileIdMap,
+      AtomicLong failedRowCount) {
+    List<BulkLoadFileModel> models =
+        StreamSupport.stream(Spliterators.spliteratorUnknownSize(fileRefNode.iterator(), 0), false)
+            .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class))
+            .collect(Collectors.toList());
+
+    long numNotIngested =
+        models.stream()
+            .filter(
+                model -> {
+                  String fileKey = model.getTargetPath();
+                  return !pathToFileIdMap.containsKey(fileKey);
+                })
+            .count();
+    if (numNotIngested > 0) {
+      ((ObjectNode) node).removeAll();
+      failedRowCount.getAndIncrement();
+    } else {
+      ArrayNode value = objectMapper.createArrayNode();
+      models.stream()
+          .map(BulkLoadFileModel::getTargetPath)
+          .map(pathToFileIdMap::get)
+          .forEach(value::add);
+      ((ObjectNode) node).replace(columnName, value);
     }
   }
 

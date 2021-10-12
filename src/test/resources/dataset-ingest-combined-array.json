@@ -21,7 +21,8 @@
           },
           {
             "name": "vcf_index_file_ref",
-            "datatype": "fileref"
+            "datatype": "fileref",
+            "array_of": true
           }
         ]
       }

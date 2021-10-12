@@ -34,7 +34,7 @@ public class SnapshotStorageAccountDao {
   private static final String sqlGetStorageAccountResourceId =
       "SELECT storage_account_resource_id FROM snapshot"
           + whereClause
-          + " AND storage_account_resource-id IS NOT NULL";
+          + " AND storage_account_resource_id IS NOT NULL";
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
 

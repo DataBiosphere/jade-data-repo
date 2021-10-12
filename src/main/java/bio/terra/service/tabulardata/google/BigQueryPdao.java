@@ -823,7 +823,6 @@ public class BigQueryPdao {
     BigQuery bigQuery = bigQueryProject.getBigQuery();
     String bqDatasetId = prefixName(dataset.getName());
     TableId tableId = TableId.of(bqDatasetId, stagingTableName);
-    Schema schema = buildSchema(targetTable, true); // Source does not have row_id
     LoadJobConfiguration.Builder loadBuilder =
         LoadJobConfiguration.builder(tableId, path)
             .setFormatOptions(buildFormatOptions(ingestRequest))
@@ -835,7 +834,6 @@ public class BigQueryPdao {
                 (ingestRequest.isIgnoreUnknownValues() == null)
                     ? Boolean.TRUE
                     : ingestRequest.isIgnoreUnknownValues())
-            .setSchema(schema) // docs say this is for target, but CLI provides one for the source
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_TRUNCATE);
 
@@ -846,19 +844,20 @@ public class BigQueryPdao {
       loadBuilder.setNullMarker(
           (ingestRequest.getCsvNullMarker() == null) ? "" : ingestRequest.getCsvNullMarker());
     }
-    LoadJobConfiguration configuration = loadBuilder.build();
     Job loadJob;
 
+    Schema schemaWithRowId = buildSchema(targetTable, true); // Source does not have row_id
     if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV
         && ingestRequest.isCsvAddRowIds()) {
       // Ingest without the datarepo_row_id column
-      Schema noRowIds = buildSchema(targetTable, false);
-      loadBuilder.setSchema(noRowIds);
+      Schema noRowId = buildSchema(targetTable, false);
+      loadBuilder.setSchema(noRowId);
       loadJob = ingestData(bigQuery, path, loadBuilder.build());
       // Then add the datarepo_row_id column to the schema
-      updateSchema(bigQuery, bqDatasetId, stagingTableName, schema);
+      updateSchema(bigQuery, bqDatasetId, stagingTableName, schemaWithRowId);
     } else {
-      loadJob = ingestData(bigQuery, path, configuration);
+      loadBuilder.setSchema(schemaWithRowId); // docs say this is for target, but CLI provides one for the source
+      loadJob = ingestData(bigQuery, path, loadBuilder.build());
     }
     return new PdaoLoadStatistics(loadJob.getStatistics());
   }

@@ -12,5 +12,5 @@ databaseChangeLog:
                   constraints:
                     nullable: true
                     foreignKeyName: fk_snapshot_storage_acct
-                    references: storage_acccount_resource(id)
+                    references: storage_account_resource(id)
                     deleteCascade: true

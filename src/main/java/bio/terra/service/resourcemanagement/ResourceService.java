@@ -203,6 +203,7 @@ public class ResourceService {
     final AzureStorageAccountResource storageAccountResource;
 
     // Maybe the storage account exists in the db, but the in-memory object hasn't been updated
+    // I don't think this case exists, but I'm programming defensively here.
     if (storageAccountResourceId.isPresent()) {
       storageAccountResource =
           storageAccountService.getStorageAccountResourceById(

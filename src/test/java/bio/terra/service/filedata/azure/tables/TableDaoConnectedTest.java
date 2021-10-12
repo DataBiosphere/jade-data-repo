@@ -59,7 +59,7 @@ public class TableDaoConnectedTest {
   private List<String> refIds;
   private String loadTag;
   private int numFilesToLoad;
-  private String targetBasePathFormat = "/test/%s/file-%s.json";
+  private String targetBasePathFormat = "/%s/%s/file-%s.json";
   private String endpoint;
   private String uniqueTestDirectory;
 

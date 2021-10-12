@@ -148,7 +148,6 @@ public class SnapshotCreateFlight extends Flight {
           addStep(
               new CreateSnapshotCountTableRowsAzureStep(
                   azureSynapsePdao, snapshotDao, snapshotReq));
-          addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao));
         }
         break;
       case BYQUERY:
@@ -219,7 +218,12 @@ public class SnapshotCreateFlight extends Flight {
 
       addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
     } else if (platform.isAzure()) {
-      addStep(new CreateSnapshotStorageTableDataStep(tableDao, azureAuthService));
+      addStep(
+          new CreateSnapshotStorageTableDataStep(
+              tableDao, azureAuthService, datasetService, azureSynapsePdao));
+      // cannot clean up azure synapse tables until after gathered refIds in
+      // CreateSnapshotStorageTableDataStep
+      addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao));
       addStep(new CreateSnapshotStorageTableDependenciesStep(tableDao));
       // Calculate checksums and sizes for all directories in the snapshot
       addStep(new CreateSnapshotStorageTableComputeStep(snapshotService, snapshotReq, fileDao));

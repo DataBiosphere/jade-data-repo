@@ -86,13 +86,6 @@ public class AzureAuthService {
         .buildClient();
   }
 
-  public TableServiceClient getTableServiceClient(AzureStorageAuthInfo storageAuthInfo) {
-    return getTableServiceClient(
-        storageAuthInfo.getSubscriptionId(),
-        storageAuthInfo.getResourceGroupName(),
-        storageAuthInfo.getStorageAccountResourceName());
-  }
-
   /**
    * Return an authenticated {@link TableServiceClient} client using key-based authentication
    *

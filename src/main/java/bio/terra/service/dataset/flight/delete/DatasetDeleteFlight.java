@@ -5,6 +5,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -52,13 +53,10 @@ public class DatasetDeleteFlight extends Flight {
     ProfileDao profileDao = appContext.getBean(ProfileDao.class);
 
     // get data from inputs that steps need
-    UUID datasetId =
-        UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
-    AuthenticatedUserRequest userReq =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    UUID datasetId = JobMapKeys.DATASET_ID.get(inputParameters);
+    AuthenticatedUserRequest userReq = JobMapKeys.AUTH_USER_INFO.get(inputParameters);
     var platform =
-        CloudPlatformWrapper.of(
-            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
+        CloudPlatformWrapper.of(JobMapKeys.CLOUD_PLATFORM.<CloudPlatform>get(inputParameters));
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule primaryDataDeleteRetry = getDefaultExponentialBackoffRetryRule();

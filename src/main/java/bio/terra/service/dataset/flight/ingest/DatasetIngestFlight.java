@@ -79,15 +79,12 @@ public class DatasetIngestFlight extends Flight {
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     FileService fileService = appContext.getBean(FileService.class);
 
-    IngestRequestModel ingestRequestModel =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
-    UUID datasetId =
-        UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
+    IngestRequestModel ingestRequestModel = JobMapKeys.REQUEST.get(inputParameters);
+    UUID datasetId = JobMapKeys.DATASET_ID.get(inputParameters);
     CloudPlatformWrapper cloudPlatform =
         CloudPlatformWrapper.of(
             datasetService.retrieve(datasetId).getDatasetSummary().getStorageCloudPlatform());
-    AuthenticatedUserRequest userReq =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest userReq = JobMapKeys.AUTH_USER_INFO.get(inputParameters);
 
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
@@ -259,7 +256,7 @@ public class DatasetIngestFlight extends Flight {
             loadService,
             configService,
             jobService,
-            dataset.getId().toString(),
+            dataset.getId(),
             ingestRequest.getLoadTag(),
             Objects.requireNonNullElse(ingestRequest.getMaxBadRecords(), 0),
             driverWaitSeconds,
@@ -358,7 +355,7 @@ public class DatasetIngestFlight extends Flight {
             loadService,
             configService,
             jobService,
-            dataset.getId().toString(),
+            dataset.getId(),
             ingestRequest.getLoadTag(),
             Objects.requireNonNullElse(ingestRequest.getMaxBadRecords(), 0),
             driverWaitSeconds,

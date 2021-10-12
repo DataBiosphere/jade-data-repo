@@ -6,7 +6,7 @@ import bio.terra.stairway.StepResult;
 import org.springframework.http.HttpStatus;
 
 public class JobServiceTestStep implements Step {
-  private String description;
+  private final String description;
 
   public JobServiceTestStep(String description) {
     this.description = description;
@@ -15,8 +15,8 @@ public class JobServiceTestStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) {
     // Configure the results
-    context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), description);
-    context.getWorkingMap().put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
+    JobMapKeys.RESPONSE.put(context.getWorkingMap(), description);
+    JobMapKeys.STATUS_CODE.put(context.getWorkingMap(), HttpStatus.I_AM_A_TEAPOT);
     return StepResult.getStepResultSuccess();
   }
 

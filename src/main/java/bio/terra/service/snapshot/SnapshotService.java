@@ -118,7 +118,7 @@ public class SnapshotService {
     String description = "Delete snapshot " + id;
     return jobService
         .newJob(description, SnapshotDeleteFlight.class, null, userReq)
-        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
+        .addParameter(JobMapKeys.SNAPSHOT_ID, id)
         .submit();
   }
 

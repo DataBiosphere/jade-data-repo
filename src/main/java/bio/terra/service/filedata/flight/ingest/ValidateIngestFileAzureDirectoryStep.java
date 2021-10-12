@@ -38,8 +38,7 @@ public class ValidateIngestFileAzureDirectoryStep extends SkippableStep {
   @Override
   public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     FlightMap inputParameters = context.getInputParameters();
-    FileLoadModel loadModel =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+    FileLoadModel loadModel = JobMapKeys.REQUEST.get(inputParameters);
 
     String targetPath = loadModel.getTargetPath();
     FlightMap workingMap = context.getWorkingMap();

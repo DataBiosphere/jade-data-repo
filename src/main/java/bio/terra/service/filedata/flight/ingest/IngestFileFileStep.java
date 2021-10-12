@@ -33,8 +33,7 @@ public class IngestFileFileStep implements Step {
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       FlightMap inputParameters = context.getInputParameters();
-      FileLoadModel fileLoadModel =
-          inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+      FileLoadModel fileLoadModel = JobMapKeys.REQUEST.get(inputParameters);
 
       FSFileInfo fsFileInfo = workingMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
       String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
@@ -56,7 +55,7 @@ public class IngestFileFileStep implements Step {
         fileDao.createFileMetadata(dataset, newFile);
         // Retrieve to build the complete FSItem
         FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1);
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
+        JobMapKeys.RESPONSE.put(workingMap, fileService.fileModelFromFSItem(fsItem));
       } catch (FileSystemAbortTransactionException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
       }

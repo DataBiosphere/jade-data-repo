@@ -49,10 +49,8 @@ public class SnapshotDeleteFlight extends Flight {
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
-    UUID snapshotId =
-        UUID.fromString(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
-    AuthenticatedUserRequest userReq =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    UUID snapshotId = JobMapKeys.SNAPSHOT_ID.get(inputParameters);
+    AuthenticatedUserRequest userReq = JobMapKeys.AUTH_USER_INFO.get(inputParameters);
 
     // Lock the source dataset while deleting ACLs to avoid a race condition
     // Skip this step if the snapshot was already deleted

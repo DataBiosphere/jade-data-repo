@@ -35,17 +35,17 @@ public class DatasetDataDeleteFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
 
     // get data from inputs that steps need
-    String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
+    UUID datasetId = JobMapKeys.DATASET_ID.get(inputParameters);
 
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     addStep(
         new VerifyAuthorizationStep(
-            iamClient, IamResourceType.DATASET, datasetId, IamAction.SOFT_DELETE));
+            iamClient, IamResourceType.DATASET, datasetId.toString(), IamAction.SOFT_DELETE));
 
     // need to lock, need dataset name and flight id
-    addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
+    addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
 
     // validate tables exist, check access to files, and create external temp tables
     addStep(new CreateExternalTablesStep(bigQueryPdao, datasetService));
@@ -54,7 +54,7 @@ public class DatasetDataDeleteFlight extends Flight {
     addStep(new DataDeletionStep(bigQueryPdao, datasetService, configService));
 
     // unlock
-    addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
+    addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
 
     // cleanup
     addStep(new DropExternalTablesStep(bigQueryPdao, datasetService));

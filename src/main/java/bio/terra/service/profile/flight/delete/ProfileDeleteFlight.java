@@ -1,6 +1,7 @@
 package bio.terra.service.profile.flight.delete;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
@@ -22,12 +23,10 @@ public class ProfileDeleteFlight extends Flight {
 
     UUID profileId = inputParameters.get(ProfileMapKeys.PROFILE_ID, UUID.class);
 
-    AuthenticatedUserRequest user =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest user = JobMapKeys.AUTH_USER_INFO.get(inputParameters);
 
     var platform =
-        CloudPlatformWrapper.of(
-            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
+        CloudPlatformWrapper.of(JobMapKeys.CLOUD_PLATFORM.<CloudPlatform>get(inputParameters));
 
     // We do not delete unused Google projects at the point where they become unused; that is, the
     // last

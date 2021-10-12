@@ -22,8 +22,7 @@ public class UpdateProfileVerifyAccountStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    BillingProfileModel newBillingProfileModel =
-        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), BillingProfileModel.class);
+    BillingProfileModel newBillingProfileModel = JobMapKeys.RESPONSE.get(workingMap);
     profileService.verifyAccount(newBillingProfileModel.getBillingAccountId(), user);
     return StepResult.getStepResultSuccess();
   }

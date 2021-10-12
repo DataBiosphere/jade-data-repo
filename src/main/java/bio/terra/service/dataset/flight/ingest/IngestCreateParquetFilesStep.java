@@ -15,7 +15,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.storage.blob.BlobUrlParts;
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.util.List;
 
 public class IngestCreateParquetFilesStep implements Step {
 
@@ -85,7 +85,7 @@ public class IngestCreateParquetFilesStep implements Step {
       ingestResponse.loadResult(fileLoadResults);
     }
 
-    context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
+    JobMapKeys.RESPONSE.put(context.getWorkingMap(), ingestResponse);
 
     return StepResult.getStepResultSuccess();
   }
@@ -93,7 +93,7 @@ public class IngestCreateParquetFilesStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     azureSynapsePdao.dropTables(
-        Arrays.asList(IngestUtils.getIngestRequestDataSourceName(context.getFlightId())));
+        List.of(IngestUtils.getIngestRequestDataSourceName(context.getFlightId())));
     return StepResult.getStepResultSuccess();
   }
 }

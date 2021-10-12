@@ -22,8 +22,7 @@ public class UpdateProfileUpdateGCloudProject implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    BillingProfileModel newBillingProfileModel =
-        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), BillingProfileModel.class);
+    BillingProfileModel newBillingProfileModel = JobMapKeys.RESPONSE.get(workingMap);
 
     googleProjectService.updateProjectsBillingAccount(newBillingProfileModel);
 
@@ -33,8 +32,7 @@ public class UpdateProfileUpdateGCloudProject implements Step {
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    BillingProfileModel existingBillingProfileModel =
-        workingMap.get(JobMapKeys.REVERT_TO.getKeyName(), BillingProfileModel.class);
+    BillingProfileModel existingBillingProfileModel = JobMapKeys.REVERT_TO.get(workingMap);
 
     googleProjectService.updateProjectsBillingAccount(existingBillingProfileModel);
 

@@ -33,8 +33,8 @@ public class CreateProfileMetadataStep implements Step {
   public StepResult doStep(FlightContext context) {
     BillingProfileModel profileModel = profileService.createProfileMetadata(profileRequest, user);
     FlightMap workingMap = context.getWorkingMap();
-    workingMap.put(JobMapKeys.RESPONSE.getKeyName(), profileModel);
-    workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
+    JobMapKeys.RESPONSE.put(workingMap, profileModel);
+    JobMapKeys.STATUS_CODE.put(workingMap, HttpStatus.CREATED);
     return StepResult.getStepResultSuccess();
   }
 

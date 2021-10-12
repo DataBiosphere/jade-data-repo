@@ -58,12 +58,10 @@ public class SnapshotCreateFlight extends Flight {
     PerformanceLogger performanceLogger = appContext.getBean(PerformanceLogger.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
 
-    SnapshotRequestModel snapshotReq =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
+    SnapshotRequestModel snapshotReq = JobMapKeys.REQUEST.get(inputParameters);
     String snapshotName = snapshotReq.getName();
 
-    AuthenticatedUserRequest userReq =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest userReq = JobMapKeys.AUTH_USER_INFO.get(inputParameters);
 
     // Lock the source dataset while adding ACLs to avoid a race condition
     // TODO note that with multi-dataset snapshots this will need to change

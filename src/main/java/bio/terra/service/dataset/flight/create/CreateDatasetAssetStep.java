@@ -41,16 +41,13 @@ public class CreateDatasetAssetStep implements Step {
 
   private Dataset getDataset(FlightContext context) {
     // Use the dataset id to fetch the Dataset object
-    UUID datasetId =
-        UUID.fromString(
-            context.getInputParameters().get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
+    UUID datasetId = JobMapKeys.DATASET_ID.get(context.getInputParameters());
     return datasetService.retrieve(datasetId);
   }
 
   private AssetSpecification getNewAssetSpec(FlightContext context, Dataset dataset) {
     // get Asset Model and convert it to a spec
-    AssetModel assetModel =
-        context.getInputParameters().get(JobMapKeys.REQUEST.getKeyName(), AssetModel.class);
+    AssetModel assetModel = JobMapKeys.REQUEST.get(context.getInputParameters());
 
     List<DatasetTable> datasetTables = dataset.getTables();
     Map<String, Relationship> relationshipMap = new HashMap<>();
@@ -96,7 +93,7 @@ public class CreateDatasetAssetStep implements Step {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
     }
 
-    map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
+    JobMapKeys.STATUS_CODE.put(map, HttpStatus.CREATED);
     return StepResult.getStepResultSuccess();
   }
 

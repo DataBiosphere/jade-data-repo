@@ -32,8 +32,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
     Dataset dataset = getDataset(context);
     pdao.createDataset(dataset);
 
-    FlightMap map = context.getWorkingMap();
-    map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
+    JobMapKeys.STATUS_CODE.put(context.getWorkingMap(), HttpStatus.CREATED);
     return StepResult.getStepResultSuccess();
   }
 

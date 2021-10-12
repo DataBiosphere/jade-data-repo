@@ -79,29 +79,29 @@ public class FileService {
     this.profileService = profileService;
   }
 
-  public String deleteFile(String datasetId, String fileId, AuthenticatedUserRequest userReq) {
+  public String deleteFile(UUID datasetId, String fileId, AuthenticatedUserRequest userReq) {
     String description = "Delete file from dataset " + datasetId + " file " + fileId;
     return jobService
         .newJob(description, FileDeleteFlight.class, null, userReq)
-        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
-        .addParameter(JobMapKeys.FILE_ID.getKeyName(), fileId)
+        .addParameter(JobMapKeys.DATASET_ID, datasetId)
+        .addParameter(JobMapKeys.FILE_ID, fileId)
         .submit();
   }
 
   public String ingestFile(
-      String datasetId, FileLoadModel fileLoad, AuthenticatedUserRequest userReq) {
+      UUID datasetId, FileLoadModel fileLoad, AuthenticatedUserRequest userReq) {
     String loadTag = loadService.computeLoadTag(fileLoad.getLoadTag());
     fileLoad.setLoadTag(loadTag);
     String description = "Ingest file " + fileLoad.getTargetPath();
     return jobService
         .newJob(description, FileIngestFlight.class, fileLoad, userReq)
-        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.DATASET_ID, datasetId)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
         .submit();
   }
 
   public String ingestBulkFile(
-      String datasetId, BulkLoadRequestModel loadModel, AuthenticatedUserRequest userReq) {
+      UUID datasetId, BulkLoadRequestModel loadModel, AuthenticatedUserRequest userReq) {
     String loadTag = loadModel.getLoadTag();
     loadModel.setLoadTag(loadTag);
     String description =
@@ -113,7 +113,7 @@ public class FileService {
     return jobService
         .newJob(description, FileIngestBulkFlight.class, loadModel, userReq)
         .addParameter(LoadMapKeys.IS_ARRAY, false)
-        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.DATASET_ID, datasetId)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
         .addParameter(
             LoadMapKeys.DRIVER_WAIT_SECONDS,
@@ -128,7 +128,7 @@ public class FileService {
   }
 
   public String ingestBulkFileArray(
-      String datasetId, BulkLoadArrayRequestModel loadArray, AuthenticatedUserRequest userReq) {
+      UUID datasetId, BulkLoadArrayRequestModel loadArray, AuthenticatedUserRequest userReq) {
     String loadTag = loadArray.getLoadTag();
     loadArray.setLoadTag(loadTag);
     String description =
@@ -149,7 +149,7 @@ public class FileService {
     return jobService
         .newJob(description, FileIngestBulkFlight.class, loadArray, userReq)
         .addParameter(LoadMapKeys.IS_ARRAY, true)
-        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.DATASET_ID, datasetId)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
         .addParameter(
             LoadMapKeys.DRIVER_WAIT_SECONDS,

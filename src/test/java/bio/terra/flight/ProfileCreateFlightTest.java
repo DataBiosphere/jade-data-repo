@@ -29,7 +29,7 @@ public class ProfileCreateFlightTest {
     billingProfileRequestModel.setCloudPlatform(CloudPlatform.AZURE);
 
     FlightMap inputParameters = new FlightMap();
-    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), billingProfileRequestModel);
+    JobMapKeys.REQUEST.put(inputParameters, billingProfileRequestModel);
 
     var flight = new ProfileCreateFlight(inputParameters, context);
 
@@ -50,7 +50,7 @@ public class ProfileCreateFlightTest {
     billingProfileRequestModel.setCloudPlatform(CloudPlatform.GCP);
 
     FlightMap inputParameters = new FlightMap();
-    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), billingProfileRequestModel);
+    JobMapKeys.REQUEST.put(inputParameters, billingProfileRequestModel);
 
     var flight = new ProfileCreateFlight(inputParameters, context);
 

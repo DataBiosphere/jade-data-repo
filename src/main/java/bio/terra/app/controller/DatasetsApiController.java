@@ -183,7 +183,7 @@ public class DatasetsApiController implements DatasetsApi {
     validateIngestParams(ingest, id);
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
-    String jobId = datasetService.ingestDataset(id.toString(), ingest, userReq);
+    String jobId = datasetService.ingestDataset(id, ingest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
@@ -193,7 +193,7 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
-    String jobId = datasetService.addDatasetAssetSpecifications(id.toString(), asset, userReq);
+    String jobId = datasetService.addDatasetAssetSpecifications(id, asset, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
@@ -211,7 +211,7 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> applyDatasetDataDeletion(
       UUID id, @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    String jobId = datasetService.deleteTabularData(id.toString(), dataDeletionRequest, userReq);
+    String jobId = datasetService.deleteTabularData(id, dataDeletionRequest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
@@ -222,7 +222,7 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.SOFT_DELETE);
-    String jobId = fileService.deleteFile(id.toString(), fileid, userReq);
+    String jobId = fileService.deleteFile(id, fileid, userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -233,7 +233,7 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
-    String jobId = fileService.ingestFile(id.toString(), ingestFile, userReq);
+    String jobId = fileService.ingestFile(id, ingestFile, userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -242,7 +242,7 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> bulkFileLoad(
       @PathVariable("id") UUID id, @Valid @RequestBody BulkLoadRequestModel bulkFileLoad) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    String jobId = fileService.ingestBulkFile(id.toString(), bulkFileLoad, userReq);
+    String jobId = fileService.ingestBulkFile(id, bulkFileLoad, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
@@ -251,7 +251,7 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("id") UUID id,
       @Valid @RequestBody BulkLoadArrayRequestModel bulkFileLoadArray) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    String jobId = fileService.ingestBulkFileArray(id.toString(), bulkFileLoadArray, userReq);
+    String jobId = fileService.ingestBulkFileArray(id, bulkFileLoadArray, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 

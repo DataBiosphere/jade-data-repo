@@ -35,7 +35,7 @@ public class IngestBulkFileResponseStep implements Step {
     // Get the summary stats and fill in our specific information
     BulkLoadResultModel summary = loadService.makeBulkLoadResult(loadId);
     summary.loadTag(loadTag).jobId(context.getFlightId());
-    workingMap.put(JobMapKeys.RESPONSE.getKeyName(), summary);
+    JobMapKeys.RESPONSE.put(workingMap, summary);
 
     return StepResult.getStepResultSuccess();
   }

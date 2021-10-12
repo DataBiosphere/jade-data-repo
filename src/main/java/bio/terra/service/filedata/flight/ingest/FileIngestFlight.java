@@ -61,18 +61,15 @@ public class FileIngestFlight extends Flight {
     DatasetStorageAccountDao datasetStorageAccountDao =
         appContext.getBean(DatasetStorageAccountDao.class);
 
-    UUID datasetId =
-        UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
+    UUID datasetId = JobMapKeys.DATASET_ID.get(inputParameters);
     Dataset dataset = datasetService.retrieve(datasetId);
 
     var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 
-    FileLoadModel fileLoadModel =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+    FileLoadModel fileLoadModel = JobMapKeys.REQUEST.get(inputParameters);
     UUID profileId = fileLoadModel.getProfileId();
 
-    AuthenticatedUserRequest userReq =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest userReq = JobMapKeys.AUTH_USER_INFO.get(inputParameters);
 
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());

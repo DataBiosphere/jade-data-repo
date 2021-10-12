@@ -18,16 +18,13 @@ public class ProfileUpdateFlight extends Flight {
     ProfileService profileService = appContext.getBean(ProfileService.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
 
-    BillingProfileUpdateModel request =
-        inputParameters.get(
-            JobMapKeys.REQUEST.getKeyName(), bio.terra.model.BillingProfileUpdateModel.class);
+    BillingProfileUpdateModel request = JobMapKeys.REQUEST.get(inputParameters);
 
-    AuthenticatedUserRequest user =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest user = JobMapKeys.AUTH_USER_INFO.get(inputParameters);
 
-    addStep(new UpdateProfileRetrieveExistingProfileStep(profileService, request, user));
+    addStep(new UpdateProfileRetrieveExistingProfileStep(profileService, request));
     // update billing account id metadata
-    addStep(new UpdateProfileMetadataStep(profileService, request, user));
+    addStep(new UpdateProfileMetadataStep(profileService, request));
     // Make sure valid account before changing in gcloud project
     addStep(new UpdateProfileVerifyAccountStep(profileService, user));
     // Update billing profile in gcloud project

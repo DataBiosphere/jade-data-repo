@@ -19,11 +19,7 @@ public class DeleteProfileAuthzIamStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    AuthenticatedUserRequest user =
-        context
-            .getInputParameters()
-            .get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-
+    AuthenticatedUserRequest user = JobMapKeys.AUTH_USER_INFO.get(context.getInputParameters());
     profileService.deleteProfileIamResource(profileId, user);
     return StepResult.getStepResultSuccess();
   }

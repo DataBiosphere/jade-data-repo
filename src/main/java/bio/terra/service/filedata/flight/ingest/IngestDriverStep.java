@@ -58,7 +58,7 @@ public class IngestDriverStep extends SkippableStep {
   private final LoadService loadService;
   private final ConfigurationService configurationService;
   private final JobService jobService;
-  private final String datasetId;
+  private final UUID datasetId;
   private final String loadTag;
   private final int maxFailedFileLoads;
   private final int driverWaitSeconds;
@@ -69,7 +69,7 @@ public class IngestDriverStep extends SkippableStep {
       LoadService loadService,
       ConfigurationService configurationService,
       JobService jobService,
-      String datasetId,
+      UUID datasetId,
       String loadTag,
       int maxFailedFileLoads,
       int driverWaitSeconds,
@@ -92,7 +92,7 @@ public class IngestDriverStep extends SkippableStep {
       LoadService loadService,
       ConfigurationService configurationService,
       JobService jobService,
-      String datasetId,
+      UUID datasetId,
       String loadTag,
       int maxFailedFileLoads,
       int driverWaitSeconds,
@@ -338,7 +338,7 @@ public class IngestDriverStep extends SkippableStep {
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
       inputParameters.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
-      inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
+      JobMapKeys.CLOUD_PLATFORM.put(inputParameters, platform);
 
       if (platform == CloudPlatform.AZURE) {
         AzureStorageAuthInfo storageAuthInfo =

@@ -62,7 +62,7 @@ public class DeleteDatasetPrimaryDataStep implements Step {
     }
 
     FlightMap map = context.getWorkingMap();
-    map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);
+    JobMapKeys.STATUS_CODE.put(map, HttpStatus.NO_CONTENT);
     return StepResult.getStepResultSuccess();
   }
 

@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -267,8 +268,7 @@ public class JobService {
       Class<? extends Flight> flightClass, FlightMap parameterMap, Class<T> resultClass) {
     String jobId = submit(flightClass, parameterMap);
     waitForJob(jobId);
-    AuthenticatedUserRequest userReq =
-        parameterMap.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest userReq = JobMapKeys.AUTH_USER_INFO.get(parameterMap);
 
     return retrieveJobResult(jobId, resultClass, userReq).getResult();
   }
@@ -317,24 +317,21 @@ public class JobService {
 
   public JobModel mapFlightStateToJobModel(FlightState flightState) {
     FlightMap inputParameters = flightState.getInputParameters();
-    String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);
+    String description = JobMapKeys.DESCRIPTION.get(inputParameters);
     FlightStatus flightStatus = flightState.getFlightStatus();
     String submittedDate = flightState.getSubmitted().toString();
     JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
 
-    String completedDate = null;
+    String completedDate = flightState.getCompleted().map(Object::toString).orElse(null);
     HttpStatus statusCode = HttpStatus.ACCEPTED;
 
-    if (flightState.getCompleted().isPresent()) {
-      FlightMap resultMap = getResultMap(flightState);
+    if (completedDate != null) {
       // The STATUS_CODE return only needs to be used to return alternate success responses.
       // If it is not present, then we set it to the default OK status.
-      statusCode = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
+      statusCode = JobMapKeys.STATUS_CODE.get(getResultMap(flightState));
       if (statusCode == null) {
         statusCode = HttpStatus.OK;
       }
-
-      completedDate = flightState.getCompleted().get().toString();
     }
 
     JobModel jobModel =
@@ -374,8 +371,7 @@ public class JobService {
       FlightFilter filter = new FlightFilter();
 
       if (!canListAnyJob) {
-        filter.addFilterInputParameter(
-            JobMapKeys.SUBJECT_ID.getKeyName(), FlightFilterOp.EQUAL, userReq.getSubjectId());
+        JobMapKeys.SUBJECT_ID.addFilter(filter, FlightFilterOp.EQUAL, userReq.getSubjectId());
       }
 
       flightStateList = stairway.getFlights(offset, limit, filter);
@@ -486,13 +482,10 @@ public class JobService {
 
       case SUCCESS:
         HttpStatus statusCode =
-            resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
-        if (statusCode == null) {
-          statusCode = HttpStatus.OK;
-        }
+            Objects.requireNonNullElse(JobMapKeys.STATUS_CODE.get(resultMap), HttpStatus.OK);
         return new JobResultWithStatus<T>()
             .statusCode(statusCode)
-            .result(resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass));
+            .result(JobMapKeys.RESPONSE.get(resultMap));
 
       case RUNNING:
         throw new JobNotCompleteException(
@@ -531,8 +524,7 @@ public class JobService {
     try {
       FlightState flightState = stairway.getFlightState(jobId);
       FlightMap inputParameters = flightState.getInputParameters();
-      String flightSubjectId =
-          inputParameters.get(JobMapKeys.SUBJECT_ID.getKeyName(), String.class);
+      String flightSubjectId = JobMapKeys.SUBJECT_ID.get(inputParameters);
       if (!StringUtils.equals(flightSubjectId, userReq.getSubjectId())) {
         throw new JobUnauthorizedException("Unauthorized");
       }

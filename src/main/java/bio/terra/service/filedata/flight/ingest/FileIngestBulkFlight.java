@@ -73,8 +73,7 @@ public class FileIngestBulkFlight extends Flight {
     ObjectMapper bulkLoadObjectMapper = appConfig.bulkLoadObjectMapper();
 
     // Common input parameters
-    String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
-    UUID datasetUuid = UUID.fromString(datasetId);
+    UUID datasetUuid = JobMapKeys.DATASET_ID.get(inputParameters);
     Dataset dataset = datasetService.retrieve(datasetUuid);
 
     var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
@@ -86,8 +85,7 @@ public class FileIngestBulkFlight extends Flight {
     int loadHistoryChunkSize =
         inputParameters.get(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE, Integer.class);
     boolean isArray = inputParameters.get(LoadMapKeys.IS_ARRAY, Boolean.class);
-    AuthenticatedUserRequest userReq =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest userReq = JobMapKeys.AUTH_USER_INFO.get(inputParameters);
 
     // TODO: for reserving a bulk load slot:
     //    int concurrentIngests = inputParameters.get(LoadMapKeys.CONCURRENT_INGESTS,
@@ -99,13 +97,11 @@ public class FileIngestBulkFlight extends Flight {
     UUID profileId;
 
     if (isArray) {
-      BulkLoadArrayRequestModel loadRequest =
-          inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadArrayRequestModel.class);
+      BulkLoadArrayRequestModel loadRequest = JobMapKeys.REQUEST.get(inputParameters);
       maxFailedFileLoads = loadRequest.getMaxFailedFileLoads();
       profileId = loadRequest.getProfileId();
     } else {
-      BulkLoadRequestModel loadRequest =
-          inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
+      BulkLoadRequestModel loadRequest = JobMapKeys.REQUEST.get(inputParameters);
       maxFailedFileLoads = loadRequest.getMaxFailedFileLoads();
       profileId = loadRequest.getProfileId();
     }
@@ -186,7 +182,7 @@ public class FileIngestBulkFlight extends Flight {
             loadService,
             configurationService,
             jobService,
-            datasetId,
+            datasetUuid,
             loadTag,
             maxFailedFileLoads,
             driverWaitSeconds,

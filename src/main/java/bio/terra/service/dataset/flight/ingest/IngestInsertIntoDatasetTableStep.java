@@ -54,7 +54,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
       ingestResponse.rowCount(ingestResponse.getRowCount() + failedRowCount);
     }
 
-    workingMap.put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
+    JobMapKeys.RESPONSE.put(workingMap, ingestResponse);
 
     bigQueryPdao.insertIntoDatasetTable(dataset, targetTable, stagingTableName);
 

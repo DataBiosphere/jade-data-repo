@@ -35,8 +35,7 @@ public class IngestFileAzurePrimaryDataStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    FileLoadModel fileLoadModel =
-        context.getInputParameters().get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+    FileLoadModel fileLoadModel = JobMapKeys.REQUEST.get(context.getInputParameters());
 
     FlightMap workingMap = context.getWorkingMap();
 
@@ -67,8 +66,7 @@ public class IngestFileAzurePrimaryDataStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     FlightMap inputParameters = context.getInputParameters();
-    FileLoadModel fileLoadModel =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+    FileLoadModel fileLoadModel = JobMapKeys.REQUEST.get(inputParameters);
     FlightMap workingMap = context.getWorkingMap();
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     AzureStorageAccountResource storageAccountResource =

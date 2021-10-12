@@ -32,8 +32,7 @@ public class IngestFilePrimaryDataStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) {
     FlightMap inputParameters = context.getInputParameters();
-    FileLoadModel fileLoadModel =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+    FileLoadModel fileLoadModel = JobMapKeys.REQUEST.get(inputParameters);
 
     FlightMap workingMap = context.getWorkingMap();
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
@@ -55,8 +54,7 @@ public class IngestFilePrimaryDataStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     FlightMap inputParameters = context.getInputParameters();
-    FileLoadModel fileLoadModel =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+    FileLoadModel fileLoadModel = JobMapKeys.REQUEST.get(inputParameters);
     FlightMap workingMap = context.getWorkingMap();
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     GoogleBucketResource bucketResource =

@@ -22,8 +22,8 @@ public final class FlightStates {
   public static FlightState makeFlightSimpleState() {
     // Construct a mock FlightState
     FlightMap resultMap = new FlightMap();
-    resultMap.put(JobMapKeys.RESPONSE.getKeyName(), buildMinimalDatasetSummary());
-    resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
+    JobMapKeys.RESPONSE.put(resultMap, buildMinimalDatasetSummary());
+    JobMapKeys.STATUS_CODE.put(resultMap, HttpStatus.I_AM_A_TEAPOT);
 
     FlightState flightState = new FlightState();
     flightState.setFlightId(testFlightId);
@@ -38,9 +38,9 @@ public final class FlightStates {
   public static FlightState makeFlightRunningState() {
     DatasetSummaryModel req = buildMinimalDatasetSummary();
     FlightMap resultMap = new FlightMap();
-    resultMap.put(JobMapKeys.RESPONSE.getKeyName(), req);
-    resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
-    resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), req.getDescription());
+    JobMapKeys.RESPONSE.put(resultMap, req);
+    JobMapKeys.STATUS_CODE.put(resultMap, HttpStatus.I_AM_A_TEAPOT);
+    JobMapKeys.DESCRIPTION.put(resultMap, req.getDescription());
 
     FlightState flightState = new FlightState();
     flightState.setFlightId(testFlightId);
@@ -54,9 +54,9 @@ public final class FlightStates {
   public static FlightState makeFlightCompletedState() {
     DatasetSummaryModel req = buildMinimalDatasetSummary();
     FlightMap resultMap = new FlightMap();
-    resultMap.put(JobMapKeys.RESPONSE.getKeyName(), req);
-    resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
-    resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), req.getDescription());
+    JobMapKeys.RESPONSE.put(resultMap, req);
+    JobMapKeys.STATUS_CODE.put(resultMap, HttpStatus.I_AM_A_TEAPOT);
+    JobMapKeys.DESCRIPTION.put(resultMap, req.getDescription());
 
     FlightState flightState = new FlightState();
     flightState.setFlightId(testFlightId);

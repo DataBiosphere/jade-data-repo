@@ -46,13 +46,11 @@ public class DatasetCreateFlight extends Flight {
         appContext.getBean(DatasetStorageAccountDao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
 
-    DatasetRequestModel datasetRequest =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+    DatasetRequestModel datasetRequest = JobMapKeys.REQUEST.get(inputParameters);
 
     var platform = CloudPlatformWrapper.of(datasetRequest.getCloudPlatform());
 
-    AuthenticatedUserRequest userReq =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest userReq = JobMapKeys.AUTH_USER_INFO.get(inputParameters);
 
     // Make sure this user is allowed to use the billing profile and that the underlying
     // billing information remains valid.

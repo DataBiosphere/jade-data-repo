@@ -169,10 +169,10 @@ public class DatasetService {
   }
 
   public String delete(String id, AuthenticatedUserRequest userReq) {
-    String description = "Delete dataset " + id;
+    var uuid = UUID.fromString(id);
     CloudPlatform platform;
     try {
-      Dataset dataset = retrieve(UUID.fromString(id));
+      Dataset dataset = retrieve(uuid);
       BillingProfileModel profileModel =
           profileDao.getBillingProfileById(dataset.getDefaultProfileId());
       platform = profileModel.getCloudPlatform();
@@ -182,14 +182,14 @@ public class DatasetService {
       platform = CloudPlatformWrapper.DEFAULT;
     }
     return jobService
-        .newJob(description, DatasetDeleteFlight.class, null, userReq)
-        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
-        .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
+        .newJob("Delete dataset " + id, DatasetDeleteFlight.class, null, userReq)
+        .addParameter(JobMapKeys.DATASET_ID, uuid)
+        .addParameter(JobMapKeys.CLOUD_PLATFORM, platform)
         .submit();
   }
 
   public String ingestDataset(
-      String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {
+      UUID id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {
     // Fill in a default load id if the caller did not provide one in the ingest request.
     String loadTag = loadService.computeLoadTag(ingestRequestModel.getLoadTag());
     ingestRequestModel.setLoadTag(loadTag);
@@ -202,17 +202,17 @@ public class DatasetService {
             + id;
     return jobService
         .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
-        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.DATASET_ID, id)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
         .submit();
   }
 
   public String addDatasetAssetSpecifications(
-      String datasetId, AssetModel assetModel, AuthenticatedUserRequest userReq) {
+      UUID datasetId, AssetModel assetModel, AuthenticatedUserRequest userReq) {
     String description = "Add dataset asset specification " + assetModel.getName();
     return jobService
         .newJob(description, AddAssetSpecFlight.class, assetModel, userReq)
-        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.DATASET_ID, datasetId)
         .submit();
   }
 
@@ -232,16 +232,16 @@ public class DatasetService {
 
     return jobService
         .newJob(description, RemoveAssetSpecFlight.class, assetId, userReq)
-        .addParameter(JobMapKeys.ASSET_ID.getKeyName(), assetId)
+        .addParameter(JobMapKeys.ASSET_ID, asset.getId())
         .submit();
   }
 
   public String deleteTabularData(
-      String datasetId, DataDeletionRequest dataDeletionRequest, AuthenticatedUserRequest userReq) {
+      UUID datasetId, DataDeletionRequest dataDeletionRequest, AuthenticatedUserRequest userReq) {
     String description = "Deleting tabular data from dataset " + datasetId;
     return jobService
         .newJob(description, DatasetDataDeleteFlight.class, dataDeletionRequest, userReq)
-        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.DATASET_ID, datasetId)
         .submit();
   }
 

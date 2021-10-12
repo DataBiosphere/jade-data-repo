@@ -17,11 +17,9 @@ public class ProfileCreateFlight extends Flight {
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     ProfileService profileService = appContext.getBean(ProfileService.class);
 
-    BillingProfileRequestModel request =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BillingProfileRequestModel.class);
+    BillingProfileRequestModel request = JobMapKeys.REQUEST.get(inputParameters);
 
-    AuthenticatedUserRequest user =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest user = JobMapKeys.AUTH_USER_INFO.get(inputParameters);
 
     addStep(new CreateProfileMetadataStep(profileService, request, user));
     addStep(new CreateProfileVerifyAccountStep(profileService, request, user));

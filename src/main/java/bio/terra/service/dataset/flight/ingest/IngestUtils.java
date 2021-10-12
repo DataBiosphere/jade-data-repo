@@ -45,23 +45,19 @@ public final class IngestUtils {
 
   public static Dataset getDataset(FlightContext context, DatasetService datasetService) {
     FlightMap inputParameters = context.getInputParameters();
-    UUID datasetId =
-        UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
+    UUID datasetId = JobMapKeys.DATASET_ID.get(inputParameters);
     return datasetService.retrieve(datasetId);
   }
 
   public static IngestRequestModel getIngestRequestModel(FlightContext context) {
-    FlightMap inputParameters = context.getInputParameters();
-    return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
+    return JobMapKeys.REQUEST.get(context.getInputParameters());
   }
 
   public static DatasetTable getDatasetTable(FlightContext context, Dataset dataset) {
     IngestRequestModel ingestRequest = getIngestRequestModel(context);
     Optional<DatasetTable> optTable = dataset.getTableByName(ingestRequest.getTable());
-    if (!optTable.isPresent()) {
-      throw new TableNotFoundException("Table not found: " + ingestRequest.getTable());
-    }
-    return optTable.get();
+    return optTable.orElseThrow(
+        () -> new TableNotFoundException("Table not found: " + ingestRequest.getTable()));
   }
 
   /**
@@ -71,41 +67,41 @@ public final class IngestUtils {
    * strict. There are valid blob urls that do not match this specification and we may be able to
    * expand this definition with more testing/requirement gathering
    *
-   * @param URL
+   * @param url
    * @return
    */
-  public static BlobUrlParts validateBlobAzureBlobFileURL(String URL) {
+  public static BlobUrlParts validateBlobAzureBlobFileURL(String url) {
     BlobUrlParts blobUrlParts;
     try {
-      blobUrlParts = BlobUrlParts.parse(URL);
+      blobUrlParts = BlobUrlParts.parse(url);
     } catch (IllegalArgumentException ex) {
       throw new InvalidBlobURLException("Blob URL parse failed due to malformed URL.", ex);
     }
-    validateScheme(blobUrlParts.getScheme(), URL);
-    validateHost(blobUrlParts.getHost(), URL);
+    validateScheme(blobUrlParts.getScheme(), url);
+    validateHost(blobUrlParts.getHost(), url);
     validateContainerAndBlobNames(
-        blobUrlParts.getBlobContainerName(), blobUrlParts.getBlobName(), URL);
+        blobUrlParts.getBlobContainerName(), blobUrlParts.getBlobName(), url);
     return blobUrlParts;
   }
 
-  private static void validateScheme(String scheme, String URL) {
+  private static void validateScheme(String scheme, String url) {
     String expectedScheme = "https";
     if (!expectedScheme.equals(scheme)) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'."
               + "The url is required to use 'https'");
     }
   }
 
-  private static void validateHost(String host, String URL) {
+  private static void validateHost(String host, String url) {
     int separator = StringUtils.indexOf(host, ".");
     String storageAccountName = StringUtils.substring(host, 0, separator);
     if (!storageAccountName.matches("^[a-z0-9]{3,24}")) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'. "
               + "The host is expected to take the following format: {storageAccountName}.blob.core.windows.net, "
               + "where the storageAccountName must be between 3 and 24 characters in length and "
@@ -117,7 +113,7 @@ public final class IngestUtils {
     if (!actualHostURL.equals(expectedHostURL)) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'. "
               + "The host is expected to take the following format: {storageAccountName}.blob.core.windows.net");
     }

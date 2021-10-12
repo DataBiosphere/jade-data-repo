@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -44,12 +45,10 @@ public class FileIngestWorkerFlight extends Flight {
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     TableDao azureTableDao = appContext.getBean(TableDao.class);
 
-    UUID datasetId =
-        UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
+    UUID datasetId = JobMapKeys.DATASET_ID.get(inputParameters);
 
     var platform =
-        CloudPlatformWrapper.of(
-            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
+        CloudPlatformWrapper.of(JobMapKeys.CLOUD_PLATFORM.<CloudPlatform>get(inputParameters));
     Dataset dataset = datasetService.retrieve(datasetId);
 
     RetryRuleRandomBackoff fileSystemRetry =

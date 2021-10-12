@@ -35,8 +35,7 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
     // get variables required for building the signed url for the ingest request file
     FlightMap inputParameters = context.getInputParameters();
     FlightMap workingMap = context.getWorkingMap();
-    BulkLoadRequestModel loadRequest =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
+    BulkLoadRequestModel loadRequest = JobMapKeys.REQUEST.get(inputParameters);
     BillingProfileModel billingProfileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 

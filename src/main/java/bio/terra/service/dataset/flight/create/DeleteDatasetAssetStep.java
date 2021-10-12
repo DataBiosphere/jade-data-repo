@@ -11,25 +11,21 @@ import org.springframework.http.HttpStatus;
 
 public class DeleteDatasetAssetStep implements Step {
 
-  private AssetDao assetDao;
+  private final AssetDao assetDao;
 
   public DeleteDatasetAssetStep(AssetDao assetDao) {
     this.assetDao = assetDao;
   }
 
   private UUID getAssetId(FlightContext context) {
-    // get asset Id
-    UUID assetId =
-        UUID.fromString(
-            context.getInputParameters().get(JobMapKeys.ASSET_ID.getKeyName(), String.class));
-    return assetId;
+    return JobMapKeys.ASSET_ID.get(context.getInputParameters());
   }
 
   @Override
   public StepResult doStep(FlightContext context) {
     assetDao.delete(getAssetId(context));
     FlightMap map = context.getWorkingMap();
-    map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);
+    JobMapKeys.STATUS_CODE.put(map, HttpStatus.NO_CONTENT);
     return StepResult.getStepResultSuccess();
   }
 

@@ -39,8 +39,7 @@ public class IngestFileAzureFileStep implements Step {
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       FlightMap inputParameters = context.getInputParameters();
-      FileLoadModel fileLoadModel =
-          inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+      FileLoadModel fileLoadModel = JobMapKeys.REQUEST.get(inputParameters);
 
       FSFileInfo fsFileInfo = workingMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
       String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
@@ -62,7 +61,7 @@ public class IngestFileAzureFileStep implements Step {
         tableDao.createFileMetadata(newFile, storageAuthInfo);
         // Retrieve to build the complete FSItem
         FSItem fsItem = tableDao.retrieveById(dataset.getId(), fileId, 1, storageAuthInfo);
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
+        JobMapKeys.RESPONSE.put(workingMap, fileService.fileModelFromFSItem(fsItem));
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
       }

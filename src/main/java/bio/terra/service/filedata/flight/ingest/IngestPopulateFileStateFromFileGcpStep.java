@@ -35,8 +35,7 @@ public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileSt
   public StepResult doStep(FlightContext context) {
     // Gather vars required to build GcsBufferedReader
     FlightMap inputParameters = context.getInputParameters();
-    BulkLoadRequestModel loadRequest =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
+    BulkLoadRequestModel loadRequest = JobMapKeys.REQUEST.get(inputParameters);
     GoogleBucketResource bucketResource =
         FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
     Storage storage = gcsPdao.storageForBucket(bucketResource);

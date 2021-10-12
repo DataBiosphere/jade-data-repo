@@ -49,7 +49,7 @@ public class CreateDatasetMetadataStep implements Step {
       DatasetSummaryModel datasetSummary =
           DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(
               newDataset.getDatasetSummary());
-      workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);
+      JobMapKeys.RESPONSE.put(workingMap, datasetSummary);
       return StepResult.getStepResultSuccess();
     } catch (InvalidDatasetException idEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, idEx);

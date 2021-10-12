@@ -34,8 +34,7 @@ public class VerifyAuthorizationStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap parameterMap = context.getInputParameters();
-    AuthenticatedUserRequest userReq =
-        parameterMap.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest userReq = JobMapKeys.AUTH_USER_INFO.get(parameterMap);
 
     iamProvider.verifyAuthorization(userReq, iamResourceType, resourceId, action);
     return StepResult.getStepResultSuccess();

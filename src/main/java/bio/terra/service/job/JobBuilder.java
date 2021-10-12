@@ -4,6 +4,8 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.exception.InvalidJobParameterException;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import java.util.EnumSet;
+import java.util.Set;
 
 public class JobBuilder {
 
@@ -23,32 +25,38 @@ public class JobBuilder {
 
     // initialize with required parameters
     this.jobParameterMap = new FlightMap();
-    jobParameterMap.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
-    jobParameterMap.put(JobMapKeys.REQUEST.getKeyName(), request);
-    jobParameterMap.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), userReq);
-    jobParameterMap.put(JobMapKeys.SUBJECT_ID.getKeyName(), userReq.getSubjectId());
+    JobMapKeys.DESCRIPTION.put(jobParameterMap, description);
+    JobMapKeys.REQUEST.put(jobParameterMap, request);
+    JobMapKeys.AUTH_USER_INFO.put(jobParameterMap, userReq);
+    JobMapKeys.SUBJECT_ID.put(jobParameterMap, userReq.getSubjectId());
   }
+
+  private static final Set<JobMapKeys> REQUIRED_KEYS =
+      EnumSet.of(
+          JobMapKeys.DESCRIPTION,
+          JobMapKeys.REQUEST,
+          JobMapKeys.AUTH_USER_INFO,
+          JobMapKeys.SUBJECT_ID);
 
   // use addParameter method for optional parameter
   // returns the JobBuilder object to allow method chaining
-  public JobBuilder addParameter(String keyName, Object val) {
-    if (keyName == null) {
-      throw new InvalidJobParameterException("Parameter name cannot be null.");
-    }
-
+  public JobBuilder addParameter(JobMapKeys key, Object val) {
     // check that keyName doesn't match one of the required parameter names
     // i.e. disallow overwriting one of the required parameters
-    if (keyName.equals(JobMapKeys.DESCRIPTION.getKeyName())
-        || keyName.equals(JobMapKeys.REQUEST.getKeyName())
-        || keyName.equals(JobMapKeys.AUTH_USER_INFO.getKeyName())
-        || keyName.equals((JobMapKeys.SUBJECT_ID.getKeyName()))) {
+    if (REQUIRED_KEYS.contains(key)) {
       throw new InvalidJobParameterException(
-          "Required parameters can only be set by the constructor. (" + keyName + ")");
+          "Required parameters can only be set by the constructor. (" + key + ")");
     }
 
     // note that this call overwrites a parameter if it already exists
-    jobParameterMap.put(keyName, val);
+    key.put(jobParameterMap, val);
 
+    return this;
+  }
+
+  public JobBuilder addParameter(String key, Object val) {
+    // note that this call overwrites a parameter if it already exists
+    jobParameterMap.put(key, val);
     return this;
   }
 

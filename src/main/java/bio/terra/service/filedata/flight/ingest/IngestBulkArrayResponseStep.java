@@ -36,7 +36,7 @@ public class IngestBulkArrayResponseStep implements Step {
     UUID loadId = UUID.fromString(loadIdString);
 
     BulkLoadArrayResultModel result = makeLoadResult(loadId, context);
-    workingMap.put(JobMapKeys.RESPONSE.getKeyName(), result);
+    JobMapKeys.RESPONSE.put(workingMap, result);
 
     return StepResult.getStepResultSuccess();
   }

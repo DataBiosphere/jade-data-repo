@@ -246,8 +246,6 @@ public class TableDaoConnectedTest {
     }
 
     // Compute the size and checksums
-    FireStoreDirectoryEntry topDir =
-        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId, "dataset", "/");
     tableDao.snapshotCompute(snapshot, tableServiceClient, tableServiceClient);
 
     // Check the accumulated size on the root dir

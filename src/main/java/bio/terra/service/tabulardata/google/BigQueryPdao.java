@@ -856,7 +856,8 @@ public class BigQueryPdao {
       // Then add the datarepo_row_id column to the schema
       updateSchema(bigQuery, bqDatasetId, stagingTableName, schemaWithRowId);
     } else {
-      loadBuilder.setSchema(schemaWithRowId); // docs say this is for target, but CLI provides one for the source
+      loadBuilder.setSchema(
+          schemaWithRowId); // docs say this is for target, but CLI provides one for the source
       loadJob = ingestData(bigQuery, path, loadBuilder.build());
     }
     return new PdaoLoadStatistics(loadJob.getStatistics());

@@ -9,6 +9,13 @@ public class PdaoLoadStatistics {
   private final Instant startTime;
   private final Instant endTime;
 
+  public PdaoLoadStatistics(long badRecords, long rowCount, Instant startTime, Instant endTime) {
+    this.badRecords = badRecords;
+    this.rowCount = rowCount;
+    this.startTime = startTime;
+    this.endTime = endTime;
+  }
+
   public PdaoLoadStatistics(JobStatistics.LoadStatistics loadStatistics) {
     this.badRecords = loadStatistics.getBadRecords();
     this.rowCount = loadStatistics.getOutputRows();

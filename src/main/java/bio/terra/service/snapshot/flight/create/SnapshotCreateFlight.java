@@ -28,6 +28,7 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -64,6 +65,7 @@ public class SnapshotCreateFlight extends Flight {
     AzureSynapsePdao azureSynapsePdao = appContext.getBean(AzureSynapsePdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     TableDao tableDao = appContext.getBean(TableDao.class);
+    AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -217,7 +219,7 @@ public class SnapshotCreateFlight extends Flight {
 
       addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
     } else if (platform.isAzure()) {
-      addStep(new CreateSnapshotStorageTableDataStep(tableDao));
+      addStep(new CreateSnapshotStorageTableDataStep(tableDao, azureAuthService));
       addStep(new CreateSnapshotStorageTableDependenciesStep(tableDao));
       // Calculate checksums and sizes for all directories in the snapshot
       addStep(new CreateSnapshotStorageTableComputeStep(snapshotService, snapshotReq, fileDao));

@@ -83,6 +83,9 @@ public class ApplicationConfiguration {
    */
   private int shutdownTimeoutSeconds;
 
+  /** Size of batches to operate on when creating snapshot file system directory entries in Azure */
+  private int azureSnapshotBatchSize;
+
   /** Size of batches to operate on when creating snapshot file system directory entries */
   private int firestoreSnapshotBatchSize;
 
@@ -245,6 +248,14 @@ public class ApplicationConfiguration {
 
   public void setInKubernetes(boolean inKubernetes) {
     this.inKubernetes = inKubernetes;
+  }
+
+  public int getAzureSnapshotBatchSize() {
+    return azureSnapshotBatchSize;
+  }
+
+  public void setAzureSnapshotBatchSize(int azureSnapshotBatchSize) {
+    this.azureSnapshotBatchSize = azureSnapshotBatchSize;
   }
 
   public int getFirestoreSnapshotBatchSize() {

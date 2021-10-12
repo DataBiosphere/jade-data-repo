@@ -3,6 +3,7 @@ package bio.terra.service.configuration;
 import static bio.terra.service.configuration.ConfigEnum.ALLOW_REUSE_EXISTING_BUCKETS;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.AZURE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
@@ -224,6 +225,7 @@ public class ConfigurationService {
     addParameter(LOAD_DRIVER_WAIT_SECONDS, appConfiguration.getLoadDriverWaitSeconds());
     addParameter(LOAD_HISTORY_COPY_CHUNK_SIZE, appConfiguration.getLoadHistoryCopyChunkSize());
     addParameter(LOAD_HISTORY_WAIT_SECONDS, appConfiguration.getLoadHistoryWaitSeconds());
+    addParameter(AZURE_SNAPSHOT_BATCH_SIZE, appConfiguration.getAzureSnapshotBatchSize());
     addParameter(FIRESTORE_SNAPSHOT_BATCH_SIZE, appConfiguration.getFirestoreSnapshotBatchSize());
     addParameter(SNAPSHOT_CACHE_SIZE, appConfiguration.getSnapshotCacheSize());
     addParameter(FIRESTORE_VALIDATE_BATCH_SIZE, appConfiguration.getFirestoreValidateBatchSize());

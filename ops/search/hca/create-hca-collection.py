@@ -162,7 +162,6 @@ for hit in projects[0]["hits"]:
 
     project = hit["projects"][0]
     snapshot = snapshots[project["projectId"]]
-    print(snapshot)
 
     get_sample_ids(hit)
 
@@ -210,7 +209,6 @@ for hit in projects[0]["hits"]:
         "samples": get_genus_disease(hit),
         "contributors": project["contributors"],
     }
-    #print(json.dumps(obj, indent = 4))
     data.append(obj)
 
 collection = {"data": data}

@@ -19,7 +19,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import bio.terra.stairway.StepResult;
-import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import junit.framework.TestCase;
 import org.junit.Test;
@@ -47,8 +47,8 @@ public class IngestDriverStepTest extends TestCase {
     // Start the task with three failed loads and one pending (candidate) file.
     LoadCandidates candidates =
         new LoadCandidates()
-            .candidateFiles(Collections.singletonList(new LoadFile()))
-            .runningLoads(Collections.emptyList())
+            .candidateFiles(List.of(new LoadFile()))
+            .runningLoads(List.of())
             .failedLoads(3);
     given(loadService.findCandidates(loadUuid, 1)).willReturn(candidates);
 
@@ -57,21 +57,20 @@ public class IngestDriverStepTest extends TestCase {
             loadService,
             configurationService,
             jobService,
-            null,
-            null,
+            UUID.randomUUID(),
+            "",
             maxFailedFileLoads,
             0,
-            null,
+            UUID.randomUUID(),
             CloudPlatform.GCP);
 
-    FlightContext flightContext = new FlightContext(new FlightMap(), "", Collections.emptyList());
+    FlightContext flightContext = new FlightContext(new FlightMap(), "", List.of());
     flightContext.getWorkingMap().put(LoadMapKeys.LOAD_ID, loadUuid.toString());
     flightContext.setStairway(mock(Stairway.class));
 
     // When loadService.setLoadFileRunning() is called with our UUID, update the candidate state so
-    // no files are
-    // left. Otherwise the step would loop forever.
-    doAnswer(invocation -> candidates.candidateFiles(Collections.emptyList()))
+    // no files are left. Otherwise, the step would loop forever.
+    doAnswer(invocation -> candidates.candidateFiles(List.of()))
         .when(loadService)
         .setLoadFileRunning(loadUuid, null, null);
 

@@ -333,7 +333,7 @@ public class IngestDriverStep extends SkippableStep {
               .description(loadFile.getDescription());
 
       FlightMap inputParameters = new FlightMap();
-      inputParameters.put(FileMapKeys.DATASET_ID, datasetId);
+      JobMapKeys.DATASET_ID.put(inputParameters, datasetId);
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);

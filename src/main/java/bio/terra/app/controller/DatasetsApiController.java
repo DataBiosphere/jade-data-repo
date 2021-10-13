@@ -153,7 +153,7 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.DELETE);
-    String jobId = datasetService.delete(id.toString(), userReq);
+    String jobId = datasetService.delete(id, userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }

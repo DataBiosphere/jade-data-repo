@@ -168,11 +168,10 @@ public class DatasetService {
         .filteredTotal(datasetEnum.getFilteredTotal());
   }
 
-  public String delete(String id, AuthenticatedUserRequest userReq) {
-    var uuid = UUID.fromString(id);
+  public String delete(UUID id, AuthenticatedUserRequest userReq) {
     CloudPlatform platform;
     try {
-      Dataset dataset = retrieve(uuid);
+      Dataset dataset = retrieve(id);
       BillingProfileModel profileModel =
           profileDao.getBillingProfileById(dataset.getDefaultProfileId());
       platform = profileModel.getCloudPlatform();
@@ -183,7 +182,7 @@ public class DatasetService {
     }
     return jobService
         .newJob("Delete dataset " + id, DatasetDeleteFlight.class, null, userReq)
-        .addParameter(JobMapKeys.DATASET_ID, uuid)
+        .addParameter(JobMapKeys.DATASET_ID, id)
         .addParameter(JobMapKeys.CLOUD_PLATFORM, platform)
         .submit();
   }

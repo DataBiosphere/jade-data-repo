@@ -3,7 +3,6 @@ package bio.terra.service.filedata.flight;
 public final class FileMapKeys {
   private FileMapKeys() {}
 
-  public static final String DATASET_ID = "datasetId";
   public static final String FILE_ID = "fileId";
   public static final String FILE_INFO = "fileInfo";
   public static final String INGEST_FILE_ACTION = "ingestFileAction";

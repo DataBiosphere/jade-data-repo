@@ -5,7 +5,6 @@ import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
@@ -49,9 +48,7 @@ public class IngestFileAzurePrimaryDataStep implements Step {
               context, ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
       AzureStorageAccountResource storageAccountResource =
           FlightUtils.getContextValue(
-              context,
-              CommonMapKeys.DATASET_STORAGE_ACCOUNT_INFO,
-              AzureStorageAccountResource.class);
+              context, FileMapKeys.STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
       FSFileInfo fsFileInfo;
       if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
@@ -76,7 +73,7 @@ public class IngestFileAzurePrimaryDataStep implements Step {
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     AzureStorageAccountResource storageAccountResource =
         FlightUtils.getContextValue(
-            context, CommonMapKeys.DATASET_STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+            context, FileMapKeys.STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
     String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
     if (!azureBlobStorePdao.deleteDataFileById(fileId, fileName, storageAccountResource)) {
       logger.warn(

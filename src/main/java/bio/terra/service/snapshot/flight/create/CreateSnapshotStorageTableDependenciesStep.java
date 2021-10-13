@@ -1,12 +1,12 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
-import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -38,11 +38,11 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    AzureStorageAuthInfo storageAuthInfo =
+    AzureStorageAuthInfo datasetStorageAuthInfo =
         FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+            context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     TableServiceClient datasetTableServiceClient =
-        azureAuthService.getTableServiceClient(storageAuthInfo);
+        azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
 
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);

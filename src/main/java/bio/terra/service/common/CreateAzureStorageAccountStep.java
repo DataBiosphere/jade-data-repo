@@ -7,6 +7,7 @@ import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -38,7 +39,12 @@ public abstract class CreateAzureStorageAccountStep implements Step {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     AzureStorageAccountResource storageAccountResource =
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
-    workingMap.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_INFO, storageAccountResource);
+    workingMap.put(
+        CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
+
+    AzureStorageAuthInfo storageAuthInfo =
+        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
+    workingMap.put(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, storageAuthInfo);
   }
 
   protected void getOrCreateSnapshotStorageAccount(FlightContext context)
@@ -52,6 +58,11 @@ public abstract class CreateAzureStorageAccountStep implements Step {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     AzureStorageAccountResource storageAccountResource =
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
-    workingMap.put(CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_INFO, storageAccountResource);
+    workingMap.put(
+            CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
+
+    AzureStorageAuthInfo storageAuthInfo =
+        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
+    workingMap.put(CommonMapKeys.SNAPSHOT_STORAGE_AUTH_INFO, storageAuthInfo);
   }
 }

@@ -33,10 +33,10 @@ public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource datasetAzureStorageAccountResource =
         workingMap.get(
-            CommonMapKeys.DATASET_STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+            CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
     AzureStorageAccountResource snapshotAzureStorageAccountResource =
         workingMap.get(
-            CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+            CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
     String parquetDatasetSourceLocation =
         IngestUtils.getParquetTargetLocationURL(datasetAzureStorageAccountResource);

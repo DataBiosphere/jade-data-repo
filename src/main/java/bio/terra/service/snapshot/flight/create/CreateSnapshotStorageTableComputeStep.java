@@ -2,8 +2,8 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.filedata.azure.tables.TableDao;
-import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
@@ -35,14 +35,17 @@ public class CreateSnapshotStorageTableComputeStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    AzureStorageAuthInfo storageAuthInfo =
+    AzureStorageAuthInfo datasetStorageAuthInfo =
         FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
-    // TODO - get snapshot vs. dataset storage account
+            context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     TableServiceClient datasetTableServiceClient =
-        azureAuthService.getTableServiceClient(storageAuthInfo);
+        azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
+
+    AzureStorageAuthInfo snapshotStorageAuthInfo =
+        FlightUtils.getContextValue(
+            context, CommonMapKeys.SNAPSHOT_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     TableServiceClient snapshotTableServiceClient =
-        azureAuthService.getTableServiceClient(storageAuthInfo);
+        azureAuthService.getTableServiceClient(snapshotStorageAuthInfo);
 
     Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
     // Compute the size and checksums

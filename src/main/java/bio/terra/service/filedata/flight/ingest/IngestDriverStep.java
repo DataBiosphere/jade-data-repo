@@ -3,7 +3,6 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
-import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.flight.ingest.SkippableStep;
@@ -51,7 +50,7 @@ import org.slf4j.LoggerFactory;
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
 // - BUCKET_INFO is a GoogleBucketResource
-// - STORAGE_ACCOUNT_INFO is a AzureStorageAccountResource
+// - STORAGE_ACCOUNT_RESOURCE is a AzureStorageAccountResource
 //
 public class IngestDriverStep extends SkippableStep {
   private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
@@ -124,8 +123,7 @@ public class IngestDriverStep extends SkippableStep {
     BillingProfileModel billingProfileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccountResource =
-        workingMap.get(
-            CommonMapKeys.DATASET_STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
     try {
       // Check for launch orphans - these are loads in the RUNNING state that never
@@ -339,7 +337,7 @@ public class IngestDriverStep extends SkippableStep {
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
-      inputParameters.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_INFO, storageAccountResource);
+      inputParameters.put(FileMapKeys.STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
       inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
 
       if (platform == CloudPlatform.AZURE) {

@@ -7,6 +7,7 @@ import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -157,6 +158,21 @@ public class AzureSynapsePdao {
     } catch (SQLException ex) {
       throw new AzureResourceException("Could not query dataset table for fileref columns", ex);
     }
+  }
+
+  public List<String> getRefIdsForDataset(Dataset dataset) {
+    List<String> refIds = new ArrayList<>();
+    dataset
+        .getTables()
+        .forEach(
+            table -> {
+              table.getColumns().stream()
+                  .map(Column::toSynapseColumn)
+                  .filter(Column::isFileOrDirRef)
+                  .forEach(
+                      column -> refIds.addAll(getRefIds(table.getName(), column)));
+            });
+    return refIds;
   }
 
   @Autowired

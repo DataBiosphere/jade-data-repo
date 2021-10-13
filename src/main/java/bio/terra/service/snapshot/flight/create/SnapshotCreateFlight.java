@@ -18,6 +18,7 @@ import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
+import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -66,6 +67,7 @@ public class SnapshotCreateFlight extends Flight {
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     TableDao tableDao = appContext.getBean(TableDao.class);
     AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
+    TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -221,12 +223,13 @@ public class SnapshotCreateFlight extends Flight {
       addStep(
           new CreateSnapshotStorageTableDataStep(
               tableDao, azureAuthService, datasetService, azureSynapsePdao));
+
+      addStep(new CreateSnapshotStorageTableDependenciesStep(tableDependencyDao, azureAuthService, datasetService, azureSynapsePdao));
+      // Calculate checksums and sizes for all directories in the snapshot
+      addStep(new CreateSnapshotStorageTableComputeStep(snapshotService, snapshotReq, fileDao));
       // cannot clean up azure synapse tables until after gathered refIds in
       // CreateSnapshotStorageTableDataStep
       addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao));
-      addStep(new CreateSnapshotStorageTableDependenciesStep(tableDao));
-      // Calculate checksums and sizes for all directories in the snapshot
-      addStep(new CreateSnapshotStorageTableComputeStep(snapshotService, snapshotReq, fileDao));
     }
 
     // unlock the snapshot metadata row

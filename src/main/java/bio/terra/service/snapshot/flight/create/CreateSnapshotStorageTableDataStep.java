@@ -48,19 +48,8 @@ public class CreateSnapshotStorageTableDataStep implements Step {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
-    // TODO - move this into the partitioned section so that we're directly reading the refids and
-    // processing them instead of storing them into a list first
-    List<String> refIds = new ArrayList<>();
-    dataset
-        .getTables()
-        .forEach(
-            table -> {
-              table.getColumns().stream()
-                  .map(Column::toSynapseColumn)
-                  .filter(Column::isFileOrDirRef)
-                  .forEach(
-                      column -> refIds.addAll(azureSynapsePdao.getRefIds(table.getName(), column)));
-            });
+    // TODO - place for performance improvement
+    List<String> refIds = azureSynapsePdao.getRefIdsForDataset(dataset);
 
     tableDao.addFilesToSnapshot(
         tableServiceClient,

@@ -39,8 +39,7 @@ public abstract class CreateAzureStorageAccountStep implements Step {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     AzureStorageAccountResource storageAccountResource =
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
-    workingMap.put(
-        CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
+    workingMap.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
 
     AzureStorageAuthInfo storageAuthInfo =
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
@@ -58,8 +57,7 @@ public abstract class CreateAzureStorageAccountStep implements Step {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     AzureStorageAccountResource storageAccountResource =
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
-    workingMap.put(
-            CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
+    workingMap.put(CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
 
     AzureStorageAuthInfo storageAuthInfo =
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);

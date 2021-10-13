@@ -36,8 +36,7 @@ public class IngestCreateTargetDataSourceStep implements Step {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
     AzureStorageAccountResource storageAccountResource =
-        workingMap.get(
-            FileMapKeys.STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
+        workingMap.get(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
     String parquetDestinationLocation =
         IngestUtils.getParquetTargetLocationURL(storageAccountResource);

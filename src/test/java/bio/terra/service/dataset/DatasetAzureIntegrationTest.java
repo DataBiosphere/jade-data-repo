@@ -23,6 +23,7 @@ import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
@@ -42,6 +43,8 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -91,6 +94,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private SynapseUtils synapseUtils;
+  @Autowired private JsonLoader jsonLoader;
 
   private String stewardToken;
   private User steward;
@@ -374,6 +378,15 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     IngestResponseModel ingestResponseCSV =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestCSV);
     assertThat("2 row were ingested", ingestResponseCSV.getRowCount(), equalTo(2L));
+
+    // Create Snapshot by full view
+    SnapshotRequestModel requestModelAll =
+        jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
+    requestModelAll.getContents().get(0).datasetName(summaryModel.getName());
+
+    SnapshotSummaryModel snapshotSummaryAll =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward(), summaryModel.getName(), profileId, requestModelAll);
 
     // Delete the file we just ingested
     String fileId = result.getLoadFileResults().get(0).getFileId();

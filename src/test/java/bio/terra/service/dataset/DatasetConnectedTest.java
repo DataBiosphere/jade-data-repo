@@ -525,7 +525,7 @@ public class DatasetConnectedTest {
             .table(tableName)
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
-            .csvAddRowIds(false)
+            .csvGenerateRowIds(false)
             .path(tableIngestInputFilePath);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
@@ -602,7 +602,7 @@ public class DatasetConnectedTest {
             .table(tableName)
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
-            .csvAddRowIds(false)
+            .csvGenerateRowIds(false)
             .path(tableIngestInputFilePath);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
@@ -726,7 +726,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath)
-            .csvAddRowIds(true);
+            .csvGenerateRowIds(true);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
     String columns = PdaoConstant.PDAO_ROW_ID_COLUMN + ",thecolumn";
@@ -766,7 +766,7 @@ public class DatasetConnectedTest {
             .table(tableName)
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
-            .csvAddRowIds(false)
+            .csvGenerateRowIds(false)
             .path(tableIngestInputFilePath);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 

@@ -169,7 +169,7 @@ public class RBSConnectedTest {
 
     if (format.equals(IngestRequestModel.FormatEnum.CSV)) {
       ingestRequest.csvSkipLeadingRows(1);
-      ingestRequest.csvAddRowIds(false);
+      ingestRequest.csvGenerateRowIds(false);
     }
 
     try {

@@ -229,7 +229,7 @@ public class SnapshotConnectedTest {
                 "gs://jade-testdata/scratch/buildSnapshotWithRowIds/hca-mvp-analysis-file-row-ids-dataset-data.csv");
 
     ingestRequest.csvSkipLeadingRows(1);
-    ingestRequest.csvAddRowIds(false);
+    ingestRequest.csvGenerateRowIds(false);
     connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
     // TODO put big snapshot request into a GCS bucket
@@ -827,7 +827,7 @@ public class SnapshotConnectedTest {
 
     if (format.equals(IngestRequestModel.FormatEnum.CSV)) {
       ingestRequest.csvSkipLeadingRows(1);
-      ingestRequest.csvAddRowIds(false);
+      ingestRequest.csvGenerateRowIds(false);
     }
 
     try {

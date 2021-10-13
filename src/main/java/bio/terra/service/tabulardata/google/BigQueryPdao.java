@@ -848,7 +848,7 @@ public class BigQueryPdao {
 
     Schema schemaWithRowId = buildSchema(targetTable, true); // Source does not have row_id
     if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV
-        && ingestRequest.isCsvAddRowIds()) {
+        && ingestRequest.isCsvGenerateRowIds()) {
       // Ingest without the datarepo_row_id column
       Schema noRowId = buildSchema(targetTable, false);
       loadBuilder.setSchema(noRowId);

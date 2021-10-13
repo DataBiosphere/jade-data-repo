@@ -265,7 +265,8 @@ public final class IngestUtils {
                             return Stream.of(n);
                           } else if (n.isArray()) {
                             return StreamSupport.stream(
-                                Spliterators.spliteratorUnknownSize(n.iterator(), 0), false);
+                                    Spliterators.spliteratorUnknownSize(n.iterator(), 0), false)
+                                .filter(JsonNode::isObject);
                           } else {
                             return Stream.empty();
                           }

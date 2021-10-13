@@ -20,16 +20,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.Spliterators;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
   protected final ObjectMapper objectMapper;
@@ -168,13 +167,30 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
       String columnName,
       Map<String, String> pathToFileIdMap,
       AtomicLong failedRowCount) {
-    List<BulkLoadFileModel> models =
-        StreamSupport.stream(Spliterators.spliteratorUnknownSize(fileRefNode.iterator(), 0), false)
-            .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class))
-            .collect(Collectors.toList());
+
+    // For consistency's sake, we should preserve the order of array_of values.
+    // We do this by grabbing the values and putting them into 2 sparse arrays,
+    // where a given index is populated in either one or the other arrays.
+    // We can then reconstruct the fileRefNode value in-order once we grab all the
+    // values from the map.
+
+    int size = fileRefNode.size();
+    BulkLoadFileModel[] models = new BulkLoadFileModel[size];
+    String[] fileIds = new String[size];
+
+    int i = 0;
+    for (JsonNode fileRefArrayValue : fileRefNode) {
+      if (fileRefArrayValue.isObject()) {
+        models[i] = objectMapper.convertValue(fileRefArrayValue, BulkLoadFileModel.class);
+      } else {
+        fileIds[i] = fileRefArrayValue.asText();
+      }
+      i++;
+    }
 
     boolean allIngested =
-        models.stream()
+        Arrays.stream(models)
+            .filter(Objects::nonNull)
             .allMatch(
                 model -> {
                   String fileKey = model.getTargetPath();
@@ -182,10 +198,17 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
                 });
     if (allIngested) {
       ArrayNode value = objectMapper.createArrayNode();
-      models.stream()
-          .map(BulkLoadFileModel::getTargetPath)
-          .map(pathToFileIdMap::get)
-          .forEach(value::add);
+
+      for (int j = 0; j < size; j++) {
+        final String fileId;
+        BulkLoadFileModel model = models[j];
+        if (model != null) {
+          fileId = pathToFileIdMap.get(model.getTargetPath());
+        } else {
+          fileId = fileIds[j];
+        }
+        value.add(fileId);
+      }
       ((ObjectNode) node).replace(columnName, value);
     } else {
       ((ObjectNode) node).removeAll();

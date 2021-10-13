@@ -256,15 +256,18 @@ public final class IngestUtils {
         .flatMap(
             node ->
                 fileRefColumns.stream()
-                    .map(c -> node.get(c.getName()))
-                    .filter(n -> n != null && (n.isObject() || n.isArray()))
+                    .map(Column::getName)
+                    .map(node::get)
+                    .filter(Objects::nonNull)
                     .flatMap(
                         n -> {
                           if (n.isObject()) {
                             return Stream.of(n);
-                          } else {
+                          } else if (n.isArray()) {
                             return StreamSupport.stream(
                                 Spliterators.spliteratorUnknownSize(n.iterator(), 0), false);
+                          } else {
+                            return Stream.empty();
                           }
                         })
                     .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class)))

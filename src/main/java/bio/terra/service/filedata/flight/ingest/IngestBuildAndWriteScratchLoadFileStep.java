@@ -75,20 +75,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
       // Part 2 -> Replace BulkLoadFileModels with file id
       Stream<String> linesWithFileIds =
           jsonNodes
-              .peek(
-                  node -> {
-                    for (var column : fileColumns) {
-                      String columnName = column.getName();
-                      JsonNode fileRefNode = node.get(columnName);
-                      if (fileRefNode != null && fileRefNode.isObject()) {
-                        replaceJsonObject(
-                            node, fileRefNode, columnName, pathToFileIdMap, failedRowCount);
-                      } else if (fileRefNode != null && fileRefNode.isArray()) {
-                        replaceJsonArray(
-                            node, fileRefNode, columnName, pathToFileIdMap, failedRowCount);
-                      }
-                    }
-                  })
+              .peek(node -> replaceNodeContents(node, fileColumns, pathToFileIdMap, failedRowCount))
               .filter(node -> !node.isEmpty()) // Filter out empty nodes.
               .map(JsonNode::toString);
 
@@ -109,6 +96,43 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
     }
   }
 
+  /**
+   * Replace the fileRef members of the node with fileId if it's a BulkFileLoadModel, an array of
+   * fileId if it's an array_of column, or do nothing to the node if it's already a fileId
+   *
+   * @param node The node in question.
+   * @param fileColumns Columns in the node that correspond to fileRef of fileRef array_of columns
+   * @param pathToFileIdMap A map from file target path to ingested fileId
+   * @param failedRowCount A counter to count the failed ingests.
+   */
+  private void replaceNodeContents(
+      JsonNode node,
+      List<Column> fileColumns,
+      Map<String, String> pathToFileIdMap,
+      AtomicLong failedRowCount) {
+    for (var column : fileColumns) {
+      String columnName = column.getName();
+      JsonNode fileRefNode = node.get(columnName);
+      if (fileRefNode == null) {
+        continue;
+      }
+      if (fileRefNode.isObject()) {
+        replaceJsonObject(node, fileRefNode, columnName, pathToFileIdMap, failedRowCount);
+      } else if (fileRefNode.isArray()) {
+        replaceJsonArray(node, fileRefNode, columnName, pathToFileIdMap, failedRowCount);
+      }
+    }
+  }
+
+  /**
+   * Replace a BulkFileLoadModel with a fileId in the node
+   *
+   * @param node The node in question
+   * @param fileRefNode the BulkFileLoadModel node member
+   * @param columnName The name of this fileRef column
+   * @param pathToFileIdMap A map from file target path to ingested fileId
+   * @param failedRowCount A counter to count the failed ingests.
+   */
   private void replaceJsonObject(
       JsonNode node,
       JsonNode fileRefNode,
@@ -129,6 +153,15 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
     }
   }
 
+  /**
+   * Replace an array_of column with BulkFileLoadModels with an array of fileIds in the node
+   *
+   * @param node The node in question
+   * @param fileRefNode the array_of node member with a list of BulkFileLoadModels
+   * @param columnName The name of this array_of fileRef column
+   * @param pathToFileIdMap A map from file target path to ingested fileId
+   * @param failedRowCount A counter to count the failed ingests.
+   */
   private void replaceJsonArray(
       JsonNode node,
       JsonNode fileRefNode,
@@ -140,24 +173,23 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
             .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class))
             .collect(Collectors.toList());
 
-    long numNotIngested =
+    boolean allIngested =
         models.stream()
-            .filter(
+            .allMatch(
                 model -> {
                   String fileKey = model.getTargetPath();
-                  return !pathToFileIdMap.containsKey(fileKey);
-                })
-            .count();
-    if (numNotIngested > 0) {
-      ((ObjectNode) node).removeAll();
-      failedRowCount.getAndIncrement();
-    } else {
+                  return pathToFileIdMap.containsKey(fileKey);
+                });
+    if (allIngested) {
       ArrayNode value = objectMapper.createArrayNode();
       models.stream()
           .map(BulkLoadFileModel::getTargetPath)
           .map(pathToFileIdMap::get)
           .forEach(value::add);
       ((ObjectNode) node).replace(columnName, value);
+    } else {
+      ((ObjectNode) node).removeAll();
+      failedRowCount.getAndIncrement();
     }
   }
 

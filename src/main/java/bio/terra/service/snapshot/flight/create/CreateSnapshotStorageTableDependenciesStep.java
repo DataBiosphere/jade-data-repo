@@ -5,7 +5,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -25,10 +24,11 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
   private final AzureSynapsePdao azureSynapsePdao;
   private final DatasetService datasetService;
 
-  public CreateSnapshotStorageTableDependenciesStep(TableDependencyDao tableDependencyDao,
-                                                    AzureAuthService azureAuthService,
-                                                    DatasetService datasetService,
-                                                    AzureSynapsePdao azureSynapsePdao) {
+  public CreateSnapshotStorageTableDependenciesStep(
+      TableDependencyDao tableDependencyDao,
+      AzureAuthService azureAuthService,
+      DatasetService datasetService,
+      AzureSynapsePdao azureSynapsePdao) {
     this.tableDependencyDao = tableDependencyDao;
     this.azureAuthService = azureAuthService;
     this.azureSynapsePdao = azureSynapsePdao;
@@ -37,10 +37,12 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-     FlightMap workingMap = context.getWorkingMap();
-     AzureStorageAuthInfo storageAuthInfo = FlightUtils.getContextValue(
-                context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
-    TableServiceClient datasetTableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+    FlightMap workingMap = context.getWorkingMap();
+    AzureStorageAuthInfo storageAuthInfo =
+        FlightUtils.getContextValue(
+            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+    TableServiceClient datasetTableServiceClient =
+        azureAuthService.getTableServiceClient(storageAuthInfo);
 
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);

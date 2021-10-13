@@ -169,8 +169,7 @@ public class AzureSynapsePdao {
               table.getColumns().stream()
                   .map(Column::toSynapseColumn)
                   .filter(Column::isFileOrDirRef)
-                  .forEach(
-                      column -> refIds.addAll(getRefIds(table.getName(), column)));
+                  .forEach(column -> refIds.addAll(getRefIds(table.getName(), column)));
             });
     return refIds;
   }

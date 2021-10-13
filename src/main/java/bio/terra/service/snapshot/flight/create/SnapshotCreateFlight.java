@@ -224,9 +224,13 @@ public class SnapshotCreateFlight extends Flight {
           new CreateSnapshotStorageTableDataStep(
               tableDao, azureAuthService, datasetService, azureSynapsePdao));
 
-      addStep(new CreateSnapshotStorageTableDependenciesStep(tableDependencyDao, azureAuthService, datasetService, azureSynapsePdao));
+      addStep(
+          new CreateSnapshotStorageTableDependenciesStep(
+              tableDependencyDao, azureAuthService, datasetService, azureSynapsePdao));
       // Calculate checksums and sizes for all directories in the snapshot
-      addStep(new CreateSnapshotStorageTableComputeStep(snapshotService, snapshotReq, fileDao));
+      addStep(
+          new CreateSnapshotStorageTableComputeStep(
+              tableDao, snapshotReq, snapshotService, azureAuthService));
       // cannot clean up azure synapse tables until after gathered refIds in
       // CreateSnapshotStorageTableDataStep
       addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao));

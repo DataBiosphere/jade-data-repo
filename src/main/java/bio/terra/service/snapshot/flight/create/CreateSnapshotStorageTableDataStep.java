@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.common.Column;
 import bio.terra.common.FlightUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -16,7 +15,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.azure.data.tables.TableServiceClient;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 

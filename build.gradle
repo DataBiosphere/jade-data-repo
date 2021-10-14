@@ -462,7 +462,7 @@ task testIntegration(type: Test) {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
     retry {
-        maxRetries = 3
+        maxRetries = 1
         maxFailures = 15
     }
     outputs.upToDateWhen { false }

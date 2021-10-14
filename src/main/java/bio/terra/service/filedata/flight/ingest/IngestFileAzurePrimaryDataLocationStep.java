@@ -27,6 +27,7 @@ public class IngestFileAzurePrimaryDataLocationStep extends SkippableStep {
     this.dataset = dataset;
   }
 
+  // TODO - how it this different from IngestCreateAzureStorageAccountStep
   public IngestFileAzurePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {
     this(resourceService, dataset, SkippableStep::neverSkip);
   }

@@ -6,7 +6,6 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
@@ -36,7 +35,8 @@ public class IngestCreateTargetDataSourceStep implements Step {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
     AzureStorageAccountResource storageAccountResource =
-        workingMap.get(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
+        workingMap.get(
+            CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
     String parquetDestinationLocation =
         IngestUtils.getParquetTargetLocationURL(storageAccountResource);

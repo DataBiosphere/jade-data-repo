@@ -31,7 +31,7 @@ on:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
 jobs:
   test_connected:
-    timeout-minutes: 180
+    timeout-minutes: 240
     strategy:
       matrix:
         os: [ubuntu-latest]

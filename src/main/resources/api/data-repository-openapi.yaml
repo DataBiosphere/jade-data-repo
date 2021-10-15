@@ -2669,7 +2669,6 @@ components:
     BillingProfileRequestModel:
       required:
         - biller
-        - billingAccountId
         - id
         - profileName
       type: object

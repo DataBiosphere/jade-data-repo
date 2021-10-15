@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -46,11 +47,11 @@ public class IngestFileAzurePrimaryDataLocationStep extends SkippableStep {
         AzureStorageAccountResource storageAccountResource =
             resourceService.getOrCreateStorageAccount(
                 dataset, billingProfile, context.getFlightId());
-        workingMap.put(FileMapKeys.STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
+        workingMap.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
         AzureStorageAuthInfo storageAuthInfo =
             AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
                 billingProfile, storageAccountResource);
-        workingMap.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
+        workingMap.put(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, storageAuthInfo);
 
       } catch (BucketLockException blEx) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);

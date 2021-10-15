@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.delete;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
@@ -26,7 +27,7 @@ public class DeleteFileAzureDirectoryStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     AzureStorageAuthInfo storageAuthInfo =
-        workingMap.get(FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+        workingMap.get(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     try {
       boolean found =
           tableDao.deleteDirectoryEntry(

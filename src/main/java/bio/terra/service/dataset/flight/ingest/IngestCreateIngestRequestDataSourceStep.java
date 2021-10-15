@@ -4,6 +4,7 @@ import static bio.terra.service.resourcemanagement.azure.AzureStorageAccountReso
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -45,7 +46,7 @@ public class IngestCreateIngestRequestDataSourceStep implements Step {
     } else {
       String path = workingMap.get(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, String.class);
       AzureStorageAccountResource storageAccount =
-          workingMap.get(FileMapKeys.STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
+          workingMap.get(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
       signedBlobUrlParts =
           azureBlobStorePdao.getOrSignUrlForTargetFactory(
               path, billingProfileModel, storageAccount, ContainerType.SCRATCH);

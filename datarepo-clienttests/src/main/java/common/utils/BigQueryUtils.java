@@ -1,5 +1,6 @@
 package common.utils;
 
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
 import runner.config.ServiceAccountSpecification;
 import runner.config.TestUserSpecification;
 
@@ -35,11 +37,23 @@ public final class BigQueryUtils {
         "Fetching credentials and building BigQuery client object for test user: {}",
         testUser.name);
 
+    RetrySettings retrySettings =
+        RetrySettings.newBuilder()
+                .setInitialRetryDelay(Duration.ofMillis(1000L))
+                .setMaxRetryDelay(Duration.ofMillis(32_000L))
+                .setRetryDelayMultiplier(2.0)
+                .setTotalTimeout(Duration.ofMinutes(7))
+                .setInitialRpcTimeout(Duration.ofMillis(50_000L))
+                .setRpcTimeoutMultiplier(1.0)
+                .setMaxRpcTimeout(Duration.ofMillis(50_000L))
+                .build();
+
     GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
     BigQuery bigQuery =
         BigQueryOptions.newBuilder()
             .setProjectId(googleProjectId)
             .setCredentials(userCredential)
+            .setRetrySettings(retrySettings)
             .build()
             .getService();
 

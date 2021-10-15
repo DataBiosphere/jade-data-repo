@@ -9,7 +9,6 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.azure.data.tables.TableServiceClient;
@@ -34,7 +33,6 @@ public class CreateSnapshotStorageTableComputeStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
     AzureStorageAuthInfo datasetStorageAuthInfo =
         FlightUtils.getContextValue(
             context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);

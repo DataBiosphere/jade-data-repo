@@ -83,9 +83,9 @@ public class DatasetIngestFlight extends Flight {
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
+    Dataset dataset = datasetService.retrieve(datasetId);
     CloudPlatformWrapper cloudPlatform =
-        CloudPlatformWrapper.of(
-            datasetService.retrieve(datasetId).getDatasetSummary().getStorageCloudPlatform());
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
@@ -100,7 +100,7 @@ public class DatasetIngestFlight extends Flight {
               profileService, ingestRequestModel.getProfileId(), userReq));
 
       // This will need to stay even after DR-2107
-      addStep(new IngestCreateAzureStorageAccountStep(datasetService, resourceService));
+      addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
     }
 
     addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
@@ -118,7 +118,6 @@ public class DatasetIngestFlight extends Flight {
       RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
       Predicate<FlightContext> ingestSkipCondition = IngestUtils.noFilesToIngest;
 
-      Dataset dataset = datasetService.retrieve(datasetId);
       var profileId =
           Objects.requireNonNullElse(
               ingestRequestModel.getProfileId(), dataset.getDefaultProfileId());

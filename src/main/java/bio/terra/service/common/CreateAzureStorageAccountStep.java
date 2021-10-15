@@ -2,8 +2,6 @@ package bio.terra.service.common;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -16,21 +14,18 @@ import java.util.function.Predicate;
 
 public abstract class CreateAzureStorageAccountStep extends SkippableStep {
 
-  private final DatasetService datasetService;
   private final ResourceService resourceService;
+  private final Dataset dataset;
 
   public CreateAzureStorageAccountStep(
-      DatasetService datasetService,
-      ResourceService resourceService,
-      Predicate<FlightContext> skipCondition) {
+      ResourceService resourceService, Dataset dataset, Predicate<FlightContext> skipCondition) {
     super(skipCondition);
-    this.datasetService = datasetService;
     this.resourceService = resourceService;
+    this.dataset = dataset;
   }
 
-  public CreateAzureStorageAccountStep(
-      DatasetService datasetService, ResourceService resourceService) {
-    this(datasetService, resourceService, SkippableStep::neverSkip);
+  public CreateAzureStorageAccountStep(ResourceService resourceService, Dataset dataset) {
+    this(resourceService, dataset, SkippableStep::neverSkip);
   }
 
   @Override
@@ -45,7 +40,6 @@ public abstract class CreateAzureStorageAccountStep extends SkippableStep {
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
-    Dataset dataset = IngestUtils.getDataset(context, datasetService);
     AzureStorageAccountResource storageAccountResource =
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
     workingMap.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
@@ -62,8 +56,6 @@ public abstract class CreateAzureStorageAccountStep extends SkippableStep {
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
-    // TODO - replace w/ snapshot code
-    Dataset dataset = IngestUtils.getDataset(context, datasetService);
     AzureStorageAccountResource storageAccountResource =
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
     workingMap.put(CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);

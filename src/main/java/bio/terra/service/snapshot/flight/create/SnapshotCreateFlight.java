@@ -82,6 +82,7 @@ public class SnapshotCreateFlight extends Flight {
         snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
     Dataset sourceDataset = sourceDatasets.get(0);
     UUID datasetId = sourceDataset.getId();
+
     var platform =
         CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
     GoogleRegion firestoreRegion =
@@ -101,7 +102,7 @@ public class SnapshotCreateFlight extends Flight {
 
     if (platform.isAzure()) {
       // This will need to stay even after DR-2107
-      addStep(new CreateSnapshotCreateAzureStorageAccountStep(datasetService, resourceService));
+      addStep(new CreateSnapshotCreateAzureStorageAccountStep(resourceService, sourceDataset));
     }
 
     // Get a new google project from RBS and store it in the working map

@@ -387,6 +387,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), summaryModel.getName(), profileId, requestModelAll);
+    assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
 
     // Delete the file we just ingested
     String fileId = result.getLoadFileResults().get(0).getFileId();

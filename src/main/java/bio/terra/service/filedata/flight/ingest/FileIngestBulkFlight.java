@@ -154,8 +154,7 @@ public class FileIngestBulkFlight extends Flight {
       addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {
       addStep(
-          new IngestFileAzurePrimaryDataLocationStep(datasetService, resourceService),
-          randomBackoffRetry);
+          new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
       addStep(
           new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
           randomBackoffRetry);

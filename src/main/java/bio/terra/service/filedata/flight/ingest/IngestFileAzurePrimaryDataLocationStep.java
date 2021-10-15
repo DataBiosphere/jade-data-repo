@@ -1,7 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.service.common.CreateAzureStorageAccountStep;
-import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -15,20 +15,17 @@ import java.util.function.Predicate;
 public class IngestFileAzurePrimaryDataLocationStep extends CreateAzureStorageAccountStep {
 
   private final ResourceService resourceService;
-  private final DatasetService datasetService;
+  private final Dataset dataset;
 
   public IngestFileAzurePrimaryDataLocationStep(
-      DatasetService datasetService,
-      ResourceService resourceService,
-      Predicate<FlightContext> skipCondition) {
-    super(datasetService, resourceService, skipCondition);
+      ResourceService resourceService, Dataset dataset, Predicate<FlightContext> skipCondition) {
+    super(resourceService, dataset, skipCondition);
     this.resourceService = resourceService;
-    this.datasetService = datasetService;
+    this.dataset = dataset;
   }
 
-  public IngestFileAzurePrimaryDataLocationStep(
-      DatasetService datasetService, ResourceService resourceService) {
-    this(datasetService, resourceService, SkippableStep::neverSkip);
+  public IngestFileAzurePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {
+    this(resourceService, dataset, SkippableStep::neverSkip);
   }
 
   @Override

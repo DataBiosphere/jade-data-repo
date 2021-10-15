@@ -43,7 +43,8 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource snapshotAzureStorageAccountResource =
-        workingMap.get(CommonMapKeys.SNAPSHOT_STORAGE_AUTH_INFO, AzureStorageAccountResource.class);
+        workingMap.get(
+            CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
     Dataset dataset = IngestUtils.getDataset(context, datasetService);

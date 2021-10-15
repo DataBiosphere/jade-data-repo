@@ -39,14 +39,14 @@ public final class BigQueryUtils {
 
     RetrySettings retrySettings =
         RetrySettings.newBuilder()
-                .setInitialRetryDelay(Duration.ofMillis(1000L))
-                .setMaxRetryDelay(Duration.ofMillis(32_000L))
-                .setRetryDelayMultiplier(2.0)
-                .setTotalTimeout(Duration.ofMinutes(7))
-                .setInitialRpcTimeout(Duration.ofMillis(50_000L))
-                .setRpcTimeoutMultiplier(1.0)
-                .setMaxRpcTimeout(Duration.ofMillis(50_000L))
-                .build();
+            .setInitialRetryDelay(Duration.ofMillis(1000L))
+            .setMaxRetryDelay(Duration.ofMillis(32_000L))
+            .setRetryDelayMultiplier(2.0)
+            .setTotalTimeout(Duration.ofMinutes(7))
+            .setInitialRpcTimeout(Duration.ofMillis(50_000L))
+            .setRpcTimeoutMultiplier(1.0)
+            .setMaxRpcTimeout(Duration.ofMillis(50_000L))
+            .build();
 
     GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
     BigQuery bigQuery =

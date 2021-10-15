@@ -11,18 +11,26 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import java.util.function.Predicate;
 
-public abstract class CreateAzureStorageAccountStep implements SkippableStep {
+public abstract class CreateAzureStorageAccountStep extends SkippableStep {
 
   private final DatasetService datasetService;
   private final ResourceService resourceService;
 
   public CreateAzureStorageAccountStep(
-      DatasetService datasetService, ResourceService resourceService) {
+      DatasetService datasetService,
+      ResourceService resourceService,
+      Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
     this.datasetService = datasetService;
     this.resourceService = resourceService;
+  }
+
+  public CreateAzureStorageAccountStep(
+      DatasetService datasetService, ResourceService resourceService) {
+    this(datasetService, resourceService, SkippableStep::neverSkip);
   }
 
   @Override

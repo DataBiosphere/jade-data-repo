@@ -5,7 +5,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.exception.RetryException;
 
 public class CreateSnapshotCreateAzureStorageAccountStep extends CreateAzureStorageAccountStep {
 
@@ -15,7 +14,7 @@ public class CreateSnapshotCreateAzureStorageAccountStep extends CreateAzureStor
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
+  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     getOrCreateDatasetStorageAccount(context);
     getOrCreateSnapshotStorageAccount(context);
     return StepResult.getStepResultSuccess();

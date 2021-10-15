@@ -37,7 +37,8 @@ public class IngestFileAzureMakeStorageAccountLinkStep extends SkippableStep {
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       AzureStorageAccountResource storageAccountForFile =
-          workingMap.get(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
+          workingMap.get(
+              CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
       try {
         datasetStorageAccountDao.createDatasetStorageAccountLink(
             dataset.getId(), storageAccountForFile.getResourceId(), true);
@@ -59,7 +60,8 @@ public class IngestFileAzureMakeStorageAccountLinkStep extends SkippableStep {
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       AzureStorageAccountResource storageAccountForFile =
-          workingMap.get(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
+          workingMap.get(
+              CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
       try {
         datasetStorageAccountDao.decrementDatasetStorageAccountLink(
             dataset.getId(), storageAccountForFile.getResourceId());

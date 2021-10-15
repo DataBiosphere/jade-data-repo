@@ -7,7 +7,6 @@ import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
-import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.*;
 import org.springframework.http.HttpStatus;

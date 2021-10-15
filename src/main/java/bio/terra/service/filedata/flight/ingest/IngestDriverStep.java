@@ -124,7 +124,8 @@ public class IngestDriverStep extends SkippableStep {
     BillingProfileModel billingProfileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccountResource =
-        workingMap.get(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
+        workingMap.get(
+            CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
     try {
       // Check for launch orphans - these are loads in the RUNNING state that never

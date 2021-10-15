@@ -6,7 +6,6 @@ import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
-import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
@@ -38,7 +37,8 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
     var workingMap = context.getWorkingMap();
     var dataset = IngestUtils.getDataset(context, datasetService);
 
-    var storageAuthInfo = workingMap.get(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+    var storageAuthInfo =
+        workingMap.get(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     var tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     Table table = IngestUtils.getDatasetTable(context, dataset);

@@ -4,7 +4,6 @@ import static bio.terra.service.resourcemanagement.google.GoogleProjectService.P
 import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
 
 import bio.terra.app.configuration.SamConfiguration;
-import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -163,27 +162,22 @@ public class ResourceService {
   public AzureStorageAccountResource getOrCreateDatasetStorageAccount(
       Dataset dataset, BillingProfileModel billingProfile, String flightId)
       throws InterruptedException {
-    final AzureRegion region =
-        (AzureRegion)
-            dataset
-                .getDatasetSummary()
-                .getStorageResourceRegion(AzureCloudResource.STORAGE_ACCOUNT);
+    final AzureRegion region = dataset.getStorageAccountRegion();
+
     // Every storage account needs to live in a deployed application's managed resource group, so we
     // make sure that
     // the application deployment is registered first
     final AzureApplicationDeploymentResource applicationResource =
         applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
 
-    String computedStorageAccountName =
-        azureDataLocationSelector.createStorageAccountName(
-            applicationResource.getStorageAccountPrefix(), dataset.getName(), billingProfile);
-
-    String storageAccountName;
-    try {
-      storageAccountName = getStorageAccount(dataset, billingProfile).getName();
-    } catch (CorruptMetadataException e) {
-      storageAccountName = computedStorageAccountName;
-    }
+    String storageAccountName =
+        getDatasetStorageAccount(dataset.getId(), billingProfile)
+            .map(AzureStorageAccountResource::getName)
+            .orElse(
+                azureDataLocationSelector.createStorageAccountName(
+                    applicationResource.getStorageAccountPrefix(),
+                    dataset.getName(),
+                    billingProfile));
 
     return storageAccountService.getOrCreateStorageAccount(
         storageAccountName, applicationResource, region, flightId);
@@ -210,13 +204,7 @@ public class ResourceService {
               storageAccountResourceId.get(), false);
     } else {
       // Looks like the storage account doesn't exist. Make one!
-      final AzureRegion region =
-          (AzureRegion)
-              snapshot
-                  .getFirstSnapshotSource()
-                  .getDataset()
-                  .getDatasetSummary()
-                  .getStorageResourceRegion(AzureCloudResource.STORAGE_ACCOUNT);
+      final AzureRegion region = snapshot.getStorageAccountRegion();
       // Every storage account needs to live in a deployed application's managed resource group, so
       // we
       // make sure that
@@ -245,10 +233,21 @@ public class ResourceService {
    * @param billingProfile billing profile to get storage account for.
    * @return Optional AzureStorageAccountResource
    */
-  public AzureStorageAccountResource getStorageAccount(
+  public AzureStorageAccountResource getDatasetStorageAccount(
       Dataset dataset, BillingProfileModel billingProfile) {
+    return getDatasetStorageAccount(dataset.getId(), billingProfile)
+        .orElseThrow(
+            () ->
+                new CorruptMetadataException(
+                    String.format(
+                        "No storage account resource for dataset %s and billing profile %s",
+                        dataset.getId(), dataset.getDefaultProfileId())));
+  }
+
+  private Optional<AzureStorageAccountResource> getDatasetStorageAccount(
+      UUID datasetId, BillingProfileModel billingProfile) {
     var storageAccountResourceIds =
-        datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
+        datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(datasetId);
     var storageAccountResources =
         storageAccountResourceIds.stream()
             .map(this::lookupStorageAccount)
@@ -267,12 +266,7 @@ public class ResourceService {
         throw new CorruptMetadataException(
             "Dataset/Billing Profile combination has more than 1 associated storage account");
     }
-    return storageAccountResource.orElseThrow(
-        () ->
-            new CorruptMetadataException(
-                String.format(
-                    "No storage account resource for dataset %s and billing profile %s",
-                    dataset.getId(), dataset.getDefaultProfileId())));
+    return storageAccountResource;
   }
 
   public Optional<AzureStorageAccountResource> getSnapshotStorageAccount(UUID snapshotId) {

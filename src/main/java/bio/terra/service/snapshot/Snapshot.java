@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.model.AzureRegion;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -163,5 +164,9 @@ public class Snapshot implements FSContainerInterface {
     String datasetProjectId =
         getFirstSnapshotSource().getDataset().getProjectResource().getGoogleProjectId();
     return FireStoreProject.get(datasetProjectId);
+  }
+
+  public AzureRegion getStorageAccountRegion() {
+    return getFirstSnapshotSource().getDataset().getStorageAccountRegion();
   }
 }

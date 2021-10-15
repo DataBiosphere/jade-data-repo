@@ -82,6 +82,7 @@ public class SnapshotCreateFlight extends Flight {
         snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
     Dataset sourceDataset = sourceDatasets.get(0);
     UUID datasetId = sourceDataset.getId();
+    String datasetName = sourceDataset.getName();
 
     var platform =
         CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
@@ -146,8 +147,10 @@ public class SnapshotCreateFlight extends Flight {
                   azureSynapsePdao, azureBlobStorePdao));
           addStep(
               new CreateSnapshotTargetDataSourceAzureStep(
-                  azureSynapsePdao, azureBlobStorePdao, datasetService));
-          addStep(new CreateSnapshotParquetFilesAzureStep(azureSynapsePdao, datasetService));
+                  azureSynapsePdao, azureBlobStorePdao, datasetService, datasetName));
+          addStep(
+              new CreateSnapshotParquetFilesAzureStep(
+                  azureSynapsePdao, datasetService, datasetName));
           addStep(
               new CreateSnapshotCountTableRowsAzureStep(
                   azureSynapsePdao, snapshotDao, snapshotReq));

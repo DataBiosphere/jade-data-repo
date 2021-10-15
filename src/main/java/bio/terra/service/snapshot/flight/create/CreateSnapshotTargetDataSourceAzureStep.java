@@ -2,7 +2,6 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.common.CommonMapKeys;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
@@ -27,14 +26,17 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
   private AzureSynapsePdao azureSynapsePdao;
   private AzureBlobStorePdao azureBlobStorePdao;
   private DatasetService datasetService;
+  private String datasetName;
 
   public CreateSnapshotTargetDataSourceAzureStep(
       AzureSynapsePdao azureSynapsePdao,
       AzureBlobStorePdao azureBlobStorePdao,
-      DatasetService datasetService) {
+      DatasetService datasetService,
+      String datasetName) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.datasetService = datasetService;
+    this.datasetName = datasetName;
   }
 
   @Override
@@ -45,10 +47,10 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
     AzureStorageAccountResource snapshotAzureStorageAccountResource =
         workingMap.get(
             CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
+
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
-    Dataset dataset = IngestUtils.getDataset(context, datasetService);
-    List<DatasetTable> tables = dataset.getTables();
+    List<DatasetTable> tables = datasetService.retrieveByName(datasetName).getTables();
     for (DatasetTable table : tables) {
       String parquetSnapshotTargetLocation =
           IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());

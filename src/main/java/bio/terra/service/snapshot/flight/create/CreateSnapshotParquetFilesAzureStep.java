@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
@@ -20,19 +19,21 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
 
   private AzureSynapsePdao azureSynapsePdao;
   private DatasetService datasetService;
+  private String datasetName;
 
   public CreateSnapshotParquetFilesAzureStep(
-      AzureSynapsePdao azureSynapsePdao, DatasetService datasetService) {
+      AzureSynapsePdao azureSynapsePdao, DatasetService datasetService, String datasetName) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.datasetService = datasetService;
+    this.datasetName = datasetName;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-    Dataset dataset = IngestUtils.getDataset(context, datasetService);
-    List<DatasetTable> tables = dataset.getTables();
+
+    List<DatasetTable> tables = datasetService.retrieveByName(datasetName).getTables();
 
     try {
       azureSynapsePdao.createSnapshotParquetFiles(

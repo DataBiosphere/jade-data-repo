@@ -2,7 +2,6 @@ package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.stairway.FlightContext;
@@ -12,7 +11,6 @@ import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public abstract class IngestJsonFileSetupStep implements Step {
 
@@ -26,18 +24,12 @@ public abstract class IngestJsonFileSetupStep implements Step {
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(flightContext);
-    List<String> fileRefColumnNames =
-        dataset.getTableByName(ingestRequest.getTable()).orElseThrow().getColumns().stream()
-            .filter(c -> c.getType() == TableDataType.FILEREF)
-            .map(Column::getName)
-            .collect(Collectors.toList());
+    List<Column> fileRefColumns = IngestUtils.getDatasetFileRefColumns(dataset, ingestRequest);
 
     var workingMap = flightContext.getWorkingMap();
 
-    workingMap.put(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, fileRefColumnNames);
-
     // If there's no FILEREF columns, we never need to parse the ingest-control file.
-    if (fileRefColumnNames.isEmpty()) {
+    if (fileRefColumns.isEmpty()) {
       // Defaults so that other steps don't NPE
       workingMap.put(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, 0);
       return StepResult.getStepResultSuccess();
@@ -46,7 +38,7 @@ public abstract class IngestJsonFileSetupStep implements Step {
     List<String> errors = new ArrayList<>();
     // Parse the file models, but don't save them because we don't want to blow up the database.
     // We read from the ingest control file each time we need to get the models to ingest.
-    long fileModelsCount = getFileModelsCount(ingestRequest, fileRefColumnNames, errors);
+    long fileModelsCount = getFileModelsCount(ingestRequest, fileRefColumns, errors);
 
     if (!errors.isEmpty()) {
       IngestFailureException ex =
@@ -75,5 +67,5 @@ public abstract class IngestJsonFileSetupStep implements Step {
    * @return The number of file ingests that would need to be performed for this control file
    */
   abstract long getFileModelsCount(
-      IngestRequestModel ingestRequest, List<String> fileRefColumnNames, List<String> errors);
+      IngestRequestModel ingestRequest, List<Column> fileRefColumnNames, List<String> errors);
 }

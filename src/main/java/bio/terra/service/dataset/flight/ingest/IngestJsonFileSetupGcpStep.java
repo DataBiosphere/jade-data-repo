@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.common.Column;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -19,13 +20,13 @@ public class IngestJsonFileSetupGcpStep extends IngestJsonFileSetupStep {
 
   @Override
   long getFileModelsCount(
-      IngestRequestModel ingestRequest, List<String> fileRefColumnNames, List<String> errors) {
+      IngestRequestModel ingestRequest, List<Column> fileRefColumns, List<String> errors) {
     return IngestUtils.countBulkFileLoadModelsFromPath(
         gcsPdao,
         objectMapper,
         ingestRequest,
         dataset.getProjectResource().getGoogleProjectId(),
-        fileRefColumnNames,
+        fileRefColumns,
         errors);
   }
 }

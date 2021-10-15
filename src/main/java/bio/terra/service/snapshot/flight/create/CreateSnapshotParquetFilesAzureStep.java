@@ -41,7 +41,14 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
           snapshotId,
           IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
           IngestUtils.getTargetDataSourceName(context.getFlightId()),
-          context.getFlightId());
+          null);
+
+      azureSynapsePdao.createSnapshotRowIdsParquetFile(
+          tables,
+          snapshotId,
+          IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
+          IngestUtils.getTargetDataSourceName(context.getFlightId()),
+          null);
 
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

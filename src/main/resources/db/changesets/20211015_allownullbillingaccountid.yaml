@@ -1,0 +1,8 @@
+databaseChangeLog:
+  - changeSet:
+      id: allownullbillingaccountid
+      author: se
+      changes:
+        -  dropNotNullConstraint:
+             columnName:  billing_account_id
+             tableName:  billing_profile

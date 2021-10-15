@@ -4,7 +4,6 @@ import bio.terra.common.FlightUtils;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -23,16 +22,19 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
   private final AzureAuthService azureAuthService;
   private final AzureSynapsePdao azureSynapsePdao;
   private final DatasetService datasetService;
+  private final String datasetName;
 
   public CreateSnapshotStorageTableDependenciesStep(
       TableDependencyDao tableDependencyDao,
       AzureAuthService azureAuthService,
       DatasetService datasetService,
-      AzureSynapsePdao azureSynapsePdao) {
+      AzureSynapsePdao azureSynapsePdao,
+      String datasetName) {
     this.tableDependencyDao = tableDependencyDao;
     this.azureAuthService = azureAuthService;
     this.azureSynapsePdao = azureSynapsePdao;
     this.datasetService = datasetService;
+    this.datasetName = datasetName;
   }
 
   @Override
@@ -44,7 +46,7 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
     TableServiceClient datasetTableServiceClient =
         azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
 
-    Dataset dataset = IngestUtils.getDataset(context, datasetService);
+    Dataset dataset = datasetService.retrieveByName(datasetName);
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
     // TODO - place for performance improvement

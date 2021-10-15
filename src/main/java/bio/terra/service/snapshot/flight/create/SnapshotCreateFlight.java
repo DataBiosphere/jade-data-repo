@@ -226,11 +226,11 @@ public class SnapshotCreateFlight extends Flight {
     } else if (platform.isAzure()) {
       addStep(
           new CreateSnapshotStorageTableDataStep(
-              tableDao, azureAuthService, datasetService, azureSynapsePdao));
+              tableDao, azureAuthService, datasetService, azureSynapsePdao, datasetName));
 
       addStep(
           new CreateSnapshotStorageTableDependenciesStep(
-              tableDependencyDao, azureAuthService, datasetService, azureSynapsePdao));
+              tableDependencyDao, azureAuthService, datasetService, azureSynapsePdao, datasetName));
       // Calculate checksums and sizes for all directories in the snapshot
       addStep(
           new CreateSnapshotStorageTableComputeStep(

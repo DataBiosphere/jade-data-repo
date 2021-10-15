@@ -4,7 +4,6 @@ import bio.terra.common.FlightUtils;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -23,16 +22,19 @@ public class CreateSnapshotStorageTableDataStep implements Step {
   private final AzureAuthService azureAuthService;
   private final DatasetService datasetService;
   private final AzureSynapsePdao azureSynapsePdao;
+  private final String datasetName;
 
   public CreateSnapshotStorageTableDataStep(
       TableDao tableDao,
       AzureAuthService azureAuthService,
       DatasetService datasetService,
-      AzureSynapsePdao azureSynapsePdao) {
+      AzureSynapsePdao azureSynapsePdao,
+      String datasetName) {
     this.tableDao = tableDao;
     this.azureAuthService = azureAuthService;
     this.datasetService = datasetService;
     this.azureSynapsePdao = azureSynapsePdao;
+    this.datasetName = datasetName;
   }
 
   @Override
@@ -44,7 +46,7 @@ public class CreateSnapshotStorageTableDataStep implements Step {
             context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     TableServiceClient datasetTableServiceClient =
         azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
-    Dataset dataset = IngestUtils.getDataset(context, datasetService);
+    Dataset dataset = datasetService.retrieveByName(datasetName);
 
     // Snapshot
     AzureStorageAuthInfo snapshotStorageAuthInfo =

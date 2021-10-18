@@ -1,16 +1,14 @@
 package bio.terra.service.dataset.flight.delete;
 
-import bio.terra.model.BillingProfileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -18,6 +16,7 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.elasticsearch.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -54,14 +53,23 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    Dataset dataset = datasetService.retrieve(datasetId);
-    BillingProfileModel profileModel =
-        profileDao.getBillingProfileById(dataset.getDefaultProfileId());
-    AzureStorageAccountResource storageAccountResource =
-        resourceService.getStorageAccount(dataset, profileModel);
+    //    Dataset dataset = datasetService.retrieve(datasetId);
+    //    BillingProfileModel profileModel =
+    //        profileDao.getBillingProfileById(dataset.getDefaultProfileId());
+    //    AzureStorageAccountResource storageAccountResource =
+    //        resourceService.getStorageAccount(dataset, profileModel);
+    //    AzureStorageAuthInfo storageAuthInfo =
+    //        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel,
+    // storageAccountResource);
+    FlightMap map = context.getWorkingMap();
     AzureStorageAuthInfo storageAuthInfo =
-        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);
-    tableDao.deleteFilesFromDataset(storageAuthInfo, azureBlobStorePdao::deleteFile);
+        map.get(DatasetWorkingMapKeys.AZURE_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+
+    if (storageAuthInfo != null) {
+      tableDao.deleteFilesFromDataset(storageAuthInfo, azureBlobStorePdao::deleteFile);
+    } else {
+      throw new ResourceNotFoundException("No Azure storage auth info found");
+    }
 
     // this fault is used by the DatasetConnectedTest > testOverlappingDeletes
     if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
@@ -74,7 +82,6 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
       logger.info("DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
     }
 
-    FlightMap map = context.getWorkingMap();
     map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);
     return StepResult.getStepResultSuccess();
   }

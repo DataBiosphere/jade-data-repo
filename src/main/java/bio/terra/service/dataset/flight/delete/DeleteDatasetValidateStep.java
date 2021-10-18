@@ -16,7 +16,7 @@ import java.util.UUID;
 public abstract class DeleteDatasetValidateStep implements Step {
   private SnapshotDao snapshotDao;
   protected FireStoreDependencyDao dependencyDao;
-  private DatasetService datasetService;
+  protected DatasetService datasetService;
   private UUID datasetId;
 
   public DeleteDatasetValidateStep(
@@ -40,7 +40,7 @@ public abstract class DeleteDatasetValidateStep implements Step {
     }
     // Sanity check - validate that there are no stray file references. There should be none left
     // if there are no snapshots returned from retrieveSnapshotsForDataset.
-    if (hasSnapshotReference(dataset)) {
+    if (hasSnapshotReference(dataset, context)) {
       throw new FileSystemCorruptException(
           "File system has snapshot dependencies; metadata does not");
     }
@@ -53,5 +53,6 @@ public abstract class DeleteDatasetValidateStep implements Step {
     return StepResult.getStepResultSuccess();
   }
 
-  abstract boolean hasSnapshotReference(Dataset dataset) throws InterruptedException;
+  abstract boolean hasSnapshotReference(Dataset dataset, FlightContext context)
+      throws InterruptedException;
 }

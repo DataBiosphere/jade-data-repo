@@ -17,6 +17,7 @@ import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.AzureUtils;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -43,8 +44,14 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import com.azure.core.credential.AzureNamedKeyCredential;
+import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.TableServiceClientBuilder;
+import com.azure.data.tables.models.TableEntity;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
@@ -91,12 +98,15 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private SynapseUtils synapseUtils;
+  @Autowired private TableDependencyDao tableDependencyDao;
+  @Autowired private AzureUtils azureUtils;
 
   private String stewardToken;
   private User steward;
   private UUID datasetId;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
+  private TableServiceClient tableServiceClient;
 
   @Before
   public void setup() throws Exception {
@@ -121,6 +131,16 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             testConfig.getSourceStorageAccountName(),
             null,
             retryOptions);
+
+    tableServiceClient =
+        new TableServiceClientBuilder()
+            .credential(
+                new AzureNamedKeyCredential(
+                    testConfig.getSourceStorageAccountName(),
+                    azureUtils.getIntegrationSourceStorageAccountPrimarySharedKey()))
+            .endpoint(
+                "https://" + testConfig.getSourceStorageAccountName() + ".table.core.windows.net")
+            .buildClient();
   }
 
   @After
@@ -226,7 +246,20 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     DatasetSummaryModel summaryModel2 =
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
-    dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
+    // add fake rows here
+    UUID snapshotId = UUID.randomUUID();
+    List<String> fileUUIDs = List.of(UUID.randomUUID().toString());
+    tableDependencyDao.storeSnapshotFileDependencies(
+        tableServiceClient, summaryModel2.getId(), snapshotId, fileUUIDs);
+    String tableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
+    TableEntity createdEntity = tableClient.getEntity(snapshotId.toString(), fileUUIDs.get(0));
+    assertEntityCorrect(createdEntity, SNAPSHOT_ID, FILE_ID, 1L);
+//    dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
+    // assert that delete fails
+    dataRepoFixtures.deleteDatasetShouldFail(steward, summaryModel2.getId());
+    // delete dependencies
+    // delete should succeed
     assertThat(
         "Original dataset is still there",
         dataRepoFixtures

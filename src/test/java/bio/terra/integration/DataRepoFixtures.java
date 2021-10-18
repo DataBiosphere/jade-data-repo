@@ -2,6 +2,8 @@ package bio.terra.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -242,6 +244,15 @@ public class DataRepoFixtures {
   public void deleteDataset(TestConfiguration.User user, UUID datasetId) throws Exception {
     DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetLog(user, datasetId);
     assertGoodDeleteResponse(deleteResponse);
+  }
+
+  public void deleteDatasetShouldFail(TestConfiguration.User user, UUID datasetId)
+      throws Exception {
+    DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetLog(user, datasetId);
+    assertThat(
+        "delete is not successful",
+        deleteResponse.getStatusCode(),
+        is(not(equalTo(HttpStatus.OK))));
   }
 
   public DataRepoResponse<DeleteResponseModel> deleteDatasetLog(

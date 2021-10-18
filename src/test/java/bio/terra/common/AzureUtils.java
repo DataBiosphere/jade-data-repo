@@ -1,6 +1,7 @@
 package bio.terra.common;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import java.util.UUID;
@@ -11,7 +12,8 @@ import org.springframework.stereotype.Component;
 public class AzureUtils {
 
   @Autowired AzureResourceConfiguration azureResourceConfiguration;
-  @Autowired ConnectedTestConfiguration testConfiguration;
+  @Autowired ConnectedTestConfiguration connectedTestConfiguration;
+  @Autowired TestConfiguration testConfiguration;
 
   public String getSourceStorageAccountPrimarySharedKey(
       UUID targetTenantId,
@@ -30,6 +32,14 @@ public class AzureUtils {
   }
 
   public String getSourceStorageAccountPrimarySharedKey() {
+    return getSourceStorageAccountPrimarySharedKey(
+        connectedTestConfiguration.getTargetTenantId(),
+        connectedTestConfiguration.getTargetSubscriptionId(),
+        connectedTestConfiguration.getTargetResourceGroupName(),
+        connectedTestConfiguration.getSourceStorageAccountName());
+  }
+
+  public String getIntegrationSourceStorageAccountPrimarySharedKey() {
     return getSourceStorageAccountPrimarySharedKey(
         testConfiguration.getTargetTenantId(),
         testConfiguration.getTargetSubscriptionId(),

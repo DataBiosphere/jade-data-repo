@@ -12,7 +12,8 @@ import bio.terra.service.filedata.FSDir;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSItem;
 import bio.terra.service.filedata.FileMetadataUtils;
-import bio.terra.service.filedata.exception.DirectoryMetadataComputeException;
+import bio.terra.service.filedata.SnapshotCompute;
+import bio.terra.service.filedata.SnapshotComputeHelper;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.snapshot.Snapshot;
@@ -20,14 +21,10 @@ import bio.terra.service.snapshot.SnapshotProject;
 import com.google.cloud.firestore.Firestore;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +52,6 @@ public class FireStoreDao {
 
   private final FireStoreDirectoryDao directoryDao;
   private final FireStoreFileDao fileDao;
-  private final FileMetadataUtils fileMetadataUtils;
   private final FireStoreUtils fireStoreUtils;
   private final ConfigurationService configurationService;
   private final PerformanceLogger performanceLogger;
@@ -64,13 +60,11 @@ public class FireStoreDao {
   public FireStoreDao(
       FireStoreDirectoryDao directoryDao,
       FireStoreFileDao fileDao,
-      FileMetadataUtils fileMetadataUtils,
       FireStoreUtils fireStoreUtils,
       ConfigurationService configurationService,
       PerformanceLogger performanceLogger) {
     this.directoryDao = directoryDao;
     this.fileDao = fileDao;
-    this.fileMetadataUtils = fileMetadataUtils;
     this.fireStoreUtils = fireStoreUtils;
     this.configurationService = configurationService;
     this.performanceLogger = performanceLogger;
@@ -192,7 +186,10 @@ public class FireStoreDao {
       List<FireStoreDirectoryEntry> updateBatch = new ArrayList<>();
 
       String retrieveTimer = performanceLogger.timerStart();
-      computeDirectory(snapshotFirestore, datasetFirestore, snapshotId, topDir, updateBatch);
+
+      FirestoreComputeHelper helper = getHelper(datasetFirestore, snapshotFirestore, snapshotId);
+      SnapshotCompute.computeDirectory(helper, topDir, updateBatch);
+
       performanceLogger.timerEndAndLog(
           retrieveTimer,
           snapshotId, // not a flight, so no job id
@@ -230,6 +227,34 @@ public class FireStoreDao {
         enumerateDepth,
         fireStoreDirectoryEntry,
         fullPath);
+  }
+
+  public Optional<FSItem> lookupOptionalPath(
+      FSContainerInterface container, String fullPath, int enumerateDepth)
+      throws InterruptedException {
+    Firestore fsItemFirestore =
+        FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
+    Firestore metadataFirestore = container.firestoreConnection().getFirestore();
+    String containerId = container.getId().toString();
+
+    FireStoreDirectoryEntry fireStoreDirectoryEntry =
+        directoryDao.retrieveByPath(fsItemFirestore, containerId, fullPath);
+    return Optional.ofNullable(fireStoreDirectoryEntry)
+        .map(
+            entry -> {
+              try {
+                return retrieveWorker(
+                    fsItemFirestore,
+                    metadataFirestore,
+                    containerId,
+                    enumerateDepth,
+                    entry,
+                    fullPath);
+              } catch (InterruptedException ex) {
+                throw new FileSystemExecutionException(
+                    "Unexpected interruption during file system processing", ex);
+              }
+            });
   }
 
   /**
@@ -318,7 +343,7 @@ public class FireStoreDao {
               .collectionId(UUID.fromString(entry.getDatasetId()))
               .datasetId(UUID.fromString(entry.getDatasetId()))
               .createdDate(Instant.parse(file.getFileCreatedDate()))
-              .path(fileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
+              .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
               .checksumCrc32c(file.getChecksumCrc32c())
               .checksumMd5(file.getChecksumMd5())
               .size(file.getSize())
@@ -415,7 +440,7 @@ public class FireStoreDao {
     }
 
     String fullPath =
-        fileMetadataUtils.getFullPath(
+        FileMetadataUtils.getFullPath(
             fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
 
     FSDir fsDir = new FSDir();
@@ -464,7 +489,7 @@ public class FireStoreDao {
     }
 
     String fullPath =
-        fileMetadataUtils.getFullPath(
+        FileMetadataUtils.getFullPath(
             fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
     String fileId = fireStoreDirectoryEntry.getFileId();
 
@@ -498,120 +523,64 @@ public class FireStoreDao {
     return fsFile;
   }
 
-  // Recursively compute the size and checksums of a directory
-  FireStoreDirectoryEntry computeDirectory(
-      Firestore snapshotFirestore,
-      Firestore datasetFirestore,
-      String snapshotId,
-      FireStoreDirectoryEntry dirEntry,
-      List<FireStoreDirectoryEntry> updateBatch)
-      throws InterruptedException {
-
-    String fullPath = fileMetadataUtils.getFullPath(dirEntry.getPath(), dirEntry.getName());
-    List<FireStoreDirectoryEntry> enumDir =
-        directoryDao.enumerateDirectory(snapshotFirestore, snapshotId, fullPath);
-
-    List<FireStoreDirectoryEntry> enumComputed = new ArrayList<>();
-
-    // Recurse to compute results from underlying directories
-    try (Stream<FireStoreDirectoryEntry> stream = enumDir.stream()) {
-      enumComputed.addAll(
-          stream
-              .filter(f -> !f.getIsFileRef())
-              .map(
-                  f -> {
-                    try {
-                      return computeDirectory(
-                          snapshotFirestore, datasetFirestore, snapshotId, f, updateBatch);
-                    } catch (InterruptedException e) {
-                      throw new DirectoryMetadataComputeException(
-                          "Error computing directory metadata", e);
-                    }
-                  })
-              .collect(Collectors.toList()));
-    }
-
-    // Collect metadata for file objects in the directory
-    try (Stream<FireStoreDirectoryEntry> stream = enumDir.stream()) {
-      // Group FireStoreDirectoryEntry objects by dataset Id to process one dataset at a time
-      final Map<String, List<FireStoreDirectoryEntry>> fileRefsByDatasetId =
-          stream
-              .filter(FireStoreDirectoryEntry::getIsFileRef)
-              .collect(Collectors.groupingBy(FireStoreDirectoryEntry::getDatasetId));
-
-      for (Map.Entry<String, List<FireStoreDirectoryEntry>> entry :
-          fileRefsByDatasetId.entrySet()) {
-        // Retrieve the file metadata from Firestore
-        final List<FireStoreFile> fireStoreFiles =
-            fileDao.batchRetrieveFileMetadata(datasetFirestore, entry.getKey(), entry.getValue());
-
-        final AtomicInteger index = new AtomicInteger(0);
-        enumComputed.addAll(
-            CollectionUtils.collect(
-                entry.getValue(),
-                dirItem -> {
-                  final FireStoreFile file = fireStoreFiles.get(index.getAndIncrement());
-                  if (file == null) {
-                    throw new FileNotFoundException("File metadata was missing");
-                  }
-                  return dirItem
-                      .size(file.getSize())
-                      .checksumMd5(file.getChecksumMd5())
-                      .checksumCrc32c(file.getChecksumCrc32c());
-                }));
-      }
-    }
-
-    // Collect the ingredients for computing this directory's checksums and size
-    List<String> md5Collection = new ArrayList<>();
-    List<String> crc32cCollection = new ArrayList<>();
-    long totalSize = 0L;
-
-    for (FireStoreDirectoryEntry dirItem : enumComputed) {
-      totalSize = totalSize + dirItem.getSize();
-      if (!StringUtils.isEmpty(dirItem.getChecksumCrc32c())) {
-        crc32cCollection.add(dirItem.getChecksumCrc32c().toLowerCase());
-      }
-      if (!StringUtils.isEmpty(dirItem.getChecksumMd5())) {
-        md5Collection.add(dirItem.getChecksumMd5().toLowerCase());
-      }
-    }
-
-    // Compute checksums
-    // The spec is not 100% clear on the algorithm. I made specific choices on
-    // how to implement it:
-    // - set hex strings to lowercase before processing so we get consistent sort
-    //   order and digest results.
-    // - do not make leading zeros converting crc32 long to hex and it is returned
-    //   in lowercase. (Matches the semantics of toHexString).
-    Collections.sort(md5Collection);
-    String md5Concat = StringUtils.join(md5Collection, StringUtils.EMPTY);
-    String md5Checksum = fireStoreUtils.computeMd5(md5Concat);
-
-    Collections.sort(crc32cCollection);
-    String crc32cConcat = StringUtils.join(crc32cCollection, StringUtils.EMPTY);
-    String crc32cChecksum = fireStoreUtils.computeCrc32c(crc32cConcat);
-
-    // Update the directory in place
-    dirEntry.checksumCrc32c(crc32cChecksum).checksumMd5(md5Checksum).size(totalSize);
-    updateEntry(snapshotFirestore, snapshotId, dirEntry, updateBatch);
-
-    return dirEntry;
+  public FirestoreComputeHelper getHelper(
+      Firestore datasetFirestore, Firestore snapshotFirestore, String snapshotId) {
+    return new FirestoreComputeHelper(
+        fileDao,
+        directoryDao,
+        datasetFirestore,
+        snapshotFirestore,
+        snapshotId,
+        configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE));
   }
 
-  private void updateEntry(
-      Firestore firestore,
-      String snapshotId,
-      FireStoreDirectoryEntry entry,
-      List<FireStoreDirectoryEntry> updateBatch)
-      throws InterruptedException {
+  static class FirestoreComputeHelper implements SnapshotComputeHelper {
 
-    updateBatch.add(entry);
-    int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
-    if (updateBatch.size() >= batchSize) {
-      logger.info("Snapshot compute updating batch of {} directory entries", batchSize);
-      directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
-      updateBatch.clear();
+    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao directoryDao;
+    private final Firestore datasetFirestore;
+    private final Firestore snapshotFirestore;
+    private final String snapshotId;
+    private final Integer snapshotBatchSize;
+
+    FirestoreComputeHelper(
+        FireStoreFileDao fileDao,
+        FireStoreDirectoryDao directoryDao,
+        Firestore datasetFirestore,
+        Firestore snapshotFirestore,
+        String snapshotId,
+        Integer snapshotBatchSize) {
+      this.fileDao = fileDao;
+      this.directoryDao = directoryDao;
+      this.datasetFirestore = datasetFirestore;
+      this.snapshotFirestore = snapshotFirestore;
+      this.snapshotId = snapshotId;
+      this.snapshotBatchSize = snapshotBatchSize;
+    }
+
+    @Override
+    public List<FireStoreFile> batchRetrieveFileMetadata(
+        Map.Entry<String, List<FireStoreDirectoryEntry>> entry) throws InterruptedException {
+      return fileDao.batchRetrieveFileMetadata(datasetFirestore, entry.getKey(), entry.getValue());
+    }
+
+    @Override
+    public List<FireStoreDirectoryEntry> enumerateDirectory(String dirPath)
+        throws InterruptedException {
+      return directoryDao.enumerateDirectory(snapshotFirestore, snapshotId, dirPath);
+    }
+
+    @Override
+    public void updateEntry(
+        FireStoreDirectoryEntry entry, List<FireStoreDirectoryEntry> updateBatch)
+        throws InterruptedException {
+
+      updateBatch.add(entry);
+      if (updateBatch.size() >= snapshotBatchSize) {
+        logger.info("Snapshot compute updating batch of {} directory entries", snapshotBatchSize);
+        directoryDao.batchStoreDirectoryEntry(snapshotFirestore, snapshotId, updateBatch);
+        updateBatch.clear();
+      }
     }
   }
 }

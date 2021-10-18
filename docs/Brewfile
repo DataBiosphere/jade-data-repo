@@ -1,0 +1,9 @@
+brew "git"
+brew "helm"
+brew "helmfile"
+brew "jq"
+brew "vault"
+cask "docker"
+cask "google-cloud-sdk"
+cask "intellij-idea"        # comment this line and uncomment the next line
+# cask "intellij-idea-ce"   # if you want to install the community edition

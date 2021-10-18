@@ -7,7 +7,6 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
@@ -35,7 +34,6 @@ public class FileIngestWorkerFlight extends Flight {
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
-    FileMetadataUtils fileMetadataUtils = appContext.getBean(FileMetadataUtils.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
@@ -75,14 +73,12 @@ public class FileIngestWorkerFlight extends Flight {
 
     if (platform.isGcp()) {
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-      addStep(new IngestFileDirectoryStep(fileDao, fileMetadataUtils, dataset), fileSystemRetry);
+      addStep(new IngestFileDirectoryStep(fileDao, dataset), fileSystemRetry);
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset));
-      addStep(
-          new IngestFileAzureDirectoryStep(azureTableDao, fileMetadataUtils, dataset),
-          fileSystemRetry);
+      addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
       addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), fileSystemRetry);
     }

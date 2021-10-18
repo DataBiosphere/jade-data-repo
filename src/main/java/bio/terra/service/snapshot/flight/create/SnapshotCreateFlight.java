@@ -1,9 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
-import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -59,7 +57,6 @@ public class SnapshotCreateFlight extends Flight {
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     PerformanceLogger performanceLogger = appContext.getBean(PerformanceLogger.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
-    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -82,8 +79,8 @@ public class SnapshotCreateFlight extends Flight {
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
     // Add a retry in case an ingest flight is currently in progress on the dataset
-    RetryRule lockDatasetRetryRule =
-        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+    RetryRule lockDatasetRetryRule = getDefaultExponentialBackoffRetryRule();
+
     addStep(new LockDatasetStep(datasetDao, datasetId, false), lockDatasetRetryRule);
 
     // Make sure this user is allowed to use the billing profile and that the underlying

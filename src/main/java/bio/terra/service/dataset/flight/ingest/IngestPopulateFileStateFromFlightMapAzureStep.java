@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight.ingest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
@@ -18,12 +19,13 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
 
   public IngestPopulateFileStateFromFlightMapAzureStep(
       LoadService loadService,
+      FileService fileService,
       AzureBlobStorePdao azureBlobStorePdao,
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
       Predicate<FlightContext> skipCondition) {
-    super(loadService, objectMapper, dataset, batchSize, skipCondition);
+    super(loadService, fileService, objectMapper, dataset, batchSize, skipCondition);
     this.azureBlobStorePdao = azureBlobStorePdao;
   }
 

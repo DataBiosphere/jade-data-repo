@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
@@ -8,7 +9,6 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableTransactionAction;
 import com.azure.data.tables.models.TableTransactionActionType;
-import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -21,23 +21,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class TableDependencyDao {
   private final Logger logger = LoggerFactory.getLogger(TableDependencyDao.class);
-  private static final String DEPENDENCY_TABLE_NAME_SUFFIX = "dependencies";
+
   private static final int MAX_FILTER_CLAUSES = 15;
 
   @Autowired
   public TableDependencyDao() {}
-
-  @VisibleForTesting
-  public String getDatasetDependencyTableName(UUID datasetId) {
-    return "datarepo" + datasetId.toString().replaceAll("-", "") + DEPENDENCY_TABLE_NAME_SUFFIX;
-  }
 
   public void storeSnapshotFileDependencies(
       TableServiceClient tableServiceClient, UUID datasetId, UUID snapshotId, List<String> refIds) {
 
     // We construct the snapshot file system without using transactions. We can get away with that,
     // because no one can access this snapshot during its creation.
-    String dependencyTableName = getDatasetDependencyTableName(datasetId);
+    String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
     tableServiceClient.createTableIfNotExists(dependencyTableName);
     TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
     // The partition size is one less than the MAX_FILTER_CLAUSES to account for the snapshotId
@@ -79,7 +74,8 @@ public class TableDependencyDao {
 
   public void deleteSnapshotFileDependencies(
       TableServiceClient tableServiceClient, UUID datasetId, UUID snapshotId) {
-    String dependencyTableName = getDatasetDependencyTableName(datasetId);
+    String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
+    ;
     if (TableServiceClientUtils.tableHasEntries(tableServiceClient, dependencyTableName)) {
       TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
       ListEntitiesOptions options =
@@ -99,7 +95,7 @@ public class TableDependencyDao {
 
   public boolean datasetHasSnapshotReference(
       TableServiceClient tableServiceClient, UUID datasetId) {
-    String dependencyTableName = getDatasetDependencyTableName(datasetId);
+    String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
     return TableServiceClientUtils.tableHasEntries(tableServiceClient, dependencyTableName);
   }
 }

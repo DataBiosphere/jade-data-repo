@@ -44,8 +44,10 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
+import bio.terra.service.filedata.google.firestore.FireStoreDependency;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
@@ -254,8 +256,8 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     String tableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
     TableEntity createdEntity = tableClient.getEntity(snapshotId.toString(), fileUUIDs.get(0));
-    assertEntityCorrect(createdEntity, SNAPSHOT_ID, FILE_ID, 1L);
-//    dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
+    assertEntityCorrect(createdEntity, snapshotId, fileUUIDs.get(0), 1L);
+    //    dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     // assert that delete fails
     dataRepoFixtures.deleteDatasetShouldFail(steward, summaryModel2.getId());
     // delete dependencies
@@ -276,6 +278,15 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     clearEnvironment();
+  }
+
+  private void assertEntityCorrect(
+      TableEntity entity, UUID snapshotId, String fileId, Long refCount) {
+    assertThat(
+        snapshotId.toString(),
+        equalTo(entity.getProperty(FireStoreDependency.SNAPSHOT_ID_FIELD_NAME)));
+    assertThat(fileId, equalTo(entity.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME)));
+    assertThat(refCount, equalTo(entity.getProperty(FireStoreDependency.REF_COUNT_FIELD_NAME)));
   }
 
   @Test

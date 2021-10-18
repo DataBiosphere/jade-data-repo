@@ -123,7 +123,7 @@ public class SnapshotTest extends UsersBase {
 
     DataRepoResponse<JobModel> createSnapLaunchResp =
         dataRepoFixtures.createSnapshotRaw(
-            reader(), datasetSummaryModel.getName(), profileId, requestModel, true);
+            reader(), datasetSummaryModel.getName(), profileId, requestModel, true, false);
     assertThat(
         "Reader is not authorized on the billing profile to create a dataSnapshot",
         createSnapLaunchResp.getStatusCode(),
@@ -278,6 +278,24 @@ public class SnapshotTest extends UsersBase {
   }
 
   @Test
+  public void snapshotByFullViewAndPetServiceAccountHappyPathTest() throws Exception {
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    String datasetName = dataset.getName();
+    SnapshotRequestModel requestModel =
+        jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
+    // swap in the correct dataset name (with the id at the end)
+    requestModel.getContents().get(0).setDatasetName(datasetName);
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward(), datasetName, profileId, requestModel, true, true);
+    TimeUnit.SECONDS.sleep(10);
+    createdSnapshotIds.add(snapshotSummary.getId());
+    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
+    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+    assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
+  }
+
+  @Test
   public void snapshotInvalidEmailTest() throws Exception {
     SnapshotRequestModel requestModel =
         jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
@@ -285,7 +303,7 @@ public class SnapshotTest extends UsersBase {
     requestModel.setReaders(Collections.singletonList("bad-user@not-a-real-domain.com"));
     DataRepoResponse<JobModel> jobResponse =
         dataRepoFixtures.createSnapshotRaw(
-            steward(), datasetSummaryModel.getName(), profileId, requestModel, false);
+            steward(), datasetSummaryModel.getName(), profileId, requestModel, false, false);
     logger.info("Attempting to create the snapshot with the name: {}", requestModel.getName());
 
     DataRepoResponse<ErrorModel> snapshotResponse =

@@ -355,7 +355,7 @@ RAW_STRING : R (QUOTED_STRING | TRIPLE_QUOTED_STRING) ;
 BYTE_STRING : B (QUOTED_STRING | TRIPLE_QUOTED_STRING) ;
 RAW_BYTE_STRING : RB (QUOTED_STRING | TRIPLE_QUOTED_STRING) ;
 // ID regex
-ID : [a-zA-Z_][-A-Za-z_0-9]* ;
+ID : [a-zA-Z0-9_][-A-Za-z_0-9]* ;
 RB : [rR][bB] | [bB][rR] ;
 fragment DIGIT : [0-9] ;
 // Fragments for each letter of the alphabet. This is necessary because SQL keywords are case-insensitive.

@@ -19,14 +19,10 @@ import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.Transaction;
 import com.google.cloud.storage.StorageException;
 import io.grpc.StatusRuntimeException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.codec.digest.PureJavaCrc32C;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,17 +149,6 @@ public class FireStoreUtils {
       batchOperation(documents, generator);
 
     } while (documents.size() > 0);
-  }
-
-  String computeMd5(String input) {
-    return StringUtils.lowerCase(DigestUtils.md5Hex(input));
-  }
-
-  String computeCrc32c(String input) {
-    byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
-    PureJavaCrc32C crc = new PureJavaCrc32C();
-    crc.update(inputBytes, 0, inputBytes.length);
-    return Long.toHexString(crc.getValue());
   }
 
   /**

@@ -1,10 +1,13 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
 import bio.terra.common.category.Connected;
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
@@ -60,7 +63,7 @@ public class TableDependencyConnectedTest {
 
   @Test
   public void testCreateDeleteDependencyEntries() {
-    String tableName = dependencyDao.getDatasetDependencyTableName(DATASET_ID);
+    String tableName = StorageTableName.DEPENDENCIES.toTableName(DATASET_ID);
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
 
     // Add snapshot file dependency
@@ -86,7 +89,7 @@ public class TableDependencyConnectedTest {
 
   @Test
   public void testDatasetHasSnapshotReference() {
-    String tableName = dependencyDao.getDatasetDependencyTableName(DATASET_ID);
+    String tableName = StorageTableName.DEPENDENCIES.toTableName(DATASET_ID);
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
 
     // Add snapshot file dependency

@@ -6,22 +6,22 @@ import static org.junit.Assert.assertNull;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
-import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
-import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.common.azure.StorageTableName;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
-import bio.terra.service.filedata.FileService;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import com.azure.core.credential.AzureNamedKeyCredential;
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
+import com.azure.data.tables.models.ListEntitiesOptions;
+import com.azure.data.tables.models.TableEntity;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -47,29 +47,25 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class TableDirectoryDaoConnectedTest {
   private static final Logger logger =
       LoggerFactory.getLogger(TableDirectoryDaoConnectedTest.class);
+  private Dataset dataset;
   private UUID datasetId;
+  private UUID snapshotId;
   private TableServiceClient tableServiceClient;
-  private List<String> directoryEntriesToCleanup = new ArrayList<>();
-  private String tableName;
+  private final List<String> directoryEntriesToCleanup = new ArrayList<>();
+  private String snapshotTableName;
 
-  @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired DatasetService datasetService;
   @MockBean private IamProviderInterface samService;
-  @Autowired SynapseUtils synapseUtils;
-  @Autowired AzureAuthService azureAuthService;
   @Autowired TableDirectoryDao tableDirectoryDao;
-  @Autowired FileMetadataUtils fileMetadataUtils;
-  @Autowired TableDao tableDao;
-  @Autowired AzureBlobStorePdao azureBlobStorePdao;
-  @Autowired FileService fileService;
   @Autowired AzureUtils azureUtils;
 
   @Before
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
     datasetId = UUID.randomUUID();
+    dataset = new Dataset().id(datasetId).name(Names.randomizeName("datasetName"));
+    snapshotId = UUID.randomUUID();
     tableServiceClient =
         new TableServiceClientBuilder()
             .credential(
@@ -86,21 +82,51 @@ public class TableDirectoryDaoConnectedTest {
     // Should already be deleted
     for (String entry : directoryEntriesToCleanup) {
       try {
-        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, entry);
+        tableDirectoryDao.deleteDirectoryEntry(
+            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), entry);
       } catch (Exception ex) {
         logger.debug("Directory entry either already deleted or unable to delete {}", entry, ex);
       }
     }
-    if (tableName != null) {
+    if (snapshotTableName != null) {
       try {
-        TableClient tableClient = tableServiceClient.getTableClient(tableName);
+        TableClient tableClient = tableServiceClient.getTableClient(snapshotTableName);
         tableClient.deleteTable();
       } catch (Exception ex) {
-        logger.error("Unable to delete table {}", tableName, ex);
+        logger.error("Unable to delete table {}", snapshotTableName, ex);
       }
     }
 
     connectedOperations.teardown();
+  }
+
+  @Test
+  public void testStoreTopDirectory() {
+    tableDirectoryDao.storeTopDirectory(tableServiceClient, snapshotId, dataset.getName());
+
+    snapshotTableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
+    int count = getTableEntryCount(tableServiceClient, snapshotTableName);
+    assertThat("Store top directory should add two entries to snapshot table.", count, equalTo(2));
+
+    // get directories to confirm the correct ones are added
+    List<String> directories = new ArrayList<>();
+    directories.add("/");
+    directories.add("/" + dataset.getName());
+
+    List<FireStoreDirectoryEntry> datasetDirectoryEntries =
+        tableDirectoryDao.batchRetrieveByPath(
+            tableServiceClient, snapshotId, snapshotTableName, directories);
+    datasetDirectoryEntries.forEach(d -> directoryEntriesToCleanup.add(d.getFileId()));
+    assertThat("Retrieved entries for all paths", datasetDirectoryEntries.size(), equalTo(2));
+
+    // Test that batchRetrieveByPath only returns unique entries
+    List<String> nonUniqueDirectories = new ArrayList<>();
+    nonUniqueDirectories.add("/" + dataset.getName());
+    nonUniqueDirectories.add("/_dr_/" + dataset.getName());
+    List<FireStoreDirectoryEntry> uniqueDatasetDirectoryEntries =
+        tableDirectoryDao.batchRetrieveByPath(
+            tableServiceClient, snapshotId, snapshotTableName, nonUniqueDirectories);
+    assertThat("Only 1 unique path", uniqueDatasetDirectoryEntries.size(), equalTo(1));
   }
 
   @Test
@@ -117,24 +143,34 @@ public class TableDirectoryDaoConnectedTest {
     assertThat(
         "FireStoreDirectoryEntry should now exist",
         fileEntry1.getPath(),
-        equalTo(fileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName1)));
+        equalTo(FileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName1)));
     assertThat(
         "FireStoreDirectoryEntry should now exist",
         fileEntry2.getPath(),
-        equalTo(fileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName2)));
+        equalTo(FileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName2)));
 
     // Delete File 1's directory entry
     boolean deleteEntry =
-        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileEntry1.getFileId());
+        tableDirectoryDao.deleteDirectoryEntry(
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(),
+            fileEntry1.getFileId());
     assertThat("Delete Entry 1", deleteEntry, equalTo(true));
     FireStoreDirectoryEntry shouldbeNull =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId.toString(), sharedTargetPath + fileName1);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(),
+            sharedTargetPath + fileName1);
     assertThat("File1 reference no longer exists", shouldbeNull, equalTo(null));
 
     FireStoreDirectoryEntry file2StillPresent =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId.toString(), sharedTargetPath + fileName2);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(),
+            sharedTargetPath + fileName2);
     assertThat(
         "File2's directory still exists",
         file2StillPresent.getFileId(),
@@ -143,7 +179,10 @@ public class TableDirectoryDaoConnectedTest {
     // walk through sub directories make sure they still exist
     FireStoreDirectoryEntry childEntryStillPresent =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId.toString(), sharedTargetPath);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(),
+            sharedTargetPath);
     assertThat(
         String.format(
             "Shared subdirectory '%s' should still exist after single file delete",
@@ -152,7 +191,8 @@ public class TableDirectoryDaoConnectedTest {
         equalTo("/" + sharedParentDir));
 
     FireStoreDirectoryEntry parentEntryStillPresent =
-        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), sharedParentDir);
+        tableDirectoryDao.retrieveByPath(
+            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), sharedParentDir);
     assertThat(
         String.format(
             "Shared subdirectory '/%s' should still exist after single file delete",
@@ -161,7 +201,8 @@ public class TableDirectoryDaoConnectedTest {
         equalTo("/"));
 
     FireStoreDirectoryEntry blankEntryStillPresent =
-        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), "/");
+        tableDirectoryDao.retrieveByPath(
+            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), "/");
     assertThat(
         "Shared subdirectory should still exist after single file delete",
         blankEntryStillPresent.getPath(),
@@ -169,23 +210,34 @@ public class TableDirectoryDaoConnectedTest {
 
     // Delete the second file
     boolean deleteEntry2 =
-        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileEntry2.getFileId());
+        tableDirectoryDao.deleteDirectoryEntry(
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(),
+            fileEntry2.getFileId());
     assertThat("Delete Entry 2", deleteEntry2, equalTo(true));
     FireStoreDirectoryEntry file2ShouldbeNull =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId.toString(), sharedTargetPath + fileName2);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(),
+            sharedTargetPath + fileName2);
     assertThat("File2 reference no longer exists", file2ShouldbeNull, equalTo(null));
 
     FireStoreDirectoryEntry testEntryNotPresent =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId.toString(), sharedTargetPath);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(),
+            sharedTargetPath);
     assertNull(
         String.format(
             "Shared subdirectory %s should not exist after remaining file delete",
             sharedTargetPath),
         testEntryNotPresent);
     FireStoreDirectoryEntry parentEntryNotPresent =
-        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), sharedParentDir);
+        tableDirectoryDao.retrieveByPath(
+            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), sharedParentDir);
     assertNull(
         String.format(
             "Shared subdirectory '/%s' should not exist after remaining file delete",
@@ -205,36 +257,29 @@ public class TableDirectoryDaoConnectedTest {
         new FireStoreDirectoryEntry()
             .fileId(fileId.toString())
             .isFileRef(true)
-            .path(fileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName))
-            .name(fileMetadataUtils.getName(sharedTargetPath + fileName))
+            .path(FileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName))
+            .name(FileMetadataUtils.getName(sharedTargetPath + fileName))
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
-    tableDirectoryDao.createDirectoryEntry(tableServiceClient, newEntry);
+    tableDirectoryDao.createDirectoryEntry(
+        tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), newEntry);
     directoryEntriesToCleanup.add(fileId.toString());
 
     // test that directory entry now exists
     return tableDirectoryDao.retrieveByPath(
-        tableServiceClient, datasetId.toString(), sharedTargetPath + fileName);
+        tableServiceClient,
+        datasetId,
+        StorageTableName.DATASET.toTableName(),
+        sharedTargetPath + fileName);
   }
 
-  @Test
-  public void testDirectoryTableCreateDelete() {
-    tableName = Names.randomizeName("testTable123").replaceAll("_", "");
-    TableClient tableClient = tableServiceClient.getTableClient(tableName);
-
-    boolean tableExists = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should not exist", tableExists, equalTo(false));
-
-    tableServiceClient.createTableIfNotExists(tableName);
-    boolean tableExistsNow = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should exist", tableExistsNow, equalTo(true));
-
-    boolean tableNoEntries = TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
-    assertThat("table should have no entries", tableNoEntries, equalTo(false));
-
-    tableClient.deleteTable();
-    boolean tableExistsAfterDelete =
-        TableServiceClientUtils.tableExists(tableServiceClient, tableName);
-    assertThat("table should not exist after delete", tableExistsAfterDelete, equalTo(false));
+  private int getTableEntryCount(TableServiceClient tableServiceClient, String tableName) {
+    ListEntitiesOptions options = new ListEntitiesOptions();
+    if (TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName, options)) {
+      TableClient tableClient = tableServiceClient.getTableClient(tableName);
+      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+      return Iterables.size(entities);
+    }
+    return 0;
   }
 }

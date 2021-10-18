@@ -77,120 +77,70 @@ Ask a member of the team to add you to the admins group for each of these enviro
 
 [Homebrew](https://brew.sh/) is a [package manager](https://en.wikipedia.org/wiki/Package_manager)
 which enables the installation of software using a single, convenient command
-line interface:
+line interface. To automatically install development tools necessary for the
+team, a [Brewfile](https://github.com/Homebrew/homebrew-bundle) is used:
 
 ```
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+curl -LO https://raw.githubusercontent.com/DataBiosphere/jade-data-repo/develop/docs/Brewfile
+brew bundle --no-lock install
 ```
 
-Once Homebrew is installed, there are a number of useful development tools that
-should be installed.
+The Brewfile automatically installs the following tools:
 
 1. [Git](https://git-scm.com/) is a version control tool for tracking changes in
-projects and code. To ensure that secrets and passwords cannot accidentally be
-committed to repositories, [git-secrets](https://github.com/awslabs/git-secrets)
-is also installed:
-
-```
-brew install git
-brew install git-secrets
-git clone https://github.com/broadinstitute/dsp-appsec-gitsecrets-client.git gitsecrets
-sh gitsecrets/gitsecrets.sh
-```
-
-2. [jq](https://stedolan.github.io/jq/) is a command line JSON processing tool:
-
-```
-brew install jq
-```
-
+projects and code.
+2. [jq](https://stedolan.github.io/jq/) is a command line JSON processing tool.
 3. [Docker](https://www.docker.com/) is a tool to deliver software in packages
 called containers. Docker for MacOS also includes [Kubernetes](https://kubernetes.io/),
-which deploys groups of containers together in clusters. Once installed, you'll
-need to run Docker once from your list of Applications:
-
-```
-brew install --cask docker
-open -a Docker
-```
-
+which deploys groups of containers together in clusters.
 4. [Helm](https://helm.sh/) streamlines the process of defining, installing, and
-upgrading Kubernetes deployments, which are otherwise challenging to manage:
+upgrading Kubernetes deployments, which are otherwise challenging to manage.
+Some manual configuration is required below.
+5. [Helmfile](https://github.com/roboll/helmfile) streamlines deploying multiple
+helm charts.
+6. [Vault](https://www.vaultproject.io/) is an encrypted database used to store
+many of the team's secrets such as keys and passwords.
+7. [Google Cloud SDK](https://cloud.google.com/sdk) is a command-line interface
+to Google Cloud services. Once it is installed, you'll need to allow auth access
+and configure Docker to connect to the appropriate Google Cloud endpoint when
+necessary, which is done with the configuration below.
+8. [IntelliJ IDEA](https://www.jetbrains.com/idea/) is an integrated development
+environment (IDE) for Java. There are two versions available: **Ultimate** (paid)
+and **Community** (open-source). We recommend the Ultimate Edition to Broad
+employees for its database navigation capabilities. Alternatively, the Community
+Edition has all the features needed for development, and this version can be
+installed by switching `intellij-idea` with `intellij-idea-ce` in the Brewfile.
+
+Unfortunately, some manual configuration is also necessary:
 
 ```
-brew install helm
+# configure vault
+export VAULT_ADDR=https://clotho.broadinstitute.org:8200
+
+# configure helm
 helm repo add stable
 helm repo add datarepo-helm https://broadinstitute.github.io/datarepo-helm
 helm plugin install https://github.com/thomastaylor312/helm-namespace
-helm repo update
-```
-
-5. [Helmfile](https://github.com/roboll/helmfile) streamlines deploying multiple helm charts:
-```
-brew install helmfile
 helm plugin install https://github.com/databus23/helm-diff
-```
+helm repo update
 
-6. [Skaffold](https://github.com/GoogleContainerTools/skaffold) facilitates the
-continuous development of Kubernetes resources. Newer versions are incompatible
-with our development environments, so version 1.3.1 is installed instead.
-
-```
-curl https://raw.githubusercontent.com/Homebrew/homebrew-core/5db9ede616f5d681fa9873b150416d6795e0e0e9/Formula/skaffold.rb --output skaffold.rb
-brew install skaffold.rb
-brew pin skaffold
-```
-
-7. [Vault](https://www.vaultproject.io/) is an encrypted database used to store
-many of the team's secrets such as keys and passwords:
-
-```
-brew install vault
-export VAULT_ADDR=https://clotho.broadinstitute.org:8200
-```
-
-8. Much of the code written at the Broad is in [Java](https://en.wikipedia.org/wiki/Java_(programming_language)).
-Install the OpenJDK 11 runtime from the [AdoptOpenJDK](https://adoptopenjdk.net/)
-project to develop and run Java code:
-
-```
-brew tap AdoptOpenJDK/openjdk
-brew install --cask adoptopenjdk11
-```
-
-9. [Google Cloud SDK](https://cloud.google.com/sdk) is a command-line interface
-to Google Cloud services. Once it is installed, you'll need to allow auth access
-and configure Docker to connect to the appropriate Google Cloud endpoint when
-necessary:
-
-```
-brew install --cask google-cloud-sdk
+# configure google-cloud-sdk
 gcloud auth login
 gcloud auth application-default login
 gcloud auth configure-docker
 ```
 
-10. [IntelliJ IDEA](https://www.jetbrains.com/idea/) is an integrated development
-environment (IDE) for Java. There are two versions available: **Ultimate** (paid)
-and **Community** (open-source).
-
-We recommend the Ultimate Edition to Broad employees for its database navigation capabilities:
-
-```
-brew install --cask intellij-idea
-open -a "IntelliJ IDEA"
-```
-
-Alternatively, the Community Edition has all the features needed for development:
+Also, [Skaffold](https://github.com/GoogleContainerTools/skaffold) cannot be
+automatically installed through Homebrew as newer versions are incompatible with
+our development environment. Skaffold facilitates the continuous development of
+Kubernetes resources. Version 1.3.1 is installed instead.
 
 ```
-brew cask install intellij-idea-ce
-open -a "IntelliJ IDEA CE"
+curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/v1.3.1/skaffold-darwin-amd64 \
+  && chmod +x skaffold \
+  && sudo mv skaffold /usr/local/bin
 ```
-
-11. Once it is launched, go to IntelliJ IDEA -> Preferences -> Plugins,
-then click in the search box and install **Cloud Code**, which integrates
-Google Cloud features with IntelliJ IDEA.
 
 ## 6. Create GitHub token
 

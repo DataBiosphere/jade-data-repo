@@ -99,13 +99,10 @@ public class GrammarTest {
     assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
   }
 
-  @Test(expected = InvalidQueryException.class)
-  public void testWhere1000Genomes() {
-    Query.parse(
-        "SELECT 1000GenomesDataset.sample_info.datarepo_row_id FROM 1000GenomesDataset"
-            + ".sample_info JOIN a1000GenomesDataset.pedigree ON 1000GenomesDataset.pedigree.Family_ID = "
-            + "1000GenomesDataset.sample_info.Family_ID WHERE 1000GenomesDataset.pedigree.Relationship IN (\"child\") "
-            + "AND 1000GenomesDataset.sample_info.Gender  IN (\"male\")");
+  @Test
+  public void test1000Genomes() {
+    // test for DR-2143 Fix validating dataset names that start with a number
+    Query.parse("SELECT * FROM 1000GenomesDataset.sample_info");
   }
 
   @Test(expected = InvalidQueryException.class)

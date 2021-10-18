@@ -192,35 +192,19 @@ public class ResourceService {
       return;
     }
 
-    Optional<UUID> storageAccountResourceId =
-        snapshotStorageAccountDao.getStorageAccountResourceIdForSnapshotId(snapshot.getId());
-    final AzureStorageAccountResource storageAccountResource;
+    final AzureRegion region = snapshot.getStorageAccountRegion();
+    final AzureApplicationDeploymentResource applicationResource =
+        applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
+    String computedStorageAccountName =
+        azureDataLocationSelector.createStorageAccountName(
+            applicationResource.getStorageAccountPrefix(), snapshot.getName(), billingProfile);
 
-    // Maybe the storage account exists in the db, but the in-memory object hasn't been updated
-    // I don't think this case exists, but I'm programming defensively here.
-    if (storageAccountResourceId.isPresent()) {
-      storageAccountResource =
-          storageAccountService.getStorageAccountResourceById(
-              storageAccountResourceId.get(), false);
-    } else {
-      // Looks like the storage account doesn't exist. Make one!
-      final AzureRegion region = snapshot.getStorageAccountRegion();
-      // Every storage account needs to live in a deployed application's managed resource group, so
-      // we
-      // make sure that
-      // the application deployment is registered first
-      final AzureApplicationDeploymentResource applicationResource =
-          applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
+    AzureStorageAccountResource storageAccountResource =
+        storageAccountService.getOrCreateStorageAccount(
+            computedStorageAccountName, applicationResource, region, flightId);
 
-      String computedStorageAccountName =
-          azureDataLocationSelector.createStorageAccountName(
-              applicationResource.getStorageAccountPrefix(), snapshot.getName(), billingProfile);
-      storageAccountResource =
-          storageAccountService.getOrCreateStorageAccount(
-              computedStorageAccountName, applicationResource, region, flightId);
-      snapshotStorageAccountDao.createSnapshotStorageAccountLink(
-          snapshot.getId(), storageAccountResource.getResourceId());
-    }
+    snapshotStorageAccountDao.createSnapshotStorageAccountLink(
+        snapshot.getId(), storageAccountResource.getResourceId());
 
     // Set the storage account resource in the snapshot object for convenience.
     snapshot.setStorageAccountResource(storageAccountResource);

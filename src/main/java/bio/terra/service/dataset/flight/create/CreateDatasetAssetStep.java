@@ -1,7 +1,9 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.common.FlightUtils;
+import bio.terra.common.BaseStep;
 import bio.terra.common.Relationship;
+import bio.terra.common.StepInput;
+import bio.terra.common.StepOutput;
 import bio.terra.model.AssetModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -12,11 +14,6 @@ import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidAssetException;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.HashMap;
@@ -26,11 +23,16 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 
-public class CreateDatasetAssetStep implements Step {
+public class CreateDatasetAssetStep extends BaseStep {
 
   private final ConfigurationService configService;
   private final AssetDao assetDao;
   private final DatasetService datasetService;
+
+  @StepInput UUID datasetId;
+  @StepInput AssetModel request;
+
+  @StepInput @StepOutput Boolean assetNameCollision;
 
   public CreateDatasetAssetStep(
       AssetDao assetDao, ConfigurationService configService, DatasetService datasetService) {
@@ -39,18 +41,14 @@ public class CreateDatasetAssetStep implements Step {
     this.datasetService = datasetService;
   }
 
-  private Dataset getDataset(FlightContext context) {
+  private Dataset getDataset() {
     // Use the dataset id to fetch the Dataset object
-    UUID datasetId =
-        UUID.fromString(
-            context.getInputParameters().get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     return datasetService.retrieve(datasetId);
   }
 
-  private AssetSpecification getNewAssetSpec(FlightContext context, Dataset dataset) {
+  private AssetSpecification getNewAssetSpec(Dataset dataset) {
     // get Asset Model and convert it to a spec
-    AssetModel assetModel =
-        context.getInputParameters().get(JobMapKeys.REQUEST.getKeyName(), AssetModel.class);
+    AssetModel assetModel = request;
 
     List<DatasetTable> datasetTables = dataset.getTables();
     Map<String, Relationship> relationshipMap = new HashMap<>();
@@ -69,13 +67,11 @@ public class CreateDatasetAssetStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
+  public StepResult perform() {
     // TODO: Asset columns and tables need to match things in the dataset schema
-    Dataset dataset = getDataset(context);
-    FlightMap map = context.getWorkingMap();
-
+    Dataset dataset = getDataset();
     // get the dataset assets that already exist --asset name needs to be unique
-    AssetSpecification newAssetSpecification = getNewAssetSpec(context, dataset);
+    AssetSpecification newAssetSpecification = getNewAssetSpec(dataset);
 
     // add a fault that forces an exception to make sure the undo works
     try {
@@ -91,23 +87,22 @@ public class CreateDatasetAssetStep implements Step {
     try {
       assetDao.create(newAssetSpecification, dataset.getId());
     } catch (InvalidAssetException e) {
-      FlightUtils.setErrorResponse(context, e.getMessage(), HttpStatus.BAD_REQUEST);
-      map.put(DatasetWorkingMapKeys.ASSET_NAME_COLLISION, true);
+      setErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+      assetNameCollision = true;
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
     }
 
-    map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
+    statusCode = HttpStatus.CREATED;
     return StepResult.getStepResultSuccess();
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
-    FlightMap map = context.getWorkingMap();
-    if (map.get(DatasetWorkingMapKeys.ASSET_NAME_COLLISION, Boolean.class) == null) {
-      Dataset dataset = getDataset(context);
+  public StepResult undo() {
+    if (assetNameCollision == null) {
+      Dataset dataset = getDataset();
       // Search the Asset list in the dataset object to see if the asset you were trying to create
       // got created.
-      AssetSpecification newAssetSpecification = getNewAssetSpec(context, dataset);
+      AssetSpecification newAssetSpecification = getNewAssetSpec(dataset);
       Optional<AssetSpecification> assetSpecificationToDelete =
           dataset.getAssetSpecificationByName(newAssetSpecification.getName());
       // This only works if we are sure asset names are unique.

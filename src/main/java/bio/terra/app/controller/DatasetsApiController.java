@@ -193,7 +193,7 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
-    String jobId = datasetService.addDatasetAssetSpecifications(id.toString(), asset, userReq);
+    String jobId = datasetService.addDatasetAssetSpecifications(id, asset, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 

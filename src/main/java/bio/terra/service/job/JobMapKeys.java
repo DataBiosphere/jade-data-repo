@@ -6,7 +6,7 @@ public enum JobMapKeys {
   REQUEST("request"),
   REVERT_TO("revert_to"),
   RESPONSE("response"),
-  STATUS_CODE("status_code"),
+  STATUS_CODE("statusCode"),
   AUTH_USER_INFO("auth_user_info"),
   SUBJECT_ID("subjectId"),
   CLOUD_PLATFORM("cloudPlatform"),

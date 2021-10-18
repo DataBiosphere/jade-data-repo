@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.common.FlightUtils;
+import bio.terra.common.BaseStep;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -12,15 +12,13 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 
-public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
+public class CreateSnapshotPrimaryDataRowIdsStep extends BaseStep {
 
   private BigQueryPdao bigQueryPdao;
   private SnapshotDao snapshotDao;
@@ -39,7 +37,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
+  public StepResult perform() throws InterruptedException {
     SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     SnapshotSource source = snapshot.getFirstSnapshotSource();
@@ -53,7 +51,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
         if (!rowIdMatch.getUnmatchedInputValues().isEmpty()) {
           String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
           String message = String.format("Mismatched row ids: '%s'", unmatchedValues);
-          FlightUtils.setErrorResponse(context, message, HttpStatus.BAD_REQUEST);
+          setErrorResponse(message, HttpStatus.BAD_REQUEST);
           return new StepResult(
               StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
@@ -65,7 +63,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
+  public StepResult undo() throws InterruptedException {
     snapshotService.undoCreateSnapshot(snapshotReq.getName());
     return StepResult.getStepResultSuccess();
   }

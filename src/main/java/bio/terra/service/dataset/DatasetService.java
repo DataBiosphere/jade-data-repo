@@ -208,7 +208,7 @@ public class DatasetService {
   }
 
   public String addDatasetAssetSpecifications(
-      String datasetId, AssetModel assetModel, AuthenticatedUserRequest userReq) {
+      UUID datasetId, AssetModel assetModel, AuthenticatedUserRequest userReq) {
     String description = "Add dataset asset specification " + assetModel.getName();
     return jobService
         .newJob(description, AddAssetSpecFlight.class, assetModel, userReq)

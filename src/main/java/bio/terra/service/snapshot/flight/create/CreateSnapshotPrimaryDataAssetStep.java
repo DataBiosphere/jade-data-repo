@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.common.FlightUtils;
+import bio.terra.common.BaseStep;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -11,13 +11,11 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.springframework.http.HttpStatus;
 
-public class CreateSnapshotPrimaryDataAssetStep implements Step {
+public class CreateSnapshotPrimaryDataAssetStep extends BaseStep {
 
   private BigQueryPdao bigQueryPdao;
   private SnapshotDao snapshotDao;
@@ -36,7 +34,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
+  public StepResult perform() throws InterruptedException {
     /*
      * map field ids into row ids and validate
      * then pass the row id array into create snapshot
@@ -50,7 +48,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
     if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
       String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
       String message = String.format("Mismatched input values: '%s'", unmatchedValues);
-      FlightUtils.setErrorResponse(context, message, HttpStatus.BAD_REQUEST);
+      setErrorResponse(message, HttpStatus.BAD_REQUEST);
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
     }
@@ -66,7 +64,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
+  public StepResult undo() throws InterruptedException {
     snapshotService.undoCreateSnapshot(snapshotReq.getName());
     return StepResult.getStepResultSuccess();
   }

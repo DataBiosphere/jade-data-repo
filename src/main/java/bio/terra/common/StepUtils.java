@@ -4,12 +4,8 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import java.lang.reflect.Field;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StepUtils {
-
-  private static final Logger logger = LoggerFactory.getLogger(StepUtils.class);
 
   public static String keyFromField(Field field) {
     // TODO: add support for name overrides.
@@ -53,11 +49,6 @@ public class StepUtils {
               continue;
             }
             context.getWorkingMap().put(keyFromField(field), value);
-            logger.info(
-                "Step {} writing '{}' to key '{}'",
-                step.getClass().getSimpleName(),
-                value,
-                keyFromField(field));
           } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
           }

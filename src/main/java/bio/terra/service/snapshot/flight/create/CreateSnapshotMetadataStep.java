@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.common.BaseStep;
 import bio.terra.common.StepInput;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -44,7 +45,8 @@ public class CreateSnapshotMetadataStep extends BaseStep {
       snapshotDao.createAndLock(snapshot, getContext().getFlightId());
 
       SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(snapshotId);
-      setResponse(snapshotSummary, HttpStatus.CREATED);
+      SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);
+      setResponse(response , HttpStatus.CREATED);
       return StepResult.getStepResultSuccess();
     } catch (InvalidSnapshotException isEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, isEx);

@@ -148,7 +148,7 @@ public class SnapshotDao {
    * @return the id of the new snapshot
    * @throws InvalidSnapshotException if a row already exists with this snapshot name
    */
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.READ_COMMITTED)
   public void createAndLock(Snapshot snapshot, String flightId) {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 

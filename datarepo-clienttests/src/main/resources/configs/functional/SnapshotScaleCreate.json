@@ -1,7 +1,7 @@
 {
-  "name": "SnapshotScaleDelete",
+  "name": "SnapshotScaleCreate",
   "description": "Create and delete 1+ snapshots based on the same source dataset.",
-  "serverSpecificationFile": "sedev.json",
+  "serverSpecificationFile": "perf.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 2
@@ -9,8 +9,8 @@
   "application": {},
   "testScripts": [
     {
-      "name": "SnapshotScaleDelete",
-      "parameters": [50],
+      "name": "SnapshotScaleCreate",
+      "parameters": [10],
       "numberOfUserJourneyThreadsToRun": 1,
       "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 1,

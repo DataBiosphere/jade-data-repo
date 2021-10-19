@@ -11,7 +11,6 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,8 +58,9 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    azureSynapsePdao.dropTables(
-        Arrays.asList(IngestUtils.getSourceDatasetDataSourceName(context.getFlightId())));
+    // TODO - UNCOMMENT BEFORE MERGE!
+    //    azureSynapsePdao.dropTables(
+    //        Arrays.asList(IngestUtils.getSourceDatasetDataSourceName(context.getFlightId())));
     return StepResult.getStepResultSuccess();
   }
 }

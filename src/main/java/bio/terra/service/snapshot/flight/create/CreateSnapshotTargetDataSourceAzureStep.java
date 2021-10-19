@@ -14,7 +14,6 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.storage.blob.BlobUrlParts;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 // TODO - this is the exact same step as used for ingest - find way to share code
 public class CreateSnapshotTargetDataSourceAzureStep implements Step {
@@ -59,8 +58,9 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     // TODO - drop data sources, etc.
-    azureSynapsePdao.dropTables(
-        Arrays.asList(IngestUtils.getSynapseTableName(context.getFlightId())));
+    // TODO - UNCOMMENT BEFORE MERGE
+    //    azureSynapsePdao.dropTables(
+    //        Arrays.asList(IngestUtils.getSynapseTableName(context.getFlightId())));
 
     return StepResult.getStepResultSuccess();
   }

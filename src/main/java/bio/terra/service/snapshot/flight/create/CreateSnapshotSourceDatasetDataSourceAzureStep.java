@@ -14,7 +14,6 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.storage.blob.BlobUrlParts;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
   private AzureSynapsePdao azureSynapsePdao;
@@ -34,9 +33,10 @@ public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
     AzureStorageAccountResource datasetAzureStorageAccountResource =
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
-    AzureStorageAccountResource snapshotAzureStorageAccountResource =
-        workingMap.get(
-            CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
+    //    AzureStorageAccountResource snapshotAzureStorageAccountResource =
+    //        workingMap.get(
+    //            CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE,
+    // AzureStorageAccountResource.class);
 
     String parquetDatasetSourceLocation =
         IngestUtils.getParquetTargetLocationURL(datasetAzureStorageAccountResource);
@@ -44,7 +44,7 @@ public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
             parquetDatasetSourceLocation,
             billingProfile,
-            snapshotAzureStorageAccountResource,
+            datasetAzureStorageAccountResource,
             AzureStorageAccountResource.ContainerType.METADATA);
     try {
       azureSynapsePdao.createExternalDataSource(
@@ -60,10 +60,12 @@ public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    azureSynapsePdao.dropDataSources(
-        Arrays.asList(IngestUtils.getSourceDatasetDataSourceName(context.getFlightId())));
-    azureSynapsePdao.dropScopedCredentials(
-        Arrays.asList(IngestUtils.getSourceDatasetScopedCredentialName(context.getFlightId())));
+    // TODO - UNCOMMENT BEFORE MEREGE
+    //    azureSynapsePdao.dropDataSources(
+    //        Arrays.asList(IngestUtils.getSourceDatasetDataSourceName(context.getFlightId())));
+    //    azureSynapsePdao.dropScopedCredentials(
+    //
+    // Arrays.asList(IngestUtils.getSourceDatasetScopedCredentialName(context.getFlightId())));
 
     return StepResult.getStepResultSuccess();
   }

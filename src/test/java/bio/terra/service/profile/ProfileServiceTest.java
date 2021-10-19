@@ -148,9 +148,9 @@ public class ProfileServiceTest {
         model.getMessage(),
         containsString("Validation error"));
     assertThat(
-        "There should be 4 errors: 3 for null errors, 1 for incorrect pattern for billing account",
+        "There should be 3 errors: 2 for null errors, 1 for incorrect pattern for billing account",
         model.getErrorDetail().size(),
-        equalTo(4));
+        equalTo(3));
   }
 
   private GoogleProjectResource buildProjectResource() throws Exception {

@@ -3,8 +3,10 @@ package bio.terra.service.resourcemanagement;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.startsWith;
 
@@ -87,8 +89,8 @@ public class ProfileConnectedTest {
     var resourceGroup = testConfig.getTargetResourceGroupName();
     var applicationName = testConfig.getTargetApplicationName();
     var requestModel =
-        ProfileFixtures.randomBillingProfileRequest()
-            .billingAccountId(testConfig.getGoogleBillingAccountId())
+        ProfileFixtures.randomizeAzureBillingProfileRequest()
+            .billingAccountId("")
             .cloudPlatform(CloudPlatform.AZURE)
             .tenantId(tenant)
             .subscriptionId(subscription)
@@ -103,6 +105,11 @@ public class ProfileConnectedTest {
         "The response has the correct cloudPlatform",
         retrievedProfile.getCloudPlatform(),
         equalTo(CloudPlatform.AZURE));
+
+    assertThat(
+        "Azure billing profile does not have a google billingAccountId",
+        retrievedProfile.getBillingAccountId(),
+        is(emptyOrNullString()));
 
     assertThat(
         "Azure billing profile has tenant, subscription, resourceGroup, and applicationName",
@@ -151,25 +158,29 @@ public class ProfileConnectedTest {
   }
 
   @Test
-  public void testAzureMissingParams() throws Exception {
+  public void testAzureInvalidParams() throws Exception {
     var azureRequestModel =
         ProfileFixtures.randomBillingProfileRequest().cloudPlatform(CloudPlatform.AZURE);
-    var missingParams =
+    var invalidParams =
         connectedOperations.createProfileExpectError(azureRequestModel, HttpStatus.BAD_REQUEST);
 
-    assertThat("There are 3 errors returned", missingParams.getErrorDetail(), iterableWithSize(3));
+    assertThat("There are 4 errors returned", invalidParams.getErrorDetail(), iterableWithSize(4));
 
     assertThat(
         "Azure request returns tenantId error if not supplied",
-        missingParams.getErrorDetail(),
+        invalidParams.getErrorDetail(),
         hasItems(containsString("UUID `tenantId`")));
     assertThat(
         "Azure request returns subscriptionId error if not supplied",
-        missingParams.getErrorDetail(),
+        invalidParams.getErrorDetail(),
         hasItems(containsString("UUID `subscriptionId`")));
     assertThat(
         "Azure request returns resourceGroupName error if not supplied",
-        missingParams.getErrorDetail(),
+        invalidParams.getErrorDetail(),
         hasItems(containsString("non-empty resourceGroupName")));
+    assertThat(
+        "Azure request returns google billingAccountId error if supplied",
+        invalidParams.getErrorDetail(),
+        hasItems(containsString("billing account id")));
   }
 }

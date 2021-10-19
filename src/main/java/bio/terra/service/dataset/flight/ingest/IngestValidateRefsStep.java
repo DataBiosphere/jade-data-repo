@@ -65,14 +65,7 @@ public abstract class IngestValidateRefsStep implements Step {
 
     @Override
     public String toString() {
-      return "InvalidRefId{"
-          + "refId='"
-          + refId
-          + '\''
-          + ", columnName='"
-          + columnName
-          + '\''
-          + '}';
+      return "{" + "refId: " + refId + ", " + "columnName: " + columnName + "}";
     }
   }
 }

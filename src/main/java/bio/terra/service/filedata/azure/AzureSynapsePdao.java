@@ -285,11 +285,13 @@ public class AzureSynapsePdao {
       String datasetFlightId)
       throws SQLException {
     for (DatasetTable table : tables) {
+      // TODO - check if there is any data in the table? Or if the parquet file already exists?
       // Create a copy of each dataset "table" (parquet file)
       List<SynapseColumn> columns =
           table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
       String datasetParquetFileName =
           IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
+      // TODO - this need to be a folder w/ name of table and a wildcard select
       String snapshotParquetFileName =
           IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
       String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());

@@ -494,7 +494,10 @@ public class DatasetDao {
         // Retrieve the project and application deployment resource associated with the dataset
         // This is a bit sketchy filling in the object via a dao in another package.
         // It seemed like the cleanest thing to me at the time.
-        dataset.projectResource(resourceService.getProjectResource(dataset.getProjectResourceId()));
+        if (dataset.getProjectResourceId() != null) {
+          dataset.projectResource(
+              resourceService.getProjectResource(dataset.getProjectResourceId()));
+        }
         if (dataset.getApplicationDeploymentResourceId() != null) {
           dataset.applicationDeploymentResource(
               resourceService.getApplicationDeploymentResource(

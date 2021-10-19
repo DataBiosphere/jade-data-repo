@@ -54,22 +54,22 @@ public class DatasetCreateFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    // Make sure this user is allowed to use the billing profile and that the underlying
-    // billing information remains valid.
+    // Make sure this user is allowed to use the billing profile
     addStep(
         new AuthorizeBillingProfileUseStep(
             profileService, datasetRequest.getDefaultProfileId(), userReq));
 
-    // Get a new google project from RBS and store it in the working map
-    addStep(new GetResourceBufferProjectStep(bufferService));
-
     // Generate the dateset id and store it in the working map
     addStep(new CreateDatasetIdStep());
 
-    // Get or initialize the project where the dataset resources will be created
-    addStep(
-        new CreateDatasetInitializeProjectStep(resourceService, datasetRequest),
-        getDefaultExponentialBackoffRetryRule());
+    if (platform.isGcp()) {
+      // Get a new google project from RBS and store it in the working map
+      addStep(new GetResourceBufferProjectStep(bufferService));
+
+      // Get or initialize the project where the dataset resources will be created
+      addStep(new CreateDatasetInitializeProjectStep(resourceService, datasetRequest),
+              getDefaultExponentialBackoffRetryRule());
+    }
 
     // Get or create the storage account where the dataset resources will be created for Azure
     if (platform.isAzure()) {
@@ -97,23 +97,24 @@ public class DatasetCreateFlight extends Flight {
           new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao, datasetRequest));
     }
 
-    addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao));
-
     // The underlying service provides retries so we do not need to retry for IAM step
     addStep(new CreateDatasetAuthzIamStep(iamClient, userReq));
 
-    // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes.
-    // The max
-    // operation timeout is generous.
-    RetryRule pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
-    addStep(
-        new CreateDatasetAuthzPrimaryDataStep(bigQueryPdao, datasetService, configService),
-        pdaoAclRetryRule);
+    if (platform.isGcp()) {
+      addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao));
 
-    // The underlying service provides retries so we do not need to retry for BQ Job User step at
-    // this time
-    addStep(new CreateDatasetAuthzBqJobUserStep(datasetService, resourceService));
+      // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes.
+      // The max
+      // operation timeout is generous.
+      RetryRule pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
+      addStep(
+          new CreateDatasetAuthzPrimaryDataStep(bigQueryPdao, datasetService, configService),
+          pdaoAclRetryRule);
 
+      // The underlying service provides retries so we do not need to retry for BQ Job User step at
+      // this time
+      addStep(new CreateDatasetAuthzBqJobUserStep(datasetService, resourceService));
+    }
     addStep(new UnlockDatasetStep(datasetService, false));
   }
 }

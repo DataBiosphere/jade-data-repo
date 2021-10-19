@@ -210,21 +210,7 @@ public class ProfileService {
     logger.info("Verify authorization for link id={} user={}", profileId, user.getEmail());
     iamService.verifyAuthorization(
         user, IamResourceType.SPEND_PROFILE, profileId.toString(), IamAction.LINK);
-
-    BillingProfileModel profileModel = profileDao.getBillingProfileById(profileId);
-
-    // TODO: check bill account usable and validate delegation path
-    //  For now we just make sure that the building account is accessible to the
-    //  TDR service account.
-    String billingAccountId = profileModel.getBillingAccountId();
-    if (!googleBillingService.repositoryCanAccess(billingAccountId)) {
-      throw new InaccessibleBillingAccountException(
-          "The repository needs access to billing account "
-              + billingAccountId
-              + " to perform the requested operation");
-    }
-
-    return profileModel;
+    return profileDao.getBillingProfileById(profileId);
   }
 
   public PolicyModel addProfilePolicyMember(

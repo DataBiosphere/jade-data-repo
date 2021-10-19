@@ -87,7 +87,7 @@ public class FileDeleteFlight extends Flight {
           fileSystemRetry);
       addStep(new DeleteFileAzureMetadataStep(tableDao, fileId, dataset), fileSystemRetry);
       addStep(new DeleteFileAzurePrimaryDataStep(azureBlobStorePdao));
-      addStep(new DeleteFileAzureDirectoryStep(tableDao, fileId), fileSystemRetry);
+      addStep(new DeleteFileAzureDirectoryStep(tableDao, fileId, dataset), fileSystemRetry);
     }
     addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
   }

@@ -46,7 +46,7 @@ public class CreateSnapshotMetadataStep extends BaseStep {
 
       SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(snapshotId);
       SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);
-      setResponse(response , HttpStatus.CREATED);
+      setResponse(response, HttpStatus.CREATED);
       return StepResult.getStepResultSuccess();
     } catch (InvalidSnapshotException isEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, isEx);

@@ -44,7 +44,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -401,7 +400,7 @@ public class GoogleProjectService {
 
     GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
 
-    Callable<Void> retryable =
+    AclUtils.aclUpdateRetry(
         () -> {
           CloudResourceManager resourceManager = cloudResourceManager();
           Policy policy =
@@ -410,7 +409,7 @@ public class GoogleProjectService {
 
           switch (permissionOp) {
             case ENABLE_PERMISSIONS:
-              for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
+              for (var entry : userPermissions.entrySet()) {
                 Binding binding =
                     new Binding().setRole(entry.getKey()).setMembers(entry.getValue());
                 bindingsList.add(binding);
@@ -419,7 +418,7 @@ public class GoogleProjectService {
 
             case REVOKE_PERMISSIONS:
               // Remove members from the current policies
-              for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
+              for (var entry : userPermissions.entrySet()) {
                 CollectionUtils.filter(
                     bindingsList,
                     b -> {
@@ -438,8 +437,7 @@ public class GoogleProjectService {
           SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
           resourceManager.projects().setIamPolicy(projectId, setIamPolicyRequest).execute();
           return null;
-        };
-    AclUtils.aclUpdateRetry(retryable);
+        });
   }
 
   // TODO: convert this to using the resource manager service interface instead of the api interface

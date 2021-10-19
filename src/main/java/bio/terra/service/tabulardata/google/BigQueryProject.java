@@ -22,12 +22,9 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,8 +167,8 @@ public final class BigQueryProject {
   public void removeDatasetAcls(String datasetId, List<Acl> acls) throws InterruptedException {
     Dataset dataset = bigQuery.getDataset(datasetId);
     if (dataset != null) { // can be null if create dataset step failed before it was created
-      updateDatasetAcls(dataset,
-          dataset.getAcl().stream().filter(acls::contains).collect(Collectors.toList()));
+      updateDatasetAcls(
+          dataset, dataset.getAcl().stream().filter(acls::contains).collect(Collectors.toList()));
     }
   }
 

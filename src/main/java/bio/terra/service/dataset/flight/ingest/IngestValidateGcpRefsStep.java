@@ -11,6 +11,7 @@ import bio.terra.stairway.StepResult;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
 
@@ -35,13 +36,16 @@ public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
     // Then probe the file system to validate that the file exists and is part
     // of this dataset. We check all ids and return one complete error.
 
-    Set<String> invalidRefIds = new HashSet<>();
+    Set<InvalidRefId> invalidRefIds = new HashSet<>();
     for (Column column : table.getColumns()) {
       if (column.isFileOrDirRef()) {
         List<String> refIdArray = bigQueryPdao.getRefIds(dataset, stagingTableName, column);
         List<String> badRefIds = fileDao.validateRefIds(dataset, refIdArray);
         if (badRefIds != null) {
-          invalidRefIds.addAll(badRefIds);
+          invalidRefIds.addAll(
+              badRefIds.stream()
+                  .map(id -> new InvalidRefId(id, column.getName()))
+                  .collect(Collectors.toList()));
         }
       }
     }

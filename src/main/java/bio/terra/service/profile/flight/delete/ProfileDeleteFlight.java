@@ -61,17 +61,15 @@ public class ProfileDeleteFlight extends Flight {
     // complete the deletion of the billing profile.
     // In the case of Azure, metadata records are deleted but will fail if the underlying resources
     // are in use
-    addStep(new DeleteProfileMarkUnusedProjects(resourceService, profileId));
+    if (platform.isGcp()) {
+      addStep(new DeleteProfileMarkUnusedProjects(resourceService, profileId));
+      addStep(new DeleteProfileDeleteUnusedProjects(resourceService));
+      addStep(new DeleteProfileProjectMetadata(resourceService));
+    }
     if (platform.isAzure()) {
       addStep(
           new DeleteProfileMarkUnusedApplicationDeployments(
               profileService, resourceService, user, profileId));
-    }
-
-    addStep(new DeleteProfileDeleteUnusedProjects(resourceService));
-    addStep(new DeleteProfileProjectMetadata(resourceService));
-
-    if (platform.isAzure()) {
       addStep(new DeleteProfileApplicationDeploymentMetadata(resourceService));
     }
 

@@ -22,7 +22,6 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotStorageAccountDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.Collection;
@@ -183,31 +182,31 @@ public class ResourceService {
         storageAccountName, applicationResource, region, flightId);
   }
 
-  public void createSnapshotStorageAccount(
-      Snapshot snapshot, BillingProfileModel billingProfile, String flightId)
+  public AzureStorageAccountResource createSnapshotStorageAccount(
+      String snapshotName,
+      UUID snapshotId,
+      AzureRegion sourceDatasetAzureRegion,
+      BillingProfileModel billingProfile,
+      String flightId)
       throws InterruptedException {
 
-    // If the snapshot already has the resource, do nothing.
-    if (snapshot.getStorageAccountResource() != null) {
-      return;
-    }
-
-    final AzureRegion region = snapshot.getStorageAccountRegion();
     final AzureApplicationDeploymentResource applicationResource =
         applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
     String computedStorageAccountName =
         azureDataLocationSelector.createStorageAccountName(
-            applicationResource.getStorageAccountPrefix(), snapshot.getName(), billingProfile);
+            applicationResource.getStorageAccountPrefix(), snapshotName, billingProfile);
 
     AzureStorageAccountResource storageAccountResource =
         storageAccountService.getOrCreateStorageAccount(
-            computedStorageAccountName, applicationResource, region, flightId);
+            computedStorageAccountName, applicationResource, sourceDatasetAzureRegion, flightId);
 
     snapshotStorageAccountDao.createSnapshotStorageAccountLink(
-        snapshot.getId(), storageAccountResource.getResourceId());
+        snapshotId, storageAccountResource.getResourceId());
+
+    return storageAccountResource;
 
     // Set the storage account resource in the snapshot object for convenience.
-    snapshot.setStorageAccountResource(storageAccountResource);
+    // snapshot.setStorageAccountResource(storageAccountResource);
   }
 
   /**

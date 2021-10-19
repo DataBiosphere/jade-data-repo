@@ -51,6 +51,7 @@ public class SnapshotStorageAccountDaoTest {
     UUID azureApplicationDeploymentResourceId = UUID.randomUUID();
     BillingProfileModel billingProfile =
         new BillingProfileModel().profileName("profileName").id(billingProfileId);
+
     DatasetSummary summary =
         new DatasetSummary()
             .storage(
@@ -59,6 +60,7 @@ public class SnapshotStorageAccountDaoTest {
                         datasetId,
                         AzureCloudResource.STORAGE_ACCOUNT,
                         AzureRegion.DEFAULT_AZURE_REGION)));
+    Dataset dataset = new Dataset(summary);
     Snapshot snapshot =
         new Snapshot()
             .id(snapshotId)
@@ -89,7 +91,12 @@ public class SnapshotStorageAccountDaoTest {
                 .profileId(billingProfileId)
                 .resourceId(azureStorageAccountResourceId));
 
-    resourceService.createSnapshotStorageAccount(snapshot, billingProfile, flightId);
+    resourceService.createSnapshotStorageAccount(
+        snapshot.getName(),
+        snapshotId,
+        dataset.getStorageAccountRegion(),
+        billingProfile,
+        flightId);
 
     assertThat(
         "Snapshot has an Azure Storage Account Resource after creating the Storage Account",

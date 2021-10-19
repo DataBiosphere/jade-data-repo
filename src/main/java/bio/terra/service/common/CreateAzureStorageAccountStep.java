@@ -41,27 +41,11 @@ public abstract class CreateAzureStorageAccountStep extends SkippableStep {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
     AzureStorageAccountResource storageAccountResource =
-        resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
+        resourceService.getOrCreateDatasetStorageAccount(dataset, billingProfile, flightId);
     workingMap.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
 
     AzureStorageAuthInfo storageAuthInfo =
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
     workingMap.put(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, storageAuthInfo);
-  }
-
-  protected void getOrCreateSnapshotStorageAccount(FlightContext context)
-      throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
-    String flightId = context.getFlightId();
-    BillingProfileModel billingProfile =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-
-    AzureStorageAccountResource storageAccountResource =
-        resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
-    workingMap.put(CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
-
-    AzureStorageAuthInfo storageAuthInfo =
-        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
-    workingMap.put(CommonMapKeys.SNAPSHOT_STORAGE_AUTH_INFO, storageAuthInfo);
   }
 }

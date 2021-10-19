@@ -95,17 +95,20 @@ public class SnapshotCreateFlight extends Flight {
     addStep(
         new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
 
+    // mint a snapshot id and put it in the working map
+    addStep(new CreateSnapshotIdStep(snapshotReq));
+
     if (platform.isAzure()) {
       // This will need to stay even after DR-2107
-      addStep(new CreateSnapshotCreateAzureStorageAccountStep(resourceService, sourceDataset));
+      addStep(
+          new CreateSnapshotCreateAzureStorageAccountStep(
+              resourceService, sourceDataset, snapshotReq));
     }
 
     // Get a new google project from RBS and store it in the working map
     addStep(new GetResourceBufferProjectStep(bufferService));
 
     // create the snapshot metadata object in postgres and lock it
-    // mint a snapshot id and put it in the working map
-    addStep(new CreateSnapshotIdStep(snapshotReq));
 
     // Get or initialize the project where the snapshot resources will be created
     addStep(

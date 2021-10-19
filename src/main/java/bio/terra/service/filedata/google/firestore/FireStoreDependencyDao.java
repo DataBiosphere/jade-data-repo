@@ -8,7 +8,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import com.google.api.client.util.Lists;
-import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -202,50 +201,6 @@ public class FireStoreDependencyDao {
             return docSnap.getReference().delete();
           });
     }
-  }
-
-  public void removeSnapshotFileDependency(Dataset dataset, String snapshotId, String fileId)
-      throws InterruptedException {
-
-    FireStoreProject fireStoreProject =
-        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
-    String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
-    CollectionReference depColl =
-        fireStoreProject.getFirestore().collection(dependencyCollectionName);
-
-    ApiFuture<Void> transaction =
-        fireStoreProject
-            .getFirestore()
-            .runTransaction(
-                xn -> {
-                  Query query =
-                      depColl.whereEqualTo("fileId", fileId).whereEqualTo("snapshotId", snapshotId);
-                  ApiFuture<QuerySnapshot> querySnapshot = query.get();
-
-                  List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-
-                  if (documents.size() == 0) {
-                    // No file - nothing to delete
-                    return null;
-                  }
-                  if (documents.size() > 1) {
-                    throw new FileSystemCorruptException(
-                        "Found more than one document for a file dependency - fileId: " + fileId);
-                  }
-
-                  QueryDocumentSnapshot docSnap = documents.get(0);
-                  FireStoreDependency fireStoreDependency =
-                      docSnap.toObject(FireStoreDependency.class);
-                  if (fireStoreDependency.getRefCount() <= 1) {
-                    xn.delete(docSnap.getReference());
-                  } else {
-                    fireStoreDependency.refCount(fireStoreDependency.getRefCount() - 1);
-                    xn.set(docSnap.getReference(), fireStoreDependency);
-                  }
-                  return null;
-                });
-
-    fireStoreUtils.transactionGet("delete dependency", transaction);
   }
 
   private String getDatasetDependencyId(String datasetId) {

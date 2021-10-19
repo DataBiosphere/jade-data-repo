@@ -3,6 +3,7 @@ package bio.terra.service.configuration;
 import static bio.terra.service.configuration.ConfigEnum.ALLOW_REUSE_EXISTING_BUCKETS;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.AZURE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
@@ -24,7 +25,6 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_S
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIES;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIEVE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.LIVENESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX;
@@ -38,6 +38,7 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_S
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT;
@@ -224,8 +225,9 @@ public class ConfigurationService {
     addParameter(LOAD_DRIVER_WAIT_SECONDS, appConfiguration.getLoadDriverWaitSeconds());
     addParameter(LOAD_HISTORY_COPY_CHUNK_SIZE, appConfiguration.getLoadHistoryCopyChunkSize());
     addParameter(LOAD_HISTORY_WAIT_SECONDS, appConfiguration.getLoadHistoryWaitSeconds());
+    addParameter(AZURE_SNAPSHOT_BATCH_SIZE, appConfiguration.getAzureSnapshotBatchSize());
     addParameter(FIRESTORE_SNAPSHOT_BATCH_SIZE, appConfiguration.getFirestoreSnapshotBatchSize());
-    addParameter(FIRESTORE_SNAPSHOT_CACHE_SIZE, appConfiguration.getFirestoreSnapshotCacheSize());
+    addParameter(SNAPSHOT_CACHE_SIZE, appConfiguration.getSnapshotCacheSize());
     addParameter(FIRESTORE_VALIDATE_BATCH_SIZE, appConfiguration.getFirestoreValidateBatchSize());
     addParameter(FIRESTORE_QUERY_BATCH_SIZE, appConfiguration.getFirestoreQueryBatchSize());
     addParameter(DRS_LOOKUP_MAX, appConfiguration.getMaxDrsLookups());

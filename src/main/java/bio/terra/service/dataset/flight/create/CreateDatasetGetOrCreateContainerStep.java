@@ -41,7 +41,7 @@ public class CreateDatasetGetOrCreateContainerStep implements Step {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
     AzureStorageAccountResource storageAccount =
-        resourceService.getOrCreateStorageAccount(
+        resourceService.getOrCreateDatasetStorageAccount(
             DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel),
             profileModel,
             context.getFlightId());

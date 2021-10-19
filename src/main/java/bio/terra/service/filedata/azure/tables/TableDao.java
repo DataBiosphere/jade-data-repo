@@ -1,20 +1,29 @@
 package bio.terra.service.filedata.azure.tables;
 
+import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.CloudPlatform;
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.*;
+import bio.terra.service.filedata.FSDir;
+import bio.terra.service.filedata.FSFile;
+import bio.terra.service.filedata.FSItem;
+import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.SnapshotCompute;
+import bio.terra.service.filedata.SnapshotComputeHelper;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
+import bio.terra.service.snapshot.Snapshot;
 import com.azure.data.tables.TableServiceClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
@@ -44,67 +53,51 @@ public class TableDao {
   private final TableDirectoryDao directoryDao;
   private final TableFileDao fileDao;
   private final AzureAuthService azureAuthService;
-  private final FileMetadataUtils fileMetadataUtils;
   private final ConfigurationService configurationService;
+  private final PerformanceLogger performanceLogger;
 
   @Autowired
   public TableDao(
       TableDirectoryDao directoryDao,
       TableFileDao fileDao,
       AzureAuthService azureAuthService,
-      FileMetadataUtils fileMetadataUtils,
-      ConfigurationService configurationService) {
+      ConfigurationService configurationService,
+      PerformanceLogger performanceLogger) {
     this.directoryDao = directoryDao;
     this.fileDao = fileDao;
     this.azureAuthService = azureAuthService;
-    this.fileMetadataUtils = fileMetadataUtils;
     this.configurationService = configurationService;
+    this.performanceLogger = performanceLogger;
   }
 
   public void createDirectoryEntry(
-      FireStoreDirectoryEntry newEntry, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
-    directoryDao.createDirectoryEntry(tableServiceClient, newEntry);
+      FireStoreDirectoryEntry newEntry,
+      AzureStorageAuthInfo storageAuthInfo,
+      UUID collectionId,
+      String tableName) {
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+    directoryDao.createDirectoryEntry(tableServiceClient, collectionId, tableName, newEntry);
   }
 
-  public boolean deleteDirectoryEntry(String fileId, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
-    return directoryDao.deleteDirectoryEntry(tableServiceClient, fileId);
+  public boolean deleteDirectoryEntry(
+      String fileId, AzureStorageAuthInfo storageAuthInfo, UUID collectionId, String tableName) {
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+    return directoryDao.deleteDirectoryEntry(tableServiceClient, collectionId, tableName, fileId);
   }
 
   public void createFileMetadata(FireStoreFile newFile, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     fileDao.createFileMetadata(tableServiceClient, newFile);
   }
 
   public boolean deleteFileMetadata(String fileId, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return fileDao.deleteFileMetadata(tableServiceClient, fileId);
   }
 
   public void deleteFilesFromDataset(
       AzureStorageAuthInfo storageAuthInfo, InterruptibleConsumer<FireStoreFile> func) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     if (configurationService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
       // If we didn't load files, don't try to delete them
       fileDao.deleteFilesFromDataset(tableServiceClient, f -> {});
@@ -113,26 +106,54 @@ public class TableDao {
       fileDao.deleteFilesFromDataset(tableServiceClient, func);
     }
     logger.info("deleting directory entries");
-    directoryDao.deleteDirectoryEntriesFromCollection(tableServiceClient);
+    directoryDao.deleteDirectoryEntriesFromCollection(
+        tableServiceClient, StorageTableName.DATASET.toTableName());
   }
 
   public FireStoreDirectoryEntry lookupDirectoryEntryByPath(
       Dataset dataset, String path, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
-    return directoryDao.retrieveByPath(tableServiceClient, dataset.getId(), path);
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+    return directoryDao.retrieveByPath(
+        tableServiceClient, dataset.getId(), StorageTableName.DATASET.toTableName(), path);
   }
 
   public FireStoreFile lookupFile(String fileId, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return fileDao.retrieveFileMetadata(tableServiceClient, fileId);
+  }
+
+  public void snapshotCompute(
+      Snapshot snapshot,
+      TableServiceClient snapshotTableServiceClient,
+      TableServiceClient datasetTableServiceClient)
+      throws InterruptedException {
+
+    UUID snapshotId = snapshot.getId();
+    String snapshotTableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
+    FireStoreDirectoryEntry topDir =
+        directoryDao.retrieveByPath(snapshotTableServiceClient, snapshotId, snapshotTableName, "/");
+    // If topDir is null, it means no files were added to the snapshot file system in the previous
+    // step. So there is nothing to compute
+    if (topDir != null) {
+      // We batch the updates to firestore by collecting updated entries into this list,
+      // and when we get enough, writing them out.
+      List<FireStoreDirectoryEntry> updateBatch = new ArrayList<>();
+
+      String retrieveTimer = performanceLogger.timerStart();
+
+      StorageTableComputeHelper helper =
+          getHelper(datasetTableServiceClient, snapshotTableServiceClient, snapshotId);
+      SnapshotCompute.computeDirectory(helper, topDir, updateBatch);
+
+      performanceLogger.timerEndAndLog(
+          retrieveTimer,
+          snapshotId.toString(), // not a flight, so no job id
+          this.getClass().getName(),
+          "tableDao.computeDirectoryGetMetadata");
+
+      // Write the last batch out
+      directoryDao.batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, updateBatch);
+    }
   }
 
   /**
@@ -148,13 +169,10 @@ public class TableDao {
   // TODO - Azure snapshot: Support passing in snapshotID
   public FSItem retrieveByPath(
       UUID datasetId, String fullPath, int enumerateDepth, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveByPath(tableServiceClient, datasetId, fullPath);
+        directoryDao.retrieveByPath(
+            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), fullPath);
     return retrieveWorker(
         tableServiceClient,
         tableServiceClient,
@@ -166,13 +184,10 @@ public class TableDao {
 
   public Optional<FSItem> lookupOptionalPath(
       UUID datasetId, String fullPath, AzureStorageAuthInfo storageAuthInfo, int enumerateDepth) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveByPath(tableServiceClient, datasetId, fullPath);
+        directoryDao.retrieveByPath(
+            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), fullPath);
     return Optional.ofNullable(fireStoreDirectoryEntry)
         .map(
             entry ->
@@ -200,13 +215,10 @@ public class TableDao {
   // TODO - Azure snapshot: Support passing in snapshotID
   public FSItem retrieveById(
       UUID datasetId, String fileId, int enumerateDepth, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveById(tableServiceClient, fileId);
+        directoryDao.retrieveById(
+            tableServiceClient, StorageTableName.DATASET.toTableName(), fileId);
     return retrieveWorker(
         tableServiceClient,
         tableServiceClient,
@@ -288,7 +300,7 @@ public class TableDao {
     }
 
     String fullPath =
-        fileMetadataUtils.getFullPath(
+        FileMetadataUtils.getFullPath(
             fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
 
     FSDir fsDir = new FSDir();
@@ -305,7 +317,8 @@ public class TableDao {
     if (level != 0) {
       List<FSItem> fsContents = new ArrayList<>();
       List<FireStoreDirectoryEntry> dirContents =
-          directoryDao.enumerateDirectory(tableServiceClient, fullPath);
+          directoryDao.enumerateDirectory(
+              tableServiceClient, StorageTableName.DATASET.toTableName(), fullPath);
       for (FireStoreDirectoryEntry fso : dirContents) {
         if (fso.getIsFileRef()) {
           // Files that are in the middle of being ingested can have a directory entry, but not yet
@@ -337,7 +350,7 @@ public class TableDao {
     }
 
     String fullPath =
-        fileMetadataUtils.getFullPath(
+        FileMetadataUtils.getFullPath(
             fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
     String fileId = fireStoreDirectoryEntry.getFileId();
 
@@ -366,6 +379,85 @@ public class TableDao {
     return fsFile;
   }
 
+  public void addFilesToSnapshot(
+      TableServiceClient datasetTableServiceClient,
+      TableServiceClient snapshotTableServiceClient,
+      Dataset dataset,
+      Snapshot snapshot,
+      List<String> refIds) {
+    String datasetDirName = dataset.getName();
+
+    directoryDao.addEntriesToSnapshot(
+        datasetTableServiceClient,
+        snapshotTableServiceClient,
+        dataset.getId(),
+        datasetDirName,
+        snapshot.getId(),
+        refIds);
+  }
+
   // TODO: Implement computeDirectory to recursively compute the size and checksums of a directory
 
+  public StorageTableComputeHelper getHelper(
+      TableServiceClient datasetTableServiceClient,
+      TableServiceClient snapshotTableServiceClient,
+      UUID snapshotId) {
+    return new StorageTableComputeHelper(
+        directoryDao,
+        fileDao,
+        datasetTableServiceClient,
+        snapshotTableServiceClient,
+        snapshotId,
+        configurationService.getParameterValue(ConfigEnum.AZURE_SNAPSHOT_BATCH_SIZE));
+  }
+
+  static class StorageTableComputeHelper implements SnapshotComputeHelper {
+
+    private final TableDirectoryDao directoryDao;
+    private final TableFileDao fileDao;
+    private final TableServiceClient datasetTableServiceClient;
+    private final TableServiceClient snapshotTableServiceClient;
+    private final UUID snapshotId;
+    private final Integer snapshotBatchSize;
+    private final String snapshotTableName;
+
+    StorageTableComputeHelper(
+        TableDirectoryDao directoryDao,
+        TableFileDao fileDao,
+        TableServiceClient datasetTableServiceClient,
+        TableServiceClient snapshotTableServiceClient,
+        UUID snapshotId,
+        Integer snapshotBatchSize) {
+      this.directoryDao = directoryDao;
+      this.fileDao = fileDao;
+      this.datasetTableServiceClient = datasetTableServiceClient;
+      this.snapshotTableServiceClient = snapshotTableServiceClient;
+      this.snapshotId = snapshotId;
+      this.snapshotBatchSize = snapshotBatchSize;
+      this.snapshotTableName = StorageTableName.SNAPSHOT.toTableName(snapshotId);
+    }
+
+    @Override
+    public List<FireStoreFile> batchRetrieveFileMetadata(
+        Map.Entry<String, List<FireStoreDirectoryEntry>> entry) {
+      return fileDao.batchRetrieveFileMetadata(datasetTableServiceClient, entry.getValue());
+    }
+
+    @Override
+    public List<FireStoreDirectoryEntry> enumerateDirectory(String dirPath) {
+      return directoryDao.enumerateDirectory(
+          snapshotTableServiceClient, snapshotTableName, dirPath);
+    }
+
+    @Override
+    public void updateEntry(
+        FireStoreDirectoryEntry entry, List<FireStoreDirectoryEntry> updateBatch) {
+      updateBatch.add(entry);
+      if (updateBatch.size() >= snapshotBatchSize) {
+        logger.info("Snapshot compute updating batch of {} directory entries", snapshotBatchSize);
+        directoryDao.batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, updateBatch);
+        updateBatch.clear();
+      }
+    }
+  }
 }

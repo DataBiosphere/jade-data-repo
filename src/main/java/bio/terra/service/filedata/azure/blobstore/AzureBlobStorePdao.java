@@ -38,15 +38,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AzureBlobStorePdao implements CloudFileReader {
 
-  private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
   private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
 
   private static final int LOG_RETENTION_DAYS = 90;

@@ -43,7 +43,7 @@ public class IngestFileAzurePrimaryDataLocationStep extends SkippableStep {
 
       try {
         AzureStorageAccountResource storageAccountResource =
-            resourceService.getOrCreateStorageAccount(
+            resourceService.getOrCreateDatasetStorageAccount(
                 dataset, billingProfile, context.getFlightId());
         workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
         AzureStorageAuthInfo storageAuthInfo =

@@ -42,12 +42,15 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
@@ -425,13 +428,7 @@ public class DatasetConnectedTest {
     // load a JSON file that contains the table rows to load into the test bucket
     String resourceFileName = "snapshot-test-dataset-data-without-rowids.json";
     String dirInCloud = "scratch/testSharedLockTableIngest/" + UUID.randomUUID().toString();
-    BlobInfo ingestTableBlob =
-        BlobInfo.newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
-            .build();
-    Storage storage = StorageOptions.getDefaultInstance().getService();
-    storage.create(
-        ingestTableBlob,
-        IOUtils.toByteArray(getClass().getClassLoader().getResource(resourceFileName)));
+    String gsPath = uploadIngestInputFile(resourceFileName, dirInCloud);
 
     // make sure the JSON file gets cleaned up on test teardown
     connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
@@ -443,8 +440,6 @@ public class DatasetConnectedTest {
     configService.setFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
     // kick off the first table ingest. it should hang in the cleanup step.
-    String gsPath =
-        "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + resourceFileName;
     IngestRequestModel ingestRequest1 =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
@@ -520,18 +515,9 @@ public class DatasetConnectedTest {
   @Test
   public void testRepeatedSoftDelete() throws Exception {
     // load a CSV file that contains the table rows to load into the test bucket
-    String resourceFileName = "snapshot-test-dataset-data.csv";
+    String resourceFileName = "snapshot-test-dataset-data-row-ids.csv";
     String dirInCloud = "scratch/testRepeatedSoftDelete/" + UUID.randomUUID().toString();
-    BlobInfo ingestTableBlob =
-        BlobInfo.newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
-            .build();
-    Storage storage = StorageOptions.getDefaultInstance().getService();
-    storage.create(
-        ingestTableBlob,
-        IOUtils.toByteArray(getClass().getClassLoader().getResource(resourceFileName)));
-    String tableIngestInputFilePath =
-        "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + resourceFileName;
-
+    String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
     // ingest the table
     String tableName = "thetable";
     IngestRequestModel ingestRequest =
@@ -539,6 +525,7 @@ public class DatasetConnectedTest {
             .table(tableName)
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
+            .csvGenerateRowIds(false)
             .path(tableIngestInputFilePath);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
@@ -605,18 +592,9 @@ public class DatasetConnectedTest {
   @Test
   public void testConcurrentSoftDeletes() throws Exception {
     // load a CSV file that contains the table rows to load into the test bucket
-    String resourceFileName = "snapshot-test-dataset-data.csv";
+    String resourceFileName = "snapshot-test-dataset-data-row-ids.csv";
     String dirInCloud = "scratch/testConcurrentSoftDeletes/" + UUID.randomUUID().toString();
-    BlobInfo ingestTableBlob =
-        BlobInfo.newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
-            .build();
-    Storage storage = StorageOptions.getDefaultInstance().getService();
-    storage.create(
-        ingestTableBlob,
-        IOUtils.toByteArray(getClass().getClassLoader().getResource(resourceFileName)));
-    String tableIngestInputFilePath =
-        "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + resourceFileName;
-
+    String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
     // ingest the table
     String tableName = "thetable";
     IngestRequestModel ingestRequest =
@@ -624,6 +602,7 @@ public class DatasetConnectedTest {
             .table(tableName)
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
+            .csvGenerateRowIds(false)
             .path(tableIngestInputFilePath);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
@@ -735,19 +714,50 @@ public class DatasetConnectedTest {
   }
 
   @Test
+  public void testCSVIngestAddsRowIdsByDefault() throws Exception {
+    String resourceFileName = "snapshot-test-dataset-data.csv";
+    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID().toString();
+    String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
+    // ingest the table
+    String tableName = "thetable";
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .table(tableName)
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .csvSkipLeadingRows(1)
+            .path(tableIngestInputFilePath)
+            .csvGenerateRowIds(true);
+    connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+
+    String columns = PdaoConstant.PDAO_ROW_ID_COLUMN + ",thecolumn";
+    TableResult bqQueryResult =
+        TestUtils.selectFromBigQueryDataset(
+            bigQueryPdao,
+            datasetDao,
+            dataLocationService,
+            datasetRequest.getName(),
+            tableName,
+            columns);
+    List<UUID> rowIds = new ArrayList<>();
+    Set<String> expectedNames = Set.of("Andrea", "Dan", "Rori", "Jeremy");
+    Set<String> datasetNames = new HashSet<>();
+    bqQueryResult
+        .iterateAll()
+        .forEach(
+            r -> {
+              rowIds.add(UUID.fromString(r.get(PdaoConstant.PDAO_ROW_ID_COLUMN).getStringValue()));
+              datasetNames.add(r.get("thecolumn").getStringValue());
+            });
+    assertEquals(rowIds.size(), 4);
+    assertEquals(expectedNames, datasetNames);
+  }
+
+  @Test
   public void testBadSoftDelete() throws Exception {
     // load a CSV file that contains the table rows to load into the test bucket
-    String resourceFileName = "snapshot-test-dataset-data.csv";
+    String resourceFileName = "snapshot-test-dataset-data-row-ids.csv";
     String dirInCloud = "scratch/testBadSoftDelete/" + UUID.randomUUID().toString();
-    BlobInfo ingestTableBlob =
-        BlobInfo.newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
-            .build();
-    Storage storage = StorageOptions.getDefaultInstance().getService();
-    storage.create(
-        ingestTableBlob,
-        IOUtils.toByteArray(getClass().getClassLoader().getResource(resourceFileName)));
-    String tableIngestInputFilePath =
-        "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + resourceFileName;
+    String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
 
     // ingest the table
     String tableName = "thetable";
@@ -756,6 +766,7 @@ public class DatasetConnectedTest {
             .table(tableName)
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
+            .csvGenerateRowIds(false)
             .path(tableIngestInputFilePath);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
@@ -1054,6 +1065,18 @@ public class DatasetConnectedTest {
             .tables(Arrays.asList(softDeleteTableModel));
 
     return softDeleteRequest;
+  }
+
+  private String uploadIngestInputFile(String resourceFileName, String dirInCloud)
+      throws IOException {
+    BlobInfo ingestTableBlob =
+        BlobInfo.newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
+            .build();
+    Storage storage = StorageOptions.getDefaultInstance().getService();
+    storage.create(
+        ingestTableBlob,
+        IOUtils.toByteArray(getClass().getClassLoader().getResource(resourceFileName)));
+    return "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + resourceFileName;
   }
 
   // ------ Retry exclusive lock/unlock tests ---------------

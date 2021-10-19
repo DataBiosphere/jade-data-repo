@@ -1,9 +1,9 @@
-name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+name: Publish Python 🐍 distributions 📦 to PyPI
 
 on:
-  workflow_dispatch: {}
-  schedule:
-    - cron: '0 3 * * *' # Nightly 10:00 pm EST; 3AM UTC
+  push:
+    branches:
+      - develop
 
 jobs:
   build-n-publish:

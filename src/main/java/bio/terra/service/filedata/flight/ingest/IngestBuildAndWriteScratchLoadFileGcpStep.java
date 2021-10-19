@@ -17,16 +17,14 @@ import java.util.stream.Stream;
 public class IngestBuildAndWriteScratchLoadFileGcpStep
     extends IngestBuildAndWriteScratchLoadFileStep {
   private final GcsPdao gcsPdao;
-  private final Dataset dataset;
 
   public IngestBuildAndWriteScratchLoadFileGcpStep(
       ObjectMapper objectMapper,
       GcsPdao gcsPdao,
       Dataset dataset,
       Predicate<FlightContext> skipCondition) {
-    super(objectMapper, skipCondition);
+    super(objectMapper, dataset, skipCondition);
     this.gcsPdao = gcsPdao;
-    this.dataset = dataset;
   }
 
   @Override

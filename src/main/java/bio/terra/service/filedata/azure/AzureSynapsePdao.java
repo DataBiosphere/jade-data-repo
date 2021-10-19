@@ -16,6 +16,7 @@ import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -293,7 +294,7 @@ public class AzureSynapsePdao {
           IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
       // TODO - this need to be a folder w/ name of table and a wildcard select
       String snapshotParquetFileName =
-          IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
+          IngestUtils.getSnapshotParquetTableDirectory(snapshotId, table.getName());
       String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
 
       ST sqlCreateSnapshotTableTemplate =
@@ -305,7 +306,13 @@ public class AzureSynapsePdao {
               .add("ingestFileName", datasetParquetFileName)
               .add("ingestFileDataSourceName", datasetDataSourceName)
               .add("columns", columns);
-      executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
+      try {
+        executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
+      } catch (SQLServerException ex) {
+        logger.info(
+            "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
+            tableName);
+      }
     }
   }
 
@@ -339,6 +346,7 @@ public class AzureSynapsePdao {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
+      //logger.info(query);
       statement.execute(query);
       return statement.getUpdateCount();
     }

@@ -313,11 +313,15 @@ public final class IngestUtils {
     return "parquet/" + snapshotId + "/" + targetTableName + ".parquet";
   }
 
+  public static String getSnapshotParquetTableDirectory(UUID snapshotId, String targetTableName) {
+    return "parquet/" + snapshotId + "/" + targetTableName + "/";
+  }
+
   public static String getSourceDatasetParquetFilePath(String tableName, String datasetFlightId) {
     if (datasetFlightId != null) {
       return IngestUtils.getParquetFilePath(tableName, datasetFlightId);
     }
-    return "parquet/" + tableName + "/**";
+    return "parquet/" + tableName + "/*.parquet";
   }
 
   public static String formatSnapshotTableName(UUID snapshotId, String tableName) {

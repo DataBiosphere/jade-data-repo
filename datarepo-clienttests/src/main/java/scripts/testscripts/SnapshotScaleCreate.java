@@ -112,7 +112,7 @@ public class SnapshotScaleCreate extends SimpleDataset {
                     JobModel createSnapshotJobResponse =
                         DataRepoUtils.createSnapshotWithoutWaiting(
                             repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
-                    logger.info("Launched request to make snapshot {} of {}", i, numSnapshots);
+                    logger.info("Launched request to make snapshot {} of {}", i + 1, numSnapshots);
                     return createSnapshotJobResponse;
                   } catch (Exception ex) {
                     throw new RuntimeException("Failed to create snapshots in parallel", ex);

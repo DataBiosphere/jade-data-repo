@@ -89,7 +89,9 @@ public class SnapshotCreateFlight extends Flight {
         new CreateSnapshotInitializeProjectStep(
             resourceService, firestoreRegion, sourceDatasets, snapshotName));
 
-    addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
+    addStep(
+        new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq),
+        getDefaultExponentialBackoffRetryRule());
 
     // Make the big query dataset with views and populate row id filtering tables.
     // Depending on the type of snapshot, the primary data step will differ:

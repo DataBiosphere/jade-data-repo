@@ -62,7 +62,8 @@ public class DeleteFileAzureLookupStep implements Step {
       BillingProfileModel billingProfile =
           profileDao.getBillingProfileById(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
-          resourceService.getOrCreateStorageAccount(dataset, billingProfile, context.getFlightId());
+          resourceService.getOrCreateDatasetStorageAccount(
+              dataset, billingProfile, context.getFlightId());
 
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);

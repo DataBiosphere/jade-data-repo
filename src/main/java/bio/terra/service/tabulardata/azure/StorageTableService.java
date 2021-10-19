@@ -35,7 +35,7 @@ public class StorageTableService {
       throws InterruptedException {
     var billingProfile = dataset.getDatasetSummary().getDefaultBillingProfile();
     var storageAccountResource =
-        resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
+        resourceService.getOrCreateDatasetStorageAccount(dataset, billingProfile, flightId);
     TableServiceClient serviceClient =
         azureAuthService.getTableServiceClient(
             billingProfile.getSubscriptionId(),
@@ -49,7 +49,7 @@ public class StorageTableService {
   public List<BulkLoadHistoryModel> getLoadHistory(
       Dataset dataset, String loadTag, int offset, int limit) {
     var billingProfile = dataset.getDatasetSummary().getDefaultBillingProfile();
-    var storageAccountResource = resourceService.getStorageAccount(dataset, billingProfile);
+    var storageAccountResource = resourceService.getDatasetStorageAccount(dataset, billingProfile);
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(
             billingProfile.getSubscriptionId(),

@@ -23,7 +23,6 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
     extends IngestBuildAndWriteScratchLoadFileStep {
   private final AzureBlobStorePdao azureBlobStorePdao;
   AzureContainerPdao azureContainerPdao;
-  private final Dataset dataset;
 
   public IngestBuildAndWriteScratchLoadFileAzureStep(
       ObjectMapper objectMapper,
@@ -31,10 +30,9 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
       AzureContainerPdao azureContainerPdao,
       Dataset dataset,
       Predicate<FlightContext> skipCondition) {
-    super(objectMapper, skipCondition);
+    super(objectMapper, dataset, skipCondition);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.azureContainerPdao = azureContainerPdao;
-    this.dataset = dataset;
   }
 
   @Override

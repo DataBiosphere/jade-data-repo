@@ -61,17 +61,23 @@ team.
 
 ## 4. Create Terra Accounts
 
-The Data Repo uses [Sam](https://github.com/broadinstitute/sam) for identity and access management. To register
-as a new user, create an account through Terra. Use a non-Broad email address specifically created for development
-purposes in the non-prod environments:
+The Data Repo and [Terra](https://terra.bio/) use [Sam](https://github.com/broadinstitute/sam)
+to abtract identity and access management. To gain access to these services,
+first create a non-Broad email address through Gmail. This email address will
+specifically be used for development purposes in our non-prod environments.
+Next, to register as a new user, click the `Sign in with Google` button in each
+of the environments with the newly created email address and follow the prompts:
+
 - [Dev](https://bvdp-saturn-dev.appspot.com/)
 - [Alpha](https://bvdp-saturn-alpha.appspot.com/)
 - [Staging](https://bvdp-saturn-staging.appspot.com/)
 
-For [production](https://app.terra.bio/), you will need to register using a firecloud.org email. In order to get an
-account, follow these [steps](https://docs.google.com/document/d/1DRftlTe-9Q4H-R0jxanVojvyNn1IzbdIOhNKiIj9IpI/edit).
+For [production](https://app.terra.bio/), you will need to register using a
+`firecloud.org` email. In order to get an account, you must become suitable,
+which requires following [these steps](https://docs.google.com/document/d/1DRftlTe-9Q4H-R0jxanVojvyNn1IzbdIOhNKiIj9IpI/edit?usp=sharing).
 
-Ask a member of the team to add you to the admins group for each of these environments.
+Ask a member of the team to add you to the admins group for each of these
+environments.
 
 ## 5. Install Homebrew
 

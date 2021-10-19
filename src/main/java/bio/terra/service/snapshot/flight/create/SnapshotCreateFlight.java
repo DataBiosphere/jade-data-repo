@@ -76,7 +76,6 @@ public class SnapshotCreateFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    // Lock the source dataset while adding ACLs to avoid a race condition
     // TODO note that with multi-dataset snapshots this will need to change
     List<Dataset> sourceDatasets =
         snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
@@ -91,10 +90,6 @@ public class SnapshotCreateFlight extends Flight {
             sourceDataset
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
-    // Add a retry in case an ingest flight is currently in progress on the dataset
-    RetryRule lockDatasetRetryRule = getDefaultExponentialBackoffRetryRule();
-
-    addStep(new LockDatasetStep(datasetDao, datasetId, false), lockDatasetRetryRule);
 
     // Make sure this user is allowed to use the billing profile and that the underlying
     // billing information remains valid.
@@ -239,10 +234,10 @@ public class SnapshotCreateFlight extends Flight {
       addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao));
     }
 
-    // unlock the snapshot metadata row
-    addStep(new UnlockSnapshotStep(snapshotDao, null));
-
     // Unlock dataset
     addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
+
+    // unlock the snapshot metadata row
+    addStep(new UnlockSnapshotStep(snapshotDao, null));
   }
 }

@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.common.Column;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -20,12 +21,12 @@ public class IngestJsonFileSetupAzureStep extends IngestJsonFileSetupStep {
 
   @Override
   long getFileModelsCount(
-      IngestRequestModel ingestRequest, List<String> fileRefColumnNames, List<String> errors) {
+      IngestRequestModel ingestRequest, List<Column> fileRefColumns, List<String> errors) {
     String tenantId =
         IngestUtils.getIngestBillingProfileFromDataset(dataset, ingestRequest)
             .getTenantId()
             .toString();
     return IngestUtils.countBulkFileLoadModelsFromPath(
-        azureBlobStorePdao, objectMapper, ingestRequest, tenantId, fileRefColumnNames, errors);
+        azureBlobStorePdao, objectMapper, ingestRequest, tenantId, fileRefColumns, errors);
   }
 }

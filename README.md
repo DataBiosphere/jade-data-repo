@@ -1,4 +1,4 @@
-# [jade-data-repository](https://jade-terra.datarepo-prod.broadinstitute.org/) &middot; [![GitHub license](https://img.shields.io/github/license/DataBiosphere/jade-data-repo)](https://github.com/DataBiosphere/jade-data-repo/blob/develop/LICENSE.md) [![Integration test and Connected tests](https://github.com/DataBiosphere/jade-data-repo/workflows/Integration%20test%20and%20Connected%20tests/badge.svg?branch=develop)](https://github.com/DataBiosphere/jade-data-repo/actions?query=workflow%3A%22Integration+test+and+Connected+tests%22+branch%3Adevelop)
+# [jade-data-repository](https://data.terra.bio/) &middot; [![GitHub license](https://img.shields.io/github/license/DataBiosphere/jade-data-repo)](https://github.com/DataBiosphere/jade-data-repo/blob/develop/LICENSE.md) [![Integration test and Connected tests](https://github.com/DataBiosphere/jade-data-repo/workflows/Integration%20test%20and%20Connected%20tests/badge.svg?branch=develop)](https://github.com/DataBiosphere/jade-data-repo/actions?query=workflow%3A%22Integration+test+and+Connected+tests%22+branch%3Adevelop)
 
 The [Terra](https://terra.bio/) Data Repository built by the Jade team as part of the
 [Data Biosphere](https://medium.com/@benedictpaten/a-data-biosphere-for-biomedical-research-d212bbfae95d).
@@ -197,6 +197,6 @@ a REST API, should catch the InterruptedException and replace it with a meaningf
 
 ## Deployments
 The deployments of Terra Data Repository are:
-- [Production](https://jade-terra.datarepo-prod.broadinstitute.org/)
+- [Production](https://data.terra.bio/)
 - [Development](https://jade.datarepo-dev.broadinstitute.org/)
 - [Development - swagger page](https://jade.datarepo-dev.broadinstitute.org/swagger-ui.html)

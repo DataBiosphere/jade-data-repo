@@ -1,9 +1,11 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.common.Column;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
@@ -25,9 +27,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Spliterators;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -228,7 +233,7 @@ public final class IngestUtils {
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
       String cloudEncapsulationId,
-      List<String> fileRefColumnNames,
+      List<Column> fileRefColumns,
       List<String> errors) {
     try (var nodesStream =
         IngestUtils.getBulkFileLoadModelsStream(
@@ -236,7 +241,7 @@ public final class IngestUtils {
             objectMapper,
             ingestRequest,
             cloudEncapsulationId,
-            fileRefColumnNames,
+            fileRefColumns,
             errors)) {
       return nodesStream.count();
     }
@@ -247,17 +252,37 @@ public final class IngestUtils {
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
       String cloudEncapsulationId,
-      List<String> fileRefColumnNames,
+      List<Column> fileRefColumns,
       List<String> errors) {
     return IngestUtils.getJsonNodesStreamFromFile(
             cloudFileReader, objectMapper, ingestRequest, cloudEncapsulationId, errors)
         .flatMap(
             node ->
-                fileRefColumnNames.stream()
+                fileRefColumns.stream()
+                    .map(Column::getName)
                     .map(node::get)
-                    .filter(n -> n != null && n.isObject())
+                    .filter(Objects::nonNull)
+                    .flatMap(
+                        n -> {
+                          if (n.isObject()) {
+                            return Stream.of(n);
+                          } else if (n.isArray()) {
+                            return StreamSupport.stream(
+                                    Spliterators.spliteratorUnknownSize(n.iterator(), 0), false)
+                                .filter(JsonNode::isObject);
+                          } else {
+                            return Stream.empty();
+                          }
+                        })
                     .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class)))
         .distinct();
+  }
+
+  public static List<Column> getDatasetFileRefColumns(
+      Dataset dataset, IngestRequestModel ingestRequest) {
+    return dataset.getTableByName(ingestRequest.getTable()).orElseThrow().getColumns().stream()
+        .filter(c -> c.getType() == TableDataType.FILEREF)
+        .collect(Collectors.toList());
   }
 
   public static void checkForLargeIngestRequests(long numLines, long maxIngestRows) {

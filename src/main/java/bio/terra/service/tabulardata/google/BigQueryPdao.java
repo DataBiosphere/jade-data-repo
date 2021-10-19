@@ -59,12 +59,12 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
@@ -821,8 +821,8 @@ public class BigQueryPdao {
 
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
     BigQuery bigQuery = bigQueryProject.getBigQuery();
-    TableId tableId = TableId.of(prefixName(dataset.getName()), stagingTableName);
-    Schema schema = buildSchema(targetTable, true); // Source does not have row_id
+    String bqDatasetId = prefixName(dataset.getName());
+    TableId tableId = TableId.of(bqDatasetId, stagingTableName);
     LoadJobConfiguration.Builder loadBuilder =
         LoadJobConfiguration.builder(tableId, path)
             .setFormatOptions(buildFormatOptions(ingestRequest))
@@ -834,7 +834,6 @@ public class BigQueryPdao {
                 (ingestRequest.isIgnoreUnknownValues() == null)
                     ? Boolean.TRUE
                     : ingestRequest.isIgnoreUnknownValues())
-            .setSchema(schema) // docs say this is for target, but CLI provides one for the source
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_TRUNCATE);
 
@@ -845,8 +844,40 @@ public class BigQueryPdao {
       loadBuilder.setNullMarker(
           (ingestRequest.getCsvNullMarker() == null) ? "" : ingestRequest.getCsvNullMarker());
     }
-    LoadJobConfiguration configuration = loadBuilder.build();
+    Job loadJob;
 
+    Schema schemaWithRowId = buildSchema(targetTable, true); // Source does not have row_id
+    if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV
+        && ingestRequest.isCsvGenerateRowIds()) {
+      // Ingest without the datarepo_row_id column
+      Schema noRowId = buildSchema(targetTable, false);
+      loadBuilder.setSchema(noRowId);
+      loadJob = ingestData(bigQuery, path, loadBuilder.build());
+      // Then add the datarepo_row_id column to the schema
+      updateSchema(bigQuery, bqDatasetId, stagingTableName, schemaWithRowId);
+    } else {
+      loadBuilder.setSchema(
+          schemaWithRowId); // docs say this is for target, but CLI provides one for the source
+      loadJob = ingestData(bigQuery, path, loadBuilder.build());
+    }
+    return new PdaoLoadStatistics(loadJob.getStatistics());
+  }
+
+  private void updateSchema(
+      BigQuery bigQuery, String bqDatasetId, String stagingTableName, Schema newSchema) {
+    com.google.cloud.bigquery.Table table = bigQuery.getTable(bqDatasetId, stagingTableName);
+    com.google.cloud.bigquery.Table updatedTable =
+        table.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
+    try {
+      updatedTable.update();
+    } catch (BigQueryException e) {
+      throw new IngestFailureException(
+          "Failure adding " + PDAO_ROW_ID_COLUMN + " to the staging table schema", e);
+    }
+  }
+
+  private Job ingestData(BigQuery bigQuery, String path, LoadJobConfiguration configuration)
+      throws InterruptedException {
     Job loadJob = bigQuery.create(JobInfo.of(configuration));
     Instant loadJobMaxTime = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(20L));
     while (!loadJob.isDone()) {
@@ -883,17 +914,7 @@ public class BigQueryPdao {
       throw new IngestFailureException(
           "Ingest failed with " + loadErrors.size() + " errors - see error details", loadErrors);
     }
-
-    // Job completed successfully
-    JobStatistics.LoadStatistics loadStatistics = loadJob.getStatistics();
-
-    PdaoLoadStatistics pdaoLoadStatistics =
-        new PdaoLoadStatistics()
-            .badRecords(loadStatistics.getBadRecords())
-            .rowCount(loadStatistics.getOutputRows())
-            .startTime(Instant.ofEpochMilli(loadStatistics.getStartTime()))
-            .endTime(Instant.ofEpochMilli(loadStatistics.getEndTime()));
-    return pdaoLoadStatistics;
+    return loadJob;
   }
 
   private static final String addRowIdsToStagingTableTemplate =

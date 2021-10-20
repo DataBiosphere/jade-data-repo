@@ -96,7 +96,7 @@ public class DatasetIngestFlight extends Flight {
       // is complete
       addStep(
           new AuthorizeBillingProfileUseStep(
-              profileService, ingestRequestModel.getProfileId(), userReq));
+              profileService, ingestRequestModel.getProfileId(), cloudPlatform, userReq));
 
       // This will need to stay even after DR-2107
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
@@ -236,7 +236,7 @@ public class DatasetIngestFlight extends Flight {
 
     // Authorize the billing profile for use.
     addOptionalCombinedIngestStep(
-        new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
+        new AuthorizeBillingProfileUseStep(profileService, profileId, CloudPlatformWrapper.of(platform), userReq));
 
     // Lock the load.
     addOptionalCombinedIngestStep(new LoadLockStep(loadService));

@@ -137,7 +137,7 @@ public class FileIngestBulkFlight extends Flight {
     // 9. TODO: release the bulk load slot (DR-754) - may not need a step if we use the count of
     //    locked tags
     // 10. Unlock the load tag
-    addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
+    addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, platform, userReq));
     // For Azure datasets, the billing profile for file ingest must match the default
     if (platform.isAzure()) {
       addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));

@@ -90,7 +90,8 @@ public class SnapshotCreateFlight extends Flight {
     // Make sure this user is allowed to use the billing profile and that the underlying
     // billing information remains valid.
     addStep(
-        new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
+        new AuthorizeBillingProfileUseStep(
+            profileService, snapshotReq.getProfileId(), platform, userReq));
 
     // mint a snapshot id and put it in the working map
     addStep(new CreateSnapshotIdStep(snapshotReq));

@@ -57,7 +57,7 @@ public class DatasetCreateFlight extends Flight {
     // Make sure this user is allowed to use the billing profile
     addStep(
         new AuthorizeBillingProfileUseStep(
-            profileService, datasetRequest.getDefaultProfileId(), userReq));
+            profileService, datasetRequest.getDefaultProfileId(), platform, userReq));
 
     // Generate the dateset id and store it in the working map
     addStep(new CreateDatasetIdStep());

@@ -115,7 +115,7 @@ public class FileIngestFlight extends Flight {
     //    created in the file firestore collection, the file becomes visible for REST API lookups.
     // 9. Unlock the load tag
     // 10. Unlock the dataset
-    addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
+    addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, platform, userReq));
     if (platform.isAzure()) {
       addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));
     }

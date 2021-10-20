@@ -11,6 +11,9 @@ thousand_genomes_search_snapshot_id = "77f1365e-b88d-48e2-a9ab-88ccd6cec68e"
 url_retrieve_snapshot = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/snapshots/{uuid}".format(
     uuid=thousand_genomes_search_snapshot_id
 )
+upsert_url = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/search/{id}/metadata"
+policy_url = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/snapshots/{id}/policies/steward/members"
+
 
 
 def now():
@@ -52,12 +55,7 @@ def generate_metadata():
             uuid=snapshot["id"]
         ),
         "TerraDCAT_ap:hasDataUsePermission": "TerraCore:NoRestriction",
-        "TerraDCAT_ap:hasOriginalPublication": [
-            {
-                "dct:title": "Exploratory data analysis of genomic datasets using ADAM and Mango with Apache Spark on Amazon EMR",
-                "dcat:accessURL": "https://aws.amazon.com/blogs/big-data/exploratory-data-analysis-of-genomic-datasets-using-adam-and-mango-with-apache-spark-on-amazon-emr/",
-            }
-        ],
+        "TerraDCAT_ap:hasOriginalPublication": [],
         "TerraDCAT_ap:hasDataCollection": [
             {
                 "dct:identifier": "1000 Genomes",
@@ -83,10 +81,6 @@ def generate_metadata():
     collection = {"data": [obj]}
     print(json.dumps(collection, indent=4, sort_keys=True))
     return collection
-
-
-upsert_url = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/search/{id}/metadata"
-policy_url = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/snapshots/{id}/policies/steward/members"
 
 
 def api_request(id, url, obj, method):

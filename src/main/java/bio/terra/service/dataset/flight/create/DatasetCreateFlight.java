@@ -54,7 +54,8 @@ public class DatasetCreateFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    // Make sure this user is allowed to use the billing profile
+    // Make sure this user is allowed to use the billing profile and that the underlying
+    // billing information remains valid.
     addStep(
         new AuthorizeBillingProfileUseStep(
             profileService, datasetRequest.getDefaultProfileId(), platform, userReq));

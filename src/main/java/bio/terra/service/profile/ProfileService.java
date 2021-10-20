@@ -206,10 +206,32 @@ public class ProfileService {
    * @param user the user attempting associate some object with the profile
    * @return the profile model associated with the profile id
    */
-  public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
+  public BillingProfileModel authorizeLinking(
+      UUID profileId, AuthenticatedUserRequest user, CloudPlatformWrapper platform) {
     logger.info("Verify authorization for link id={} user={}", profileId, user.getEmail());
     iamService.verifyAuthorization(
         user, IamResourceType.SPEND_PROFILE, profileId.toString(), IamAction.LINK);
+
+    BillingProfileModel profileModel = profileDao.getBillingProfileById(profileId);
+    String billingAccountId = profileModel.getBillingAccountId();
+    if (platform.isGcp()) {
+      // TODO: check bill account usable and validate delegation path
+      //  For now we just make sure that the building account is accessible to the
+      //  TDR service account.
+      if (!googleBillingService.repositoryCanAccess(billingAccountId)) {
+        throw new InaccessibleBillingAccountException(
+            "The repository needs access to billing account "
+                + billingAccountId
+                + " to perform the requested operation");
+      }
+    } else if (platform.isAzure()) {
+      verifyDeployedApplication(
+          profileModel.getSubscriptionId(),
+          profileModel.getResourceGroupName(),
+          profileModel.getApplicationDeploymentName(),
+          user);
+    }
+
     return profileDao.getBillingProfileById(profileId);
   }
 

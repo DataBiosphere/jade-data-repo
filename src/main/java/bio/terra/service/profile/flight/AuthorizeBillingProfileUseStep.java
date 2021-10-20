@@ -35,18 +35,7 @@ public class AuthorizeBillingProfileUseStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    BillingProfileModel profileModel = profileService.authorizeLinking(profileId, user);
-
-    if (platform.isGcp()) {
-      profileService.verifyAccount(profileModel.getBillingAccountId(), user);
-    } else if (platform.isAzure()) {
-      profileService.verifyDeployedApplication(
-          profileModel.getSubscriptionId(),
-          profileModel.getResourceGroupName(),
-          profileModel.getApplicationDeploymentName(),
-          user);
-    }
-
+    BillingProfileModel profileModel = profileService.authorizeLinking(profileId, user, platform);
     FlightMap workingMap = context.getWorkingMap();
     workingMap.put(ProfileMapKeys.PROFILE_MODEL, profileModel);
     return StepResult.getStepResultSuccess();

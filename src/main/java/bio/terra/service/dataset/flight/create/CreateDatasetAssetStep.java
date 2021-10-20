@@ -32,7 +32,8 @@ public class CreateDatasetAssetStep extends BaseStep {
   @StepInput UUID datasetId;
   @StepInput AssetModel request;
 
-  @StepInput @StepOutput Boolean assetNameCollision;
+  /** If true, an asset was created during doStep(), and needs to be deleted during undoStep(). */
+  @StepInput @StepOutput boolean assetCreated;
 
   public CreateDatasetAssetStep(
       AssetDao assetDao, ConfigurationService configService, DatasetService datasetService) {
@@ -86,9 +87,9 @@ public class CreateDatasetAssetStep extends BaseStep {
 
     try {
       assetDao.create(newAssetSpecification, dataset.getId());
+      assetCreated = true;
     } catch (InvalidAssetException e) {
       setErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-      assetNameCollision = true;
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
     }
 
@@ -98,7 +99,7 @@ public class CreateDatasetAssetStep extends BaseStep {
 
   @Override
   public StepResult undo() {
-    if (assetNameCollision == null) {
+    if (assetCreated) {
       Dataset dataset = getDataset();
       // Search the Asset list in the dataset object to see if the asset you were trying to create
       // got created.
@@ -109,10 +110,8 @@ public class CreateDatasetAssetStep extends BaseStep {
       // You cannot assume that the flight object created when the doStep was run is the same flight
       // object
       // when the undoStep is run.
-      if (assetSpecificationToDelete.isPresent()) {
-        // If the asset is found, then you get its id and call delete.
-        assetDao.delete(assetSpecificationToDelete.get().getId());
-      }
+      // If the asset is found, then you get its id and call delete.
+      assetSpecificationToDelete.map(AssetSpecification::getId).ifPresent(assetDao::delete);
     }
     // Else, if the asset is not found, then you are done. It never got created.
     return StepResult.getStepResultSuccess();

@@ -8,6 +8,8 @@ import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -23,17 +25,20 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
   private final AzureSynapsePdao azureSynapsePdao;
   private final DatasetService datasetService;
   private final String datasetName;
+  private final SnapshotService snapshotService;
 
   public CreateSnapshotStorageTableDependenciesStep(
       TableDependencyDao tableDependencyDao,
       AzureAuthService azureAuthService,
       DatasetService datasetService,
       AzureSynapsePdao azureSynapsePdao,
+      SnapshotService snapshotService,
       String datasetName) {
     this.tableDependencyDao = tableDependencyDao;
     this.azureAuthService = azureAuthService;
     this.azureSynapsePdao = azureSynapsePdao;
     this.datasetService = datasetService;
+    this.snapshotService = snapshotService;
     this.datasetName = datasetName;
   }
 
@@ -48,9 +53,10 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
 
     Dataset dataset = datasetService.retrieveByName(datasetName);
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
     // TODO - place for performance improvement
-    List<String> refIds = azureSynapsePdao.getRefIdsForDataset(dataset);
+    List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
     tableDependencyDao.storeSnapshotFileDependencies(
         datasetTableServiceClient, dataset.getId(), snapshotId, refIds);
 

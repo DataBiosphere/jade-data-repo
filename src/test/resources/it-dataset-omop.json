@@ -62,7 +62,7 @@
                     },
                     {
                         "name": "vocabulary_reference",
-                        "datatype": "string"
+                        "datatype": "fileref"
                     },
                     {
                         "name": "vocabulary_version",

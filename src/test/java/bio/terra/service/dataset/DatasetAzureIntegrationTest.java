@@ -339,38 +339,49 @@ public class DatasetAzureIntegrationTest extends UsersBase {
       assertNotNull(dataRepoFixtures.getFileById(steward(), datasetId, bulkFileEntry.getFileId()));
     }
 
+    // dataset ingest
     // Ingest Metadata - 1 row from JSON file
-    String tableName = "vocabulary";
+    String datasetIngestFlightId = UUID.randomUUID().toString();
+    String datasetIngestControlFileBlob =
+        datasetIngestFlightId + "/azure-domain-ingest-request.json";
     String ingestRequestPathJSON =
-        synapseUtils.ingestRequestURL(
-            testConfig.getSourceStorageAccountName(),
-            testConfig.getIngestRequestContainer(),
-            "azure-vocab-ingest-request.json");
+        blobIOTestUtility.uploadFileWithContents(
+            datasetIngestControlFileBlob,
+            "{\"domain_id\" : \"1\", \"domain_name\" : \"domain1\", \"domain_concept_id\" : 1}");
+
+    String jsonIngestTableName = "domain";
     IngestRequestModel ingestRequestJSON =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
-            .table(tableName)
+            .table(jsonIngestTableName)
             .path(ingestRequestPathJSON)
             .profileId(profileId)
             .loadTag(Names.randomizeName("test"));
     IngestResponseModel ingestResponseJSON =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestJSON);
-    assertThat("1 Row was ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
+    assertThat("2 rows were ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
 
     // Ingest 2 rows from CSV
+    String ingest2TableName = "vocabulary";
+    String csvDatasetIngestFlightId = UUID.randomUUID().toString();
+    String csvDatasetIngestControlFileBlob =
+        csvDatasetIngestFlightId + "/azure-vocab-ingest-request.csv";
     String ingestRequestPathCSV =
-        synapseUtils.ingestRequestURL(
-            testConfig.getSourceStorageAccountName(),
-            testConfig.getIngestRequestContainer(),
-            "azure-vocab-ingest-request.csv");
+        blobIOTestUtility.uploadFileWithContents(
+            csvDatasetIngestControlFileBlob,
+            String.format(
+                "vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id\n"
+                    + "\"1\",\"vocab1\",\"%s\",\"v1\",1\n"
+                    + "\"2\",\"vocab2\",\"%s\",\"v2\",2",
+                file1Model.getFileId(), file2Model.getFileId()));
     IngestRequestModel ingestRequestCSV =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.CSV)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
-            .table(tableName)
+            .table(ingest2TableName)
             .path(ingestRequestPathCSV)
             .profileId(profileId)
             .loadTag(Names.randomizeName("test"))

@@ -7,11 +7,11 @@ import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
 import bio.terra.model.IngestRequestModel.FormatEnum;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
+import bio.terra.service.snapshot.Snapshot;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.google.common.annotations.VisibleForTesting;
@@ -164,16 +164,20 @@ public class AzureSynapsePdao {
     }
   }
 
-  public List<String> getRefIdsForDataset(Dataset dataset) {
+  public List<String> getRefIdsForSnapshot(Snapshot snapshot) {
     List<String> refIds = new ArrayList<>();
-    dataset
+    snapshot
         .getTables()
         .forEach(
             table -> {
-              table.getColumns().stream()
-                  .map(Column::toSynapseColumn)
-                  .filter(Column::isFileOrDirRef)
-                  .forEach(column -> refIds.addAll(getRefIds(table.getName(), column)));
+              if (table.getRowCount() > 0) {
+                String tableName =
+                    IngestUtils.formatSnapshotTableName(snapshot.getId(), table.getName());
+                table.getColumns().stream()
+                    .map(Column::toSynapseColumn)
+                    .filter(Column::isFileOrDirRef)
+                    .forEach(column -> refIds.addAll(getRefIds(tableName, column)));
+              }
             });
     return refIds;
   }
@@ -364,6 +368,7 @@ public class AzureSynapsePdao {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
+      logger.info(query);
       statement.execute(query);
       return statement.getUpdateCount();
     }

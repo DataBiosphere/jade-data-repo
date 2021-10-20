@@ -222,18 +222,28 @@ public class SnapshotCreateFlight extends Flight {
     } else if (platform.isAzure()) {
       addStep(
           new CreateSnapshotStorageTableDataStep(
-              tableDao, azureAuthService, datasetService, azureSynapsePdao, datasetName));
+              tableDao,
+              azureAuthService,
+              datasetService,
+              azureSynapsePdao,
+              snapshotService,
+              datasetName));
 
       addStep(
           new CreateSnapshotStorageTableDependenciesStep(
-              tableDependencyDao, azureAuthService, datasetService, azureSynapsePdao, datasetName));
+              tableDependencyDao,
+              azureAuthService,
+              datasetService,
+              azureSynapsePdao,
+              snapshotService,
+              datasetName));
       // Calculate checksums and sizes for all directories in the snapshot
       addStep(
           new CreateSnapshotStorageTableComputeStep(
               tableDao, snapshotReq, snapshotService, azureAuthService));
       // cannot clean up azure synapse tables until after gathered refIds in
       // CreateSnapshotStorageTableDataStep
-      addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao));
+      addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao, snapshotService));
     }
 
     // Unlock dataset

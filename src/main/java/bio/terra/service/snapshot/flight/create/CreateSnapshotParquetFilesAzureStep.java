@@ -1,5 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
+
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
@@ -15,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class CreateSnapshotParquetFilesAzureStep implements Step {
 
@@ -65,9 +68,15 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    // TODO - UNCOMMENT BEFORE MERGE!
-    //    azureSynapsePdao.dropTables(
-    //        Arrays.asList(IngestUtils.getSourceDatasetDataSourceName(context.getFlightId())));
+    FlightMap workingMap = context.getWorkingMap();
+    List<DatasetTable> tables = datasetService.retrieveByName(datasetName).getTables();
+    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+    azureSynapsePdao.dropTables(
+        tables.stream()
+            .map(table -> IngestUtils.formatSnapshotTableName(snapshotId, table.getName()))
+            .collect(Collectors.toList()));
+    azureSynapsePdao.dropTables(
+        List.of(IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
     return StepResult.getStepResultSuccess();
   }
 }

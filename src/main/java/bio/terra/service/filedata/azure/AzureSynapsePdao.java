@@ -207,8 +207,6 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlDataSourceCreateTemplate.render());
   }
 
-  // TODO - add datarepo_row_id to the select statement
-  // TODO - confirm that the generated parquet files are not empty
   public int createParquetFiles(
       FormatEnum ingestType,
       DatasetTable datasetTable,
@@ -250,7 +248,6 @@ public class AzureSynapsePdao {
     return executeSynapseQuery(sqlCreateTableTemplate.render());
   }
 
-  // TODO - we only care about snapshot datasource a this point
   public void createSnapshotRowIdsParquetFile(
       List<DatasetTable> tables,
       UUID snapshotId,
@@ -305,10 +302,6 @@ public class AzureSynapsePdao {
       String datasetFlightId)
       throws SQLException {
     for (DatasetTable table : tables) {
-      // Create a copy of each dataset "table" (parquet file)
-      //      List<SynapseColumn> columns =
-      //
-      // table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
       String datasetParquetFileName =
           IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
       // TODO - Q - Do we want to have a folder w/ the name of table to match dataset file

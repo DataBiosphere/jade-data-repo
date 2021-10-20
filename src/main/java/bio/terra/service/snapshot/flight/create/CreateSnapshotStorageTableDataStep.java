@@ -78,6 +78,7 @@ public class CreateSnapshotStorageTableDataStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
+    // TODO - delete storage table
     return StepResult.getStepResultSuccess();
   }
 }

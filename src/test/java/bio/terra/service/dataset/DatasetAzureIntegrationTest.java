@@ -372,8 +372,8 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         blobIOTestUtility.uploadFileWithContents(
             csvDatasetIngestControlFileBlob,
             String.format(
-                "vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id\n"
-                    + "\"1\",\"vocab1\",\"%s\",\"v1\",1\n"
+                "vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id%n"
+                    + "\"1\",\"vocab1\",\"%s\",\"v1\",1%n"
                     + "\"2\",\"vocab2\",\"%s\",\"v2\",2",
                 file1Model.getFileId(), file2Model.getFileId()));
     IngestRequestModel ingestRequestCSV =
@@ -417,7 +417,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
-    //TODO - implement Snapshot delete flight (DR-2194)
+    // TODO - implement Snapshot delete flight (DR-2194)
     clearEnvironment(true);
   }
 

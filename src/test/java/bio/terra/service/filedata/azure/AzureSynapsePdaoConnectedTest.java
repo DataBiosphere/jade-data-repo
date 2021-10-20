@@ -24,6 +24,7 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.stairway.ShortUUID;
 import com.azure.core.management.Region;
 import com.azure.resourcemanager.AzureResourceManager;
@@ -31,8 +32,10 @@ import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.storage.blob.BlobUrlParts;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -92,6 +95,7 @@ public class AzureSynapsePdaoConnectedTest {
   @Autowired DatasetService datasetService;
   @MockBean private IamProviderInterface samService;
   @Autowired SynapseUtils synapseUtils;
+  @Autowired SnapshotDao snapshotDao;
 
   @Before
   public void setup() throws Exception {
@@ -312,11 +316,13 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 6 - Create snapshot parquet files via external table
     List<DatasetTable> datasetTables = List.of(destinationTable);
+    Map<String, Long> tableRowCounts = new HashMap();
     azureSynapsePdao.createSnapshotParquetFiles(
         datasetTables,
         snapshotId,
         destinationDataSourceName,
         snapshotDataSourceName,
+        tableRowCounts,
         randomFlightId);
     String snapshotParquetFileName =
         IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
@@ -327,6 +333,10 @@ public class AzureSynapsePdaoConnectedTest {
         "List of names in snapshot should equal the dataset names",
         snapshotFirstNames,
         equalTo(List.of("Bob", "Sally")));
+    assertThat(
+        "Table row count should equal 2 for destination table",
+        tableRowCounts.get(destinationTableName),
+        equalTo(2L));
 
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
@@ -334,6 +344,7 @@ public class AzureSynapsePdaoConnectedTest {
         snapshotId,
         destinationDataSourceName,
         snapshotDataSourceName,
+        tableRowCounts,
         randomFlightId);
     String snapshotRowIdsParquetFileName =
         IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);

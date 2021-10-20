@@ -4,7 +4,9 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
@@ -29,11 +31,10 @@ public class CreateSnapshotCountTableRowsAzureStep implements Step {
   @Override
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
+    FlightMap workingMap = flightContext.getWorkingMap();
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    // TODO - provide new get row counts method
-    // potentially can get from CreateSnapshotParquetFilesAzureStep
     Map<String, Long> tableRowCounts =
-        new HashMap<>(); // azureSynapsePdao.getSnapshotTableRowCounts(snapshot);
+        workingMap.get(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, HashMap.class);
     snapshotDao.updateSnapshotTableRowCounts(snapshot, tableRowCounts);
     return StepResult.getStepResultSuccess();
   }

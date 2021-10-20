@@ -11,7 +11,9 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class CreateSnapshotParquetFilesAzureStep implements Step {
@@ -33,6 +35,7 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
     List<DatasetTable> tables = datasetService.retrieveByName(datasetName).getTables();
+    Map<String, Long> tableRowCounts = new HashMap<>();
 
     try {
       azureSynapsePdao.createSnapshotParquetFiles(
@@ -40,6 +43,7 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
           snapshotId,
           IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
           IngestUtils.getTargetDataSourceName(context.getFlightId()),
+          tableRowCounts,
           null);
 
       azureSynapsePdao.createSnapshotRowIdsParquetFile(
@@ -47,7 +51,10 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
           snapshotId,
           IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
           IngestUtils.getTargetDataSourceName(context.getFlightId()),
+          tableRowCounts,
           null);
+
+      workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
 
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

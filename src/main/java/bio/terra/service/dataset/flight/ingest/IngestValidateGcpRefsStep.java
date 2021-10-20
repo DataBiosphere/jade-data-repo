@@ -11,7 +11,6 @@ import bio.terra.stairway.StepResult;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
 
@@ -41,12 +40,7 @@ public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
       if (column.isFileOrDirRef()) {
         List<String> refIdArray = bigQueryPdao.getRefIds(dataset, stagingTableName, column);
         List<String> badRefIds = fileDao.validateRefIds(dataset, refIdArray);
-        if (badRefIds != null) {
-          invalidRefIds.addAll(
-              badRefIds.stream()
-                  .map(id -> new InvalidRefId(id, column.getName()))
-                  .collect(Collectors.toList()));
-        }
+        badRefIds.forEach(id -> invalidRefIds.add(new InvalidRefId(id, column.getName())));
       }
     }
 

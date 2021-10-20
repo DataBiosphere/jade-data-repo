@@ -42,8 +42,8 @@ public abstract class IngestValidateRefsStep implements Step {
   }
 
   public static class InvalidRefId {
-    public String refId;
-    public String columnName;
+    public final String refId;
+    public final String columnName;
 
     public InvalidRefId(String refId, String columnName) {
       this.refId = refId;

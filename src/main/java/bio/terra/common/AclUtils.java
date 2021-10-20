@@ -2,9 +2,7 @@ package bio.terra.common;
 
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
-import com.google.cloud.http.BaseHttpServiceException;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -17,23 +15,19 @@ public class AclUtils {
   private static final int MAX_WAIT_SECONDS = 30;
   private static final int INITIAL_WAIT_SECONDS = 2;
 
-  private static final Set<String> validRetryReasons = Set.of("rateLimitExceeded", "conflict");
-
   public static <T> T aclUpdateRetry(Callable<T> aclUpdate) throws InterruptedException {
     Random random = new Random();
-    Exception lastException = null;
+    Throwable lastException = null;
     int retryWait = INITIAL_WAIT_SECONDS;
     for (int i = 0; i < RETRIES; i++) {
       try {
         return aclUpdate.call();
-      } catch (BaseHttpServiceException ex) {
-        String reason = ex.getReason();
-        if (validRetryReasons.contains(reason)) {
-          logger.info(
-              String.format("Failed to update ACL due to [%s]. Retry %d of %d", reason, i, RETRIES),
-              ex);
-          lastException = ex;
-        }
+      } catch (AclRetryException ex) {
+        logger.info(
+            String.format(
+                "Failed to update ACL due to [%s]. Retry %d of %d", ex.getReason(), i, RETRIES),
+            ex);
+        lastException = ex.getCause();
       } catch (Exception ex) {
         throw new GoogleResourceException("Error while performing ACL update", ex);
       }
@@ -46,5 +40,19 @@ public class AclUtils {
       }
     }
     throw new UpdatePermissionsFailedException("Cannot update ACL permissions", lastException);
+  }
+
+  public static class AclRetryException extends RuntimeException {
+
+    private final String reason;
+
+    public AclRetryException(String message, Exception cause, String reason) {
+      super(message, cause);
+      this.reason = reason;
+    }
+
+    public String getReason() {
+      return reason;
+    }
   }
 }

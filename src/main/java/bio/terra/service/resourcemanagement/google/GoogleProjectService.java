@@ -402,41 +402,46 @@ public class GoogleProjectService {
 
     AclUtils.aclUpdateRetry(
         () -> {
-          CloudResourceManager resourceManager = cloudResourceManager();
-          Policy policy =
-              resourceManager.projects().getIamPolicy(projectId, getIamPolicyRequest).execute();
-          final List<Binding> bindingsList = policy.getBindings();
+          try {
+            CloudResourceManager resourceManager = cloudResourceManager();
+            Policy policy =
+                resourceManager.projects().getIamPolicy(projectId, getIamPolicyRequest).execute();
+            final List<Binding> bindingsList = policy.getBindings();
 
-          switch (permissionOp) {
-            case ENABLE_PERMISSIONS:
-              for (var entry : userPermissions.entrySet()) {
-                Binding binding =
-                    new Binding().setRole(entry.getKey()).setMembers(entry.getValue());
-                bindingsList.add(binding);
-              }
-              break;
+            switch (permissionOp) {
+              case ENABLE_PERMISSIONS:
+                for (var entry : userPermissions.entrySet()) {
+                  Binding binding =
+                      new Binding().setRole(entry.getKey()).setMembers(entry.getValue());
+                  bindingsList.add(binding);
+                }
+                break;
 
-            case REVOKE_PERMISSIONS:
-              // Remove members from the current policies
-              for (var entry : userPermissions.entrySet()) {
-                CollectionUtils.filter(
-                    bindingsList,
-                    b -> {
-                      if (Objects.equals(b.getRole(), entry.getKey())) {
-                        // Remove the members that were passed in
-                        b.setMembers(ListUtils.subtract(b.getMembers(), entry.getValue()));
-                        // Remove any entries from the bindings list with no members
-                        return !b.getMembers().isEmpty();
-                      }
-                      return true;
-                    });
-              }
+              case REVOKE_PERMISSIONS:
+                // Remove members from the current policies
+                for (var entry : userPermissions.entrySet()) {
+                  CollectionUtils.filter(
+                      bindingsList,
+                      b -> {
+                        if (Objects.equals(b.getRole(), entry.getKey())) {
+                          // Remove the members that were passed in
+                          b.setMembers(ListUtils.subtract(b.getMembers(), entry.getValue()));
+                          // Remove any entries from the bindings list with no members
+                          return !b.getMembers().isEmpty();
+                        }
+                        return true;
+                      });
+                }
+            }
+
+            policy.setBindings(bindingsList);
+            SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
+            resourceManager.projects().setIamPolicy(projectId, setIamPolicyRequest).execute();
+            return null;
+          } catch (IOException | GeneralSecurityException ex) {
+            throw new AclUtils.AclRetryException(
+                "Encountered an error while updating IAM permissions", ex, ex.getMessage());
           }
-
-          policy.setBindings(bindingsList);
-          SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
-          resourceManager.projects().setIamPolicy(projectId, setIamPolicyRequest).execute();
-          return null;
         });
   }
 

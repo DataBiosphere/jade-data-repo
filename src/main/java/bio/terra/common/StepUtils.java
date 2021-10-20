@@ -4,8 +4,12 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import java.lang.reflect.Field;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StepUtils {
+
+  private static final Logger logger = LoggerFactory.getLogger(StepUtils.class);
 
   public static String keyFromField(Field field) {
     // TODO: add support for name overrides.
@@ -22,7 +26,8 @@ public class StepUtils {
           } else if (context.getWorkingMap().containsKey(key)) {
             setField(step, context.getWorkingMap(), field, key);
           } else {
-            throw new RuntimeException("No flight value found for key '" + key + "'");
+            // Would be nice to throw here; supporting a "required" flag would help.
+            logger.warn("No flight value found for key {}", key);
           }
         }
       }

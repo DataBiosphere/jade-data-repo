@@ -13,7 +13,7 @@ The [Terra](https://terra.bio/) Data Repository built by the Jade team as part o
 This repository is currently designed to be deployed inside of a Google Cloud Platform project to manage tabular data
 inside of BigQuery datasets and file data inside of Google Cloud Storage buckets. The project setup has been automated
 via Terraform.
-______
+
 ### Terraforming a project
 
 Clone the [terraform-jade](https://github.com/broadinstitute/terraform-jade) repo and follow the terrform commands there

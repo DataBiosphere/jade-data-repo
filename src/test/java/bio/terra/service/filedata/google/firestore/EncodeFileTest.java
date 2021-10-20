@@ -344,7 +344,7 @@ public class EncodeFileTest {
 
     List<String> errorDetails = ingestError.getErrorDetail();
     assertNotNull("Error details were returned", errorDetails);
-    assertThat("Bad id was returned in details", errorDetails.get(0), endsWith(ID_GARBAGE));
+    assertThat("Bad id was returned in details", errorDetails.get(0), containsString(ID_GARBAGE));
 
     // Delete the scratch blob
     Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));

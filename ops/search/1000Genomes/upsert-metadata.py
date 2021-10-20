@@ -15,7 +15,6 @@ upsert_url = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/sea
 policy_url = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/snapshots/{id}/policies/steward/members"
 
 
-
 def now():
     return datetime.now().isoformat()
 

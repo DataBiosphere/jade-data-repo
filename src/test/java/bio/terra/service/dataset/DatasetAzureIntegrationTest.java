@@ -28,6 +28,7 @@ import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -48,7 +49,12 @@ import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
+import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
@@ -102,6 +108,10 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private SynapseUtils synapseUtils;
   @Autowired private TableDependencyDao tableDependencyDao;
   @Autowired private AzureUtils azureUtils;
+  @Autowired private ProfileDao profileDao;
+  @Autowired private ResourceService resourceService;
+  @Autowired private DatasetService datasetService;
+  @Autowired private AzureAuthService azureAuthService;
 
   private String stewardToken;
   private User steward;
@@ -248,20 +258,38 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     DatasetSummaryModel summaryModel2 =
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+
+    BillingProfileModel profileModel =
+        profileDao.getBillingProfileById(summaryModel2.getDefaultProfileId());
+    AzureStorageAccountResource storageAccountResource =
+        resourceService.getStorageAccount(
+            datasetService.retrieve(summaryModel2.getId()), profileModel);
+    AzureStorageAuthInfo storageAuthInfo =
+        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);
+
+    tableServiceClient =
+        azureAuthService.getTableServiceClient(
+            storageAuthInfo.getSubscriptionId(),
+            storageAuthInfo.getResourceGroupName(),
+            storageAuthInfo.getStorageAccountResourceName());
+
     // add fake rows here
     UUID snapshotId = UUID.randomUUID();
     List<String> fileUUIDs = List.of(UUID.randomUUID().toString());
     tableDependencyDao.storeSnapshotFileDependencies(
         tableServiceClient, summaryModel2.getId(), snapshotId, fileUUIDs);
-    String tableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
+    String tableName = StorageTableName.DEPENDENCIES.toTableName(summaryModel2.getId());
+
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
     TableEntity createdEntity = tableClient.getEntity(snapshotId.toString(), fileUUIDs.get(0));
     assertEntityCorrect(createdEntity, snapshotId, fileUUIDs.get(0), 1L);
-    //    dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     // assert that delete fails
     dataRepoFixtures.deleteDatasetShouldFail(steward, summaryModel2.getId());
     // delete dependencies
+    tableDependencyDao.deleteSnapshotFileDependencies(
+        tableServiceClient, summaryModel2.getId(), snapshotId);
     // delete should succeed
+    dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     assertThat(
         "Original dataset is still there",
         dataRepoFixtures

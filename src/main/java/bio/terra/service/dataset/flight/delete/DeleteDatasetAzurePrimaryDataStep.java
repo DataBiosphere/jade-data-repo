@@ -53,14 +53,6 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    //    Dataset dataset = datasetService.retrieve(datasetId);
-    //    BillingProfileModel profileModel =
-    //        profileDao.getBillingProfileById(dataset.getDefaultProfileId());
-    //    AzureStorageAccountResource storageAccountResource =
-    //        resourceService.getStorageAccount(dataset, profileModel);
-    //    AzureStorageAuthInfo storageAuthInfo =
-    //        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel,
-    // storageAccountResource);
     FlightMap map = context.getWorkingMap();
     AzureStorageAuthInfo storageAuthInfo =
         map.get(DatasetWorkingMapKeys.AZURE_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);

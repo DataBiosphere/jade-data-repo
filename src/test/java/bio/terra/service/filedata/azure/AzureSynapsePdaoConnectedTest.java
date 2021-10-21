@@ -304,7 +304,15 @@ public class AzureSynapsePdaoConnectedTest {
         "List of names should equal the input", firstNames, equalTo(List.of("Bob", "Sally")));
 
     // SNAPSHOT
+    Snapshot snapshot = new Snapshot().id(snapshotId);
+    SnapshotTable snapshotTable = new SnapshotTable();
+    snapshotTable.columns(destinationTable.getColumns());
+    snapshotTable.id(destinationTable.getId());
+    snapshotTable.name(destinationTable.getName());
+    snapshot.snapshotTables(List.of(snapshotTable));
+
     // 5 - Create external data source for the snapshot
+
     // where we'll write the resulting parquet files
     String parquetSnapshotLocation =
         IngestUtils.getParquetTargetLocationURL(snapshotStorageAccountResource);
@@ -318,10 +326,9 @@ public class AzureSynapsePdaoConnectedTest {
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
 
     // 6 - Create snapshot parquet files via external table
-    List<DatasetTable> datasetTables = List.of(destinationTable);
     Map<String, Long> tableRowCounts = new HashMap();
     azureSynapsePdao.createSnapshotParquetFiles(
-        datasetTables,
+        snapshot.getTables(),
         snapshotId,
         destinationDataSourceName,
         snapshotDataSourceName,
@@ -343,7 +350,7 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
-        datasetTables,
+        snapshot.getTables(),
         snapshotId,
         destinationDataSourceName,
         snapshotDataSourceName,
@@ -356,11 +363,7 @@ public class AzureSynapsePdaoConnectedTest {
             snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);
     assertThat("Snapshot contains expected number or rows", snapshotRowIds.size(), equalTo(2));
 
-    Snapshot snapshot = new Snapshot().id(snapshotId);
-    SnapshotTable snapshotTable = new SnapshotTable();
-    snapshotTable.columns(destinationTable.getColumns());
-    snapshotTable.id(destinationTable.getId());
-    snapshotTable.name(destinationTable.getName());
+    // Updated snapshot w/ rowId
     snapshotTable.rowCount(snapshotRowIds.size());
     snapshot.snapshotTables(List.of(snapshotTable));
 

@@ -204,9 +204,6 @@ public class ResourceService {
         snapshotId, storageAccountResource.getResourceId());
 
     return storageAccountResource;
-
-    // Set the storage account resource in the snapshot object for convenience.
-    // snapshot.setStorageAccountResource(storageAccountResource);
   }
 
   /**

@@ -12,6 +12,7 @@ import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotTable;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.google.common.annotations.VisibleForTesting;
@@ -249,7 +250,7 @@ public class AzureSynapsePdao {
   }
 
   public void createSnapshotRowIdsParquetFile(
-      List<DatasetTable> tables,
+      List<SnapshotTable> tables,
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
@@ -259,7 +260,7 @@ public class AzureSynapsePdao {
 
     // Get all row ids from the dataset
     List<String> selectStatements = new ArrayList<>();
-    for (DatasetTable table : tables) {
+    for (SnapshotTable table : tables) {
       if (!tableRowCounts.containsKey(table.getName())) {
         logger.warn(
             "Table {} is not contained in the TableRowCounts map and therefore will be skipped in the snapshotRowIds parquet file.",
@@ -294,14 +295,14 @@ public class AzureSynapsePdao {
   }
 
   public void createSnapshotParquetFiles(
-      List<DatasetTable> tables,
+      List<SnapshotTable> tables,
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
       Map<String, Long> tableRowCounts,
       String datasetFlightId)
       throws SQLException {
-    for (DatasetTable table : tables) {
+    for (SnapshotTable table : tables) {
       String datasetParquetFileName =
           IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
       // TODO - Q - Do we want to have a folder w/ the name of table to match dataset file

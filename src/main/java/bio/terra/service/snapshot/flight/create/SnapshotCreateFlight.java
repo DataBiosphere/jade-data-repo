@@ -144,9 +144,7 @@ public class SnapshotCreateFlight extends Flight {
                   azureSynapsePdao, azureBlobStorePdao));
           addStep(
               new CreateSnapshotTargetDataSourceAzureStep(azureSynapsePdao, azureBlobStorePdao));
-          addStep(
-              new CreateSnapshotParquetFilesAzureStep(
-                  azureSynapsePdao, datasetService, datasetName));
+          addStep(new CreateSnapshotParquetFilesAzureStep(azureSynapsePdao, snapshotService));
           addStep(
               new CreateSnapshotCountTableRowsAzureStep(
                   azureSynapsePdao, snapshotDao, snapshotReq));

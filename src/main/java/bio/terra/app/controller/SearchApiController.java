@@ -6,20 +6,28 @@ import bio.terra.controller.SearchApi;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchMetadataModel;
+import bio.terra.model.SearchMetadataResponse;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.search.SearchService;
 import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.swagger.annotations.Api;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -85,13 +93,34 @@ public class SearchApiController implements SearchApi {
   }
 
   @Override
-  public ResponseEntity<String> enumerateSnapshotSearch() {
-    List<UUID> ids =
-        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
-    Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(ids);
-    // Create the JSON result "by hand" to avoid having to round trip the data to JsonNode.
-    String response = String.format("{ \"result\": [ %s ] }", String.join(",", metadata.values()));
+  public ResponseEntity<SearchMetadataResponse> enumerateSnapshotSearch() {
+    var idsAndRoles =
+        iamService.listAuthorizedResourcesAndRoles(
+            getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
+    Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(idsAndRoles.keySet());
+    var response = new SearchMetadataResponse();
+    response.setResult(new ArrayList<>());
+    metadata.forEach(
+        (uuid, data) -> {
+          JsonNode node = toJsonNode(data);
+          ArrayNode roles = objectMapper.createArrayNode();
+          for (IamRole iamRole : idsAndRoles.get(uuid)) {
+            roles.add(TextNode.valueOf(iamRole.toString()));
+          }
+          ((ObjectNode) node).set("roles", roles);
+          response.getResult().add(node);
+        });
     return ResponseEntity.ok(response);
+  }
+
+  private JsonNode toJsonNode(String json) {
+    try {
+      return objectMapper.readValue(json, JsonNode.class);
+    } catch (JsonProcessingException e) {
+      // This shouldn't occur, as the data stored in postgres must be valid JSON, because it's
+      // stored as JSONB.
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

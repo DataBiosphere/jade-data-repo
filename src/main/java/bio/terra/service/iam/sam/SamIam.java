@@ -28,7 +28,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -146,7 +148,7 @@ public class SamIam implements IamProviderInterface {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
 
     try (Stream<ResourceAndAccessPolicy> resultStream =
-        samResourceApi.listResourcesAndPolicies(iamResourceType.toString()).stream()) {
+        samResourceApi.listResourcesAndPolicies(iamResourceType.getSamResourceName()).stream()) {
       return resultStream
           .map(ResourceAndAccessPolicy::getResourceId)
           // Convert valid UUID's to Optional<UUID> objects
@@ -155,6 +157,29 @@ public class SamIam implements IamProviderInterface {
           .flatMap(Optional::stream)
           .collect(Collectors.toList());
     }
+  }
+
+  @Override
+  public Map<UUID, Set<IamRole>> listAuthorizedResourcesAndRoles(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService, () -> listAuthorizedResourcesAndRolesInner(userReq, iamResourceType));
+  }
+
+  private Map<UUID, Set<IamRole>> listAuthorizedResourcesAndRolesInner(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType) throws ApiException {
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    return samResourceApi.listResourcesAndPolicies(iamResourceType.getSamResourceName()).stream()
+        .filter(resource -> ValidationUtils.isValidUuid(resource.getResourceId()))
+        .collect(
+            Collectors.toMap(
+                resource -> UUID.fromString(resource.getResourceId()),
+                resource ->
+                    resource.getAuthDomainGroups().stream()
+                        .map(IamRole::fromValue)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet())));
   }
 
   @Override

@@ -40,7 +40,8 @@ public final class BigQueryUtils {
     RetrySettings retrySettings =
         RetrySettings.newBuilder()
             .setInitialRetryDelay(Duration.ofMillis(1000L))
-            .setMaxRetryDelay(Duration.ofMillis(32_000L))
+            .setInitialRetryDelay(Duration.ofSeconds(1))
+            .setMaxRetryDelay(Duration.ofSeconds(32))
             .setRetryDelayMultiplier(2.0)
             .setTotalTimeout(Duration.ofMinutes(7))
             .setInitialRpcTimeout(Duration.ofMillis(50_000L))

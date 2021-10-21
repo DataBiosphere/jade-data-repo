@@ -2,8 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.service.common.CommonMapKeys;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -23,23 +22,20 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
   private final TableDependencyDao tableDependencyDao;
   private final AzureAuthService azureAuthService;
   private final AzureSynapsePdao azureSynapsePdao;
-  private final DatasetService datasetService;
-  private final String datasetName;
+  private final UUID datasetId;
   private final SnapshotService snapshotService;
 
   public CreateSnapshotStorageTableDependenciesStep(
       TableDependencyDao tableDependencyDao,
       AzureAuthService azureAuthService,
-      DatasetService datasetService,
       AzureSynapsePdao azureSynapsePdao,
       SnapshotService snapshotService,
-      String datasetName) {
+      UUID datasetId) {
     this.tableDependencyDao = tableDependencyDao;
     this.azureAuthService = azureAuthService;
     this.azureSynapsePdao = azureSynapsePdao;
-    this.datasetService = datasetService;
     this.snapshotService = snapshotService;
-    this.datasetName = datasetName;
+    this.datasetId = datasetId;
   }
 
   @Override
@@ -51,21 +47,26 @@ public class CreateSnapshotStorageTableDependenciesStep implements Step {
     TableServiceClient datasetTableServiceClient =
         azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
 
-    Dataset dataset = datasetService.retrieveByName(datasetName);
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
-    // TODO - place for performance improvement
     List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
     tableDependencyDao.storeSnapshotFileDependencies(
-        datasetTableServiceClient, dataset.getId(), snapshotId, refIds);
+        datasetTableServiceClient, datasetId, snapshotId, refIds);
 
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    // TODO - delete storage table
+    AzureStorageAuthInfo datasetStorageAuthInfo =
+        FlightUtils.getContextValue(
+            context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+    TableServiceClient datasetTableServiceClient =
+        azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
+
+    String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
+    datasetTableServiceClient.deleteTable(dependencyTableName);
 
     return StepResult.getStepResultSuccess();
   }

@@ -2,8 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.service.common.CommonMapKeys;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -22,22 +21,22 @@ import java.util.UUID;
 public class CreateSnapshotStorageTableDataStep implements Step {
   private final TableDao tableDao;
   private final AzureAuthService azureAuthService;
-  private final DatasetService datasetService;
   private final AzureSynapsePdao azureSynapsePdao;
+  private final UUID datasetId;
   private final String datasetName;
   private final SnapshotService snapshotService;
 
   public CreateSnapshotStorageTableDataStep(
       TableDao tableDao,
       AzureAuthService azureAuthService,
-      DatasetService datasetService,
       AzureSynapsePdao azureSynapsePdao,
       SnapshotService snapshotService,
+      UUID datasetId,
       String datasetName) {
     this.tableDao = tableDao;
     this.azureAuthService = azureAuthService;
-    this.datasetService = datasetService;
     this.azureSynapsePdao = azureSynapsePdao;
+    this.datasetId = datasetId;
     this.datasetName = datasetName;
     this.snapshotService = snapshotService;
   }
@@ -51,7 +50,6 @@ public class CreateSnapshotStorageTableDataStep implements Step {
             context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     TableServiceClient datasetTableServiceClient =
         azureAuthService.getTableServiceClient(datasetStorageAuthInfo);
-    Dataset dataset = datasetService.retrieveByName(datasetName);
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
@@ -62,14 +60,13 @@ public class CreateSnapshotStorageTableDataStep implements Step {
     TableServiceClient snapshotTableServiceClient =
         azureAuthService.getTableServiceClient(snapshotStorageAuthInfo);
 
-    // TODO - place for performance improvement
     List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
 
     tableDao.addFilesToSnapshot(
         datasetTableServiceClient,
         snapshotTableServiceClient,
-        dataset.getId(),
-        dataset.getName(),
+        datasetId,
+        datasetName,
         snapshotId,
         refIds);
 
@@ -78,7 +75,17 @@ public class CreateSnapshotStorageTableDataStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    // TODO - delete storage table
+    FlightMap workingMap = context.getWorkingMap();
+    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+    String tableToDelete = StorageTableName.SNAPSHOT.toTableName(snapshotId);
+
+    AzureStorageAuthInfo snapshotStorageAuthInfo =
+        FlightUtils.getContextValue(
+            context, CommonMapKeys.SNAPSHOT_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+    TableServiceClient datasetTableServiceClient =
+        azureAuthService.getTableServiceClient(snapshotStorageAuthInfo);
+    datasetTableServiceClient.deleteTable(tableToDelete);
+
     return StepResult.getStepResultSuccess();
   }
 }

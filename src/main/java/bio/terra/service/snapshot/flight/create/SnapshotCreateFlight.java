@@ -222,19 +222,14 @@ public class SnapshotCreateFlight extends Flight {
           new CreateSnapshotStorageTableDataStep(
               tableDao,
               azureAuthService,
-              datasetService,
               azureSynapsePdao,
               snapshotService,
+              datasetId,
               datasetName));
 
       addStep(
           new CreateSnapshotStorageTableDependenciesStep(
-              tableDependencyDao,
-              azureAuthService,
-              datasetService,
-              azureSynapsePdao,
-              snapshotService,
-              datasetName));
+              tableDependencyDao, azureAuthService, azureSynapsePdao, snapshotService, datasetId));
       // Calculate checksums and sizes for all directories in the snapshot
       addStep(
           new CreateSnapshotStorageTableComputeStep(

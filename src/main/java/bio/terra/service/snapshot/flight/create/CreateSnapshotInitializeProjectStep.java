@@ -45,8 +45,9 @@ public class CreateSnapshotInitializeProjectStep implements Step {
     // Either the project will have been created and we will find it, or we will create.
     UUID projectResourceId;
     try {
-      projectResourceId = resourceService.initializeSnapshotProject(
-          profileModel, projectId, region, sourceDatasets, snapshotName, snapshotId);
+      projectResourceId =
+          resourceService.initializeSnapshotProject(
+              profileModel, projectId, region, sourceDatasets, snapshotName, snapshotId);
     } catch (GoogleResourceException e) {
       if (e.getCause().getMessage().contains("500 Internal Server Error")) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);

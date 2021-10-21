@@ -43,8 +43,9 @@ public class CreateDatasetInitializeProjectStep implements Step {
     // Either the project record will have been created and we will find it, or we will create it.
     UUID projectResourceId;
     try {
-      projectResourceId = resourceService.getOrCreateDatasetProject(
-          profileModel, projectId, region, datasetRequestModel.getName(), datasetId, isAzure);
+      projectResourceId =
+          resourceService.getOrCreateDatasetProject(
+              profileModel, projectId, region, datasetRequestModel.getName(), datasetId, isAzure);
     } catch (GoogleResourceException e) {
       if (e.getCause().getMessage().contains("500 Internal Server Error")) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);

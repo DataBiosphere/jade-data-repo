@@ -205,6 +205,10 @@ public final class IngestUtils {
         return false;
       };
 
+  public static final Predicate<FlightContext> noCopyNeeded =
+      flightContext ->
+          !flightContext.getWorkingMap().get(IngestMapKeys.CONTROL_FILE_NEEDS_COPY, Boolean.class);
+
   public static Stream<JsonNode> getJsonNodesStreamFromFile(
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,

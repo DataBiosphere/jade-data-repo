@@ -19,13 +19,13 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
+import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
 import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileAzureStep;
 import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileGcpStep;
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToStorageTableStep;
 import bio.terra.service.filedata.flight.ingest.IngestCreateAzureStorageAccountStep;
-import bio.terra.service.filedata.flight.ingest.IngestCreateBucketForScratchFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileAzureMakeStorageAccountLinkStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileGetProjectStep;
@@ -78,6 +78,7 @@ public class DatasetIngestFlight extends Flight {
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     FileService fileService = appContext.getBean(FileService.class);
+    GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
 
     IngestRequestModel ingestRequestModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
@@ -128,6 +129,7 @@ public class DatasetIngestFlight extends Flight {
             appContext,
             appConfig,
             datasetService,
+            gcsPdao,
             bigQueryPdao,
             configService,
             fileService,
@@ -161,6 +163,14 @@ public class DatasetIngestFlight extends Flight {
     }
 
     if (cloudPlatform.isGcp()) {
+      addStep(new IngestControlFileCopyNeededStep(datasetService, gcsPdao));
+      // If we need to copy, make (or get) the scratch bucket
+      addStep(
+          new CreateBucketForBigQueryScratchStep(
+              resourceService, datasetService, IngestUtils.noCopyNeeded),
+          getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
+      // If we need to copy, copy to the scratch bucket
+      addStep(new IngestCopyControlFileStep(datasetService, gcsPdao, IngestUtils.noCopyNeeded));
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
@@ -186,6 +196,7 @@ public class DatasetIngestFlight extends Flight {
       ApplicationContext appContext,
       ApplicationConfiguration appConfig,
       DatasetService datasetService,
+      GcsPdao gcsPdao,
       BigQueryPdao bigQueryPdao,
       ConfigurationService configService,
       FileService fileService,
@@ -200,7 +211,6 @@ public class DatasetIngestFlight extends Flight {
       int loadHistoryChunkSize,
       Predicate<FlightContext> ingestSkipCondition) {
 
-    GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     LoadService loadService = appContext.getBean(LoadService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
@@ -275,7 +285,9 @@ public class DatasetIngestFlight extends Flight {
 
     // Create a bucket for the scratch file to be written to.
     addStep(
-        new IngestCreateBucketForScratchFileStep(resourceService, dataset, ingestSkipCondition));
+        new CreateBucketForBigQueryScratchStep(
+            resourceService, datasetService, ingestSkipCondition),
+        randomBackoffRetry);
 
     // Build the scratch file using new file ids and store in new bucket.
     addStep(

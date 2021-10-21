@@ -43,7 +43,7 @@ public class IngestCreateIngestRequestDataSourceStep implements Step {
               ingestRequestModel.getPath(), billingProfileModel.getTenantId());
 
     } else {
-      String path = workingMap.get(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, String.class);
+      String path = workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class);
       AzureStorageAccountResource storageAccount =
           workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
       signedBlobUrlParts =

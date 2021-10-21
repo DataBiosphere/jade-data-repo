@@ -4,6 +4,7 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATC
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
@@ -24,6 +25,7 @@ import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
@@ -168,6 +170,14 @@ public class GcsPdao implements CloudFileReader {
     BlobId locator = GcsUriUtils.parseBlobUri(path);
     return storage.create(
         BlobInfo.newBuilder(locator).build(), Storage.BlobTargetOption.userProject(projectId));
+  }
+
+  public void copyGcsFile(String from, String to, String projectId) {
+    logger.info("Copying GCS file from {} to {}", from, to);
+    Storage storage = gcsProjectFactory.getStorage(projectId);
+    storage
+        .get(GcsUriUtils.parseBlobUri(from))
+        .copyTo(GcsUriUtils.parseBlobUri(to), Blob.BlobSourceOption.userProject(projectId));
   }
 
   public FSFileInfo copyFile(
@@ -331,6 +341,14 @@ public class GcsPdao implements CloudFileReader {
       Storage storage, String projectId, String gsPath, String contents) {
     return writeBlobContents(
         storage, projectId, getBlobFromGsPath(storage, gsPath, projectId), contents);
+  }
+
+  public GoogleRegion getRegionForFile(String path, String googleProjectId) {
+    Storage storage = gcsProjectFactory.getStorage(googleProjectId);
+    BlobId locator = GcsUriUtils.parseBlobUri(path);
+    Bucket bucket =
+        storage.get(locator.getBucket(), Storage.BucketGetOption.userProject(googleProjectId));
+    return GoogleRegion.fromValue(bucket.getLocation());
   }
 
   private void fileAclOp(

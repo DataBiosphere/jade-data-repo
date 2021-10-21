@@ -1,42 +1,46 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.service.common.gcs.CommonFlightKeys;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.SkippableStep;
-import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import java.util.UUID;
 import java.util.function.Predicate;
 
-public class IngestCreateBucketForScratchFileStep extends SkippableStep {
+public class CreateBucketForBigQueryScratchStep extends SkippableStep {
 
   private final ResourceService resourceService;
-  private final Dataset dataset;
+  private final DatasetService datasetService;
 
-  public IngestCreateBucketForScratchFileStep(
-      ResourceService resourceService, Dataset dataset, Predicate<FlightContext> skipCondition) {
+  public CreateBucketForBigQueryScratchStep(
+      ResourceService resourceService,
+      DatasetService datasetService,
+      Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.resourceService = resourceService;
-    this.dataset = dataset;
+    this.datasetService = datasetService;
   }
 
   @Override
   public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    GoogleProjectResource googleProjectResource =
-        workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
-
+    FlightMap inputParameters = context.getInputParameters();
+    UUID datasetId =
+        UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
+    Dataset dataset = datasetService.retrieve(datasetId);
     try {
       GoogleBucketResource bucketForFile =
-          resourceService.getOrCreateBucketForIngestScratchFile(
-              dataset, googleProjectResource, context.getFlightId());
-      workingMap.put(FileMapKeys.INGEST_FILE_BUCKET_INFO, bucketForFile);
+          resourceService.getOrCreateBucketForBigQueryScratchFile(dataset, context.getFlightId());
+      workingMap.put(CommonFlightKeys.SCRATCH_BUCKET_INFO, bucketForFile);
     } catch (BucketLockException e) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     } catch (GoogleResourceNamingException e) {

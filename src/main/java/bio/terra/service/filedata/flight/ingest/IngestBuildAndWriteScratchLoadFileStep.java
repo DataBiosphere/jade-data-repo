@@ -88,7 +88,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
             "Encountered invalid json while combining ingested files with load request");
       }
 
-      workingMap.put(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, path);
+      workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, path);
       workingMap.put(IngestMapKeys.COMBINED_FAILED_ROW_COUNT, failedRowCount.get());
 
       return StepResult.getStepResultSuccess();

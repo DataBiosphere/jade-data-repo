@@ -40,7 +40,7 @@ public class IngestCreateParquetFilesStep implements Step {
       ingestBlob = BlobUrlParts.parse(ingestRequestModel.getPath());
     } else {
       ingestBlob =
-          BlobUrlParts.parse(workingMap.get(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, String.class));
+          BlobUrlParts.parse(workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class));
     }
 
     long updateCount;

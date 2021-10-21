@@ -166,8 +166,10 @@ public class SnapshotsApiController implements SnapshotsApi {
       @Valid @RequestParam(value = "region", required = false) String region,
       @Valid @RequestParam(value = "datasetIds", required = false) List<String> datasetIds) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    List<UUID> resources =
-        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
+    var resources =
+        iamService
+            .listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
+            .keySet();
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
             .map(UUID::fromString)

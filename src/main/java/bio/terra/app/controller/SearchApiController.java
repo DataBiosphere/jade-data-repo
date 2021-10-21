@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.swagger.annotations.Api;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -95,11 +94,9 @@ public class SearchApiController implements SearchApi {
   @Override
   public ResponseEntity<SearchMetadataResponse> enumerateSnapshotSearch() {
     var idsAndRoles =
-        iamService.listAuthorizedResourcesAndRoles(
-            getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
+        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
     Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(idsAndRoles.keySet());
     var response = new SearchMetadataResponse();
-    response.setResult(new ArrayList<>());
     metadata.forEach(
         (uuid, data) -> {
           JsonNode node = toJsonNode(data);
@@ -108,7 +105,7 @@ public class SearchApiController implements SearchApi {
             roles.add(TextNode.valueOf(iamRole.toString()));
           }
           ((ObjectNode) node).set("roles", roles);
-          response.getResult().add(node);
+          response.addResultItem(node);
         });
     return ResponseEntity.ok(response);
   }
@@ -174,8 +171,10 @@ public class SearchApiController implements SearchApi {
   public ResponseEntity<SearchQueryResultModel> querySearchIndices(
       SearchQueryRequest searchQueryRequest, Integer offset, Integer limit) {
 
-    List<UUID> accessibleIds =
-        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
+    var accessibleIds =
+        iamService
+            .listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
+            .keySet();
 
     final List<UUID> snapshotIds = searchQueryRequest.getSnapshotIds();
 
@@ -183,7 +182,7 @@ public class SearchApiController implements SearchApi {
         snapshotIds == null || snapshotIds.isEmpty() ? Set.of() : Set.copyOf(snapshotIds);
 
     Set<UUID> inaccessibleIds = new HashSet<>(requestIds);
-    accessibleIds.forEach(inaccessibleIds::remove);
+    inaccessibleIds.removeAll(accessibleIds);
     if (!inaccessibleIds.isEmpty()) {
       throw new IamForbiddenException(
           "User '"

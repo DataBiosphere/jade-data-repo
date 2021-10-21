@@ -92,13 +92,13 @@ public class SearchApiControllerTest {
     UUID uuid = UUID.randomUUID();
     Set<UUID> uuids = Set.of(uuid);
     Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(uuid, Set.of(IamRole.DISCOVERER));
-    when(iamService.listAuthorizedResourcesAndRoles(any(), eq(IamResourceType.DATASNAPSHOT)))
+    when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
         .thenReturn(resourcesAndRoles);
     when(snapshotMetadataDao.getMetadata(uuids)).thenReturn(Map.of(uuid, json));
     mvc.perform(get(endpoint))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result[0].test").value("data"));
-    verify(iamService).listAuthorizedResourcesAndRoles(any(), eq(IamResourceType.DATASNAPSHOT));
+    verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
     verify(snapshotMetadataDao).getMetadata(uuids);
   }
 
@@ -109,13 +109,13 @@ public class SearchApiControllerTest {
     UUID uuid = UUID.randomUUID();
     Set<UUID> uuids = Set.of(uuid);
     Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(uuid, Set.of(IamRole.DISCOVERER));
-    when(iamService.listAuthorizedResourcesAndRoles(any(), eq(IamResourceType.DATASNAPSHOT)))
+    when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
         .thenReturn(resourcesAndRoles);
     when(snapshotMetadataDao.getMetadata(uuids)).thenReturn(Map.of(uuid, json));
     mvc.perform(get(endpoint))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result[0].roles").value("discoverer"));
-    verify(iamService).listAuthorizedResourcesAndRoles(any(), eq(IamResourceType.DATASNAPSHOT));
+    verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
     verify(snapshotMetadataDao).getMetadata(uuids);
   }
 

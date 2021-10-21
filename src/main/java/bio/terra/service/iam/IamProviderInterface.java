@@ -49,17 +49,6 @@ public interface IamProviderInterface {
   }
 
   /**
-   * List of the ids of the resources of iamResourceType that the user has any access to.
-   *
-   * @param userReq authenticated user
-   * @param iamResourceType resource type; e.g. dataset
-   * @return List of ids in UUID form
-   */
-  List<UUID> listAuthorizedResources(
-      AuthenticatedUserRequest userReq, IamResourceType iamResourceType)
-      throws InterruptedException;
-
-  /**
    * Return the ids of resources of type iamResourceType that the user has access to, along with the
    * roles the user has on the resource.
    *
@@ -67,7 +56,7 @@ public interface IamProviderInterface {
    * @param iamResourceType resource type; e.g. dataset
    * @return Map of ids in UUID form to set of roles
    */
-  Map<UUID, Set<IamRole>> listAuthorizedResourcesAndRoles(
+  Map<UUID, Set<IamRole>> listAuthorizedResources(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType)
       throws InterruptedException;
 

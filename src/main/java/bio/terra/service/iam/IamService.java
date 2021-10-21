@@ -142,7 +142,7 @@ public class IamService {
    * @param iamResourceType resource type; e.g. dataset
    * @return List of ids in UUID form
    */
-  public List<UUID> listAuthorizedResources(
+  public Map<UUID, Set<IamRole>> listAuthorizedResources(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType) {
     return callProvider(() -> iamProvider.listAuthorizedResources(userReq, iamResourceType));
   }
@@ -265,11 +265,5 @@ public class IamService {
 
   public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) {
     return iamProvider.getUserInfo(userReq);
-  }
-
-  public Map<UUID, Set<IamRole>> listAuthorizedResourcesAndRoles(
-      AuthenticatedUserRequest userReq, IamResourceType iamResourceType) {
-    return callProvider(
-        () -> iamProvider.listAuthorizedResourcesAndRoles(userReq, iamResourceType));
   }
 }

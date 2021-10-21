@@ -11,6 +11,7 @@ import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -146,7 +147,7 @@ public class ProfileDao {
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public EnumerateBillingProfileModel enumerateBillingProfiles(
-      int offset, int limit, List<UUID> accessibleProfileId) {
+      int offset, int limit, Collection<UUID> accessibleProfileId) {
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()

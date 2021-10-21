@@ -117,17 +117,17 @@ public class SamIamTest {
 
   @Test
   public void testIgnoresNonUUIDResourceName() throws ApiException, InterruptedException {
-    final String goodId = UUID.randomUUID().toString();
+    final UUID goodId = UUID.randomUUID();
     final String badId = "badUUID";
     when(samResourceApi.listResourcesAndPolicies(
             IamResourceType.SPEND_PROFILE.getSamResourceName()))
         .thenReturn(
             List.of(
-                new ResourceAndAccessPolicy().resourceId(goodId),
+                new ResourceAndAccessPolicy().resourceId(goodId.toString()),
                 new ResourceAndAccessPolicy().resourceId(badId)));
 
-    List<UUID> uuids = samIam.listAuthorizedResources(userReq, IamResourceType.SPEND_PROFILE);
-    assertThat(uuids).containsExactly(UUID.fromString(goodId));
+    var uuids = samIam.listAuthorizedResources(userReq, IamResourceType.SPEND_PROFILE).keySet();
+    assertThat(uuids).containsExactly(goodId);
   }
 
   @Test

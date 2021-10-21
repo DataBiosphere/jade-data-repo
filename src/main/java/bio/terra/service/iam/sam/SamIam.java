@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -45,7 +44,6 @@ import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
-import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,38 +134,14 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public List<UUID> listAuthorizedResources(
+  public Map<UUID, Set<IamRole>> listAuthorizedResources(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType)
       throws InterruptedException {
     return SamRetry.retry(
         configurationService, () -> listAuthorizedResourcesInner(userReq, iamResourceType));
   }
 
-  private List<UUID> listAuthorizedResourcesInner(
-      AuthenticatedUserRequest userReq, IamResourceType iamResourceType) throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-
-    try (Stream<ResourceAndAccessPolicy> resultStream =
-        samResourceApi.listResourcesAndPolicies(iamResourceType.getSamResourceName()).stream()) {
-      return resultStream
-          .map(ResourceAndAccessPolicy::getResourceId)
-          // Convert valid UUID's to Optional<UUID> objects
-          .map(ValidationUtils::convertToUuid)
-          // Only return valid values
-          .flatMap(Optional::stream)
-          .collect(Collectors.toList());
-    }
-  }
-
-  @Override
-  public Map<UUID, Set<IamRole>> listAuthorizedResourcesAndRoles(
-      AuthenticatedUserRequest userReq, IamResourceType iamResourceType)
-      throws InterruptedException {
-    return SamRetry.retry(
-        configurationService, () -> listAuthorizedResourcesAndRolesInner(userReq, iamResourceType));
-  }
-
-  private Map<UUID, Set<IamRole>> listAuthorizedResourcesAndRolesInner(
+  private Map<UUID, Set<IamRole>> listAuthorizedResourcesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType) throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
     return samResourceApi.listResourcesAndPolicies(iamResourceType.getSamResourceName()).stream()

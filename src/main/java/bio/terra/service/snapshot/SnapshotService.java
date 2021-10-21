@@ -45,6 +45,7 @@ import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -137,16 +138,16 @@ public class SnapshotService {
       String filter,
       String region,
       List<UUID> datasetIds,
-      List<UUID> resources) {
+      Collection<UUID> resources) {
     if (resources.isEmpty()) {
-      return new EnumerateSnapshotModel().total(0).items(Collections.emptyList());
+      return new EnumerateSnapshotModel().total(0).items(List.of());
     }
     MetadataEnumeration<SnapshotSummary> enumeration =
         snapshotDao.retrieveSnapshots(
             offset, limit, sort, direction, filter, region, datasetIds, resources);
     List<SnapshotSummaryModel> models =
         enumeration.getItems().stream()
-            .map(this::makeSummaryModelFromSummary)
+            .map(SnapshotService::makeSummaryModelFromSummary)
             .collect(Collectors.toList());
     return new EnumerateSnapshotModel()
         .items(models)
@@ -542,7 +543,7 @@ public class SnapshotService {
     snapshotSource.snapshotMapTables(mapTableList);
   }
 
-  public SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {
+  private static SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {
     SnapshotSummaryModel summaryModel =
         new SnapshotSummaryModel()
             .id(snapshotSummary.getId())

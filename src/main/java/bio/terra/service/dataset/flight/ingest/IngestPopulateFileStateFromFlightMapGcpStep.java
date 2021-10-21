@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.common.Column;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
@@ -31,7 +32,7 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
 
   @Override
   Stream<BulkLoadFileModel> getModelsStream(
-      IngestRequestModel ingestRequest, List<String> fileRefColumns, List<String> errors) {
+      IngestRequestModel ingestRequest, List<Column> fileRefColumns, List<String> errors) {
     return IngestUtils.getBulkFileLoadModelsStream(
         gcsPdao,
         objectMapper,

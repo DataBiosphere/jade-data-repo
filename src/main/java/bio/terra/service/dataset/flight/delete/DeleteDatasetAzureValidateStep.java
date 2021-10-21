@@ -44,7 +44,7 @@ public class DeleteDatasetAzureValidateStep extends DeleteDatasetValidateStep {
     BillingProfileModel profileModel =
         profileDao.getBillingProfileById(dataset.getDefaultProfileId());
     AzureStorageAccountResource storageAccountResource =
-        resourceService.getStorageAccount(dataset, profileModel);
+        resourceService.getDatasetStorageAccount(dataset, profileModel);
     AzureStorageAuthInfo storageAuthInfo =
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);
 

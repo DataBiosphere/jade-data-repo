@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
@@ -87,6 +88,14 @@ public class TableDependencyConnectedTest {
         TableServiceException.class, () -> tableClient.getEntity(SNAPSHOT_ID2.toString(), FILE_ID));
   }
 
+  private void assertEntityCorrect(
+      TableEntity entity, UUID snapshotId, String fileId, Long refCount) {
+    assertThat(
+        snapshotId.toString(),
+        equalTo(entity.getProperty(FireStoreDependency.SNAPSHOT_ID_FIELD_NAME)));
+    assertThat(fileId, equalTo(entity.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME)));
+    assertThat(refCount, equalTo(entity.getProperty(FireStoreDependency.REF_COUNT_FIELD_NAME)));
+  }
   @Test
   public void testDatasetHasSnapshotReference() {
     String tableName = StorageTableName.DEPENDENCIES.toTableName(DATASET_ID);
@@ -104,13 +113,5 @@ public class TableDependencyConnectedTest {
   @Test
   public void testDatasetDoesntHaveSnapshotReference() {
     Assert.assertFalse(dependencyDao.datasetHasSnapshotReference(tableServiceClient, DATASET_ID));
-  }
-
-  private void assertEntityCorrect(
-      TableEntity entity, UUID snapshotId, String fileId, Long refCount) {
-    assertEquals(
-        entity.getProperty(FireStoreDependency.SNAPSHOT_ID_FIELD_NAME), snapshotId.toString());
-    assertEquals(entity.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME), fileId);
-    assertEquals(entity.getProperty(FireStoreDependency.REF_COUNT_FIELD_NAME), refCount);
   }
 }

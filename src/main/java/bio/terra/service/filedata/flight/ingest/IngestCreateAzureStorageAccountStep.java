@@ -35,7 +35,7 @@ public class IngestCreateAzureStorageAccountStep implements Step {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
 
     AzureStorageAccountResource storageAccountResource =
-        resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
+        resourceService.getOrCreateDatasetStorageAccount(dataset, billingProfile, flightId);
     workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
     return StepResult.getStepResultSuccess();
   }

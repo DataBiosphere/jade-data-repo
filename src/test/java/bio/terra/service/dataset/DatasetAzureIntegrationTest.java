@@ -262,7 +262,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     BillingProfileModel profileModel =
         profileDao.getBillingProfileById(summaryModel2.getDefaultProfileId());
     AzureStorageAccountResource storageAccountResource =
-        resourceService.getStorageAccount(
+        resourceService.getDatasetStorageAccount(
             datasetService.retrieve(summaryModel2.getId()), profileModel);
     AzureStorageAuthInfo storageAuthInfo =
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);

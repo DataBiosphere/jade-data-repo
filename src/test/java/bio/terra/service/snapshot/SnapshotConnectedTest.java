@@ -127,7 +127,7 @@ public class SnapshotConnectedTest {
     billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
     datasetSummary = createTestDataset("snapshot-test-dataset.json");
-    loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+    loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data-row-ids.csv");
   }
 
   @After
@@ -229,6 +229,7 @@ public class SnapshotConnectedTest {
                 "gs://jade-testdata/scratch/buildSnapshotWithRowIds/hca-mvp-analysis-file-row-ids-dataset-data.csv");
 
     ingestRequest.csvSkipLeadingRows(1);
+    ingestRequest.csvGenerateRowIds(false);
     connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
     // TODO put big snapshot request into a GCS bucket
@@ -377,7 +378,7 @@ public class SnapshotConnectedTest {
   public void testDeleteRecreateSnapshot() throws Exception {
     // create a dataset and load some tabular data
     DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-    loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+    loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data-row-ids.csv");
 
     // create a snapshot
     SnapshotRequestModel snapshotRequest =
@@ -826,6 +827,7 @@ public class SnapshotConnectedTest {
 
     if (format.equals(IngestRequestModel.FormatEnum.CSV)) {
       ingestRequest.csvSkipLeadingRows(1);
+      ingestRequest.csvGenerateRowIds(false);
     }
 
     try {

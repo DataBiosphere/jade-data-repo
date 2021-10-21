@@ -479,7 +479,7 @@ public class DatasetIntegrationTest extends UsersBase {
   @Test
   public void testCombinedMetadataDataIngest() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined.json");
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     UUID datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel ingestRequest =
@@ -489,7 +489,7 @@ public class DatasetIntegrationTest extends UsersBase {
             .maxBadRecords(0)
             .table("sample_vcf")
             .path(
-                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates.json");
+                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
 
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
@@ -509,7 +509,7 @@ public class DatasetIntegrationTest extends UsersBase {
             .table("sample_vcf")
             .resolveExistingFiles(true)
             .path(
-                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-2.json");
+                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array-2.json");
 
     IngestResponseModel secondIngestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, secondIngestRequest);
@@ -536,7 +536,7 @@ public class DatasetIntegrationTest extends UsersBase {
             .maxBadRecords(0)
             .table("sample_vcf")
             .path(
-                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-3.json");
+                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array-3.json");
 
     DataRepoResponse<IngestResponseModel> thirdIngestResponse =
         dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, thirdIngestRequest);

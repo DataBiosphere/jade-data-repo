@@ -65,12 +65,10 @@ public class SnapshotCreateFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    // Lock the source dataset while adding ACLs to avoid a race condition
     // TODO note that with multi-dataset snapshots this will need to change
     List<Dataset> sourceDatasets =
         snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
     Dataset sourceDataset = sourceDatasets.get(0);
-    UUID datasetId = sourceDataset.getId();
     var platform =
         CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
     GoogleRegion firestoreRegion =
@@ -78,10 +76,6 @@ public class SnapshotCreateFlight extends Flight {
             sourceDataset
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
-    // Add a retry in case an ingest flight is currently in progress on the dataset
-    RetryRule lockDatasetRetryRule = getDefaultExponentialBackoffRetryRule();
-
-    addStep(new LockDatasetStep(datasetDao, datasetId, false), lockDatasetRetryRule);
 
     // Make sure this user is allowed to use the billing profile and that the underlying
     // billing information remains valid.
@@ -153,6 +147,13 @@ public class SnapshotCreateFlight extends Flight {
     // Calculate checksums and sizes for all directories in the snapshot
     addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
 
+    // Lock the source dataset while adding ACLs to avoid a race condition
+    // Add a retry in case an ingest flight is currently in progress on the dataset
+    RetryRule lockDatasetRetryRule = getDefaultExponentialBackoffRetryRule();
+    UUID datasetId = sourceDataset.getId();
+
+    addStep(new LockDatasetStep(datasetDao, datasetId, false), lockDatasetRetryRule);
+
     // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes.
     // The max
     // operation timeout is generous.
@@ -173,10 +174,10 @@ public class SnapshotCreateFlight extends Flight {
 
     addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
 
-    // unlock the snapshot metadata row
-    addStep(new UnlockSnapshotStep(snapshotDao, null));
-
     // Unlock dataset
     addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
+
+    // unlock the snapshot metadata row
+    addStep(new UnlockSnapshotStep(snapshotDao, null));
   }
 }

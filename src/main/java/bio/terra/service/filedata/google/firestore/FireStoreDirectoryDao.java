@@ -235,7 +235,7 @@ public class FireStoreDirectoryDao {
     int batchSize = configurationService.getParameterValue(FIRESTORE_VALIDATE_BATCH_SIZE);
     List<List<String>> batches = ListUtils.partition(refIdArray, batchSize);
     logger.info(
-        "addEntriesToSnapshot on {} file ids, in {} batches of {}",
+        "validateRefIds on {} file ids, in {} batches of {}",
         refIdArray.size(),
         batches.size(),
         batchSize);

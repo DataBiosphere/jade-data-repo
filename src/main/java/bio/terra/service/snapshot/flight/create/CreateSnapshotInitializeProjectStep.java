@@ -5,11 +5,13 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,9 +43,17 @@ public class CreateSnapshotInitializeProjectStep implements Step {
 
     // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
     // Either the project will have been created and we will find it, or we will create.
-    UUID projectResourceId =
-        resourceService.initializeSnapshotProject(
-            profileModel, projectId, region, sourceDatasets, snapshotName, snapshotId);
+    UUID projectResourceId;
+    try {
+      projectResourceId = resourceService.initializeSnapshotProject(
+          profileModel, projectId, region, sourceDatasets, snapshotName, snapshotId);
+    } catch (GoogleResourceException e) {
+      if (e.getCause().getMessage().contains("500 Internal Server Error")) {
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
+      } else {
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
+      }
+    }
     workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
     return StepResult.getStepResultSuccess();
   }

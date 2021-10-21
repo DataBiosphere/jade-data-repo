@@ -7,10 +7,12 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 
 public class CreateDatasetInitializeProjectStep implements Step {
@@ -39,9 +41,18 @@ public class CreateDatasetInitializeProjectStep implements Step {
 
     // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
     // Either the project record will have been created and we will find it, or we will create it.
-    UUID projectResourceId =
-        resourceService.getOrCreateDatasetProject(
-            profileModel, projectId, region, datasetRequestModel.getName(), datasetId, isAzure);
+    UUID projectResourceId;
+    try {
+      projectResourceId = resourceService.getOrCreateDatasetProject(
+          profileModel, projectId, region, datasetRequestModel.getName(), datasetId, isAzure);
+    } catch (GoogleResourceException e) {
+      if (e.getCause().getMessage().contains("500 Internal Server Error")) {
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
+      } else {
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
+      }
+    }
+
     workingMap.put(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
     return StepResult.getStepResultSuccess();
   }

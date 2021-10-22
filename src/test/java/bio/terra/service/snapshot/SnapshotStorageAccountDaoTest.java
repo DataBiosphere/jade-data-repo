@@ -91,16 +91,15 @@ public class SnapshotStorageAccountDaoTest {
                 .profileId(billingProfileId)
                 .resourceId(azureStorageAccountResourceId));
 
-    resourceService.createSnapshotStorageAccount(
-        snapshot.getName(),
-        snapshotId,
-        dataset.getStorageAccountRegion(),
-        billingProfile,
-        flightId);
+    AzureStorageAccountResource azureStorageAccountResource =
+        resourceService.createSnapshotStorageAccount(
+            snapshot.getName(),
+            snapshotId,
+            dataset.getStorageAccountRegion(),
+            billingProfile,
+            flightId);
 
     assertThat(
-        "Snapshot has an Azure Storage Account Resource after creating the Storage Account",
-        snapshot.getStorageAccountResource(),
-        notNullValue());
+        "Returns the new storage account resource", azureStorageAccountResource, notNullValue());
   }
 }

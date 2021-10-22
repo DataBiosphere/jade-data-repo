@@ -6,6 +6,7 @@ import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.AclUtils;
 import bio.terra.common.FutureUtils;
+import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
 import bio.terra.model.FileLoadModel;
@@ -15,8 +16,11 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
@@ -38,6 +42,7 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -47,15 +52,25 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
 public class GcsPdao implements CloudFileReader {
   private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
+
+  private static final List<String> GCS_VERIFICATION_SCOPES =
+      List.of(
+          "openid", "email", "profile", "https://www.googleapis.com/auth/devstorage.full_control");
 
   private final GcsProjectFactory gcsProjectFactory;
   private final ResourceService resourceService;
@@ -63,6 +78,7 @@ public class GcsPdao implements CloudFileReader {
   private final ConfigurationService configurationService;
   private final ExecutorService executor;
   private final PerformanceLogger performanceLogger;
+  private final IamProviderInterface iamClient;
 
   @Autowired
   public GcsPdao(
@@ -71,13 +87,15 @@ public class GcsPdao implements CloudFileReader {
       FireStoreDao fileDao,
       ConfigurationService configurationService,
       @Qualifier("performanceThreadpool") ExecutorService executor,
-      PerformanceLogger performanceLogger) {
+      PerformanceLogger performanceLogger,
+      IamProviderInterface iamClient) {
     this.gcsProjectFactory = gcsProjectFactory;
     this.resourceService = resourceService;
     this.fileDao = fileDao;
     this.configurationService = configurationService;
     this.executor = executor;
     this.performanceLogger = performanceLogger;
+    this.iamClient = iamClient;
   }
 
   public Storage storageForBucket(GoogleBucketResource bucketResource) {
@@ -169,6 +187,37 @@ public class GcsPdao implements CloudFileReader {
     BlobId locator = GcsUriUtils.parseBlobUri(path);
     return storage.create(
         BlobInfo.newBuilder(locator).build(), Storage.BlobTargetOption.userProject(projectId));
+  }
+
+  public void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user) {
+    // Obtain a token for the user's pet service account that can verify that it is allowed to read
+    String token;
+    try {
+      token = iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
+    } catch (InterruptedException e) {
+      throw new PdaoException("Error obtaining a pet service account token");
+    }
+
+    Set<String> uris =
+        sourcePaths.stream().map(GcsUriUtils::makeBucketHttpsFromGs).collect(Collectors.toSet());
+
+    for (String uri : uris) {
+      try (CloseableHttpClient client = HttpClients.createDefault()) {
+        HttpUriRequest request = new HttpHead(uri);
+        request.setHeader("Authorization", String.format("Bearer %s", token));
+        try (CloseableHttpResponse response = client.execute(request)) {
+          if (response.getStatusLine().getStatusCode() != HttpStatus.OK.value()) {
+            throw new BlobAccessNotAuthorizedException(
+                String.format(
+                    "Accessing bucket %s is not authorized. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group",
+                    uri));
+          }
+        }
+      } catch (IOException e) {
+        throw new BlobAccessNotAuthorizedException(
+            String.format("Error verifying access for bucket %s", uri), e);
+      }
+    }
   }
 
   public FSFileInfo copyFile(

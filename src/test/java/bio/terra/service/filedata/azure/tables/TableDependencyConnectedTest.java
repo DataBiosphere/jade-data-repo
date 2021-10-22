@@ -96,6 +96,7 @@ public class TableDependencyConnectedTest {
     assertThat(fileId, equalTo(entity.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME)));
     assertThat(refCount, equalTo(entity.getProperty(FireStoreDependency.REF_COUNT_FIELD_NAME)));
   }
+
   @Test
   public void testDatasetHasSnapshotReference() {
     String tableName = StorageTableName.DEPENDENCIES.toTableName(DATASET_ID);

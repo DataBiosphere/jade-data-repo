@@ -10,10 +10,7 @@ import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.LockDatasetStep;
-import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -33,7 +30,6 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
 public class SnapshotCreateFlight extends Flight {
@@ -51,7 +47,6 @@ public class SnapshotCreateFlight extends Flight {
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     IamService iamClient = appContext.getBean(IamService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
@@ -92,9 +87,12 @@ public class SnapshotCreateFlight extends Flight {
     // Get or initialize the project where the snapshot resources will be created
     addStep(
         new CreateSnapshotInitializeProjectStep(
-            resourceService, firestoreRegion, sourceDatasets, snapshotName));
+            resourceService, firestoreRegion, sourceDatasets, snapshotName),
+        getDefaultExponentialBackoffRetryRule());
 
-    addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
+    addStep(
+        new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq),
+        getDefaultExponentialBackoffRetryRule());
 
     // Make the big query dataset with views and populate row id filtering tables.
     // Depending on the type of snapshot, the primary data step will differ:
@@ -147,13 +145,6 @@ public class SnapshotCreateFlight extends Flight {
     // Calculate checksums and sizes for all directories in the snapshot
     addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
 
-    // Lock the source dataset while adding ACLs to avoid a race condition
-    // Add a retry in case an ingest flight is currently in progress on the dataset
-    RetryRule lockDatasetRetryRule = getDefaultExponentialBackoffRetryRule();
-    UUID datasetId = sourceDataset.getId();
-
-    addStep(new LockDatasetStep(datasetDao, datasetId, false), lockDatasetRetryRule);
-
     // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes.
     // The max
     // operation timeout is generous.
@@ -173,9 +164,6 @@ public class SnapshotCreateFlight extends Flight {
     }
 
     addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
-
-    // Unlock dataset
-    addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
 
     // unlock the snapshot metadata row
     addStep(new UnlockSnapshotStep(snapshotDao, null));

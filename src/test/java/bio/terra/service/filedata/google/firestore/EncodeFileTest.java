@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -344,7 +343,7 @@ public class EncodeFileTest {
 
     List<String> errorDetails = ingestError.getErrorDetail();
     assertNotNull("Error details were returned", errorDetails);
-    assertThat("Bad id was returned in details", errorDetails.get(0), endsWith(ID_GARBAGE));
+    assertThat("Bad id was returned in details", errorDetails.get(0), containsString(ID_GARBAGE));
 
     // Delete the scratch blob
     Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));

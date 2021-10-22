@@ -35,14 +35,12 @@ public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
     // Then probe the file system to validate that the file exists and is part
     // of this dataset. We check all ids and return one complete error.
 
-    Set<String> invalidRefIds = new HashSet<>();
+    Set<InvalidRefId> invalidRefIds = new HashSet<>();
     for (Column column : table.getColumns()) {
       if (column.isFileOrDirRef()) {
         List<String> refIdArray = bigQueryPdao.getRefIds(dataset, stagingTableName, column);
         List<String> badRefIds = fileDao.validateRefIds(dataset, refIdArray);
-        if (badRefIds != null) {
-          invalidRefIds.addAll(badRefIds);
-        }
+        badRefIds.forEach(id -> invalidRefIds.add(new InvalidRefId(id, column.getName())));
       }
     }
 

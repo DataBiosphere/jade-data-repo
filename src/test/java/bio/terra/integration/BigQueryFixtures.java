@@ -39,13 +39,13 @@ public final class BigQueryFixtures {
   public static BigQuery getBigQuery(String projectId, Credentials credentials) {
     RetrySettings retrySettings =
         RetrySettings.newBuilder()
-            .setInitialRetryDelay(Duration.ofMillis(1000L))
-            .setMaxRetryDelay(Duration.ofMillis(32_000L))
+            .setInitialRetryDelay(Duration.ofSeconds(1))
+            .setMaxRetryDelay(Duration.ofSeconds(32))
             .setRetryDelayMultiplier(2.0)
             .setTotalTimeout(Duration.ofMinutes(7))
-            .setInitialRpcTimeout(Duration.ofMillis(50_000L))
+            .setInitialRpcTimeout(Duration.ofSeconds(50))
             .setRpcTimeoutMultiplier(1.0)
-            .setMaxRpcTimeout(Duration.ofMillis(50_000L))
+            .setMaxRpcTimeout(Duration.ofSeconds(50))
             .build();
 
     return BigQueryOptions.newBuilder()

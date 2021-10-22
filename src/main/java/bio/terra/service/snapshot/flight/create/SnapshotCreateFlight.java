@@ -113,7 +113,8 @@ public class SnapshotCreateFlight extends Flight {
     // Get or initialize the project where the snapshot resources will be created
     addStep(
         new CreateSnapshotInitializeProjectStep(
-            resourceService, firestoreRegion, sourceDatasets, snapshotName));
+            resourceService, firestoreRegion, sourceDatasets, snapshotName),
+        getDefaultExponentialBackoffRetryRule());
 
     addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
 

@@ -371,13 +371,11 @@ public class GoogleProjectService {
         logger.info("project does not have all resources enabled.");
         BatchEnableServicesRequest batchRequest =
             new BatchEnableServicesRequest().setServiceIds(DATA_PROJECT_SERVICE_IDS);
-        Thread.sleep(TimeUnit.SECONDS.toMillis(5));
         ServiceUsage.Services.BatchEnable batchEnable =
             serviceUsage.services().batchEnable(projectNumberString, batchRequest);
-        Thread.sleep(TimeUnit.SECONDS.toMillis(5));
         blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
       }
-      Thread.sleep(TimeUnit.SECONDS.toMillis(5));
+
       enableFirestore(appengine(), projectResource.getGoogleProjectId(), region, timeout);
 
     } catch (IOException | GeneralSecurityException e) {

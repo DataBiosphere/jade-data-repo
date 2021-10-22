@@ -46,7 +46,7 @@ public final class BigQueryUtils {
             .setTotalTimeout(Duration.ofMinutes(7))
             .setInitialRpcTimeout(Duration.ofMillis(50_000L))
             .setRpcTimeoutMultiplier(1.0)
-            .setMaxRpcTimeout(Duration.ofMillis(50_000L))
+            .setMaxRpcTimeout(Duration.ofSeconds(50))
             .build();
 
     GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);

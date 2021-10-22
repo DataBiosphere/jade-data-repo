@@ -44,7 +44,7 @@ public final class BigQueryUtils {
             .setMaxRetryDelay(Duration.ofSeconds(32))
             .setRetryDelayMultiplier(2.0)
             .setTotalTimeout(Duration.ofMinutes(7))
-            .setInitialRpcTimeout(Duration.ofMillis(50_000L))
+            .setInitialRpcTimeout(Duration.ofSeconds(50))
             .setRpcTimeoutMultiplier(1.0)
             .setMaxRpcTimeout(Duration.ofSeconds(50))
             .build();

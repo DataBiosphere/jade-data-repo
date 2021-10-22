@@ -67,11 +67,6 @@ public class AzureSynapsePdao {
           + "       BULK '<ingestFileName>',\n"
           + "       DATA_SOURCE = '<ingestFileDataSourceName>',\n"
           + "       FORMAT = 'parquet') AS rows;";
-  // TODO - Proposal: Remove schema specification - should be inferred since coming from parquet
-  // if keep this, need to manually add datarepo_row_id column here
-  //          + "WITH (<columns:{c|<c.name> <c.synapseDataType>\n"
-  //          + " <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>\n"
-  //          + "}; separator=\",\n\">) ";
 
   private static final String createSnapshotRowIdTableTemplate =
       "CREATE EXTERNAL TABLE [<tableName>]\n"
@@ -305,8 +300,6 @@ public class AzureSynapsePdao {
     for (SnapshotTable table : tables) {
       String datasetParquetFileName =
           IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
-      // TODO - Q - Do we want to have a folder w/ the name of table to match dataset file
-      // structure?
       String snapshotParquetFileName =
           IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
       String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
@@ -319,7 +312,6 @@ public class AzureSynapsePdao {
               .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
               .add("ingestFileName", datasetParquetFileName)
               .add("ingestFileDataSourceName", datasetDataSourceName);
-      // .add("columns", columns);
       try {
         int rows = executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
         tableRowCounts.put(table.getName(), Long.valueOf(rows));

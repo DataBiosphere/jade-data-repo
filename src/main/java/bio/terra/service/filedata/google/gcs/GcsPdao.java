@@ -4,6 +4,7 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATC
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.AclUtils;
 import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
@@ -397,36 +398,42 @@ public class GcsPdao implements CloudFileReader {
       final AclOp op,
       final List<Acl> acls,
       final List<Acl.Group> groups) {
-    return () -> {
-      // Cache the bucket resources to avoid repeated database lookups.
-      // Synchronizing this block since this gets called with a potentially high degree of
-      // concurrency.
-      // Minimal overhead to lock here since 99% of the time this will be a simple map lookup
-      final GoogleBucketResource bucketForFile;
-      synchronized (bucketCache) {
-        bucketForFile =
-            bucketCache.computeIfAbsent(
-                file.getBucketResourceId(),
-                k -> resourceService.lookupBucket(file.getBucketResourceId()));
-      }
-      final Storage storage = storageForBucket(bucketForFile);
-      final String bucketPath =
-          extractFilePathInBucket(file.getCloudPath(), bucketForFile.getName());
-      final BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
-      switch (op) {
-        case ACL_OP_CREATE:
-          for (Acl acl : acls) {
-            storage.createAcl(blobId, acl);
+    Callable<FSFile> aclUpdate =
+        () -> {
+          try {
+            // Cache the bucket resources to avoid repeated database lookups.
+            // Synchronizing this block since this gets called with a potentially high degree of
+            // concurrency.
+            // Minimal overhead to lock here since 99% of the time this will be a simple map lookup
+            final GoogleBucketResource bucketForFile;
+            synchronized (bucketCache) {
+              bucketForFile =
+                  bucketCache.computeIfAbsent(
+                      file.getBucketResourceId(),
+                      k -> resourceService.lookupBucket(file.getBucketResourceId()));
+            }
+            final Storage storage = storageForBucket(bucketForFile);
+            final String bucketPath =
+                extractFilePathInBucket(file.getCloudPath(), bucketForFile.getName());
+            final BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
+            switch (op) {
+              case ACL_OP_CREATE:
+                for (Acl acl : acls) {
+                  storage.createAcl(blobId, acl);
+                }
+                break;
+              case ACL_OP_DELETE:
+                for (Acl.Group group : groups) {
+                  storage.deleteAcl(blobId, group);
+                }
+                break;
+            }
+            return file;
+          } catch (StorageException ex) {
+            throw new AclUtils.AclRetryException(ex.getMessage(), ex, ex.getReason());
           }
-          break;
-        case ACL_OP_DELETE:
-          for (Acl.Group group : groups) {
-            storage.deleteAcl(blobId, group);
-          }
-          break;
-      }
-      return file;
-    };
+        };
+    return () -> AclUtils.aclUpdateRetry(aclUpdate);
   }
 
   /**

@@ -4,8 +4,8 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATC
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
 import bio.terra.app.logging.PerformanceLogger;
-import bio.terra.common.AclUtils;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.AclUtils;
 import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;

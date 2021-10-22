@@ -1,8 +1,5 @@
 package bio.terra.service.dataset.flight.datadelete;
 
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getDataset;
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
-
 import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.DataDeletionRequest;
@@ -32,8 +29,8 @@ public class DataDeletionControlFileCopyNeededStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
-    Dataset dataset = getDataset(context, datasetService);
-    DataDeletionRequest dataDeletionRequest = getRequest(context);
+    Dataset dataset = DataDeletionUtils.getDataset(context, datasetService);
+    DataDeletionRequest dataDeletionRequest = DataDeletionUtils.getRequest(context);
     CloudRegion bigQueryRegion =
         dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
 
@@ -57,7 +54,7 @@ public class DataDeletionControlFileCopyNeededStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    return null;
+    return StepResult.getStepResultSuccess();
   }
 
   Predicate<DataDeletionTableModel> fileNotInRegionPredicate(

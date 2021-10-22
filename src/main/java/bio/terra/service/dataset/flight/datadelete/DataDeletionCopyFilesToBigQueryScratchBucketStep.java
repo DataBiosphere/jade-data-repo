@@ -21,7 +21,6 @@ import com.google.cloud.storage.BlobId;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class DataDeletionCopyFilesToBigQueryScratchBucketStep extends SkippableStep {
 
@@ -46,22 +45,18 @@ public class DataDeletionCopyFilesToBigQueryScratchBucketStep extends SkippableS
         FlightUtils.getTyped(workingMap, DataDeletionMapKeys.TABLE_NAMES_NEEDING_COPY);
     GoogleBucketResource bucketResource =
         FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
-    List<DataDeletionTableModel> tables =
-        dataDeletionRequest.getTables().stream()
-            .peek(
-                table -> {
-                  if (tablesNeedingCopy.contains(table.getTableName())) {
-                    String from = table.getGcsFileSpec().getPath();
-                    BlobId blobId = GcsUriUtils.parseBlobUri(from);
-                    String to =
-                        GcsUriUtils.getGsPathFromComponents(
-                            bucketResource.getName(),
-                            String.format("%s/%s", context.getFlightId(), blobId.getName()));
-                    gcsPdao.copyGcsFile(from, to, projectId);
-                    table.getGcsFileSpec().path(to);
-                  }
-                })
-            .collect(Collectors.toList());
+    List<DataDeletionTableModel> tables = dataDeletionRequest.getTables();
+    for (var table : tables) {
+      if (tablesNeedingCopy.contains(table.getTableName())) {
+        BlobId from = GcsUriUtils.parseBlobUri(table.getGcsFileSpec().getPath());
+        String to =
+            GcsUriUtils.getGsPathFromComponents(
+                bucketResource.getName(),
+                String.format("%s/%s", context.getFlightId(), from.getName()));
+        gcsPdao.copyGcsFile(from, GcsUriUtils.parseBlobUri(to), projectId);
+        table.getGcsFileSpec().path(to);
+      }
+    }
     workingMap.put(DataDeletionMapKeys.TABLES, tables);
 
     return StepResult.getStepResultSuccess();

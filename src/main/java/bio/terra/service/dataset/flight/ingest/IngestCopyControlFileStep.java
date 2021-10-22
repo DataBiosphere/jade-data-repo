@@ -35,13 +35,13 @@ public class IngestCopyControlFileStep extends SkippableStep {
         workingMap.get(CommonFlightKeys.SCRATCH_BUCKET_INFO, GoogleBucketResource.class);
 
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
-    String from = ingestRequest.getPath();
-    BlobId blobId = GcsUriUtils.parseBlobUri(from);
+    BlobId from = GcsUriUtils.parseBlobUri(ingestRequest.getPath());
     String to =
         GcsUriUtils.getGsPathFromComponents(
             bucketResource.getName(),
-            String.format("%s/%s", context.getFlightId(), blobId.getName()));
-    gcsPdao.copyGcsFile(from, to, dataset.getProjectResource().getGoogleProjectId());
+            String.format("%s/%s", context.getFlightId(), from.getName()));
+    gcsPdao.copyGcsFile(
+        from, GcsUriUtils.parseBlobUri(to), dataset.getProjectResource().getGoogleProjectId());
 
     workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, to);
     return StepResult.getStepResultSuccess();

@@ -61,6 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -79,6 +80,7 @@ public class GcsPdao implements CloudFileReader {
   private final ExecutorService executor;
   private final PerformanceLogger performanceLogger;
   private final IamProviderInterface iamClient;
+  private final Environment environment;
 
   @Autowired
   public GcsPdao(
@@ -88,7 +90,8 @@ public class GcsPdao implements CloudFileReader {
       ConfigurationService configurationService,
       @Qualifier("performanceThreadpool") ExecutorService executor,
       PerformanceLogger performanceLogger,
-      IamProviderInterface iamClient) {
+      IamProviderInterface iamClient,
+      Environment environment) {
     this.gcsProjectFactory = gcsProjectFactory;
     this.resourceService = resourceService;
     this.fileDao = fileDao;
@@ -96,6 +99,7 @@ public class GcsPdao implements CloudFileReader {
     this.executor = executor;
     this.performanceLogger = performanceLogger;
     this.iamClient = iamClient;
+    this.environment = environment;
   }
 
   public Storage storageForBucket(GoogleBucketResource bucketResource) {
@@ -190,6 +194,11 @@ public class GcsPdao implements CloudFileReader {
   }
 
   public void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user) {
+    // If the connected profile is used, skip this check since we don't specify users when mocking
+    // requests
+    if (List.of(environment.getActiveProfiles()).contains("connectedtest")) {
+      return;
+    }
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
     String token;
     try {

@@ -3088,6 +3088,10 @@ components:
         csv_null_marker:
           type: string
           default: ""
+        csv_generate_row_ids:
+          type: boolean
+          description: Whether the data repo should generate datarepo_row_ids on CSV ingest. Defaults to true.
+          default: true
         resolve_existing_files:
           type: boolean
           default: false

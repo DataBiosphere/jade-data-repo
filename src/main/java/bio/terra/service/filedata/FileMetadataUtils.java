@@ -1,22 +1,23 @@
 package bio.terra.service.filedata;
 
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
-@Component
 public class FileMetadataUtils {
-  public static final String ROOT_DIR_NAME = "/_dr_";
+  @VisibleForTesting protected static final String ROOT_DIR_NAME = "/_dr_";
 
-  @Autowired
   public FileMetadataUtils() {}
 
-  public String getDirectoryPath(String path) {
+  public static String getDirectoryPath(String path) {
     Path pathParts = Paths.get(path);
     Path parentDirectory = pathParts.getParent();
     if (pathParts.getNameCount() <= 1) {
@@ -26,7 +27,7 @@ public class FileMetadataUtils {
     return parentDirectory.toString();
   }
 
-  public String getName(String path) {
+  public static String getName(String path) {
     Path pathParts = Paths.get(path);
     Path fileName = pathParts.getFileName();
     if (fileName != null) {
@@ -35,7 +36,7 @@ public class FileMetadataUtils {
     return StringUtils.EMPTY;
   }
 
-  public String getFullPath(String dirPath, String name) {
+  public static String getFullPath(String dirPath, String name) {
     // Originally, this was a method in FireStoreDirectoryEntry, but the Firestore client complained
     // about it,
     // because it was not a set/get for an actual class member. Very picky, that!
@@ -50,7 +51,7 @@ public class FileMetadataUtils {
     return path + '/' + name;
   }
 
-  public FireStoreDirectoryEntry makeDirectoryEntry(String lookupDirPath) {
+  public static FireStoreDirectoryEntry makeDirectoryEntry(String lookupDirPath) {
     // We have some special cases to deal with at the top of the directory tree.
     String fullPath = makePathFromLookupPath(lookupDirPath);
     String dirPath = getDirectoryPath(fullPath);
@@ -74,13 +75,38 @@ public class FileMetadataUtils {
 
   // Do some tidying of the full path: slash on front - no slash trailing
   // and prepend the root directory name
-  public String makeLookupPath(String fullPath) {
+  public static String makeLookupPath(String fullPath) {
     String temp = StringUtils.prependIfMissing(fullPath, "/");
     temp = StringUtils.removeEnd(temp, "/");
-    return ROOT_DIR_NAME + temp;
+    temp = StringUtils.prependIfMissing(temp, ROOT_DIR_NAME);
+    return temp;
   }
 
-  public String makePathFromLookupPath(String lookupPath) {
+  public static String makePathFromLookupPath(String lookupPath) {
     return StringUtils.removeStart(lookupPath, ROOT_DIR_NAME);
+  }
+
+  public static Set<String> findNewDirectoryPaths(
+      List<FireStoreDirectoryEntry> datasetEntries, LRUMap<String, Boolean> pathMap) {
+
+    Set<String> pathsToCheck = new HashSet<>();
+    for (FireStoreDirectoryEntry entry : datasetEntries) {
+      // Only probe the real directories - not leaf file reference or the root
+      String lookupDirPath = makeLookupPath(entry.getPath());
+      for (String testPath = lookupDirPath;
+          !testPath.isEmpty() && !testPath.equals(FileMetadataUtils.ROOT_DIR_NAME);
+          testPath = getDirectoryPath(testPath)) {
+
+        // check the cache
+        pathMap.computeIfAbsent(
+            testPath,
+            s -> {
+              // not in the cache: add to checklist and a to cache
+              pathsToCheck.add(s);
+              return true;
+            });
+      }
+    }
+    return pathsToCheck;
   }
 }

@@ -203,7 +203,7 @@ public class FileService {
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
-          resourceService.getStorageAccount(dataset, billingProfileModel);
+          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
@@ -227,7 +227,7 @@ public class FileService {
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
-          resourceService.getStorageAccount(dataset, billingProfileModel);
+          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
@@ -250,7 +250,7 @@ public class FileService {
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
-          resourceService.getStorageAccount(dataset, billingProfileModel);
+          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);

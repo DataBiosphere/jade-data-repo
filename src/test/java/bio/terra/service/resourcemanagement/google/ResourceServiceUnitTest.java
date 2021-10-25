@@ -121,7 +121,7 @@ public class ResourceServiceUnitTest {
     when(datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId()))
         .thenReturn(List.of(storageAccountId));
     AzureStorageAccountResource createdStorageAccount =
-        resourceService.getOrCreateStorageAccount(dataset, profileModel, "flightId");
+        resourceService.getOrCreateDatasetStorageAccount(dataset, profileModel, "flightId");
     Assert.assertEquals(storageAccountResource, createdStorageAccount);
   }
 }

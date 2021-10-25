@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.delete;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
@@ -27,7 +28,9 @@ public class DeleteFileAzureDirectoryStep implements Step {
     AzureStorageAuthInfo storageAuthInfo =
         workingMap.get(FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     try {
-      boolean found = tableDao.deleteDirectoryEntry(fileId, storageAuthInfo);
+      boolean found =
+          tableDao.deleteDirectoryEntry(
+              fileId, storageAuthInfo, dataset.getId(), StorageTableName.DATASET.toTableName());
       DeleteResponseModel.ObjectStateEnum state =
           (found)
               ? DeleteResponseModel.ObjectStateEnum.DELETED

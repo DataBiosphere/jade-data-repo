@@ -291,6 +291,20 @@ public final class DataRepoUtils {
       String apipayloadFilename,
       boolean randomizeName)
       throws Exception {
+
+    // make the create request and wait for the job to finish
+    JobModel createSnapshotJobResponse =
+        createSnapshotWithoutWaiting(
+            repositoryApi, datasetSummaryModel, apipayloadFilename, randomizeName);
+    return DataRepoUtils.waitForJobToFinish(repositoryApi, createSnapshotJobResponse);
+  }
+
+  public static JobModel createSnapshotWithoutWaiting(
+      RepositoryApi repositoryApi,
+      DatasetSummaryModel datasetSummaryModel,
+      String apipayloadFilename,
+      boolean randomizeName)
+      throws Exception {
     // use Jackson to map the stream contents to a SnapshotRequestModel object
     ObjectMapper objectMapper = new ObjectMapper();
     InputStream snapshotRequestFile =
@@ -306,10 +320,7 @@ public final class DataRepoUtils {
     if (randomizeName) {
       createSnapshotRequest.setName(FileUtils.randomizeName(createSnapshotRequest.getName()));
     }
-
-    // make the create request and wait for the job to finish
-    JobModel createSnapshotJobResponse = repositoryApi.createSnapshot(createSnapshotRequest);
-    return DataRepoUtils.waitForJobToFinish(repositoryApi, createSnapshotJobResponse);
+    return repositoryApi.createSnapshot(createSnapshotRequest);
   }
 
   /**

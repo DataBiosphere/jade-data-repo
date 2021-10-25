@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.common.Column;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
@@ -56,7 +57,7 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
-    List<String> fileColumns = workingMap.get(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, List.class);
+    List<Column> fileColumns = IngestUtils.getDatasetFileRefColumns(dataset, ingestRequest);
 
     List<String> errors = new ArrayList<>();
     try (var bulkFileLoadModels = getModelsStream(ingestRequest, fileColumns, errors)) {
@@ -120,5 +121,5 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
   }
 
   abstract Stream<BulkLoadFileModel> getModelsStream(
-      IngestRequestModel ingestRequest, List<String> fileRefColumns, List<String> errors);
+      IngestRequestModel ingestRequest, List<Column> fileRefColumns, List<String> errors);
 }

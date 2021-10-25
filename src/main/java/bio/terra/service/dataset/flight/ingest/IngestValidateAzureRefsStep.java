@@ -55,14 +55,15 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
     // Then probe the file system to validate that the file exists and is part
     // of this dataset. We check all ids and return one complete error.
 
-    Set<String> invalidRefIds =
+    Set<InvalidRefId> invalidRefIds =
         table.getColumns().stream()
             .map(Column::toSynapseColumn)
             .filter(Column::isFileOrDirRef)
             .flatMap(
                 column -> {
                   List<String> refIdArray = azureSynapsePdao.getRefIds(tableName, column);
-                  return tableDirectoryDao.validateRefIds(tableServiceClient, refIdArray).stream();
+                  return tableDirectoryDao.validateRefIds(tableServiceClient, refIdArray).stream()
+                      .map(id -> new InvalidRefId(id, column.getName()));
                 })
             .collect(Collectors.toSet());
 

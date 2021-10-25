@@ -83,11 +83,14 @@ public class ApplicationConfiguration {
    */
   private int shutdownTimeoutSeconds;
 
+  /** Size of batches to operate on when creating snapshot file system directory entries in Azure */
+  private int azureSnapshotBatchSize;
+
   /** Size of batches to operate on when creating snapshot file system directory entries */
   private int firestoreSnapshotBatchSize;
 
   /** Size of cache of directories maintain when building the snapshot file system */
-  private int firestoreSnapshotCacheSize;
+  private int snapshotCacheSize;
 
   /** Size of batches to operate on when validating file system directory entry ids */
   private int firestoreValidateBatchSize;
@@ -247,6 +250,14 @@ public class ApplicationConfiguration {
     this.inKubernetes = inKubernetes;
   }
 
+  public int getAzureSnapshotBatchSize() {
+    return azureSnapshotBatchSize;
+  }
+
+  public void setAzureSnapshotBatchSize(int azureSnapshotBatchSize) {
+    this.azureSnapshotBatchSize = azureSnapshotBatchSize;
+  }
+
   public int getFirestoreSnapshotBatchSize() {
     return firestoreSnapshotBatchSize;
   }
@@ -255,12 +266,12 @@ public class ApplicationConfiguration {
     this.firestoreSnapshotBatchSize = firestoreSnapshotBatchSize;
   }
 
-  public int getFirestoreSnapshotCacheSize() {
-    return firestoreSnapshotCacheSize;
+  public int getSnapshotCacheSize() {
+    return snapshotCacheSize;
   }
 
-  public void setFirestoreSnapshotCacheSize(int firestoreSnapshotCacheSize) {
-    this.firestoreSnapshotCacheSize = firestoreSnapshotCacheSize;
+  public void setSnapshotCacheSize(int snapshotCacheSize) {
+    this.snapshotCacheSize = snapshotCacheSize;
   }
 
   public int getFirestoreValidateBatchSize() {

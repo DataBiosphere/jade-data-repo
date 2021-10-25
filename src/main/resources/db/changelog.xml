@@ -43,4 +43,5 @@
     <include file="changesets/20210615_azureappdeploymentinfo.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20210616_azurestorage.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20210902_snapshotmetadata.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20211007_snapshot_storage_account.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

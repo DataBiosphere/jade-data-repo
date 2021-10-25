@@ -34,7 +34,6 @@ import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.storage.blob.BlobUrlParts;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -326,14 +325,13 @@ public class AzureSynapsePdaoConnectedTest {
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
 
     // 6 - Create snapshot parquet files via external table
-    Map<String, Long> tableRowCounts = new HashMap();
-    azureSynapsePdao.createSnapshotParquetFiles(
-        snapshot.getTables(),
-        snapshotId,
-        destinationDataSourceName,
-        snapshotDataSourceName,
-        tableRowCounts,
-        randomFlightId);
+    Map<String, Long> tableRowCounts =
+        azureSynapsePdao.createSnapshotParquetFiles(
+            snapshot.getTables(),
+            snapshotId,
+            destinationDataSourceName,
+            snapshotDataSourceName,
+            randomFlightId);
     String snapshotParquetFileName =
         IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
     List<String> snapshotFirstNames =

@@ -23,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -289,14 +290,14 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
 
-  public void createSnapshotParquetFiles(
+  public Map<String, Long> createSnapshotParquetFiles(
       List<SnapshotTable> tables,
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      Map<String, Long> tableRowCounts,
       String datasetFlightId)
       throws SQLException {
+    Map<String, Long> tableRowCounts = new HashMap<>();
     for (SnapshotTable table : tables) {
       String datasetParquetFileName =
           IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
@@ -322,6 +323,7 @@ public class AzureSynapsePdao {
             tableName);
       }
     }
+    return tableRowCounts;
   }
 
   public void dropTables(List<String> tableNames) {

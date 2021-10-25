@@ -405,6 +405,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             steward(), summaryModel.getName(), profileId, requestModelAll);
     snapshotId = snapshotSummaryAll.getId();
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
+    snapshotId = snapshotSummaryAll.getId();
 
     // Delete the file we just ingested
     String fileId = result.getLoadFileResults().get(0).getFileId();
@@ -423,7 +424,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
-    // TODO - implement Snapshot delete flight (DR-2194)
     clearEnvironment();
   }
 
@@ -712,7 +712,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
       dataRepoFixtures.deleteSnapshot(steward, snapshotId);
       snapshotId = null;
     }
-
     if (datasetId != null) {
       dataRepoFixtures.deleteDataset(steward, datasetId);
       datasetId = null;

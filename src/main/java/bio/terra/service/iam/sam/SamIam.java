@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -147,13 +146,11 @@ public class SamIam implements IamProviderInterface {
     return samResourceApi.listResourcesAndPolicies(iamResourceType.getSamResourceName()).stream()
         .filter(resource -> ValidationUtils.isValidUuid(resource.getResourceId()))
         .collect(
-            Collectors.toMap(
+            Collectors.groupingBy(
                 resource -> UUID.fromString(resource.getResourceId()),
-                resource ->
-                    resource.getAuthDomainGroups().stream()
-                        .map(IamRole::fromValue)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toSet())));
+                Collectors.mapping(
+                    resource -> IamRole.fromValue(resource.getAccessPolicyName()),
+                    Collectors.toSet())));
   }
 
   @Override

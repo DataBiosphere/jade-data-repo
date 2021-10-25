@@ -38,10 +38,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -326,7 +323,7 @@ public class DrsService {
 
     DRSAccessURL httpsAccessURL =
         new DRSAccessURL()
-            .url(makeHttpsFromGs(fsFile.getCloudPath()))
+            .url(GcsUriUtils.makeHttpsFromGs(fsFile.getCloudPath()))
             .headers(makeAuthHeader(authUser));
 
     DRSAccessMethod httpsAccessMethod =
@@ -413,24 +410,6 @@ public class DrsService {
     }
 
     return contentsObject;
-  }
-
-  private String makeHttpsFromGs(String gspath) {
-    try {
-      BlobId locator = GcsUriUtils.parseBlobUri(gspath);
-      String gsBucket = locator.getBucket();
-      String gsPath = locator.getName();
-      String encodedPath =
-          URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString())
-              // Google does not recognize the + characters that are produced from spaces by the
-              // URLEncoder.encode
-              // method. As a result, these must be converted to %2B.
-              .replaceAll("\\+", "%20");
-      return String.format(
-          "https://www.googleapis.com/storage/v1/b/%s/o/%s?alt=media", gsBucket, encodedPath);
-    } catch (UnsupportedEncodingException ex) {
-      throw new InvalidDrsIdException("Failed to urlencode file path", ex);
-    }
   }
 
   private List<String> makeAuthHeader(AuthenticatedUserRequest authUser) {

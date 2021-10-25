@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
@@ -150,6 +151,7 @@ public class DatasetIngestFlight extends Flight {
             configService,
             fileService,
             ingestRequestModel,
+            userReq,
             dataset,
             profileId,
             randomBackoffRetry,
@@ -211,6 +213,9 @@ public class DatasetIngestFlight extends Flight {
 
     var platform = CloudPlatform.GCP;
 
+    // Verify that the user is allowed to access the bucket where the control file lives
+    addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
+
     // Parse the JSON file and see if there's actually any files to load.
     // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`
     // will not be run.
@@ -265,7 +270,8 @@ public class DatasetIngestFlight extends Flight {
             driverWaitSeconds,
             profileId,
             platform,
-            ingestSkipCondition),
+            ingestSkipCondition,
+            userReq),
         driverRetry);
 
     // Create the job result with the results of the bulk file load.
@@ -309,6 +315,7 @@ public class DatasetIngestFlight extends Flight {
       ConfigurationService configService,
       FileService fileService,
       IngestRequestModel ingestRequest,
+      AuthenticatedUserRequest userReq,
       Dataset dataset,
       UUID profileId,
       RetryRule randomBackoffRetry,
@@ -364,7 +371,8 @@ public class DatasetIngestFlight extends Flight {
             driverWaitSeconds,
             profileId,
             platform,
-            ingestSkipCondition),
+            ingestSkipCondition,
+            userReq),
         driverRetry);
 
     // Create the job result with the results of the bulk file load.

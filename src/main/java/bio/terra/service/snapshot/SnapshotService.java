@@ -340,6 +340,13 @@ public class SnapshotService {
         .collect(Collectors.toList());
   }
 
+  public List<Dataset> getSourceDatasetsFromSnapshotId(UUID snapshotId) {
+    SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId);
+    return snapshotModel.getSource().stream()
+        .map(s -> datasetService.retrieveByName(s.getDataset().getName()))
+        .collect(Collectors.toList());
+  }
+
   public List<UUID> getSourceDatasetIdsFromSnapshotId(UUID snapshotId) {
     SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId);
     return snapshotModel.getSource().stream()

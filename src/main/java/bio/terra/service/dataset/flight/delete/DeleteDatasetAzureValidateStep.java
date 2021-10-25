@@ -51,11 +51,7 @@ public class DeleteDatasetAzureValidateStep extends DeleteDatasetValidateStep {
     FlightMap map = context.getWorkingMap();
     map.put(DatasetWorkingMapKeys.AZURE_STORAGE_AUTH_INFO, storageAuthInfo);
 
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return tableDependencyDao.datasetHasSnapshotReference(tableServiceClient, dataset.getId());
   }
 }

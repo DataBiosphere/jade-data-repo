@@ -48,17 +48,14 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
-import bio.terra.service.filedata.google.firestore.FireStoreDependency;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
-import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
-import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.common.policy.RequestRetryOptions;
@@ -118,7 +115,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private UUID datasetId;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
-  private TableServiceClient tableServiceClient;
 
   @Before
   public void setup() throws Exception {
@@ -143,16 +139,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             testConfig.getSourceStorageAccountName(),
             null,
             retryOptions);
-
-    tableServiceClient =
-        new TableServiceClientBuilder()
-            .credential(
-                new AzureNamedKeyCredential(
-                    testConfig.getSourceStorageAccountName(),
-                    azureUtils.getIntegrationSourceStorageAccountPrimarySharedKey()))
-            .endpoint(
-                "https://" + testConfig.getSourceStorageAccountName() + ".table.core.windows.net")
-            .buildClient();
   }
 
   @After
@@ -267,11 +253,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     AzureStorageAuthInfo storageAuthInfo =
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);
 
-    tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
 
     // add fake rows here
     UUID snapshotId = UUID.randomUUID();
@@ -282,7 +264,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
     TableEntity createdEntity = tableClient.getEntity(snapshotId.toString(), fileUUIDs.get(0));
-    assertEntityCorrect(createdEntity, snapshotId, fileUUIDs.get(0), 1L);
+    azureUtils.assertEntityCorrect(createdEntity, snapshotId, fileUUIDs.get(0), 1L);
     // assert that delete fails
     dataRepoFixtures.deleteDatasetShouldFail(steward, summaryModel2.getId());
     // delete dependencies
@@ -306,15 +288,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     clearEnvironment();
-  }
-
-  private void assertEntityCorrect(
-      TableEntity entity, UUID snapshotId, String fileId, Long refCount) {
-    assertThat(
-        snapshotId.toString(),
-        equalTo(entity.getProperty(FireStoreDependency.SNAPSHOT_ID_FIELD_NAME)));
-    assertThat(fileId, equalTo(entity.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME)));
-    assertThat(refCount, equalTo(entity.getProperty(FireStoreDependency.REF_COUNT_FIELD_NAME)));
   }
 
   @Test

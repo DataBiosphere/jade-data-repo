@@ -80,12 +80,6 @@ public final class GcsUriUtils {
     return "gs://" + bucket + "/" + name;
   }
 
-  public static String makeBucketHttpsFromGs(String gspath) {
-    BlobId locator = GcsUriUtils.parseBlobUri(gspath);
-    String gsBucket = locator.getBucket();
-    return String.format("https://www.googleapis.com/storage/v1/b/%s/o", gsBucket);
-  }
-
   public static String makeHttpsFromGs(String gspath) {
     try {
       BlobId locator = GcsUriUtils.parseBlobUri(gspath);

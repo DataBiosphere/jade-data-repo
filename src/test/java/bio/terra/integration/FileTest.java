@@ -328,23 +328,26 @@ public class FileTest extends UsersBase {
   }
 
   @Test
-  public void fileNoAccessTest() throws Exception {
+  public void fileIngestAccessTest() throws Exception {
     String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "/foo/bar";
     String gsFilePath = gsPath + "/files/file with space and #hash%percent+plus.txt";
     DataRepoResponse<JobModel> ingestJob =
         dataRepoFixtures.ingestFileLaunch(
-            // note: custodian's proxy group should not have access to the soruce bucket
+            // note: custodian's proxy group should not have access to the source bucket
             custodian(), datasetId, profileId, gsFilePath, filePath);
-    DataRepoResponse<ErrorModel> error =
-        dataRepoClient.waitForResponse(steward(), ingestJob, ErrorModel.class);
+    DataRepoResponse<FileModel> error =
+        dataRepoClient.waitForResponse(steward(), ingestJob, FileModel.class);
 
     assertThat(error.getErrorObject().isPresent(), equalTo(true));
     assertThat(
         error.getErrorObject().get().getMessage(),
         containsString(
-            "Accessing bucket https://www.googleapis.com/storage/v1/b/"
-                + testConfiguration.getIngestbucket()
-                + "/o is not authorized"));
+            "Accessing bucket " + testConfiguration.getIngestbucket() + " is not authorized"));
+
+    // To be safe, make sure that ingest works for a steward
+    dataRepoFixtures.ingestFile(
+        // note: steward's proxy group should have access to the source bucket
+        steward(), datasetId, profileId, gsFilePath, filePath);
   }
 }

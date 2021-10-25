@@ -25,6 +25,8 @@ import bio.terra.service.iam.IamRole;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -32,6 +34,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -52,17 +55,11 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.env.Environment;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -193,6 +190,14 @@ public class GcsPdao implements CloudFileReader {
         BlobInfo.newBuilder(locator).build(), Storage.BlobTargetOption.userProject(projectId));
   }
 
+  /**
+   * Given a list a source paths, validate that the specified user has a pat service account with
+   * read permissions
+   *
+   * @param sourcePaths A list of gs:// formatted paths
+   * @param user An authenticed user
+   * @throws BlobAccessNotAuthorizedException if the user does not have an authorized pet
+   */
   public void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user) {
     // If the connected profile is used, skip this check since we don't specify users when mocking
     // requests
@@ -207,24 +212,26 @@ public class GcsPdao implements CloudFileReader {
       throw new PdaoException("Error obtaining a pet service account token");
     }
 
-    Set<String> uris =
-        sourcePaths.stream().map(GcsUriUtils::makeBucketHttpsFromGs).collect(Collectors.toSet());
+    Storage storageAsPet =
+        StorageOptions.newBuilder()
+            .setCredentials(OAuth2Credentials.create(new AccessToken(token, null)))
+            .build()
+            .getService();
 
-    for (String uri : uris) {
-      try (CloseableHttpClient client = HttpClients.createDefault()) {
-        HttpUriRequest request = new HttpHead(uri);
-        request.setHeader("Authorization", String.format("Bearer %s", token));
-        try (CloseableHttpResponse response = client.execute(request)) {
-          if (response.getStatusLine().getStatusCode() != HttpStatus.OK.value()) {
-            throw new BlobAccessNotAuthorizedException(
-                String.format(
-                    "Accessing bucket %s is not authorized. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group",
-                    uri));
-          }
-        }
-      } catch (IOException e) {
+    Set<String> buckets =
+        sourcePaths.stream()
+            .map(GcsUriUtils::parseBlobUri)
+            .map(BlobId::getBucket)
+            .collect(Collectors.toSet());
+    for (String bucket : buckets) {
+      List<Boolean> permissions =
+          storageAsPet.testIamPermissions(bucket, List.of("storage.objects.get"));
+
+      if (!permissions.equals(List.of(true))) {
         throw new BlobAccessNotAuthorizedException(
-            String.format("Error verifying access for bucket %s", uri), e);
+            String.format(
+                "Accessing bucket %s is not authorized. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group",
+                bucket));
       }
     }
   }

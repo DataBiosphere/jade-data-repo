@@ -10,6 +10,7 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.SnapshotModel;
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -27,6 +28,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
 
 public final class BigQueryFixtures {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryFixtures.class);
@@ -35,9 +37,21 @@ public final class BigQueryFixtures {
   private BigQueryFixtures() {}
 
   public static BigQuery getBigQuery(String projectId, Credentials credentials) {
+    RetrySettings retrySettings =
+        RetrySettings.newBuilder()
+            .setInitialRetryDelay(Duration.ofSeconds(1))
+            .setMaxRetryDelay(Duration.ofSeconds(32))
+            .setRetryDelayMultiplier(2.0)
+            .setTotalTimeout(Duration.ofMinutes(7))
+            .setInitialRpcTimeout(Duration.ofSeconds(50))
+            .setRpcTimeoutMultiplier(1.0)
+            .setMaxRpcTimeout(Duration.ofSeconds(50))
+            .build();
+
     return BigQueryOptions.newBuilder()
         .setProjectId(projectId)
         .setCredentials(credentials)
+        .setRetrySettings(retrySettings)
         .build()
         .getService();
   }

@@ -9,6 +9,7 @@ import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadCandidates;
@@ -64,6 +65,7 @@ public class IngestDriverStep extends OptionalStep {
   private final int driverWaitSeconds;
   private final UUID profileId;
   private final CloudPlatform platform;
+  private final AuthenticatedUserRequest userReq;
 
   public IngestDriverStep(
       LoadService loadService,
@@ -75,6 +77,7 @@ public class IngestDriverStep extends OptionalStep {
       int driverWaitSeconds,
       UUID profileId,
       CloudPlatform platform,
+      AuthenticatedUserRequest userReq,
       Predicate<FlightContext> doCondition) {
     super(doCondition);
     this.loadService = loadService;
@@ -86,6 +89,7 @@ public class IngestDriverStep extends OptionalStep {
     this.driverWaitSeconds = driverWaitSeconds;
     this.profileId = profileId;
     this.platform = platform;
+    this.userReq = userReq;
   }
 
   public IngestDriverStep(
@@ -97,7 +101,8 @@ public class IngestDriverStep extends OptionalStep {
       int maxFailedFileLoads,
       int driverWaitSeconds,
       UUID profileId,
-      CloudPlatform platform) {
+      CloudPlatform platform,
+      AuthenticatedUserRequest userReq) {
     this(
         loadService,
         configurationService,
@@ -108,6 +113,7 @@ public class IngestDriverStep extends OptionalStep {
         driverWaitSeconds,
         profileId,
         platform,
+        userReq,
         OptionalStep::alwaysDo);
   }
 
@@ -162,6 +168,7 @@ public class IngestDriverStep extends OptionalStep {
 
           launchLoads(
               context,
+              userReq,
               launchCount,
               candidates.getCandidateFiles(),
               profileId,
@@ -306,6 +313,7 @@ public class IngestDriverStep extends OptionalStep {
 
   private void launchLoads(
       FlightContext context,
+      AuthenticatedUserRequest userReq,
       int launchCount,
       List<LoadFile> loadFiles,
       UUID profileId,
@@ -335,6 +343,7 @@ public class IngestDriverStep extends OptionalStep {
       FlightMap inputParameters = new FlightMap();
       inputParameters.put(FileMapKeys.DATASET_ID, datasetId);
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
+      inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), userReq);
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
       inputParameters.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);

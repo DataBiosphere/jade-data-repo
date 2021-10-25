@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight.datadelete;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
@@ -10,6 +11,7 @@ import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
@@ -42,12 +44,17 @@ public class DatasetDataDeleteFlight extends Flight {
     // get data from inputs that steps need
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
 
+    AuthenticatedUserRequest userReq =
+        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     addStep(
         new VerifyAuthorizationStep(
             iamClient, IamResourceType.DATASET, datasetId, IamAction.SOFT_DELETE));
+
+    addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
 
     // need to lock, need dataset name and flight id
     addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);

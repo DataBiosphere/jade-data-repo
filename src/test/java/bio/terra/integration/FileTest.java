@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.TestUtils;
@@ -324,5 +325,29 @@ public class FileTest extends UsersBase {
 
     TestUtils.validateDrsAccessMethods(
         drsObject.getAccessMethods(), authService.getDirectAccessAuthToken(custodian().getEmail()));
+  }
+
+  @Test
+  public void fileIngestAccessTest() throws Exception {
+    String gsPath = "gs://" + testConfiguration.getIngestbucket();
+    String filePath = "/foo/bar";
+    String gsFilePath = gsPath + "/files/file with space and #hash%percent+plus.txt";
+    DataRepoResponse<JobModel> ingestJob =
+        dataRepoFixtures.ingestFileLaunch(
+            // note: custodian's proxy group should not have access to the source bucket
+            custodian(), datasetId, profileId, gsFilePath, filePath);
+    DataRepoResponse<FileModel> error =
+        dataRepoClient.waitForResponse(steward(), ingestJob, FileModel.class);
+
+    assertThat(error.getErrorObject().isPresent(), equalTo(true));
+    assertThat(
+        error.getErrorObject().get().getMessage(),
+        containsString(
+            "Accessing bucket " + testConfiguration.getIngestbucket() + " is not authorized"));
+
+    // To be safe, make sure that ingest works for a steward
+    dataRepoFixtures.ingestFile(
+        // note: steward's proxy group should have access to the source bucket
+        steward(), datasetId, profileId, gsFilePath, filePath);
   }
 }

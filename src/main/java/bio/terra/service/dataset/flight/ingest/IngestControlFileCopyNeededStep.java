@@ -33,7 +33,10 @@ public class IngestControlFileCopyNeededStep implements Step {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
     String pathToIngestFile = ingestRequest.getPath();
-    if (IngestUtils.noFilesToIngest.test(context)) {
+    if (IngestUtils.isCombinedFileIngest(context)) {
+      // Files were ingested and we've already written out a control file in the scratch bucket.
+      workingMap.put(IngestMapKeys.CONTROL_FILE_NEEDS_COPY, false);
+    } else {
       GoogleRegion regionForFile =
           gcsPdao.getRegionForFile(
               pathToIngestFile, dataset.getProjectResource().getGoogleProjectId());
@@ -50,9 +53,6 @@ public class IngestControlFileCopyNeededStep implements Step {
         // copied
         workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, pathToIngestFile);
       }
-    } else {
-      // Files were ingested and we've already written out a control file in the scratch bucket.
-      workingMap.put(IngestMapKeys.CONTROL_FILE_NEEDS_COPY, false);
     }
     return StepResult.getStepResultSuccess();
   }

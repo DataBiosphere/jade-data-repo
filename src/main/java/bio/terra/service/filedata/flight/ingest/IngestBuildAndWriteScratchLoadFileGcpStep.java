@@ -22,8 +22,8 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
       ObjectMapper objectMapper,
       GcsPdao gcsPdao,
       Dataset dataset,
-      Predicate<FlightContext> skipCondition) {
-    super(objectMapper, dataset, skipCondition);
+      Predicate<FlightContext> doCondition) {
+    super(objectMapper, dataset, doCondition);
     this.gcsPdao = gcsPdao;
   }
 

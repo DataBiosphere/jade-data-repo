@@ -26,7 +26,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
 
-public abstract class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
+public abstract class IngestPopulateFileStateFromFlightMapStep extends OptionalStep {
 
   private final LoadService loadService;
   private final FileService fileService;
@@ -40,8 +40,8 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.loadService = loadService;
     this.fileService = fileService;
     this.objectMapper = objectMapper;
@@ -53,7 +53,7 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
   @SuppressFBWarnings(
       value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
       justification = "Spotbugs doesn't understand resource try construct")
-  public StepResult doSkippableStep(FlightContext context) {
+  public StepResult doOptionalStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
@@ -112,7 +112,7 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends Skippable
   }
 
   @Override
-  public StepResult undoSkippableStep(FlightContext context) {
+  public StepResult undoOptionalStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 

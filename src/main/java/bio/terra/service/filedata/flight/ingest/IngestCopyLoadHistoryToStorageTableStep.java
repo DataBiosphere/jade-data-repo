@@ -1,7 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
@@ -37,8 +37,8 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
       UUID datasetId,
       String loadTag,
       int loadHistoryChunkSize,
-      Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.storageTableService = storageTableService;
     this.loadService = loadService;
     this.datasetService = datasetService;
@@ -61,11 +61,11 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
         datasetId,
         loadTag,
         loadHistoryChunkSize,
-        SkippableStep::neverSkip);
+        OptionalStep::alwaysDo);
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
+  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     var resources =
         getResources(context, loadService, datasetService, datasetId, loadHistoryChunkSize);
 
@@ -103,7 +103,7 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
   }
 
   @Override
-  public StepResult undoSkippableStep(FlightContext context) {
+  public StepResult undoOptionalStep(FlightContext context) {
     logger.info("No load history staging table for Azure");
     return StepResult.getStepResultSuccess();
   }

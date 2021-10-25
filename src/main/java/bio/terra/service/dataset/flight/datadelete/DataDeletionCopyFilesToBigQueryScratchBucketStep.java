@@ -10,7 +10,7 @@ import bio.terra.service.common.gcs.CommonFlightKeys;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
@@ -22,20 +22,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
-public class DataDeletionCopyFilesToBigQueryScratchBucketStep extends SkippableStep {
+public class DataDeletionCopyFilesToBigQueryScratchBucketStep extends OptionalStep {
 
   private final DatasetService datasetService;
   private final GcsPdao gcsPdao;
 
   public DataDeletionCopyFilesToBigQueryScratchBucketStep(
-      DatasetService datasetService, GcsPdao gcsPdao, Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      DatasetService datasetService, GcsPdao gcsPdao, Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.datasetService = datasetService;
     this.gcsPdao = gcsPdao;
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context)
+  public StepResult doOptionalStep(FlightContext context)
       throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
     Dataset dataset = getDataset(context, datasetService);
@@ -49,12 +49,12 @@ public class DataDeletionCopyFilesToBigQueryScratchBucketStep extends SkippableS
     for (var table : tables) {
       if (tablesNeedingCopy.contains(table.getTableName())) {
         BlobId from = GcsUriUtils.parseBlobUri(table.getGcsFileSpec().getPath());
-        String to =
-            GcsUriUtils.getGsPathFromComponents(
-                bucketResource.getName(),
-                String.format("%s/%s", context.getFlightId(), from.getName()));
-        gcsPdao.copyGcsFile(from, GcsUriUtils.parseBlobUri(to), projectId);
-        table.getGcsFileSpec().path(to);
+
+        BlobId to =
+            GcsUriUtils.getBlobForFlight(
+                bucketResource.getName(), from.getName(), context.getFlightId());
+        gcsPdao.copyGcsFile(from, to, projectId);
+        table.getGcsFileSpec().path(GcsUriUtils.getGsPathFromBlob(to));
       }
     }
     workingMap.put(DataDeletionMapKeys.TABLES, tables);

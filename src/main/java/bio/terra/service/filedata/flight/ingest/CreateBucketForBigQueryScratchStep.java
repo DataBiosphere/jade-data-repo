@@ -3,7 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.service.common.gcs.CommonFlightKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
@@ -16,7 +16,7 @@ import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-public class CreateBucketForBigQueryScratchStep extends SkippableStep {
+public class CreateBucketForBigQueryScratchStep extends OptionalStep {
 
   private final ResourceService resourceService;
   private final DatasetService datasetService;
@@ -24,14 +24,14 @@ public class CreateBucketForBigQueryScratchStep extends SkippableStep {
   public CreateBucketForBigQueryScratchStep(
       ResourceService resourceService,
       DatasetService datasetService,
-      Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.resourceService = resourceService;
     this.datasetService = datasetService;
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
+  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     FlightMap inputParameters = context.getInputParameters();
     UUID datasetId =

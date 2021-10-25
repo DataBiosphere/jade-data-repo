@@ -29,7 +29,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Spliterators;
 import java.util.UUID;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -188,26 +187,23 @@ public final class IngestUtils {
     return workingMap.get(IngestMapKeys.INGEST_STATISTICS, PdaoLoadStatistics.class);
   }
 
-  public static final Predicate<FlightContext> noFilesToIngest =
-      flightContext -> {
-        var numFiles =
-            Objects.requireNonNullElse(
-                flightContext
-                    .getWorkingMap()
-                    .get(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, Long.class),
-                0L);
-        if (numFiles == 0) {
-          Logger logger = LoggerFactory.getLogger(flightContext.getFlightClassName());
-          logger.info(
-              "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
-          return true;
-        }
-        return false;
-      };
+  public static boolean isCombinedFileIngest(FlightContext flightContext) {
+    var numFiles =
+        Objects.requireNonNullElse(
+            flightContext.getWorkingMap().get(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, Long.class),
+            0L);
+    if (numFiles == 0) {
+      Logger logger = LoggerFactory.getLogger(flightContext.getFlightClassName());
+      logger.info(
+          "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
+      return false;
+    }
+    return true;
+  }
 
-  public static final Predicate<FlightContext> noCopyNeeded =
-      flightContext ->
-          !flightContext.getWorkingMap().get(IngestMapKeys.CONTROL_FILE_NEEDS_COPY, Boolean.class);
+  public static boolean isCopyControlFileNeeded(FlightContext flightContext) {
+    return flightContext.getWorkingMap().get(IngestMapKeys.CONTROL_FILE_NEEDS_COPY, Boolean.class);
+  }
 
   public static Stream<JsonNode> getJsonNodesStreamFromFile(
       CloudFileReader cloudFileReader,

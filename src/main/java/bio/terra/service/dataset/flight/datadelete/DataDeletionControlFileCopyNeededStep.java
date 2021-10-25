@@ -13,7 +13,6 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class DataDeletionControlFileCopyNeededStep implements Step {
@@ -35,11 +34,12 @@ public class DataDeletionControlFileCopyNeededStep implements Step {
         dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
 
     String projectId = dataset.getProjectResource().getGoogleProjectId();
-    Predicate<DataDeletionTableModel> fileNotInRegion =
-        fileNotInRegionPredicate(bigQueryRegion, projectId);
     Set<String> tableNamesNeedingCopy =
         dataDeletionRequest.getTables().stream()
-            .filter(fileNotInRegion)
+            .filter(
+                model ->
+                    gcsPdao.getRegionForFile(model.getGcsFileSpec().getPath(), projectId)
+                        != bigQueryRegion)
             .map(DataDeletionTableModel::getTableName)
             .collect(Collectors.toSet());
 
@@ -55,13 +55,5 @@ public class DataDeletionControlFileCopyNeededStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     return StepResult.getStepResultSuccess();
-  }
-
-  Predicate<DataDeletionTableModel> fileNotInRegionPredicate(
-      CloudRegion bigQueryRegion, String projectId) {
-    return (model) -> {
-      String path = model.getGcsFileSpec().getPath();
-      return gcsPdao.getRegionForFile(path, projectId) != bigQueryRegion;
-    };
   }
 }

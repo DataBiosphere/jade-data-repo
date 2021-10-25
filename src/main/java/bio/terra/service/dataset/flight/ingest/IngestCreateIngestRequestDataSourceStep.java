@@ -37,18 +37,17 @@ public class IngestCreateIngestRequestDataSourceStep implements Step {
 
     final BlobUrlParts signedBlobUrlParts;
     final ContainerType containerType;
-    if (IngestUtils.noFilesToIngest.test(context)) {
-      signedBlobUrlParts =
-          azureBlobStorePdao.getOrSignUrlForSourceFactory(
-              ingestRequestModel.getPath(), billingProfileModel.getTenantId());
-
-    } else {
+    if (IngestUtils.isCombinedFileIngest(context)) {
       String path = workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class);
       AzureStorageAccountResource storageAccount =
           workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
       signedBlobUrlParts =
           azureBlobStorePdao.getOrSignUrlForTargetFactory(
               path, billingProfileModel, storageAccount, ContainerType.SCRATCH);
+    } else {
+      signedBlobUrlParts =
+          azureBlobStorePdao.getOrSignUrlForSourceFactory(
+              ingestRequestModel.getPath(), billingProfileModel.getTenantId());
     }
 
     try {

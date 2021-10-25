@@ -5,7 +5,7 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 // - BUCKET_INFO is a GoogleBucketResource
 // - STORAGE_ACCOUNT_INFO is a AzureStorageAccountResource
 //
-public class IngestDriverStep extends SkippableStep {
+public class IngestDriverStep extends OptionalStep {
   private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
   private final LoadService loadService;
@@ -75,8 +75,8 @@ public class IngestDriverStep extends SkippableStep {
       int driverWaitSeconds,
       UUID profileId,
       CloudPlatform platform,
-      Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.loadService = loadService;
     this.configurationService = configurationService;
     this.jobService = jobService;
@@ -108,11 +108,11 @@ public class IngestDriverStep extends SkippableStep {
         driverWaitSeconds,
         profileId,
         platform,
-        SkippableStep::neverSkip);
+        OptionalStep::alwaysDo);
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
+  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     // Gather inputs
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);

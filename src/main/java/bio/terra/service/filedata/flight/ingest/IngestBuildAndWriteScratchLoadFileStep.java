@@ -11,7 +11,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
@@ -30,19 +30,19 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
+public abstract class IngestBuildAndWriteScratchLoadFileStep extends OptionalStep {
   protected final ObjectMapper objectMapper;
   protected final Dataset dataset;
 
   public IngestBuildAndWriteScratchLoadFileStep(
-      ObjectMapper objectMapper, Dataset dataset, Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      ObjectMapper objectMapper, Dataset dataset, Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.objectMapper = objectMapper;
     this.dataset = dataset;
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context) {
+  public StepResult doOptionalStep(FlightContext context) {
     var workingMap = context.getWorkingMap();
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
 

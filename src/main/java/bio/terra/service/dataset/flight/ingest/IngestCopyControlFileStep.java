@@ -14,20 +14,20 @@ import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.storage.BlobId;
 import java.util.function.Predicate;
 
-public class IngestCopyControlFileStep extends SkippableStep {
+public class IngestCopyControlFileStep extends OptionalStep {
 
   private final DatasetService datasetService;
   private final GcsPdao gcsPdao;
 
   public IngestCopyControlFileStep(
-      DatasetService datasetService, GcsPdao gcsPdao, Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      DatasetService datasetService, GcsPdao gcsPdao, Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.datasetService = datasetService;
     this.gcsPdao = gcsPdao;
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context)
+  public StepResult doOptionalStep(FlightContext context)
       throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
@@ -36,14 +36,12 @@ public class IngestCopyControlFileStep extends SkippableStep {
 
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
     BlobId from = GcsUriUtils.parseBlobUri(ingestRequest.getPath());
-    String to =
-        GcsUriUtils.getGsPathFromComponents(
-            bucketResource.getName(),
-            String.format("%s/%s", context.getFlightId(), from.getName()));
-    gcsPdao.copyGcsFile(
-        from, GcsUriUtils.parseBlobUri(to), dataset.getProjectResource().getGoogleProjectId());
+    BlobId to =
+        GcsUriUtils.getBlobForFlight(
+            bucketResource.getName(), from.getName(), context.getFlightId());
+    gcsPdao.copyGcsFile(from, to, dataset.getProjectResource().getGoogleProjectId());
 
-    workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, to);
+    workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, GcsUriUtils.getGsPathFromBlob(to));
     return StepResult.getStepResultSuccess();
   }
 }

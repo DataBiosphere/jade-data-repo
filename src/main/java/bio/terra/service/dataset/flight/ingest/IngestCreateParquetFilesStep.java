@@ -36,11 +36,11 @@ public class IngestCreateParquetFilesStep implements Step {
     DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
     String parquetFilePath = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
     final BlobUrlParts ingestBlob;
-    if (IngestUtils.noFilesToIngest.test(context)) {
-      ingestBlob = BlobUrlParts.parse(ingestRequestModel.getPath());
-    } else {
+    if (IngestUtils.isCombinedFileIngest(context)) {
       ingestBlob =
           BlobUrlParts.parse(workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class));
+    } else {
+      ingestBlob = BlobUrlParts.parse(ingestRequestModel.getPath());
     }
 
     long updateCount;
@@ -79,7 +79,7 @@ public class IngestCreateParquetFilesStep implements Step {
             .badRowCount(failedRowCount) // Azure only has failed rows if combined ingest does.
             .rowCount(updateCount);
 
-    if (!IngestUtils.noFilesToIngest.test(context)) {
+    if (IngestUtils.isCombinedFileIngest(context)) {
       BulkLoadArrayResultModel fileLoadResults =
           workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
       ingestResponse.loadResult(fileLoadResults);

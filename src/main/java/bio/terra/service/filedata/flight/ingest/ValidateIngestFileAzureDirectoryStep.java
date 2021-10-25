@@ -3,7 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.FileAlreadyExistsException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
@@ -17,7 +17,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.function.Predicate;
 
-public class ValidateIngestFileAzureDirectoryStep extends SkippableStep {
+public class ValidateIngestFileAzureDirectoryStep extends OptionalStep {
   public static final String CREATE_ENTRY_ACTION = "createEntry";
   public static final String CHECK_ENTRY_ACTION = "checkEntry";
 
@@ -25,18 +25,18 @@ public class ValidateIngestFileAzureDirectoryStep extends SkippableStep {
   private final Dataset dataset;
 
   public ValidateIngestFileAzureDirectoryStep(
-      TableDao tableDao, Dataset dataset, Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      TableDao tableDao, Dataset dataset, Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.tableDao = tableDao;
     this.dataset = dataset;
   }
 
   public ValidateIngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset) {
-    this(tableDao, dataset, SkippableStep::neverSkip);
+    this(tableDao, dataset, OptionalStep::alwaysDo);
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
+  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     FlightMap inputParameters = context.getInputParameters();
     FileLoadModel loadModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);

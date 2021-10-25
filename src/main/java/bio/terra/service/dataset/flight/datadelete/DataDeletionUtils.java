@@ -8,7 +8,6 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Predicate;
 
 public final class DataDeletionUtils {
 
@@ -30,11 +29,10 @@ public final class DataDeletionUtils {
     return datasetService.retrieve(UUID.fromString(datasetId));
   }
 
-  public static final Predicate<FlightContext> scratchFileCopyNotNeeded =
-      flightContext -> {
-        var workingMap = flightContext.getWorkingMap();
-        Set<String> tableNamesNeedingCopy =
-            FlightUtils.getTyped(workingMap, DataDeletionMapKeys.TABLE_NAMES_NEEDING_COPY);
-        return tableNamesNeedingCopy.isEmpty();
-      };
+  public static boolean isControlFileCopyNeeded(FlightContext flightContext) {
+    var workingMap = flightContext.getWorkingMap();
+    Set<String> tableNamesNeedingCopy =
+        FlightUtils.getTyped(workingMap, DataDeletionMapKeys.TABLE_NAMES_NEEDING_COPY);
+    return !tableNamesNeedingCopy.isEmpty();
+  }
 }

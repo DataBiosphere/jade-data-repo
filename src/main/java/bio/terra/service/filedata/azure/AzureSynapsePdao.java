@@ -162,21 +162,18 @@ public class AzureSynapsePdao {
   }
 
   public List<String> getRefIdsForSnapshot(Snapshot snapshot) {
-    List<String> refIds = new ArrayList<>();
-    snapshot
-        .getTables()
-        .forEach(
+    return snapshot.getTables().stream()
+        .filter(table -> table.getRowCount() > 0)
+        .flatMap(
             table -> {
-              if (table.getRowCount() > 0) {
-                String tableName =
-                    IngestUtils.formatSnapshotTableName(snapshot.getId(), table.getName());
-                table.getColumns().stream()
-                    .map(Column::toSynapseColumn)
-                    .filter(Column::isFileOrDirRef)
-                    .forEach(column -> refIds.addAll(getRefIds(tableName, column)));
-              }
-            });
-    return refIds;
+              String tableName =
+                  IngestUtils.formatSnapshotTableName(snapshot.getId(), table.getName());
+              return table.getColumns().stream()
+                  .map(Column::toSynapseColumn)
+                  .filter(Column::isFileOrDirRef)
+                  .flatMap(column -> getRefIds(tableName, column).stream());
+            })
+        .collect(Collectors.toList());
   }
 
   @Autowired

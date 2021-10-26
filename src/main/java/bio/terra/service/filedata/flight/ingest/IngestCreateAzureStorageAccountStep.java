@@ -13,7 +13,7 @@ public class IngestCreateAzureStorageAccountStep extends CreateAzureStorageAccou
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext flightContext) throws InterruptedException {
+  public StepResult doOptionalStep(FlightContext flightContext) throws InterruptedException {
     getOrCreateDatasetStorageAccount(flightContext);
     return StepResult.getStepResultSuccess();
   }

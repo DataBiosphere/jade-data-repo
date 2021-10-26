@@ -12,14 +12,9 @@ import java.util.function.Predicate;
 
 public class IngestFileAzurePrimaryDataLocationStep extends CreateAzureStorageAccountStep {
 
-  private final ResourceService resourceService;
-  private final Dataset dataset;
-
   public IngestFileAzurePrimaryDataLocationStep(
       ResourceService resourceService, Dataset dataset, Predicate<FlightContext> doCondition) {
-    super(doCondition);
-    this.resourceService = resourceService;
-    this.dataset = dataset;
+    super(resourceService, dataset, doCondition);
   }
 
   public IngestFileAzurePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {

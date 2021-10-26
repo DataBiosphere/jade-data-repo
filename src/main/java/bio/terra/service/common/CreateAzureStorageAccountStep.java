@@ -2,7 +2,7 @@ package bio.terra.service.common;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -12,7 +12,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import java.util.function.Predicate;
 
-public abstract class CreateAzureStorageAccountStep extends SkippableStep {
+public abstract class CreateAzureStorageAccountStep extends OptionalStep {
 
   private final ResourceService resourceService;
   private final Dataset dataset;
@@ -25,7 +25,7 @@ public abstract class CreateAzureStorageAccountStep extends SkippableStep {
   }
 
   public CreateAzureStorageAccountStep(ResourceService resourceService, Dataset dataset) {
-    this(resourceService, dataset, SkippableStep::neverSkip);
+    this(resourceService, dataset, OptionalStep::alwaysDo);
   }
 
   @Override

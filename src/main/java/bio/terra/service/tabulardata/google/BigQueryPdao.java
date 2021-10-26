@@ -449,7 +449,8 @@ public class BigQueryPdao {
       String datasetBqDatasetName,
       String snapshotProjectId,
       Snapshot snapshot,
-      BigQuery snapshotBigQuery) {
+      BigQuery snapshotBigQuery)
+      throws InterruptedException {
     // create the views
     List<String> bqTableNames =
         createViews(
@@ -762,7 +763,8 @@ public class BigQueryPdao {
   }
 
   private void grantReadAccessWorker(
-      BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails) {
+      BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails)
+      throws InterruptedException {
     List<Acl> policyGroupAcls =
         policyGroupEmails.stream()
             .map(email -> Acl.of(new Acl.Group(email), Acl.Role.READER))

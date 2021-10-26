@@ -1,7 +1,11 @@
 package bio.terra.service.common.gcs;
 
+import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 public final class GcsUriUtils {
@@ -72,7 +76,33 @@ public final class GcsUriUtils {
     return getGsPathFromComponents(blob.getBucket(), blob.getName());
   }
 
+  public static String getGsPathFromBlob(BlobId blob) {
+    return getGsPathFromComponents(blob.getBucket(), blob.getName());
+  }
+
   public static String getGsPathFromComponents(String bucket, String name) {
     return "gs://" + bucket + "/" + name;
+  }
+
+  public static BlobId getBlobForFlight(String bucket, String name, String flightId) {
+    return BlobId.of(bucket, String.format("%s/%s", flightId, name));
+  }
+
+  public static String makeHttpsFromGs(String gspath) {
+    try {
+      BlobId locator = GcsUriUtils.parseBlobUri(gspath);
+      String gsBucket = locator.getBucket();
+      String gsPath = locator.getName();
+      String encodedPath =
+          URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString())
+              // Google does not recognize the + characters that are produced from spaces by the
+              // URLEncoder.encode
+              // method. As a result, these must be converted to %2B.
+              .replaceAll("\\+", "%20");
+      return String.format(
+          "https://www.googleapis.com/storage/v1/b/%s/o/%s?alt=media", gsBucket, encodedPath);
+    } catch (UnsupportedEncodingException ex) {
+      throw new InvalidDrsIdException("Failed to urlencode file path", ex);
+    }
   }
 }

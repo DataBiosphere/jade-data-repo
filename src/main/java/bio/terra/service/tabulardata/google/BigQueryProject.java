@@ -1,6 +1,7 @@
 package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.AclUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
@@ -21,10 +22,9 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,12 +146,12 @@ public final class BigQueryProject {
     return bigQuery.delete(tableId);
   }
 
-  public void updateDatasetAcls(Dataset dataset, List<Acl> acls) {
+  public void updateDatasetAcls(Dataset dataset, List<Acl> acls) throws InterruptedException {
     DatasetInfo datasetInfo = dataset.toBuilder().setAcl(acls).build();
-    bigQuery.update(datasetInfo);
+    AclUtils.aclUpdateRetry(() -> bigQuery.update(datasetInfo));
   }
 
-  public void addDatasetAcls(String datasetId, List<Acl> acls) {
+  public void addDatasetAcls(String datasetId, List<Acl> acls) throws InterruptedException {
     Dataset dataset = bigQuery.getDataset(datasetId);
     if (dataset == null) {
       throw new PdaoException(String.format("Dataset %s was not found", datasetId));
@@ -164,12 +164,14 @@ public final class BigQueryProject {
     updateDatasetAcls(dataset, newAcls);
   }
 
-  public void removeDatasetAcls(String datasetId, List<Acl> acls) {
+  public void removeDatasetAcls(String datasetId, List<Acl> acls) throws InterruptedException {
     Dataset dataset = bigQuery.getDataset(datasetId);
     if (dataset != null) { // can be null if create dataset step failed before it was created
-      Set<Acl> datasetAcls = new HashSet(dataset.getAcl());
-      datasetAcls.removeAll(acls);
-      updateDatasetAcls(dataset, new ArrayList(datasetAcls));
+      updateDatasetAcls(
+          dataset,
+          dataset.getAcl().stream()
+              .filter(acl -> !acls.contains(acl))
+              .collect(Collectors.toList()));
     }
   }
 

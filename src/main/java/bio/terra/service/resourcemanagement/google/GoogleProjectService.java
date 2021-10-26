@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.AclUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
@@ -12,7 +13,6 @@ import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.MismatchedBillingProfilesException;
-import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -100,8 +100,8 @@ public class GoogleProjectService {
     this.environment = environment;
   }
 
-  public String bucketForIngestScratchFile(String googleProjectId) {
-    return googleProjectId + "-ingest-scratch-bucket";
+  public String bucketForBigQueryScratchFile(String googleProjectId) {
+    return googleProjectId + "-bq-scratch-bucket";
   }
 
   /**
@@ -383,10 +383,6 @@ public class GoogleProjectService {
     }
   }
 
-  private static final int RETRIES = 10;
-  private static final int MAX_WAIT_SECONDS = 30;
-  private static final int INITIAL_WAIT_SECONDS = 2;
-
   public enum PermissionOp {
     ENABLE_PERMISSIONS,
     REVOKE_PERMISSIONS
@@ -404,56 +400,49 @@ public class GoogleProjectService {
 
     GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
 
-    Exception lastException = null;
-    int retryWait = INITIAL_WAIT_SECONDS;
-    for (int i = 0; i < RETRIES; i++) {
-      try {
-        CloudResourceManager resourceManager = cloudResourceManager();
-        Policy policy =
-            resourceManager.projects().getIamPolicy(projectId, getIamPolicyRequest).execute();
-        final List<Binding> bindingsList = policy.getBindings();
+    AclUtils.aclUpdateRetry(
+        () -> {
+          try {
+            CloudResourceManager resourceManager = cloudResourceManager();
+            Policy policy =
+                resourceManager.projects().getIamPolicy(projectId, getIamPolicyRequest).execute();
+            final List<Binding> bindingsList = policy.getBindings();
 
-        switch (permissionOp) {
-          case ENABLE_PERMISSIONS:
-            for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
-              Binding binding = new Binding().setRole(entry.getKey()).setMembers(entry.getValue());
-              bindingsList.add(binding);
+            switch (permissionOp) {
+              case ENABLE_PERMISSIONS:
+                for (var entry : userPermissions.entrySet()) {
+                  Binding binding =
+                      new Binding().setRole(entry.getKey()).setMembers(entry.getValue());
+                  bindingsList.add(binding);
+                }
+                break;
+
+              case REVOKE_PERMISSIONS:
+                // Remove members from the current policies
+                for (var entry : userPermissions.entrySet()) {
+                  CollectionUtils.filter(
+                      bindingsList,
+                      b -> {
+                        if (Objects.equals(b.getRole(), entry.getKey())) {
+                          // Remove the members that were passed in
+                          b.setMembers(ListUtils.subtract(b.getMembers(), entry.getValue()));
+                          // Remove any entries from the bindings list with no members
+                          return !b.getMembers().isEmpty();
+                        }
+                        return true;
+                      });
+                }
             }
-            break;
 
-          case REVOKE_PERMISSIONS:
-            // Remove members from the current policies
-            for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
-              CollectionUtils.filter(
-                  bindingsList,
-                  b -> {
-                    if (Objects.equals(b.getRole(), entry.getKey())) {
-                      // Remove the members that were passed in
-                      b.setMembers(ListUtils.subtract(b.getMembers(), entry.getValue()));
-                      // Remove any entries from the bindings list with no members
-                      return !b.getMembers().isEmpty();
-                    }
-                    return true;
-                  });
-            }
-        }
-
-        policy.setBindings(bindingsList);
-        SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
-        resourceManager.projects().setIamPolicy(projectId, setIamPolicyRequest).execute();
-        return;
-      } catch (IOException | GeneralSecurityException ex) {
-        logger.info("Failed to enable iam permissions. Retry " + i + " of " + RETRIES, ex);
-        lastException = ex;
-      }
-
-      TimeUnit.SECONDS.sleep(retryWait);
-      retryWait = retryWait + retryWait;
-      if (retryWait > MAX_WAIT_SECONDS) {
-        retryWait = MAX_WAIT_SECONDS;
-      }
-    }
-    throw new UpdatePermissionsFailedException("Cannot update iam permissions", lastException);
+            policy.setBindings(bindingsList);
+            SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
+            resourceManager.projects().setIamPolicy(projectId, setIamPolicyRequest).execute();
+            return null;
+          } catch (IOException | GeneralSecurityException ex) {
+            throw new AclUtils.AclRetryException(
+                "Encountered an error while updating IAM permissions", ex, ex.getMessage());
+          }
+        });
   }
 
   // TODO: convert this to using the resource manager service interface instead of the api interface

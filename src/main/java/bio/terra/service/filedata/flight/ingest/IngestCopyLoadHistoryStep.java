@@ -2,7 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.LoadService.LoadHistoryIterator;
 import bio.terra.service.load.flight.LoadMapKeys;
@@ -12,14 +12,14 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-public abstract class IngestCopyLoadHistoryStep extends SkippableStep {
+public abstract class IngestCopyLoadHistoryStep extends OptionalStep {
 
-  public IngestCopyLoadHistoryStep(Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+  public IngestCopyLoadHistoryStep(Predicate<FlightContext> doCondition) {
+    super(doCondition);
   }
 
   public IngestCopyLoadHistoryStep() {
-    this(SkippableStep::neverSkip);
+    this(OptionalStep::alwaysDo);
   }
 
   protected IngestCopyLoadHistoryResources getResources(

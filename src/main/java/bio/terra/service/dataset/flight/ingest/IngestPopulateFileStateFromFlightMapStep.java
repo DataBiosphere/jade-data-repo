@@ -7,11 +7,11 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.FileService;
-import bio.terra.service.job.BaseStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,7 +26,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
 
-public abstract class IngestPopulateFileStateFromFlightMapStep extends BaseStep {
+public abstract class IngestPopulateFileStateFromFlightMapStep implements Step {
 
   private final LoadService loadService;
   private final FileService fileService;

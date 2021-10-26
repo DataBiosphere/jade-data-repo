@@ -4,14 +4,14 @@ import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.job.BaseStep;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 
-public class IngestFileAzureMakeStorageAccountLinkStep extends BaseStep {
+public class IngestFileAzureMakeStorageAccountLinkStep implements Step {
   private final DatasetStorageAccountDao datasetStorageAccountDao;
   private final Dataset dataset;
 

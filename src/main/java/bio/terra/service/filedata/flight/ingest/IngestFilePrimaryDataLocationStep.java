@@ -3,7 +3,6 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.job.BaseStep;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
@@ -12,12 +11,13 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IngestFilePrimaryDataLocationStep extends BaseStep {
+public class IngestFilePrimaryDataLocationStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
   private final ResourceService resourceService;

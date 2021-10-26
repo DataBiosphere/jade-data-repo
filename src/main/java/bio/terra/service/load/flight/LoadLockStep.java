@@ -1,16 +1,16 @@
 package bio.terra.service.load.flight;
 
-import bio.terra.service.job.BaseStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
 
 // This step is meant to be shared by dataset and filesystem flights for locking the load tag.
 // It expects to find LoadMapKeys.LOAD_TAG in the parameters or working map.
 
-public class LoadLockStep extends BaseStep {
+public class LoadLockStep implements Step {
   private final LoadService loadService;
 
   public LoadLockStep(LoadService loadService) {

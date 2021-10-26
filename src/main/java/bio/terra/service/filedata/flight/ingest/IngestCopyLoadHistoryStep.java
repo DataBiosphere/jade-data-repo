@@ -2,17 +2,17 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.job.BaseStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.LoadService.LoadHistoryIterator;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import java.time.Instant;
 import java.util.UUID;
 
-public abstract class IngestCopyLoadHistoryStep extends BaseStep {
+public abstract class IngestCopyLoadHistoryStep implements Step {
 
   protected IngestCopyLoadHistoryResources getResources(
       FlightContext context,

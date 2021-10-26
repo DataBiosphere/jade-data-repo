@@ -6,29 +6,26 @@ import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.job.BaseStep;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.storage.BlobId;
-import java.util.function.Predicate;
 
-public class IngestCopyControlFileStep extends OptionalStep {
+public class IngestCopyControlFileStep extends BaseStep {
 
   private final DatasetService datasetService;
   private final GcsPdao gcsPdao;
 
-  public IngestCopyControlFileStep(
-      DatasetService datasetService, GcsPdao gcsPdao, Predicate<FlightContext> doCondition) {
-    super(doCondition);
+  public IngestCopyControlFileStep(DatasetService datasetService, GcsPdao gcsPdao) {
     this.datasetService = datasetService;
     this.gcsPdao = gcsPdao;
   }
 
   @Override
-  public StepResult doOptionalStep(FlightContext context)
-      throws InterruptedException, RetryException {
+  public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     GoogleBucketResource bucketResource =

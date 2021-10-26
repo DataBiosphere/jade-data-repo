@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class IngestBuildAndWriteScratchLoadFileAzureStep
@@ -28,9 +27,8 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
       ObjectMapper objectMapper,
       AzureBlobStorePdao azureBlobStorePdao,
       AzureContainerPdao azureContainerPdao,
-      Dataset dataset,
-      Predicate<FlightContext> doCondition) {
-    super(objectMapper, dataset, doCondition);
+      Dataset dataset) {
+    super(objectMapper, dataset);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.azureContainerPdao = azureContainerPdao;
   }

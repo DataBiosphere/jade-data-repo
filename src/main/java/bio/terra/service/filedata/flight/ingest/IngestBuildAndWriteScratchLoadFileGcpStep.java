@@ -11,7 +11,6 @@ import bio.terra.stairway.FlightContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class IngestBuildAndWriteScratchLoadFileGcpStep
@@ -19,11 +18,8 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
   private final GcsPdao gcsPdao;
 
   public IngestBuildAndWriteScratchLoadFileGcpStep(
-      ObjectMapper objectMapper,
-      GcsPdao gcsPdao,
-      Dataset dataset,
-      Predicate<FlightContext> doCondition) {
-    super(objectMapper, dataset, doCondition);
+      ObjectMapper objectMapper, GcsPdao gcsPdao, Dataset dataset) {
+    super(objectMapper, dataset);
     this.gcsPdao = gcsPdao;
   }
 

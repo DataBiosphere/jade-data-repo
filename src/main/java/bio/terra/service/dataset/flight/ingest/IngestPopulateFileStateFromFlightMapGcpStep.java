@@ -7,10 +7,8 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.load.LoadService;
-import bio.terra.stairway.FlightContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class IngestPopulateFileStateFromFlightMapGcpStep
@@ -24,9 +22,8 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
       Dataset dataset,
-      int batchSize,
-      Predicate<FlightContext> doCondition) {
-    super(loadService, fileService, objectMapper, dataset, batchSize, doCondition);
+      int batchSize) {
+    super(loadService, fileService, objectMapper, dataset, batchSize);
     this.gcsPdao = gcsPdao;
   }
 

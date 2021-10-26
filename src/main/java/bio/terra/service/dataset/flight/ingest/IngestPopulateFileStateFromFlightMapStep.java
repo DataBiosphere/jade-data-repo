@@ -7,6 +7,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.FileService;
+import bio.terra.service.job.BaseStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -22,11 +23,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
 
-public abstract class IngestPopulateFileStateFromFlightMapStep extends OptionalStep {
+public abstract class IngestPopulateFileStateFromFlightMapStep extends BaseStep {
 
   private final LoadService loadService;
   private final FileService fileService;
@@ -39,9 +39,7 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends OptionalS
       FileService fileService,
       ObjectMapper objectMapper,
       Dataset dataset,
-      int batchSize,
-      Predicate<FlightContext> doCondition) {
-    super(doCondition);
+      int batchSize) {
     this.loadService = loadService;
     this.fileService = fileService;
     this.objectMapper = objectMapper;
@@ -53,7 +51,7 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends OptionalS
   @SuppressFBWarnings(
       value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
       justification = "Spotbugs doesn't understand resource try construct")
-  public StepResult doOptionalStep(FlightContext context) {
+  public StepResult doStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
@@ -112,7 +110,7 @@ public abstract class IngestPopulateFileStateFromFlightMapStep extends OptionalS
   }
 
   @Override
-  public StepResult undoOptionalStep(FlightContext context) {
+  public StepResult undoStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 

@@ -10,8 +10,8 @@ import bio.terra.service.common.gcs.CommonFlightKeys;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.job.BaseStep;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -20,23 +20,20 @@ import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.storage.BlobId;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Predicate;
 
-public class DataDeletionCopyFilesToBigQueryScratchBucketStep extends OptionalStep {
+public class DataDeletionCopyFilesToBigQueryScratchBucketStep extends BaseStep {
 
   private final DatasetService datasetService;
   private final GcsPdao gcsPdao;
 
   public DataDeletionCopyFilesToBigQueryScratchBucketStep(
-      DatasetService datasetService, GcsPdao gcsPdao, Predicate<FlightContext> doCondition) {
-    super(doCondition);
+      DatasetService datasetService, GcsPdao gcsPdao) {
     this.datasetService = datasetService;
     this.gcsPdao = gcsPdao;
   }
 
   @Override
-  public StepResult doOptionalStep(FlightContext context)
-      throws InterruptedException, RetryException {
+  public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
     Dataset dataset = getDataset(context, datasetService);
     String projectId = dataset.getProjectResource().getGoogleProjectId();

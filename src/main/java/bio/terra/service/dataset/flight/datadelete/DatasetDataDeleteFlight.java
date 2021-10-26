@@ -64,14 +64,14 @@ public class DatasetDataDeleteFlight extends Flight {
 
     // If we need to copy, make (or get) the scratch bucket
     addStep(
-        new CreateBucketForBigQueryScratchStep(
-            resourceService, datasetService, DataDeletionUtils::isControlFileCopyNeeded),
+        new ControlFileCopyNeededOptionalStep(
+            new CreateBucketForBigQueryScratchStep(resourceService, datasetService)),
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
 
     // If we need to copy, copy to the scratch bucket
     addStep(
-        new DataDeletionCopyFilesToBigQueryScratchBucketStep(
-            datasetService, gcsPdao, DataDeletionUtils::isControlFileCopyNeeded));
+        new ControlFileCopyNeededOptionalStep(
+            new DataDeletionCopyFilesToBigQueryScratchBucketStep(datasetService, gcsPdao)));
 
     // validate tables exist, check access to files, and create external temp tables
     addStep(new CreateExternalTablesStep(bigQueryPdao, datasetService));

@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.azure.tables.TableDao;
@@ -17,21 +18,15 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.data.tables.models.TableServiceException;
+import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class IngestFileAzureDirectoryStep implements Step {
-  private static final Logger logger = LoggerFactory.getLogger(IngestFileDirectoryStep.class);
-
   private final TableDao tableDao;
-  private final FileMetadataUtils fileMetadataUtils;
   private final Dataset dataset;
 
-  public IngestFileAzureDirectoryStep(
-      TableDao tableDao, FileMetadataUtils fileMetadataUtils, Dataset dataset) {
+  public IngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset) {
     this.tableDao = tableDao;
-    this.fileMetadataUtils = fileMetadataUtils;
     this.dataset = dataset;
   }
 
@@ -45,7 +40,7 @@ public class IngestFileAzureDirectoryStep implements Step {
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     workingMap.put(FileMapKeys.LOAD_COMPLETED, false);
 
-    String datasetId = dataset.getId().toString();
+    UUID datasetId = dataset.getId();
     String targetPath = loadModel.getTargetPath();
 
     String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
@@ -82,11 +77,12 @@ public class IngestFileAzureDirectoryStep implements Step {
             new FireStoreDirectoryEntry()
                 .fileId(fileId)
                 .isFileRef(true)
-                .path(fileMetadataUtils.getDirectoryPath(targetPath))
-                .name(fileMetadataUtils.getName(targetPath))
-                .datasetId(datasetId)
+                .path(FileMetadataUtils.getDirectoryPath(targetPath))
+                .name(FileMetadataUtils.getName(targetPath))
+                .datasetId(datasetId.toString())
                 .loadTag(loadModel.getLoadTag());
-        tableDao.createDirectoryEntry(newEntry, storageAuthInfo);
+        tableDao.createDirectoryEntry(
+            newEntry, storageAuthInfo, datasetId, StorageTableName.DATASET.toTableName());
       } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION)
           && !StringUtils.equals(existingEntry.getFileId(), fileId)) {
         // (b) We are in a re-run of a load job. Try to get the file entry.
@@ -117,7 +113,8 @@ public class IngestFileAzureDirectoryStep implements Step {
             context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
       try {
-        tableDao.deleteDirectoryEntry(fileId, storageAuthInfo);
+        tableDao.deleteDirectoryEntry(
+            fileId, storageAuthInfo, dataset.getId(), StorageTableName.DATASET.toTableName());
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
       }

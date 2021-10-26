@@ -12,8 +12,8 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
 public class IngestLoadTableStep implements Step {
-  private DatasetService datasetService;
-  private BigQueryPdao bigQueryPdao;
+  private final DatasetService datasetService;
+  private final BigQueryPdao bigQueryPdao;
 
   public IngestLoadTableStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
     this.datasetService = datasetService;
@@ -29,12 +29,7 @@ public class IngestLoadTableStep implements Step {
 
     FlightMap workingMap = context.getWorkingMap();
 
-    final String pathToIngestFile;
-    if (IngestUtils.noFilesToIngest.test(context)) {
-      pathToIngestFile = ingestRequest.getPath();
-    } else {
-      pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, String.class);
-    }
+    String pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class);
 
     PdaoLoadStatistics ingestStatistics =
         bigQueryPdao.loadToStagingTable(

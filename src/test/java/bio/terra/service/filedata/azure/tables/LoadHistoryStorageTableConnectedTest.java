@@ -12,7 +12,6 @@ import bio.terra.common.fixtures.Names;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -55,7 +54,6 @@ public class LoadHistoryStorageTableConnectedTest {
   @Autowired SynapseUtils synapseUtils;
   @Autowired AzureAuthService azureAuthService;
   @Autowired TableDirectoryDao tableDirectoryDao;
-  @Autowired FileMetadataUtils fileMetadataUtils;
   @Autowired TableDao tableDao;
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired FileService fileService;

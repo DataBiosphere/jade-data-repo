@@ -62,7 +62,8 @@ public class IngestDriverStepTest extends TestCase {
             maxFailedFileLoads,
             0,
             null,
-            CloudPlatform.GCP);
+            CloudPlatform.GCP,
+            null);
 
     FlightContext flightContext = new FlightContext(new FlightMap(), "", Collections.emptyList());
     flightContext.getWorkingMap().put(LoadMapKeys.LOAD_ID, loadUuid.toString());

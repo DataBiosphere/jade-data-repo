@@ -1,10 +1,10 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.common.gcs.CommonFlightKeys;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
@@ -22,8 +22,8 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
       ObjectMapper objectMapper,
       GcsPdao gcsPdao,
       Dataset dataset,
-      Predicate<FlightContext> skipCondition) {
-    super(objectMapper, dataset, skipCondition);
+      Predicate<FlightContext> doCondition) {
+    super(objectMapper, dataset, doCondition);
     this.gcsPdao = gcsPdao;
   }
 
@@ -43,7 +43,7 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
     GoogleBucketResource bucket =
         flightContext
             .getWorkingMap()
-            .get(FileMapKeys.INGEST_FILE_BUCKET_INFO, GoogleBucketResource.class);
+            .get(CommonFlightKeys.SCRATCH_BUCKET_INFO, GoogleBucketResource.class);
 
     return GcsUriUtils.getGsPathFromComponents(
         bucket.getName(), flightContext.getFlightId() + "-scratch.json");
@@ -54,7 +54,7 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
     GoogleBucketResource bucket =
         flightContext
             .getWorkingMap()
-            .get(FileMapKeys.INGEST_FILE_BUCKET_INFO, GoogleBucketResource.class);
+            .get(CommonFlightKeys.SCRATCH_BUCKET_INFO, GoogleBucketResource.class);
     gcsPdao.createGcsFile(path, bucket.projectIdForBucket());
     gcsPdao.writeStreamToCloudFile(path, lines, bucket.projectIdForBucket());
   }

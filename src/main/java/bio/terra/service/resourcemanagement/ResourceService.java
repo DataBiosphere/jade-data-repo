@@ -4,7 +4,6 @@ import static bio.terra.service.resourcemanagement.google.GoogleProjectService.P
 import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
 
 import bio.terra.app.configuration.SamConfiguration;
-import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -23,6 +22,8 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotStorageAccountDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,6 +51,7 @@ public class ResourceService {
   private final AzureStorageAccountService storageAccountService;
   private final SamConfiguration samConfiguration;
   private final DatasetStorageAccountDao datasetStorageAccountDao;
+  private final SnapshotStorageAccountDao snapshotStorageAccountDao;
 
   @Autowired
   public ResourceService(
@@ -59,7 +61,8 @@ public class ResourceService {
       AzureApplicationDeploymentService applicationDeploymentService,
       AzureStorageAccountService storageAccountService,
       SamConfiguration samConfiguration,
-      DatasetStorageAccountDao datasetStorageAccountDao) {
+      DatasetStorageAccountDao datasetStorageAccountDao,
+      SnapshotStorageAccountDao snapshotStorageAccountDao) {
     this.azureDataLocationSelector = azureDataLocationSelector;
     this.projectService = projectService;
     this.bucketService = bucketService;
@@ -67,6 +70,7 @@ public class ResourceService {
     this.storageAccountService = storageAccountService;
     this.samConfiguration = samConfiguration;
     this.datasetStorageAccountDao = datasetStorageAccountDao;
+    this.snapshotStorageAccountDao = snapshotStorageAccountDao;
   }
 
   /**
@@ -129,14 +133,14 @@ public class ResourceService {
    *       <li>if the metadata exists, but the bucket does not
    *     </ul>
    */
-  public GoogleBucketResource getOrCreateBucketForIngestScratchFile(
-      Dataset dataset, GoogleProjectResource projectResource, String flightId)
-      throws InterruptedException, GoogleResourceNamingException {
+  public GoogleBucketResource getOrCreateBucketForBigQueryScratchFile(
+      Dataset dataset, String flightId) throws InterruptedException, GoogleResourceNamingException {
+    GoogleProjectResource projectResource = dataset.getProjectResource();
     return bucketService.getOrCreateBucket(
-        projectService.bucketForIngestScratchFile(projectResource.getGoogleProjectId()),
+        projectService.bucketForBigQueryScratchFile(projectResource.getGoogleProjectId()),
         projectResource,
         (GoogleRegion)
-            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId);
   }
 
@@ -155,33 +159,55 @@ public class ResourceService {
    *       <li>if the metadata exists, but the storage account does not
    *     </ul>
    */
-  public AzureStorageAccountResource getOrCreateStorageAccount(
+  public AzureStorageAccountResource getOrCreateDatasetStorageAccount(
       Dataset dataset, BillingProfileModel billingProfile, String flightId)
       throws InterruptedException {
-    final AzureRegion region =
-        (AzureRegion)
-            dataset
-                .getDatasetSummary()
-                .getStorageResourceRegion(AzureCloudResource.STORAGE_ACCOUNT);
+    final AzureRegion region = dataset.getStorageAccountRegion();
+
     // Every storage account needs to live in a deployed application's managed resource group, so we
     // make sure that
     // the application deployment is registered first
     final AzureApplicationDeploymentResource applicationResource =
         applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
 
-    String computedStorageAccountName =
-        azureDataLocationSelector.storageAccountNameForDataset(
-            applicationResource.getStorageAccountPrefix(), dataset.getName(), billingProfile);
-
-    String storageAccountName;
-    try {
-      storageAccountName = getStorageAccount(dataset, billingProfile).getName();
-    } catch (CorruptMetadataException e) {
-      storageAccountName = computedStorageAccountName;
-    }
+    String storageAccountName =
+        getDatasetStorageAccount(dataset.getId(), billingProfile)
+            .map(AzureStorageAccountResource::getName)
+            .orElse(
+                azureDataLocationSelector.createStorageAccountName(
+                    applicationResource.getStorageAccountPrefix(),
+                    dataset.getName(),
+                    billingProfile));
 
     return storageAccountService.getOrCreateStorageAccount(
         storageAccountName, applicationResource, region, flightId);
+  }
+
+  public void createSnapshotStorageAccount(
+      Snapshot snapshot, BillingProfileModel billingProfile, String flightId)
+      throws InterruptedException {
+
+    // If the snapshot already has the resource, do nothing.
+    if (snapshot.getStorageAccountResource() != null) {
+      return;
+    }
+
+    final AzureRegion region = snapshot.getStorageAccountRegion();
+    final AzureApplicationDeploymentResource applicationResource =
+        applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
+    String computedStorageAccountName =
+        azureDataLocationSelector.createStorageAccountName(
+            applicationResource.getStorageAccountPrefix(), snapshot.getName(), billingProfile);
+
+    AzureStorageAccountResource storageAccountResource =
+        storageAccountService.getOrCreateStorageAccount(
+            computedStorageAccountName, applicationResource, region, flightId);
+
+    snapshotStorageAccountDao.createSnapshotStorageAccountLink(
+        snapshot.getId(), storageAccountResource.getResourceId());
+
+    // Set the storage account resource in the snapshot object for convenience.
+    snapshot.setStorageAccountResource(storageAccountResource);
   }
 
   /**
@@ -191,10 +217,21 @@ public class ResourceService {
    * @param billingProfile billing profile to get storage account for.
    * @return Optional AzureStorageAccountResource
    */
-  public AzureStorageAccountResource getStorageAccount(
+  public AzureStorageAccountResource getDatasetStorageAccount(
       Dataset dataset, BillingProfileModel billingProfile) {
+    return getDatasetStorageAccount(dataset.getId(), billingProfile)
+        .orElseThrow(
+            () ->
+                new CorruptMetadataException(
+                    String.format(
+                        "No storage account resource for dataset %s and billing profile %s",
+                        dataset.getId(), dataset.getDefaultProfileId())));
+  }
+
+  private Optional<AzureStorageAccountResource> getDatasetStorageAccount(
+      UUID datasetId, BillingProfileModel billingProfile) {
     var storageAccountResourceIds =
-        datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
+        datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(datasetId);
     var storageAccountResources =
         storageAccountResourceIds.stream()
             .map(this::lookupStorageAccount)
@@ -213,12 +250,13 @@ public class ResourceService {
         throw new CorruptMetadataException(
             "Dataset/Billing Profile combination has more than 1 associated storage account");
     }
-    return storageAccountResource.orElseThrow(
-        () ->
-            new CorruptMetadataException(
-                String.format(
-                    "No storage account resource for dataset %s and billing profile %s",
-                    dataset.getId(), dataset.getDefaultProfileId())));
+    return storageAccountResource;
+  }
+
+  public Optional<AzureStorageAccountResource> getSnapshotStorageAccount(UUID snapshotId) {
+    return snapshotStorageAccountDao
+        .getStorageAccountResourceIdForSnapshotId(snapshotId)
+        .map(this::lookupStorageAccount);
   }
 
   /**

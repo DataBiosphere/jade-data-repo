@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,15 +29,12 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.FileMetadataUtils;
-import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
@@ -88,15 +84,11 @@ public class EncodeFileTest {
   private static final Logger logger = LoggerFactory.getLogger(EncodeFileTest.class);
 
   @Autowired private MockMvc mvc;
-  @Autowired private ObjectMapper objectMapper;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private ResourceService dataLocationService;
   @Autowired private SnapshotDao snapshotDao;
-  @Autowired private GcsProjectFactory gcsProjectFactory;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private GoogleProjectService googleProjectService;
   @Autowired private DrsIdService drsIdService;
-  @Autowired private FileMetadataUtils fileMetadataUtils;
   @Autowired private BufferService bufferService;
 
   private static final String ID_GARBAGE = "GARBAGE";
@@ -298,7 +290,7 @@ public class EncodeFileTest {
     // build string list from the contents objects
     List<String> contentsNames =
         contentsList.stream()
-            .map(fs -> fileMetadataUtils.getName(fs.getPath()))
+            .map(fs -> FileMetadataUtils.getName(fs.getPath()))
             .collect(Collectors.toList());
 
     // lookup the dirmap list by path of the fsObj
@@ -351,7 +343,7 @@ public class EncodeFileTest {
 
     List<String> errorDetails = ingestError.getErrorDetail();
     assertNotNull("Error details were returned", errorDetails);
-    assertThat("Bad id was returned in details", errorDetails.get(0), endsWith(ID_GARBAGE));
+    assertThat("Bad id was returned in details", errorDetails.get(0), containsString(ID_GARBAGE));
 
     // Delete the scratch blob
     Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));

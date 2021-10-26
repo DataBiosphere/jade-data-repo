@@ -87,7 +87,7 @@ public final class MetadataDataAccessUtils {
     } else if (cloudPlatformWrapper.isAzure()) {
       BillingProfileModel profileModel = dataset.getDatasetSummary().getDefaultBillingProfile();
       AzureStorageAccountResource storageAccountResource =
-          resourceService.getStorageAccount(dataset, profileModel);
+          resourceService.getDatasetStorageAccount(dataset, profileModel);
       return makeAccessInfoAzure(
           dataset.getName(), storageAccountResource, dataset.getTables(), profileModel);
     } else {

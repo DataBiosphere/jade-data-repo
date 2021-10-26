@@ -373,6 +373,11 @@ public class SnapshotDao {
         // It seemed like the cleanest thing to me at the time.
         snapshot.projectResource(
             resourceService.getProjectResource(snapshot.getProjectResourceId()));
+
+        // Retrieve the Azure Storage Account associated with the snapshot.
+        resourceService
+            .getSnapshotStorageAccount(snapshot.getId())
+            .ifPresent(snapshot::setStorageAccountResource);
       }
       return snapshot;
     } catch (EmptyResultDataAccessException ex) {

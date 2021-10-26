@@ -22,6 +22,7 @@ import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -67,17 +68,27 @@ public class SnapshotDeleteFlight extends Flight {
     // Lock the source dataset while deleting ACLs to avoid a race condition
     // Skip this step if the snapshot was already deleted
     // TODO note that with multi-dataset snapshots this will need to change
-    List<Dataset> sourceDatasets = snapshotService.getSourceDatasetsFromSnapshotId(snapshotId);
-    Dataset sourceDataset = sourceDatasets.get(0);
-    UUID datasetId = sourceDataset.getId();
-    CloudPlatformWrapper platform =
-        CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
+    UUID datasetId;
+    CloudPlatformWrapper platform;
+    try {
+      List<Dataset> sourceDatasets = snapshotService.getSourceDatasetsFromSnapshotId(snapshotId);
+      Dataset sourceDataset = sourceDatasets.get(0);
+      datasetId = sourceDataset.getId();
+      platform =
+          CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
+    } catch (SnapshotNotFoundException ex) {
+      datasetId = null;
+      platform = null;
+    }
 
-    addStep(new LockDatasetStep(datasetDao, datasetId, false));
+    if (datasetId != null) {
+      addStep(new LockDatasetStep(datasetDao, datasetId, false));
+    }
 
-    addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
+    // Lock snapshot or throw 404 if not found
+    addStep(new LockSnapshotStep(snapshotDao, snapshotId));
 
-    if (platform.isGcp()) {
+    if (platform == null || platform.isGcp()) {
       // Delete access control on objects that were explicitly added by data repo operations.  Do
       // this
       // before delete
@@ -93,27 +104,31 @@ public class SnapshotDeleteFlight extends Flight {
 
     // Must delete primary data before metadata; it relies on being able to retrieve the
     // snapshot object from the metadata to know what to delete.
-    if (platform.isGcp()) {
+    if (platform == null || platform.isGcp()) {
+      if (datasetId != null) {
+        addStep(
+            new DeleteSnapshotSourceDatasetDependencyDataGcpStep(
+                dependencyDao, snapshotId, datasetService, datasetId),
+            randomBackoffRetry);
+      }
       addStep(
-          new DeleteSnapshotPrimaryDataStep(
-              bigQueryPdao,
-              snapshotService,
-              dependencyDao,
-              fileDao,
-              snapshotId,
-              datasetService,
-              configService),
+          new DeleteSnapshotPrimaryDataGcpStep(
+              bigQueryPdao, snapshotService, fileDao, snapshotId, configService),
           randomBackoffRetry);
-    } else if (platform.isAzure()) {
-      addStep(
-          new DeleteSnapshotDependencyDataAzureStep(
-              snapshotService,
-              tableDependencyDao,
-              snapshotId,
-              datasetService,
-              profileService,
-              resourceService,
-              azureAuthService));
+    }
+    if (platform == null || platform.isAzure()) {
+      if (datasetId != null) {
+        addStep(
+            new DeleteSnapshotDependencyDataAzureStep(
+                tableDependencyDao,
+                snapshotId,
+                datasetService,
+                profileService,
+                resourceService,
+                azureAuthService,
+                datasetId));
+      }
+
       // TODO with DR-2127 - Add check to see if anything else uses storage account before deleting
       // and add step that removes (1) Storage Tables for the snapshot & (2) The metadata container
       // blob for the snapshot
@@ -125,6 +140,8 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
     addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
 
-    addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
+    if (datasetId != null) {
+      addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
+    }
   }
 }

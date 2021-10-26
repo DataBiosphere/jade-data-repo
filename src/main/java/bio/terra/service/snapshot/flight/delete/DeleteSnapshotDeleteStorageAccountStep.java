@@ -27,15 +27,19 @@ public class DeleteSnapshotDeleteStorageAccountStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    try {
+      AzureStorageAccountResource snapshotStorageAccountResource =
+          resourceService
+              .getSnapshotStorageAccount(snapshotId)
+              .orElseThrow(
+                  () -> new ResourceNotFoundException("Snapshot storage account not found"));
 
-    AzureStorageAccountResource snapshotStorageAccountResource =
-        resourceService
-            .getSnapshotStorageAccount(snapshotId)
-            .orElseThrow(() -> new ResourceNotFoundException("Snapshot storage account not found"));
+      storageAccountService.deleteCloudStorageAccount(
+          snapshotStorageAccountResource, context.getFlightId());
 
-    storageAccountService.deleteCloudStorageAccount(
-        snapshotStorageAccountResource, context.getFlightId());
-
+    } catch (ResourceNotFoundException nfe) {
+      // If we do not find the storage account, we assume things are already clean
+    }
     return StepResult.getStepResultSuccess();
   }
 

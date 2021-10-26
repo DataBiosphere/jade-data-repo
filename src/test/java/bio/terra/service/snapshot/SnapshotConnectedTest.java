@@ -1012,7 +1012,7 @@ public class SnapshotConnectedTest {
 
     connectedOperations.deleteTestSnapshot(snapshotModel.getId());
     // Duplicate delete should work
-    connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+    connectedOperations.deleteTestSnapshotNotFound(snapshotModel.getId());
     connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
   }
 }

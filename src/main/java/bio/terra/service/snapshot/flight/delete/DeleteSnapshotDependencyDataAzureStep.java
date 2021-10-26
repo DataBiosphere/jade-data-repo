@@ -9,49 +9,49 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.data.tables.TableServiceClient;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeleteSnapshotDependencyDataAzureStep implements Step {
-  private SnapshotService snapshotService;
+  private static Logger logger =
+      LoggerFactory.getLogger(DeleteSnapshotDependencyDataAzureStep.class);
+
   private TableDependencyDao tableDependencyDao;
   private UUID snapshotId;
   private DatasetService datasetService;
   private ProfileService profileService;
   private ResourceService resourceService;
   private AzureAuthService azureAuthService;
+  private UUID datasetId;
 
   public DeleteSnapshotDependencyDataAzureStep(
-      SnapshotService snapshotService,
       TableDependencyDao tableDependencyDao,
       UUID snapshotId,
       DatasetService datasetService,
       ProfileService profileService,
       ResourceService resourceService,
-      AzureAuthService azureAuthService) {
-    this.snapshotService = snapshotService;
+      AzureAuthService azureAuthService,
+      UUID datasetId) {
     this.tableDependencyDao = tableDependencyDao;
     this.snapshotId = snapshotId;
     this.datasetService = datasetService;
     this.profileService = profileService;
     this.resourceService = resourceService;
     this.azureAuthService = azureAuthService;
+    this.datasetId = datasetId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    Snapshot snapshot = snapshotService.retrieve(snapshotId);
-
-    // Source dataset dependency storage table
-    for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
-      Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
+    Dataset dataset = datasetService.retrieve(datasetId);
+    try {
       BillingProfileModel datasetBillingProfile =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource datasetStorageAccountResource =
@@ -63,6 +63,9 @@ public class DeleteSnapshotDependencyDataAzureStep implements Step {
           azureAuthService.getTableServiceClient(datasetAzureStorageAuthInfo);
       tableDependencyDao.deleteSnapshotFileDependencies(
           datasetTableServiceClient, dataset.getId(), snapshotId);
+    } catch (CorruptMetadataException ex) {
+      logger.info(
+          "No storage account found for dataset, so assume this is actually a GCP project.");
     }
 
     return StepResult.getStepResultSuccess();

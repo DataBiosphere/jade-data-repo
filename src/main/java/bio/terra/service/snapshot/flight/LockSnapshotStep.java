@@ -1,5 +1,7 @@
 package bio.terra.service.snapshot.flight;
 
+import bio.terra.common.FlightUtils;
+import bio.terra.model.DeleteResponseModel;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
@@ -10,31 +12,18 @@ import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 
 public class LockSnapshotStep implements Step {
 
   private SnapshotDao snapshotDao;
   private UUID snapshotId;
-  private boolean suppressNotFoundException; // default to false
 
   private static Logger logger = LoggerFactory.getLogger(LockSnapshotStep.class);
 
   public LockSnapshotStep(SnapshotDao snapshotDao, UUID snapshotId) {
-    this(snapshotDao, snapshotId, false);
-  }
-
-  public LockSnapshotStep(
-      SnapshotDao snapshotDao, UUID snapshotId, boolean suppressNotFoundException) {
     this.snapshotDao = snapshotDao;
     this.snapshotId = snapshotId;
-
-    // this will be set to true in cases where we don't want to fail if the snapshot metadata record
-    // doesn't exist.
-    // for example, snapshot deletion. we want multiple deletes to succeed, not throw a lock or
-    // notfound exception.
-    // for most cases, this should be set to false because we expect the snapshot metadata record to
-    // exist.
-    this.suppressNotFoundException = suppressNotFoundException;
   }
 
   @Override
@@ -47,12 +36,11 @@ public class LockSnapshotStep implements Step {
       logger.debug("Another flight has already locked this Snapshot", lockedEx);
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, lockedEx);
     } catch (SnapshotNotFoundException notFoundEx) {
-      if (suppressNotFoundException) {
-        logger.debug("Suppressing SnapshotNotFoundException");
-        return new StepResult(StepStatus.STEP_RESULT_SUCCESS);
-      } else {
-        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
-      }
+      DeleteResponseModel.ObjectStateEnum stateEnum =
+          bio.terra.model.DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
+      DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
+      FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.NOT_FOUND);
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
     }
   }
 

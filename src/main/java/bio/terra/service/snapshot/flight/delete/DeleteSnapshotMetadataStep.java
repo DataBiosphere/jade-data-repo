@@ -2,9 +2,7 @@ package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DeleteResponseModel;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -24,18 +22,10 @@ public class DeleteSnapshotMetadataStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    Snapshot snapshot = null;
-    boolean found = false;
-    try {
-      found = snapshotDao.delete(snapshotId);
-    } catch (SnapshotNotFoundException ex) {
-      found = false;
-    }
 
-    DeleteResponseModel.ObjectStateEnum stateEnum =
-        (found)
-            ? DeleteResponseModel.ObjectStateEnum.DELETED
-            : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
+    snapshotDao.delete(snapshotId);
+
+    DeleteResponseModel.ObjectStateEnum stateEnum = DeleteResponseModel.ObjectStateEnum.DELETED;
     DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
     FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
     return StepResult.getStepResultSuccess();

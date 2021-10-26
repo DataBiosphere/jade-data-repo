@@ -459,6 +459,13 @@ public class ConnectedOperations {
     return checkDeleteResponse(response);
   }
 
+  public boolean deleteTestSnapshotNotFound(UUID id) throws Exception {
+    MvcResult result = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
+    MockHttpServletResponse response = validateJobModelAndWait(result);
+    assertThat(response.getStatus(), equalTo(HttpStatus.NOT_FOUND.value()));
+    return checkDeleteResponse(response);
+  }
+
   public boolean deleteTestFile(UUID datasetId, String fileId) throws Exception {
     MvcResult result =
         mvc.perform(delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))

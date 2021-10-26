@@ -1,7 +1,7 @@
 package bio.terra.service.profile.flight;
 
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
@@ -19,7 +19,7 @@ import java.util.function.Predicate;
  * is stored in the working map of the flight in the ProfileMapKeys.PROFILE_MODEL entry. On failure,
  * exception is thrown and the flight will fail.
  */
-public class AuthorizeBillingProfileUseStep extends SkippableStep {
+public class AuthorizeBillingProfileUseStep extends OptionalStep {
   private final ProfileService profileService;
   private final UUID profileId;
   private final AuthenticatedUserRequest user;
@@ -28,8 +28,8 @@ public class AuthorizeBillingProfileUseStep extends SkippableStep {
       ProfileService profileService,
       UUID profileId,
       AuthenticatedUserRequest user,
-      Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.profileService = profileService;
     this.profileId = profileId;
     this.user = user;
@@ -37,11 +37,11 @@ public class AuthorizeBillingProfileUseStep extends SkippableStep {
 
   public AuthorizeBillingProfileUseStep(
       ProfileService profileService, UUID profileId, AuthenticatedUserRequest user) {
-    this(profileService, profileId, user, SkippableStep::neverSkip);
+    this(profileService, profileId, user, OptionalStep::alwaysDo);
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context) {
+  public StepResult doOptionalStep(FlightContext context) {
     BillingProfileModel profileModel = profileService.authorizeLinking(profileId, user);
     FlightMap workingMap = context.getWorkingMap();
     workingMap.put(ProfileMapKeys.PROFILE_MODEL, profileModel);

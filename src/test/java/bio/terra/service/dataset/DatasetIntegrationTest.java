@@ -554,6 +554,41 @@ public class DatasetIntegrationTest extends UsersBase {
         equalTo(2));
   }
 
+  @Test
+  public void testCopyingOfControlFiles() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    UUID datasetId = datasetSummaryModel.getId();
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path("gs://jade-testdata/dataset-ingest-combined-control-duplicates-array.json");
+
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
+
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+
+    List<String> rowIds = getRowIds(bigQuery, dataset, "sample_vcf", 1L);
+    String rowIdsPath = writeListToScratch("softDel", rowIds);
+
+    List<DataDeletionTableModel> dataDeletionTableModels =
+        List.of(deletionTableFile("sample_vcf", rowIdsPath));
+    DataDeletionRequest request = dataDeletionRequest().tables(dataDeletionTableModels);
+
+    dataRepoFixtures.deleteData(steward(), datasetId, request);
+
+    // We should see that one row was deleted.
+    assertTableCount(bigQuery, dataset, "sample_vcf", 3L);
+  }
+
   private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)
       throws InterruptedException {
 
@@ -570,7 +605,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
   private String writeListToScratch(String prefix, List<String> contents) throws IOException {
     Storage storage = StorageOptions.getDefaultInstance().getService();
-    String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID().toString() + ".csv";
+    String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID() + ".csv";
     BlobInfo blob = BlobInfo.newBuilder(testConfiguration.getIngestbucket(), targetPath).build();
     try (WriteChannel writer = storage.writer(blob)) {
       for (String line : contents) {

@@ -15,20 +15,20 @@ import java.util.function.Predicate;
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
 //
-public class IngestBulkMapResponseStep extends SkippableStep {
+public class IngestBulkMapResponseStep extends OptionalStep {
 
   private final LoadService loadService;
   private final String loadTag;
 
   public IngestBulkMapResponseStep(
-      LoadService loadService, String loadTag, Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      LoadService loadService, String loadTag, Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.loadService = loadService;
     this.loadTag = loadTag;
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context) {
+  public StepResult doOptionalStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
     UUID loadId = UUID.fromString(loadIdString);

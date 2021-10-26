@@ -25,8 +25,8 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      Predicate<FlightContext> skipCondition) {
-    super(loadService, fileService, objectMapper, dataset, batchSize, skipCondition);
+      Predicate<FlightContext> doCondition) {
+    super(loadService, fileService, objectMapper, dataset, batchSize, doCondition);
     this.azureBlobStorePdao = azureBlobStorePdao;
   }
 

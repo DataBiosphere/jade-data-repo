@@ -4,7 +4,7 @@ import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getD
 import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
 import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getSuffix;
 
-import bio.terra.model.DataDeletionRequest;
+import bio.terra.common.FlightUtils;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -30,9 +30,9 @@ public class CreateExternalTablesStep implements Step {
     this.datasetService = datasetService;
   }
 
-  private void validateTablesExistInDataset(DataDeletionRequest request, Dataset dataset) {
+  private void validateTablesExistInDataset(List<DataDeletionTableModel> tables, Dataset dataset) {
     List<String> missingTables =
-        request.getTables().stream()
+        tables.stream()
             .filter(t -> !dataset.getTableByName(t.getTableName()).isPresent())
             .map(DataDeletionTableModel::getTableName)
             .collect(Collectors.toList());
@@ -47,11 +47,12 @@ public class CreateExternalTablesStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = getDataset(context, datasetService);
     String suffix = getSuffix(context);
-    DataDeletionRequest dataDeletionRequest = getRequest(context);
+    List<DataDeletionTableModel> tables =
+        FlightUtils.getTyped(context.getWorkingMap(), DataDeletionMapKeys.TABLES);
 
-    validateTablesExistInDataset(dataDeletionRequest, dataset);
+    validateTablesExistInDataset(tables, dataset);
 
-    for (DataDeletionTableModel table : dataDeletionRequest.getTables()) {
+    for (DataDeletionTableModel table : tables) {
       String path = table.getGcsFileSpec().getPath();
       // let any exception here trigger an undo, no use trying to continue
       bigQueryPdao.createSoftDeleteExternalTable(dataset, path, table.getTableName(), suffix);

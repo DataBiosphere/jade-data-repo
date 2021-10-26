@@ -100,8 +100,8 @@ public class GoogleProjectService {
     this.environment = environment;
   }
 
-  public String bucketForIngestScratchFile(String googleProjectId) {
-    return googleProjectId + "-ingest-scratch-bucket";
+  public String bucketForBigQueryScratchFile(String googleProjectId) {
+    return googleProjectId + "-bq-scratch-bucket";
   }
 
   /**

@@ -29,8 +29,8 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
       AzureBlobStorePdao azureBlobStorePdao,
       AzureContainerPdao azureContainerPdao,
       Dataset dataset,
-      Predicate<FlightContext> skipCondition) {
-    super(objectMapper, dataset, skipCondition);
+      Predicate<FlightContext> doCondition) {
+    super(objectMapper, dataset, doCondition);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.azureContainerPdao = azureContainerPdao;
   }

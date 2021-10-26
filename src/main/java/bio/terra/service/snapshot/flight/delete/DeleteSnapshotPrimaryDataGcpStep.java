@@ -5,22 +5,23 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.google.cloud.bigquery.BigQueryException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeleteSnapshotPrimaryDataGcpStep implements Step {
+public class DeleteSnapshotPrimaryDataGcpStep extends OptionalStep {
 
   private static Logger logger = LoggerFactory.getLogger(DeleteSnapshotPrimaryDataGcpStep.class);
 
@@ -35,7 +36,9 @@ public class DeleteSnapshotPrimaryDataGcpStep implements Step {
       SnapshotService snapshotService,
       FireStoreDao fileDao,
       UUID snapshotId,
-      ConfigurationService configService) {
+      ConfigurationService configService,
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.bigQueryPdao = bigQueryPdao;
     this.snapshotService = snapshotService;
     this.fileDao = fileDao;
@@ -44,7 +47,7 @@ public class DeleteSnapshotPrimaryDataGcpStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
+  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     try {
       // this fault is used by the SnapshotConnectedTest > testOverlappingDeletes
       if (configService.testInsertFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT)) {

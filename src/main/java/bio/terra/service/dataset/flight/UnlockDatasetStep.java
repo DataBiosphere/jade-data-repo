@@ -3,15 +3,16 @@ package bio.terra.service.dataset.flight;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnlockDatasetStep implements Step {
+public class UnlockDatasetStep extends OptionalStep {
 
   private static Logger logger = LoggerFactory.getLogger(UnlockDatasetStep.class);
 
@@ -19,7 +20,12 @@ public class UnlockDatasetStep implements Step {
   private UUID datasetId;
   private boolean sharedLock; // default to false
 
-  public UnlockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock) {
+  public UnlockDatasetStep(
+      DatasetDao datasetDao,
+      UUID datasetId,
+      boolean sharedLock,
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.datasetDao = datasetDao;
     this.datasetId = datasetId;
 
@@ -28,11 +34,15 @@ public class UnlockDatasetStep implements Step {
   }
 
   public UnlockDatasetStep(DatasetDao datasetDao, boolean sharedLock) {
-    this(datasetDao, null, sharedLock);
+    this(datasetDao, null, sharedLock, OptionalStep::alwaysDo);
+  }
+
+  public UnlockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock) {
+    this(datasetDao, datasetId, sharedLock, OptionalStep::alwaysDo);
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
+  public StepResult doOptionalStep(FlightContext context) {
     // In the create case, we won't have the dataset id at step creation. We'll expect it to be in
     // the working map.
     if (datasetId == null) {

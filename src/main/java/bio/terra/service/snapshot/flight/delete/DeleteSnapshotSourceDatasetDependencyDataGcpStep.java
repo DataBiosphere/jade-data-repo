@@ -5,15 +5,16 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.google.cloud.bigquery.BigQueryException;
 import java.util.UUID;
+import java.util.function.Predicate;
 
-public class DeleteSnapshotSourceDatasetDependencyDataGcpStep implements Step {
+public class DeleteSnapshotSourceDatasetDependencyDataGcpStep extends OptionalStep {
   private FireStoreDependencyDao dependencyDao;
   private UUID snapshotId;
   private DatasetService datasetService;
@@ -23,7 +24,9 @@ public class DeleteSnapshotSourceDatasetDependencyDataGcpStep implements Step {
       FireStoreDependencyDao dependencyDao,
       UUID snapshotId,
       DatasetService datasetService,
-      UUID datasetId) {
+      UUID datasetId,
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.dependencyDao = dependencyDao;
     this.snapshotId = snapshotId;
     this.datasetService = datasetService;
@@ -31,7 +34,7 @@ public class DeleteSnapshotSourceDatasetDependencyDataGcpStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
+  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     try {
       Dataset dataset = datasetService.retrieve(datasetId);
       dependencyDao.deleteSnapshotFileDependencies(dataset, snapshotId.toString());

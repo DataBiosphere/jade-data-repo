@@ -20,6 +20,7 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
@@ -27,10 +28,12 @@ import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
+import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.springframework.context.ApplicationContext;
 
 public class SnapshotDeleteFlight extends Flight {
@@ -80,23 +83,55 @@ public class SnapshotDeleteFlight extends Flight {
       datasetId = null;
       platform = null;
     }
-
-    if (datasetId != null) {
-      addStep(new LockDatasetStep(datasetDao, datasetId, false));
+    boolean snapshotExists = true;
+    boolean hasGoogleProject = false;
+    boolean hasAzureStorageAccount = false;
+    try {
+      Snapshot snapshot = snapshotDao.retrieveSnapshot(snapshotId);
+      if (platform == null) {
+        hasGoogleProject = snapshot.getProjectResource().getGoogleProjectId() != null;
+        hasAzureStorageAccount = snapshot.getStorageAccountResource() != null;
+      }
+    } catch (SnapshotNotFoundException ex) {
+      snapshotExists = false;
     }
+    CloudPlatformWrapper finalPlatform = platform;
+    boolean finalSnapshotExists = snapshotExists;
+    boolean finalHasGoogleProject = hasGoogleProject;
+    boolean finalHasAzureStorageAccount = hasAzureStorageAccount;
+    UUID finalDatasetId = datasetId;
 
-    // Lock snapshot or throw 404 if not found
-    addStep(new LockSnapshotStep(snapshotDao, snapshotId));
+    Predicate<FlightContext> performSnapshotStep = (flightContext) -> finalSnapshotExists;
+    Predicate<FlightContext> performDatasetStep = (flightContext) -> finalDatasetId != null;
 
-    if (platform == null || platform.isGcp()) {
-      // Delete access control on objects that were explicitly added by data repo operations.  Do
-      // this
-      // before delete
-      // resource from SAM to ensure we can get the metadata needed to perform the operation
-      addStep(
-          new DeleteSnapshotAuthzBqAclsStep(
-              iamClient, resourceService, snapshotService, snapshotId, userReq));
-    }
+    Predicate<FlightContext> performGCPStep =
+        (flightContext) ->
+            performSnapshotStep.test(flightContext)
+                && (finalHasGoogleProject || finalPlatform.isGcp());
+
+    Predicate<FlightContext> performGCPDatasetDependencyStep =
+        (flightContext) ->
+            (performGCPStep.test(flightContext) && performDatasetStep.test(flightContext));
+
+    Predicate<FlightContext> performAzureStep =
+        (flightContext) ->
+            performSnapshotStep.test(flightContext)
+                && (finalHasAzureStorageAccount || finalPlatform.isAzure());
+    Predicate<FlightContext> performAzureDatasetDependencyStep =
+        (flightContext) ->
+            (performAzureStep.test(flightContext) && performDatasetStep.test(flightContext));
+
+    addStep(new LockDatasetStep(datasetDao, datasetId, false, true, performDatasetStep));
+
+    addStep(new LockSnapshotStep(snapshotDao, snapshotId, true, performSnapshotStep));
+
+    // Delete access control on objects that were explicitly added by data repo operations.  Do
+    // this before delete
+    // resource from SAM to ensure we can get the metadata needed to perform the operation
+    addStep(
+        new DeleteSnapshotAuthzBqAclsStep(
+            iamClient, resourceService, snapshotService, snapshotId, userReq, performGCPStep));
+
     // Delete access control first so Readers and Discoverers can no longer see snapshot
     // Google auto-magically removes the ACLs from BQ objects when SAM
     // deletes the snapshot group, so no ACL cleanup is needed beyond that.
@@ -104,44 +139,35 @@ public class SnapshotDeleteFlight extends Flight {
 
     // Must delete primary data before metadata; it relies on being able to retrieve the
     // snapshot object from the metadata to know what to delete.
-    if (platform == null || platform.isGcp()) {
-      if (datasetId != null) {
-        addStep(
-            new DeleteSnapshotSourceDatasetDependencyDataGcpStep(
-                dependencyDao, snapshotId, datasetService, datasetId),
-            randomBackoffRetry);
-      }
-      addStep(
-          new DeleteSnapshotPrimaryDataGcpStep(
-              bigQueryPdao, snapshotService, fileDao, snapshotId, configService),
-          randomBackoffRetry);
-    }
-    if (platform == null || platform.isAzure()) {
-      if (datasetId != null) {
-        addStep(
-            new DeleteSnapshotDependencyDataAzureStep(
-                tableDependencyDao,
-                snapshotId,
-                datasetService,
-                profileService,
-                resourceService,
-                azureAuthService,
-                datasetId));
-      }
+    addStep(
+        new DeleteSnapshotSourceDatasetDependencyDataGcpStep(
+            dependencyDao, snapshotId, datasetService, datasetId, performGCPDatasetDependencyStep),
+        randomBackoffRetry);
+    addStep(
+        new DeleteSnapshotPrimaryDataGcpStep(
+            bigQueryPdao, snapshotService, fileDao, snapshotId, configService, performGCPStep),
+        randomBackoffRetry);
+    addStep(
+        new DeleteSnapshotDependencyDataAzureStep(
+            tableDependencyDao,
+            snapshotId,
+            datasetService,
+            profileService,
+            resourceService,
+            azureAuthService,
+            datasetId,
+            performAzureDatasetDependencyStep));
 
-      // TODO with DR-2127 - Add check to see if anything else uses storage account before deleting
-      // and add step that removes (1) Storage Tables for the snapshot & (2) The metadata container
-      // blob for the snapshot
-      addStep(
-          new DeleteSnapshotDeleteStorageAccountStep(
-              snapshotId, resourceService, azureStorageAccountService));
-    }
+    // TODO with DR-2127 - Add check to see if anything else uses storage account before deleting
+    // and add step that removes (1) Storage Tables for the snapshot & (2) The metadata container
+    // blob for the snapshot
+    addStep(
+        new DeleteSnapshotDeleteStorageAccountStep(
+            snapshotId, resourceService, azureStorageAccountService, performAzureStep));
 
     addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
-    addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
+    addStep(new UnlockSnapshotStep(snapshotDao, snapshotId, performSnapshotStep));
 
-    if (datasetId != null) {
-      addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
-    }
+    addStep(new UnlockDatasetStep(datasetDao, datasetId, false, performDatasetStep));
   }
 }

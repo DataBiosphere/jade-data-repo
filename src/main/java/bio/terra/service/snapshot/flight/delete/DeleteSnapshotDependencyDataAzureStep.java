@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.delete;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -11,15 +12,15 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.data.tables.TableServiceClient;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeleteSnapshotDependencyDataAzureStep implements Step {
+public class DeleteSnapshotDependencyDataAzureStep extends OptionalStep {
   private static Logger logger =
       LoggerFactory.getLogger(DeleteSnapshotDependencyDataAzureStep.class);
 
@@ -38,7 +39,9 @@ public class DeleteSnapshotDependencyDataAzureStep implements Step {
       ProfileService profileService,
       ResourceService resourceService,
       AzureAuthService azureAuthService,
-      UUID datasetId) {
+      UUID datasetId,
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.tableDependencyDao = tableDependencyDao;
     this.snapshotId = snapshotId;
     this.datasetService = datasetService;
@@ -49,7 +52,7 @@ public class DeleteSnapshotDependencyDataAzureStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
+  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     Dataset dataset = datasetService.retrieve(datasetId);
     try {
       BillingProfileModel datasetBillingProfile =

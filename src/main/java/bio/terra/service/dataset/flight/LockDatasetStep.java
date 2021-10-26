@@ -4,15 +4,16 @@ import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LockDatasetStep implements Step {
+public class LockDatasetStep extends OptionalStep {
 
   private static Logger logger = LoggerFactory.getLogger(LockDatasetStep.class);
 
@@ -22,7 +23,7 @@ public class LockDatasetStep implements Step {
   private final boolean suppressNotFoundException; // default to false
 
   public LockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock) {
-    this(datasetDao, datasetId, sharedLock, false);
+    this(datasetDao, datasetId, sharedLock, false, OptionalStep::alwaysDo);
   }
 
   public LockDatasetStep(
@@ -30,6 +31,24 @@ public class LockDatasetStep implements Step {
       UUID datasetId,
       boolean sharedLock,
       boolean suppressNotFoundException) {
+    this(datasetDao, datasetId, sharedLock, suppressNotFoundException, OptionalStep::alwaysDo);
+  }
+
+  public LockDatasetStep(
+      DatasetDao datasetDao,
+      UUID datasetId,
+      boolean sharedLock,
+      Predicate<FlightContext> doCondition) {
+    this(datasetDao, datasetId, sharedLock, false, doCondition);
+  }
+
+  public LockDatasetStep(
+      DatasetDao datasetDao,
+      UUID datasetId,
+      boolean sharedLock,
+      boolean suppressNotFoundException,
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.datasetDao = datasetDao;
     this.datasetId = datasetId;
 
@@ -46,7 +65,7 @@ public class LockDatasetStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
+  public StepResult doOptionalStep(FlightContext context) {
 
     try {
       if (sharedLock) {

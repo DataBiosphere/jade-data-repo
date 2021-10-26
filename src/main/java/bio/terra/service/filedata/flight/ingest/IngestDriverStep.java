@@ -6,10 +6,11 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.flight.ingest.SkippableStep;
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadCandidates;
@@ -53,7 +54,7 @@ import org.slf4j.LoggerFactory;
 // - BUCKET_INFO is a GoogleBucketResource
 // - STORAGE_ACCOUNT_RESOURCE is a AzureStorageAccountResource
 //
-public class IngestDriverStep extends SkippableStep {
+public class IngestDriverStep extends OptionalStep {
   private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
   private final LoadService loadService;
@@ -65,6 +66,7 @@ public class IngestDriverStep extends SkippableStep {
   private final int driverWaitSeconds;
   private final UUID profileId;
   private final CloudPlatform platform;
+  private final AuthenticatedUserRequest userReq;
 
   public IngestDriverStep(
       LoadService loadService,
@@ -76,8 +78,9 @@ public class IngestDriverStep extends SkippableStep {
       int driverWaitSeconds,
       UUID profileId,
       CloudPlatform platform,
-      Predicate<FlightContext> skipCondition) {
-    super(skipCondition);
+      AuthenticatedUserRequest userReq,
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.loadService = loadService;
     this.configurationService = configurationService;
     this.jobService = jobService;
@@ -87,6 +90,7 @@ public class IngestDriverStep extends SkippableStep {
     this.driverWaitSeconds = driverWaitSeconds;
     this.profileId = profileId;
     this.platform = platform;
+    this.userReq = userReq;
   }
 
   public IngestDriverStep(
@@ -98,7 +102,8 @@ public class IngestDriverStep extends SkippableStep {
       int maxFailedFileLoads,
       int driverWaitSeconds,
       UUID profileId,
-      CloudPlatform platform) {
+      CloudPlatform platform,
+      AuthenticatedUserRequest userReq) {
     this(
         loadService,
         configurationService,
@@ -109,11 +114,12 @@ public class IngestDriverStep extends SkippableStep {
         driverWaitSeconds,
         profileId,
         platform,
-        SkippableStep::neverSkip);
+        userReq,
+        OptionalStep::alwaysDo);
   }
 
   @Override
-  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
+  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     // Gather inputs
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
@@ -164,6 +170,7 @@ public class IngestDriverStep extends SkippableStep {
 
           launchLoads(
               context,
+              userReq,
               launchCount,
               candidates.getCandidateFiles(),
               profileId,
@@ -308,6 +315,7 @@ public class IngestDriverStep extends SkippableStep {
 
   private void launchLoads(
       FlightContext context,
+      AuthenticatedUserRequest userReq,
       int launchCount,
       List<LoadFile> loadFiles,
       UUID profileId,
@@ -337,6 +345,7 @@ public class IngestDriverStep extends SkippableStep {
       FlightMap inputParameters = new FlightMap();
       inputParameters.put(FileMapKeys.DATASET_ID, datasetId);
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
+      inputParameters.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), userReq);
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
       inputParameters.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);

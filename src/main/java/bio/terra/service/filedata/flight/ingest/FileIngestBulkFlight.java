@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
@@ -164,6 +165,7 @@ public class FileIngestBulkFlight extends Flight {
       addStep(new IngestPopulateFileStateFromArrayStep(loadService));
     } else {
       if (platform.isGcp()) {
+        addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
         addStep(
             new IngestPopulateFileStateFromFileGcpStep(
                 loadService,
@@ -191,7 +193,8 @@ public class FileIngestBulkFlight extends Flight {
             maxFailedFileLoads,
             driverWaitSeconds,
             profileId,
-            platform.getCloudPlatform()),
+            platform.getCloudPlatform(),
+            userReq),
         driverRetry);
 
     if (isArray) {

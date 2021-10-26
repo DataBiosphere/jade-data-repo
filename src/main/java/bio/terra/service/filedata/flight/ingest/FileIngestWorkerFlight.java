@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -12,6 +13,7 @@ import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -41,6 +43,9 @@ public class FileIngestWorkerFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     TableDao azureTableDao = appContext.getBean(TableDao.class);
+
+    AuthenticatedUserRequest userReq =
+        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -72,6 +77,7 @@ public class FileIngestWorkerFlight extends Flight {
     addStep(new IngestFileIdStep(configService));
 
     if (platform.isGcp()) {
+      addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
       addStep(new IngestFileDirectoryStep(fileDao, dataset), fileSystemRetry);
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));

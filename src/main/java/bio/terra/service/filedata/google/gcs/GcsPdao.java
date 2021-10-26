@@ -4,8 +4,10 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATC
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.AclUtils;
 import bio.terra.common.FutureUtils;
+import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
 import bio.terra.model.FileLoadModel;
@@ -15,19 +17,26 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -38,6 +47,7 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -51,11 +61,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
 public class GcsPdao implements CloudFileReader {
   private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
+
+  private static final List<String> GCS_VERIFICATION_SCOPES =
+      List.of(
+          "openid", "email", "profile", "https://www.googleapis.com/auth/devstorage.full_control");
 
   private final GcsProjectFactory gcsProjectFactory;
   private final ResourceService resourceService;
@@ -63,6 +78,8 @@ public class GcsPdao implements CloudFileReader {
   private final ConfigurationService configurationService;
   private final ExecutorService executor;
   private final PerformanceLogger performanceLogger;
+  private final IamProviderInterface iamClient;
+  private final Environment environment;
 
   @Autowired
   public GcsPdao(
@@ -71,13 +88,17 @@ public class GcsPdao implements CloudFileReader {
       FireStoreDao fileDao,
       ConfigurationService configurationService,
       @Qualifier("performanceThreadpool") ExecutorService executor,
-      PerformanceLogger performanceLogger) {
+      PerformanceLogger performanceLogger,
+      IamProviderInterface iamClient,
+      Environment environment) {
     this.gcsProjectFactory = gcsProjectFactory;
     this.resourceService = resourceService;
     this.fileDao = fileDao;
     this.configurationService = configurationService;
     this.executor = executor;
     this.performanceLogger = performanceLogger;
+    this.iamClient = iamClient;
+    this.environment = environment;
   }
 
   public Storage storageForBucket(GoogleBucketResource bucketResource) {
@@ -169,6 +190,58 @@ public class GcsPdao implements CloudFileReader {
     BlobId locator = GcsUriUtils.parseBlobUri(path);
     return storage.create(
         BlobInfo.newBuilder(locator).build(), Storage.BlobTargetOption.userProject(projectId));
+  }
+
+  /**
+   * Given a list a source paths, validate that the specified user has a pat service account with
+   * read permissions
+   *
+   * @param sourcePaths A list of gs:// formatted paths
+   * @param user An authenticed user
+   * @throws BlobAccessNotAuthorizedException if the user does not have an authorized pet
+   */
+  public void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user) {
+    // If the connected profile is used, skip this check since we don't specify users when mocking
+    // requests
+    if (List.of(environment.getActiveProfiles()).contains("connectedtest")) {
+      return;
+    }
+    // Obtain a token for the user's pet service account that can verify that it is allowed to read
+    String token;
+    try {
+      token = iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
+    } catch (InterruptedException e) {
+      throw new PdaoException("Error obtaining a pet service account token");
+    }
+
+    Storage storageAsPet =
+        StorageOptions.newBuilder()
+            .setCredentials(OAuth2Credentials.create(new AccessToken(token, null)))
+            .build()
+            .getService();
+
+    Set<String> buckets =
+        sourcePaths.stream()
+            .map(GcsUriUtils::parseBlobUri)
+            .map(BlobId::getBucket)
+            .collect(Collectors.toSet());
+    for (String bucket : buckets) {
+      List<Boolean> permissions =
+          storageAsPet.testIamPermissions(bucket, List.of("storage.objects.get"));
+
+      if (!permissions.equals(List.of(true))) {
+        throw new BlobAccessNotAuthorizedException(
+            String.format(
+                "Accessing bucket %s is not authorized. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group",
+                bucket));
+      }
+    }
+  }
+
+  public void copyGcsFile(BlobId from, BlobId to, String projectId) {
+    logger.info("Copying GCS file from {} to {}", from, to);
+    Storage storage = gcsProjectFactory.getStorage(projectId);
+    storage.get(from).copyTo(to, Blob.BlobSourceOption.userProject(projectId));
   }
 
   public FSFileInfo copyFile(
@@ -332,6 +405,14 @@ public class GcsPdao implements CloudFileReader {
       Storage storage, String projectId, String gsPath, String contents) {
     return writeBlobContents(
         storage, projectId, getBlobFromGsPath(storage, gsPath, projectId), contents);
+  }
+
+  public GoogleRegion getRegionForFile(String path, String googleProjectId) {
+    Storage storage = gcsProjectFactory.getStorage(googleProjectId);
+    BlobId locator = GcsUriUtils.parseBlobUri(path);
+    Bucket bucket =
+        storage.get(locator.getBucket(), Storage.BucketGetOption.userProject(googleProjectId));
+    return GoogleRegion.fromValue(bucket.getLocation());
   }
 
   private void fileAclOp(

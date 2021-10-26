@@ -132,14 +132,14 @@ public class ResourceService {
    *       <li>if the metadata exists, but the bucket does not
    *     </ul>
    */
-  public GoogleBucketResource getOrCreateBucketForIngestScratchFile(
-      Dataset dataset, GoogleProjectResource projectResource, String flightId)
-      throws InterruptedException, GoogleResourceNamingException {
+  public GoogleBucketResource getOrCreateBucketForBigQueryScratchFile(
+      Dataset dataset, String flightId) throws InterruptedException, GoogleResourceNamingException {
+    GoogleProjectResource projectResource = dataset.getProjectResource();
     return bucketService.getOrCreateBucket(
-        projectService.bucketForIngestScratchFile(projectResource.getGoogleProjectId()),
+        projectService.bucketForBigQueryScratchFile(projectResource.getGoogleProjectId()),
         projectResource,
         (GoogleRegion)
-            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId);
   }
 

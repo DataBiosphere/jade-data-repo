@@ -114,6 +114,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private User steward;
   private UUID datasetId;
   private UUID profileId;
+  private BillingProfileModel profileModel;
   private BlobIOTestUtility blobIOTestUtility;
 
   @Before
@@ -123,7 +124,8 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     steward = steward("voldemort");
     stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
     dataRepoFixtures.resetConfig(steward);
-    profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
+    profileModel = dataRepoFixtures.createAzureBillingProfile(steward);
+    profileId = profileModel.getId();
     datasetId = null;
     RequestRetryOptions retryOptions =
         new RequestRetryOptions(
@@ -245,8 +247,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
 
-    BillingProfileModel profileModel =
-        profileDao.getBillingProfileById(summaryModel2.getDefaultProfileId());
     AzureStorageAccountResource storageAccountResource =
         resourceService.getDatasetStorageAccount(
             datasetService.retrieve(summaryModel2.getId()), profileModel);

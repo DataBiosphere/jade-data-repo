@@ -68,8 +68,9 @@ public class DatasetCreateFlight extends Flight {
       addStep(new GetResourceBufferProjectStep(bufferService));
 
       // Get or initialize the project where the dataset resources will be created
-      addStep(new CreateDatasetInitializeProjectStep(resourceService, datasetRequest),
-              getDefaultExponentialBackoffRetryRule());
+      addStep(
+          new CreateDatasetInitializeProjectStep(resourceService, datasetRequest),
+          getDefaultExponentialBackoffRetryRule());
     }
 
     // Get or create the storage account where the dataset resources will be created for Azure

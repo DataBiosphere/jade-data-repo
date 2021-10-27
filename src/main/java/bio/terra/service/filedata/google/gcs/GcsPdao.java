@@ -238,6 +238,19 @@ public class GcsPdao implements CloudFileReader {
     }
   }
 
+  public List<BlobId> listGcsIngestBlobs(String path, String projectId) {
+    int lastWildcard = path.lastIndexOf("*");
+    if (lastWildcard >= 0) {
+      Storage storage = gcsProjectFactory.getStorage(projectId);
+      String prefixPath = path.substring(0, lastWildcard);
+      return listGcsFiles(prefixPath, projectId, storage)
+          .map(BlobInfo::getBlobId)
+          .collect(Collectors.toList());
+    } else {
+      return List.of(GcsUriUtils.parseBlobUri(path));
+    }
+  }
+
   public void copyGcsFile(BlobId from, BlobId to, String projectId) {
     logger.info("Copying GCS file from {} to {}", from, to);
     Storage storage = gcsProjectFactory.getStorage(projectId);

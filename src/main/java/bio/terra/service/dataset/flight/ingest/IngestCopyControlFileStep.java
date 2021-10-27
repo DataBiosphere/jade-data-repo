@@ -33,15 +33,20 @@ public class IngestCopyControlFileStep extends OptionalStep {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     GoogleBucketResource bucketResource =
         workingMap.get(CommonFlightKeys.SCRATCH_BUCKET_INFO, GoogleBucketResource.class);
+    String projectId = dataset.getProjectResource().getGoogleProjectId();
 
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
-    BlobId from = GcsUriUtils.parseBlobUri(ingestRequest.getPath());
-    BlobId to =
-        GcsUriUtils.getBlobForFlight(
-            bucketResource.getName(), from.getName(), context.getFlightId());
-    gcsPdao.copyGcsFile(from, to, dataset.getProjectResource().getGoogleProjectId());
+    for (BlobId from : gcsPdao.listGcsIngestBlobs(ingestRequest.getPath(), projectId)) {
+      BlobId to =
+          GcsUriUtils.getBlobForFlight(
+              bucketResource.getName(), from.getName(), context.getFlightId());
+      gcsPdao.copyGcsFile(from, to, projectId);
+    }
 
-    workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, GcsUriUtils.getGsPathFromBlob(to));
+    workingMap.put(
+        IngestMapKeys.INGEST_CONTROL_FILE_PATH,
+        GcsUriUtils.getGsPathFromComponents(
+            bucketResource.getName(), context.getFlightId() + "/*"));
     return StepResult.getStepResultSuccess();
   }
 }

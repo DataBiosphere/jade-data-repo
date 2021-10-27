@@ -19,7 +19,6 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.storage.BlobId;
 import java.util.List;
-import java.util.Set;
 
 public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
 
@@ -38,21 +37,17 @@ public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
     Dataset dataset = getDataset(context, datasetService);
     String projectId = dataset.getProjectResource().getGoogleProjectId();
     DataDeletionRequest dataDeletionRequest = getRequest(context);
-    Set<String> tablesNeedingCopy =
-        FlightUtils.getTyped(workingMap, DataDeletionMapKeys.TABLE_NAMES_NEEDING_COPY);
     GoogleBucketResource bucketResource =
         FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
     List<DataDeletionTableModel> tables = dataDeletionRequest.getTables();
     for (var table : tables) {
-      if (tablesNeedingCopy.contains(table.getTableName())) {
-        BlobId from = GcsUriUtils.parseBlobUri(table.getGcsFileSpec().getPath());
+      BlobId from = GcsUriUtils.parseBlobUri(table.getGcsFileSpec().getPath());
 
-        BlobId to =
-            GcsUriUtils.getBlobForFlight(
-                bucketResource.getName(), from.getName(), context.getFlightId());
-        gcsPdao.copyGcsFile(from, to, projectId);
-        table.getGcsFileSpec().path(GcsUriUtils.getGsPathFromBlob(to));
-      }
+      BlobId to =
+          GcsUriUtils.getBlobForFlight(
+              bucketResource.getName(), from.getName(), context.getFlightId());
+      gcsPdao.copyGcsFile(from, to, projectId);
+      table.getGcsFileSpec().path(GcsUriUtils.getGsPathFromBlob(to));
     }
     workingMap.put(DataDeletionMapKeys.TABLES, tables);
 

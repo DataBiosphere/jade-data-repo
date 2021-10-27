@@ -99,6 +99,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private String stewardToken;
   private User steward;
   private UUID datasetId;
+  private UUID snapshotId;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
 
@@ -130,6 +131,10 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @After
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward);
+    if (snapshotId != null) {
+      dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+      snapshotId = null;
+    }
     if (datasetId != null) {
       dataRepoFixtures.deleteDatasetLog(steward, datasetId);
       datasetId = null;
@@ -246,7 +251,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
 
     // Make sure that any failure in tearing down is presented as a test failure
-    clearEnvironment(false);
+    clearEnvironment();
   }
 
   @Test
@@ -398,6 +403,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), summaryModel.getName(), profileId, requestModelAll);
+    snapshotId = snapshotSummaryAll.getId();
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
 
     // Delete the file we just ingested
@@ -418,7 +424,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
     // TODO - implement Snapshot delete flight (DR-2194)
-    clearEnvironment(true);
+    clearEnvironment();
   }
 
   @Test
@@ -535,7 +541,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
-    clearEnvironment(false);
+    clearEnvironment();
   }
 
   @Test
@@ -663,7 +669,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
-    clearEnvironment(false);
+    clearEnvironment();
   }
 
   @Test
@@ -698,16 +704,21 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
 
-    clearEnvironment(false);
+    clearEnvironment();
   }
 
-  private void clearEnvironment(boolean skipProfileClean) throws Exception {
+  private void clearEnvironment() throws Exception {
+    if (snapshotId != null) {
+      dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+      snapshotId = null;
+    }
+
     if (datasetId != null) {
       dataRepoFixtures.deleteDataset(steward, datasetId);
       datasetId = null;
     }
 
-    if (!skipProfileClean && profileId != null) {
+    if (profileId != null) {
       dataRepoFixtures.deleteProfile(steward, profileId);
       profileId = null;
     }

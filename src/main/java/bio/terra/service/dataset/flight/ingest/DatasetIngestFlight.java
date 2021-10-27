@@ -16,7 +16,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.dataset.flight.datadelete.ControlFileCopyNeededOptionalStep;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;

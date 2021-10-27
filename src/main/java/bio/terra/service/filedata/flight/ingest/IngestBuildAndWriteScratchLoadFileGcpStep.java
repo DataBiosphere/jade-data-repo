@@ -46,7 +46,7 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
             .get(CommonFlightKeys.SCRATCH_BUCKET_INFO, GoogleBucketResource.class);
 
     return GcsUriUtils.getGsPathFromComponents(
-        bucket.getName(), flightContext.getFlightId() + "-scratch.json");
+        bucket.getName(), flightContext.getFlightId() + "/ingest-scratch.json");
   }
 
   @Override

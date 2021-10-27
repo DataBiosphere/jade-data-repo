@@ -23,6 +23,7 @@ import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
@@ -42,6 +43,8 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -91,10 +94,12 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private SynapseUtils synapseUtils;
+  @Autowired private JsonLoader jsonLoader;
 
   private String stewardToken;
   private User steward;
   private UUID datasetId;
+  private UUID snapshotId;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
 
@@ -126,6 +131,10 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @After
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward);
+    if (snapshotId != null) {
+      dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+      snapshotId = null;
+    }
     if (datasetId != null) {
       dataRepoFixtures.deleteDatasetLog(steward, datasetId);
       datasetId = null;
@@ -335,38 +344,49 @@ public class DatasetAzureIntegrationTest extends UsersBase {
       assertNotNull(dataRepoFixtures.getFileById(steward(), datasetId, bulkFileEntry.getFileId()));
     }
 
+    // dataset ingest
     // Ingest Metadata - 1 row from JSON file
-    String tableName = "vocabulary";
+    String datasetIngestFlightId = UUID.randomUUID().toString();
+    String datasetIngestControlFileBlob =
+        datasetIngestFlightId + "/azure-domain-ingest-request.json";
     String ingestRequestPathJSON =
-        synapseUtils.ingestRequestURL(
-            testConfig.getSourceStorageAccountName(),
-            testConfig.getIngestRequestContainer(),
-            "azure-vocab-ingest-request.json");
+        blobIOTestUtility.uploadFileWithContents(
+            datasetIngestControlFileBlob,
+            "{\"domain_id\" : \"1\", \"domain_name\" : \"domain1\", \"domain_concept_id\" : 1}");
+
+    String jsonIngestTableName = "domain";
     IngestRequestModel ingestRequestJSON =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
-            .table(tableName)
+            .table(jsonIngestTableName)
             .path(ingestRequestPathJSON)
             .profileId(profileId)
             .loadTag(Names.randomizeName("test"));
     IngestResponseModel ingestResponseJSON =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestJSON);
-    assertThat("1 Row was ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
+    assertThat("2 rows were ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
 
     // Ingest 2 rows from CSV
+    String ingest2TableName = "vocabulary";
+    String csvDatasetIngestFlightId = UUID.randomUUID().toString();
+    String csvDatasetIngestControlFileBlob =
+        csvDatasetIngestFlightId + "/azure-vocab-ingest-request.csv";
     String ingestRequestPathCSV =
-        synapseUtils.ingestRequestURL(
-            testConfig.getSourceStorageAccountName(),
-            testConfig.getIngestRequestContainer(),
-            "azure-vocab-ingest-request.csv");
+        blobIOTestUtility.uploadFileWithContents(
+            csvDatasetIngestControlFileBlob,
+            String.format(
+                "vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id%n"
+                    + "\"1\",\"vocab1\",\"%s\",\"v1\",1%n"
+                    + "\"2\",\"vocab2\",\"%s\",\"v2\",2",
+                file1Model.getFileId(), file2Model.getFileId()));
     IngestRequestModel ingestRequestCSV =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.CSV)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
-            .table(tableName)
+            .table(ingest2TableName)
             .path(ingestRequestPathCSV)
             .profileId(profileId)
             .loadTag(Names.randomizeName("test"))
@@ -374,6 +394,17 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     IngestResponseModel ingestResponseCSV =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestCSV);
     assertThat("2 row were ingested", ingestResponseCSV.getRowCount(), equalTo(2L));
+
+    // Create Snapshot by full view
+    SnapshotRequestModel requestModelAll =
+        jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
+    requestModelAll.getContents().get(0).datasetName(summaryModel.getName());
+
+    SnapshotSummaryModel snapshotSummaryAll =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward(), summaryModel.getName(), profileId, requestModelAll);
+    snapshotId = snapshotSummaryAll.getId();
+    assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
 
     // Delete the file we just ingested
     String fileId = result.getLoadFileResults().get(0).getFileId();
@@ -392,6 +423,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
+    // TODO - implement Snapshot delete flight (DR-2194)
     clearEnvironment();
   }
 
@@ -676,6 +708,11 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   }
 
   private void clearEnvironment() throws Exception {
+    if (snapshotId != null) {
+      dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+      snapshotId = null;
+    }
+
     if (datasetId != null) {
       dataRepoFixtures.deleteDataset(steward, datasetId);
       datasetId = null;

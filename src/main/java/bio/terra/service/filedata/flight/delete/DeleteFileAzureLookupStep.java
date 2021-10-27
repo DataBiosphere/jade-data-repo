@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.delete;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -66,7 +67,7 @@ public class DeleteFileAzureLookupStep implements Step {
 
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
-      workingMap.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
+      workingMap.put(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, storageAuthInfo);
 
       if (fireStoreFile == null) {
         fireStoreFile = tableDao.lookupFile(fileId, storageAuthInfo);

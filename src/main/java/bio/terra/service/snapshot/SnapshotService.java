@@ -214,6 +214,16 @@ public class SnapshotService {
   }
 
   /**
+   * Fetch existing Snapshot object's tables using the id.
+   *
+   * @param id in UUID format
+   * @return a list of snapshot tables
+   */
+  public List<SnapshotTable> retrieveTables(UUID id) {
+    return snapshotDao.retrieveSnapshot(id).getTables();
+  }
+
+  /**
    * Fetch existing Snapshot object that is NOT exclusively locked.
    *
    * @param id in UUID format

@@ -382,17 +382,17 @@ public class TableDao {
   public void addFilesToSnapshot(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
-      Dataset dataset,
-      Snapshot snapshot,
+      UUID datasetId,
+      String datasetName,
+      UUID snapshotId,
       List<String> refIds) {
-    String datasetDirName = dataset.getName();
 
     directoryDao.addEntriesToSnapshot(
         datasetTableServiceClient,
         snapshotTableServiceClient,
-        dataset.getId(),
-        datasetDirName,
-        snapshot.getId(),
+        datasetId,
+        datasetName,
+        snapshotId,
         refIds);
   }
 

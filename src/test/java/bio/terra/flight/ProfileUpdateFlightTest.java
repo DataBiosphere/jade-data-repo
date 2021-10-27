@@ -7,6 +7,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.stairway.FlightMap;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -24,9 +25,12 @@ public class ProfileUpdateFlightTest {
   public void testConstructFlight() {
     var flight = new ProfileUpdateFlight(new FlightMap(), context);
     var packageName = "bio.terra.service.profile.flight.update";
-
+    var steps =
+        flight.getSteps().stream()
+            .map(step -> step.getClass().getName())
+            .collect(Collectors.toList());
     assertThat(
-        flight.context().getStepClassNames(),
+        steps,
         is(
             List.of(
                 packageName + ".UpdateProfileRetrieveExistingProfileStep",

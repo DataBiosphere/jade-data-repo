@@ -10,6 +10,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.stairway.FlightMap;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -34,8 +35,12 @@ public class ProfileCreateFlightTest {
     var flight = new ProfileCreateFlight(inputParameters, context);
 
     var packageName = "bio.terra.service.profile.flight.create";
+    var steps =
+        flight.getSteps().stream()
+            .map(step -> step.getClass().getName())
+            .collect(Collectors.toList());
     assertThat(
-        flight.context().getStepClassNames(),
+        steps,
         is(
             List.of(
                 packageName + ".CreateProfileMetadataStep",
@@ -54,8 +59,12 @@ public class ProfileCreateFlightTest {
     var flight = new ProfileCreateFlight(inputParameters, context);
 
     var packageName = "bio.terra.service.profile.flight.create";
+    var steps =
+        flight.getSteps().stream()
+            .map(step -> step.getClass().getName())
+            .collect(Collectors.toList());
     assertThat(
-        flight.context().getStepClassNames(),
+        steps,
         is(
             List.of(
                 packageName + ".CreateProfileMetadataStep",

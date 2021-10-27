@@ -5,6 +5,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
@@ -65,9 +66,11 @@ public class IngestDriverStepTest extends TestCase {
             CloudPlatform.GCP,
             null);
 
-    FlightContext flightContext = new FlightContext(new FlightMap(), "", Collections.emptyList());
-    flightContext.getWorkingMap().put(LoadMapKeys.LOAD_ID, loadUuid.toString());
-    flightContext.setStairway(mock(Stairway.class));
+    FlightContext flightContext = mock(FlightContext.class);
+    FlightMap workingMap = new FlightMap();
+    workingMap.put(LoadMapKeys.LOAD_ID, loadUuid.toString());
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    when(flightContext.getStairway()).thenReturn(mock(Stairway.class));
 
     // When loadService.setLoadFileRunning() is called with our UUID, update the candidate state so
     // no files are

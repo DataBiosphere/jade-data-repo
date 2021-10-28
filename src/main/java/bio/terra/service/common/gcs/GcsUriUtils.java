@@ -85,7 +85,11 @@ public final class GcsUriUtils {
   }
 
   public static BlobId getBlobForFlight(String bucket, String name, String flightId) {
-    return BlobId.of(bucket, String.format("%s/%s", flightId, name));
+    return parseBlobUri(getPathForFlight(bucket, name, flightId));
+  }
+
+  public static String getPathForFlight(String bucket, String name, String flightId) {
+    return getGsPathFromComponents(bucket, String.format("%s/%s", flightId, name));
   }
 
   public static String makeHttpsFromGs(String gspath) {

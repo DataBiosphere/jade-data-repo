@@ -247,9 +247,11 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
 
+    Dataset dataset2 = new Dataset().id(summaryModel2.getId())
+        .defaultProfileId(summaryModel2.getDefaultProfileId());
+
     AzureStorageAccountResource storageAccountResource =
-        resourceService.getDatasetStorageAccount(
-            datasetService.retrieve(summaryModel2.getId()), profileModel);
+        resourceService.getDatasetStorageAccount(dataset2, profileModel);
     AzureStorageAuthInfo storageAuthInfo =
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);
 

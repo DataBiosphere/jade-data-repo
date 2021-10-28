@@ -1,7 +1,8 @@
 package bio.terra.service.load;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -11,7 +12,6 @@ import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.impl.FlightContextImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -127,7 +127,7 @@ public class LoadUnitTest {
   @Test
   public void getLoadTagTest() throws Exception {
     // Should get tag from working map
-    FlightContextImpl flightContext = mock(FlightContextImpl.class);
+    FlightContext flightContext = mock(FlightContext.class);
     FlightMap inputParams = new FlightMap();
     FlightMap workingMap = new FlightMap();
     workingMap.put(LoadMapKeys.LOAD_TAG, LoadTagsUsedByTest.LOADTAG_1.getTag());
@@ -152,7 +152,7 @@ public class LoadUnitTest {
   public void getLoadTagFailTest() throws Exception {
     FlightMap inputParams = new FlightMap();
     FlightMap workingMap = new FlightMap();
-    FlightContext flightContext = mock(FlightContextImpl.class);
+    FlightContext flightContext = mock(FlightContext.class);
     when(flightContext.getInputParameters()).thenReturn(inputParams);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     loadService.getLoadTag(flightContext);

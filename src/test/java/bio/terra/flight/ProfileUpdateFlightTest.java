@@ -24,18 +24,17 @@ public class ProfileUpdateFlightTest {
   @Test
   public void testConstructFlight() {
     var flight = new ProfileUpdateFlight(new FlightMap(), context);
-    var packageName = "bio.terra.service.profile.flight.update";
     var steps =
         flight.getSteps().stream()
-            .map(step -> step.getClass().getName())
+            .map(step -> step.getClass().getSimpleName())
             .collect(Collectors.toList());
     assertThat(
         steps,
         is(
             List.of(
-                packageName + ".UpdateProfileRetrieveExistingProfileStep",
-                packageName + ".UpdateProfileMetadataStep",
-                packageName + ".UpdateProfileVerifyAccountStep",
-                packageName + ".UpdateProfileUpdateGCloudProject")));
+                "UpdateProfileRetrieveExistingProfileStep",
+                "UpdateProfileMetadataStep",
+                "UpdateProfileVerifyAccountStep",
+                "UpdateProfileUpdateGCloudProject")));
   }
 }

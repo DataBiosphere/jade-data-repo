@@ -227,32 +227,6 @@ public class JobService {
     return stairwayComponent.get().createFlightId();
   }
 
-  public void releaseJob(String jobId, AuthenticatedUserRequest userReq) {
-    try {
-      if (userReq != null) {
-        // currently, this check will be true for stewards only
-        boolean canDeleteAnyJob =
-            samService.isAuthorized(
-                userReq,
-                IamResourceType.DATAREPO,
-                appConfig.getResourceId(),
-                IamAction.DELETE_JOBS);
-
-        // if the user has access to all jobs, no need to check for this one individually
-        // otherwise, check that the user has access to this job before deleting
-        if (!canDeleteAnyJob) {
-          verifyUserAccess(jobId, userReq); // jobId=flightId
-        }
-      }
-      // stairway.deleteFlight(jobId, false);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
-    }
-    //    catch (InterruptedException ex) {
-    //      throw new JobServiceShutdownException("Job service interrupted", ex);
-    //    }
-  }
-
   public JobModel mapFlightStateToJobModel(FlightState flightState) {
     FlightMap inputParameters = flightState.getInputParameters();
     String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);

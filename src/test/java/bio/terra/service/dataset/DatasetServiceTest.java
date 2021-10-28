@@ -123,9 +123,6 @@ public class DatasetServiceTest {
     }
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(billingProfile.getId());
-    for (String flightId : flightIdsList) {
-      jobService.releaseJob(flightId, testUser);
-    }
   }
 
   @Test

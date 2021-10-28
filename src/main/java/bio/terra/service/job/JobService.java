@@ -10,7 +10,6 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.job.exception.InternalStairwayException;
 import bio.terra.service.job.exception.InvalidResultStateException;
 import bio.terra.service.job.exception.JobNotCompleteException;
 import bio.terra.service.job.exception.JobNotFoundException;
@@ -26,7 +25,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
-import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
@@ -187,8 +185,6 @@ public class JobService {
       String jobId = createJobId();
       try {
         stairwayComponent.get().submit(jobId, flightClass, parameterMap);
-      } catch (StairwayException stairwayEx) {
-        throw new InternalStairwayException(stairwayEx);
       } catch (InterruptedException ex) {
         throw new JobServiceShutdownException("Job service interrupted", ex);
       }
@@ -213,8 +209,6 @@ public class JobService {
   void waitForJob(String jobId) {
     try {
       stairwayComponent.get().waitForFlight(jobId, null, null);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -291,8 +285,6 @@ public class JobService {
       }
 
       flightStateList = stairwayComponent.get().getFlights(offset, limit, filter);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -316,8 +308,6 @@ public class JobService {
       }
       FlightState flightState = stairwayComponent.get().getFlightState(jobId);
       return mapFlightStateToJobModel(flightState);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -357,8 +347,6 @@ public class JobService {
         verifyUserAccess(jobId, userReq); // jobId=flightId
       }
       return retrieveJobResultWorker(jobId, resultClass);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -448,8 +436,6 @@ public class JobService {
       if (!StringUtils.equals(flightSubjectId, userReq.getSubjectId())) {
         throw new JobUnauthorizedException("Unauthorized");
       }
-    } catch (DatabaseOperationException ex) {
-      throw new InternalStairwayException("Stairway exception looking up the job", ex);
     } catch (FlightNotFoundException ex) {
       throw new JobNotFoundException("Job not found", ex);
     } catch (InterruptedException ex) {

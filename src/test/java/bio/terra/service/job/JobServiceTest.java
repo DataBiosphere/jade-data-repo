@@ -7,7 +7,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.job.exception.InternalStairwayException;
+import bio.terra.stairway.exception.StairwayException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -114,12 +114,12 @@ public class JobServiceTest {
     Assert.assertThat(jobList.size(), is(count));
   }
 
-  @Test(expected = InternalStairwayException.class)
+  @Test(expected = StairwayException.class)
   public void testBadIdRetrieveJob() throws InterruptedException {
     jobService.retrieveJob("abcdef", null);
   }
 
-  @Test(expected = InternalStairwayException.class)
+  @Test(expected = StairwayException.class)
   public void testBadIdRetrieveResult() throws InterruptedException {
     jobService.retrieveJobResult("abcdef", Object.class, null);
   }

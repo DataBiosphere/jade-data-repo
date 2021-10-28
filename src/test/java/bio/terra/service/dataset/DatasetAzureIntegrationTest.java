@@ -53,9 +53,12 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
+import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.common.policy.RequestRetryOptions;
@@ -226,7 +229,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
                           .filter(
                               e -> e.getKey().equals(AzureCloudResource.STORAGE_ACCOUNT.getValue()))
                           .findAny()
-                          .map(e -> e.getValue().getRegion())
+                          .map(e ->  e.getValue().getRegion())
                           .orElseThrow(() -> new RuntimeException("Key not found")),
                       equalTo(omopDatasetRegion.getValue()));
 
@@ -247,15 +250,32 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
 
-    Dataset dataset2 = new Dataset().id(summaryModel2.getId())
-        .defaultProfileId(summaryModel2.getDefaultProfileId());
+//    Dataset dataset2 = new Dataset().id(summaryModel2.getId())
+//        .defaultProfileId(summaryModel2.getDefaultProfileId());
+//
+//    AzureStorageAccountResource storageAccountResource =
+//        resourceService.getDatasetStorageAccount(dataset2, profileModel);
+//    AzureStorageAuthInfo storageAuthInfo =
+//        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);
+//
+//    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+    // I *think* this should return the storage account name
+    StorageResourceModel storageAccount = datasetModel.getStorage().stream()
+            .filter(s -> Function.identity().equals(AzureCloudResource.STORAGE_ACCOUNT.getValue()))
+        .findFirst().get();
 
-    AzureStorageAccountResource storageAccountResource =
-        resourceService.getDatasetStorageAccount(dataset2, profileModel);
-    AzureStorageAuthInfo storageAuthInfo =
-        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);
+    String key = azureUtils.getSourceStorageAccountPrimarySharedKey( testConfig.getTargetTenantId(), testConfig.getTargetSubscriptionId(),
+        testConfig.getTargetResourceGroupName(), storageAccount.getCloudResource());
 
-    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+    TableServiceClient tableServiceClient =
+        new TableServiceClientBuilder()
+            .credential(
+                new AzureNamedKeyCredential(
+                    storageAccount.getCloudResource(),
+                    key))
+            .endpoint(
+                "https://" + storageAccount.getCloudResource() + ".table.core.windows.net")
+            .buildClient();
 
     // add fake rows here
     UUID snapshotId = UUID.randomUUID();

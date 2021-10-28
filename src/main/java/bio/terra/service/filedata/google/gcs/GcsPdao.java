@@ -254,7 +254,9 @@ public class GcsPdao implements CloudFileReader {
   public void copyGcsFile(BlobId from, BlobId to, String projectId) {
     logger.info("Copying GCS file from {} to {}", from, to);
     Storage storage = gcsProjectFactory.getStorage(projectId);
-    storage.get(from).copyTo(to, Blob.BlobSourceOption.userProject(projectId));
+    storage
+        .get(from, Storage.BlobGetOption.userProject(projectId))
+        .copyTo(to, Blob.BlobSourceOption.userProject(projectId));
   }
 
   public FSFileInfo copyFile(

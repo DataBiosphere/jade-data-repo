@@ -27,4 +27,9 @@ public class DataRepoResponse<T> {
   public Optional<String> getLocationHeader() {
     return response.getLocationHeader();
   }
+
+  @Override
+  public String toString() {
+    return "DataRepoResponse{" + "response=" + response + '}';
+  }
 }

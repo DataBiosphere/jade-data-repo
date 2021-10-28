@@ -53,4 +53,18 @@ public class ObjectOrErrorResponse<S, T> {
   public void setLocationHeader(Optional<String> locationHeader) {
     this.locationHeader = locationHeader;
   }
+
+  @Override
+  public String toString() {
+    return "ObjectOrErrorResponse{"
+        + "statusCode="
+        + statusCode
+        + ", locationHeader="
+        + locationHeader
+        + ", errorObject="
+        + errorObject
+        + ", responseObject="
+        + responseObject
+        + '}';
+  }
 }

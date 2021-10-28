@@ -24,6 +24,9 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.stairway.ShortUUID;
 import com.azure.core.management.Region;
 import com.azure.resourcemanager.AzureResourceManager;
@@ -33,6 +36,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -92,6 +96,7 @@ public class AzureSynapsePdaoConnectedTest {
   @Autowired DatasetService datasetService;
   @MockBean private IamProviderInterface samService;
   @Autowired SynapseUtils synapseUtils;
+  @Autowired SnapshotDao snapshotDao;
 
   @Before
   public void setup() throws Exception {
@@ -297,7 +302,16 @@ public class AzureSynapsePdaoConnectedTest {
     assertThat(
         "List of names should equal the input", firstNames, equalTo(List.of("Bob", "Sally")));
 
+    // SNAPSHOT
+    Snapshot snapshot = new Snapshot().id(snapshotId);
+    SnapshotTable snapshotTable = new SnapshotTable();
+    snapshotTable.columns(destinationTable.getColumns());
+    snapshotTable.id(destinationTable.getId());
+    snapshotTable.name(destinationTable.getName());
+    snapshot.snapshotTables(List.of(snapshotTable));
+
     // 5 - Create external data source for the snapshot
+
     // where we'll write the resulting parquet files
     String parquetSnapshotLocation =
         IngestUtils.getParquetTargetLocationURL(snapshotStorageAccountResource);
@@ -311,13 +325,13 @@ public class AzureSynapsePdaoConnectedTest {
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
 
     // 6 - Create snapshot parquet files via external table
-    List<DatasetTable> datasetTables = List.of(destinationTable);
-    azureSynapsePdao.createSnapshotParquetFiles(
-        datasetTables,
-        snapshotId,
-        destinationDataSourceName,
-        snapshotDataSourceName,
-        randomFlightId);
+    Map<String, Long> tableRowCounts =
+        azureSynapsePdao.createSnapshotParquetFiles(
+            snapshot.getTables(),
+            snapshotId,
+            destinationDataSourceName,
+            snapshotDataSourceName,
+            randomFlightId);
     String snapshotParquetFileName =
         IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
     List<String> snapshotFirstNames =
@@ -327,13 +341,18 @@ public class AzureSynapsePdaoConnectedTest {
         "List of names in snapshot should equal the dataset names",
         snapshotFirstNames,
         equalTo(List.of("Bob", "Sally")));
+    assertThat(
+        "Table row count should equal 2 for destination table",
+        tableRowCounts.get(destinationTableName),
+        equalTo(2L));
 
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
-        datasetTables,
+        snapshot.getTables(),
         snapshotId,
         destinationDataSourceName,
         snapshotDataSourceName,
+        tableRowCounts,
         randomFlightId);
     String snapshotRowIdsParquetFileName =
         IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
@@ -341,6 +360,13 @@ public class AzureSynapsePdaoConnectedTest {
         synapseUtils.readParquetFileStringColumn(
             snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);
     assertThat("Snapshot contains expected number or rows", snapshotRowIds.size(), equalTo(2));
+
+    // Updated snapshot w/ rowId
+    snapshotTable.rowCount(snapshotRowIds.size());
+    snapshot.snapshotTables(List.of(snapshotTable));
+
+    List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
+    assertThat("4 fileRefs Returned.", refIds.size(), equalTo(4));
 
     // 4 - clean out synapse
     // we'll do this in the test cleanup method, but it will be a step in the normal flight

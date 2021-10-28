@@ -11,16 +11,21 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotTable;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -62,10 +67,7 @@ public class AzureSynapsePdao {
           + "    OPENROWSET(\n"
           + "       BULK '<ingestFileName>',\n"
           + "       DATA_SOURCE = '<ingestFileDataSourceName>',\n"
-          + "       FORMAT = 'parquet') "
-          + "WITH (<columns:{c|<c.name> <c.synapseDataType>\n"
-          + " <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>\n"
-          + "}; separator=\",\n\">) AS rows;";
+          + "       FORMAT = 'parquet') AS rows;";
 
   private static final String createSnapshotRowIdTableTemplate =
       "CREATE EXTERNAL TABLE [<tableName>]\n"
@@ -81,10 +83,10 @@ public class AzureSynapsePdao {
           + "    OPENROWSET(\n"
           + "       BULK '<datasetParquetFileName>',\n"
           + "       DATA_SOURCE = '<datasetDataSourceName>',\n"
-          + "       FORMAT = 'parquet') AS rows;";
+          + "       FORMAT = 'parquet') AS rows";
 
   private static final String mergeLiveViewTablesTemplate =
-      "<selectStatements; separator=\" UNION ALL \">";
+      "<selectStatements; separator=\" UNION ALL \">;";
 
   private static final String createTableTemplate =
       "CREATE EXTERNAL TABLE [<tableName>]\n"
@@ -159,6 +161,21 @@ public class AzureSynapsePdao {
     }
   }
 
+  public List<String> getRefIdsForSnapshot(Snapshot snapshot) {
+    return snapshot.getTables().stream()
+        .filter(table -> table.getRowCount() > 0)
+        .flatMap(
+            table -> {
+              String tableName =
+                  IngestUtils.formatSnapshotTableName(snapshot.getId(), table.getName());
+              return table.getColumns().stream()
+                  .map(Column::toSynapseColumn)
+                  .filter(Column::isFileOrDirRef)
+                  .flatMap(column -> getRefIds(tableName, column).stream());
+            })
+        .collect(Collectors.toList());
+  }
+
   @Autowired
   public AzureSynapsePdao(AzureResourceConfiguration azureResourceConfiguration) {
     this.azureResourceConfiguration = azureResourceConfiguration;
@@ -226,25 +243,33 @@ public class AzureSynapsePdao {
   }
 
   public void createSnapshotRowIdsParquetFile(
-      List<DatasetTable> tables,
+      List<SnapshotTable> tables,
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
+      Map<String, Long> tableRowCounts,
       String datasetFlightId)
       throws SQLException {
 
     // Get all row ids from the dataset
     List<String> selectStatements = new ArrayList<>();
-    for (DatasetTable table : tables) {
-      String datasetParquetFileName =
-          IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
-      ST sqlTableTemplate =
-          new ST(getLiveViewTableTemplate)
-              .add("tableId", table.getId().toString())
-              .add("dataRepoRowId", PDAO_ROW_ID_COLUMN)
-              .add("datasetParquetFileName", datasetParquetFileName)
-              .add("datasetDataSourceName", datasetDataSourceName);
-      selectStatements.add(sqlTableTemplate.render());
+    for (SnapshotTable table : tables) {
+      if (!tableRowCounts.containsKey(table.getName())) {
+        logger.warn(
+            "Table {} is not contained in the TableRowCounts map and therefore will be skipped in the snapshotRowIds parquet file.",
+            table.getName());
+      } else if (tableRowCounts.get(table.getName()) > 0) {
+        String datasetParquetFileName =
+            IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
+
+        ST sqlTableTemplate =
+            new ST(getLiveViewTableTemplate)
+                .add("tableId", table.getId().toString())
+                .add("dataRepoRowId", PDAO_ROW_ID_COLUMN)
+                .add("datasetParquetFileName", datasetParquetFileName)
+                .add("datasetDataSourceName", datasetDataSourceName);
+        selectStatements.add(sqlTableTemplate.render());
+      }
     }
     ST sqlMergeTablesTemplate =
         new ST(mergeLiveViewTablesTemplate).add("selectStatements", selectStatements);
@@ -262,17 +287,15 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
 
-  public void createSnapshotParquetFiles(
-      List<DatasetTable> tables,
+  public Map<String, Long> createSnapshotParquetFiles(
+      List<SnapshotTable> tables,
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
       String datasetFlightId)
       throws SQLException {
-    for (DatasetTable table : tables) {
-      // Create a copy of each dataset "table" (parquet file)
-      List<SynapseColumn> columns =
-          table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
+    Map<String, Long> tableRowCounts = new HashMap<>();
+    for (SnapshotTable table : tables) {
       String datasetParquetFileName =
           IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
       String snapshotParquetFileName =
@@ -286,10 +309,18 @@ public class AzureSynapsePdao {
               .add("destinationDataSourceName", snapshotDataSourceName)
               .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
               .add("ingestFileName", datasetParquetFileName)
-              .add("ingestFileDataSourceName", datasetDataSourceName)
-              .add("columns", columns);
-      executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
+              .add("ingestFileDataSourceName", datasetDataSourceName);
+      try {
+        int rows = executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
+        tableRowCounts.put(table.getName(), Long.valueOf(rows));
+      } catch (SQLServerException ex) {
+        tableRowCounts.put(table.getName(), 0L);
+        logger.info(
+            "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
+            tableName);
+      }
     }
+    return tableRowCounts;
   }
 
   public void dropTables(List<String> tableNames) {

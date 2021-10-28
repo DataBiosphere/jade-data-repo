@@ -9,4 +9,5 @@ public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
   public static final String SNAPSHOT_ID = "snapshotId";
   public static final String POLICY_MAP = "policyMap";
   public static final String PROJECT_RESOURCE_ID = "projectResourceId";
+  public static final String TABLE_ROW_COUNT_MAP = "tableRowCountMap";
 }

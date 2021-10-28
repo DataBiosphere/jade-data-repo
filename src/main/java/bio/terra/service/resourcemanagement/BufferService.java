@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
 /** A service for integrating with the Resource Buffer Service. */
 @Component
 public class BufferService {
-  private final Logger logger = LoggerFactory.getLogger(BufferService.class);
+  private static final Logger logger = LoggerFactory.getLogger(BufferService.class);
 
   private final ResourceBufferServiceConfiguration bufferServiceConfiguration;
 
@@ -69,12 +69,10 @@ public class BufferService {
           bufferServiceConfiguration.getInstanceUrl());
       return info;
     } catch (IOException e) {
-      throw new BufferServiceAuthorizationException(
-          "Error reading or parsing credentials file", e.getCause());
+      throw new BufferServiceAuthorizationException("Error reading or parsing credentials file", e);
     } catch (ApiException e) {
       if (e.getCode() == HttpStatus.UNAUTHORIZED.value()) {
-        throw new BufferServiceAuthorizationException(
-            "Not authorized to access Buffer Service", e.getCause());
+        throw new BufferServiceAuthorizationException("Not authorized to access Buffer Service", e);
       } else {
         throw new BufferServiceAPIException(e);
       }
@@ -101,12 +99,10 @@ public class BufferService {
           bufferServiceConfiguration.getInstanceUrl());
       return info;
     } catch (IOException e) {
-      throw new BufferServiceAuthorizationException(
-          "Error reading or parsing credentials file", e.getCause());
+      throw new BufferServiceAuthorizationException("Error reading or parsing credentials file", e);
     } catch (ApiException e) {
       if (e.getCode() == HttpStatus.UNAUTHORIZED.value()) {
-        throw new BufferServiceAuthorizationException(
-            "Not authorized to access Buffer Service", e.getCause());
+        throw new BufferServiceAuthorizationException("Not authorized to access Buffer Service", e);
       } else {
         throw new BufferServiceAPIException(e);
       }

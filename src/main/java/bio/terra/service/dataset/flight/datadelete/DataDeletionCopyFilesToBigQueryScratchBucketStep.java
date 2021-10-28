@@ -48,9 +48,14 @@ public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
                 bucketResource.getName(), from.getName(), context.getFlightId());
         gcsPdao.copyGcsFile(from, to, projectId);
       }
+      BlobId tableBlob = GcsUriUtils.parseBlobUri(tablePath);
       String newPath =
-          GcsUriUtils.getPathForFlight(bucketResource.getName(), "*", context.getFlightId());
-      table.getGcsFileSpec().path(newPath);
+          GcsUriUtils.getPathForFlight(
+              bucketResource.getName(), tableBlob.getName(), context.getFlightId());
+      int lastWildcard = newPath.lastIndexOf("*");
+      String prefixPath = lastWildcard >= 0 ? newPath.substring(0, lastWildcard + 1) : newPath;
+
+      table.getGcsFileSpec().path(prefixPath);
     }
     workingMap.put(DataDeletionMapKeys.TABLES, tables);
 

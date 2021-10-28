@@ -244,13 +244,13 @@ public class JobService {
           verifyUserAccess(jobId, userReq); // jobId=flightId
         }
       }
-      //stairway.deleteFlight(jobId, false);
+      // stairway.deleteFlight(jobId, false);
     } catch (StairwayException stairwayEx) {
       throw new InternalStairwayException(stairwayEx);
     }
-//    catch (InterruptedException ex) {
-//      throw new JobServiceShutdownException("Job service interrupted", ex);
-//    }
+    //    catch (InterruptedException ex) {
+    //      throw new JobServiceShutdownException("Job service interrupted", ex);
+    //    }
   }
 
   public JobModel mapFlightStateToJobModel(FlightState flightState) {

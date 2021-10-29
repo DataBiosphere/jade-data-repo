@@ -99,9 +99,7 @@ projects and code.
 2. [jq](https://stedolan.github.io/jq/) is a command line JSON processing tool.
 3. [Docker](https://www.docker.com/) is a tool to deliver software in packages
 called containers. Docker for MacOS also includes [Kubernetes](https://kubernetes.io/),
-which deploys groups of containers together in clusters. Note that you must launch Docker
-desktop (the Docker app) at least once to install symlinks to the `docker` executables to
-`/usr/local/bin`.
+which deploys groups of containers together in clusters.
 4. [Helm](https://helm.sh/) streamlines the process of defining, installing, and
 upgrading Kubernetes deployments, which are otherwise challenging to manage.
 Some manual configuration is required below.
@@ -132,14 +130,14 @@ helm plugin install https://github.com/thomastaylor312/helm-namespace
 helm plugin install https://github.com/databus23/helm-diff
 helm repo update
 
+# launch docker desktop - this installs docker in /usr/local/bin
+open -a docker
+
 # configure google-cloud-sdk
 gcloud auth login
 gcloud auth application-default login
 gcloud auth configure-docker
 ```
-
-If `configure-docker` fails because `docker` can't be found, launch the Docker app to install
-symlinks to `docker` in your `PATH`.
 
 Also, [Skaffold](https://github.com/GoogleContainerTools/skaffold) cannot be
 automatically installed through Homebrew as newer versions are incompatible with

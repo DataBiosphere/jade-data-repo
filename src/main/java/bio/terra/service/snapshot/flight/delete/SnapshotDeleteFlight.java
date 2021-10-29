@@ -126,6 +126,6 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
     addStep(new UnlockSnapshotStep(snapshotDao, snapshotId, DeleteUtils::performSnapshotStep));
 
-    addStep(new UnlockDatasetStep(datasetDao, false, DeleteUtils::performDatasetStep));
+    addStep(new UnlockDatasetStep(datasetDao, true, DeleteUtils::performDatasetStep));
   }
 }

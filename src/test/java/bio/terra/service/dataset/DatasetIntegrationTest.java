@@ -383,7 +383,7 @@ public class DatasetIntegrationTest extends UsersBase {
   @Test
   public void wildcardSoftDelete() throws Exception {
     datasetId = ingestedDataset();
-    String pathPrefix = "softDelWildcard" + UUID.randomUUID().toString();
+    String pathPrefix = "softDelWildcard" + UUID.randomUUID();
 
     // get 5 row ids, we'll write them out to 5 separate files
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);

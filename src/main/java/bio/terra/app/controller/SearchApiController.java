@@ -93,7 +93,7 @@ public class SearchApiController implements SearchApi {
 
   @Override
   public ResponseEntity<SearchMetadataResponse> enumerateSnapshotSearch() {
-    var idsAndRoles =
+    Map<UUID, Set<IamRole>> idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
     Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(idsAndRoles.keySet());
     var response = new SearchMetadataResponse();

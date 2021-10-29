@@ -43,10 +43,10 @@ public class IngestCopyControlFileStep extends OptionalStep {
       gcsPdao.copyGcsFile(from, to, projectId);
     }
 
-    workingMap.put(
-        IngestMapKeys.INGEST_CONTROL_FILE_PATH,
-        GcsUriUtils.getGsPathFromComponents(
-            bucketResource.getName(), context.getFlightId() + "/*"));
+    String newPath =
+        GcsUriUtils.getControlPath(ingestRequest.getPath(), bucketResource, context.getFlightId());
+
+    workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, newPath);
     return StepResult.getStepResultSuccess();
   }
 }

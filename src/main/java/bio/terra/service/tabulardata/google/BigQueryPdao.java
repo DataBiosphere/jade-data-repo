@@ -31,8 +31,8 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
-import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.RowIdMatch;
@@ -901,7 +901,7 @@ public class BigQueryPdao {
       logger.info(
           "Staging table load job " + loadJob.getJobId().getJob() + " failed: " + loadJobError);
       if ("notFound".equals(loadJobError.getReason())) {
-        throw new IngestFileNotFoundException("Ingest source file not found: " + path);
+        throw new ControlFileNotFoundException("Ingest source file not found: " + path);
       }
 
       List<String> loadErrors = new ArrayList<>();

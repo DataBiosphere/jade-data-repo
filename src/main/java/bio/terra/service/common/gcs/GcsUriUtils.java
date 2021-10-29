@@ -1,6 +1,7 @@
 package bio.terra.service.common.gcs;
 
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import java.io.UnsupportedEncodingException;
@@ -90,6 +91,15 @@ public final class GcsUriUtils {
 
   public static String getPathForFlight(String bucket, String name, String flightId) {
     return getGsPathFromComponents(bucket, String.format("%s/%s", flightId, name));
+  }
+
+  public static String getControlPath(
+      String path, GoogleBucketResource bucketResource, String flightId) {
+    BlobId controlBlob = GcsUriUtils.parseBlobUri(path);
+    String newPath =
+        GcsUriUtils.getPathForFlight(bucketResource.getName(), controlBlob.getName(), flightId);
+    int lastWildcard = newPath.lastIndexOf("*");
+    return lastWildcard >= 0 ? newPath.substring(0, lastWildcard + 1) : newPath;
   }
 
   public static String makeHttpsFromGs(String gspath) {

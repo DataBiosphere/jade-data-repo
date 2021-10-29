@@ -11,7 +11,6 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -55,22 +54,18 @@ public class DeleteSnapshotDependencyDataAzureStep extends OptionalStep {
     FlightMap map = context.getWorkingMap();
     UUID datasetId = map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
     Dataset dataset = datasetService.retrieve(datasetId);
-    try {
-      BillingProfileModel datasetBillingProfile =
-          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
-      AzureStorageAccountResource datasetStorageAccountResource =
-          resourceService.getDatasetStorageAccount(dataset, datasetBillingProfile);
-      AzureStorageAuthInfo datasetAzureStorageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              datasetBillingProfile, datasetStorageAccountResource);
-      TableServiceClient datasetTableServiceClient =
-          azureAuthService.getTableServiceClient(datasetAzureStorageAuthInfo);
-      tableDependencyDao.deleteSnapshotFileDependencies(
-          datasetTableServiceClient, dataset.getId(), snapshotId);
-    } catch (CorruptMetadataException ex) {
-      logger.info(
-          "No storage account found for dataset, so assume this is actually a GCP project.");
-    }
+
+    BillingProfileModel datasetBillingProfile =
+        profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
+    AzureStorageAccountResource datasetStorageAccountResource =
+        resourceService.getDatasetStorageAccount(dataset, datasetBillingProfile);
+    AzureStorageAuthInfo datasetAzureStorageAuthInfo =
+        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+            datasetBillingProfile, datasetStorageAccountResource);
+    TableServiceClient datasetTableServiceClient =
+        azureAuthService.getTableServiceClient(datasetAzureStorageAuthInfo);
+    tableDependencyDao.deleteSnapshotFileDependencies(
+        datasetTableServiceClient, dataset.getId(), snapshotId);
 
     return StepResult.getStepResultSuccess();
   }

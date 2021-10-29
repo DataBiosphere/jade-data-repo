@@ -1,7 +1,7 @@
 package bio.terra.service.dataset.flight;
 
 import bio.terra.common.exception.RetryQueryException;
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.ingest.OptionalStep;
@@ -17,39 +17,39 @@ public class LockDatasetStep extends OptionalStep {
 
   private static Logger logger = LoggerFactory.getLogger(LockDatasetStep.class);
 
-  private final DatasetDao datasetDao;
+  private final DatasetService datasetService;
   private final UUID datasetId;
   private final boolean sharedLock; // default to false
   private final boolean suppressNotFoundException; // default to false
 
-  public LockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock) {
-    this(datasetDao, datasetId, sharedLock, false, OptionalStep::alwaysDo);
+  public LockDatasetStep(DatasetService datasetService, UUID datasetId, boolean sharedLock) {
+    this(datasetService, datasetId, sharedLock, false, OptionalStep::alwaysDo);
   }
 
   public LockDatasetStep(
-      DatasetDao datasetDao,
+      DatasetService datasetService,
       UUID datasetId,
       boolean sharedLock,
       boolean suppressNotFoundException) {
-    this(datasetDao, datasetId, sharedLock, suppressNotFoundException, OptionalStep::alwaysDo);
+    this(datasetService, datasetId, sharedLock, suppressNotFoundException, OptionalStep::alwaysDo);
   }
 
   public LockDatasetStep(
-      DatasetDao datasetDao,
+      DatasetService datasetService,
       UUID datasetId,
       boolean sharedLock,
       Predicate<FlightContext> doCondition) {
-    this(datasetDao, datasetId, sharedLock, false, doCondition);
+    this(datasetService, datasetId, sharedLock, false, doCondition);
   }
 
   public LockDatasetStep(
-      DatasetDao datasetDao,
+      DatasetService datasetService,
       UUID datasetId,
       boolean sharedLock,
       boolean suppressNotFoundException,
       Predicate<FlightContext> doCondition) {
     super(doCondition);
-    this.datasetDao = datasetDao;
+    this.datasetService = datasetService;
     this.datasetId = datasetId;
 
     // this will be set to true for a shared lock, false for an exclusive lock
@@ -68,11 +68,7 @@ public class LockDatasetStep extends OptionalStep {
   public StepResult doOptionalStep(FlightContext context) {
 
     try {
-      if (sharedLock) {
-        datasetDao.lockShared(datasetId, context.getFlightId());
-      } else {
-        datasetDao.lockExclusive(datasetId, context.getFlightId());
-      }
+      datasetService.lockDataset(datasetId, context.getFlightId(), sharedLock);
       return StepResult.getStepResultSuccess();
     } catch (DatasetNotFoundException notFoundEx) {
       if (suppressNotFoundException) {
@@ -90,15 +86,9 @@ public class LockDatasetStep extends OptionalStep {
   public StepResult undoStep(FlightContext context) {
     // try to unlock the flight if something went wrong above
     // note the unlock will only clear the flightid if it's set to this flightid
-    boolean rowUpdated;
     String flightId = context.getFlightId();
     try {
-      if (sharedLock) {
-        rowUpdated = datasetDao.unlockShared(datasetId, flightId);
-      } else {
-        rowUpdated = datasetDao.unlockExclusive(datasetId, flightId);
-      }
-      logger.debug("rowUpdated on unlock = {}", rowUpdated);
+      datasetService.unlockDataset(datasetId, flightId, sharedLock);
       return StepResult.getStepResultSuccess();
     } catch (DatasetLockException e) {
       // DatasetLockException will be thrown if flight id was not set

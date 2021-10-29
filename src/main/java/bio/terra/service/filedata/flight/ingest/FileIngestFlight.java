@@ -122,7 +122,7 @@ public class FileIngestFlight extends Flight {
       addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));
     }
     addStep(new IngestFileValidateCloudPlatformStep(dataset));
-    addStep(new LockDatasetStep(datasetDao, datasetId, true), randomBackoffRetry);
+    addStep(new LockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
     addStep(new IngestFileIdStep(configService));
 

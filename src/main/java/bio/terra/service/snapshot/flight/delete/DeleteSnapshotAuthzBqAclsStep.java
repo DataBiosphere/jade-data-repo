@@ -44,19 +44,16 @@ public class DeleteSnapshotAuthzBqAclsStep extends OptionalStep {
   @Override
   public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    if (snapshot.getProjectResource().getGoogleProjectId() != null) {
-      // These policy emails should not change since the snapshot is locked by the flight
-      Map<IamRole, String> policyEmails =
-          sam.retrievePolicyEmails(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
 
-      // Remove the custodian's access to make queries in this project.
-      // The underlying service provides retries so we do not need to retry this operation
-      resourceService.revokePoliciesBqJobUser(
-          snapshot.getProjectResource().getGoogleProjectId(),
-          Arrays.asList(policyEmails.get(IamRole.STEWARD), policyEmails.get(IamRole.READER)));
-    } else {
-      logger.info("Snapshot google project is empty, so we expect this to be an Azure Snapshot");
-    }
+    // These policy emails should not change since the snapshot is locked by the flight
+    Map<IamRole, String> policyEmails =
+        sam.retrievePolicyEmails(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+
+    // Remove the custodian's access to make queries in this project.
+    // The underlying service provides retries so we do not need to retry this operation
+    resourceService.revokePoliciesBqJobUser(
+        snapshot.getProjectResource().getGoogleProjectId(),
+        Arrays.asList(policyEmails.get(IamRole.STEWARD), policyEmails.get(IamRole.READER)));
 
     return StepResult.getStepResultSuccess();
   }

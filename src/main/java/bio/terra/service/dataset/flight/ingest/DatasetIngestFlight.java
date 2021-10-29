@@ -105,7 +105,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
     }
 
-    addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+    addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 

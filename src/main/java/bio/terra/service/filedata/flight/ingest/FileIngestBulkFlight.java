@@ -145,7 +145,7 @@ public class FileIngestBulkFlight extends Flight {
       addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));
     }
     addStep(new IngestFileValidateCloudPlatformStep(dataset));
-    addStep(new LockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
+    addStep(new LockDatasetStep(datasetService, datasetUuid, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
     if (platform.isGcp()) {
       addStep(new IngestFileGetProjectStep(dataset, googleProjectService));

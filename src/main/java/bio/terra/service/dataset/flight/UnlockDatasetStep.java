@@ -5,6 +5,7 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
@@ -17,8 +18,8 @@ public class UnlockDatasetStep extends OptionalStep {
   private static Logger logger = LoggerFactory.getLogger(UnlockDatasetStep.class);
 
   private final DatasetDao datasetDao;
-  private UUID datasetId;
   private boolean sharedLock; // default to false
+  private UUID datasetId;
 
   public UnlockDatasetStep(
       DatasetDao datasetDao,
@@ -33,20 +34,27 @@ public class UnlockDatasetStep extends OptionalStep {
     this.sharedLock = sharedLock;
   }
 
-  public UnlockDatasetStep(DatasetDao datasetDao, boolean sharedLock) {
-    this(datasetDao, null, sharedLock, OptionalStep::alwaysDo);
-  }
-
   public UnlockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock) {
     this(datasetDao, datasetId, sharedLock, OptionalStep::alwaysDo);
   }
 
+  public UnlockDatasetStep(DatasetDao datasetDao, boolean sharedLock) {
+    this(datasetDao, null, sharedLock, OptionalStep::alwaysDo);
+  }
+
+  public UnlockDatasetStep(
+      DatasetDao datasetDao, boolean sharedLock, Predicate<FlightContext> doCondition) {
+    this(datasetDao, null, sharedLock, doCondition);
+  }
+
   @Override
   public StepResult doOptionalStep(FlightContext context) {
-    // In the create case, we won't have the dataset id at step creation. We'll expect it to be in
-    // the working map.
     if (datasetId == null) {
-      datasetId = context.getWorkingMap().get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+      FlightMap map = context.getWorkingMap();
+
+      // In the create case, we won't have the dataset id at step creation. We'll expect it to be in
+      // the working map.
+      datasetId = map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
       if (datasetId == null) {
         return new StepResult(
             StepStatus.STEP_RESULT_FAILURE_FATAL,

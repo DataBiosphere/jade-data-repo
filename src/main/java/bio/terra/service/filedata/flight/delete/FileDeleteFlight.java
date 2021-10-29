@@ -72,7 +72,8 @@ public class FileDeleteFlight extends Flight {
     // 4. Delete the directory entry
     // This flight updates GCS and firestore in exactly the reverse order of create, so no new
     // data structure states are introduced by this flight.
-    addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
+    addStep(
+        new LockDatasetStep(datasetService, UUID.fromString(datasetId), true), lockDatasetRetry);
     if (platform.isGcp()) {
       addStep(
           new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao, configService),

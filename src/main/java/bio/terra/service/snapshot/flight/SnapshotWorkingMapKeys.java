@@ -10,4 +10,8 @@ public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
   public static final String POLICY_MAP = "policyMap";
   public static final String PROJECT_RESOURCE_ID = "projectResourceId";
   public static final String TABLE_ROW_COUNT_MAP = "tableRowCountMap";
+  public static final String SNAPSHOT_EXISTS = "snapshotExists";
+  public static final String SNAPSHOT_HAS_GOOGLE_PROJECT = "snapshotHasGoogleProject";
+  public static final String SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT = "snapshotHasStorageAccount";
+  public static final String DATASET_EXISTS = "datasetExists";
 }

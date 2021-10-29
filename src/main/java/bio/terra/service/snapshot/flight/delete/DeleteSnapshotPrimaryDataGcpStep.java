@@ -61,12 +61,8 @@ public class DeleteSnapshotPrimaryDataGcpStep extends OptionalStep {
       }
 
       Snapshot snapshot = snapshotService.retrieve(snapshotId);
-      if (snapshot.getProjectResource().getGoogleProjectId() != null) {
-        bigQueryPdao.deleteSnapshot(snapshot);
-        fileDao.deleteFilesFromSnapshot(snapshot);
-      } else {
-        logger.info("Google project Id is null, so assume this this an Azure project.");
-      }
+      bigQueryPdao.deleteSnapshot(snapshot);
+      fileDao.deleteFilesFromSnapshot(snapshot);
 
     } catch (BigQueryException ex) {
       if (FlightUtils.isBigQueryIamPropagationError(ex)) {

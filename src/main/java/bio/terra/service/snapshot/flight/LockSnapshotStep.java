@@ -1,18 +1,17 @@
 package bio.terra.service.snapshot.flight;
 
-import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LockSnapshotStep extends OptionalStep {
+public class LockSnapshotStep implements Step {
 
   private SnapshotDao snapshotDao;
   private UUID snapshotId;
@@ -21,20 +20,11 @@ public class LockSnapshotStep extends OptionalStep {
   private static Logger logger = LoggerFactory.getLogger(LockSnapshotStep.class);
 
   public LockSnapshotStep(SnapshotDao snapshotDao, UUID snapshotId) {
-    this(snapshotDao, snapshotId, false, OptionalStep::alwaysDo);
+    this(snapshotDao, snapshotId, false);
   }
 
   public LockSnapshotStep(
       SnapshotDao snapshotDao, UUID snapshotId, boolean suppressNotFoundException) {
-    this(snapshotDao, snapshotId, suppressNotFoundException, OptionalStep::alwaysDo);
-  }
-
-  public LockSnapshotStep(
-      SnapshotDao snapshotDao,
-      UUID snapshotId,
-      boolean suppressNotFoundException,
-      Predicate<FlightContext> doCondition) {
-    super(doCondition);
     this.snapshotDao = snapshotDao;
     this.snapshotId = snapshotId;
 
@@ -48,7 +38,7 @@ public class LockSnapshotStep extends OptionalStep {
   }
 
   @Override
-  public StepResult doOptionalStep(FlightContext context) {
+  public StepResult doStep(FlightContext context) {
     try {
       snapshotDao.lock(snapshotId, context.getFlightId());
 

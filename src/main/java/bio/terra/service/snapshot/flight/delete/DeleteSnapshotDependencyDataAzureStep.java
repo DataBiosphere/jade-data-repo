@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.delete;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.profile.ProfileService;
@@ -12,6 +13,7 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.data.tables.TableServiceClient;
@@ -30,7 +32,6 @@ public class DeleteSnapshotDependencyDataAzureStep extends OptionalStep {
   private ProfileService profileService;
   private ResourceService resourceService;
   private AzureAuthService azureAuthService;
-  private UUID datasetId;
 
   public DeleteSnapshotDependencyDataAzureStep(
       TableDependencyDao tableDependencyDao,
@@ -39,7 +40,6 @@ public class DeleteSnapshotDependencyDataAzureStep extends OptionalStep {
       ProfileService profileService,
       ResourceService resourceService,
       AzureAuthService azureAuthService,
-      UUID datasetId,
       Predicate<FlightContext> doCondition) {
     super(doCondition);
     this.tableDependencyDao = tableDependencyDao;
@@ -48,11 +48,12 @@ public class DeleteSnapshotDependencyDataAzureStep extends OptionalStep {
     this.profileService = profileService;
     this.resourceService = resourceService;
     this.azureAuthService = azureAuthService;
-    this.datasetId = datasetId;
   }
 
   @Override
-  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
+  public StepResult doOptionalStep(FlightContext context) {
+    FlightMap map = context.getWorkingMap();
+    UUID datasetId = map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
     Dataset dataset = datasetService.retrieve(datasetId);
     try {
       BillingProfileModel datasetBillingProfile =

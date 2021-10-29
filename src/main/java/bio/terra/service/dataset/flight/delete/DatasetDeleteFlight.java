@@ -64,9 +64,9 @@ public class DatasetDeleteFlight extends Flight {
     RetryRule primaryDataDeleteRetry = getDefaultExponentialBackoffRetryRule();
 
     if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT)) {
-      addStep(new LockDatasetStep(datasetDao, datasetId, false, true));
+      addStep(new LockDatasetStep(datasetService, datasetId, false, true));
     } else {
-      addStep(new LockDatasetStep(datasetDao, datasetId, false, true), lockDatasetRetry);
+      addStep(new LockDatasetStep(datasetService, datasetId, false, true), lockDatasetRetry);
     }
     if (platform.isGcp()) {
       // TODO: Do this check for Azure datasets

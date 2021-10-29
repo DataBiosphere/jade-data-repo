@@ -57,7 +57,8 @@ public class DatasetDataDeleteFlight extends Flight {
     addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
 
     // need to lock, need dataset name and flight id
-    addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
+    addStep(
+        new LockDatasetStep(datasetService, UUID.fromString(datasetId), true), lockDatasetRetry);
 
     // See if we need to copy the control file to a scratch bucket in the same region as BQ
     addStep(new DataDeletionControlFileCopyNeededStep(datasetService, gcsPdao));

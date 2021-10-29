@@ -18,6 +18,7 @@ import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
+import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -120,9 +121,7 @@ public class GcsPdao implements CloudFileReader {
   @Override
   public Stream<String> getBlobsLinesStream(String blobUrl, String cloudEncapsulationId) {
     Storage storage = gcsProjectFactory.getStorage(cloudEncapsulationId);
-    int lastWildcard = blobUrl.lastIndexOf("*");
-    String prefixPath = lastWildcard >= 0 ? blobUrl.substring(0, lastWildcard) : blobUrl;
-    return listGcsFiles(prefixPath, cloudEncapsulationId, storage)
+    return listGcsFiles(blobUrl, cloudEncapsulationId, storage)
         .flatMap(blob -> getBlobLinesStream(blob, cloudEncapsulationId, storage));
   }
 
@@ -136,7 +135,10 @@ public class GcsPdao implements CloudFileReader {
   }
 
   private Stream<Blob> listGcsFiles(String path, String projectId, Storage storage) {
-    BlobId locator = GcsUriUtils.parseBlobUri(path);
+    int lastWildcard = path.lastIndexOf("*");
+    String prefixPath = lastWildcard >= 0 ? path.substring(0, lastWildcard) : path;
+    String postFix = lastWildcard >= 0 ? path.substring(lastWildcard + 1) : "";
+    BlobId locator = GcsUriUtils.parseBlobUri(prefixPath);
     Iterable<Blob> blobs =
         storage
             .list(
@@ -144,7 +146,8 @@ public class GcsPdao implements CloudFileReader {
                 Storage.BlobListOption.prefix(locator.getName()),
                 Storage.BlobListOption.userProject(projectId))
             .iterateAll();
-    return StreamSupport.stream(blobs.spliterator(), false);
+    return StreamSupport.stream(blobs.spliterator(), false)
+        .filter(b -> b.getName().endsWith(postFix));
   }
 
   /**
@@ -238,10 +241,28 @@ public class GcsPdao implements CloudFileReader {
     }
   }
 
+  public List<BlobId> listGcsIngestBlobs(String path, String projectId) {
+    int lastWildcard = path.lastIndexOf("*");
+    if (lastWildcard >= 0) {
+      Storage storage = gcsProjectFactory.getStorage(projectId);
+      return listGcsFiles(path, projectId, storage)
+          .map(BlobInfo::getBlobId)
+          .collect(Collectors.toList());
+    } else {
+      return List.of(GcsUriUtils.parseBlobUri(path));
+    }
+  }
+
   public void copyGcsFile(BlobId from, BlobId to, String projectId) {
     logger.info("Copying GCS file from {} to {}", from, to);
     Storage storage = gcsProjectFactory.getStorage(projectId);
-    storage.get(from).copyTo(to, Blob.BlobSourceOption.userProject(projectId));
+    Blob fromBlob = storage.get(from, Storage.BlobGetOption.userProject(projectId));
+    if (fromBlob == null) {
+      throw new FileNotFoundException(
+          String.format(
+              "File at %s was not found or does not exist", GcsUriUtils.getGsPathFromBlob(from)));
+    }
+    fromBlob.copyTo(to, Blob.BlobSourceOption.userProject(projectId));
   }
 
   public FSFileInfo copyFile(

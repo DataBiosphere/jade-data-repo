@@ -7,7 +7,6 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
-import java.util.function.Predicate;
 
 public class IngestFileAzurePrimaryDataLocationStep extends CreateAzureStorageAccountStep {
 

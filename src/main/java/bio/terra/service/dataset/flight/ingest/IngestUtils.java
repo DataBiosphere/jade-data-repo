@@ -39,8 +39,11 @@ import org.stringtemplate.v4.ST;
 
 // Common code for the ingest steps
 public final class IngestUtils {
+  private static final String SOURCE_DATASET_SCOPED_CREDENTIAL_PREFIX =
+      "source_dataset_scoped_credential_";
   private static final String SOURCE_SCOPED_CREDENTIAL_PREFIX = "source_scoped_credential_";
   private static final String TARGET_SCOPED_CREDENTIAL_PREFIX = "target_scoped_credential_";
+  private static final String SOURCE_DATASET_DATA_SOURCE_PREFIX = "source_dataset_data_source_";
   private static final String SOURCE_DATA_SOURCE_PREFIX = "source_data_source_";
   private static final String TARGET_DATA_SOURCE_PREFIX = "target_data_source_";
   private static final String TABLE_NAME_PREFIX = "ingest_";
@@ -310,11 +313,19 @@ public final class IngestUtils {
     if (datasetFlightId != null) {
       return IngestUtils.getParquetFilePath(tableName, datasetFlightId);
     }
-    return "parquet/" + tableName + "/**";
+    return "parquet/" + tableName + "/*/*.parquet";
   }
 
   public static String formatSnapshotTableName(UUID snapshotId, String tableName) {
     return snapshotId.toString().replaceAll("-", "") + "_" + tableName;
+  }
+
+  public static String getSourceDatasetDataSourceName(String flightId) {
+    return SOURCE_DATASET_DATA_SOURCE_PREFIX + flightId;
+  }
+
+  public static String getSourceDatasetScopedCredentialName(String flightId) {
+    return SOURCE_DATASET_SCOPED_CREDENTIAL_PREFIX + flightId;
   }
 
   public static String getIngestRequestDataSourceName(String flightId) {

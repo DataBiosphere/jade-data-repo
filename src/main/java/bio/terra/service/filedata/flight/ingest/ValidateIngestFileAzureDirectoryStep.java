@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.FileAlreadyExistsException;
@@ -44,7 +45,7 @@ public class ValidateIngestFileAzureDirectoryStep extends BaseStep {
       //      (b) Otherwise, update INGEST_FILE_ACTION to checkEntry
       AzureStorageAuthInfo storageAuthInfo =
           FlightUtils.getContextValue(
-              context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+              context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
       FireStoreDirectoryEntry existingEntry =
           tableDao.lookupDirectoryEntryByPath(dataset, targetPath, storageAuthInfo);
       if (existingEntry == null) {

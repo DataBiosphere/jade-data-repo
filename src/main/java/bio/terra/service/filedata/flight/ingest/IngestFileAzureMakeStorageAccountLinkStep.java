@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.exception.RetryQueryException;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -27,7 +28,8 @@ public class IngestFileAzureMakeStorageAccountLinkStep implements Step {
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       AzureStorageAccountResource storageAccountForFile =
-          workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+          workingMap.get(
+              CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
       try {
         datasetStorageAccountDao.createDatasetStorageAccountLink(
             dataset.getId(), storageAccountForFile.getResourceId(), true);
@@ -49,7 +51,8 @@ public class IngestFileAzureMakeStorageAccountLinkStep implements Step {
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       AzureStorageAccountResource storageAccountForFile =
-          workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+          workingMap.get(
+              CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
       try {
         datasetStorageAccountDao.decrementDatasetStorageAccountLink(
             dataset.getId(), storageAccountForFile.getResourceId());

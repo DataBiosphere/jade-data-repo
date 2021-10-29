@@ -2,14 +2,12 @@ package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
 import bio.terra.common.Table;
-import bio.terra.model.BillingProfileModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
-import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import java.util.List;
@@ -39,15 +37,10 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
     var workingMap = context.getWorkingMap();
     var dataset = IngestUtils.getDataset(context, datasetService);
 
-    var billingProfile = workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-    var storageAccountResource =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+    var storageAuthInfo =
+        workingMap.get(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
-    var tableServiceClient =
-        azureAuthService.getTableServiceClient(
-            billingProfile.getSubscriptionId(),
-            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
-            storageAccountResource.getName());
+    var tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     Table table = IngestUtils.getDatasetTable(context, dataset);
     var tableName = IngestUtils.getSynapseTableName(context.getFlightId());
 

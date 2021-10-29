@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
@@ -46,7 +47,7 @@ public class IngestFileAzureDirectoryStep implements Step {
     String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
     AzureStorageAuthInfo storageAuthInfo =
         FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+            context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     try {
       // The state logic goes like this:
@@ -110,7 +111,7 @@ public class IngestFileAzureDirectoryStep implements Step {
     String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
     AzureStorageAuthInfo storageAuthInfo =
         FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+            context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
       try {
         tableDao.deleteDirectoryEntry(

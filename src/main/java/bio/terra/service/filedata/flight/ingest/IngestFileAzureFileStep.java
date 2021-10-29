@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.FSItem;
@@ -34,7 +35,7 @@ public class IngestFileAzureFileStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     AzureStorageAuthInfo storageAuthInfo =
         FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+            context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
@@ -77,7 +78,7 @@ public class IngestFileAzureFileStep implements Step {
     String itemId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     AzureStorageAuthInfo storageAuthInfo =
         FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+            context, CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     try {
       tableDao.deleteFileMetadata(itemId, storageAuthInfo);

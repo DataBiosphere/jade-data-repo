@@ -135,7 +135,13 @@ public class TableDaoConnectedTest {
     // First, make sure the directory entries exist in the dataset's storage table
     checkThatEntriesExist(datasetId, StorageTableName.DATASET.toTableName(), false);
 
-    tableDao.addFilesToSnapshot(tableServiceClient, tableServiceClient, dataset, snapshot, refIds);
+    tableDao.addFilesToSnapshot(
+        tableServiceClient,
+        tableServiceClient,
+        dataset.getId(),
+        dataset.getName(),
+        snapshot.getId(),
+        refIds);
 
     // Now make sure that the same directory entries exist in the snapshot's storage table
     checkThatEntriesExist(snapshotId, StorageTableName.SNAPSHOT.toTableName(snapshotId), true);

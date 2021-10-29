@@ -42,6 +42,7 @@ import bio.terra.model.TableModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;
@@ -105,6 +106,7 @@ public class SnapshotConnectedTest {
   @Autowired private JsonLoader jsonLoader;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
+  @Autowired private DatasetService datasetService;
   @Autowired private ProfileDao profileDao;
   @Autowired private ResourceService dataLocationService;
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
@@ -1012,7 +1014,7 @@ public class SnapshotConnectedTest {
 
     connectedOperations.deleteTestSnapshot(snapshotModel.getId());
     // Duplicate delete should work
-    connectedOperations.deleteTestSnapshotNotFound(snapshotModel.getId());
+    connectedOperations.deleteTestSnapshot(snapshotModel.getId());
     connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
   }
 }

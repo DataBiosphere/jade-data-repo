@@ -449,6 +449,8 @@ task testConnected(type: Test) {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
     if (isCiServer) {
+        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        println "Using " + maxParallelForks + " parallel forks."
         retry {
           maxRetries = 3
           maxFailures = 15
@@ -466,6 +468,8 @@ task testIntegration(type: Test) {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
     if (isCiServer) {
+        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        println "Using " + maxParallelForks + " parallel forks."
         retry {
           maxRetries = 3
           maxFailures = 15

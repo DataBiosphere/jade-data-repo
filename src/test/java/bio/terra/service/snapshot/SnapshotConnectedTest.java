@@ -106,6 +106,7 @@ public class SnapshotConnectedTest {
   @Autowired private JsonLoader jsonLoader;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
+  @Autowired private SnapshotService snapshotService;
   @Autowired private DatasetService datasetService;
   @Autowired private ProfileDao profileDao;
   @Autowired private ResourceService dataLocationService;

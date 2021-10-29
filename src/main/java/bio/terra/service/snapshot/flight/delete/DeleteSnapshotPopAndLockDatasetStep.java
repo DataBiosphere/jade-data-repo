@@ -60,7 +60,7 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
     }
 
     // Now we've confirmed the snapshot exists, let's check on the source dataset
-    UUID datasetId = snapshot.getFirstSnapshotSource().getId();
+    UUID datasetId = snapshot.getFirstSnapshotSource().getDataset().getId();
     map.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
     try {
       datasetService.lockDataset(datasetId, context.getFlightId(), sharedLock);

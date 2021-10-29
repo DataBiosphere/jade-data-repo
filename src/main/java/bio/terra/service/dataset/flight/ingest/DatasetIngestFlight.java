@@ -162,13 +162,13 @@ public class DatasetIngestFlight extends Flight {
     if (cloudPlatform.isGcp()) {
       // If this isn't a combined ingest, make (or get) the scratch bucket
       addStep(
-          new CreateBucketForBigQueryScratchStep(
-              resourceService, datasetService, Predicate.not(IngestUtils::isCombinedFileIngest)),
+          new NonCombinedFileIngestOptionalStep(
+              new CreateBucketForBigQueryScratchStep(resourceService, datasetService)),
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
       // If this isn't a combined ingest, copy to the scratch bucket
       addStep(
-          new IngestCopyControlFileStep(
-              datasetService, gcsPdao, Predicate.not(IngestUtils::isCombinedFileIngest)));
+          new NonCombinedFileIngestOptionalStep(
+              new IngestCopyControlFileStep(datasetService, gcsPdao)));
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));

@@ -2668,7 +2668,6 @@ components:
         Unique identifier for a flights, jobs, etc.
     BillingProfileRequestModel:
       required:
-        - biller
         - id
         - profileName
       type: object

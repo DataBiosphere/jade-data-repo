@@ -77,6 +77,10 @@ public class ProfileRequestValidator implements Validator {
             "billingAccountId",
             "The id must be 3 sets of 6 capitalized alphanumeric characters separated by dashes");
       }
+      String biller = billingProfileRequestModel.getBiller();
+      if (biller == null || biller.isEmpty()) {
+        errors.rejectValue("biller", "The biller must be specified for google billing accounts");
+      }
     }
   }
 }

@@ -280,16 +280,12 @@ public class GoogleBucketService {
     GoogleProjectResource projectResource = bucketResource.getProjectResource();
     String googleProjectId = projectResource.getGoogleProjectId();
     GcsProject gcsProject = gcsProjectFactory.get(googleProjectId);
-    GoogleRegion region =
-        bucketResource.getRegion() == GoogleRegion.US
-            ? GoogleRegion.US.getRegionOrFallbackBucketRegion()
-            : bucketResource.getRegion();
     BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
             // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
             .setStorageClass(StorageClass.REGIONAL)
-            .setLocation(region.toString())
+            .setLocation(bucketResource.getRegion().getRegionOrFallbackBucketRegion().toString())
             .setVersioningEnabled(doVersioning)
             .build();
     // the project will have been created before this point, so no need to fetch it

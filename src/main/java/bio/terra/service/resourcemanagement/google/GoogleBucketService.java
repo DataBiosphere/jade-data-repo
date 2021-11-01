@@ -277,9 +277,6 @@ public class GoogleBucketService {
     boolean doVersioning =
         Arrays.stream(env.getActiveProfiles()).noneMatch(env -> env.contains("test"));
     String bucketName = bucketResource.getName();
-    GoogleProjectResource projectResource = bucketResource.getProjectResource();
-    String googleProjectId = projectResource.getGoogleProjectId();
-    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId);
     BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
@@ -288,6 +285,11 @@ public class GoogleBucketService {
             .setLocation(bucketResource.getRegion().getRegionOrFallbackBucketRegion().toString())
             .setVersioningEnabled(doVersioning)
             .build();
+
+    GoogleProjectResource projectResource = bucketResource.getProjectResource();
+    String googleProjectId = projectResource.getGoogleProjectId();
+    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId);
+
     // the project will have been created before this point, so no need to fetch it
     logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);
     return gcsProject.getStorage().create(bucketInfo);

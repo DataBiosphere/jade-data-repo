@@ -13,6 +13,5 @@ public final class StartupInitializer {
   public static void initialize(ApplicationContext applicationContext) {
     // Initialize jobService, stairway, migrate databases, perform recovery
     JobService jobService = (JobService) applicationContext.getBean("jobService");
-    jobService.initialize();
   }
 }

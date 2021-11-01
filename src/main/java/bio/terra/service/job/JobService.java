@@ -59,6 +59,7 @@ public class JobService {
   private final ObjectMapper objectMapper;
   private final PerformanceLogger performanceLogger;
   private final ApplicationContext applicationContext;
+  private Stairway stairway;
 
   @Autowired
   public JobService(
@@ -83,6 +84,7 @@ public class JobService {
     this.performanceLogger = performanceLogger;
     this.kubeService =
         new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
+    initialize();
   }
 
   /**
@@ -102,6 +104,7 @@ public class JobService {
             .context(applicationContext)
             .addHook(new StairwayLoggingHooks(performanceLogger))
             .exceptionSerializer(serializer));
+    stairway = stairwayComponent.get();
   }
 
   /** Stop accepting jobs and shutdown stairway */
@@ -133,10 +136,10 @@ public class JobService {
     int terminateTimeout = (shutdownTimeout - gracefulTimeout) - 2;
 
     logger.info("JobService request Stairway shutdown");
-    boolean finishedShutdown = stairwayComponent.get().quietDown(gracefulTimeout, TimeUnit.SECONDS);
+    boolean finishedShutdown = stairway.quietDown(gracefulTimeout, TimeUnit.SECONDS);
     if (!finishedShutdown) {
       logger.info("JobService request Stairway terminate");
-      finishedShutdown = stairwayComponent.get().terminate(terminateTimeout, TimeUnit.SECONDS);
+      finishedShutdown = stairway.terminate(terminateTimeout, TimeUnit.SECONDS);
     }
     logger.info("JobService finished shutdown?: " + finishedShutdown);
     return finishedShutdown;
@@ -184,7 +187,7 @@ public class JobService {
     if (isRunning.get()) {
       String jobId = createJobId();
       try {
-        stairwayComponent.get().submit(jobId, flightClass, parameterMap);
+        stairway.submit(jobId, flightClass, parameterMap);
       } catch (InterruptedException ex) {
         throw new JobServiceShutdownException("Job service interrupted", ex);
       }
@@ -208,7 +211,7 @@ public class JobService {
 
   void waitForJob(String jobId) {
     try {
-      stairwayComponent.get().waitForFlight(jobId, null, null);
+      stairway.waitForFlight(jobId, null, null);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -218,7 +221,7 @@ public class JobService {
   private String createJobId() {
     // in the future, if we have multiple stairways, we may need to maintain a connection from job
     // id to flight id
-    return stairwayComponent.get().createFlightId();
+    return stairway.createFlightId();
   }
 
   public JobModel mapFlightStateToJobModel(FlightState flightState) {
@@ -284,7 +287,7 @@ public class JobService {
             JobMapKeys.SUBJECT_ID.getKeyName(), FlightFilterOp.EQUAL, userReq.getSubjectId());
       }
 
-      flightStateList = stairwayComponent.get().getFlights(offset, limit, filter);
+      flightStateList = stairway.getFlights(offset, limit, filter);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -306,7 +309,7 @@ public class JobService {
       if (!canListAnyJob) {
         verifyUserAccess(jobId, userReq); // jobId=flightId
       }
-      FlightState flightState = stairwayComponent.get().getFlightState(jobId);
+      FlightState flightState = stairway.getFlightState(jobId);
       return mapFlightStateToJobModel(flightState);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
@@ -359,13 +362,13 @@ public class JobService {
    * @return stairway instance
    */
   public Stairway getStairway() {
-    return stairwayComponent.get();
+    return stairway;
   }
 
   private <T> JobResultWithStatus<T> retrieveJobResultWorker(String jobId, Class<T> resultClass)
       throws StairwayException, InterruptedException {
 
-    FlightState flightState = stairwayComponent.get().getFlightState(jobId);
+    FlightState flightState = stairway.getFlightState(jobId);
     FlightMap resultMap = flightState.getResultMap().orElse(null);
     if (resultMap == null) {
       throw new InvalidResultStateException("No result map returned from flight");
@@ -429,7 +432,7 @@ public class JobService {
 
   private void verifyUserAccess(String jobId, AuthenticatedUserRequest userReq) {
     try {
-      FlightState flightState = stairwayComponent.get().getFlightState(jobId);
+      FlightState flightState = stairway.getFlightState(jobId);
       FlightMap inputParameters = flightState.getInputParameters();
       String flightSubjectId =
           inputParameters.get(JobMapKeys.SUBJECT_ID.getKeyName(), String.class);

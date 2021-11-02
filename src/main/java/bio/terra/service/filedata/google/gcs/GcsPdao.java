@@ -45,6 +45,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -53,10 +54,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +75,10 @@ public class GcsPdao implements CloudFileReader {
   private static final List<String> GCS_VERIFICATION_SCOPES =
       List.of(
           "openid", "email", "profile", "https://www.googleapis.com/auth/devstorage.full_control");
+
+  // Cache of pet service account tokens keys on a given user's actual access_token
+  private final Map<String, String> petAccountTokens =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(30, TimeUnit.MINUTES));
 
   private final GcsProjectFactory gcsProjectFactory;
   private final ResourceService resourceService;
@@ -210,12 +217,16 @@ public class GcsPdao implements CloudFileReader {
       return;
     }
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
-    String token;
-    try {
-      token = iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
-    } catch (InterruptedException e) {
-      throw new PdaoException("Error obtaining a pet service account token");
-    }
+    String token =
+        petAccountTokens.computeIfAbsent(
+            user.getRequiredToken(),
+            t -> {
+              try {
+                return iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
+              } catch (InterruptedException e) {
+                throw new PdaoException("Error obtaining a pet service account token");
+              }
+            });
 
     Storage storageAsPet =
         StorageOptions.newBuilder()

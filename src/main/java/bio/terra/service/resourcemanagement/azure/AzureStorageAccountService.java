@@ -198,21 +198,25 @@ public class AzureStorageAccountService {
     return resourceDao.retrieveStorageAccountById(storageAccountId);
   }
 
-  /**
-   * Delete metadata and cloud storage account resource. Note: this runs in a transaction so if the
-   * cloud delete fails, the metadata deleted should rollback
-   */
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void deleteCloudStorageAccount(
+  public void deleteCloudStorageAccountAndMetadata(
       AzureStorageAccountResource storageAccountResource, String flightId) {
+    deleteCloudStorageAccount(storageAccountResource);
+    deleteCloudStorageAccountMetadata(storageAccountResource.getName(), flightId);
+  }
+
+  public void deleteCloudStorageAccount(AzureStorageAccountResource storageAccountResource) {
     BillingProfileModel profileModel =
         profileDao.getBillingProfileById(storageAccountResource.getProfileId());
-    logger.info("Deleting Azure storage account metadata");
-    boolean deleted =
-        resourceDao.deleteStorageAccountMetadata(storageAccountResource.getName(), flightId);
-    logger.info("Metadata removed: {}", deleted);
     logger.info("Deleting Azure storage account");
     deleteCloudStorageAccount(profileModel, storageAccountResource);
+  }
+
+  public void deleteCloudStorageAccountMetadata(
+      String storageAccountResourceName, String flightId) {
+    logger.info("Deleting Azure storage account metadata");
+    boolean deleted =
+        resourceDao.deleteStorageAccountMetadata(storageAccountResourceName, flightId);
+    logger.info("Metadata removed: {}", deleted);
   }
 
   private StorageAccountLockException storageAccountLockException(String flightId) {

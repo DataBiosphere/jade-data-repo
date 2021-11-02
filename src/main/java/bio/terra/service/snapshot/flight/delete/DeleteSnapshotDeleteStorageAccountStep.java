@@ -4,7 +4,9 @@ import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
@@ -30,6 +32,7 @@ public class DeleteSnapshotDeleteStorageAccountStep extends OptionalStep {
 
   @Override
   public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
+    FlightMap workingMap = context.getWorkingMap();
     try {
       AzureStorageAccountResource snapshotStorageAccountResource =
           resourceService
@@ -37,8 +40,11 @@ public class DeleteSnapshotDeleteStorageAccountStep extends OptionalStep {
               .orElseThrow(
                   () -> new ResourceNotFoundException("Snapshot storage account not found"));
 
-      storageAccountService.deleteCloudStorageAccount(
-          snapshotStorageAccountResource, context.getFlightId());
+      workingMap.put(
+          SnapshotWorkingMapKeys.STORAGE_ACCOUNT_RESOURCE_NAME,
+          snapshotStorageAccountResource.getName());
+
+      storageAccountService.deleteCloudStorageAccount(snapshotStorageAccountResource);
 
     } catch (ResourceNotFoundException nfe) {
       // If we do not find the storage account, we assume things are already clean

@@ -277,12 +277,15 @@ public class GoogleBucketService {
     boolean doVersioning =
         Arrays.stream(env.getActiveProfiles()).noneMatch(env -> env.contains("test"));
     String bucketName = bucketResource.getName();
+    GoogleRegion region = bucketResource.getRegion();
+    StorageClass storageClass =
+        region.isMultiRegional() ? StorageClass.MULTI_REGIONAL : StorageClass.REGIONAL;
     BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
             // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
-            .setStorageClass(StorageClass.REGIONAL)
-            .setLocation(bucketResource.getRegion().getRegionOrFallbackBucketRegion().toString())
+            .setStorageClass(storageClass)
+            .setLocation(region.toString())
             .setVersioningEnabled(doVersioning)
             .build();
 

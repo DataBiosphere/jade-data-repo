@@ -492,6 +492,15 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
+  public String getProxyGroup(AuthenticatedUserRequest userReq) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getProxyGroupInner(userReq));
+  }
+
+  private String getProxyGroupInner(AuthenticatedUserRequest userReq) throws ApiException {
+    return samGoogleApi(userReq.getRequiredToken()).getProxyGroup(userReq.getEmail());
+  }
+
+  @Override
   public RepositoryStatusModelSystems samStatus() {
     try {
       return SamRetry.retry(

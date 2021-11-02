@@ -22,11 +22,11 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
-import scala.Function2;
 
 /** Utilities for building strings to access metadata */
 @Component
@@ -148,7 +148,7 @@ public final class MetadataDataAccessUtils {
             userRequest.getEmail());
 
     String blobName;
-    Function2<FSContainerInterface, Table, String> tableBlobGenerator;
+    BiFunction<FSContainerInterface, Table, String> tableBlobGenerator;
     if (collection instanceof Dataset) {
       blobName = "parquet";
       tableBlobGenerator =

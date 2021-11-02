@@ -235,10 +235,18 @@ public class GcsPdao implements CloudFileReader {
           storageAsPet.testIamPermissions(bucket, List.of("storage.objects.get"));
 
       if (!permissions.equals(List.of(true))) {
+        String proxyGroup;
+        try {
+          proxyGroup = iamClient.getProxyGroup(user);
+        } catch (InterruptedException e) {
+          // Don't fail since this call is really to get more information on a previous error
+          logger.warn("Could not get proxy group for user {}", user.getEmail());
+          proxyGroup = "N/A";
+        }
         throw new BlobAccessNotAuthorizedException(
             String.format(
-                "Accessing bucket %s is not authorized. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group",
-                bucket));
+                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group (%s)",
+                bucket, user.getEmail(), proxyGroup));
       }
     }
   }

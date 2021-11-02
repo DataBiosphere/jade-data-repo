@@ -171,6 +171,14 @@ public interface IamProviderInterface {
   UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq);
 
   /**
+   * Returns the proxy group of a user
+   *
+   * @param userReq authenticated user
+   * @return The google proxy group of a given user
+   */
+  String getProxyGroup(AuthenticatedUserRequest userReq) throws InterruptedException;
+
+  /**
    * Get Sam Status
    *
    * @return RepositoryStatusModelSystems model that includes status and message about sub-system

@@ -1,10 +1,13 @@
 package bio.terra.common;
 
+import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.cloud.bigquery.BigQueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,14 +25,17 @@ public class AclUtils {
     for (int i = 0; i < RETRIES; i++) {
       try {
         return aclUpdate.call();
-      } catch (AclRetryException ex) {
-        logger.info(
-            String.format(
-                "Failed to update ACL due to [%s]. Retry %d of %d", ex.getReason(), i, RETRIES),
-            ex);
-        lastException = ex.getCause();
       } catch (Exception ex) {
-        throw new GoogleResourceException("Error while performing ACL update", ex);
+        if (FireStoreUtils.shouldRetry(ex.getCause(), false)) {
+          logger.info(
+              String.format(
+                  "Failed to update ACL due to [%s]. Retry %d of %d", ex.getCause(), i, RETRIES),
+              ex);
+          lastException = ex.getCause();
+        } else {
+          throw new GoogleResourceException("Error while performing ACL update", ex);
+        }
+
       }
 
       TimeUnit.SECONDS.sleep(retryWait);
@@ -40,19 +46,5 @@ public class AclUtils {
       }
     }
     throw new UpdatePermissionsFailedException("Cannot update ACL permissions", lastException);
-  }
-
-  public static class AclRetryException extends RuntimeException {
-
-    private final String reason;
-
-    public AclRetryException(String message, Exception cause, String reason) {
-      super(message, cause);
-      this.reason = reason;
-    }
-
-    public String getReason() {
-      return reason;
-    }
   }
 }

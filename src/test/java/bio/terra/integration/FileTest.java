@@ -332,10 +332,14 @@ public class FileTest extends UsersBase {
     String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "/foo/bar";
     String gsFilePath = gsPath + "/files/file with space and #hash%percent+plus.txt";
+    dataRepoFixtures.addDatasetPolicyMember(
+        steward(), datasetId, IamRole.CUSTODIAN, reader().getEmail());
+    dataRepoFixtures.addPolicyMember(
+        steward(), profileId, IamRole.USER, reader().getEmail(), IamResourceType.SPEND_PROFILE);
     DataRepoResponse<JobModel> ingestJob =
         dataRepoFixtures.ingestFileLaunch(
-            // note: custodian's proxy group should not have access to the source bucket
-            custodian(), datasetId, profileId, gsFilePath, filePath);
+            // note: reader's proxy group should not have access to the source bucket
+            reader(), datasetId, profileId, gsFilePath, filePath);
     DataRepoResponse<FileModel> error =
         dataRepoClient.waitForResponse(steward(), ingestJob, FileModel.class);
 

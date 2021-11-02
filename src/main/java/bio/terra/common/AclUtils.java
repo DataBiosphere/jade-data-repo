@@ -6,8 +6,6 @@ import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedExc
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.cloud.bigquery.BigQueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +33,6 @@ public class AclUtils {
         } else {
           throw new GoogleResourceException("Error while performing ACL update", ex);
         }
-
       }
 
       TimeUnit.SECONDS.sleep(retryWait);
@@ -46,5 +43,19 @@ public class AclUtils {
       }
     }
     throw new UpdatePermissionsFailedException("Cannot update ACL permissions", lastException);
+  }
+
+  public static class AclRetryException extends RuntimeException {
+
+    private final String reason;
+
+    public AclRetryException(String message, Exception cause, String reason) {
+      super(message, cause);
+      this.reason = reason;
+    }
+
+    public String getReason() {
+      return reason;
+    }
   }
 }

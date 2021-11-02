@@ -125,11 +125,13 @@ Unfortunately, some manual configuration is also necessary:
 export VAULT_ADDR=https://clotho.broadinstitute.org:8200
 
 # configure helm
-helm repo add stable
 helm repo add datarepo-helm https://broadinstitute.github.io/datarepo-helm
 helm plugin install https://github.com/thomastaylor312/helm-namespace
 helm plugin install https://github.com/databus23/helm-diff
 helm repo update
+
+# launch docker desktop - this installs docker in /usr/local/bin
+open -a docker
 
 # configure google-cloud-sdk
 gcloud auth login

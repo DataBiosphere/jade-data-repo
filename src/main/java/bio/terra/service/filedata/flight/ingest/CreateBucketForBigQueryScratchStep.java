@@ -30,6 +30,13 @@ public class CreateBucketForBigQueryScratchStep extends OptionalStep {
     this.datasetService = datasetService;
   }
 
+  public CreateBucketForBigQueryScratchStep(
+      ResourceService resourceService, DatasetService datasetService) {
+    super();
+    this.resourceService = resourceService;
+    this.datasetService = datasetService;
+  }
+
   @Override
   public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();

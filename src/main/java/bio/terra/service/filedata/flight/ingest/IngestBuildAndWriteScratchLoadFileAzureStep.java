@@ -58,7 +58,7 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
         azureContainerPdao.getOrCreateContainer(
             billingProfile, storageAccount, AzureStorageAccountResource.ContainerType.SCRATCH);
     return containerClient
-        .getBlobClient(flightContext.getFlightId() + "-scratch.json")
+        .getBlobClient(flightContext.getFlightId() + "/ingest-scratch.json")
         .getBlobUrl();
   }
 

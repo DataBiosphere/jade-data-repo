@@ -589,6 +589,42 @@ public class DatasetIntegrationTest extends UsersBase {
     assertTableCount(bigQuery, dataset, "sample_vcf", 3L);
   }
 
+  @Test
+  public void testCopyingOfControlFilesMultiRegion() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(
+            steward(), profileId, "dataset-ingest-combined-array-us.json");
+    UUID datasetId = datasetSummaryModel.getId();
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path("gs://jade-testdata/dataset-ingest-combined-control-duplicates-array.json");
+
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
+
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+
+    List<String> rowIds = getRowIds(bigQuery, dataset, "sample_vcf", 1L);
+    String rowIdsPath = writeListToScratch("softDel", rowIds);
+
+    List<DataDeletionTableModel> dataDeletionTableModels =
+        List.of(deletionTableFile("sample_vcf", rowIdsPath));
+    DataDeletionRequest request = dataDeletionRequest().tables(dataDeletionTableModels);
+
+    dataRepoFixtures.deleteData(steward(), datasetId, request);
+
+    // We should see that one row was deleted.
+    assertTableCount(bigQuery, dataset, "sample_vcf", 3L);
+  }
+
   private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)
       throws InterruptedException {
 

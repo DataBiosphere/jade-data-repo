@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.common.CollectionType;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import java.util.UUID;
@@ -14,4 +15,6 @@ public interface FSContainerInterface {
   FireStoreProject firestoreConnection();
 
   String getName();
+
+  CollectionType getCollectionType();
 }

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -30,6 +31,11 @@ public class Snapshot implements FSContainerInterface {
   private GoogleProjectResource projectResource;
   private AzureStorageAccountResource storageAccountResource;
   private List<Relationship> relationships = Collections.emptyList();
+
+  @Override
+  public CollectionType getCollectionType() {
+    return CollectionType.SNAPSHOT;
+  }
 
   public UUID getId() {
     return id;

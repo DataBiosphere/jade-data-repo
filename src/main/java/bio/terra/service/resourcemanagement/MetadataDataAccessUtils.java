@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.CollectionType;
 import bio.terra.common.Table;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
@@ -31,11 +32,6 @@ import org.stringtemplate.v4.ST;
 /** Utilities for building strings to access metadata */
 @Component
 public final class MetadataDataAccessUtils {
-
-  private enum CollectionType {
-    DATASET,
-    SNAPSHOT
-  }
 
   private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofMinutes(15);
   private static final String BIGQUERY_DATASET_LINK =
@@ -149,11 +145,11 @@ public final class MetadataDataAccessUtils {
 
     String blobName;
     BiFunction<FSContainerInterface, Table, String> tableBlobGenerator;
-    if (collection instanceof Dataset) {
+    if (collection.getCollectionType() == CollectionType.DATASET) {
       blobName = "parquet";
       tableBlobGenerator =
           (c, t) -> new ST(AZURE_BLOB_TEMPLATE_DATASET).add("table", t.getName()).render();
-    } else if (collection instanceof Snapshot) {
+    } else if (collection.getCollectionType() == CollectionType.SNAPSHOT) {
       blobName = "parquet/" + collection.getId();
       tableBlobGenerator =
           (c, t) ->

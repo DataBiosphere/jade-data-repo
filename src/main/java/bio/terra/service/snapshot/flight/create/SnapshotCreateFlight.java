@@ -96,17 +96,18 @@ public class SnapshotCreateFlight extends Flight {
     // mint a snapshot id and put it in the working map
     addStep(new CreateSnapshotIdStep(snapshotReq));
 
-    // Get a new google project from RBS and store it in the working map
-    addStep(new GetResourceBufferProjectStep(bufferService));
+    if (platform.isGcp()) {
+      // Get a new google project from RBS and store it in the working map
+      addStep(new GetResourceBufferProjectStep(bufferService));
 
-    // create the snapshot metadata object in postgres and lock it
+      // create the snapshot metadata object in postgres and lock it
 
-    // Get or initialize the project where the snapshot resources will be created
-    addStep(
-        new CreateSnapshotInitializeProjectStep(
-            resourceService, firestoreRegion, sourceDatasets, snapshotName),
-        getDefaultExponentialBackoffRetryRule());
-
+      // Get or initialize the project where the snapshot resources will be created
+      addStep(
+          new CreateSnapshotInitializeProjectStep(
+              resourceService, firestoreRegion, sourceDatasets, snapshotName),
+          getDefaultExponentialBackoffRetryRule());
+    }
     addStep(
         new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq),
         getDefaultExponentialBackoffRetryRule());

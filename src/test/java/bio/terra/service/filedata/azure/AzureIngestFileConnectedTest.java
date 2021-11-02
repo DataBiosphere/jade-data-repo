@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
+import bio.terra.common.CollectionType;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -25,6 +26,7 @@ import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.azure.*;
 import com.azure.core.credential.AzureNamedKeyCredential;
@@ -52,6 +54,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Connected.class)
 public class AzureIngestFileConnectedTest {
   private static final Logger logger = LoggerFactory.getLogger(AzureIngestFileConnectedTest.class);
+
+  private AuthenticatedUserRequest testUser =
+      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
+
   private UUID datasetId;
   private String targetPath;
   private UUID homeTenantId;
@@ -198,7 +204,8 @@ public class AzureIngestFileConnectedTest {
 
     // 5 - IngestFileAzurePrimaryDataStep
     FSFileInfo fsFileInfo =
-        azureBlobStorePdao.copyFile(billingProfile, fileLoadModel, fileId, storageAccountResource);
+        azureBlobStorePdao.copyFile(
+            billingProfile, fileLoadModel, fileId, storageAccountResource, testUser);
 
     // 6 - IngestFileAzureFileStep
     FireStoreFile newFile =
@@ -216,7 +223,9 @@ public class AzureIngestFileConnectedTest {
 
     tableDao.createFileMetadata(newFile, storageAuthInfo);
     // Retrieve to build the complete FSItem
-    FSItem fsItem = tableDao.retrieveById(datasetId, fileId, 1, storageAuthInfo);
+    FSItem fsItem =
+        tableDao.retrieveById(
+            CollectionType.DATASET, datasetId, fileId, 1, storageAuthInfo, storageAuthInfo);
     FileModel resultingFileModel = fileService.fileModelFromFSItem(fsItem);
     assertThat(
         "file model contains correct info.", resultingFileModel.getFileId(), equalTo(fileId));

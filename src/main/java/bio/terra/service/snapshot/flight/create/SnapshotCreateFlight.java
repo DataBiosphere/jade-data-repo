@@ -95,13 +95,6 @@ public class SnapshotCreateFlight extends Flight {
     // mint a snapshot id and put it in the working map
     addStep(new CreateSnapshotIdStep(snapshotReq));
 
-    if (platform.isAzure()) {
-      // This will need to stay even after DR-2107
-      addStep(
-          new CreateSnapshotCreateAzureStorageAccountStep(
-              resourceService, sourceDataset, snapshotReq));
-    }
-
     // Get a new google project from RBS and store it in the working map
     addStep(new GetResourceBufferProjectStep(bufferService));
 
@@ -116,6 +109,13 @@ public class SnapshotCreateFlight extends Flight {
     addStep(
         new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq),
         getDefaultExponentialBackoffRetryRule());
+
+    if (platform.isAzure()) {
+      // This will need to stay even after DR-2107
+      addStep(
+          new CreateSnapshotCreateAzureStorageAccountStep(
+              resourceService, sourceDataset, snapshotReq));
+    }
 
     // Make the big query dataset with views and populate row id filtering tables.
     // Depending on the type of snapshot, the primary data step will differ:
@@ -141,9 +141,10 @@ public class SnapshotCreateFlight extends Flight {
         } else if (platform.isAzure()) {
           addStep(
               new CreateSnapshotSourceDatasetDataSourceAzureStep(
-                  azureSynapsePdao, azureBlobStorePdao));
+                  azureSynapsePdao, azureBlobStorePdao, userReq));
           addStep(
-              new CreateSnapshotTargetDataSourceAzureStep(azureSynapsePdao, azureBlobStorePdao));
+              new CreateSnapshotTargetDataSourceAzureStep(
+                  azureSynapsePdao, azureBlobStorePdao, userReq));
           addStep(new CreateSnapshotParquetFilesAzureStep(azureSynapsePdao, snapshotService));
           addStep(
               new CreateSnapshotCountTableRowsAzureStep(
@@ -155,7 +156,12 @@ public class SnapshotCreateFlight extends Flight {
           addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
           addStep(
               new CreateSnapshotPrimaryDataQueryStep(
-                  bigQueryPdao, datasetService, snapshotService, snapshotDao, snapshotReq));
+                  bigQueryPdao,
+                  datasetService,
+                  snapshotService,
+                  snapshotDao,
+                  snapshotReq,
+                  userReq));
           break;
         } else {
           throw new NotImplementedException(

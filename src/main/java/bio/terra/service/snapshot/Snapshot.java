@@ -40,6 +40,7 @@ public class Snapshot implements FSContainerInterface {
     return this;
   }
 
+  @Override
   public String getName() {
     return name;
   }
@@ -134,7 +135,7 @@ public class Snapshot implements FSContainerInterface {
     return storageAccountResource;
   }
 
-  public Snapshot setStorageAccountResource(AzureStorageAccountResource storageAccountResource) {
+  public Snapshot storageAccountResource(AzureStorageAccountResource storageAccountResource) {
     this.storageAccountResource = storageAccountResource;
     return this;
   }

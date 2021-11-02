@@ -28,6 +28,8 @@ import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
+import bio.terra.model.AccessInfoParquetModel;
+import bio.terra.model.AccessInfoParquetModelTable;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -37,18 +39,25 @@ import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DRSAccessMethod.TypeEnum;
+import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import java.nio.charset.StandardCharsets;
@@ -56,6 +65,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -395,6 +405,29 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestCSV);
     assertThat("2 row were ingested", ingestResponseCSV.getRowCount(), equalTo(2L));
 
+    // Only check the subset of tables that have rows
+    Set<String> tablesToCheck = Set.of(jsonIngestTableName, ingest2TableName);
+    // Read the ingested metadata
+    AccessInfoParquetModel datasetParquetAccessInfo =
+        dataRepoFixtures
+            .getDataset(
+                steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION))
+            .getAccessInformation()
+            .getParquet();
+
+    String datasetParquetUrl =
+        datasetParquetAccessInfo.getUrl() + "?" + datasetParquetAccessInfo.getSasToken();
+    TestUtils.verifyHttpAccess(datasetParquetUrl, Map.of());
+    verifySignedUrl(datasetParquetUrl, steward(), "rl");
+
+    for (AccessInfoParquetModelTable table : datasetParquetAccessInfo.getTables()) {
+      if (tablesToCheck.contains(table.getName())) {
+        String tableUrl = table.getUrl() + "?" + table.getSasToken();
+        TestUtils.verifyHttpAccess(tableUrl, Map.of());
+        verifySignedUrl(tableUrl, steward(), "rl");
+      }
+    }
+
     // Create Snapshot by full view
     SnapshotRequestModel requestModelAll =
         jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
@@ -406,9 +439,55 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     snapshotId = snapshotSummaryAll.getId();
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
 
-    // Delete the file we just ingested
+    // Read the ingested metadata
+    AccessInfoParquetModel snapshotParquetAccessInfo =
+        dataRepoFixtures
+            .getSnapshot(
+                steward(),
+                snapshotId,
+                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION))
+            .getAccessInformation()
+            .getParquet();
+
+    String snapshotParquetUrl =
+        snapshotParquetAccessInfo.getUrl() + "?" + snapshotParquetAccessInfo.getSasToken();
+    TestUtils.verifyHttpAccess(snapshotParquetUrl, Map.of());
+    verifySignedUrl(snapshotParquetUrl, steward(), "rl");
+
+    for (AccessInfoParquetModelTable table : snapshotParquetAccessInfo.getTables()) {
+      if (tablesToCheck.contains(table.getName())) {
+        String tableUrl = table.getUrl() + "?" + table.getSasToken();
+        TestUtils.verifyHttpAccess(tableUrl, Map.of());
+        verifySignedUrl(tableUrl, steward(), "rl");
+      }
+    }
+
     String fileId = result.getLoadFileResults().get(0).getFileId();
     String filePath = result.getLoadFileResults().get(0).getTargetPath();
+
+    // Do a Drs lookup
+    String drsId = String.format("v1_%s_%s", snapshotId, fileId);
+    DRSObject drsObject = dataRepoFixtures.drsGetObject(steward(), drsId);
+    assertThat(
+        "DRS object has single access method", drsObject.getAccessMethods().size(), equalTo(1));
+    assertThat(
+        "DRS object has HTTPS",
+        drsObject.getAccessMethods().get(0).getType(),
+        equalTo(TypeEnum.HTTPS));
+    assertThat(
+        "DRS object has access id",
+        drsObject.getAccessMethods().get(0).getAccessId(),
+        equalTo("az-centralus"));
+    // Make sure we can read the drs object
+    DrsResponse<DRSAccessURL> access =
+        dataRepoFixtures.getObjectAccessUrl(steward(), drsId, "az-centralus");
+    assertThat("Returns DRS access", access.getResponseObject().isPresent(), is(true));
+    String signedUrl = access.getResponseObject().get().getUrl();
+
+    TestUtils.verifyHttpAccess(signedUrl, Map.of());
+    verifySignedUrl(signedUrl, steward(), "r");
+
+    // Delete the file we just ingested
     dataRepoFixtures.deleteFile(steward, datasetId, fileId);
 
     assertThat(
@@ -737,5 +816,17 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         .iterator()
         .next()
         .value();
+  }
+
+  private void verifySignedUrl(String signedUrl, User user, String expectedPermissions) {
+    BlobUrlParts blobUrlParts = BlobUrlParts.parse(signedUrl);
+    assertThat(
+        "Signed url contains user",
+        blobUrlParts.getCommonSasQueryParameters().getContentDisposition(),
+        equalTo(user.getEmail()));
+    assertThat(
+        "Signed url only contains expected permissions",
+        blobUrlParts.getCommonSasQueryParameters().getPermissions(),
+        equalTo(expectedPermissions));
   }
 }

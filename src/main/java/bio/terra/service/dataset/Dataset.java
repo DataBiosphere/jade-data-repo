@@ -121,6 +121,7 @@ public class Dataset implements FSContainerInterface {
     return this;
   }
 
+  @Override
   public String getName() {
     return datasetSummary.getName();
   }

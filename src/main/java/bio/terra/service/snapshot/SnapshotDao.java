@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetSpecification;
@@ -311,7 +312,12 @@ public class SnapshotDao {
             + "        WHERE ss.dataset_id = d.id"
             + "        AND d.project_resource_id = p.id"
             + "        AND snapshot.id = ss.snapshot_id) ds)"
-            + "  AS dataset_sources "
+            + "  AS dataset_sources, "
+            // Detect the cloud provider of the
+            + "case "
+            + "when storage_account_resource_id is not null then 'azure' "
+            + "when project_resource_id is not null then 'gcp' "
+            + "end AS cloud_platform "
             + "FROM snapshot "
             + "JOIN project_resource ON snapshot.project_resource_id = project_resource.id "
             + "WHERE snapshot.id = :id";
@@ -377,7 +383,7 @@ public class SnapshotDao {
         // Retrieve the Azure Storage Account associated with the snapshot.
         resourceService
             .getSnapshotStorageAccount(snapshot.getId())
-            .ifPresent(snapshot::setStorageAccountResource);
+            .ifPresent(snapshot::storageAccountResource);
       }
       return snapshot;
     } catch (EmptyResultDataAccessException ex) {
@@ -405,6 +411,7 @@ public class SnapshotDao {
                     .name(rs.getString("name"))
                     .profileId(rs.getObject("profile_id", UUID.class))
                     .dataProject(rs.getString("google_project_id"))
+                    .cloudPlatform(CloudPlatform.fromValue(rs.getString("cloud_platform")))
                     .sourceDatasetProjects(datasetProjects);
               });
       return snapshotProject;

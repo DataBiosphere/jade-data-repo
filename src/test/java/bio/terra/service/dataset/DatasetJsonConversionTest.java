@@ -16,6 +16,7 @@ import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import java.io.IOException;
@@ -29,6 +30,8 @@ import org.junit.experimental.categories.Category;
 
 @Category(Unit.class)
 public class DatasetJsonConversionTest {
+  private AuthenticatedUserRequest testUser =
+      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
 
   private static final UUID DATASET_PROFILE_ID = UUID.randomUUID();
   private static final String DATASET_NAME = "dataset_name";
@@ -137,7 +140,7 @@ public class DatasetJsonConversionTest {
                                 .follow(Collections.emptyList()))))
             .dataProject(DATASET_DATA_PROJECT);
 
-    metadataDataAccessUtils = new MetadataDataAccessUtils(null, null);
+    metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
   }
 
   @Test
@@ -149,7 +152,8 @@ public class DatasetJsonConversionTest {
                 DatasetRequestAccessIncludeModel.SCHEMA,
                 DatasetRequestAccessIncludeModel.PROFILE,
                 DatasetRequestAccessIncludeModel.DATA_PROJECT),
-            metadataDataAccessUtils),
+            metadataDataAccessUtils,
+            testUser),
         equalTo(datasetModel));
   }
 
@@ -160,7 +164,8 @@ public class DatasetJsonConversionTest {
             dataset,
             List.of(
                 DatasetRequestAccessIncludeModel.NONE, DatasetRequestAccessIncludeModel.PROFILE),
-            metadataDataAccessUtils),
+            metadataDataAccessUtils,
+            testUser),
         equalTo(datasetModel.dataProject(null).defaultProfileId(null).schema(null)));
   }
 
@@ -171,7 +176,8 @@ public class DatasetJsonConversionTest {
         DatasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
             List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION),
-            metadataDataAccessUtils),
+            metadataDataAccessUtils,
+            testUser),
         equalTo(
             datasetModel
                 .dataProject(null)

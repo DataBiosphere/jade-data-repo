@@ -59,7 +59,8 @@ public class SnapshotDeleteFlight extends Flight {
     // TODO note that with multi-dataset snapshots this will need to change
     UUID datasetId;
     try {
-      List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotId(snapshotId);
+      List<UUID> sourceDatasetIds =
+          snapshotService.getSourceDatasetIdsFromSnapshotId(snapshotId, userReq);
       datasetId = sourceDatasetIds.get(0);
     } catch (SnapshotNotFoundException notFoundEx) {
       datasetId = null;

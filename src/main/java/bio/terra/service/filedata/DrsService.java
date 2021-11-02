@@ -17,6 +17,7 @@ import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
@@ -34,6 +35,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -64,7 +66,7 @@ public class DrsService {
   private final Logger logger = LoggerFactory.getLogger("bio.terra.service.filedata.DrsService");
 
   private static final String DRS_OBJECT_VERSION = "0";
-  private static final int URL_TTL = 15;
+  private static final Duration URL_TTL = Duration.ofMinutes(15);
   // atomic counter that we incr on request arrival and decr on request response
   private final AtomicInteger currentDRSRequests = new AtomicInteger(0);
 
@@ -260,8 +262,10 @@ public class DrsService {
                 storageAccountResource,
                 ((FSFile) fsItem).getCloudPath(),
                 ContainerType.DATA,
-                Duration.ofMinutes(URL_TTL),
-                authUser.getEmail()));
+                new BlobSasTokenOptions(
+                    URL_TTL,
+                    new BlobSasPermission().setReadPermission(true),
+                    authUser.getEmail())));
   }
 
   private DRSAccessURL signGoogleUrl(Snapshot snapshot, DRSAccessMethod accessMethod) {
@@ -278,7 +282,10 @@ public class DrsService {
 
     URL url =
         storage.signUrl(
-            blobInfo, URL_TTL, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
+            blobInfo,
+            URL_TTL.toMinutes(),
+            TimeUnit.MINUTES,
+            Storage.SignUrlOption.withV4Signature());
 
     return new DRSAccessURL().url(url.toString());
   }

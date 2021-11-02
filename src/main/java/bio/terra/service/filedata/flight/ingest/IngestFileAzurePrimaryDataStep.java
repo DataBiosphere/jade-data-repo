@@ -11,6 +11,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -27,11 +28,15 @@ public class IngestFileAzurePrimaryDataStep implements Step {
 
   private final ConfigurationService configService;
   private final AzureBlobStorePdao azureBlobStorePdao;
+  private final AuthenticatedUserRequest userRequest;
 
   public IngestFileAzurePrimaryDataStep(
-      AzureBlobStorePdao azureBlobStorePdao, ConfigurationService configService) {
+      AzureBlobStorePdao azureBlobStorePdao,
+      ConfigurationService configService,
+      AuthenticatedUserRequest userRequest) {
     this.configService = configService;
     this.azureBlobStorePdao = azureBlobStorePdao;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -60,7 +65,7 @@ public class IngestFileAzurePrimaryDataStep implements Step {
       } else {
         fsFileInfo =
             azureBlobStorePdao.copyFile(
-                billingProfileModel, fileLoadModel, fileId, storageAccountResource);
+                billingProfileModel, fileLoadModel, fileId, storageAccountResource, userRequest);
       }
       workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
     }
@@ -80,7 +85,8 @@ public class IngestFileAzurePrimaryDataStep implements Step {
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE,
             AzureStorageAccountResource.class);
     String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
-    if (!azureBlobStorePdao.deleteDataFileById(fileId, fileName, storageAccountResource)) {
+    if (!azureBlobStorePdao.deleteDataFileById(
+        fileId, fileName, storageAccountResource, userRequest)) {
       logger.warn(
           "File {} {} in storage account {} was not deleted.  It could ne non-existent",
           fileId,

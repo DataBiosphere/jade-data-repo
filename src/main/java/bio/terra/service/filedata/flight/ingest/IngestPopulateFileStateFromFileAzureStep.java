@@ -6,6 +6,7 @@ import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
@@ -19,15 +20,18 @@ import java.io.IOException;
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFileStateFromFileStep {
   private final AzureBlobStorePdao azureBlobStorePdao;
+  private final AuthenticatedUserRequest userRequest;
 
   public IngestPopulateFileStateFromFileAzureStep(
       LoadService loadService,
       int maxBadLines,
       int batchSize,
       AzureBlobStorePdao azureBlobStorePdao,
-      ObjectMapper bulkLoadObjectMapper) {
+      ObjectMapper bulkLoadObjectMapper,
+      AuthenticatedUserRequest userRequest) {
     super(loadService, maxBadLines, batchSize, bulkLoadObjectMapper);
     this.azureBlobStorePdao = azureBlobStorePdao;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -45,7 +49,7 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
     IngestUtils.validateBlobAzureBlobFileURL(blobStoreUrl);
     String ingestRequestSignedUrl =
         azureBlobStorePdao.getOrSignUrlStringForSourceFactory(
-            blobStoreUrl, billingProfileModel.getTenantId());
+            blobStoreUrl, billingProfileModel.getTenantId(), userRequest);
 
     // Stream from control file and build list of files to be ingested
     try (BufferedReader reader = new AzureBlobStoreBufferedReader(ingestRequestSignedUrl)) {

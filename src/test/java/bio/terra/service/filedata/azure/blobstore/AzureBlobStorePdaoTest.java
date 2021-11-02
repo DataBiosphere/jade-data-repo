@@ -7,7 +7,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -24,6 +23,7 @@ import bio.terra.service.filedata.azure.util.BlobContainerCopier;
 import bio.terra.service.filedata.azure.util.BlobContainerCopySyncPoller;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
@@ -52,6 +52,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class AzureBlobStorePdaoTest {
+  private static final AuthenticatedUserRequest TEST_USER =
+      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
   private static final UUID PROFILE_ID = UUID.randomUUID();
   private static final UUID RESOURCE_ID = UUID.randomUUID();
   private static final UUID TENANT_ID = UUID.randomUUID();
@@ -112,7 +114,7 @@ public class AzureBlobStorePdaoTest {
     blobCrl = mock(BlobCrl.class);
     doReturn(targetBlobContainerFactory)
         .when(dao)
-        .getTargetDataClientFactory(any(), any(), any(), anyBoolean());
+        .getTargetDataClientFactory(any(), any(), any(), any());
     doReturn(sourceBlobContainerFactory)
         .when(dao)
         .getSourceClientFactory(anyString(), any(), anyString());
@@ -129,7 +131,11 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
-            BILLING_PROFILE, fileLoadModel, fileId.toString(), AZURE_STORAGE_ACCOUNT_RESOURCE);
+            BILLING_PROFILE,
+            fileLoadModel,
+            fileId.toString(),
+            AZURE_STORAGE_ACCOUNT_RESOURCE,
+            TEST_USER);
     assertThat("output is expected", fsFileInfo, samePropertyValuesAs(expectedFileInfo));
   }
 
@@ -145,7 +151,11 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
-            BILLING_PROFILE, fileLoadModel, fileId.toString(), AZURE_STORAGE_ACCOUNT_RESOURCE);
+            BILLING_PROFILE,
+            fileLoadModel,
+            fileId.toString(),
+            AZURE_STORAGE_ACCOUNT_RESOURCE,
+            TEST_USER);
     assertThat("output is expected", fsFileInfo, samePropertyValuesAs(expectedFileInfo));
   }
 
@@ -160,7 +170,7 @@ public class AzureBlobStorePdaoTest {
             .fileId(fileId.toString())
             .bucketResourceId(RESOURCE_ID.toString())
             .gspath(fsFileInfo.getCloudPath());
-    assertThat(dao.deleteFile(fileToDelete), equalTo(true));
+    assertThat(dao.deleteFile(fileToDelete, TEST_USER), equalTo(true));
   }
 
   @Test
@@ -174,7 +184,7 @@ public class AzureBlobStorePdaoTest {
             .fileId(fileId.toString())
             .bucketResourceId(RESOURCE_ID.toString())
             .gspath(fsFileInfo.getCloudPath());
-    assertThat(dao.deleteFile(fileToDelete), equalTo(false));
+    assertThat(dao.deleteFile(fileToDelete, TEST_USER), equalTo(false));
   }
 
   @Test
@@ -188,7 +198,8 @@ public class AzureBlobStorePdaoTest {
             .bucketResourceId(RESOURCE_ID.toString())
             .gspath("https://differentaccountname.blob.core.windows.net/data/blob.txt");
     assertThat(
-        assertThrows(PdaoException.class, () -> dao.deleteFile(fileToDelete)).getMessage(),
+        assertThrows(PdaoException.class, () -> dao.deleteFile(fileToDelete, TEST_USER))
+            .getMessage(),
         equalTo(
             "Resource groups between metadata storage and request do not match: "
                 + "differentaccountname != sa"));
@@ -201,7 +212,8 @@ public class AzureBlobStorePdaoTest {
     when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(true);
 
     assertThat(
-        dao.deleteDataFileById(fileId.toString(), SOURCE_FILE_NAME, AZURE_STORAGE_ACCOUNT_RESOURCE),
+        dao.deleteDataFileById(
+            fileId.toString(), SOURCE_FILE_NAME, AZURE_STORAGE_ACCOUNT_RESOURCE, TEST_USER),
         equalTo(true));
   }
 
@@ -212,7 +224,8 @@ public class AzureBlobStorePdaoTest {
     when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(false);
 
     assertThat(
-        dao.deleteDataFileById(fileId.toString(), SOURCE_FILE_NAME, AZURE_STORAGE_ACCOUNT_RESOURCE),
+        dao.deleteDataFileById(
+            fileId.toString(), SOURCE_FILE_NAME, AZURE_STORAGE_ACCOUNT_RESOURCE, TEST_USER),
         equalTo(false));
   }
 

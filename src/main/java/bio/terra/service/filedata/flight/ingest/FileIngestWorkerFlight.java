@@ -85,7 +85,7 @@ public class FileIngestWorkerFlight extends Flight {
     } else if (platform.isAzure()) {
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset));
       addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
-      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
+      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService, userReq));
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), fileSystemRetry);
     }
   }

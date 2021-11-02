@@ -123,10 +123,12 @@ public class GcsPdao implements CloudFileReader {
    * @param blobUrl blobUrl to files, or blobUrl including wildcard referring to many files
    * @param cloudEncapsulationId Project ID to use for storage service in case of requester pays
    *     bucket
+   * @param userRequest user making the request
    * @return All of the lines from all of the files matching the blobUrl, as a Stream
    */
   @Override
-  public Stream<String> getBlobsLinesStream(String blobUrl, String cloudEncapsulationId) {
+  public Stream<String> getBlobsLinesStream(
+      String blobUrl, String cloudEncapsulationId, AuthenticatedUserRequest userRequest) {
     Storage storage = gcsProjectFactory.getStorage(cloudEncapsulationId);
     return listGcsFiles(blobUrl, cloudEncapsulationId, storage)
         .flatMap(blob -> getBlobLinesStream(blob, cloudEncapsulationId, storage));

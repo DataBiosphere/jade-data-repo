@@ -149,21 +149,24 @@ public final class MetadataDataAccessUtils {
 
     String blobName;
     BiFunction<FSContainerInterface, Table, String> tableBlobGenerator;
-    if (collection instanceof Dataset) {
-      blobName = "parquet";
-      tableBlobGenerator =
-          (c, t) -> new ST(AZURE_BLOB_TEMPLATE_DATASET).add("table", t.getName()).render();
-    } else if (collection instanceof Snapshot) {
-      blobName = "parquet/" + collection.getId();
-      tableBlobGenerator =
-          (c, t) ->
-              new ST(AZURE_BLOB_TEMPLATE_SNAPSHOT)
-                  .add("collectionId", c.getId())
-                  .add("table", t.getName())
-                  .render();
-    } else {
-      throw new IllegalArgumentException(
-          String.format("Invalid collection type: %s", collection.getClass().getName()));
+    switch (collection.getCollectionType()) {
+      case DATASET:
+        blobName = "parquet";
+        tableBlobGenerator =
+            (c, t) -> new ST(AZURE_BLOB_TEMPLATE_DATASET).add("table", t.getName()).render();
+        break;
+      case SNAPSHOT:
+        blobName = "parquet/" + collection.getId();
+        tableBlobGenerator =
+            (c, t) ->
+                new ST(AZURE_BLOB_TEMPLATE_SNAPSHOT)
+                    .add("collectionId", c.getId())
+                    .add("table", t.getName())
+                    .render();
+        break;
+      default:
+        throw new IllegalArgumentException(
+            String.format("Invalid collection type: %s", collection.getClass().getName()));
     }
 
     String unsignedUrl =

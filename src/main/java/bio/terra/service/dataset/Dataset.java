@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -212,5 +213,10 @@ public class Dataset implements FSContainerInterface {
   public AzureRegion getStorageAccountRegion() {
     return (AzureRegion)
         datasetSummary.getStorageResourceRegion(AzureCloudResource.STORAGE_ACCOUNT);
+  }
+
+  @Override
+  public CollectionType getCollectionType() {
+    return CollectionType.DATASET;
   }
 }

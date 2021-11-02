@@ -4,6 +4,7 @@ import json, os, re, uuid
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 from datetime import datetime
+from tqdm import tqdm
 
 
 auth, token = os.environ["AUTH_TOKEN"].split(": ", 1)
@@ -22,19 +23,24 @@ def now():
 # todo: refactor to use request library
 def retrieve_snapshot():
 
-    req = Request(url_retrieve_snapshot)
+    print(url_retrieve_snapshot)
+    print("TOKEN " + token)
     headers = {
         "accept": "application/json",
         auth: token,
     }
+    req = Request(url_retrieve_snapshot, headers=headers, method='GET')
 
-    try:
-        res = urlopen(req)
-    except HTTPError as err:
-        if err.code == 401:
-            raise err
-        if err.code == 404:
-            raise err
+
+    #try:
+    res = urlopen(req)
+   # except HTTPError as err:
+
+    #    if err.code == 401:
+
+     #       raise err
+      #  if err.code == 404:
+       #     raise err
 
     snapshot = json.load(res)
 

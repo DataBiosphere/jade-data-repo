@@ -55,6 +55,7 @@ public final class ProfileFixtures {
         .resourceGroupName(resourceGroupName)
         .applicationDeploymentName(applicationDeploymentName)
         .profileName(randomizeName("test-profile"))
+        .biller("direct")
         .description("test profile description (Azure");
   }
 

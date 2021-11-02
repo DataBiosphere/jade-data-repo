@@ -65,7 +65,6 @@ public class ProfileDao {
             + " (:id, :name, :biller, :billing_account_id, :description, :cloud_platform, "
             + "     :tenant_id, :subscription_id, :resource_group_name, :application_deployment_name, :created_by)";
 
-    String biller = Optional.ofNullable(profileRequest.getBiller()).orElse(null);
     String billingAccountId =
         Optional.ofNullable(profileRequest.getBillingAccountId()).orElse(null);
     String cloudPlatform =
@@ -84,7 +83,7 @@ public class ProfileDao {
         new MapSqlParameterSource()
             .addValue("id", profileRequest.getId())
             .addValue("name", profileRequest.getProfileName())
-            .addValue("biller", biller)
+            .addValue("biller", profileRequest.getBiller())
             .addValue("billing_account_id", billingAccountId)
             .addValue("description", profileRequest.getDescription())
             .addValue("cloud_platform", cloudPlatform)

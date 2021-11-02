@@ -603,7 +603,7 @@ paths:
           required: false
           schema:
             type: array
-            default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
+            default: ["SOURCES","TABLES","RELATIONSHIPS","PROFILE","DATA_PROJECT"]
             items:
               $ref: '#/components/schemas/SnapshotRequestAccessIncludeModel'
       responses:
@@ -1047,7 +1047,7 @@ paths:
           required: false
           schema:
             type: array
-            default: "SCHEMA,PROFILE,DATA_PROJECT,STORAGE"
+            default: ["SCHEMA","PROFILE","DATA_PROJECT","STORAGE"]
             items:
               $ref: '#/components/schemas/DatasetRequestAccessIncludeModel'
       responses:
@@ -3733,7 +3733,6 @@ components:
             An example query that can be used to select data from this table
     SnapshotSourceModel:
       required:
-        - asset
         - dataset
       type: object
       properties:

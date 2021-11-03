@@ -130,7 +130,8 @@ public class SamIamTest {
                 new ResourceAndAccessPolicy().resourceId(goodId.toString()),
                 new ResourceAndAccessPolicy().resourceId(badId)));
 
-    var uuids = samIam.listAuthorizedResources(userReq, IamResourceType.SPEND_PROFILE).keySet();
+    Set<UUID> uuids =
+        samIam.listAuthorizedResources(userReq, IamResourceType.SPEND_PROFILE).keySet();
     assertThat(uuids, contains(goodId));
   }
 

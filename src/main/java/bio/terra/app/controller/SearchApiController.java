@@ -171,7 +171,7 @@ public class SearchApiController implements SearchApi {
   public ResponseEntity<SearchQueryResultModel> querySearchIndices(
       SearchQueryRequest searchQueryRequest, Integer offset, Integer limit) {
 
-    var accessibleIds =
+    Set<UUID> accessibleIds =
         iamService
             .listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
             .keySet();

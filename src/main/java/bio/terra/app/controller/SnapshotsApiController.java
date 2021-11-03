@@ -34,6 +34,7 @@ import io.swagger.annotations.Api;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
@@ -166,7 +167,7 @@ public class SnapshotsApiController implements SnapshotsApi {
       @Valid @RequestParam(value = "region", required = false) String region,
       @Valid @RequestParam(value = "datasetIds", required = false) List<String> datasetIds) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    var resources =
+    Set<UUID> resources =
         iamService
             .listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
             .keySet();

@@ -2,7 +2,7 @@ package bio.terra.service.common;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.job.BaseStep;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -10,7 +10,7 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 
-public abstract class CreateAzureStorageAccountStep extends BaseStep {
+public abstract class CreateAzureStorageAccountStep extends DefaultUndoStep {
 
   private final ResourceService resourceService;
   private final Dataset dataset;

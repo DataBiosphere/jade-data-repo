@@ -10,7 +10,7 @@ import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.job.BaseStep;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadCandidates;
@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
 // - BUCKET_INFO is a GoogleBucketResource
 // - STORAGE_ACCOUNT_RESOURCE is a AzureStorageAccountResource
 //
-public class IngestDriverStep extends BaseStep {
+public class IngestDriverStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
   private final LoadService loadService;

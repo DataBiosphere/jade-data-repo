@@ -9,7 +9,7 @@ import bio.terra.service.filedata.exception.FileAlreadyExistsException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
-import bio.terra.service.job.BaseStep;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
@@ -17,7 +17,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 
-public class ValidateIngestFileAzureDirectoryStep extends BaseStep {
+public class ValidateIngestFileAzureDirectoryStep extends DefaultUndoStep {
   public static final String CREATE_ENTRY_ACTION = "createEntry";
   public static final String CHECK_ENTRY_ACTION = "checkEntry";
 

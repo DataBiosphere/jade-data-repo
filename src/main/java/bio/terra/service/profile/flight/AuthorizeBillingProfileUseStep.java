@@ -2,7 +2,7 @@ package bio.terra.service.profile.flight;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.job.BaseStep;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -18,7 +18,7 @@ import java.util.UUID;
  * is stored in the working map of the flight in the ProfileMapKeys.PROFILE_MODEL entry. On failure,
  * exception is thrown and the flight will fail.
  */
-public class AuthorizeBillingProfileUseStep extends BaseStep {
+public class AuthorizeBillingProfileUseStep extends DefaultUndoStep {
   private final ProfileService profileService;
   private final UUID profileId;
   private final AuthenticatedUserRequest user;

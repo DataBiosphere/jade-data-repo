@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.service.job.BaseStep;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -9,7 +9,7 @@ import bio.terra.stairway.StepResult;
 import java.util.UUID;
 
 // Populate the files to be loaded from the incoming array
-public class IngestCleanFileStateStep extends BaseStep {
+public class IngestCleanFileStateStep extends DefaultUndoStep {
 
   private final LoadService loadService;
 

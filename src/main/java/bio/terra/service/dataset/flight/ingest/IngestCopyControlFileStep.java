@@ -6,7 +6,7 @@ import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.job.BaseStep;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -14,7 +14,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.storage.BlobId;
 
-public class IngestCopyControlFileStep extends BaseStep {
+public class IngestCopyControlFileStep extends DefaultUndoStep {
 
   private final DatasetService datasetService;
   private final GcsPdao gcsPdao;

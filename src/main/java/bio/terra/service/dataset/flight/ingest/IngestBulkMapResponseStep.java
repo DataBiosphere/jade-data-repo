@@ -3,7 +3,7 @@ package bio.terra.service.dataset.flight.ingest;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadResultModel;
-import bio.terra.service.job.BaseStep;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -15,7 +15,7 @@ import java.util.UUID;
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
 //
-public class IngestBulkMapResponseStep extends BaseStep {
+public class IngestBulkMapResponseStep extends DefaultUndoStep {
 
   private final LoadService loadService;
   private final String loadTag;

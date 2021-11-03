@@ -3,7 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.job.BaseStep;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
@@ -14,7 +14,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 
-public class IngestFileInitializeProjectStep extends BaseStep {
+public class IngestFileInitializeProjectStep extends DefaultUndoStep {
   private final ResourceService resourceService;
   private final Dataset dataset;
 

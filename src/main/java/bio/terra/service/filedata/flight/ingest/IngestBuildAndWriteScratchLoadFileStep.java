@@ -11,7 +11,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.job.BaseStep;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public abstract class IngestBuildAndWriteScratchLoadFileStep extends BaseStep {
+public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndoStep {
   protected final ObjectMapper objectMapper;
   protected final Dataset dataset;
 

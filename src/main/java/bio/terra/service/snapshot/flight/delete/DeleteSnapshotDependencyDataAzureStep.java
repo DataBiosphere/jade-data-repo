@@ -25,12 +25,12 @@ public class DeleteSnapshotDependencyDataAzureStep extends OptionalStep {
   private static Logger logger =
       LoggerFactory.getLogger(DeleteSnapshotDependencyDataAzureStep.class);
 
-  private TableDependencyDao tableDependencyDao;
-  private UUID snapshotId;
-  private DatasetService datasetService;
-  private ProfileService profileService;
-  private ResourceService resourceService;
-  private AzureAuthService azureAuthService;
+  private final TableDependencyDao tableDependencyDao;
+  private final UUID snapshotId;
+  private final DatasetService datasetService;
+  private final ProfileService profileService;
+  private final ResourceService resourceService;
+  private final AzureAuthService azureAuthService;
 
   public DeleteSnapshotDependencyDataAzureStep(
       TableDependencyDao tableDependencyDao,

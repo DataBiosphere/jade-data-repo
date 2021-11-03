@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.common.exception.RetryQueryException;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
@@ -15,7 +14,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.List;
 import java.util.UUID;
 
 public class DeleteSnapshotPopAndLockDatasetStep implements Step {
@@ -78,11 +76,9 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
     FlightMap map = context.getWorkingMap();
     boolean datasetExists = map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class);
     if (datasetExists) {
-      List<Dataset> sourceDatasets = snapshotService.getSourceDatasetsFromSnapshotId(snapshotId);
-      Dataset sourceDataset = sourceDatasets.get(0);
-      UUID datasetId = sourceDataset.getId();
+      UUID sourceDatasetId = snapshotService.getFirstSourceDatasetIdFromSnapshotId(snapshotId);
       try {
-        datasetService.unlockDataset(datasetId, context.getFlightId(), sharedLock);
+        datasetService.unlockDataset(sourceDatasetId, context.getFlightId(), sharedLock);
       } catch (DatasetLockException | DatasetNotFoundException ex) {
         // DatasetLockException will be thrown if flight id was not set
         return StepResult.getStepResultSuccess();

@@ -33,6 +33,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
@@ -340,11 +341,12 @@ public class SnapshotService {
         .collect(Collectors.toList());
   }
 
-  public List<Dataset> getSourceDatasetsFromSnapshotId(UUID snapshotId) {
+  public UUID getFirstSourceDatasetIdFromSnapshotId(UUID snapshotId) {
     SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId);
     return snapshotModel.getSource().stream()
-        .map(s -> datasetService.retrieveByName(s.getDataset().getName()))
-        .collect(Collectors.toList());
+        .map(s -> s.getDataset().getId())
+        .findFirst()
+        .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotId(UUID snapshotId) {

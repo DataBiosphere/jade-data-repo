@@ -154,7 +154,7 @@ public class GoogleBucketService {
         }
         if (!StringUtils.equals(lockingFlightId, flightId)) {
           // CASE 2: another flight is creating the bucket
-          throw bucketLockException(flightId);
+          throw bucketLockException(lockingFlightId);
         }
         // CASE 3: we have the flight locked, but we did all of the creating.
         return createFinish(bucket, flightId, googleBucketResource);
@@ -180,7 +180,7 @@ public class GoogleBucketService {
         }
         if (!StringUtils.equals(lockingFlightId, flightId)) {
           // CASE 7: another flight is creating the bucket
-          throw bucketLockException(flightId);
+          throw bucketLockException(lockingFlightId);
         }
         // CASE 8: this flight has the metadata locked, but didn't finish creating the bucket
         return createCloudBucket(googleBucketResource, flightId);
@@ -208,7 +208,16 @@ public class GoogleBucketService {
         resourceDao.createAndLockBucket(bucketName, projectResource, region, flightId);
     if (googleBucketResource == null) {
       // We tried and failed to get the lock. So we ended up in CASE 2 after all.
-      throw bucketLockException(flightId);
+      GoogleBucketResource lockingGoogleBucketResource =
+          resourceDao.getBucket(bucketName, projectResource.getId());
+      if (lockingGoogleBucketResource != null) {
+        throw bucketLockException(lockingGoogleBucketResource.getFlightId());
+      } else {
+        throw new CorruptMetadataException(
+            String.format(
+                "Could not create and lock bucket, but no locking row exists. FlightId: %s",
+                flightId));
+      }
     }
 
     // this fault is used by the ResourceLockTest
@@ -277,12 +286,15 @@ public class GoogleBucketService {
     boolean doVersioning =
         Arrays.stream(env.getActiveProfiles()).noneMatch(env -> env.contains("test"));
     String bucketName = bucketResource.getName();
+    GoogleRegion region = bucketResource.getRegion();
+    StorageClass storageClass =
+        region.isMultiRegional() ? StorageClass.MULTI_REGIONAL : StorageClass.REGIONAL;
     BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
             // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
-            .setStorageClass(StorageClass.REGIONAL)
-            .setLocation(bucketResource.getRegion().getRegionOrFallbackBucketRegion().toString())
+            .setStorageClass(storageClass)
+            .setLocation(region.toString())
             .setVersioningEnabled(doVersioning)
             .build();
 

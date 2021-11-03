@@ -148,7 +148,24 @@ public final class BigQueryProject {
 
   public void updateDatasetAcls(Dataset dataset, List<Acl> acls) throws InterruptedException {
     DatasetInfo datasetInfo = dataset.toBuilder().setAcl(acls).build();
-    AclUtils.aclUpdateRetry(() -> bigQuery.update(datasetInfo));
+    AclUtils.aclUpdateRetry(
+        () -> {
+          try {
+            bigQuery.update(datasetInfo);
+          } catch (BigQueryException ex) {
+            bigQueryAclUpdateShouldRetry(ex);
+          }
+          return null;
+        });
+  }
+
+  private void bigQueryAclUpdateShouldRetry(RuntimeException ex) {
+    String message = ex.getMessage();
+    if (message.startsWith("IAM setPolicy") && message.endsWith("does not exist.")) {
+      throw new AclUtils.AclRetryException(
+          "Policy does not exist. Retrying to wait for propagation", ex, "propagation");
+    }
+    throw ex;
   }
 
   public void addDatasetAcls(String datasetId, List<Acl> acls) throws InterruptedException {

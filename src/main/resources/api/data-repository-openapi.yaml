@@ -3733,7 +3733,6 @@ components:
             An example query that can be used to select data from this table
     SnapshotSourceModel:
       required:
-        - asset
         - dataset
       type: object
       properties:

@@ -59,19 +59,13 @@ public class DatasetDataDeleteFlight extends Flight {
     // need to lock, need dataset name and flight id
     addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
 
-    // See if we need to copy the control file to a scratch bucket in the same region as BQ
-    addStep(new DataDeletionControlFileCopyNeededStep(datasetService, gcsPdao));
-
     // If we need to copy, make (or get) the scratch bucket
     addStep(
-        new CreateBucketForBigQueryScratchStep(
-            resourceService, datasetService, DataDeletionUtils::isControlFileCopyNeeded),
+        new CreateBucketForBigQueryScratchStep(resourceService, datasetService),
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
 
     // If we need to copy, copy to the scratch bucket
-    addStep(
-        new DataDeletionCopyFilesToBigQueryScratchBucketStep(
-            datasetService, gcsPdao, DataDeletionUtils::isControlFileCopyNeeded));
+    addStep(new DataDeletionCopyFilesToBigQueryScratchBucketStep(datasetService, gcsPdao));
 
     // validate tables exist, check access to files, and create external temp tables
     addStep(new CreateExternalTablesStep(bigQueryPdao, datasetService));

@@ -15,7 +15,7 @@ public abstract class OptionalStep implements Step {
   private final Predicate<FlightContext> doStepCondition;
 
   public OptionalStep() {
-    this(x -> true);
+    this(OptionalStep::alwaysDo);
   }
 
   public OptionalStep(Predicate<FlightContext> doCondition) {

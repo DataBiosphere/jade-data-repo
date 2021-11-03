@@ -17,13 +17,14 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.search.SearchService;
 import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -89,13 +90,31 @@ public class SearchApiControllerTest {
     var endpoint = "/api/repository/v1/search/metadata";
     var json = "{\"test\":\"data\"}";
     UUID uuid = UUID.randomUUID();
-    List<UUID> uuids = List.of(uuid);
+    Set<UUID> uuids = Set.of(uuid);
+    Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(uuid, Set.of(IamRole.DISCOVERER));
     when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
-        .thenReturn(uuids);
+        .thenReturn(resourcesAndRoles);
     when(snapshotMetadataDao.getMetadata(uuids)).thenReturn(Map.of(uuid, json));
     mvc.perform(get(endpoint))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result[0].test").value("data"));
+    verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
+    verify(snapshotMetadataDao).getMetadata(uuids);
+  }
+
+  @Test
+  public void testEnumerateSnapshotSearchPermission() throws Exception {
+    var endpoint = "/api/repository/v1/search/metadata";
+    var json = "{}";
+    UUID uuid = UUID.randomUUID();
+    Set<UUID> uuids = Set.of(uuid);
+    Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(uuid, Set.of(IamRole.DISCOVERER));
+    when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
+        .thenReturn(resourcesAndRoles);
+    when(snapshotMetadataDao.getMetadata(uuids)).thenReturn(Map.of(uuid, json));
+    mvc.perform(get(endpoint))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.result[0].roles").value("discoverer"));
     verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
     verify(snapshotMetadataDao).getMetadata(uuids);
   }

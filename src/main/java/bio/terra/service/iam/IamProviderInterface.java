@@ -6,6 +6,7 @@ import bio.terra.model.UserStatusInfo;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -48,13 +49,14 @@ public interface IamProviderInterface {
   }
 
   /**
-   * List of the ids of the resources of iamResourceType that the user has any access to.
+   * Return the ids of resources of type iamResourceType that the user has access to, along with the
+   * roles the user has on the resource.
    *
    * @param userReq authenticated user
    * @param iamResourceType resource type; e.g. dataset
-   * @return List of ids in UUID form
+   * @return Map of ids in UUID form to set of roles
    */
-  List<UUID> listAuthorizedResources(
+  Map<UUID, Set<IamRole>> listAuthorizedResources(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType)
       throws InterruptedException;
 

@@ -7,7 +7,7 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
@@ -25,12 +25,7 @@ public final class DaoUtils {
     if (sort == null || direction == null) {
       return "";
     }
-    return new StringBuilder(" ORDER BY ")
-        .append(sort)
-        .append(" ")
-        .append(direction)
-        .append(" ")
-        .toString();
+    return " ORDER BY " + sort + " " + direction + " ";
   }
 
   public static void addFilterClause(
@@ -57,13 +52,13 @@ public final class DaoUtils {
   }
 
   public static void addAuthzIdsClause(
-      List<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
+      Collection<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
     params.addValue("idlist", authzIds);
     clauses.add(" dataset.id in (:idlist) ");
   }
 
   public static void addAuthzSnapshotIdsClause(
-      List<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
+      Collection<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
     params.addValue("idlist", authzIds);
     clauses.add(" snapshot.id in (:idlist) ");
   }
@@ -79,44 +74,22 @@ public final class DaoUtils {
     return builder.append('%').toString();
   }
 
-  public static Array createSqlUUIDArray(Connection connection, List<UUID> list)
-      throws SQLException {
-    if (list == null) {
-      return null;
-    }
-    return connection.createArrayOf("UUID", list.toArray());
-  }
-
   public static Array createSqlStringArray(Connection connection, List<String> list)
       throws SQLException {
-    if (list == null) {
-      return null;
-    }
     return connection.createArrayOf("text", list.toArray());
-  }
-
-  public static List<UUID> getUUIDList(ResultSet rs, String column) throws SQLException {
-    Array sqlArray = rs.getArray(column);
-    if (sqlArray == null) {
-      return null;
-    }
-    return Arrays.asList((UUID[]) sqlArray.getArray());
   }
 
   public static List<String> getStringList(ResultSet rs, String column) throws SQLException {
     Array sqlArray = rs.getArray(column);
     if (sqlArray == null) {
-      return null;
+      return List.of();
     }
-    return Arrays.asList((String[]) sqlArray.getArray());
+    return List.of((String[]) sqlArray.getArray());
   }
 
   // Based on Exception returned, determine if we should attempt to retry an operation/stairway step
   public static boolean retryQuery(DataAccessException dataAccessException) {
-    if (ExceptionUtils.hasCause(dataAccessException, RecoverableDataAccessException.class)
-        || ExceptionUtils.hasCause(dataAccessException, TransientDataAccessException.class)) {
-      return true;
-    }
-    return false;
+    return ExceptionUtils.hasCause(dataAccessException, RecoverableDataAccessException.class)
+        || ExceptionUtils.hasCause(dataAccessException, TransientDataAccessException.class);
   }
 }

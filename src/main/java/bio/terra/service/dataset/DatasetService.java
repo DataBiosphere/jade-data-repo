@@ -35,6 +35,7 @@ import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -152,7 +153,7 @@ public class DatasetService {
       SqlSortDirection direction,
       String filter,
       String region,
-      List<UUID> resources) {
+      Collection<UUID> resources) {
     if (resources.isEmpty()) {
       return new EnumerateDatasetModel().total(0).items(Collections.emptyList());
     }

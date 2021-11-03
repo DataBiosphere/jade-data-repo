@@ -6,7 +6,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -51,8 +50,7 @@ public class CreateSnapshotMetadataStep implements Step {
               .projectResourceId(projectResourceId);
       snapshotDao.createAndLock(snapshot, context.getFlightId());
 
-      SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(snapshotId);
-      SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);
+      SnapshotSummaryModel response = snapshotService.retrieveSnapshotSummary(snapshotId);
 
       FlightUtils.setResponse(context, response, HttpStatus.CREATED);
       return StepResult.getStepResultSuccess();

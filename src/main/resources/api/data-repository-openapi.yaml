@@ -2282,7 +2282,7 @@ paths:
           content:
             application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/SearchMetadataResponse'
 
   /api/repository/v1/search/{id}/index:
     post:
@@ -3733,7 +3733,6 @@ components:
             An example query that can be used to select data from this table
     SnapshotSourceModel:
       required:
-        - asset
         - dataset
       type: object
       properties:
@@ -4152,6 +4151,14 @@ components:
           description: Results that match the search criteria
       description: >
         The available search results that match the filter criteria
+    SearchMetadataResponse:
+      type: object
+      properties:
+        result:
+          type: array
+          items:
+            type: object
+      description: List of snapshot metadata
 
     ##############################################################################
     ## DRS STANDARD MODELS

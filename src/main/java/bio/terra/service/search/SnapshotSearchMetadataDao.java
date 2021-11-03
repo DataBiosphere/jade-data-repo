@@ -1,8 +1,8 @@
 package bio.terra.service.search;
 
 import java.sql.Types;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +55,7 @@ public class SnapshotSearchMetadataDao {
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
-  public Map<UUID, String> getMetadata(List<UUID> snapshotIds) {
+  public Map<UUID, String> getMetadata(Collection<UUID> snapshotIds) {
     var params = new MapSqlParameterSource().addValue("snapshot_ids", snapshotIds);
     Map<UUID, String> result = new HashMap<>();
     jdbcTemplate.query(

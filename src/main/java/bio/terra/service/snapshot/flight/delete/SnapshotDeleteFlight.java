@@ -78,7 +78,7 @@ public class SnapshotDeleteFlight extends Flight {
             snapshotService,
             snapshotId,
             userReq,
-            DeleteUtils::performGCPStep));
+            SnapshotDeletePredicates::performGCPStep));
 
     // Delete access control first so Readers and Discoverers can no longer see snapshot
     // Google auto-magically removes the ACLs from BQ objects when SAM
@@ -92,7 +92,7 @@ public class SnapshotDeleteFlight extends Flight {
             dependencyDao,
             snapshotId,
             datasetService,
-            DeleteUtils::performGCPDatasetDependencyStep),
+            SnapshotDeletePredicates::performGCPDatasetDependencyStep),
         randomBackoffRetry);
     addStep(
         new DeleteSnapshotPrimaryDataGcpStep(
@@ -101,7 +101,7 @@ public class SnapshotDeleteFlight extends Flight {
             fileDao,
             snapshotId,
             configService,
-            DeleteUtils::performGCPStep),
+            SnapshotDeletePredicates::performGCPStep),
         randomBackoffRetry);
     addStep(
         new DeleteSnapshotDependencyDataAzureStep(
@@ -111,7 +111,7 @@ public class SnapshotDeleteFlight extends Flight {
             profileService,
             resourceService,
             azureAuthService,
-            DeleteUtils::performAzureDatasetDependencyStep));
+            SnapshotDeletePredicates::performAzureDatasetDependencyStep));
 
     // TODO with DR-2127 - Add check to see if anything else uses storage account before deleting
     // and add step that removes (1) Storage Tables for the snapshot & (2) The metadata container
@@ -121,14 +121,16 @@ public class SnapshotDeleteFlight extends Flight {
             snapshotId,
             resourceService,
             azureStorageAccountService,
-            DeleteUtils::performAzureStep));
+            SnapshotDeletePredicates::performAzureStep));
 
     addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
     addStep(
         new DeleteSnapshotMetadataAzureStep(
-            azureStorageAccountService, DeleteUtils::performAzureStep));
-    addStep(new UnlockSnapshotStep(snapshotDao, snapshotId, DeleteUtils::performSnapshotStep));
+            azureStorageAccountService, SnapshotDeletePredicates::performAzureStep));
+    addStep(
+        new UnlockSnapshotStep(
+            snapshotDao, snapshotId, SnapshotDeletePredicates::performSnapshotStep));
 
-    addStep(new UnlockDatasetStep(datasetDao, true, DeleteUtils::performDatasetStep));
+    addStep(new UnlockDatasetStep(datasetDao, true, SnapshotDeletePredicates::performDatasetStep));
   }
 }

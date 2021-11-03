@@ -4,7 +4,7 @@ import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 
-public class DeleteUtils {
+public class SnapshotDeletePredicates {
 
   public static boolean performGCPStep(FlightContext flightContext) {
     FlightMap map = flightContext.getWorkingMap();

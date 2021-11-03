@@ -117,6 +117,7 @@ public class ResourceService {
         projectResource,
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+        false,
         flightId);
   }
 
@@ -140,6 +141,7 @@ public class ResourceService {
         projectResource,
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
+        true,
         flightId);
   }
 

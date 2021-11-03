@@ -49,4 +49,10 @@ public class IngestCopyControlFileStep extends OptionalStep {
     workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, newPath);
     return StepResult.getStepResultSuccess();
   }
+
+  @Override
+  public StepResult undoOptionalStep(FlightContext context) {
+    IngestUtils.deleteScratchFile(context, gcsPdao);
+    return StepResult.getStepResultSuccess();
+  }
 }

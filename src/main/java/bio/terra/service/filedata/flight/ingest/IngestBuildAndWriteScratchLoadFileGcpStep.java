@@ -8,6 +8,7 @@ import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -57,5 +58,11 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
             .get(CommonFlightKeys.SCRATCH_BUCKET_INFO, GoogleBucketResource.class);
     gcsPdao.createGcsFile(path, bucket.projectIdForBucket());
     gcsPdao.writeStreamToCloudFile(path, lines, bucket.projectIdForBucket());
+  }
+
+  @Override
+  StepResult undo(FlightContext context) {
+    IngestUtils.deleteScratchFile(context, gcsPdao);
+    return StepResult.getStepResultSuccess();
   }
 }

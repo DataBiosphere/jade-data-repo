@@ -11,6 +11,7 @@ import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.StepResult;
 import com.azure.storage.blob.BlobContainerClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -79,5 +80,10 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
             Duration.ofHours(1L),
             billingProfile.getBiller());
     azureBlobStorePdao.writeBlobLines(signedPath, lines);
+  }
+
+  @Override
+  StepResult undo(FlightContext context) {
+    return StepResult.getStepResultSuccess();
   }
 }

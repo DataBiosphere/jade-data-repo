@@ -187,6 +187,8 @@ public class DatasetIngestFlight extends Flight {
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
     }
+
+    addStep(new IngestDeleteScratchFileStep(gcsPdao));
     addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
   }
 

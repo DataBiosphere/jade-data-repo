@@ -42,7 +42,8 @@ public class FileDeleteFlight extends Flight {
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ProfileDao profileDao = appContext.getBean(ProfileDao.class);
 
-    String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
+    UUID datasetId =
+        UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     String fileId = inputParameters.get(JobMapKeys.FILE_ID.getKeyName(), String.class);
 
     // TODO: fix this
@@ -50,7 +51,7 @@ public class FileDeleteFlight extends Flight {
     //  Java (INVOCATION_EXCEPTION), instead of getting a good DATASET_NOT_FOUND error.
     //  We should NOT put code like that in the flight constructor.
     //  ** Well, what we really should do is fix Stairway to throw the contained exception **
-    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    Dataset dataset = datasetService.retrieve(datasetId);
 
     var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 
@@ -72,8 +73,7 @@ public class FileDeleteFlight extends Flight {
     // 4. Delete the directory entry
     // This flight updates GCS and firestore in exactly the reverse order of create, so no new
     // data structure states are introduced by this flight.
-    addStep(
-        new LockDatasetStep(datasetService, UUID.fromString(datasetId), true), lockDatasetRetry);
+    addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
     if (platform.isGcp()) {
       addStep(
           new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao, configService),
@@ -90,6 +90,6 @@ public class FileDeleteFlight extends Flight {
       addStep(new DeleteFileAzurePrimaryDataStep(azureBlobStorePdao));
       addStep(new DeleteFileAzureDirectoryStep(tableDao, fileId, dataset), fileSystemRetry);
     }
-    addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
+    addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
   }
 }

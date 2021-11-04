@@ -29,6 +29,8 @@ jobs:
       - name: Build
         id: build
         run: |
+          # Enable pipefail so a gradle build failure fails this step.
+          set -o pipeline
           # build sources and store the plain log without colors
           ./gradlew jibDockerBuild --console=plain \
             | perl -pe 's/\x1b\[[0-9;]*[mG]//g' | tee build.log

@@ -5,6 +5,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
@@ -21,16 +22,19 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
   private SnapshotService snapshotService;
   private DatasetService datasetService;
   private UUID snapshotId;
+  private AuthenticatedUserRequest authenticatedUserRequest;
   private boolean sharedLock;
 
   public DeleteSnapshotPopAndLockDatasetStep(
       UUID snapshotId,
       SnapshotService snapshotService,
       DatasetService datasetService,
+      AuthenticatedUserRequest authenticatedUserRequest,
       boolean sharedLock) {
     this.snapshotId = snapshotId;
     this.snapshotService = snapshotService;
     this.datasetService = datasetService;
+    this.authenticatedUserRequest = authenticatedUserRequest;
     this.sharedLock = sharedLock;
   }
 
@@ -76,7 +80,9 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
     FlightMap map = context.getWorkingMap();
     boolean datasetExists = map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class);
     if (datasetExists) {
-      UUID sourceDatasetId = snapshotService.getFirstSourceDatasetIdFromSnapshotId(snapshotId);
+      UUID sourceDatasetId =
+          snapshotService.getFirstSourceDatasetIdFromSnapshotId(
+              snapshotId, authenticatedUserRequest);
       try {
         datasetService.unlockDataset(sourceDatasetId, context.getFlightId(), sharedLock);
       } catch (DatasetLockException | DatasetNotFoundException ex) {

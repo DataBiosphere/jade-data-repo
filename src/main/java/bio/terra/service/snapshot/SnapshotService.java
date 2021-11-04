@@ -350,7 +350,8 @@ public class SnapshotService {
         .collect(Collectors.toList());
   }
 
-  public UUID getFirstSourceDatasetIdFromSnapshotId(UUID snapshotId, , AuthenticatedUserRequest userRequest) {
+  public UUID getFirstSourceDatasetIdFromSnapshotId(
+      UUID snapshotId, AuthenticatedUserRequest userRequest) {
     SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId, userRequest);
     return snapshotModel.getSource().stream()
         .map(s -> s.getDataset().getId())

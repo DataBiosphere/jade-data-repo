@@ -174,7 +174,7 @@ for hit in projects[0]["hits"]:
         "dct:issued": project["submissionDate"],
         "dct:modified": project["updateDate"],
         "dcat:accessURL": access_url(snapshot),
-        "TerraDCAT_ap:hasDataUsePermission": "TerraCore:NoRestriction",
+        "TerraDCAT_ap:hasDataUsePermission": ["TerraCore:NoRestriction"],
         "TerraDCAT_ap:hasOriginalPublication": get_publications(project),
         "TerraDCAT_ap:hasDataCollection": [
             {

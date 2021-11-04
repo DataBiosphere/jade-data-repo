@@ -481,10 +481,11 @@ public class DatasetServiceTest {
     Dataset dataset = datasetDao.retrieve(datasetId);
     assertThat(
         "dataset info defaults are expected",
-        datasetService.retrieveModel(dataset),
+        datasetService.retrieveModel(dataset, testUser),
         equalTo(
             datasetService.retrieveModel(
                 dataset,
+                testUser,
                 List.of(
                     DatasetRequestAccessIncludeModel.SCHEMA,
                     DatasetRequestAccessIncludeModel.PROFILE,

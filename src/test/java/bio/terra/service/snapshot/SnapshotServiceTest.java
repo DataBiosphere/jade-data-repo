@@ -4,16 +4,27 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Unit;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
+import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestAccessIncludeModel;
+import bio.terra.model.SnapshotSourceModel;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetSummary;
+import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobService;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.time.Instant;
@@ -28,9 +39,12 @@ import org.mockito.MockitoAnnotations;
 
 @Category(Unit.class)
 public class SnapshotServiceTest {
+  private static final AuthenticatedUserRequest TEST_USER =
+      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
 
   private static final String SNAPSHOT_NAME = "snapshotName";
   private static final String SNAPSHOT_DESCRIPTION = "snapshotDescription";
+  private static final String DATASET_NAME = "datasetName";
   private static final String SNAPSHOT_DATA_PROJECT = "tdrdataproject";
   private static final String SNAPSHOT_TABLE_NAME = "tableA";
 
@@ -40,7 +54,10 @@ public class SnapshotServiceTest {
   @Mock private BigQueryPdao bigQueryPdao;
   @Mock private SnapshotDao snapshotDao;
 
+  private MetadataDataAccessUtils metadataDataAccessUtils;
+
   private UUID snapshotId;
+  private UUID datasetId;
   private UUID snapshotTableId;
   private UUID profileId;
   private Instant createdDate;
@@ -50,10 +67,18 @@ public class SnapshotServiceTest {
   @Before
   public void setUp() throws Exception {
     MockitoAnnotations.initMocks(this);
+    metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
     service =
-        new SnapshotService(jobService, datasetService, dependencyDao, bigQueryPdao, snapshotDao);
+        new SnapshotService(
+            jobService,
+            datasetService,
+            dependencyDao,
+            bigQueryPdao,
+            snapshotDao,
+            metadataDataAccessUtils);
 
     snapshotId = UUID.randomUUID();
+    datasetId = UUID.randomUUID();
     snapshotTableId = UUID.randomUUID();
     profileId = UUID.randomUUID();
     createdDate = Instant.now();
@@ -63,14 +88,29 @@ public class SnapshotServiceTest {
   public void testRetrieveSnapshot() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(snapshotId),
+        service.retrieveAvailableSnapshotModel(snapshotId, TEST_USER),
         equalTo(
             new SnapshotModel()
                 .id(snapshotId)
                 .name(SNAPSHOT_NAME)
                 .description(SNAPSHOT_DESCRIPTION)
                 .createdDate(createdDate.toString())
-                .source(Collections.emptyList())
+                .source(
+                    List.of(
+                        new SnapshotSourceModel()
+                            .dataset(
+                                new DatasetSummaryModel()
+                                    .id(datasetId)
+                                    .name(DATASET_NAME)
+                                    .createdDate(createdDate.toString())
+                                    .storage(
+                                        List.of(
+                                            new StorageResourceModel()
+                                                .region(
+                                                    GoogleRegion.DEFAULT_GOOGLE_REGION.toString())
+                                                .cloudResource(
+                                                    GoogleCloudResource.BUCKET.toString())
+                                                .cloudPlatform(CloudPlatform.GCP))))))
                 .tables(List.of(new TableModel().name(SNAPSHOT_TABLE_NAME)))
                 .relationships(Collections.emptyList())
                 .profileId(profileId)
@@ -82,7 +122,7 @@ public class SnapshotServiceTest {
     mockSnapshot();
     assertThat(
         service.retrieveAvailableSnapshotModel(
-            snapshotId, List.of(SnapshotRequestAccessIncludeModel.NONE)),
+            snapshotId, List.of(SnapshotRequestAccessIncludeModel.NONE), TEST_USER),
         equalTo(
             new SnapshotModel()
                 .id(snapshotId)
@@ -102,8 +142,9 @@ public class SnapshotServiceTest {
                 SnapshotRequestAccessIncludeModel.TABLES,
                 SnapshotRequestAccessIncludeModel.RELATIONSHIPS,
                 SnapshotRequestAccessIncludeModel.PROFILE,
-                SnapshotRequestAccessIncludeModel.DATA_PROJECT)),
-        equalTo(service.retrieveAvailableSnapshotModel(snapshotId)));
+                SnapshotRequestAccessIncludeModel.DATA_PROJECT),
+            TEST_USER),
+        equalTo(service.retrieveAvailableSnapshotModel(snapshotId, TEST_USER)));
   }
 
   @Test
@@ -111,7 +152,7 @@ public class SnapshotServiceTest {
     mockSnapshot();
     assertThat(
         service.retrieveAvailableSnapshotModel(
-            snapshotId, List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION)),
+            snapshotId, List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION), TEST_USER),
         equalTo(
             new SnapshotModel()
                 .id(snapshotId)
@@ -180,15 +221,16 @@ public class SnapshotServiceTest {
             snapshotId,
             List.of(
                 SnapshotRequestAccessIncludeModel.PROFILE,
-                SnapshotRequestAccessIncludeModel.SOURCES)),
+                SnapshotRequestAccessIncludeModel.DATA_PROJECT),
+            TEST_USER),
         equalTo(
             new SnapshotModel()
                 .id(snapshotId)
                 .name(SNAPSHOT_NAME)
                 .description(SNAPSHOT_DESCRIPTION)
                 .createdDate(createdDate.toString())
-                .source(Collections.emptyList())
-                .profileId(profileId)));
+                .profileId(profileId)
+                .dataProject(SNAPSHOT_DATA_PROJECT)));
   }
 
   private void mockSnapshot() {
@@ -204,6 +246,22 @@ public class SnapshotServiceTest {
                     new GoogleProjectResource()
                         .profileId(profileId)
                         .googleProjectId(SNAPSHOT_DATA_PROJECT))
+                .snapshotSources(
+                    List.of(
+                        new SnapshotSource()
+                            .dataset(
+                                new Dataset(
+                                    new DatasetSummary()
+                                        .id(datasetId)
+                                        .name(DATASET_NAME)
+                                        .projectResourceId(profileId)
+                                        .createdDate(createdDate)
+                                        .storage(
+                                            List.of(
+                                                new GoogleStorageResource(
+                                                    datasetId,
+                                                    GoogleCloudResource.BUCKET,
+                                                    GoogleRegion.DEFAULT_GOOGLE_REGION)))))))
                 .snapshotTables(
                     List.of(new SnapshotTable().name(SNAPSHOT_TABLE_NAME).id(snapshotTableId))));
   }

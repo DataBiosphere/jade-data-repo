@@ -78,6 +78,6 @@ public class DatasetDataDeleteFlight extends Flight {
 
     // cleanup
     addStep(new DropExternalTablesStep(bigQueryPdao, datasetService));
-    addStep(new DataDeletionDeleteScratchFilesStep(gcsPdao));
+    addStep(new DataDeletionDeleteScratchFilesGcsStep(gcsPdao));
   }
 }

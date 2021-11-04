@@ -5,11 +5,11 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-public class DataDeletionDeleteScratchFilesStep implements Step {
+public class DataDeletionDeleteScratchFilesGcsStep implements Step {
 
   private final GcsPdao gcsPdao;
 
-  public DataDeletionDeleteScratchFilesStep(GcsPdao gcsPdao) {
+  public DataDeletionDeleteScratchFilesGcsStep(GcsPdao gcsPdao) {
     this.gcsPdao = gcsPdao;
   }
 

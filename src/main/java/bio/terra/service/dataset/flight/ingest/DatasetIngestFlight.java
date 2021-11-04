@@ -178,6 +178,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
       addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
+      addStep(new IngestDeleteScratchFileGcpStep(gcsPdao));
     } else if (cloudPlatform.isAzure()) {
       addStep(new IngestCreateIngestRequestDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
       addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
@@ -187,8 +188,6 @@ public class DatasetIngestFlight extends Flight {
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
     }
-
-    addStep(new IngestDeleteScratchFileStep(gcsPdao));
     addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
   }
 

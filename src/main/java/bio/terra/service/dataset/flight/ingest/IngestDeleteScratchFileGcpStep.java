@@ -6,11 +6,11 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 
-public class IngestDeleteScratchFileStep implements Step {
+public class IngestDeleteScratchFileGcpStep implements Step {
 
   private final GcsPdao gcsPdao;
 
-  public IngestDeleteScratchFileStep(GcsPdao gcsPdao) {
+  public IngestDeleteScratchFileGcpStep(GcsPdao gcsPdao) {
 
     this.gcsPdao = gcsPdao;
   }

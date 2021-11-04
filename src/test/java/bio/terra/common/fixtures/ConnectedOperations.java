@@ -62,11 +62,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.CoreMatchers;
-import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,6 +114,11 @@ public class ConnectedOperations {
     createdScratchFiles = new ArrayList<>();
   }
 
+  private static Map<UUID, Set<IamRole>> uuidsToAuthMap(List<UUID> uuids) {
+    return uuids.stream()
+        .collect(Collectors.toMap(Function.identity(), x -> Set.of(IamRole.READER)));
+  }
+
   public void stubOutSamCalls(IamProviderInterface samService) throws Exception {
     // The policy email must be a real google group, otherwise request that
     // update bigquery dataset policies will fail
@@ -131,15 +138,15 @@ public class ConnectedOperations {
     // datasets/snapshots contained
     // in the bookkeeping lists (createdDatasetIds/createdDatasetIds) in this class.
     when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASET)))
-        .thenAnswer((Answer<List<UUID>>) invocation -> createdDatasetIds);
+        .thenAnswer(invocation -> uuidsToAuthMap(createdDatasetIds));
     when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
-        .thenAnswer((Answer<List<UUID>>) invocation -> createdSnapshotIds);
+        .thenAnswer(invocation -> uuidsToAuthMap(createdSnapshotIds));
     doNothing().when(samService).deleteSnapshotResource(any(), any());
     doNothing().when(samService).deleteDatasetResource(any(), any());
 
     // Mock the billing profile calls
     when(samService.listAuthorizedResources(any(), eq(IamResourceType.SPEND_PROFILE)))
-        .thenAnswer((Answer<List<UUID>>) invocation -> createdProfileIds);
+        .thenAnswer(invocation -> uuidsToAuthMap(createdProfileIds));
     when(samService.hasActions(any(), eq(IamResourceType.SPEND_PROFILE), any())).thenReturn(true);
 
     doNothing().when(samService).createProfileResource(any(), any());

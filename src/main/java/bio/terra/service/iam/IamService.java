@@ -13,7 +13,8 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
@@ -38,22 +39,45 @@ import org.springframework.stereotype.Component;
 public class IamService {
   private final Logger logger = LoggerFactory.getLogger(IamService.class);
 
-  private final int AUTH_CACHE_SIZE_DEFAULT = 100;
+  private static final int AUTH_CACHE_SIZE_DEFAULT = 100;
 
   private final IamProviderInterface iamProvider;
   private final ConfigurationService configurationService;
   private final Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap;
-  private int cacheSize;
 
   @Autowired
   public IamService(IamProviderInterface iamProvider, ConfigurationService configurationService) {
     this.iamProvider = iamProvider;
     this.configurationService = configurationService;
-    cacheSize =
-        Optional.<Integer>ofNullable(configurationService.getParameterValue(AUTH_CACHE_SIZE))
-            .orElse(AUTH_CACHE_SIZE_DEFAULT);
+    int cacheSize =
+        Objects.requireNonNullElse(
+            configurationService.getParameterValue(AUTH_CACHE_SIZE), AUTH_CACHE_SIZE_DEFAULT);
     // wrap the cache map with a synchronized map to safely share the cache across threads
     authorizedMap = Collections.synchronizedMap(new LRUMap<>(cacheSize));
+  }
+
+  private interface Call<T> {
+    T get() throws InterruptedException;
+  }
+
+  private interface VoidCall {
+    void get() throws InterruptedException;
+  }
+
+  private <T> T callProvider(Call<T> call) {
+    try {
+      return call.get();
+    } catch (InterruptedException e) {
+      throw new IamUnavailableException("service unavailable", e);
+    }
+  }
+
+  private void callProvider(VoidCall call) {
+    callProvider(
+        () -> {
+          call.get();
+          return null;
+        });
   }
 
   /**
@@ -66,31 +90,30 @@ public class IamService {
       IamResourceType iamResourceType,
       String resourceId,
       IamAction action) {
-    try {
-      int timeoutSeconds = configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS);
-      AuthenticatedUserRequest userReqNoId = userReq.reqId(null);
-      AuthorizedCacheKey authorizedCacheKey =
-          new AuthorizedCacheKey(userReqNoId, iamResourceType, resourceId, action);
-      AuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
-      if (authorizedCacheValue != null) { // check if it's in the cache
-        // check if it's still in the allotted time
-        if (Instant.now().isBefore(authorizedCacheValue.getTimeout())) {
-          logger.debug("Using the cache!");
-          return authorizedCacheValue.isAuthorized();
-        }
-        authorizedMap.remove(authorizedCacheKey); // if timed out, remove it
-      }
-      boolean authorizedLookup =
-          iamProvider.isAuthorized(userReq, iamResourceType, resourceId, action);
-      Instant newTimeout = Instant.now().plusSeconds(timeoutSeconds);
-      AuthorizedCacheValue newAuthorizedCacheValue =
-          new AuthorizedCacheValue(newTimeout, authorizedLookup);
-      authorizedMap.put(authorizedCacheKey, newAuthorizedCacheValue);
-      // finally return the authorization
-      return authorizedLookup;
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    return callProvider(
+        () -> {
+          int timeoutSeconds = configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS);
+          AuthenticatedUserRequest userReqNoId = userReq.reqId(null);
+          AuthorizedCacheKey authorizedCacheKey =
+              new AuthorizedCacheKey(userReqNoId, iamResourceType, resourceId, action);
+          AuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
+          if (authorizedCacheValue != null) { // check if it's in the cache
+            // check if it's still in the allotted time
+            if (Instant.now().isBefore(authorizedCacheValue.getTimeout())) {
+              logger.debug("Using the cache!");
+              return authorizedCacheValue.isAuthorized();
+            }
+            authorizedMap.remove(authorizedCacheKey); // if timed out, remove it
+          }
+          boolean authorizedLookup =
+              iamProvider.isAuthorized(userReq, iamResourceType, resourceId, action);
+          Instant newTimeout = Instant.now().plusSeconds(timeoutSeconds);
+          AuthorizedCacheValue newAuthorizedCacheValue =
+              new AuthorizedCacheValue(newTimeout, authorizedLookup);
+          authorizedMap.put(authorizedCacheKey, newAuthorizedCacheValue);
+          // finally return the authorization
+          return authorizedLookup;
+        });
   }
 
   /**
@@ -119,13 +142,9 @@ public class IamService {
    * @param iamResourceType resource type; e.g. dataset
    * @return List of ids in UUID form
    */
-  public List<UUID> listAuthorizedResources(
+  public Map<UUID, Set<IamRole>> listAuthorizedResources(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType) {
-    try {
-      return iamProvider.listAuthorizedResources(userReq, iamResourceType);
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    return callProvider(() -> iamProvider.listAuthorizedResources(userReq, iamResourceType));
   }
 
   /**
@@ -139,11 +158,7 @@ public class IamService {
    */
   public boolean hasActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
-    try {
-      return iamProvider.hasActions(userReq, iamResourceType, resourceId);
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    return callProvider(() -> iamProvider.hasActions(userReq, iamResourceType, resourceId));
   }
 
   /**
@@ -153,11 +168,7 @@ public class IamService {
    * @param datasetId dataset to delete
    */
   public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
-    try {
-      iamProvider.deleteDatasetResource(userReq, datasetId);
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    callProvider(() -> iamProvider.deleteDatasetResource(userReq, datasetId));
   }
 
   /**
@@ -167,11 +178,7 @@ public class IamService {
    * @param snapshotId snapshot to delete
    */
   public void deleteSnapshotResource(AuthenticatedUserRequest userReq, UUID snapshotId) {
-    try {
-      iamProvider.deleteSnapshotResource(userReq, snapshotId);
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    callProvider(() -> iamProvider.deleteSnapshotResource(userReq, snapshotId));
   }
 
   /**
@@ -183,11 +190,7 @@ public class IamService {
    */
   public Map<IamRole, String> createDatasetResource(
       AuthenticatedUserRequest userReq, UUID datasetId) {
-    try {
-      return iamProvider.createDatasetResource(userReq, datasetId);
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    return callProvider(() -> iamProvider.createDatasetResource(userReq, datasetId));
   }
 
   /**
@@ -200,49 +203,30 @@ public class IamService {
    */
   public Map<IamRole, String> createSnapshotResource(
       AuthenticatedUserRequest userReq, UUID snapshotId, List<String> readersList) {
-    try {
-      return iamProvider.createSnapshotResource(userReq, snapshotId, readersList);
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    return callProvider(() -> iamProvider.createSnapshotResource(userReq, snapshotId, readersList));
   }
 
   // -- billing profile resource support --
 
   public void createProfileResource(AuthenticatedUserRequest userReq, String profileId) {
-    try {
-      iamProvider.createProfileResource(userReq, profileId);
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    callProvider(() -> iamProvider.createProfileResource(userReq, profileId));
   }
 
   public void deleteProfileResource(AuthenticatedUserRequest userReq, String profileId) {
-    try {
-      iamProvider.deleteProfileResource(userReq, profileId);
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    callProvider(() -> iamProvider.deleteProfileResource(userReq, profileId));
   }
 
   // -- policy membership support --
 
   public List<PolicyModel> retrievePolicies(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId) {
-    try {
-      return iamProvider.retrievePolicies(userReq, iamResourceType, resourceId);
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    return callProvider(() -> iamProvider.retrievePolicies(userReq, iamResourceType, resourceId));
   }
 
   public Map<IamRole, String> retrievePolicyEmails(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId) {
-    try {
-      return iamProvider.retrievePolicyEmails(userReq, iamResourceType, resourceId);
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    return callProvider(
+        () -> iamProvider.retrievePolicyEmails(userReq, iamResourceType, resourceId));
   }
 
   public PolicyModel addPolicyMember(
@@ -251,15 +235,15 @@ public class IamService {
       UUID resourceId,
       String policyName,
       String userEmail) {
-    try {
-      PolicyModel policy =
-          iamProvider.addPolicyMember(userReq, iamResourceType, resourceId, policyName, userEmail);
-      // Invalidate the cache
-      authorizedMap.clear();
-      return policy;
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    return callProvider(
+        () -> {
+          PolicyModel policy =
+              iamProvider.addPolicyMember(
+                  userReq, iamResourceType, resourceId, policyName, userEmail);
+          // Invalidate the cache
+          authorizedMap.clear();
+          return policy;
+        });
   }
 
   public PolicyModel deletePolicyMember(
@@ -268,16 +252,15 @@ public class IamService {
       UUID resourceId,
       String policyName,
       String userEmail) {
-    try {
-      PolicyModel policy =
-          iamProvider.deletePolicyMember(
-              userReq, iamResourceType, resourceId, policyName, userEmail);
-      // Invalidate the cache
-      authorizedMap.clear();
-      return policy;
-    } catch (InterruptedException ex) {
-      throw new IamUnavailableException("service unavailable");
-    }
+    return callProvider(
+        () -> {
+          PolicyModel policy =
+              iamProvider.deletePolicyMember(
+                  userReq, iamResourceType, resourceId, policyName, userEmail);
+          // Invalidate the cache
+          authorizedMap.clear();
+          return policy;
+        });
   }
 
   public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) {

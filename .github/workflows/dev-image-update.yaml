@@ -70,6 +70,7 @@ jobs:
       - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
         uses: broadinstitute/retry@v2.5.1 #forked from nick-invision/retry
         with:
+          timeout_minutes: 1
           polling_interval_seconds: 5
           max_attempts: 5
           command: |

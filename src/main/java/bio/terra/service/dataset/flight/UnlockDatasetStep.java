@@ -52,9 +52,20 @@ public class UnlockDatasetStep extends OptionalStep {
   public StepResult doOptionalStep(FlightContext context) {
     boolean rowUpdated;
     FlightMap map = context.getWorkingMap();
-    try {
+    if (datasetId == null) {
       // In the create case, we won't have the dataset id at step creation. We'll expect it to be in
       // the working map.
+      if (map.containsKey(DatasetWorkingMapKeys.DATASET_ID)) {
+        datasetId = map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+      } else {
+        return new StepResult(
+            StepStatus.STEP_RESULT_FAILURE_FATAL,
+            new DatasetLockException(
+                "Expected dataset id to either be passed in or in the working map."));
+      }
+    }
+
+    try {
       datasetId =
           Objects.requireNonNullElse(
               datasetId, map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class));
@@ -66,11 +77,6 @@ public class UnlockDatasetStep extends OptionalStep {
       logger.debug("rowUpdated on unlock = " + rowUpdated);
     } catch (RetryQueryException retryQueryException) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
-    } catch (NullPointerException nullPointerException) {
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL,
-          new DatasetLockException(
-              "Expected dataset id to either be passed in or in the working map."));
     }
     return StepResult.getStepResultSuccess();
   }

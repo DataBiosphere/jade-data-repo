@@ -11,7 +11,6 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import java.util.function.Predicate;
-import org.elasticsearch.ResourceNotFoundException;
 
 public class DeleteSnapshotDeleteStorageAccountStep extends OptionalStep {
 
@@ -33,22 +32,23 @@ public class DeleteSnapshotDeleteStorageAccountStep extends OptionalStep {
   @Override
   public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    try {
-      AzureStorageAccountResource snapshotStorageAccountResource =
-          resourceService
-              .getSnapshotStorageAccount(snapshotId)
-              .orElseThrow(
-                  () -> new ResourceNotFoundException("Snapshot storage account not found"));
 
-      workingMap.put(
-          SnapshotWorkingMapKeys.STORAGE_ACCOUNT_RESOURCE_NAME,
-          snapshotStorageAccountResource.getName());
+    AzureStorageAccountResource snapshotStorageAccountResource =
+        resourceService.getSnapshotStorageAccount(snapshotId).orElse(null);
 
-      storageAccountService.deleteCloudStorageAccount(snapshotStorageAccountResource);
-
-    } catch (ResourceNotFoundException nfe) {
-      // If we do not find the storage account, we assume things are already clean
+    // If we do not find the storage account, we assume things are already clean
+    if (snapshotStorageAccountResource == null) {
+      // Setting this so that subsequent step that uses the resource name does not run
+      workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_HAS_AZURE_STORAGE_ACCOUNT, false);
+      return StepResult.getStepResultSuccess();
     }
+
+    workingMap.put(
+        SnapshotWorkingMapKeys.STORAGE_ACCOUNT_RESOURCE_NAME,
+        snapshotStorageAccountResource.getName());
+
+    storageAccountService.deleteCloudStorageAccount(snapshotStorageAccountResource);
+
     return StepResult.getStepResultSuccess();
   }
 

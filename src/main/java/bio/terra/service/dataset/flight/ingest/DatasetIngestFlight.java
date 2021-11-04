@@ -92,13 +92,10 @@ public class DatasetIngestFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     if (cloudPlatform.isAzure()) {
-      // TODO: We can get rid of this once https://broadworkbench.atlassian.net/browse/DR-2107
-      // is complete
       addStep(
           new AuthorizeBillingProfileUseStep(
               profileService, ingestRequestModel.getProfileId(), cloudPlatform, userReq));
 
-      // This will need to stay even after DR-2107
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
     }
 

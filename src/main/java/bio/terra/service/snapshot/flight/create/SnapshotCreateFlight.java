@@ -113,7 +113,6 @@ public class SnapshotCreateFlight extends Flight {
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isAzure()) {
-      // This will need to stay even after DR-2107
       addStep(
           new CreateSnapshotCreateAzureStorageAccountStep(
               resourceService, sourceDataset, snapshotReq));

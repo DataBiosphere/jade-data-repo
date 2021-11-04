@@ -359,14 +359,6 @@ public class SnapshotService {
         .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
   }
 
-  public List<UUID> getSourceDatasetIdsFromSnapshotId(
-      UUID snapshotId, AuthenticatedUserRequest userRequest) {
-    SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId, userRequest);
-    return snapshotModel.getSource().stream()
-        .map(s -> s.getDataset().getId())
-        .collect(Collectors.toList());
-  }
-
   private AssetSpecification getAssetSpecificationFromRequest(
       SnapshotRequestContentsModel requestContents) {
     SnapshotRequestAssetModel requestAssetModel = requestContents.getAssetSpec();

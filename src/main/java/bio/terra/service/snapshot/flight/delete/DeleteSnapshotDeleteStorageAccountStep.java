@@ -15,8 +15,8 @@ import org.elasticsearch.ResourceNotFoundException;
 
 public class DeleteSnapshotDeleteStorageAccountStep extends OptionalStep {
 
-  private UUID snapshotId;
-  private ResourceService resourceService;
+  private final UUID snapshotId;
+  private final ResourceService resourceService;
   private final AzureStorageAccountService storageAccountService;
 
   public DeleteSnapshotDeleteStorageAccountStep(

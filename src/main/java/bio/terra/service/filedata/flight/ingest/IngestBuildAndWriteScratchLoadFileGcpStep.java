@@ -66,7 +66,7 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
   }
 
   @Override
-  StepResult undo(FlightContext context) {
+  public StepResult undoOptionalStep(FlightContext context) {
     IngestUtils.deleteScratchFile(context, gcsPdao);
     return StepResult.getStepResultSuccess();
   }

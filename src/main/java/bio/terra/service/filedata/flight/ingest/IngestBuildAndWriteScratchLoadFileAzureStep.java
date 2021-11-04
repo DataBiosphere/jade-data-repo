@@ -91,7 +91,7 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
   }
 
   @Override
-  StepResult undo(FlightContext context) {
+  public StepResult undoOptionalStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

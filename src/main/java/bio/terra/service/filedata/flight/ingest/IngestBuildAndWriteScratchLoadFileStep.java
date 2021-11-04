@@ -95,11 +95,6 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends OptionalSte
     }
   }
 
-  @Override
-  public StepResult undoOptionalStep(FlightContext context) {
-    return undo(context);
-  }
-
   /**
    * Replace the fileRef members of the node with fileId if it's a BulkFileLoadModel, an array of
    * fileId if it's an array_of column, or do nothing to the node if it's already a fileId
@@ -227,6 +222,4 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends OptionalSte
   abstract String getOutputFilePath(FlightContext flightContext);
 
   abstract void writeCloudFile(FlightContext flightContext, String path, Stream<String> lines);
-
-  abstract StepResult undo(FlightContext context);
 }

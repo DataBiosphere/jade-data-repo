@@ -4,7 +4,6 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
@@ -42,7 +41,6 @@ public class SnapshotDeleteFlight extends Flight {
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     IamService iamClient = appContext.getBean(IamService.class);
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
@@ -132,6 +130,7 @@ public class SnapshotDeleteFlight extends Flight {
         new UnlockSnapshotStep(
             snapshotDao, snapshotId, SnapshotDeletePredicates::performSnapshotStep));
 
-    addStep(new UnlockDatasetStep(datasetDao, true, SnapshotDeletePredicates::performDatasetStep));
+    addStep(
+        new UnlockDatasetStep(datasetService, true, SnapshotDeletePredicates::performDatasetStep));
   }
 }

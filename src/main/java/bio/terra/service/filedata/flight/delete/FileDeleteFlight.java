@@ -6,7 +6,6 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
@@ -37,7 +36,6 @@ public class FileDeleteFlight extends Flight {
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
@@ -92,6 +90,6 @@ public class FileDeleteFlight extends Flight {
       addStep(new DeleteFileAzurePrimaryDataStep(azureBlobStorePdao, userReq));
       addStep(new DeleteFileAzureDirectoryStep(tableDao, fileId, dataset), fileSystemRetry);
     }
-    addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+    addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
   }
 }

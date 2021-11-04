@@ -9,7 +9,6 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -49,7 +48,6 @@ public class FileIngestFlight extends Flight {
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     TableDao azureTableDao = appContext.getBean(TableDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     LoadService loadService = appContext.getBean(LoadService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
@@ -148,6 +146,6 @@ public class FileIngestFlight extends Flight {
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), randomBackoffRetry);
     }
     addStep(new LoadUnlockStep(loadService));
-    addStep(new UnlockDatasetStep(datasetDao, datasetId, true), randomBackoffRetry);
+    addStep(new UnlockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
   }
 }

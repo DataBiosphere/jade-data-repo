@@ -99,6 +99,6 @@ public class DatasetDeleteFlight extends Flight {
     }
     addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
     addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
-    addStep(new UnlockDatasetStep(datasetDao, datasetId, false), lockDatasetRetry);
+    addStep(new UnlockDatasetStep(datasetService, datasetId, false), lockDatasetRetry);
   }
 }

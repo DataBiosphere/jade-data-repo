@@ -198,12 +198,6 @@ public class AzureStorageAccountService {
     return resourceDao.retrieveStorageAccountById(storageAccountId);
   }
 
-  public void deleteCloudStorageAccountAndMetadata(
-      AzureStorageAccountResource storageAccountResource, String flightId) {
-    deleteCloudStorageAccount(storageAccountResource);
-    deleteCloudStorageAccountMetadata(storageAccountResource.getName(), flightId);
-  }
-
   public void deleteCloudStorageAccount(AzureStorageAccountResource storageAccountResource) {
     BillingProfileModel profileModel =
         profileDao.getBillingProfileById(storageAccountResource.getProfileId());

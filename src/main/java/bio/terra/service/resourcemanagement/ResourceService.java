@@ -272,8 +272,8 @@ public class ResourceService {
           logger.info("Deleting storage account id {}", s);
           AzureStorageAccountResource storageAccountResource =
               storageAccountService.retrieveStorageAccountById(s);
-          storageAccountService.deleteCloudStorageAccountAndMetadata(
-              storageAccountResource, flightId);
+          storageAccountService.deleteCloudStorageAccount(storageAccountResource);
+          storageAccountService.deleteCloudStorageAccountMetadata(storageAccountResource.getName(), flightId);
         });
   }
 

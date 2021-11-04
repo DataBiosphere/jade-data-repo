@@ -2,6 +2,7 @@ package bio.terra.service.dataset.flight;
 
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -65,6 +66,11 @@ public class UnlockDatasetStep extends OptionalStep {
       logger.debug("rowUpdated on unlock = " + rowUpdated);
     } catch (RetryQueryException retryQueryException) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
+    } catch (NullPointerException nullPointerException) {
+      return new StepResult(
+          StepStatus.STEP_RESULT_FAILURE_FATAL,
+          new DatasetLockException(
+              "Expected dataset id to either be passed in or in the working map."));
     }
     return StepResult.getStepResultSuccess();
   }

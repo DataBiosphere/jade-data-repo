@@ -265,7 +265,7 @@ public class DatasetService {
     }
   }
 
-  public void lockDataset(UUID datasetId, String flightId, boolean sharedLock) {
+  public void lock(UUID datasetId, String flightId, boolean sharedLock) {
     if (sharedLock) {
       datasetDao.lockShared(datasetId, flightId);
     } else {
@@ -273,7 +273,7 @@ public class DatasetService {
     }
   }
 
-  public void unlockDataset(UUID datasetId, String flightId, boolean sharedLock) {
+  public void unlock(UUID datasetId, String flightId, boolean sharedLock) {
     if (sharedLock) {
       datasetDao.unlockShared(datasetId, flightId);
     } else {

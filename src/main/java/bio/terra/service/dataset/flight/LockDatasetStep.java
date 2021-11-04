@@ -68,7 +68,7 @@ public class LockDatasetStep extends OptionalStep {
   public StepResult doOptionalStep(FlightContext context) {
 
     try {
-      datasetService.lockDataset(datasetId, context.getFlightId(), sharedLock);
+      datasetService.lock(datasetId, context.getFlightId(), sharedLock);
       return StepResult.getStepResultSuccess();
     } catch (DatasetNotFoundException notFoundEx) {
       if (suppressNotFoundException) {
@@ -88,7 +88,7 @@ public class LockDatasetStep extends OptionalStep {
     // note the unlock will only clear the flightid if it's set to this flightid
     String flightId = context.getFlightId();
     try {
-      datasetService.unlockDataset(datasetId, flightId, sharedLock);
+      datasetService.unlock(datasetId, flightId, sharedLock);
       return StepResult.getStepResultSuccess();
     } catch (DatasetLockException e) {
       // DatasetLockException will be thrown if flight id was not set

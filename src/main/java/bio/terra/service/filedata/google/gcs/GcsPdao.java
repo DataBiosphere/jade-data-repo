@@ -123,10 +123,12 @@ public class GcsPdao implements CloudFileReader {
    * @param blobUrl blobUrl to files, or blobUrl including wildcard referring to many files
    * @param cloudEncapsulationId Project ID to use for storage service in case of requester pays
    *     bucket
+   * @param userRequest user making the request
    * @return All of the lines from all of the files matching the blobUrl, as a Stream
    */
   @Override
-  public Stream<String> getBlobsLinesStream(String blobUrl, String cloudEncapsulationId) {
+  public Stream<String> getBlobsLinesStream(
+      String blobUrl, String cloudEncapsulationId, AuthenticatedUserRequest userRequest) {
     Storage storage = gcsProjectFactory.getStorage(cloudEncapsulationId);
     return listGcsFiles(blobUrl, cloudEncapsulationId, storage)
         .flatMap(blob -> getBlobLinesStream(blob, cloudEncapsulationId, storage));
@@ -244,10 +246,18 @@ public class GcsPdao implements CloudFileReader {
           storageAsPet.testIamPermissions(bucket, List.of("storage.objects.get"));
 
       if (!permissions.equals(List.of(true))) {
+        String proxyGroup;
+        try {
+          proxyGroup = iamClient.getProxyGroup(user);
+        } catch (InterruptedException e) {
+          // Don't fail since this call is really to get more information on a previous error
+          logger.warn("Could not get proxy group for user {}", user.getEmail());
+          proxyGroup = "N/A";
+        }
         throw new BlobAccessNotAuthorizedException(
             String.format(
-                "Accessing bucket %s is not authorized. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group",
-                bucket));
+                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group (%s)",
+                bucket, user.getEmail(), proxyGroup));
       }
     }
   }

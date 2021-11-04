@@ -3680,7 +3680,8 @@ components:
         - datasetName
         - datasetId
         - storageAccountId
-        - signedUrl
+        - url
+        - sasToken
         - tables
       properties:
         datasetName:
@@ -3695,10 +3696,14 @@ components:
           type: string
           description: >
             Project id of the project where tabular data in Azure lives
-        signedUrl:
+        url:
           type: string
           description: >
-            The link to access the Azure dataset UI in Google Cloud console
+            The link to access all of the tabular data for this dataset or snapshot
+        sasToken:
+          type: string
+          description: >
+            A short lived SAS token to access all of the tabular data for this dataset
         tables:
           type: array
           description: >
@@ -3711,29 +3716,23 @@ components:
         Information on a snapshot or dataset table in a Azure dataset
       required:
         - name
-        - id
-        - signedUrl
-        - sampleQuery
+        - url
+        - sasToken
       properties:
         name:
           type: string
           description: >
             The name of the dataset table
-        id:
+        url:
           type: string
           description: >
-            The unique id of the dataset table
-        signedUrl:
+            The link to access the container that stores parquet files for this table
+        sasToken:
           type: string
           description: >
-            The link to access the container that stores parquet files
-        sampleQuery:
-          type: string
-          description: >
-            An example query that can be used to select data from this table
+            A short lived SAS token to access the parquet files for this table
     SnapshotSourceModel:
       required:
-        - asset
         - dataset
       type: object
       properties:

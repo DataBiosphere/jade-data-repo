@@ -6,6 +6,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +18,7 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
     extends IngestPopulateFileStateFromFlightMapStep {
 
   private final GcsPdao gcsPdao;
+  private final AuthenticatedUserRequest userRequest;
 
   public IngestPopulateFileStateFromFlightMapGcpStep(
       LoadService loadService,
@@ -25,9 +27,11 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
+      AuthenticatedUserRequest userRequest,
       Predicate<FlightContext> doCondition) {
     super(loadService, fileService, objectMapper, dataset, batchSize, doCondition);
     this.gcsPdao = gcsPdao;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -37,6 +41,7 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
         gcsPdao,
         objectMapper,
         ingestRequest,
+        userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
         fileRefColumns,
         errors);

@@ -4,6 +4,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.sql.Connection;
@@ -55,10 +56,14 @@ public class SynapseUtils {
   public void deleteParquetFile(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccount,
-      String parquetFileName) {
+      String parquetFileName,
+      BlobSasTokenOptions blobSasTokenOptions) {
     BlobContainerClientFactory targetDataClientFactory =
         azureBlobStorePdao.getTargetDataClientFactory(
-            profileModel, storageAccount, AzureStorageAccountResource.ContainerType.METADATA, true);
+            profileModel,
+            storageAccount,
+            AzureStorageAccountResource.ContainerType.METADATA,
+            blobSasTokenOptions);
 
     var result =
         targetDataClientFactory

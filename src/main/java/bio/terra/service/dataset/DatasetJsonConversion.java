@@ -19,6 +19,7 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -91,7 +92,8 @@ public final class DatasetJsonConversion {
   public static DatasetModel populateDatasetModelFromDataset(
       Dataset dataset,
       List<DatasetRequestAccessIncludeModel> include,
-      MetadataDataAccessUtils metadataDataAccessUtils) {
+      MetadataDataAccessUtils metadataDataAccessUtils,
+      AuthenticatedUserRequest userRequest) {
     DatasetModel datasetModel =
         new DatasetModel()
             .id(dataset.getId())
@@ -120,7 +122,8 @@ public final class DatasetJsonConversion {
     }
 
     if (include.contains(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION)) {
-      datasetModel.accessInformation(metadataDataAccessUtils.accessInfoFromDataset(dataset));
+      datasetModel.accessInformation(
+          metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest));
     }
     return datasetModel;
   }

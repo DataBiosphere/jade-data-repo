@@ -153,7 +153,8 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         new DRSServiceInfo()
             .version("0.0.1")
             .title("Terra Data Repository")
-            .description("Terra Data Repository (Jade) - a Broad/Verily open source project")
+            .description(
+                "Terra Data Repository (Jade) - a Broad/Verily/Microsoft open source project")
             .contact("cbernard@broadinstitute.org")
             .license("Apache 2.0");
     return new ResponseEntity<>(info, HttpStatus.OK);

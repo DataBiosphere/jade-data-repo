@@ -1,6 +1,8 @@
 package bio.terra.service.filedata;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.CollectionType;
+import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
@@ -14,6 +16,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
@@ -223,7 +226,7 @@ public class FileService {
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveById(dataset, fileId, depth);
-    } else {
+    } else if (cloudPlatformWrapper.isAzure()) {
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
@@ -231,7 +234,16 @@ public class FileService {
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
-      return tableDao.retrieveById(UUID.fromString(datasetId), fileId, depth, storageAuthInfo);
+
+      return tableDao.retrieveById(
+          CollectionType.DATASET,
+          UUID.fromString(datasetId),
+          fileId,
+          depth,
+          storageAuthInfo,
+          storageAuthInfo);
+    } else {
+      throw new NotImplementedException("Cloud platform not implemented");
     }
   }
 
@@ -285,7 +297,46 @@ public class FileService {
 
   FSItem lookupSnapshotFSItem(SnapshotProject snapshot, String fileId, int depth)
       throws InterruptedException {
-    return fileDao.retrieveBySnapshotAndId(snapshot, fileId, depth);
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(snapshot.getCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      return fileDao.retrieveBySnapshotAndId(snapshot, fileId, depth);
+    } else {
+      // TODO: this will get expensive if we query a lot.  We'll need to optimize this
+      BillingProfileModel billingProfileModel =
+          profileService.getProfileByIdNoCheck(snapshot.getProfileId());
+      AzureStorageAccountResource storageAccountResource =
+          resourceService
+              .getSnapshotStorageAccount(snapshot.getId())
+              .orElseThrow(
+                  () ->
+                      new StorageResourceNotFoundException(
+                          "Snapshot storage account was not found"));
+
+      AzureStorageAuthInfo storageAuthInfo =
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+              billingProfileModel, storageAccountResource);
+
+      // TODO Cache these values.  Very expensive lookups
+      BillingProfileModel datasetBillingProfileModel =
+          profileService.getProfileByIdNoCheck(snapshot.getProfileId());
+      Dataset dataset =
+          datasetService.retrieve(snapshot.getSourceDatasetProjects().iterator().next().getId());
+      AzureStorageAccountResource datasetStorageAccountResource =
+          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
+
+      AzureStorageAuthInfo datasetTableStorageAuthInfo =
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+              datasetBillingProfileModel, datasetStorageAccountResource);
+
+      return tableDao.retrieveById(
+          CollectionType.SNAPSHOT,
+          snapshot.getId(),
+          fileId,
+          depth,
+          storageAuthInfo,
+          datasetTableStorageAuthInfo);
+    }
   }
 
   FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth)

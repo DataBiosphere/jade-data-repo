@@ -23,7 +23,7 @@ public class LockDatasetStep extends OptionalStep {
   private final boolean suppressNotFoundException; // default to false
 
   public LockDatasetStep(DatasetService datasetService, UUID datasetId, boolean sharedLock) {
-    this(datasetService, datasetId, sharedLock, false, OptionalStep::alwaysDo);
+    this(datasetService, datasetId, sharedLock, false);
   }
 
   public LockDatasetStep(
@@ -32,14 +32,6 @@ public class LockDatasetStep extends OptionalStep {
       boolean sharedLock,
       boolean suppressNotFoundException) {
     this(datasetService, datasetId, sharedLock, suppressNotFoundException, OptionalStep::alwaysDo);
-  }
-
-  public LockDatasetStep(
-      DatasetService datasetService,
-      UUID datasetId,
-      boolean sharedLock,
-      Predicate<FlightContext> doCondition) {
-    this(datasetService, datasetId, sharedLock, false, doCondition);
   }
 
   public LockDatasetStep(

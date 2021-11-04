@@ -338,7 +338,7 @@ public class BucketResourceTest {
       throws InterruptedException {
 
     GoogleBucketResource bucketResource =
-        bucketService.getOrCreateBucket(bucketName, projectResource, bucketRegion, false, flightId);
+        bucketService.getOrCreateBucket(bucketName, projectResource, bucketRegion, flightId);
 
     bucketResources.add(bucketResource);
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResource.getResourceId());

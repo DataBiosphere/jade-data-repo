@@ -132,7 +132,6 @@ public class GoogleBucketService {
       String bucketName,
       GoogleProjectResource projectResource,
       GoogleRegion region,
-      boolean setRetentionPolicy,
       String flightId)
       throws InterruptedException {
 
@@ -163,8 +162,7 @@ public class GoogleBucketService {
         // bucket exists, but metadata record does not exist.
         if (allowReuseExistingBuckets) {
           // CASE 4: go ahead and reuse the bucket and its location
-          return createMetadataRecord(
-              bucketName, projectResource, region, setRetentionPolicy, flightId);
+          return createMetadataRecord(bucketName, projectResource, region, flightId);
         } else {
           // CASE 5:
           throw new CorruptMetadataException(
@@ -185,11 +183,10 @@ public class GoogleBucketService {
           throw bucketLockException(lockingFlightId);
         }
         // CASE 8: this flight has the metadata locked, but didn't finish creating the bucket
-        return createCloudBucket(googleBucketResource, setRetentionPolicy, flightId);
+        return createCloudBucket(googleBucketResource, flightId);
       } else {
         // CASE 9: no bucket and no record
-        return createMetadataRecord(
-            bucketName, projectResource, region, setRetentionPolicy, flightId);
+        return createMetadataRecord(bucketName, projectResource, region, flightId);
       }
     }
   }
@@ -203,7 +200,6 @@ public class GoogleBucketService {
       String bucketName,
       GoogleProjectResource projectResource,
       GoogleRegion region,
-      boolean setRetentionPolicy,
       String flightId)
       throws InterruptedException {
 
@@ -234,16 +230,16 @@ public class GoogleBucketService {
       logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
     }
 
-    return createCloudBucket(googleBucketResource, setRetentionPolicy, flightId);
+    return createCloudBucket(googleBucketResource, flightId);
   }
 
   // Step 2 of creating a new bucket
   private GoogleBucketResource createCloudBucket(
-      GoogleBucketResource bucketResource, boolean setRetentionPolicy, String flightId) {
+      GoogleBucketResource bucketResource, String flightId) {
     // If the bucket doesn't exist, create it
     Bucket bucket = getCloudBucket(bucketResource.getName());
     if (bucket == null) {
-      bucket = newCloudBucket(bucketResource, setRetentionPolicy);
+      bucket = newCloudBucket(bucketResource);
     }
     return createFinish(bucket, flightId, bucketResource);
   }
@@ -286,25 +282,21 @@ public class GoogleBucketService {
    * @param bucketResource description of the bucket resource to be created
    * @return a reference to the bucket as a GCS Bucket object
    */
-  private Bucket newCloudBucket(GoogleBucketResource bucketResource, boolean setRetentionPolicy) {
+  private Bucket newCloudBucket(GoogleBucketResource bucketResource) {
     boolean doVersioning =
         Arrays.stream(env.getActiveProfiles()).noneMatch(env -> env.contains("test"));
     String bucketName = bucketResource.getName();
     GoogleRegion region = bucketResource.getRegion();
     StorageClass storageClass =
         region.isMultiRegional() ? StorageClass.MULTI_REGIONAL : StorageClass.REGIONAL;
-    BucketInfo.Builder builder =
+    BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
             // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
             .setStorageClass(storageClass)
             .setLocation(region.toString())
-            .setVersioningEnabled(doVersioning);
-
-    if (setRetentionPolicy) {
-      builder.setRetentionPeriod(TimeUnit.DAYS.toSeconds(1L));
-    }
-    BucketInfo bucketInfo = builder.build();
+            .setVersioningEnabled(doVersioning)
+            .build();
 
     GoogleProjectResource projectResource = bucketResource.getProjectResource();
     String googleProjectId = projectResource.getGoogleProjectId();

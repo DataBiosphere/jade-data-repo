@@ -103,8 +103,7 @@ public class ResourceServiceUnitTest {
 
   @Test
   public void testGrabBucket() throws Exception {
-    when(bucketService.getOrCreateBucket(any(), any(), any(), any(), any()))
-        .thenReturn(bucketResource);
+    when(bucketService.getOrCreateBucket(any(), any(), any(), any())).thenReturn(bucketResource);
 
     GoogleBucketResource foundBucket =
         resourceService.getOrCreateBucketForFile(dataset, projectResource, "flightId");

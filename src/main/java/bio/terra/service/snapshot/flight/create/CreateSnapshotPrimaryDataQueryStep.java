@@ -9,6 +9,7 @@ import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -24,23 +25,26 @@ import java.util.Optional;
 
 public class CreateSnapshotPrimaryDataQueryStep implements Step {
 
-  private BigQueryPdao bigQueryPdao;
-  private DatasetService datasetService;
-  private SnapshotService snapshotService;
-  private SnapshotDao snapshotDao;
-  private SnapshotRequestModel snapshotReq;
+  private final BigQueryPdao bigQueryPdao;
+  private final DatasetService datasetService;
+  private final SnapshotService snapshotService;
+  private final SnapshotDao snapshotDao;
+  private final SnapshotRequestModel snapshotReq;
+  private final AuthenticatedUserRequest userRequest;
 
   public CreateSnapshotPrimaryDataQueryStep(
       BigQueryPdao bigQueryPdao,
       DatasetService datasetService,
       SnapshotService snapshotService,
       SnapshotDao snapshotDao,
-      SnapshotRequestModel snapshotReq) {
+      SnapshotRequestModel snapshotReq,
+      AuthenticatedUserRequest userRequest) {
     this.bigQueryPdao = bigQueryPdao;
     this.datasetService = datasetService;
     this.snapshotService = snapshotService;
     this.snapshotDao = snapshotDao;
     this.snapshotReq = snapshotReq;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -66,7 +70,7 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
     String datasetName = datasetNames.get(0);
 
     Dataset dataset = datasetService.retrieveByName(datasetName);
-    DatasetModel datasetModel = datasetService.retrieveModel(dataset);
+    DatasetModel datasetModel = datasetService.retrieveModel(dataset, userRequest);
 
     // get asset out of dataset
     Optional<AssetSpecification> assetSpecOp =

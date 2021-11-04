@@ -141,9 +141,10 @@ public class SnapshotCreateFlight extends Flight {
         } else if (platform.isAzure()) {
           addStep(
               new CreateSnapshotSourceDatasetDataSourceAzureStep(
-                  azureSynapsePdao, azureBlobStorePdao));
+                  azureSynapsePdao, azureBlobStorePdao, userReq));
           addStep(
-              new CreateSnapshotTargetDataSourceAzureStep(azureSynapsePdao, azureBlobStorePdao));
+              new CreateSnapshotTargetDataSourceAzureStep(
+                  azureSynapsePdao, azureBlobStorePdao, userReq));
           addStep(new CreateSnapshotParquetFilesAzureStep(azureSynapsePdao, snapshotService));
           addStep(
               new CreateSnapshotCountTableRowsAzureStep(
@@ -155,7 +156,12 @@ public class SnapshotCreateFlight extends Flight {
           addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
           addStep(
               new CreateSnapshotPrimaryDataQueryStep(
-                  bigQueryPdao, datasetService, snapshotService, snapshotDao, snapshotReq));
+                  bigQueryPdao,
+                  datasetService,
+                  snapshotService,
+                  snapshotDao,
+                  snapshotReq,
+                  userReq));
           break;
         } else {
           throw new NotImplementedException(

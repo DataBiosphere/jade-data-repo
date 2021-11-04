@@ -106,16 +106,9 @@ public final class TestUtils {
       } else if (accessMethod.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
         assertFalse("have not seen HTTPS yet", gotHttps);
         // Make sure that the HTTP url is valid and accessible
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-          HttpUriRequest request = new HttpHead(accessMethod.getAccessUrl().getUrl());
-          request.setHeader("Authorization", String.format("Bearer %s", token));
-          try (CloseableHttpResponse response = client.execute(request); ) {
-            assertThat(
-                "Drs Https Uri is accessible",
-                response.getStatusLine().getStatusCode(),
-                equalTo(200));
-          }
-        }
+        verifyHttpAccess(
+            accessMethod.getAccessUrl().getUrl(),
+            Map.of("Authorization", String.format("Bearer %s", token)));
         gotHttps = true;
       } else {
         fail("Invalid access method");
@@ -123,6 +116,19 @@ public final class TestUtils {
     }
     assertTrue("got both access methods", gotGs && gotHttps);
     return gsuri;
+  }
+
+  public static void verifyHttpAccess(String url, Map<String, String> headers) {
+    HttpUriRequest request = new HttpHead(url);
+    headers.entrySet().forEach(e -> request.setHeader(e.getKey(), e.getValue()));
+    try (CloseableHttpClient client = HttpClients.createDefault()) {
+      try (CloseableHttpResponse response = client.execute(request); ) {
+        assertThat(
+            "Https Uri is accessible", response.getStatusLine().getStatusCode(), equalTo(200));
+      }
+    } catch (IOException e) {
+      throw new RuntimeException("Error creating Http client", e);
+    }
   }
 
   /*

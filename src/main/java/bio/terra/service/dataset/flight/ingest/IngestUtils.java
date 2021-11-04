@@ -14,6 +14,7 @@ import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.CloudFileReader;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
@@ -208,10 +209,11 @@ public final class IngestUtils {
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
+      AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
       List<String> errors) {
     return cloudFileReader
-        .getBlobsLinesStream(ingestRequest.getPath(), cloudEncapsulationId)
+        .getBlobsLinesStream(ingestRequest.getPath(), cloudEncapsulationId, userRequest)
         .map(
             content -> {
               try {
@@ -228,6 +230,7 @@ public final class IngestUtils {
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
+      AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
       List<Column> fileRefColumns,
       List<String> errors) {
@@ -236,6 +239,7 @@ public final class IngestUtils {
             cloudFileReader,
             objectMapper,
             ingestRequest,
+            userRequest,
             cloudEncapsulationId,
             fileRefColumns,
             errors)) {
@@ -247,11 +251,12 @@ public final class IngestUtils {
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
+      AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
       List<Column> fileRefColumns,
       List<String> errors) {
     return IngestUtils.getJsonNodesStreamFromFile(
-            cloudFileReader, objectMapper, ingestRequest, cloudEncapsulationId, errors)
+            cloudFileReader, objectMapper, ingestRequest, userRequest, cloudEncapsulationId, errors)
         .flatMap(
             node ->
                 fileRefColumns.stream()

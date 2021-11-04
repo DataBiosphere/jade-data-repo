@@ -29,6 +29,7 @@ import bio.terra.model.ConfigModel;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
@@ -288,11 +289,31 @@ public class DataRepoFixtures {
 
   public DataRepoResponse<DatasetModel> getDatasetRaw(TestConfiguration.User user, UUID datasetId)
       throws Exception {
-    return dataRepoClient.get(user, "/api/repository/v1/datasets/" + datasetId, DatasetModel.class);
+    return getDatasetRaw(user, datasetId, null);
+  }
+
+  public DataRepoResponse<DatasetModel> getDatasetRaw(
+      TestConfiguration.User user, UUID datasetId, List<DatasetRequestAccessIncludeModel> include)
+      throws Exception {
+    String includeQuery;
+    if (include == null || include.isEmpty()) {
+      includeQuery = "";
+    } else {
+      includeQuery =
+          "?" + include.stream().map(i -> "include=" + i).collect(Collectors.joining("&"));
+    }
+    return dataRepoClient.get(
+        user, "/api/repository/v1/datasets/" + datasetId + includeQuery, DatasetModel.class);
   }
 
   public DatasetModel getDataset(TestConfiguration.User user, UUID datasetId) throws Exception {
-    DataRepoResponse<DatasetModel> response = getDatasetRaw(user, datasetId);
+    return getDataset(user, datasetId, null);
+  }
+
+  public DatasetModel getDataset(
+      TestConfiguration.User user, UUID datasetId, List<DatasetRequestAccessIncludeModel> include)
+      throws Exception {
+    DataRepoResponse<DatasetModel> response = getDatasetRaw(user, datasetId, include);
     assertThat(
         "dataset is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("dataset get response is present", response.getResponseObject().isPresent());
@@ -501,8 +522,8 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<SnapshotModel> response = getSnapshotRaw(user, snapshotId, include);
     assertThat(
-        "dataset is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
-    assertTrue("dataset get response is present", response.getResponseObject().isPresent());
+        "snapshot is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+    assertTrue("snapshot get response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
 

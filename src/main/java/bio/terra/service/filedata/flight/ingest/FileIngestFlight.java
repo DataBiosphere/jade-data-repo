@@ -144,7 +144,7 @@ public class FileIngestFlight extends Flight {
           randomBackoffRetry);
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset));
       addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), randomBackoffRetry);
-      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
+      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService, userReq));
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), randomBackoffRetry);
     }
     addStep(new LoadUnlockStep(loadService));

@@ -124,9 +124,11 @@ public class DatasetService {
    * @return a DatasetModel = API output-friendly representation of the Dataset
    */
   public DatasetModel retrieveAvailableDatasetModel(
-      UUID id, List<DatasetRequestAccessIncludeModel> include) {
+      UUID id,
+      AuthenticatedUserRequest userRequest,
+      List<DatasetRequestAccessIncludeModel> include) {
     Dataset dataset = retrieveAvailable(id);
-    return retrieveModel(dataset, include);
+    return retrieveModel(dataset, userRequest, include);
   }
 
   /**
@@ -134,16 +136,19 @@ public class DatasetService {
    * retrieve the dataset a second time if you already have it
    *
    * @param dataset the dataset being passed in
+   * @param userRequest the user making the request
    * @return a DatasetModel = API output-friendly representation of the Dataset
    */
-  public DatasetModel retrieveModel(Dataset dataset) {
-    return retrieveModel(dataset, getDefaultIncludes());
+  public DatasetModel retrieveModel(Dataset dataset, AuthenticatedUserRequest userRequest) {
+    return retrieveModel(dataset, userRequest, getDefaultIncludes());
   }
 
   public DatasetModel retrieveModel(
-      Dataset dataset, List<DatasetRequestAccessIncludeModel> include) {
+      Dataset dataset,
+      AuthenticatedUserRequest userRequest,
+      List<DatasetRequestAccessIncludeModel> include) {
     return DatasetJsonConversion.populateDatasetModelFromDataset(
-        dataset, include, metadataDataAccessUtils);
+        dataset, include, metadataDataAccessUtils, userRequest);
   }
 
   public EnumerateDatasetModel enumerate(

@@ -143,10 +143,11 @@ public class DatasetsApiController implements DatasetsApi {
               required = false,
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
           List<DatasetRequestAccessIncludeModel> include) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
     return new ResponseEntity<>(
-        datasetService.retrieveAvailableDatasetModel(id, include), HttpStatus.OK);
+        datasetService.retrieveAvailableDatasetModel(id, userRequest, include), HttpStatus.OK);
   }
 
   @Override

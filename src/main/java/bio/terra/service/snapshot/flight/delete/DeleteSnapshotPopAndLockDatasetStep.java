@@ -64,14 +64,15 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
     // Now we've confirmed the snapshot exists, let's check on the source dataset
     UUID datasetId = snapshot.getFirstSnapshotSource().getDataset().getId();
     map.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
+    boolean datasetExists = true;
     try {
       datasetService.lock(datasetId, context.getFlightId(), sharedLock);
-      map.put(SnapshotWorkingMapKeys.DATASET_EXISTS, true);
     } catch (DatasetNotFoundException notFoundEx) {
-      map.put(SnapshotWorkingMapKeys.DATASET_EXISTS, false);
+      datasetExists = false;
     } catch (RetryQueryException | DatasetLockException e) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
+    map.put(SnapshotWorkingMapKeys.DATASET_EXISTS, datasetExists);
     return StepResult.getStepResultSuccess();
   }
 

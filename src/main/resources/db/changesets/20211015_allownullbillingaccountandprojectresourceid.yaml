@@ -9,3 +9,6 @@ databaseChangeLog:
         -  dropNotNullConstraint:
              columnName:  project_resource_id
              tableName:  dataset
+        - dropNotNullConstraint:
+            columnName:  project_resource_id
+            tableName:  snapshot

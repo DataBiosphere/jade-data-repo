@@ -18,7 +18,7 @@ public class UnlockDatasetStep extends OptionalStep {
   private static Logger logger = LoggerFactory.getLogger(UnlockDatasetStep.class);
 
   private final DatasetService datasetService;
-  private boolean sharedLock; // default to false
+  private final boolean sharedLock; // default to false
   private UUID datasetId;
 
   public UnlockDatasetStep(

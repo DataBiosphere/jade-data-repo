@@ -25,11 +25,11 @@ public class DeleteSnapshotPrimaryDataGcpStep extends OptionalStep {
 
   private static Logger logger = LoggerFactory.getLogger(DeleteSnapshotPrimaryDataGcpStep.class);
 
-  private BigQueryPdao bigQueryPdao;
-  private SnapshotService snapshotService;
-  private FireStoreDao fileDao;
-  private UUID snapshotId;
-  private ConfigurationService configService;
+  private final BigQueryPdao bigQueryPdao;
+  private final SnapshotService snapshotService;
+  private final FireStoreDao fileDao;
+  private final UUID snapshotId;
+  private final ConfigurationService configService;
 
   public DeleteSnapshotPrimaryDataGcpStep(
       BigQueryPdao bigQueryPdao,

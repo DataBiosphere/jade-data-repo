@@ -19,11 +19,11 @@ import java.util.UUID;
 
 public class DeleteSnapshotPopAndLockDatasetStep implements Step {
 
-  private SnapshotService snapshotService;
-  private DatasetService datasetService;
-  private UUID snapshotId;
-  private AuthenticatedUserRequest authenticatedUserRequest;
-  private boolean sharedLock;
+  private final SnapshotService snapshotService;
+  private final DatasetService datasetService;
+  private final UUID snapshotId;
+  private final AuthenticatedUserRequest authenticatedUserRequest;
+  private final boolean sharedLock;
 
   public DeleteSnapshotPopAndLockDatasetStep(
       UUID snapshotId,

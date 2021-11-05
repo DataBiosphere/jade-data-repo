@@ -13,8 +13,8 @@ import org.springframework.http.HttpStatus;
 
 public class DeleteSnapshotMetadataStep implements Step {
 
-  private SnapshotDao snapshotDao;
-  private UUID snapshotId;
+  private final SnapshotDao snapshotDao;
+  private final UUID snapshotId;
 
   public DeleteSnapshotMetadataStep(SnapshotDao snapshotDao, UUID snapshotId) {
     this.snapshotDao = snapshotDao;

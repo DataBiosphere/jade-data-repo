@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class UnlockSnapshotStep extends OptionalStep {
 
-  private SnapshotDao snapshotDao;
+  private final SnapshotDao snapshotDao;
   private UUID snapshotId;
 
   private static Logger logger = LoggerFactory.getLogger(UnlockSnapshotStep.class);

@@ -17,9 +17,9 @@ import java.util.UUID;
 import java.util.function.Predicate;
 
 public class DeleteSnapshotSourceDatasetDependencyDataGcpStep extends OptionalStep {
-  private FireStoreDependencyDao dependencyDao;
-  private UUID snapshotId;
-  private DatasetService datasetService;
+  private final FireStoreDependencyDao dependencyDao;
+  private final UUID snapshotId;
+  private final DatasetService datasetService;
 
   public DeleteSnapshotSourceDatasetDependencyDataGcpStep(
       FireStoreDependencyDao dependencyDao,

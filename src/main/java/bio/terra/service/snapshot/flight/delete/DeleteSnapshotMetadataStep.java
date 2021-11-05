@@ -2,7 +2,6 @@ package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DeleteResponseModel;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightContext;
@@ -14,8 +13,8 @@ import org.springframework.http.HttpStatus;
 
 public class DeleteSnapshotMetadataStep implements Step {
 
-  private SnapshotDao snapshotDao;
-  private UUID snapshotId;
+  private final SnapshotDao snapshotDao;
+  private final UUID snapshotId;
 
   public DeleteSnapshotMetadataStep(SnapshotDao snapshotDao, UUID snapshotId) {
     this.snapshotDao = snapshotDao;
@@ -24,18 +23,16 @@ public class DeleteSnapshotMetadataStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    Snapshot snapshot = null;
-    boolean found = false;
+    DeleteResponseModel.ObjectStateEnum stateEnum;
     try {
-      found = snapshotDao.delete(snapshotId);
+      stateEnum =
+          snapshotDao.delete(snapshotId)
+              ? DeleteResponseModel.ObjectStateEnum.DELETED
+              : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     } catch (SnapshotNotFoundException ex) {
-      found = false;
+      stateEnum = DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     }
 
-    DeleteResponseModel.ObjectStateEnum stateEnum =
-        (found)
-            ? DeleteResponseModel.ObjectStateEnum.DELETED
-            : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
     FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
     return StepResult.getStepResultSuccess();

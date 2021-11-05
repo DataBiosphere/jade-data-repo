@@ -11,7 +11,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -66,7 +65,6 @@ public class DatasetIngestFlight extends Flight {
 
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
@@ -105,7 +103,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
     }
 
-    addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+    addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 
@@ -189,7 +187,7 @@ public class DatasetIngestFlight extends Flight {
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
     }
-    addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+    addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
   }
 
   /**

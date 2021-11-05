@@ -114,6 +114,6 @@ public class DatasetCreateFlight extends Flight {
     // this time
     addStep(new CreateDatasetAuthzBqJobUserStep(datasetService, resourceService));
 
-    addStep(new UnlockDatasetStep(datasetDao, false));
+    addStep(new UnlockDatasetStep(datasetService, false));
   }
 }

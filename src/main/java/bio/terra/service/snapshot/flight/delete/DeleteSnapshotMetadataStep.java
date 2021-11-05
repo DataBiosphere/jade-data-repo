@@ -23,17 +23,16 @@ public class DeleteSnapshotMetadataStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    boolean found;
+    DeleteResponseModel.ObjectStateEnum stateEnum;
     try {
-      found = snapshotDao.delete(snapshotId);
+      stateEnum =
+          snapshotDao.delete(snapshotId)
+              ? DeleteResponseModel.ObjectStateEnum.DELETED
+              : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     } catch (SnapshotNotFoundException ex) {
-      found = false;
+      stateEnum = DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     }
 
-    DeleteResponseModel.ObjectStateEnum stateEnum =
-        (found)
-            ? DeleteResponseModel.ObjectStateEnum.DELETED
-            : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
     FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
     return StepResult.getStepResultSuccess();

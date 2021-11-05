@@ -84,7 +84,23 @@ public class JobService {
     this.performanceLogger = performanceLogger;
     this.kubeService =
         new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
-    initialize();
+
+    String stairwayClusterName = kubeService.getNamespace() + "-stairwaycluster";
+
+    logger.info("Creating Stairway: maxStairwayThreads: " + appConfig.getMaxStairwayThreads());
+    ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
+    stairway =
+        Stairway.newBuilder()
+            // for debugging stairway flights, set this true and the flight logs will be retained
+            .keepFlightLog(true)
+            .maxParallelFlights(appConfig.getMaxStairwayThreads())
+            .exceptionSerializer(serializer)
+            .applicationContext(applicationContext)
+            .stairwayName(appConfig.getPodName())
+            .stairwayHook(new StairwayLoggingHooks(performanceLogger))
+            .stairwayClusterName(stairwayClusterName)
+            .enableWorkQueue(appConfig.isInKubernetes())
+            .build();
   }
 
   /**

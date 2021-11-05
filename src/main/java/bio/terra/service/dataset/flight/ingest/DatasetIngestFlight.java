@@ -42,6 +42,8 @@ import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.profile.flight.VerifyRepositoryBillingProfileAccessStep;
+import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
@@ -220,6 +222,7 @@ public class DatasetIngestFlight extends Flight {
     JobService jobService = appContext.getBean(JobService.class);
 
     GoogleProjectService projectService = appContext.getBean(GoogleProjectService.class);
+    GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
 
     var platform = CloudPlatform.GCP;
 
@@ -231,9 +234,11 @@ public class DatasetIngestFlight extends Flight {
     // will not be run.
     addStep(new IngestJsonFileSetupGcpStep(gcsPdao, appConfig.objectMapper(), dataset, userReq));
 
-    // Authorize the billing profile for use.
+    // Make sure this user is authorized to use the billing profile in SAM
     addOptionalCombinedIngestStep(
         new AuthorizeBillingProfileUseStep(profileService, profileId, CloudPlatformWrapper.of(platform), userReq));
+
+    addStep(new VerifyRepositoryBillingProfileAccessStep(googleBillingService));
 
     // Lock the load.
     addOptionalCombinedIngestStep(new LoadLockStep(loadService));

@@ -24,6 +24,8 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.profile.flight.VerifyRepositoryBillingProfileAccessStep;
+import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -64,6 +66,7 @@ public class SnapshotCreateFlight extends Flight {
     TableDao tableDao = appContext.getBean(TableDao.class);
     AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
     TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
+    GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -87,8 +90,7 @@ public class SnapshotCreateFlight extends Flight {
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
 
-    // Make sure this user is allowed to use the billing profile and that the underlying
-    // billing information remains valid.
+    // Make sure this user is authorized to use the billing profile in SAM
     addStep(
         new AuthorizeBillingProfileUseStep(
             profileService, snapshotReq.getProfileId(), platform, userReq));
@@ -97,6 +99,8 @@ public class SnapshotCreateFlight extends Flight {
     addStep(new CreateSnapshotIdStep(snapshotReq));
 
     if (platform.isGcp()) {
+      addStep(new VerifyRepositoryBillingProfileAccessStep(googleBillingService));
+
       // Get a new google project from RBS and store it in the working map
       addStep(new GetResourceBufferProjectStep(bufferService));
 

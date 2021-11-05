@@ -16,6 +16,8 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.profile.flight.VerifyRepositoryBillingProfileAccessStep;
+import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
@@ -45,6 +47,7 @@ public class DatasetCreateFlight extends Flight {
     DatasetStorageAccountDao datasetStorageAccountDao =
         appContext.getBean(DatasetStorageAccountDao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
+    GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
 
     DatasetRequestModel datasetRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
@@ -54,8 +57,7 @@ public class DatasetCreateFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    // Make sure this user is allowed to use the billing profile and that the underlying
-    // billing information remains valid.
+    // Make sure this user is authorized to use the billing profile in SAM
     addStep(
         new AuthorizeBillingProfileUseStep(
             profileService, datasetRequest.getDefaultProfileId(), platform, userReq));
@@ -64,6 +66,9 @@ public class DatasetCreateFlight extends Flight {
     addStep(new CreateDatasetIdStep());
 
     if (platform.isGcp()) {
+      // Verify billing access
+      addStep(new VerifyRepositoryBillingProfileAccessStep(googleBillingService));
+
       // Get a new google project from RBS and store it in the working map
       addStep(new GetResourceBufferProjectStep(bufferService));
 

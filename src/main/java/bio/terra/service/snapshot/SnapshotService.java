@@ -68,6 +68,7 @@ public class SnapshotService {
   private final FireStoreDependencyDao dependencyDao;
   private final BigQueryPdao bigQueryPdao;
   private final SnapshotDao snapshotDao;
+  private final MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Autowired
   public SnapshotService(
@@ -75,12 +76,14 @@ public class SnapshotService {
       DatasetService datasetService,
       FireStoreDependencyDao dependencyDao,
       BigQueryPdao bigQueryPdao,
-      SnapshotDao snapshotDao) {
+      SnapshotDao snapshotDao,
+      MetadataDataAccessUtils metadataDataAccessUtils) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
     this.bigQueryPdao = bigQueryPdao;
     this.snapshotDao = snapshotDao;
+    this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
 
   /**
@@ -177,10 +180,12 @@ public class SnapshotService {
    * require an exclusively locked snapshot to be returned (e.g. snapshot deletion).
    *
    * @param id in UUID format
+   * @param userRequest Authenticated user object
    * @return a SnapshotModel = API output-friendly representation of the Snapshot
    */
-  public SnapshotModel retrieveAvailableSnapshotModel(UUID id) {
-    return retrieveAvailableSnapshotModel(id, getDefaultIncludes());
+  public SnapshotModel retrieveAvailableSnapshotModel(
+      UUID id, AuthenticatedUserRequest userRequest) {
+    return retrieveAvailableSnapshotModel(id, getDefaultIncludes(), userRequest);
   }
 
   /**
@@ -196,12 +201,15 @@ public class SnapshotService {
    *
    * @param id in UUID format
    * @param include a list of what information to include
+   * @param userRequest Authenticated user object
    * @return an API output-friendly representation of the Snapshot
    */
   public SnapshotModel retrieveAvailableSnapshotModel(
-      UUID id, List<SnapshotRequestAccessIncludeModel> include) {
+      UUID id,
+      List<SnapshotRequestAccessIncludeModel> include,
+      AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = retrieveAvailable(id);
-    return populateSnapshotModelFromSnapshot(snapshot, include);
+    return populateSnapshotModelFromSnapshot(snapshot, include, userRequest);
   }
 
   /**
@@ -341,8 +349,9 @@ public class SnapshotService {
         .collect(Collectors.toList());
   }
 
-  public List<UUID> getSourceDatasetIdsFromSnapshotId(UUID snapshotId) {
-    SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId);
+  public List<UUID> getSourceDatasetIdsFromSnapshotId(
+      UUID snapshotId, AuthenticatedUserRequest userRequest) {
+    SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId, userRequest);
     return snapshotModel.getSource().stream()
         .map(s -> s.getDataset().getId())
         .collect(Collectors.toList());
@@ -573,7 +582,9 @@ public class SnapshotService {
   }
 
   private SnapshotModel populateSnapshotModelFromSnapshot(
-      Snapshot snapshot, List<SnapshotRequestAccessIncludeModel> include) {
+      Snapshot snapshot,
+      List<SnapshotRequestAccessIncludeModel> include,
+      AuthenticatedUserRequest userRequest) {
     SnapshotModel snapshotModel =
         new SnapshotModel()
             .id(snapshot.getId())
@@ -611,7 +622,8 @@ public class SnapshotService {
       snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
     }
     if (include.contains(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION)) {
-      snapshotModel.accessInformation(MetadataDataAccessUtils.accessInfoFromSnapshot(snapshot));
+      snapshotModel.accessInformation(
+          metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest));
     }
     return snapshotModel;
   }

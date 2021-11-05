@@ -5,6 +5,7 @@ import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
@@ -18,13 +19,17 @@ import java.util.Arrays;
 
 // TODO - this is the exact same step as used for ingest - find way to share code
 public class CreateSnapshotTargetDataSourceAzureStep implements Step {
-  private AzureSynapsePdao azureSynapsePdao;
-  private AzureBlobStorePdao azureBlobStorePdao;
+  private final AzureSynapsePdao azureSynapsePdao;
+  private final AzureBlobStorePdao azureBlobStorePdao;
+  private final AuthenticatedUserRequest userRequest;
 
   public CreateSnapshotTargetDataSourceAzureStep(
-      AzureSynapsePdao azureSynapsePdao, AzureBlobStorePdao azureBlobStorePdao) {
+      AzureSynapsePdao azureSynapsePdao,
+      AzureBlobStorePdao azureBlobStorePdao,
+      AuthenticatedUserRequest userRequest) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.azureBlobStorePdao = azureBlobStorePdao;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -43,7 +48,8 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
             snapshotParquetTargetLocation,
             billingProfile,
             snapshotAzureStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA);
+            AzureStorageAccountResource.ContainerType.METADATA,
+            userRequest);
     try {
       azureSynapsePdao.createExternalDataSource(
           snapshotSignUrlBlob,

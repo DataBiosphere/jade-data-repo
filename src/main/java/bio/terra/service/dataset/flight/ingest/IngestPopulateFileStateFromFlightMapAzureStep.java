@@ -6,6 +6,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.load.LoadService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -15,6 +16,7 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
     extends IngestPopulateFileStateFromFlightMapStep {
 
   private final AzureBlobStorePdao azureBlobStorePdao;
+  private final AuthenticatedUserRequest userRequest;
 
   public IngestPopulateFileStateFromFlightMapAzureStep(
       LoadService loadService,
@@ -22,9 +24,11 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
       AzureBlobStorePdao azureBlobStorePdao,
       ObjectMapper objectMapper,
       Dataset dataset,
-      int batchSize) {
+      int batchSize,
+      AuthenticatedUserRequest userRequest) {
     super(loadService, fileService, objectMapper, dataset, batchSize);
     this.azureBlobStorePdao = azureBlobStorePdao;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -35,6 +39,12 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
             .getTenantId()
             .toString();
     return IngestUtils.getBulkFileLoadModelsStream(
-        azureBlobStorePdao, objectMapper, ingestRequest, tenantId, fileRefColumns, errors);
+        azureBlobStorePdao,
+        objectMapper,
+        ingestRequest,
+        userRequest,
+        tenantId,
+        fileRefColumns,
+        errors);
   }
 }

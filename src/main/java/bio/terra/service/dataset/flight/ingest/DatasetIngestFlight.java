@@ -175,8 +175,10 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
     } else if (cloudPlatform.isAzure()) {
-      addStep(new IngestCreateIngestRequestDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
-      addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
+      addStep(
+          new IngestCreateIngestRequestDataSourceStep(
+              azureSynapsePdao, azureBlobStorePdao, userReq));
+      addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao, userReq));
       addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
       addStep(
           new IngestValidateAzureRefsStep(
@@ -232,7 +234,7 @@ public class DatasetIngestFlight extends Flight {
     // Parse the JSON file and see if there's actually any files to load.
     // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`
     // will not be run.
-    addStep(new IngestJsonFileSetupGcpStep(gcsPdao, appConfig.objectMapper(), dataset));
+    addStep(new IngestJsonFileSetupGcpStep(gcsPdao, appConfig.objectMapper(), dataset, userReq));
 
     // Authorize the billing profile for use.
     addOptionalCombinedIngestStep(
@@ -264,7 +266,8 @@ public class DatasetIngestFlight extends Flight {
             gcsPdao,
             appConfig.objectMapper(),
             dataset,
-            appConfig.getLoadFilePopulateBatchSize()));
+            appConfig.getLoadFilePopulateBatchSize(),
+            userReq));
 
     // Load the files!
     addOptionalCombinedIngestStep(
@@ -292,7 +295,8 @@ public class DatasetIngestFlight extends Flight {
 
     // Build the scratch file using new file ids and store in new bucket.
     addOptionalCombinedIngestStep(
-        new IngestBuildAndWriteScratchLoadFileGcpStep(appConfig.objectMapper(), gcsPdao, dataset));
+        new IngestBuildAndWriteScratchLoadFileGcpStep(
+            appConfig.objectMapper(), gcsPdao, dataset, userReq));
 
     // Copy the load history into BigQuery.
     addOptionalCombinedIngestStep(
@@ -341,7 +345,8 @@ public class DatasetIngestFlight extends Flight {
     // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`
     // will not be run.
     addStep(
-        new IngestJsonFileSetupAzureStep(appConfig.objectMapper(), azureBlobStorePdao, dataset));
+        new IngestJsonFileSetupAzureStep(
+            appConfig.objectMapper(), azureBlobStorePdao, dataset, userReq));
 
     // Lock the load.
     addOptionalCombinedIngestStep(new LoadLockStep(loadService));
@@ -359,7 +364,8 @@ public class DatasetIngestFlight extends Flight {
             azureBlobStorePdao,
             appConfig.objectMapper(),
             dataset,
-            appConfig.getLoadFilePopulateBatchSize()));
+            appConfig.getLoadFilePopulateBatchSize(),
+            userReq));
 
     // Load the files!
     addOptionalCombinedIngestStep(
@@ -383,7 +389,11 @@ public class DatasetIngestFlight extends Flight {
     // Build the scratch file using new file ids and store in new storage account container.
     addOptionalCombinedIngestStep(
         new IngestBuildAndWriteScratchLoadFileAzureStep(
-            appConfig.objectMapper(), azureBlobStorePdao, azureContainerPdao, dataset));
+            appConfig.objectMapper(),
+            azureBlobStorePdao,
+            azureContainerPdao,
+            dataset,
+            userReq));
 
     // Copy the load history to Azure Storage Tables.
     addOptionalCombinedIngestStep(

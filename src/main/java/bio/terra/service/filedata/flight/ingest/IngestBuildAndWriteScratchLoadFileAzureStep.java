@@ -6,12 +6,15 @@ import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
@@ -21,16 +24,19 @@ import java.util.stream.Stream;
 public class IngestBuildAndWriteScratchLoadFileAzureStep
     extends IngestBuildAndWriteScratchLoadFileStep {
   private final AzureBlobStorePdao azureBlobStorePdao;
-  AzureContainerPdao azureContainerPdao;
+  private final AzureContainerPdao azureContainerPdao;
+  private final AuthenticatedUserRequest userRequest;
 
   public IngestBuildAndWriteScratchLoadFileAzureStep(
       ObjectMapper objectMapper,
       AzureBlobStorePdao azureBlobStorePdao,
       AzureContainerPdao azureContainerPdao,
-      Dataset dataset) {
+      Dataset dataset,
+      AuthenticatedUserRequest userRequest) {
     super(objectMapper, dataset);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.azureContainerPdao = azureContainerPdao;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -41,7 +47,7 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
             .getTenantId()
             .toString();
     return IngestUtils.getJsonNodesStreamFromFile(
-        azureBlobStorePdao, objectMapper, ingestRequest, tenantId, errors);
+        azureBlobStorePdao, objectMapper, ingestRequest, userRequest, tenantId, errors);
   }
 
   @Override
@@ -74,8 +80,10 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
             storageAccount,
             path,
             AzureStorageAccountResource.ContainerType.SCRATCH,
-            Duration.ofHours(1L),
-            billingProfile.getBiller());
+            new BlobSasTokenOptions(
+                Duration.ofHours(1),
+                new BlobSasPermission().setReadPermission(true).setWritePermission(true),
+                userRequest.getEmail()));
     azureBlobStorePdao.writeBlobLines(signedPath, lines);
   }
 }

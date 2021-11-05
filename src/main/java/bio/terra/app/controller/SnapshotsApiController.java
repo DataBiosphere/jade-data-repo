@@ -191,10 +191,12 @@ public class SnapshotsApiController implements SnapshotsApi {
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
           List<SnapshotRequestAccessIncludeModel> include) {
     logger.info("Verifying user access");
+    AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+        authenticatedInfo, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
     logger.info("Retrieving snapshot");
-    SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(id, include);
+    SnapshotModel snapshotModel =
+        snapshotService.retrieveAvailableSnapshotModel(id, include, authenticatedInfo);
     return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
   }
 

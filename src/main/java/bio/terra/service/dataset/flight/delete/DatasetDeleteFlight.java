@@ -91,7 +91,8 @@ public class DatasetDeleteFlight extends Flight {
               datasetId,
               configService,
               resourceService,
-              profileDao),
+              profileDao,
+              userReq),
           primaryDataDeleteRetry);
       addStep(
           new DeleteDatasetDeleteStorageAccountsStep(resourceService, datasetService, datasetId));

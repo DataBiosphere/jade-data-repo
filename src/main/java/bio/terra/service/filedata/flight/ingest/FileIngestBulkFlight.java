@@ -180,7 +180,8 @@ public class FileIngestBulkFlight extends Flight {
                 appConfig.getMaxBadLoadFileLineErrorsReported(),
                 appConfig.getLoadFilePopulateBatchSize(),
                 azureBlobStorePdao,
-                bulkLoadObjectMapper));
+                bulkLoadObjectMapper,
+                userReq));
       }
     }
     addStep(

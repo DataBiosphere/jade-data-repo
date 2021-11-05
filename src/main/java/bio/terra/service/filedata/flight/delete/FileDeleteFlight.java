@@ -15,6 +15,7 @@ import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -44,7 +45,8 @@ public class FileDeleteFlight extends Flight {
 
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
     String fileId = inputParameters.get(JobMapKeys.FILE_ID.getKeyName(), String.class);
-
+    AuthenticatedUserRequest userReq =
+        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
     // TODO: fix this
     //  Error handling within this constructor results in an obscure throw from
     //  Java (INVOCATION_EXCEPTION), instead of getting a good DATASET_NOT_FOUND error.
@@ -86,7 +88,7 @@ public class FileDeleteFlight extends Flight {
               tableDao, fileId, dataset, configService, resourceService, profileDao),
           fileSystemRetry);
       addStep(new DeleteFileAzureMetadataStep(tableDao, fileId, dataset), fileSystemRetry);
-      addStep(new DeleteFileAzurePrimaryDataStep(azureBlobStorePdao));
+      addStep(new DeleteFileAzurePrimaryDataStep(azureBlobStorePdao, userReq));
       addStep(new DeleteFileAzureDirectoryStep(tableDao, fileId, dataset), fileSystemRetry);
     }
     addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);

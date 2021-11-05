@@ -20,6 +20,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -32,6 +34,8 @@ import com.azure.core.management.Region;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.storage.blob.BlobUrlParts;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -59,8 +63,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Connected.class)
 public class AzureSynapsePdaoConnectedTest {
   private static Logger logger = LoggerFactory.getLogger(AzureSynapsePdaoConnectedTest.class);
+
   private String randomFlightId;
   private String destinationParquetFile;
+
+  private static final AuthenticatedUserRequest TEST_USER =
+      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
 
   private static final String INGEST_REQUEST_SCOPED_CREDENTIAL_PREFIX = "irsas_";
   private static final String DESTINATION_SCOPED_CREDENTIAL_PREFIX = "dsas_";
@@ -163,7 +171,13 @@ public class AzureSynapsePdaoConnectedTest {
   public void cleanup() throws Exception {
     try {
       synapseUtils.deleteParquetFile(
-          billingProfile, storageAccountResource, destinationParquetFile);
+          billingProfile,
+          storageAccountResource,
+          destinationParquetFile,
+          new BlobSasTokenOptions(
+              Duration.ofMinutes(15),
+              new BlobSasPermission().setReadPermission(true).setDeletePermission(true),
+              null));
 
       // check to see if successful delete
       List<String> emptyList =
@@ -256,7 +270,7 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 1 - Create external data source for the ingest control file
     BlobUrlParts ingestRequestSignUrlBlob =
-        azureBlobStorePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId);
+        azureBlobStorePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId, TEST_USER);
     azureSynapsePdao.createExternalDataSource(
         ingestRequestSignUrlBlob, ingestRequestScopedCredentialName, ingestRequestDataSourceName);
 
@@ -272,7 +286,8 @@ public class AzureSynapsePdaoConnectedTest {
             parquetDestinationLocation,
             billingProfile,
             storageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA);
+            AzureStorageAccountResource.ContainerType.METADATA,
+            TEST_USER);
     azureSynapsePdao.createExternalDataSource(
         destinationSignUrlBlob, destinationScopedCredentialName, destinationDataSourceName);
 
@@ -320,7 +335,8 @@ public class AzureSynapsePdaoConnectedTest {
             parquetSnapshotLocation,
             billingProfile,
             snapshotStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA);
+            AzureStorageAccountResource.ContainerType.METADATA,
+            TEST_USER);
     azureSynapsePdao.createExternalDataSource(
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
 

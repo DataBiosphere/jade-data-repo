@@ -77,20 +77,17 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    FlightMap map = context.getWorkingMap();
-    boolean datasetExists = map.get(SnapshotWorkingMapKeys.DATASET_EXISTS, Boolean.class);
-    if (datasetExists) {
+    try {
       UUID sourceDatasetId =
           snapshotService.getFirstSourceDatasetIdFromSnapshotId(
               snapshotId, authenticatedUserRequest);
-      try {
-        datasetService.unlock(sourceDatasetId, context.getFlightId(), sharedLock);
-      } catch (DatasetLockException | DatasetNotFoundException ex) {
-        // DatasetLockException will be thrown if flight id was not set
-        return StepResult.getStepResultSuccess();
-      } catch (RetryQueryException e) {
-        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
-      }
+
+      datasetService.unlock(sourceDatasetId, context.getFlightId(), sharedLock);
+    } catch (DatasetLockException | DatasetNotFoundException ex) {
+      // DatasetLockException will be thrown if flight id was not set
+      return StepResult.getStepResultSuccess();
+    } catch (RetryQueryException e) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
     return StepResult.getStepResultSuccess();
   }

@@ -4,7 +4,6 @@ import bio.terra.common.FlightUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
@@ -45,8 +44,6 @@ public class DeleteSnapshotSourceDatasetDependencyDataGcpStep extends OptionalSt
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
       }
       throw new PdaoException("Caught BQ exception while deleting snapshot", ex);
-    } catch (DatasetNotFoundException nfe) {
-      // If we do not find the snapshot or dataset, we assume things are already clean
     }
     return StepResult.getStepResultSuccess();
   }

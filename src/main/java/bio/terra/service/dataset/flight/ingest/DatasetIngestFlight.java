@@ -389,11 +389,7 @@ public class DatasetIngestFlight extends Flight {
     // Build the scratch file using new file ids and store in new storage account container.
     addOptionalCombinedIngestStep(
         new IngestBuildAndWriteScratchLoadFileAzureStep(
-            appConfig.objectMapper(),
-            azureBlobStorePdao,
-            azureContainerPdao,
-            dataset,
-            userReq));
+            appConfig.objectMapper(), azureBlobStorePdao, azureContainerPdao, dataset, userReq));
 
     // Copy the load history to Azure Storage Tables.
     addOptionalCombinedIngestStep(

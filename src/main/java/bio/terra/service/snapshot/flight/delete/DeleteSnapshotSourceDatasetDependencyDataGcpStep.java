@@ -1,7 +1,5 @@
 package bio.terra.service.snapshot.flight.delete;
 
-import bio.terra.common.FlightUtils;
-import bio.terra.common.exception.PdaoException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -11,7 +9,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import com.google.cloud.bigquery.BigQueryException;
 import java.util.UUID;
 import java.util.function.Predicate;
 
@@ -35,16 +32,10 @@ public class DeleteSnapshotSourceDatasetDependencyDataGcpStep extends OptionalSt
   public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
     FlightMap map = context.getWorkingMap();
     UUID datasetId = map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    try {
-      Dataset dataset = datasetService.retrieve(datasetId);
-      dependencyDao.deleteSnapshotFileDependencies(dataset, snapshotId.toString());
 
-    } catch (BigQueryException ex) {
-      if (FlightUtils.isBigQueryIamPropagationError(ex)) {
-        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
-      }
-      throw new PdaoException("Caught BQ exception while deleting snapshot", ex);
-    }
+    Dataset dataset = datasetService.retrieve(datasetId);
+    dependencyDao.deleteSnapshotFileDependencies(dataset, snapshotId.toString());
+
     return StepResult.getStepResultSuccess();
   }
 

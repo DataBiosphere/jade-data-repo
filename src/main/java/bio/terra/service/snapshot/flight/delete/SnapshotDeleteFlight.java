@@ -84,13 +84,17 @@ public class SnapshotDeleteFlight extends Flight {
     // deletes the snapshot group, so no ACL cleanup is needed beyond that.
     addStep(new DeleteSnapshotAuthzResource(iamClient, snapshotId, userReq));
 
-    // Must delete primary data before metadata; it relies on being able to retrieve the
+    // Primary Data Deletion
+    // Note: Must delete primary data before metadata; it relies on being able to retrieve the
     // snapshot object from the metadata to know what to delete.
+    // --- GCP ---
     addStep(
-        new DeleteSnapshotSourceDatasetDependencyDataGcpStep(
+        new DeleteSnapshotSourceDatasetDataGcpStep(
             dependencyDao,
+            bigQueryPdao,
             snapshotId,
             datasetService,
+            snapshotService,
             SnapshotDeletePredicates::performGCPDatasetDependencyStep),
         randomBackoffRetry);
     addStep(
@@ -102,6 +106,7 @@ public class SnapshotDeleteFlight extends Flight {
             configService,
             SnapshotDeletePredicates::performGCPStep),
         randomBackoffRetry);
+    // --- Azure --
     addStep(
         new DeleteSnapshotDependencyDataAzureStep(
             tableDependencyDao,
@@ -111,10 +116,6 @@ public class SnapshotDeleteFlight extends Flight {
             resourceService,
             azureAuthService,
             SnapshotDeletePredicates::performAzureDatasetDependencyStep));
-
-    // TODO with DR-2127 - Add check to see if anything else uses storage account before deleting
-    // and add step that removes (1) Storage Tables for the snapshot & (2) The metadata container
-    // blob for the snapshot
     addStep(
         new DeleteSnapshotDeleteStorageAccountStep(
             snapshotId,
@@ -122,6 +123,7 @@ public class SnapshotDeleteFlight extends Flight {
             azureStorageAccountService,
             SnapshotDeletePredicates::performAzureStep));
 
+    // Delete Metadata
     addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
     addStep(
         new DeleteSnapshotMetadataAzureStep(

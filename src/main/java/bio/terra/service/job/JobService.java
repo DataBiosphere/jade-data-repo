@@ -85,9 +85,14 @@ public class JobService {
     this.kubeService =
         new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
 
+    String projectId = googleResourceConfiguration.getProjectId();
     String stairwayClusterName = kubeService.getNamespace() + "-stairwaycluster";
 
-    logger.info("Creating Stairway: maxStairwayThreads: " + appConfig.getMaxStairwayThreads());
+    logger.info(
+        "Creating Stairway: maxStairwayThreads: "
+            + appConfig.getMaxStairwayThreads()
+            + " in project: "
+            + projectId);
     ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
     stairway =
         Stairway.newBuilder()
@@ -99,6 +104,7 @@ public class JobService {
             .stairwayName(appConfig.getPodName())
             .stairwayHook(new StairwayLoggingHooks(performanceLogger))
             .stairwayClusterName(stairwayClusterName)
+            .workQueueProjectId(projectId)
             .enableWorkQueue(appConfig.isInKubernetes())
             .build();
   }

@@ -361,10 +361,11 @@ public class GcsPdao implements CloudFileReader {
   // 3. for delete file consumer for deleting all files - it gets bucket path
   //    from gspath in the fireStoreFile
 
-  public boolean deleteFileById(Dataset dataset, String fileId, String fileName, String projectId) {
+  public boolean deleteFileById(
+      Dataset dataset, String fileId, String fileName, GoogleBucketResource bucketResource) {
     String bucketPath = dataset.getId().toString() + "/" + fileId + "/" + fileName;
-    BlobId blobId = GcsUriUtils.parseBlobUri(bucketPath);
-    return deleteWorker(blobId, projectId);
+    BlobId blobId = BlobId.of(bucketResource.getName(), bucketPath);
+    return deleteWorker(blobId, bucketResource.projectIdForBucket());
   }
 
   public boolean deleteFileByGspath(String inGspath, String projectId) {

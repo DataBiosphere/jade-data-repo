@@ -60,6 +60,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import common.utils.BigQueryUtils;
 
 @Component
 public class SnapshotService {
@@ -357,6 +358,27 @@ public class SnapshotService {
         .map(s -> s.getDataset().getId())
         .findFirst()
         .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
+  }
+
+  public PreviewModel retrievePreview(TestUserSpecification testUser, String id, String table, Integer count) {
+    // 1. look up snapshot, extract project, snapshot name
+    Snapshot snapshot = retrieve(UUID.fromString(id));
+
+    // 2. generate the sql query:
+    //     `SELECT ${tableName}, COUNT(30) FROM \`${datasetProject}.datarepo_${datasetBqSnapshotName}.${tableName}\``
+    String sqlQuery = String.format("SELECT %s, COUNT(%d) FROM '%s'.datarepo_%s.%s", table, count, snapshot.);
+
+    // 3. connect with bigquery service
+    // Not sure where test user is declared... yet
+    BigQuery bigQueryClient =
+        BigQueryUtils.getClientForTestUser(testUser, datasetModel.getDataProject());
+    TableResult results = BigQueryUtils.queryBigQuery(bigQueryClient, sqlQuery)
+
+    // 4. convert bigquery response to json - create PreviewModel in openapi.yaml
+    // - --- https://github.com/ga4gh-discovery/data-connect/blob/develop/TABLE.md
+    // 5. send query results to response entity
+
+    return null;
   }
 
   private AssetSpecification getAssetSpecificationFromRequest(

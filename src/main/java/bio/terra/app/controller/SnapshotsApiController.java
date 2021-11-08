@@ -200,20 +200,19 @@ public class SnapshotsApiController implements SnapshotsApi {
     return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
   }
 
-  @Override
-  public ResponseEntity<PreviewModel> lookupSnapshotPreviewById(
-      @PathVariable("id") UUID id,
-      @RequestParam(value = "table", required = true) String table,
-      @RequestParam(value = "project", required = true) String project,
-      @RequestParam(value = "snapshotName", required = true) String snapshotName,
-      @RequestParam(value = "count", required = false, defaultValue = "30") Integer count) {
-    logger.info("Verifying user access");
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
-    logger.info("Retrieving snapshot");
-    PreviewModel PreviewModel = snapshotService.retrievePreview(id, include);
-    return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
-  }
+  // @Override
+   public ResponseEntity<PreviewModel> lookupSnapshotPreviewById(
+       UUID id,
+       String table,
+       Integer count) {
+     logger.info("Verifying user access");
+     iamService.verifyAuthorization(
+         getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(),
+   IamAction.READ_DATA);
+     logger.info("Retrieving snapshot");
+     PreviewModel previewModel = snapshotService.retrievePreview(id, table, count);
+     return new ResponseEntity<>(previewModel, HttpStatus.OK);
+   }
 
   @Override
   public ResponseEntity<FileModel> lookupSnapshotFileById(

@@ -4,18 +4,17 @@ import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
-import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LockDatasetStep extends OptionalStep {
+public class LockDatasetStep implements Step {
 
-  private static Logger logger = LoggerFactory.getLogger(LockDatasetStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(LockDatasetStep.class);
 
   private final DatasetService datasetService;
   private final UUID datasetId;
@@ -31,16 +30,6 @@ public class LockDatasetStep extends OptionalStep {
       UUID datasetId,
       boolean sharedLock,
       boolean suppressNotFoundException) {
-    this(datasetService, datasetId, sharedLock, suppressNotFoundException, OptionalStep::alwaysDo);
-  }
-
-  public LockDatasetStep(
-      DatasetService datasetService,
-      UUID datasetId,
-      boolean sharedLock,
-      boolean suppressNotFoundException,
-      Predicate<FlightContext> doCondition) {
-    super(doCondition);
     this.datasetService = datasetService;
     this.datasetId = datasetId;
 
@@ -57,7 +46,7 @@ public class LockDatasetStep extends OptionalStep {
   }
 
   @Override
-  public StepResult doOptionalStep(FlightContext context) {
+  public StepResult doStep(FlightContext context) {
 
     try {
       datasetService.lock(datasetId, context.getFlightId(), sharedLock);

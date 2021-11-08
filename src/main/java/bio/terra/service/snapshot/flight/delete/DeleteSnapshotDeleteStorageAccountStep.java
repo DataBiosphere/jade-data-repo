@@ -1,18 +1,17 @@
 package bio.terra.service.snapshot.flight.delete;
 
-import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import java.util.function.Predicate;
 
-public class DeleteSnapshotDeleteStorageAccountStep extends OptionalStep {
+public class DeleteSnapshotDeleteStorageAccountStep implements Step {
 
   private final UUID snapshotId;
   private final ResourceService resourceService;
@@ -21,16 +20,14 @@ public class DeleteSnapshotDeleteStorageAccountStep extends OptionalStep {
   public DeleteSnapshotDeleteStorageAccountStep(
       UUID snapshotId,
       ResourceService resourceService,
-      AzureStorageAccountService storageAccountService,
-      Predicate<FlightContext> doCondition) {
-    super(doCondition);
+      AzureStorageAccountService storageAccountService) {
     this.snapshotId = snapshotId;
     this.resourceService = resourceService;
     this.storageAccountService = storageAccountService;
   }
 
   @Override
-  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
 
     AzureStorageAccountResource snapshotStorageAccountResource =

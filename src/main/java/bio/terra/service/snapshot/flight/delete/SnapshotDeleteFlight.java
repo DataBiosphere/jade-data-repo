@@ -71,13 +71,9 @@ public class SnapshotDeleteFlight extends Flight {
     // this before delete
     // resource from SAM to ensure we can get the metadata needed to perform the operation
     addStep(
-        new DeleteSnapshotAuthzBqAclsStep(
-            iamClient,
-            resourceService,
-            snapshotService,
-            snapshotId,
-            userReq,
-            SnapshotDeletePredicates::performGCPStep));
+        new PerformGcpStep(
+            new DeleteSnapshotAuthzBqAclsStep(
+                iamClient, resourceService, snapshotService, snapshotId, userReq)));
 
     // Delete access control first so Readers and Discoverers can no longer see snapshot
     // Google auto-magically removes the ACLs from BQ objects when SAM
@@ -89,50 +85,35 @@ public class SnapshotDeleteFlight extends Flight {
     // snapshot object from the metadata to know what to delete.
     // --- GCP ---
     addStep(
-        new DeleteSnapshotSourceDatasetDataGcpStep(
-            dependencyDao,
-            bigQueryPdao,
-            snapshotId,
-            datasetService,
-            snapshotService,
-            SnapshotDeletePredicates::performGCPDatasetDependencyStep),
+        new PerformGCPDatasetDependencyStep(
+            new DeleteSnapshotSourceDatasetDataGcpStep(
+                dependencyDao, bigQueryPdao, snapshotId, datasetService, snapshotService)),
         randomBackoffRetry);
     addStep(
-        new DeleteSnapshotPrimaryDataGcpStep(
-            bigQueryPdao,
-            snapshotService,
-            fileDao,
-            snapshotId,
-            configService,
-            SnapshotDeletePredicates::performGCPStep),
+        new PerformGcpStep(
+            new DeleteSnapshotPrimaryDataGcpStep(
+                bigQueryPdao, snapshotService, fileDao, snapshotId, configService)),
         randomBackoffRetry);
     // --- Azure --
     addStep(
-        new DeleteSnapshotDependencyDataAzureStep(
-            tableDependencyDao,
-            snapshotId,
-            datasetService,
-            profileService,
-            resourceService,
-            azureAuthService,
-            SnapshotDeletePredicates::performAzureDatasetDependencyStep));
+        new PerformAzureDatasetDependencyStep(
+            new DeleteSnapshotDependencyDataAzureStep(
+                tableDependencyDao,
+                snapshotId,
+                datasetService,
+                profileService,
+                resourceService,
+                azureAuthService)));
     addStep(
-        new DeleteSnapshotDeleteStorageAccountStep(
-            snapshotId,
-            resourceService,
-            azureStorageAccountService,
-            SnapshotDeletePredicates::performAzureStep));
+        new PerformAzureStep(
+            new DeleteSnapshotDeleteStorageAccountStep(
+                snapshotId, resourceService, azureStorageAccountService)));
 
     // Delete Metadata
     addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
-    addStep(
-        new DeleteSnapshotMetadataAzureStep(
-            azureStorageAccountService, SnapshotDeletePredicates::performAzureStep));
-    addStep(
-        new UnlockSnapshotStep(
-            snapshotDao, snapshotId, SnapshotDeletePredicates::performSnapshotStep));
+    addStep(new PerformAzureStep(new DeleteSnapshotMetadataAzureStep(azureStorageAccountService)));
+    addStep(new PerformSnapshotStep(new UnlockSnapshotStep(snapshotDao, snapshotId)));
 
-    addStep(
-        new UnlockDatasetStep(datasetService, true, SnapshotDeletePredicates::performDatasetStep));
+    addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, true)));
   }
 }

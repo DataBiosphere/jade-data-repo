@@ -702,23 +702,19 @@ paths:
           required: true
           schema:
             type: string
-        - name: project
-          in: query
-          description: Google BigQuery Project that this snapshot is in
-          required: true
-          schema:
-            type: string
-        - name: snapshotName
-          in: query
-          description: Google Snapshot Name
-          required: true
-          schema:
-            type: string
         - name: count
           in: query
           description: Count of number of rows to return for the preview
           schema:
             type: integer
+            default: 30
+      responses:
+        200:
+          description: Returns preview of snapshot and Table exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreviewModel'
   /api/repository/v1/snapshots/{id}/files/{fileid}:
     get:
       tags:
@@ -3172,6 +3168,26 @@ components:
         dataset bucket.
         Eventually, this will include attributes of the storage including
         billing, temperature, geography, etc. But for now...
+    PreviewModel:
+      type: object
+      properties:
+        dataSchema:
+          $ref: '#/components/schemas/PreviewDataSchemaModel'
+        data:
+          type: array
+            description: Array of table contents
+            items:
+              type: object
+              description: >
+                The preview data values of the snapshot
+                Keys are mapped to the column heading
+                Values are mapped to value of the row
+    PreviewDataSchemaModel:
+      type: object
+      properties:
+        properties:
+          type: object
+          description: The schema that the preview data is modeled with
     FileModel:
       type: object
       properties:

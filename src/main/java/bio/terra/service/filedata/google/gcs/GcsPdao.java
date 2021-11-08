@@ -392,8 +392,7 @@ public class GcsPdao implements CloudFileReader {
     if (blob != null) {
       return blob.delete();
     }
-    logger.warn(
-        "{} was not found and so deletion was skipped", GcsUriUtils.getGsPathFromBlob(blobId));
+    logger.warn("{} was not found and so deletion was skipped", blobId);
     return false;
   }
 

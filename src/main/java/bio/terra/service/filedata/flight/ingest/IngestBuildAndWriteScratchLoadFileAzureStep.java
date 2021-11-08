@@ -13,7 +13,6 @@ import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.StepResult;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -88,10 +87,5 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
                 new BlobSasPermission().setReadPermission(true).setWritePermission(true),
                 userRequest.getEmail()));
     azureBlobStorePdao.writeBlobLines(signedPath, lines);
-  }
-
-  @Override
-  public StepResult undoOptionalStep(FlightContext context) {
-    return StepResult.getStepResultSuccess();
   }
 }

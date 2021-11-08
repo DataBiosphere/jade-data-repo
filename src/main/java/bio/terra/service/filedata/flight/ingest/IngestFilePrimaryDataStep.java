@@ -62,7 +62,7 @@ public class IngestFilePrimaryDataStep implements Step {
     GoogleBucketResource bucketResource =
         FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
     String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
-    gcsPdao.deleteFileById(dataset, fileId, fileName, bucketResource);
+    gcsPdao.deleteFileById(dataset, fileId, fileName, bucketResource.projectIdForBucket());
 
     return StepResult.getStepResultSuccess();
   }

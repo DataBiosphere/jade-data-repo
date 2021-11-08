@@ -370,6 +370,6 @@ public final class IngestUtils {
     GoogleBucketResource bucketResource =
         FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
     String pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class);
-    gcsPdao.deleteFileByGspath(pathToIngestFile, bucketResource);
+    gcsPdao.deleteFileByGspath(pathToIngestFile, bucketResource.projectIdForBucket());
   }
 }

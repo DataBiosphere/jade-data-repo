@@ -42,7 +42,7 @@ public final class DataDeletionUtils {
         FlightUtils.getTyped(workingMap, DataDeletionMapKeys.TABLES);
     for (var table : tables) {
       var path = table.getGcsFileSpec().getPath();
-      gcsPdao.deleteFileByGspath(path, bucketResource);
+      gcsPdao.deleteFileByGspath(path, bucketResource.projectIdForBucket());
     }
   }
 }

@@ -361,16 +361,16 @@ public class GcsPdao implements CloudFileReader {
   // 3. for delete file consumer for deleting all files - it gets bucket path
   //    from gspath in the fireStoreFile
 
-  public boolean deleteFileById(
-      Dataset dataset, String fileId, String fileName, GoogleBucketResource bucketResource) {
+  public boolean deleteFileById(Dataset dataset, String fileId, String fileName, String projectId) {
     String bucketPath = dataset.getId().toString() + "/" + fileId + "/" + fileName;
-    return deleteWorker(bucketResource, bucketPath);
+    BlobId blobId = GcsUriUtils.parseBlobUri(bucketPath);
+    return deleteWorker(blobId, projectId);
   }
 
-  public boolean deleteFileByGspath(String inGspath, GoogleBucketResource bucketResource) {
+  public boolean deleteFileByGspath(String inGspath, String projectId) {
     if (inGspath != null) {
-      String bucketPath = extractFilePathInBucket(inGspath, bucketResource.getName());
-      return deleteWorker(bucketResource, bucketPath);
+      BlobId blobId = GcsUriUtils.parseBlobUri(inGspath);
+      return deleteWorker(blobId, projectId);
     }
     return false;
   }
@@ -380,19 +380,19 @@ public class GcsPdao implements CloudFileReader {
     if (fireStoreFile != null) {
       GoogleBucketResource bucketResource =
           resourceService.lookupBucket(fireStoreFile.getBucketResourceId());
-      deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
+      deleteFileByGspath(fireStoreFile.getGspath(), bucketResource.projectIdForBucket());
     }
   }
 
-  private boolean deleteWorker(GoogleBucketResource bucketResource, String bucketPath) {
-    GcsProject gcsProject =
-        gcsProjectFactory.get(bucketResource.getProjectResource().getGoogleProjectId());
+  private boolean deleteWorker(BlobId blobId, String projectId) {
+    GcsProject gcsProject = gcsProjectFactory.get(projectId);
     Storage storage = gcsProject.getStorage();
-    Blob blob = storage.get(BlobId.of(bucketResource.getName(), bucketPath));
+    Blob blob = storage.get(blobId);
     if (blob != null) {
       return blob.delete();
     }
-    logger.warn("{} was not found and so deletion was skipped", bucketPath);
+    logger.warn(
+        "{} was not found and so deletion was skipped", GcsUriUtils.getGsPathFromBlob(blobId));
     return false;
   }
 

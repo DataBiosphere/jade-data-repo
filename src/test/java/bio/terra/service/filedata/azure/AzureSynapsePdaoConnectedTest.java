@@ -396,7 +396,7 @@ public class AzureSynapsePdaoConnectedTest {
             "dateCol",
             "dateTimeCol",
             "dirRefCol",
-            "file",
+            "file", // test use of reserved word
             "floatCol",
             "float64Col",
             "intCol",

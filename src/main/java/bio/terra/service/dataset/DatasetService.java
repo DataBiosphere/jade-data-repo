@@ -265,6 +265,22 @@ public class DatasetService {
     }
   }
 
+  public void lock(UUID datasetId, String flightId, boolean sharedLock) {
+    if (sharedLock) {
+      datasetDao.lockShared(datasetId, flightId);
+    } else {
+      datasetDao.lockExclusive(datasetId, flightId);
+    }
+  }
+
+  public void unlock(UUID datasetId, String flightId, boolean sharedLock) {
+    if (sharedLock) {
+      datasetDao.unlockShared(datasetId, flightId);
+    } else {
+      datasetDao.unlockExclusive(datasetId, flightId);
+    }
+  }
+
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {
     return Arrays.stream(
             StringUtils.split(DatasetsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))

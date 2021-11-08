@@ -527,6 +527,15 @@ public class DataRepoFixtures {
     return response.getResponseObject().get();
   }
 
+  public void assertFailtoGetSnapshot(TestConfiguration.User user, UUID snapshotId)
+      throws Exception {
+    DataRepoResponse<SnapshotModel> response = getSnapshotRaw(user, snapshotId, null);
+    assertThat(
+        "snapshot is successfully retrieved",
+        response.getStatusCode(),
+        equalTo(HttpStatus.NOT_FOUND));
+  }
+
   public DataRepoResponse<EnumerateSnapshotModel> enumerateSnapshotsByDatasetIdsRaw(
       TestConfiguration.User user, List<UUID> datasetIds) throws Exception {
     String datasetIdsString;

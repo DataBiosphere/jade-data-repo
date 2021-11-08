@@ -5,7 +5,6 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
@@ -32,7 +31,6 @@ public class DatasetDataDeleteFlight extends Flight {
 
     // get the required daos and services to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
@@ -57,7 +55,8 @@ public class DatasetDataDeleteFlight extends Flight {
     addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
 
     // need to lock, need dataset name and flight id
-    addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
+    addStep(
+        new LockDatasetStep(datasetService, UUID.fromString(datasetId), true), lockDatasetRetry);
 
     // If we need to copy, make (or get) the scratch bucket
     addStep(
@@ -74,7 +73,8 @@ public class DatasetDataDeleteFlight extends Flight {
     addStep(new DataDeletionStep(bigQueryPdao, datasetService, configService));
 
     // unlock
-    addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
+    addStep(
+        new UnlockDatasetStep(datasetService, UUID.fromString(datasetId), true), lockDatasetRetry);
 
     // cleanup
     addStep(new DropExternalTablesStep(bigQueryPdao, datasetService));

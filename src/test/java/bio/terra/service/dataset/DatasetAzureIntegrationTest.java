@@ -487,6 +487,12 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     TestUtils.verifyHttpAccess(signedUrl, Map.of());
     verifySignedUrl(signedUrl, steward(), "r");
 
+    // Delete snapshot
+    dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+
+    dataRepoFixtures.assertFailtoGetSnapshot(steward(), snapshotId);
+    snapshotId = null;
+
     // Delete the file we just ingested
     dataRepoFixtures.deleteFile(steward, datasetId, fileId);
 
@@ -502,7 +508,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
-    // TODO - implement Snapshot delete flight (DR-2194)
     clearEnvironment();
   }
 

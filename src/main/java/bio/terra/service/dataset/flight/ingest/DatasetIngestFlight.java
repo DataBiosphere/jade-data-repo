@@ -241,7 +241,7 @@ public class DatasetIngestFlight extends Flight {
     addOptionalCombinedIngestStep(
         new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
 
-    addStep(new VerifyBillingAccountAccessStep(googleBillingService));
+    addOptionalCombinedIngestStep(new VerifyBillingAccountAccessStep(googleBillingService));
 
     // Lock the load.
     addOptionalCombinedIngestStep(new LoadLockStep(loadService));

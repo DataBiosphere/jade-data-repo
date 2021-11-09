@@ -17,7 +17,6 @@ import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.AzureUtils;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -29,7 +28,8 @@ import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
-import bio.terra.model.BillingProfileModel;
+import bio.terra.model.AccessInfoParquetModel;
+import bio.terra.model.AccessInfoParquetModelTable;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -39,28 +39,25 @@ import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DRSAccessMethod.TypeEnum;
+import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
-import bio.terra.service.common.azure.StorageTableName;
-import bio.terra.service.filedata.azure.tables.TableDependencyDao;
+import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
-import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
-import com.azure.core.credential.AzureNamedKeyCredential;
-import com.azure.data.tables.TableClient;
-import com.azure.data.tables.TableServiceClient;
-import com.azure.data.tables.TableServiceClientBuilder;
-import com.azure.data.tables.models.TableEntity;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import java.nio.charset.StandardCharsets;
@@ -68,6 +65,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -106,12 +104,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private SynapseUtils synapseUtils;
-  @Autowired private TableDependencyDao tableDependencyDao;
-  @Autowired private AzureUtils azureUtils;
-  @Autowired private ProfileDao profileDao;
-  @Autowired private ResourceService resourceService;
-  @Autowired private DatasetService datasetService;
-  @Autowired private AzureAuthService azureAuthService;
   @Autowired private JsonLoader jsonLoader;
 
   private String stewardToken;
@@ -119,7 +111,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private UUID datasetId;
   private UUID snapshotId;
   private UUID profileId;
-  private BillingProfileModel profileModel;
   private BlobIOTestUtility blobIOTestUtility;
 
   @Before
@@ -129,8 +120,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     steward = steward("voldemort");
     stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
     dataRepoFixtures.resetConfig(steward);
-    profileModel = dataRepoFixtures.createAzureBillingProfile(steward);
-    profileId = profileModel.getId();
+    profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
     datasetId = null;
     RequestRetryOptions retryOptions =
         new RequestRetryOptions(
@@ -255,54 +245,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     DatasetSummaryModel summaryModel2 =
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
-
-    //    Dataset dataset2 = new Dataset().id(summaryModel2.getId())
-    //        .defaultProfileId(summaryModel2.getDefaultProfileId());
-    //
-    //    AzureStorageAccountResource storageAccountResource =
-    //        resourceService.getDatasetStorageAccount(dataset2, profileModel);
-    //    AzureStorageAuthInfo storageAuthInfo =
-    //        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel,
-    // storageAccountResource);
-    //
-    //    TableServiceClient tableServiceClient =
-    // azureAuthService.getTableServiceClient(storageAuthInfo);
-
-    StorageResourceModel storageAccount =
-        datasetModel.getStorage().stream()
-            .filter(s -> Function.identity().equals(AzureCloudResource.STORAGE_ACCOUNT.getValue()))
-            .findFirst()
-            .get();
-
-    String key =
-        azureUtils.getSourceStorageAccountPrimarySharedKey(
-            testConfig.getTargetTenantId(),
-            testConfig.getTargetSubscriptionId(),
-            testConfig.getTargetResourceGroupName(),
-            storageAccount.getCloudResource());
-
-    TableServiceClient tableServiceClient =
-        new TableServiceClientBuilder()
-            .credential(new AzureNamedKeyCredential(storageAccount.getCloudResource(), key))
-            .endpoint("https://" + storageAccount.getCloudResource() + ".table.core.windows.net")
-            .buildClient();
-
-    // add fake rows here
-    UUID snapshotId = UUID.randomUUID();
-    List<String> fileUUIDs = List.of(UUID.randomUUID().toString());
-    tableDependencyDao.storeSnapshotFileDependencies(
-        tableServiceClient, summaryModel2.getId(), snapshotId, fileUUIDs);
-    String tableName = StorageTableName.DEPENDENCIES.toTableName(summaryModel2.getId());
-
-    TableClient tableClient = tableServiceClient.getTableClient(tableName);
-    TableEntity createdEntity = tableClient.getEntity(snapshotId.toString(), fileUUIDs.get(0));
-    azureUtils.assertEntityCorrect(createdEntity, snapshotId, fileUUIDs.get(0), 1L);
-    // assert that delete fails
-    dataRepoFixtures.deleteDatasetShouldFail(steward, summaryModel2.getId());
-    // delete dependencies
-    tableDependencyDao.deleteSnapshotFileDependencies(
-        tableServiceClient, summaryModel2.getId(), snapshotId);
-    // delete should succeed
     dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     assertThat(
         "Original dataset is still there",
@@ -463,6 +405,29 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestCSV);
     assertThat("2 row were ingested", ingestResponseCSV.getRowCount(), equalTo(2L));
 
+    // Only check the subset of tables that have rows
+    Set<String> tablesToCheck = Set.of(jsonIngestTableName, ingest2TableName);
+    // Read the ingested metadata
+    AccessInfoParquetModel datasetParquetAccessInfo =
+        dataRepoFixtures
+            .getDataset(
+                steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION))
+            .getAccessInformation()
+            .getParquet();
+
+    String datasetParquetUrl =
+        datasetParquetAccessInfo.getUrl() + "?" + datasetParquetAccessInfo.getSasToken();
+    TestUtils.verifyHttpAccess(datasetParquetUrl, Map.of());
+    verifySignedUrl(datasetParquetUrl, steward(), "rl");
+
+    for (AccessInfoParquetModelTable table : datasetParquetAccessInfo.getTables()) {
+      if (tablesToCheck.contains(table.getName())) {
+        String tableUrl = table.getUrl() + "?" + table.getSasToken();
+        TestUtils.verifyHttpAccess(tableUrl, Map.of());
+        verifySignedUrl(tableUrl, steward(), "rl");
+      }
+    }
+
     // Create Snapshot by full view
     SnapshotRequestModel requestModelAll =
         jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
@@ -474,9 +439,61 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     snapshotId = snapshotSummaryAll.getId();
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
 
-    // Delete the file we just ingested
+    // Read the ingested metadata
+    AccessInfoParquetModel snapshotParquetAccessInfo =
+        dataRepoFixtures
+            .getSnapshot(
+                steward(),
+                snapshotId,
+                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION))
+            .getAccessInformation()
+            .getParquet();
+
+    String snapshotParquetUrl =
+        snapshotParquetAccessInfo.getUrl() + "?" + snapshotParquetAccessInfo.getSasToken();
+    TestUtils.verifyHttpAccess(snapshotParquetUrl, Map.of());
+    verifySignedUrl(snapshotParquetUrl, steward(), "rl");
+
+    for (AccessInfoParquetModelTable table : snapshotParquetAccessInfo.getTables()) {
+      if (tablesToCheck.contains(table.getName())) {
+        String tableUrl = table.getUrl() + "?" + table.getSasToken();
+        TestUtils.verifyHttpAccess(tableUrl, Map.of());
+        verifySignedUrl(tableUrl, steward(), "rl");
+      }
+    }
+
     String fileId = result.getLoadFileResults().get(0).getFileId();
     String filePath = result.getLoadFileResults().get(0).getTargetPath();
+
+    // Do a Drs lookup
+    String drsId = String.format("v1_%s_%s", snapshotId, fileId);
+    DRSObject drsObject = dataRepoFixtures.drsGetObject(steward(), drsId);
+    assertThat(
+        "DRS object has single access method", drsObject.getAccessMethods().size(), equalTo(1));
+    assertThat(
+        "DRS object has HTTPS",
+        drsObject.getAccessMethods().get(0).getType(),
+        equalTo(TypeEnum.HTTPS));
+    assertThat(
+        "DRS object has access id",
+        drsObject.getAccessMethods().get(0).getAccessId(),
+        equalTo("az-centralus"));
+    // Make sure we can read the drs object
+    DrsResponse<DRSAccessURL> access =
+        dataRepoFixtures.getObjectAccessUrl(steward(), drsId, "az-centralus");
+    assertThat("Returns DRS access", access.getResponseObject().isPresent(), is(true));
+    String signedUrl = access.getResponseObject().get().getUrl();
+
+    TestUtils.verifyHttpAccess(signedUrl, Map.of());
+    verifySignedUrl(signedUrl, steward(), "r");
+
+    // Delete snapshot
+    dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+
+    dataRepoFixtures.assertFailtoGetSnapshot(steward(), snapshotId);
+    snapshotId = null;
+
+    // Delete the file we just ingested
     dataRepoFixtures.deleteFile(steward, datasetId, fileId);
 
     assertThat(
@@ -491,7 +508,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
-    // TODO - implement Snapshot delete flight (DR-2194)
     clearEnvironment();
   }
 
@@ -805,5 +821,17 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         .iterator()
         .next()
         .value();
+  }
+
+  private void verifySignedUrl(String signedUrl, User user, String expectedPermissions) {
+    BlobUrlParts blobUrlParts = BlobUrlParts.parse(signedUrl);
+    assertThat(
+        "Signed url contains user",
+        blobUrlParts.getCommonSasQueryParameters().getContentDisposition(),
+        equalTo(user.getEmail()));
+    assertThat(
+        "Signed url only contains expected permissions",
+        blobUrlParts.getCommonSasQueryParameters().getPermissions(),
+        equalTo(expectedPermissions));
   }
 }

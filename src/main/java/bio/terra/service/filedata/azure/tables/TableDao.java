@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.CollectionType;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.configuration.ConfigEnum;
@@ -203,7 +204,8 @@ public class TableDao {
   /**
    * Retrieve an FSItem by id
    *
-   * @param datasetId - dataset or snapshot containing file's directory entry
+   * @param collectionType - The type of collection this represents
+   * @param collectionId - ID dataset or snapshot containing file's directory entry
    * @param fileId - id of the file or directory
    * @param enumerateDepth - how far to enumerate the directory structure; 0 means not at all; 1
    *     means contents of this directory; 2 means this and its directories, etc. -1 means the
@@ -212,17 +214,37 @@ public class TableDao {
    *     client
    * @return FSFile or FSDir of retrieved file; can return null on not found
    */
-  // TODO - Azure snapshot: Support passing in snapshotID
   public FSItem retrieveById(
-      UUID datasetId, String fileId, int enumerateDepth, AzureStorageAuthInfo storageAuthInfo) {
-    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
-    FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveById(
-            tableServiceClient, StorageTableName.DATASET.toTableName(), fileId);
+      CollectionType collectionType,
+      UUID collectionId,
+      String fileId,
+      int enumerateDepth,
+      AzureStorageAuthInfo tableStorageAuthInfo,
+      AzureStorageAuthInfo datasetTableStorageAuthInfo) {
+    TableServiceClient tableServiceClient =
+        azureAuthService.getTableServiceClient(tableStorageAuthInfo);
+    TableServiceClient datasetTableServiceClient =
+        azureAuthService.getTableServiceClient(datasetTableStorageAuthInfo);
+    FireStoreDirectoryEntry fireStoreDirectoryEntry;
+    switch (collectionType) {
+      case DATASET:
+        fireStoreDirectoryEntry =
+            directoryDao.retrieveById(
+                tableServiceClient, StorageTableName.DATASET.toTableName(), fileId);
+        break;
+      case SNAPSHOT:
+        fireStoreDirectoryEntry =
+            directoryDao.retrieveById(
+                tableServiceClient, StorageTableName.SNAPSHOT.toTableName(collectionId), fileId);
+        break;
+      default:
+        throw new IllegalArgumentException(
+            String.format("Invalid collection type: %s", collectionType));
+    }
     return retrieveWorker(
         tableServiceClient,
-        tableServiceClient,
-        datasetId.toString(),
+        datasetTableServiceClient,
+        collectionId.toString(),
         enumerateDepth,
         fireStoreDirectoryEntry,
         fileId);

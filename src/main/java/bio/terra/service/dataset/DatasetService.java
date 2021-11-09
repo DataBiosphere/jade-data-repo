@@ -35,6 +35,7 @@ import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -123,9 +124,11 @@ public class DatasetService {
    * @return a DatasetModel = API output-friendly representation of the Dataset
    */
   public DatasetModel retrieveAvailableDatasetModel(
-      UUID id, List<DatasetRequestAccessIncludeModel> include) {
+      UUID id,
+      AuthenticatedUserRequest userRequest,
+      List<DatasetRequestAccessIncludeModel> include) {
     Dataset dataset = retrieveAvailable(id);
-    return retrieveModel(dataset, include);
+    return retrieveModel(dataset, userRequest, include);
   }
 
   /**
@@ -133,16 +136,19 @@ public class DatasetService {
    * retrieve the dataset a second time if you already have it
    *
    * @param dataset the dataset being passed in
+   * @param userRequest the user making the request
    * @return a DatasetModel = API output-friendly representation of the Dataset
    */
-  public DatasetModel retrieveModel(Dataset dataset) {
-    return retrieveModel(dataset, getDefaultIncludes());
+  public DatasetModel retrieveModel(Dataset dataset, AuthenticatedUserRequest userRequest) {
+    return retrieveModel(dataset, userRequest, getDefaultIncludes());
   }
 
   public DatasetModel retrieveModel(
-      Dataset dataset, List<DatasetRequestAccessIncludeModel> include) {
+      Dataset dataset,
+      AuthenticatedUserRequest userRequest,
+      List<DatasetRequestAccessIncludeModel> include) {
     return DatasetJsonConversion.populateDatasetModelFromDataset(
-        dataset, include, metadataDataAccessUtils);
+        dataset, include, metadataDataAccessUtils, userRequest);
   }
 
   public EnumerateDatasetModel enumerate(
@@ -152,7 +158,7 @@ public class DatasetService {
       SqlSortDirection direction,
       String filter,
       String region,
-      List<UUID> resources) {
+      Collection<UUID> resources) {
     if (resources.isEmpty()) {
       return new EnumerateDatasetModel().total(0).items(Collections.emptyList());
     }
@@ -256,6 +262,22 @@ public class DatasetService {
       return bigQueryPdao.getLoadHistory(dataset, loadTag, offset, limit);
     } else {
       throw new IllegalArgumentException("Unrecognized cloud platform");
+    }
+  }
+
+  public void lock(UUID datasetId, String flightId, boolean sharedLock) {
+    if (sharedLock) {
+      datasetDao.lockShared(datasetId, flightId);
+    } else {
+      datasetDao.lockExclusive(datasetId, flightId);
+    }
+  }
+
+  public void unlock(UUID datasetId, String flightId, boolean sharedLock) {
+    if (sharedLock) {
+      datasetDao.unlockShared(datasetId, flightId);
+    } else {
+      datasetDao.unlockExclusive(datasetId, flightId);
     }
   }
 

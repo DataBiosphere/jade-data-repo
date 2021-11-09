@@ -31,8 +31,8 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
-import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.RowIdMatch;
@@ -790,7 +790,7 @@ public class BigQueryPdao {
     return bigQueryProject.datasetExists(snapshot.getName());
   }
 
-  public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException {
+  public void deleteSourceDatasetViewACLs(Snapshot snapshot) throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     String snapshotProjectId = bigQueryProject.getProjectId();
     List<SnapshotSource> sources = snapshot.getSnapshotSources();
@@ -801,7 +801,12 @@ public class BigQueryPdao {
     } else {
       logger.warn("Snapshot is missing sources: " + snapshot.getName());
     }
-    return bigQueryProject.deleteDataset(snapshot.getName());
+  }
+
+  public void deleteSnapshot(Snapshot snapshot) {
+    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    boolean snapshotTableDeleted = bigQueryProject.deleteDataset(snapshot.getName());
+    logger.info("Snapshot BQ Dataset successful delete: {}", snapshotTableDeleted);
   }
 
   private List<Acl> convertToViewAcls(
@@ -901,7 +906,7 @@ public class BigQueryPdao {
       logger.info(
           "Staging table load job " + loadJob.getJobId().getJob() + " failed: " + loadJobError);
       if ("notFound".equals(loadJobError.getReason())) {
-        throw new IngestFileNotFoundException("Ingest source file not found: " + path);
+        throw new ControlFileNotFoundException("Ingest source file not found: " + path);
       }
 
       List<String> loadErrors = new ArrayList<>();

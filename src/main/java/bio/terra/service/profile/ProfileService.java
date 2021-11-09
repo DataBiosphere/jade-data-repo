@@ -26,8 +26,8 @@ import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleApplicationDeploymentException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
-import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,9 +158,10 @@ public class ProfileService {
    */
   public EnumerateBillingProfileModel enumerateProfiles(
       Integer offset, Integer limit, AuthenticatedUserRequest user) {
-    List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
+    Set<UUID> resources =
+        iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE).keySet();
     if (resources.isEmpty()) {
-      return new EnumerateBillingProfileModel().total(0).items(Collections.emptyList());
+      return new EnumerateBillingProfileModel().total(0).items(List.of());
     }
     return profileDao.enumerateBillingProfiles(offset, limit, resources);
   }

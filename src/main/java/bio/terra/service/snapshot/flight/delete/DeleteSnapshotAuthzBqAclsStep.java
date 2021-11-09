@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -7,17 +8,16 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeleteSnapshotAuthzBqAclsStep implements Step {
+public class DeleteSnapshotAuthzBqAclsStep extends OptionalStep {
   private final IamService sam;
   private final ResourceService resourceService;
   private final SnapshotService snapshotService;
@@ -31,7 +31,9 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
       ResourceService resourceService,
       SnapshotService snapshotService,
       UUID snapshotId,
-      AuthenticatedUserRequest userReq) {
+      AuthenticatedUserRequest userReq,
+      Predicate<FlightContext> doCondition) {
+    super(doCondition);
     this.sam = sam;
     this.resourceService = resourceService;
     this.snapshotService = snapshotService;
@@ -40,15 +42,8 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
-    // TODO: this probably should fail with a 404 before the flight is even attempted
-    final Snapshot snapshot;
-    try {
-      snapshot = snapshotService.retrieve(snapshotId);
-    } catch (SnapshotNotFoundException e) {
-      logger.warn("Snapshot {} metadata was not found.  Ignoring explicit ACL clear.", snapshotId);
-      return StepResult.getStepResultSuccess();
-    }
+  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
     // These policy emails should not change since the snapshot is locked by the flight
     Map<IamRole, String> policyEmails =

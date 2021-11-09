@@ -1,6 +1,10 @@
 package bio.terra.service.iam.sam;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
@@ -19,9 +23,9 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
@@ -81,7 +85,7 @@ public class SamIamTest {
   public void testExtractErrorMessageSimple() {
     ErrorReport errorReport = new ErrorReport().message("FOO").source("sam");
 
-    assertThat(SamIam.extractErrorMessage(errorReport)).isEqualTo("FOO");
+    assertThat(SamIam.extractErrorMessage(errorReport), is("FOO"));
   }
 
   @Test
@@ -92,7 +96,7 @@ public class SamIamTest {
             .source("sam")
             .addCausesItem(new ErrorReport().message("BAR").source("sam"));
 
-    assertThat(SamIam.extractErrorMessage(errorReport)).isEqualTo("FOO: BAR");
+    assertThat(SamIam.extractErrorMessage(errorReport), is("FOO: BAR"));
   }
 
   @Test
@@ -112,22 +116,23 @@ public class SamIamTest {
                             .source("sam")
                             .addCausesItem(new ErrorReport().message("QUX").source("sam"))));
 
-    assertThat(SamIam.extractErrorMessage(errorReport)).isEqualTo("FOO: BAR: (BAZ1, BAZ2: QUX)");
+    assertThat(SamIam.extractErrorMessage(errorReport), is("FOO: BAR: (BAZ1, BAZ2: QUX)"));
   }
 
   @Test
   public void testIgnoresNonUUIDResourceName() throws ApiException, InterruptedException {
-    final String goodId = UUID.randomUUID().toString();
+    final UUID goodId = UUID.randomUUID();
     final String badId = "badUUID";
     when(samResourceApi.listResourcesAndPolicies(
             IamResourceType.SPEND_PROFILE.getSamResourceName()))
         .thenReturn(
             List.of(
-                new ResourceAndAccessPolicy().resourceId(goodId),
+                new ResourceAndAccessPolicy().resourceId(goodId.toString()),
                 new ResourceAndAccessPolicy().resourceId(badId)));
 
-    List<UUID> uuids = samIam.listAuthorizedResources(userReq, IamResourceType.SPEND_PROFILE);
-    assertThat(uuids).containsExactly(UUID.fromString(goodId));
+    Set<UUID> uuids =
+        samIam.listAuthorizedResources(userReq, IamResourceType.SPEND_PROFILE).keySet();
+    assertThat(uuids, contains(goodId));
   }
 
   @Test
@@ -142,14 +147,11 @@ public class SamIamTest {
             "my-id",
             IamAction.ALTER_POLICIES.toString()))
         .thenReturn(false);
-    assertThat(
-            samIam.isAuthorized(
-                userReq, IamResourceType.SPEND_PROFILE, "my-id", IamAction.READ_DATA))
-        .isTrue();
-    assertThat(
-            samIam.isAuthorized(
-                userReq, IamResourceType.SPEND_PROFILE, "my-id", IamAction.ALTER_POLICIES))
-        .isFalse();
+    assertTrue(
+        samIam.isAuthorized(userReq, IamResourceType.SPEND_PROFILE, "my-id", IamAction.READ_DATA));
+    assertFalse(
+        samIam.isAuthorized(
+            userReq, IamResourceType.SPEND_PROFILE, "my-id", IamAction.ALTER_POLICIES));
   }
 
   @Test
@@ -157,20 +159,22 @@ public class SamIamTest {
     when(samStatusApi.getSystemStatus())
         .thenReturn(
             new SystemStatus().ok(true).systems(Map.of("GooglePubSub", Map.of("ok", true))));
-    assertThat(samIam.samStatus())
-        .isEqualTo(new RepositoryStatusModelSystems().ok(true).message("{GooglePubSub={ok=true}}"));
+    assertThat(
+        samIam.samStatus(),
+        is(new RepositoryStatusModelSystems().ok(true).message("{GooglePubSub={ok=true}}")));
   }
 
   @Test
   public void testGetStatusException() throws ApiException {
     when(samStatusApi.getSystemStatus()).thenThrow(new ApiException("BOOM!"));
-    assertThat(samIam.samStatus())
-        .isEqualTo(
+    assertThat(
+        samIam.samStatus(),
+        is(
             new RepositoryStatusModelSystems()
                 .ok(false)
                 .message(
                     "Sam status check failed: bio.terra.service.iam.exception.IamInternalServerErrorException: "
-                        + "BOOM!"));
+                        + "BOOM!")));
   }
 
   @Test
@@ -179,21 +183,21 @@ public class SamIamTest {
     final String userEmail = "a@a.com";
     mockUserInfo(userSubjectId, userEmail);
 
-    assertThat(samIam.getUserInfo(userReq))
-        .isEqualTo(
-            new UserStatusInfo().userSubjectId(userSubjectId).userEmail(userEmail).enabled(true));
+    assertThat(
+        samIam.getUserInfo(userReq),
+        is(new UserStatusInfo().userSubjectId(userSubjectId).userEmail(userEmail).enabled(true)));
   }
 
   @Test
   public void testHasActions() throws ApiException, InterruptedException {
     when(samResourceApi.resourceActions(
             IamResourceType.SPEND_PROFILE.getSamResourceName(), "my-id-1"))
-        .thenReturn(Collections.singletonList(IamAction.READ_DATA.toString()));
+        .thenReturn(List.of(IamAction.READ_DATA.toString()));
     when(samResourceApi.resourceActions(
             IamResourceType.SPEND_PROFILE.getSamResourceName(), "my-id-2"))
-        .thenReturn(Collections.emptyList());
-    assertThat(samIam.hasActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-1")).isTrue();
-    assertThat(samIam.hasActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-2")).isFalse();
+        .thenReturn(List.of());
+    assertTrue(samIam.hasActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-1"));
+    assertFalse(samIam.hasActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-2"));
   }
 
   @Test
@@ -225,19 +229,21 @@ public class SamIamTest {
     when(samResourceApi.listResourcePolicies(
             IamResourceType.SPEND_PROFILE.getSamResourceName(), id.toString()))
         .thenReturn(
-            Collections.singletonList(
+            List.of(
                 new AccessPolicyResponseEntry()
                     .policyName(IamRole.CUSTODIAN.toString())
                     .email(policyEmail)
                     .policy(new AccessPolicyMembership().addMemberEmailsItem(memberEmail))));
 
-    assertThat(samIam.retrievePolicies(userReq, IamResourceType.SPEND_PROFILE, id))
-        .isEqualTo(
-            Collections.singletonList(
-                new PolicyModel().name(IamRole.CUSTODIAN.toString()).addMembersItem(memberEmail)));
+    assertThat(
+        samIam.retrievePolicies(userReq, IamResourceType.SPEND_PROFILE, id),
+        is(
+            List.of(
+                new PolicyModel().name(IamRole.CUSTODIAN.toString()).addMembersItem(memberEmail))));
 
-    assertThat(samIam.retrievePolicyEmails(userReq, IamResourceType.SPEND_PROFILE, id))
-        .isEqualTo(Map.of(IamRole.CUSTODIAN, policyEmail));
+    assertThat(
+        samIam.retrievePolicyEmails(userReq, IamResourceType.SPEND_PROFILE, id),
+        is(Map.of(IamRole.CUSTODIAN, policyEmail)));
   }
 
   @Test
@@ -258,13 +264,14 @@ public class SamIamTest {
               IamResourceType.DATASET.getSamResourceName(),
               datasetId.toString(),
               policy.toString()))
-          .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", Collections.emptyList()));
+          .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", List.of()));
     }
 
-    assertThat(samIam.createDatasetResource(userReq, datasetId))
-        .isEqualTo(
+    assertThat(
+        samIam.createDatasetResource(userReq, datasetId),
+        is(
             syncedPolicies.stream()
-                .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org")));
+                .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));
   }
 
   @Test
@@ -284,13 +291,14 @@ public class SamIamTest {
               IamResourceType.DATASNAPSHOT.getSamResourceName(),
               snapshotId.toString(),
               policy.toString()))
-          .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", Collections.emptyList()));
+          .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", List.of()));
     }
 
-    assertThat(samIam.createSnapshotResource(userReq, snapshotId, Collections.emptyList()))
-        .isEqualTo(
+    assertThat(
+        samIam.createSnapshotResource(userReq, snapshotId, List.of()),
+        is(
             syncedPolicies.stream()
-                .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org")));
+                .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));
   }
 
   @Test
@@ -308,7 +316,7 @@ public class SamIamTest {
               IamResourceType.DATASNAPSHOT.getSamResourceName(),
               profileId.toString(),
               policy.toString()))
-          .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", Collections.emptyList()));
+          .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", List.of()));
     }
 
     samIam.createProfileResource(userReq, profileId.toString());
@@ -322,13 +330,13 @@ public class SamIamTest {
             IamResourceType.SPEND_PROFILE.getSamResourceName(),
             id.toString(),
             IamRole.OWNER.toString()))
-        .thenReturn(
-            new AccessPolicyMembership().memberEmails(Collections.singletonList(userEmail)));
+        .thenReturn(new AccessPolicyMembership().memberEmails(List.of(userEmail)));
     final PolicyModel policyModel =
         samIam.addPolicyMember(
             userReq, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
-    assertThat(policyModel)
-        .isEqualTo(new PolicyModel().name(IamRole.OWNER.toString()).addMembersItem(userEmail));
+    assertThat(
+        policyModel,
+        is(new PolicyModel().name(IamRole.OWNER.toString()).addMembersItem(userEmail)));
     verify(samResourceApi, times(1))
         .addUserToPolicy(
             IamResourceType.SPEND_PROFILE.getSamResourceName(),
@@ -345,13 +353,12 @@ public class SamIamTest {
             IamResourceType.SPEND_PROFILE.getSamResourceName(),
             id.toString(),
             IamRole.OWNER.toString()))
-        .thenReturn(new AccessPolicyMembership().memberEmails(Collections.emptyList()));
+        .thenReturn(new AccessPolicyMembership().memberEmails(List.of()));
     final PolicyModel policyModel =
         samIam.deletePolicyMember(
             userReq, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
-    assertThat(policyModel)
-        .isEqualTo(
-            new PolicyModel().name(IamRole.OWNER.toString()).members(Collections.emptyList()));
+    assertThat(
+        policyModel, is(new PolicyModel().name(IamRole.OWNER.toString()).members(List.of())));
     verify(samResourceApi, times(1))
         .removeUserFromPolicy(
             IamResourceType.SPEND_PROFILE.getSamResourceName(),
@@ -367,5 +374,22 @@ public class SamIamTest {
                 .userSubjectId(userSubjectId)
                 .userEmail(userEmail)
                 .enabled(true));
+  }
+
+  @Test
+  public void listAuthorizedResourcesTest() throws Exception {
+    UUID id = UUID.randomUUID();
+    when(samResourceApi.listResourcesAndPolicies(IamResourceType.DATASNAPSHOT.getSamResourceName()))
+        .thenReturn(
+            List.of(
+                new ResourceAndAccessPolicy()
+                    .resourceId(id.toString())
+                    .accessPolicyName(IamRole.OWNER.toString()),
+                new ResourceAndAccessPolicy()
+                    .resourceId(id.toString())
+                    .accessPolicyName(IamRole.READER.toString())));
+    Map<UUID, Set<IamRole>> uuidSetMap =
+        samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT);
+    assertThat(uuidSetMap, is((Map.of(id, Set.of(IamRole.OWNER, IamRole.READER)))));
   }
 }

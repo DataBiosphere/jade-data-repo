@@ -11,7 +11,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -66,7 +65,6 @@ public class DatasetIngestFlight extends Flight {
 
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
@@ -105,7 +103,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
     }
 
-    addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+    addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 
@@ -164,31 +162,32 @@ public class DatasetIngestFlight extends Flight {
     }
 
     if (cloudPlatform.isGcp()) {
-      addStep(new IngestControlFileCopyNeededStep(datasetService, gcsPdao));
-      // If we need to copy, make (or get) the scratch bucket
+      // If this isn't a combined ingest, make (or get) the scratch bucket
       addStep(
           new CreateBucketForBigQueryScratchStep(
-              resourceService, datasetService, IngestUtils::isCopyControlFileNeeded),
+              resourceService, datasetService, Predicate.not(IngestUtils::isCombinedFileIngest)),
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
-      // If we need to copy, copy to the scratch bucket
+      // If this isn't a combined ingest, copy to the scratch bucket
       addStep(
           new IngestCopyControlFileStep(
-              datasetService, gcsPdao, IngestUtils::isCopyControlFileNeeded));
+              datasetService, gcsPdao, Predicate.not(IngestUtils::isCombinedFileIngest)));
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
       addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
     } else if (cloudPlatform.isAzure()) {
-      addStep(new IngestCreateIngestRequestDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
-      addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
+      addStep(
+          new IngestCreateIngestRequestDataSourceStep(
+              azureSynapsePdao, azureBlobStorePdao, userReq));
+      addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao, userReq));
       addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
       addStep(
           new IngestValidateAzureRefsStep(
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
     }
-    addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+    addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
   }
 
   /**
@@ -230,7 +229,7 @@ public class DatasetIngestFlight extends Flight {
     // Parse the JSON file and see if there's actually any files to load.
     // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`
     // will not be run.
-    addStep(new IngestJsonFileSetupGcpStep(gcsPdao, appConfig.objectMapper(), dataset));
+    addStep(new IngestJsonFileSetupGcpStep(gcsPdao, appConfig.objectMapper(), dataset, userReq));
 
     // Authorize the billing profile for use.
     addStep(
@@ -266,6 +265,7 @@ public class DatasetIngestFlight extends Flight {
             appConfig.objectMapper(),
             dataset,
             appConfig.getLoadFilePopulateBatchSize(),
+            userReq,
             isCombinedIngest));
 
     // Load the files!
@@ -296,7 +296,7 @@ public class DatasetIngestFlight extends Flight {
     // Build the scratch file using new file ids and store in new bucket.
     addStep(
         new IngestBuildAndWriteScratchLoadFileGcpStep(
-            appConfig.objectMapper(), gcsPdao, dataset, isCombinedIngest));
+            appConfig.objectMapper(), gcsPdao, dataset, userReq, isCombinedIngest));
 
     // Copy the load history into BigQuery.
     addStep(
@@ -347,7 +347,8 @@ public class DatasetIngestFlight extends Flight {
     // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`
     // will not be run.
     addStep(
-        new IngestJsonFileSetupAzureStep(appConfig.objectMapper(), azureBlobStorePdao, dataset));
+        new IngestJsonFileSetupAzureStep(
+            appConfig.objectMapper(), azureBlobStorePdao, dataset, userReq));
 
     // Lock the load.
     addStep(new LoadLockStep(loadService, isCombinedIngest));
@@ -367,6 +368,7 @@ public class DatasetIngestFlight extends Flight {
             appConfig.objectMapper(),
             dataset,
             appConfig.getLoadFilePopulateBatchSize(),
+            userReq,
             isCombinedIngest));
 
     // Load the files!
@@ -396,6 +398,7 @@ public class DatasetIngestFlight extends Flight {
             azureBlobStorePdao,
             azureContainerPdao,
             dataset,
+            userReq,
             isCombinedIngest));
 
     // Copy the load history to Azure Storage Tables.

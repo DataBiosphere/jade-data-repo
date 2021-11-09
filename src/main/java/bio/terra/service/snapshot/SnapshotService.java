@@ -33,6 +33,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
@@ -45,6 +46,7 @@ import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,6 +69,7 @@ public class SnapshotService {
   private final FireStoreDependencyDao dependencyDao;
   private final BigQueryPdao bigQueryPdao;
   private final SnapshotDao snapshotDao;
+  private final MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Autowired
   public SnapshotService(
@@ -74,12 +77,14 @@ public class SnapshotService {
       DatasetService datasetService,
       FireStoreDependencyDao dependencyDao,
       BigQueryPdao bigQueryPdao,
-      SnapshotDao snapshotDao) {
+      SnapshotDao snapshotDao,
+      MetadataDataAccessUtils metadataDataAccessUtils) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
     this.bigQueryPdao = bigQueryPdao;
     this.snapshotDao = snapshotDao;
+    this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
 
   /**
@@ -137,16 +142,16 @@ public class SnapshotService {
       String filter,
       String region,
       List<UUID> datasetIds,
-      List<UUID> resources) {
+      Collection<UUID> resources) {
     if (resources.isEmpty()) {
-      return new EnumerateSnapshotModel().total(0).items(Collections.emptyList());
+      return new EnumerateSnapshotModel().total(0).items(List.of());
     }
     MetadataEnumeration<SnapshotSummary> enumeration =
         snapshotDao.retrieveSnapshots(
             offset, limit, sort, direction, filter, region, datasetIds, resources);
     List<SnapshotSummaryModel> models =
         enumeration.getItems().stream()
-            .map(this::makeSummaryModelFromSummary)
+            .map(SnapshotService::makeSummaryModelFromSummary)
             .collect(Collectors.toList());
     return new EnumerateSnapshotModel()
         .items(models)
@@ -176,10 +181,12 @@ public class SnapshotService {
    * require an exclusively locked snapshot to be returned (e.g. snapshot deletion).
    *
    * @param id in UUID format
+   * @param userRequest Authenticated user object
    * @return a SnapshotModel = API output-friendly representation of the Snapshot
    */
-  public SnapshotModel retrieveAvailableSnapshotModel(UUID id) {
-    return retrieveAvailableSnapshotModel(id, getDefaultIncludes());
+  public SnapshotModel retrieveAvailableSnapshotModel(
+      UUID id, AuthenticatedUserRequest userRequest) {
+    return retrieveAvailableSnapshotModel(id, getDefaultIncludes(), userRequest);
   }
 
   /**
@@ -195,12 +202,15 @@ public class SnapshotService {
    *
    * @param id in UUID format
    * @param include a list of what information to include
+   * @param userRequest Authenticated user object
    * @return an API output-friendly representation of the Snapshot
    */
   public SnapshotModel retrieveAvailableSnapshotModel(
-      UUID id, List<SnapshotRequestAccessIncludeModel> include) {
+      UUID id,
+      List<SnapshotRequestAccessIncludeModel> include,
+      AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = retrieveAvailable(id);
-    return populateSnapshotModelFromSnapshot(snapshot, include);
+    return populateSnapshotModelFromSnapshot(snapshot, include, userRequest);
   }
 
   /**
@@ -340,11 +350,13 @@ public class SnapshotService {
         .collect(Collectors.toList());
   }
 
-  public List<UUID> getSourceDatasetIdsFromSnapshotId(UUID snapshotId) {
-    SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId);
+  public UUID getFirstSourceDatasetIdFromSnapshotId(
+      UUID snapshotId, AuthenticatedUserRequest userRequest) {
+    SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId, userRequest);
     return snapshotModel.getSource().stream()
         .map(s -> s.getDataset().getId())
-        .collect(Collectors.toList());
+        .findFirst()
+        .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
   }
 
   private AssetSpecification getAssetSpecificationFromRequest(
@@ -552,7 +564,7 @@ public class SnapshotService {
     snapshotSource.snapshotMapTables(mapTableList);
   }
 
-  public SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {
+  private static SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {
     SnapshotSummaryModel summaryModel =
         new SnapshotSummaryModel()
             .id(snapshotSummary.getId())
@@ -572,7 +584,9 @@ public class SnapshotService {
   }
 
   private SnapshotModel populateSnapshotModelFromSnapshot(
-      Snapshot snapshot, List<SnapshotRequestAccessIncludeModel> include) {
+      Snapshot snapshot,
+      List<SnapshotRequestAccessIncludeModel> include,
+      AuthenticatedUserRequest userRequest) {
     SnapshotModel snapshotModel =
         new SnapshotModel()
             .id(snapshot.getId())
@@ -610,7 +624,8 @@ public class SnapshotService {
       snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
     }
     if (include.contains(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION)) {
-      snapshotModel.accessInformation(MetadataDataAccessUtils.accessInfoFromSnapshot(snapshot));
+      snapshotModel.accessInformation(
+          metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest));
     }
     return snapshotModel;
   }

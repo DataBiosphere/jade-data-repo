@@ -18,6 +18,7 @@ import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
+import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -44,6 +45,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -52,10 +54,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +75,10 @@ public class GcsPdao implements CloudFileReader {
   private static final List<String> GCS_VERIFICATION_SCOPES =
       List.of(
           "openid", "email", "profile", "https://www.googleapis.com/auth/devstorage.full_control");
+
+  // Cache of pet service account tokens keys on a given user's actual access_token
+  private final Map<String, String> petAccountTokens =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(30, TimeUnit.MINUTES));
 
   private final GcsProjectFactory gcsProjectFactory;
   private final ResourceService resourceService;
@@ -115,14 +123,14 @@ public class GcsPdao implements CloudFileReader {
    * @param blobUrl blobUrl to files, or blobUrl including wildcard referring to many files
    * @param cloudEncapsulationId Project ID to use for storage service in case of requester pays
    *     bucket
+   * @param userRequest user making the request
    * @return All of the lines from all of the files matching the blobUrl, as a Stream
    */
   @Override
-  public Stream<String> getBlobsLinesStream(String blobUrl, String cloudEncapsulationId) {
+  public Stream<String> getBlobsLinesStream(
+      String blobUrl, String cloudEncapsulationId, AuthenticatedUserRequest userRequest) {
     Storage storage = gcsProjectFactory.getStorage(cloudEncapsulationId);
-    int lastWildcard = blobUrl.lastIndexOf("*");
-    String prefixPath = lastWildcard >= 0 ? blobUrl.substring(0, lastWildcard) : blobUrl;
-    return listGcsFiles(prefixPath, cloudEncapsulationId, storage)
+    return listGcsFiles(blobUrl, cloudEncapsulationId, storage)
         .flatMap(blob -> getBlobLinesStream(blob, cloudEncapsulationId, storage));
   }
 
@@ -136,7 +144,10 @@ public class GcsPdao implements CloudFileReader {
   }
 
   private Stream<Blob> listGcsFiles(String path, String projectId, Storage storage) {
-    BlobId locator = GcsUriUtils.parseBlobUri(path);
+    int lastWildcard = path.lastIndexOf("*");
+    String prefixPath = lastWildcard >= 0 ? path.substring(0, lastWildcard) : path;
+    String postFix = lastWildcard >= 0 ? path.substring(lastWildcard + 1) : "";
+    BlobId locator = GcsUriUtils.parseBlobUri(prefixPath);
     Iterable<Blob> blobs =
         storage
             .list(
@@ -144,7 +155,8 @@ public class GcsPdao implements CloudFileReader {
                 Storage.BlobListOption.prefix(locator.getName()),
                 Storage.BlobListOption.userProject(projectId))
             .iterateAll();
-    return StreamSupport.stream(blobs.spliterator(), false);
+    return StreamSupport.stream(blobs.spliterator(), false)
+        .filter(b -> b.getName().endsWith(postFix));
   }
 
   /**
@@ -207,12 +219,16 @@ public class GcsPdao implements CloudFileReader {
       return;
     }
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
-    String token;
-    try {
-      token = iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
-    } catch (InterruptedException e) {
-      throw new PdaoException("Error obtaining a pet service account token");
-    }
+    String token =
+        petAccountTokens.computeIfAbsent(
+            user.getRequiredToken(),
+            t -> {
+              try {
+                return iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
+              } catch (InterruptedException e) {
+                throw new PdaoException("Error obtaining a pet service account token");
+              }
+            });
 
     Storage storageAsPet =
         StorageOptions.newBuilder()
@@ -230,18 +246,44 @@ public class GcsPdao implements CloudFileReader {
           storageAsPet.testIamPermissions(bucket, List.of("storage.objects.get"));
 
       if (!permissions.equals(List.of(true))) {
+        String proxyGroup;
+        try {
+          proxyGroup = iamClient.getProxyGroup(user);
+        } catch (InterruptedException e) {
+          // Don't fail since this call is really to get more information on a previous error
+          logger.warn("Could not get proxy group for user {}", user.getEmail());
+          proxyGroup = "N/A";
+        }
         throw new BlobAccessNotAuthorizedException(
             String.format(
-                "Accessing bucket %s is not authorized. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group",
-                bucket));
+                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group (%s)",
+                bucket, user.getEmail(), proxyGroup));
       }
+    }
+  }
+
+  public List<BlobId> listGcsIngestBlobs(String path, String projectId) {
+    int lastWildcard = path.lastIndexOf("*");
+    if (lastWildcard >= 0) {
+      Storage storage = gcsProjectFactory.getStorage(projectId);
+      return listGcsFiles(path, projectId, storage)
+          .map(BlobInfo::getBlobId)
+          .collect(Collectors.toList());
+    } else {
+      return List.of(GcsUriUtils.parseBlobUri(path));
     }
   }
 
   public void copyGcsFile(BlobId from, BlobId to, String projectId) {
     logger.info("Copying GCS file from {} to {}", from, to);
     Storage storage = gcsProjectFactory.getStorage(projectId);
-    storage.get(from).copyTo(to, Blob.BlobSourceOption.userProject(projectId));
+    Blob fromBlob = storage.get(from, Storage.BlobGetOption.userProject(projectId));
+    if (fromBlob == null) {
+      throw new FileNotFoundException(
+          String.format(
+              "File at %s was not found or does not exist", GcsUriUtils.getGsPathFromBlob(from)));
+    }
+    fromBlob.copyTo(to, Blob.BlobSourceOption.userProject(projectId));
   }
 
   public FSFileInfo copyFile(

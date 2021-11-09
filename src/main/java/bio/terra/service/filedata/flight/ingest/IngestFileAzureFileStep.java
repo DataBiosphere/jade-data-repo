@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.CollectionType;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.CommonMapKeys;
@@ -62,7 +63,14 @@ public class IngestFileAzureFileStep implements Step {
       try {
         tableDao.createFileMetadata(newFile, storageAuthInfo);
         // Retrieve to build the complete FSItem
-        FSItem fsItem = tableDao.retrieveById(dataset.getId(), fileId, 1, storageAuthInfo);
+        FSItem fsItem =
+            tableDao.retrieveById(
+                CollectionType.DATASET,
+                dataset.getId(),
+                fileId,
+                1,
+                storageAuthInfo,
+                storageAuthInfo);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);

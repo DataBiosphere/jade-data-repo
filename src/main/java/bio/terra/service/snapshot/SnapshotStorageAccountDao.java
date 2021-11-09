@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import static bio.terra.common.DaoUtils.retryQuery;
 
 import bio.terra.common.exception.RetryQueryException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -51,7 +52,11 @@ public class SnapshotStorageAccountDao {
             .addValue("storage_account_resource_id", storageAccountResourceId);
 
     try {
-      jdbcTemplate.update(sqlCreateLink, params);
+      int update = jdbcTemplate.update(sqlCreateLink, params);
+
+      if (update == 0) {
+        throw new CorruptMetadataException("Could not link storage account to snapshot");
+      }
     } catch (DataAccessException dataAccessException) {
       if (retryQuery(dataAccessException)) {
         logger.error("snapshotStorageAccount link operation failed with retryable exception.");

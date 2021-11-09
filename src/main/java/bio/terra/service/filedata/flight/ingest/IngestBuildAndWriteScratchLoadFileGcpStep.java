@@ -6,6 +6,7 @@ import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -17,14 +18,17 @@ import java.util.stream.Stream;
 public class IngestBuildAndWriteScratchLoadFileGcpStep
     extends IngestBuildAndWriteScratchLoadFileStep {
   private final GcsPdao gcsPdao;
+  private final AuthenticatedUserRequest userRequest;
 
   public IngestBuildAndWriteScratchLoadFileGcpStep(
       ObjectMapper objectMapper,
       GcsPdao gcsPdao,
       Dataset dataset,
+      AuthenticatedUserRequest userRequest,
       Predicate<FlightContext> doCondition) {
     super(objectMapper, dataset, doCondition);
     this.gcsPdao = gcsPdao;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -34,6 +38,7 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
         gcsPdao,
         objectMapper,
         ingestRequest,
+        userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
         errors);
   }
@@ -46,7 +51,7 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
             .get(CommonFlightKeys.SCRATCH_BUCKET_INFO, GoogleBucketResource.class);
 
     return GcsUriUtils.getGsPathFromComponents(
-        bucket.getName(), flightContext.getFlightId() + "-scratch.json");
+        bucket.getName(), flightContext.getFlightId() + "/ingest-scratch.json");
   }
 
   @Override

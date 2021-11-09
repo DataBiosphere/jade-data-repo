@@ -6,6 +6,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -33,6 +34,7 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
   private final ConfigurationService configService;
   private final ResourceService resourceService;
   private final ProfileDao profileDao;
+  private final AuthenticatedUserRequest userRequest;
 
   public DeleteDatasetAzurePrimaryDataStep(
       AzureBlobStorePdao azureBlobStorePdao,
@@ -41,7 +43,8 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
       UUID datasetId,
       ConfigurationService configService,
       ResourceService resourceService,
-      ProfileDao profileDao) {
+      ProfileDao profileDao,
+      AuthenticatedUserRequest userRequest) {
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.tableDao = tableDao;
     this.datasetService = datasetService;
@@ -49,6 +52,7 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
     this.configService = configService;
     this.resourceService = resourceService;
     this.profileDao = profileDao;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -58,7 +62,8 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
         map.get(DatasetWorkingMapKeys.AZURE_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     if (storageAuthInfo != null) {
-      tableDao.deleteFilesFromDataset(storageAuthInfo, azureBlobStorePdao::deleteFile);
+      tableDao.deleteFilesFromDataset(
+        storageAuthInfo, f -> azureBlobStorePdao.deleteFile(f, userRequest));
     } else {
       throw new ResourceNotFoundException("No Azure storage auth info found");
     }

@@ -46,7 +46,7 @@ public class DeleteDatasetAuthzBqAclsStep implements Step {
     DatasetModel datasetModel;
     try {
       Dataset dataset = datasetService.retrieve(datasetId);
-      datasetModel = datasetService.retrieveModel(dataset);
+      datasetModel = datasetService.retrieveModel(dataset, userReq);
     } catch (DatasetNotFoundException | InvalidDatasetException e) {
       logger.warn("Dataset {} metadata was not found.  Ignoring explicit ACL clear.", datasetId);
       return StepResult.getStepResultSuccess();

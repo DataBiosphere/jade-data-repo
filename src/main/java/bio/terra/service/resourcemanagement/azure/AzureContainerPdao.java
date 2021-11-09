@@ -1,12 +1,13 @@
 package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.sas.BlobContainerSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.sas.SasProtocol;
 import java.time.OffsetDateTime;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -49,28 +50,22 @@ public class AzureContainerPdao {
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
       ContainerType containerType,
-      boolean enableRead,
-      boolean enableList,
-      boolean enableWrite,
-      boolean enableDelete) {
+      BlobSasTokenOptions blobSasTokenOptions) {
 
-    BlobContainerSasPermission permissions =
-        new BlobContainerSasPermission()
-            .setReadPermission(enableRead)
-            .setWritePermission(enableWrite)
-            .setListPermission(enableList)
-            .setDeletePermission(enableDelete);
-
-    OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
+    OffsetDateTime expiryTime = OffsetDateTime.now().plus(blobSasTokenOptions.getDuration());
     SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
 
     // build the token
     BlobServiceSasSignatureValues sasSignatureValues =
-        new BlobServiceSasSignatureValues(expiryTime, permissions)
+        new BlobServiceSasSignatureValues(expiryTime, blobSasTokenOptions.getSasPermissions())
             .setProtocol(sasProtocol)
             // Version is set to a version of the token signing API the supports keys that permit
             // listing files
             .setVersion("2020-04-08");
+
+    if (!StringUtils.isEmpty(blobSasTokenOptions.getContentDisposition())) {
+      sasSignatureValues.setContentDisposition(blobSasTokenOptions.getContentDisposition());
+    }
 
     BlobContainerClient containerClient =
         getOrCreateContainer(profileModel, storageAccountResource, containerType);

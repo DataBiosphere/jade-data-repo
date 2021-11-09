@@ -25,6 +25,7 @@ import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
@@ -584,7 +585,7 @@ public class DatasetDao {
       SqlSortDirection direction,
       String filter,
       String region,
-      List<UUID> accessibleDatasetIds) {
+      Collection<UUID> accessibleDatasetIds) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses);

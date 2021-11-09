@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -142,10 +143,11 @@ public class DatasetsApiController implements DatasetsApi {
               required = false,
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
           List<DatasetRequestAccessIncludeModel> include) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
     return new ResponseEntity<>(
-        datasetService.retrieveAvailableDatasetModel(id, include), HttpStatus.OK);
+        datasetService.retrieveAvailableDatasetModel(id, userRequest, include), HttpStatus.OK);
   }
 
   @Override
@@ -169,8 +171,10 @@ public class DatasetsApiController implements DatasetsApi {
       @Valid @RequestParam(value = "filter", required = false) String filter,
       @Valid @RequestParam(value = "region", required = false) String region) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    List<UUID> resources =
-        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
+    Set<UUID> resources =
+        iamService
+            .listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET)
+            .keySet();
     EnumerateDatasetModel esm =
         datasetService.enumerate(offset, limit, sort, direction, filter, region, resources);
     return new ResponseEntity<>(esm, HttpStatus.OK);

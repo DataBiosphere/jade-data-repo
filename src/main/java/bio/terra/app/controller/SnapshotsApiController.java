@@ -34,6 +34,7 @@ import io.swagger.annotations.Api;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
@@ -166,8 +167,10 @@ public class SnapshotsApiController implements SnapshotsApi {
       @Valid @RequestParam(value = "region", required = false) String region,
       @Valid @RequestParam(value = "datasetIds", required = false) List<String> datasetIds) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    List<UUID> resources =
-        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
+    Set<UUID> resources =
+        iamService
+            .listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
+            .keySet();
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
             .map(UUID::fromString)
@@ -188,10 +191,12 @@ public class SnapshotsApiController implements SnapshotsApi {
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
           List<SnapshotRequestAccessIncludeModel> include) {
     logger.info("Verifying user access");
+    AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+        authenticatedInfo, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
     logger.info("Retrieving snapshot");
-    SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(id, include);
+    SnapshotModel snapshotModel =
+        snapshotService.retrieveAvailableSnapshotModel(id, include, authenticatedInfo);
     return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
   }
 

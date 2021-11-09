@@ -4,6 +4,7 @@ import bio.terra.common.Column;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 
@@ -11,11 +12,17 @@ public class IngestJsonFileSetupGcpStep extends IngestJsonFileSetupStep {
 
   private final GcsPdao gcsPdao;
   private final ObjectMapper objectMapper;
+  private final AuthenticatedUserRequest userRequest;
 
-  public IngestJsonFileSetupGcpStep(GcsPdao gcsPdao, ObjectMapper objectMapper, Dataset dataset) {
+  public IngestJsonFileSetupGcpStep(
+      GcsPdao gcsPdao,
+      ObjectMapper objectMapper,
+      Dataset dataset,
+      AuthenticatedUserRequest userRequest) {
     super(dataset);
     this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -25,6 +32,7 @@ public class IngestJsonFileSetupGcpStep extends IngestJsonFileSetupStep {
         gcsPdao,
         objectMapper,
         ingestRequest,
+        userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
         fileRefColumns,
         errors);

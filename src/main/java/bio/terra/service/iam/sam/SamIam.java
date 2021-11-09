@@ -28,7 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,7 +43,6 @@ import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
-import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,27 +133,24 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public List<UUID> listAuthorizedResources(
+  public Map<UUID, Set<IamRole>> listAuthorizedResources(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType)
       throws InterruptedException {
     return SamRetry.retry(
         configurationService, () -> listAuthorizedResourcesInner(userReq, iamResourceType));
   }
 
-  private List<UUID> listAuthorizedResourcesInner(
+  private Map<UUID, Set<IamRole>> listAuthorizedResourcesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType) throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-
-    try (Stream<ResourceAndAccessPolicy> resultStream =
-        samResourceApi.listResourcesAndPolicies(iamResourceType.toString()).stream()) {
-      return resultStream
-          .map(ResourceAndAccessPolicy::getResourceId)
-          // Convert valid UUID's to Optional<UUID> objects
-          .map(ValidationUtils::convertToUuid)
-          // Only return valid values
-          .flatMap(Optional::stream)
-          .collect(Collectors.toList());
-    }
+    return samResourceApi.listResourcesAndPolicies(iamResourceType.getSamResourceName()).stream()
+        .filter(resource -> ValidationUtils.isValidUuid(resource.getResourceId()))
+        .collect(
+            Collectors.groupingBy(
+                resource -> UUID.fromString(resource.getResourceId()),
+                Collectors.mapping(
+                    resource -> IamRole.fromValue(resource.getAccessPolicyName()),
+                    Collectors.toSet())));
   }
 
   @Override
@@ -489,6 +485,15 @@ public class SamIam implements IamProviderInterface {
     } catch (ApiException ex) {
       throw convertSAMExToDataRepoEx(ex);
     }
+  }
+
+  @Override
+  public String getProxyGroup(AuthenticatedUserRequest userReq) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getProxyGroupInner(userReq));
+  }
+
+  private String getProxyGroupInner(AuthenticatedUserRequest userReq) throws ApiException {
+    return samGoogleApi(userReq.getRequiredToken()).getProxyGroup(userReq.getEmail());
   }
 
   @Override

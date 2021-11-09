@@ -45,9 +45,7 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
@@ -62,9 +60,12 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -105,9 +106,6 @@ public class SnapshotConnectedTest {
   @Autowired private JsonLoader jsonLoader;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
-  @Autowired private ProfileDao profileDao;
-  @Autowired private ResourceService dataLocationService;
-  @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private ConfigurationService configService;
@@ -298,8 +296,10 @@ public class SnapshotConnectedTest {
       snapshotList.add(summaryModel);
     }
 
-    List<UUID> snapshotIds =
-        snapshotList.stream().map(snapshot -> snapshot.getId()).collect(Collectors.toList());
+    Map<UUID, Set<IamRole>> snapshotIds =
+        snapshotList.stream()
+            .map(SnapshotSummaryModel::getId)
+            .collect(Collectors.toMap(Function.identity(), x -> Set.of(IamRole.READER)));
 
     when(samService.listAuthorizedResources(any(), any())).thenReturn(snapshotIds);
     EnumerateSnapshotModel enumResponse = enumerateTestSnapshots();

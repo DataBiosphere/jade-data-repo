@@ -328,8 +328,14 @@ public class SnapshotDao {
                     .cloudPlatform(CloudPlatform.fromValue(rs.getString("cloud_platform")));
               });
       if (snapshotProject != null) {
-        snapshotProject.sourceDatasetProjects(retrieveDatasetProjects(snapshotProject));
         snapshotProject.dataProject(retrieveSnapshotDataProject(snapshotProject));
+        if (snapshotProject.getCloudPlatform().equals(CloudPlatform.GCP)) {
+          snapshotProject.sourceDatasetProjects(retrieveGCPDatasetProjects(snapshotProject));
+        } else if (snapshotProject.getCloudPlatform().equals(CloudPlatform.AZURE)) {
+          snapshotProject.sourceDatasetProjects(retrieveAzureDatasetProjects(snapshotProject));
+        } else {
+          throw new CorruptMetadataException("Invalid cloud platform for snapshot");
+        }
       }
       return snapshotProject;
     } catch (EmptyResultDataAccessException ex) {
@@ -352,54 +358,53 @@ public class SnapshotDao {
     }
   }
 
-  private List<DatasetProject> retrieveDatasetProjects(SnapshotProject snapshotProject) {
-    String sql;
-    if (snapshotProject.getCloudPlatform().equals(CloudPlatform.GCP)) {
-      sql =
-          "SELECT d.id, d.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n"
-              + " FROM snapshot_source ss, dataset d, project_resource p\n"
-              + " WHERE ss.dataset_id = d.id"
-              + " AND d.project_resource_id = p.id"
-              + " AND :id = ss.snapshot_id";
-      MapSqlParameterSource params =
-          new MapSqlParameterSource().addValue("id", snapshotProject.getId());
-      try {
-        return jdbcTemplate.query(
-            sql,
-            params,
-            (rs, rowNum) -> {
-              return new DatasetProject()
-                  .id(rs.getObject("id", UUID.class))
-                  .name(rs.getString("name"))
-                  .profileId(rs.getObject("profileId", UUID.class))
-                  .dataProject(rs.getString("dataProject"));
-            });
-      } catch (EmptyResultDataAccessException ex) {
-        return null;
-      }
-    } else if (snapshotProject.getCloudPlatform().equals(CloudPlatform.AZURE)) {
-      sql =
-          "SELECT d.id, d.name, d.default_profile_id as \"profileId\" FROM snapshot_source ss, dataset d\n"
-              + " WHERE ss.dataset_id = d.id"
-              + " AND :id = ss.snapshot_id";
-      MapSqlParameterSource params =
-          new MapSqlParameterSource().addValue("id", snapshotProject.getId());
+  private List<DatasetProject> retrieveGCPDatasetProjects(SnapshotProject snapshotProject) {
+    String sql =
+        "SELECT d.id, d.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n"
+            + " FROM snapshot_source ss, dataset d, project_resource p\n"
+            + " WHERE ss.dataset_id = d.id"
+            + " AND d.project_resource_id = p.id"
+            + " AND :id = ss.snapshot_id";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("id", snapshotProject.getId());
+    try {
+      return jdbcTemplate.query(
+          sql,
+          params,
+          (rs, rowNum) -> {
+            return new DatasetProject()
+                .id(rs.getObject("id", UUID.class))
+                .name(rs.getString("name"))
+                .profileId(rs.getObject("profileId", UUID.class))
+                .dataProject(rs.getString("dataProject"));
+          });
+    } catch (EmptyResultDataAccessException ex) {
+      throw new CorruptMetadataException(
+          String.format("No source datasets found for snapshot %s", snapshotProject.getId()));
+    }
+  }
 
-      try {
-        return jdbcTemplate.query(
-            sql,
-            params,
-            (rs, rowNum) -> {
-              return new DatasetProject()
-                  .id(rs.getObject("id", UUID.class))
-                  .name(rs.getString("name"))
-                  .profileId(rs.getObject("profileId", UUID.class));
-            });
-      } catch (EmptyResultDataAccessException ex) {
-        return null;
-      }
-    } else {
-      throw new CorruptMetadataException("Invalid cloud platform for snapshot");
+  private List<DatasetProject> retrieveAzureDatasetProjects(SnapshotProject snapshotProject) {
+    String sql =
+        "SELECT d.id, d.name, d.default_profile_id as \"profileId\" FROM snapshot_source ss, dataset d\n"
+            + " WHERE ss.dataset_id = d.id"
+            + " AND :id = ss.snapshot_id";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("id", snapshotProject.getId());
+
+    try {
+      return jdbcTemplate.query(
+          sql,
+          params,
+          (rs, rowNum) -> {
+            return new DatasetProject()
+                .id(rs.getObject("id", UUID.class))
+                .name(rs.getString("name"))
+                .profileId(rs.getObject("profileId", UUID.class));
+          });
+    } catch (EmptyResultDataAccessException ex) {
+      throw new CorruptMetadataException(
+          String.format("No source datasets found for snapshot %s", snapshotProject.getId()));
     }
   }
 

@@ -1,14 +1,12 @@
 package bio.terra.service.profile.flight;
 
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import com.azure.resourcemanager.compute.models.BillingProfile;
 
 public class VerifyDeployedApplicationAccessStep implements Step {
 
@@ -16,8 +14,7 @@ public class VerifyDeployedApplicationAccessStep implements Step {
   private final AuthenticatedUserRequest user;
 
   public VerifyDeployedApplicationAccessStep(
-      ProfileService profileService,
-      AuthenticatedUserRequest user) {
+      ProfileService profileService, AuthenticatedUserRequest user) {
     this.profileService = profileService;
     this.user = user;
   }
@@ -25,8 +22,8 @@ public class VerifyDeployedApplicationAccessStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    BillingProfileModel profileModel = workingMap.get(ProfileMapKeys.PROFILE_MODEL,
-        BillingProfileModel.class);
+    BillingProfileModel profileModel =
+        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     profileService.verifyDeployedApplication(
         profileModel.getSubscriptionId(),
         profileModel.getResourceGroupName(),

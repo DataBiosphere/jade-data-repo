@@ -16,7 +16,8 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
-import bio.terra.service.profile.flight.VerifyRepositoryBillingProfileAccessStep;
+import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
+import bio.terra.service.profile.flight.VerifyDeployedApplicationAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -66,8 +67,7 @@ public class DatasetCreateFlight extends Flight {
     addStep(new CreateDatasetIdStep());
 
     if (platform.isGcp()) {
-      // Verify billing access
-      addStep(new VerifyRepositoryBillingProfileAccessStep(googleBillingService));
+      addStep(new VerifyBillingAccountAccessStep(googleBillingService));
 
       // Get a new google project from RBS and store it in the working map
       addStep(new GetResourceBufferProjectStep(bufferService));
@@ -80,6 +80,8 @@ public class DatasetCreateFlight extends Flight {
 
     // Get or create the storage account where the dataset resources will be created for Azure
     if (platform.isAzure()) {
+      addStep(new VerifyDeployedApplicationAccessStep(profileService, userReq));
+
       addStep(
           new CreateDatasetGetOrCreateStorageAccountStep(
               resourceService, datasetRequest, azureBlobStorePdao));

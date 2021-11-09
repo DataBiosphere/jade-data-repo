@@ -24,7 +24,8 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
-import bio.terra.service.profile.flight.VerifyRepositoryBillingProfileAccessStep;
+import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
+import bio.terra.service.profile.flight.VerifyDeployedApplicationAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -99,7 +100,7 @@ public class SnapshotCreateFlight extends Flight {
     addStep(new CreateSnapshotIdStep(snapshotReq));
 
     if (platform.isGcp()) {
-      addStep(new VerifyRepositoryBillingProfileAccessStep(googleBillingService));
+      addStep(new VerifyBillingAccountAccessStep(googleBillingService));
 
       // Get a new google project from RBS and store it in the working map
       addStep(new GetResourceBufferProjectStep(bufferService));
@@ -117,6 +118,8 @@ public class SnapshotCreateFlight extends Flight {
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isAzure()) {
+      addStep(new VerifyDeployedApplicationAccessStep(profileService, userReq));
+
       addStep(
           new CreateSnapshotCreateAzureStorageAccountStep(
               resourceService, sourceDataset, snapshotReq));

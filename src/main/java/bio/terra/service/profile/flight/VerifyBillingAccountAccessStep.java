@@ -8,10 +8,10 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-public class VerifyRepositoryBillingProfileAccessStep implements Step {
+public class VerifyBillingAccountAccessStep implements Step {
   private final GoogleBillingService googleBillingService;
 
-  public VerifyRepositoryBillingProfileAccessStep(GoogleBillingService googleBillingService) {
+  public VerifyBillingAccountAccessStep(GoogleBillingService googleBillingService) {
     this.googleBillingService = googleBillingService;
   }
 

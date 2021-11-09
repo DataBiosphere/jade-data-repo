@@ -25,6 +25,9 @@ import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
+import bio.terra.service.profile.flight.VerifyDeployedApplicationAccessStep;
+import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.stairway.Flight;
@@ -55,6 +58,7 @@ public class FileIngestFlight extends Flight {
     ProfileService profileService = appContext.getBean(ProfileService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
+    GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     DatasetStorageAccountDao datasetStorageAccountDao =
         appContext.getBean(DatasetStorageAccountDao.class);
 
@@ -115,7 +119,7 @@ public class FileIngestFlight extends Flight {
     //    created in the file firestore collection, the file becomes visible for REST API lookups.
     // 9. Unlock the load tag
     // 10. Unlock the dataset
-    addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, platform, userReq));
+    addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
     if (platform.isAzure()) {
       addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));
     }
@@ -125,6 +129,7 @@ public class FileIngestFlight extends Flight {
     addStep(new IngestFileIdStep(configService));
 
     if (platform.isGcp()) {
+      addStep(new VerifyBillingAccountAccessStep(googleBillingService));
       addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
       addStep(new IngestFileDirectoryStep(fileDao, dataset), randomBackoffRetry);
@@ -135,6 +140,7 @@ public class FileIngestFlight extends Flight {
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {
+      addStep(new VerifyDeployedApplicationAccessStep(profileService, userReq));
       addStep(
           new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
       addStep(

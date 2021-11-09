@@ -93,8 +93,7 @@ public class SnapshotCreateFlight extends Flight {
 
     // Make sure this user is authorized to use the billing profile in SAM
     addStep(
-        new AuthorizeBillingProfileUseStep(
-            profileService, snapshotReq.getProfileId(), platform, userReq));
+        new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
 
     // mint a snapshot id and put it in the working map
     addStep(new CreateSnapshotIdStep(snapshotReq));

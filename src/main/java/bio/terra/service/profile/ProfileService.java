@@ -207,7 +207,7 @@ public class ProfileService {
    * @return the profile model associated with the profile id
    */
   public BillingProfileModel authorizeLinking(
-      UUID profileId, AuthenticatedUserRequest user, CloudPlatformWrapper platform) {
+      UUID profileId, AuthenticatedUserRequest user) {
     logger.info("Verify authorization for link id={} user={}", profileId, user.getEmail());
     iamService.verifyAuthorization(
         user, IamResourceType.SPEND_PROFILE, profileId.toString(), IamAction.LINK);

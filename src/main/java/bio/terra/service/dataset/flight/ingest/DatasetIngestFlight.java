@@ -97,7 +97,7 @@ public class DatasetIngestFlight extends Flight {
     if (cloudPlatform.isAzure()) {
       addStep(
           new AuthorizeBillingProfileUseStep(
-              profileService, ingestRequestModel.getProfileId(), cloudPlatform, userReq));
+              profileService, ingestRequestModel.getProfileId(), userReq));
 
       addStep(new VerifyDeployedApplicationAccessStep(profileService, userReq));
 
@@ -239,7 +239,7 @@ public class DatasetIngestFlight extends Flight {
 
     // Make sure this user is authorized to use the billing profile in SAM
     addOptionalCombinedIngestStep(
-        new AuthorizeBillingProfileUseStep(profileService, profileId, CloudPlatformWrapper.of(platform), userReq));
+        new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
 
     addStep(new VerifyBillingAccountAccessStep(googleBillingService));
 

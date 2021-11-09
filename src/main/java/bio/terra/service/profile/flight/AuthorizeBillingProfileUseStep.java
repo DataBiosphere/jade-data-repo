@@ -1,6 +1,5 @@
 package bio.terra.service.profile.flight;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.DefaultUndoStep;
@@ -22,20 +21,18 @@ import java.util.UUID;
 public class AuthorizeBillingProfileUseStep extends DefaultUndoStep {
   private final ProfileService profileService;
   private final UUID profileId;
-  private final CloudPlatformWrapper platform;
   private final AuthenticatedUserRequest user;
 
   public AuthorizeBillingProfileUseStep(
-      ProfileService profileService, UUID profileId, CloudPlatformWrapper platform, AuthenticatedUserRequest user) {
+      ProfileService profileService, UUID profileId, AuthenticatedUserRequest user) {
     this.profileService = profileService;
     this.profileId = profileId;
-    this.platform = platform;
     this.user = user;
   }
 
   @Override
   public StepResult doStep(FlightContext context) {
-    BillingProfileModel profileModel = profileService.authorizeLinking(profileId, user, platform);
+    BillingProfileModel profileModel = profileService.authorizeLinking(profileId, user);
     FlightMap workingMap = context.getWorkingMap();
     workingMap.put(ProfileMapKeys.PROFILE_MODEL, profileModel);
     return StepResult.getStepResultSuccess();

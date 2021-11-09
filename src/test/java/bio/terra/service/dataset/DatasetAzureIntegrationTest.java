@@ -487,6 +487,9 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     TestUtils.verifyHttpAccess(signedUrl, Map.of());
     verifySignedUrl(signedUrl, steward(), "r");
 
+    // Delete dataset should fail
+    dataRepoFixtures.deleteDatasetShouldFail(steward, datasetId);
+
     // Delete snapshot
     dataRepoFixtures.deleteSnapshot(steward, snapshotId);
 
@@ -505,6 +508,9 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         "file is gone",
         dataRepoFixtures.getFileByNameRaw(steward, datasetId, filePath).getStatusCode(),
         equalTo(HttpStatus.NOT_FOUND));
+
+    // Delete dataset should now succeed
+    dataRepoFixtures.deleteDataset(steward, snapshotId);
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();

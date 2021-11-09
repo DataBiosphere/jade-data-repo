@@ -63,7 +63,7 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
 
     if (storageAuthInfo != null) {
       tableDao.deleteFilesFromDataset(
-        storageAuthInfo, f -> azureBlobStorePdao.deleteFile(f, userRequest));
+          storageAuthInfo, f -> azureBlobStorePdao.deleteFile(f, userRequest));
     } else {
       throw new ResourceNotFoundException("No Azure storage auth info found");
     }

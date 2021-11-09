@@ -49,13 +49,12 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
-import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
+import bio.terra.stairway.Step;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.function.Predicate;
 import org.springframework.context.ApplicationContext;
 
 public class DatasetIngestFlight extends Flight {
@@ -116,7 +115,6 @@ public class DatasetIngestFlight extends Flight {
       RetryRule randomBackoffRetry =
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
       RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
-      Predicate<FlightContext> isCombinedIngest = IngestUtils::isCombinedFileIngest;
 
       var profileId =
           Objects.requireNonNullElse(
@@ -139,8 +137,7 @@ public class DatasetIngestFlight extends Flight {
             driverRetry,
             driverWaitSeconds,
             loadHistoryWaitSeconds,
-            loadHistoryChunkSize,
-            isCombinedIngest);
+            loadHistoryChunkSize);
       } else if (cloudPlatform.isAzure()) {
         addAzureJsonSteps(
             appContext,
@@ -156,21 +153,20 @@ public class DatasetIngestFlight extends Flight {
             randomBackoffRetry,
             driverRetry,
             driverWaitSeconds,
-            loadHistoryChunkSize,
-            isCombinedIngest);
+            loadHistoryChunkSize);
       }
     }
 
     if (cloudPlatform.isGcp()) {
       // If this isn't a combined ingest, make (or get) the scratch bucket
       addStep(
-          new CreateBucketForBigQueryScratchStep(
-              resourceService, datasetService, Predicate.not(IngestUtils::isCombinedFileIngest)),
+          new NonCombinedFileIngestOptionalStep(
+              new CreateBucketForBigQueryScratchStep(resourceService, datasetService)),
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
       // If this isn't a combined ingest, copy to the scratch bucket
       addStep(
-          new IngestCopyControlFileStep(
-              datasetService, gcsPdao, Predicate.not(IngestUtils::isCombinedFileIngest)));
+          new NonCombinedFileIngestOptionalStep(
+              new IngestCopyControlFileStep(datasetService, gcsPdao)));
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
@@ -188,6 +184,14 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
+  }
+
+  private void addOptionalCombinedIngestStep(Step step, RetryRule retryRule) {
+    addStep(new CombinedFileIngestOptionalStep(step), retryRule);
+  }
+
+  private void addOptionalCombinedIngestStep(Step step) {
+    addStep(new CombinedFileIngestOptionalStep(step));
   }
 
   /**
@@ -210,8 +214,7 @@ public class DatasetIngestFlight extends Flight {
       RetryRule driverRetry,
       int driverWaitSeconds,
       int loadHistoryWaitSeconds,
-      int loadHistoryChunkSize,
-      Predicate<FlightContext> isCombinedIngest) {
+      int loadHistoryChunkSize) {
 
     ProfileService profileService = appContext.getBean(ProfileService.class);
     LoadService loadService = appContext.getBean(LoadService.class);
@@ -232,32 +235,29 @@ public class DatasetIngestFlight extends Flight {
     addStep(new IngestJsonFileSetupGcpStep(gcsPdao, appConfig.objectMapper(), dataset, userReq));
 
     // Authorize the billing profile for use.
-    addStep(
-        new AuthorizeBillingProfileUseStep(profileService, profileId, userReq, isCombinedIngest));
+    addOptionalCombinedIngestStep(
+        new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
 
     // Lock the load.
-    addStep(new LoadLockStep(loadService, isCombinedIngest));
+    addOptionalCombinedIngestStep(new LoadLockStep(loadService));
 
     // Get or create a Google project for files to be ingested into.
-    addStep(new IngestFileGetProjectStep(dataset, projectService, isCombinedIngest));
+    addOptionalCombinedIngestStep(new IngestFileGetProjectStep(dataset, projectService));
 
     // Initialize the Google project for ingest use.
-    addStep(
-        new IngestFileInitializeProjectStep(resourceService, dataset, isCombinedIngest),
-        randomBackoffRetry);
+    addOptionalCombinedIngestStep(
+        new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
 
     // Create the bucket within the Google project for files to be ingested into.
-    addStep(
-        new IngestFilePrimaryDataLocationStep(resourceService, dataset, isCombinedIngest),
-        randomBackoffRetry);
+    addOptionalCombinedIngestStep(
+        new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
 
     // Make a link between the dataset and bucket in the database.
-    addStep(
-        new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset, isCombinedIngest),
-        randomBackoffRetry);
+    addOptionalCombinedIngestStep(
+        new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
 
     // Populate the load table in our database with files to be loaded.
-    addStep(
+    addOptionalCombinedIngestStep(
         new IngestPopulateFileStateFromFlightMapGcpStep(
             loadService,
             fileService,
@@ -265,11 +265,10 @@ public class DatasetIngestFlight extends Flight {
             appConfig.objectMapper(),
             dataset,
             appConfig.getLoadFilePopulateBatchSize(),
-            userReq,
-            isCombinedIngest));
+            userReq));
 
     // Load the files!
-    addStep(
+    addOptionalCombinedIngestStep(
         new IngestDriverStep(
             loadService,
             configService,
@@ -280,26 +279,25 @@ public class DatasetIngestFlight extends Flight {
             driverWaitSeconds,
             profileId,
             platform,
-            userReq,
-            isCombinedIngest),
+            userReq),
         driverRetry);
 
     // Create the job result with the results of the bulk file load.
-    addStep(
-        new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag(), isCombinedIngest));
+    addOptionalCombinedIngestStep(
+        new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag()));
 
     // Create a bucket for the scratch file to be written to.
-    addStep(
-        new CreateBucketForBigQueryScratchStep(resourceService, datasetService, isCombinedIngest),
+    addOptionalCombinedIngestStep(
+        new CreateBucketForBigQueryScratchStep(resourceService, datasetService),
         randomBackoffRetry);
 
     // Build the scratch file using new file ids and store in new bucket.
-    addStep(
+    addOptionalCombinedIngestStep(
         new IngestBuildAndWriteScratchLoadFileGcpStep(
-            appConfig.objectMapper(), gcsPdao, dataset, userReq, isCombinedIngest));
+            appConfig.objectMapper(), gcsPdao, dataset, userReq));
 
     // Copy the load history into BigQuery.
-    addStep(
+    addOptionalCombinedIngestStep(
         new IngestCopyLoadHistoryToBQStep(
             bigQueryPdao,
             loadService,
@@ -307,14 +305,13 @@ public class DatasetIngestFlight extends Flight {
             dataset.getId(),
             ingestRequest.getLoadTag(),
             loadHistoryWaitSeconds,
-            loadHistoryChunkSize,
-            isCombinedIngest));
+            loadHistoryChunkSize));
 
     // Clean up the load table.
-    addStep(new IngestCleanFileStateStep(loadService, isCombinedIngest));
+    addOptionalCombinedIngestStep(new IngestCleanFileStateStep(loadService));
 
     // Unlock the load.
-    addStep(new LoadUnlockStep(loadService, isCombinedIngest));
+    addOptionalCombinedIngestStep(new LoadUnlockStep(loadService));
   }
 
   private void addAzureJsonSteps(
@@ -331,8 +328,7 @@ public class DatasetIngestFlight extends Flight {
       RetryRule randomBackoffRetry,
       RetryRule driverRetry,
       int driverWaitSeconds,
-      int loadHistoryChunkSize,
-      Predicate<FlightContext> isCombinedIngest) {
+      int loadHistoryChunkSize) {
 
     AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
     LoadService loadService = appContext.getBean(LoadService.class);
@@ -351,16 +347,15 @@ public class DatasetIngestFlight extends Flight {
             appConfig.objectMapper(), azureBlobStorePdao, dataset, userReq));
 
     // Lock the load.
-    addStep(new LoadLockStep(loadService, isCombinedIngest));
+    addOptionalCombinedIngestStep(new LoadLockStep(loadService));
 
     // Make a link between the Storage Account and Dataset in our database.
-    addStep(
-        new IngestFileAzureMakeStorageAccountLinkStep(
-            datasetStorageAccountDao, dataset, isCombinedIngest),
+    addOptionalCombinedIngestStep(
+        new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
         randomBackoffRetry);
 
     // Populate the load table in our database with files to be loaded.
-    addStep(
+    addOptionalCombinedIngestStep(
         new IngestPopulateFileStateFromFlightMapAzureStep(
             loadService,
             fileService,
@@ -368,11 +363,10 @@ public class DatasetIngestFlight extends Flight {
             appConfig.objectMapper(),
             dataset,
             appConfig.getLoadFilePopulateBatchSize(),
-            userReq,
-            isCombinedIngest));
+            userReq));
 
     // Load the files!
-    addStep(
+    addOptionalCombinedIngestStep(
         new IngestDriverStep(
             loadService,
             configService,
@@ -383,39 +377,32 @@ public class DatasetIngestFlight extends Flight {
             driverWaitSeconds,
             profileId,
             platform,
-            userReq,
-            isCombinedIngest),
+            userReq),
         driverRetry);
 
     // Create the job result with the results of the bulk file load.
-    addStep(
-        new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag(), isCombinedIngest));
+    addOptionalCombinedIngestStep(
+        new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag()));
 
     // Build the scratch file using new file ids and store in new storage account container.
-    addStep(
+    addOptionalCombinedIngestStep(
         new IngestBuildAndWriteScratchLoadFileAzureStep(
-            appConfig.objectMapper(),
-            azureBlobStorePdao,
-            azureContainerPdao,
-            dataset,
-            userReq,
-            isCombinedIngest));
+            appConfig.objectMapper(), azureBlobStorePdao, azureContainerPdao, dataset, userReq));
 
     // Copy the load history to Azure Storage Tables.
-    addStep(
+    addOptionalCombinedIngestStep(
         new IngestCopyLoadHistoryToStorageTableStep(
             storageTableService,
             loadService,
             datasetService,
             dataset.getId(),
             ingestRequest.getLoadTag(),
-            loadHistoryChunkSize,
-            isCombinedIngest));
+            loadHistoryChunkSize));
 
     // Clean up the load table.
-    addStep(new IngestCleanFileStateStep(loadService, isCombinedIngest));
+    addOptionalCombinedIngestStep(new IngestCleanFileStateStep(loadService));
 
     // Unlock the load.
-    addStep(new LoadUnlockStep(loadService, isCombinedIngest));
+    addOptionalCombinedIngestStep(new LoadUnlockStep(loadService));
   }
 }

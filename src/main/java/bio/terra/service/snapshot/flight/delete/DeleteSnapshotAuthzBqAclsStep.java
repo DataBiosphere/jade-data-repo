@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.delete;
 
-import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -9,15 +8,15 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeleteSnapshotAuthzBqAclsStep extends OptionalStep {
+public class DeleteSnapshotAuthzBqAclsStep implements Step {
   private final IamService sam;
   private final ResourceService resourceService;
   private final SnapshotService snapshotService;
@@ -31,9 +30,7 @@ public class DeleteSnapshotAuthzBqAclsStep extends OptionalStep {
       ResourceService resourceService,
       SnapshotService snapshotService,
       UUID snapshotId,
-      AuthenticatedUserRequest userReq,
-      Predicate<FlightContext> doCondition) {
-    super(doCondition);
+      AuthenticatedUserRequest userReq) {
     this.sam = sam;
     this.resourceService = resourceService;
     this.snapshotService = snapshotService;
@@ -42,7 +39,7 @@ public class DeleteSnapshotAuthzBqAclsStep extends OptionalStep {
   }
 
   @Override
-  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
     // These policy emails should not change since the snapshot is locked by the flight

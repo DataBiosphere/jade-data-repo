@@ -8,10 +8,8 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.load.LoadService;
-import bio.terra.stairway.FlightContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class IngestPopulateFileStateFromFlightMapAzureStep
@@ -27,9 +25,8 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      AuthenticatedUserRequest userRequest,
-      Predicate<FlightContext> doCondition) {
-    super(loadService, fileService, objectMapper, dataset, batchSize, doCondition);
+      AuthenticatedUserRequest userRequest) {
+    super(loadService, fileService, objectMapper, dataset, batchSize);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.userRequest = userRequest;
   }

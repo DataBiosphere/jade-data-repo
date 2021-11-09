@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
@@ -12,7 +11,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Spliterators;
 import java.util.UUID;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
@@ -36,9 +34,7 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
       DatasetService datasetService,
       UUID datasetId,
       String loadTag,
-      int loadHistoryChunkSize,
-      Predicate<FlightContext> doCondition) {
-    super(doCondition);
+      int loadHistoryChunkSize) {
     this.storageTableService = storageTableService;
     this.loadService = loadService;
     this.datasetService = datasetService;
@@ -47,25 +43,8 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
     this.loadHistoryChunkSize = loadHistoryChunkSize;
   }
 
-  public IngestCopyLoadHistoryToStorageTableStep(
-      StorageTableService storageTableService,
-      LoadService loadService,
-      DatasetService datasetService,
-      UUID datasetId,
-      String loadTag,
-      int loadHistoryChunkSize) {
-    this(
-        storageTableService,
-        loadService,
-        datasetService,
-        datasetId,
-        loadTag,
-        loadHistoryChunkSize,
-        OptionalStep::alwaysDo);
-  }
-
   @Override
-  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     var resources =
         getResources(context, loadService, datasetService, datasetId, loadHistoryChunkSize);
 
@@ -103,7 +82,7 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
   }
 
   @Override
-  public StepResult undoOptionalStep(FlightContext context) {
+  public StepResult undoStep(FlightContext context) {
     logger.info("No load history staging table for Azure");
     return StepResult.getStepResultSuccess();
   }

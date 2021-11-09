@@ -5,20 +5,19 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.google.cloud.bigquery.BigQueryException;
 import java.util.UUID;
-import java.util.function.Predicate;
 
-public class DeleteSnapshotSourceDatasetDataGcpStep extends OptionalStep {
+public class DeleteSnapshotSourceDatasetDataGcpStep implements Step {
   private final FireStoreDependencyDao dependencyDao;
   private final BigQueryPdao bigQueryPdao;
   private final UUID snapshotId;
@@ -30,9 +29,7 @@ public class DeleteSnapshotSourceDatasetDataGcpStep extends OptionalStep {
       BigQueryPdao bigQueryPdao,
       UUID snapshotId,
       DatasetService datasetService,
-      SnapshotService snapshotService,
-      Predicate<FlightContext> doCondition) {
-    super(doCondition);
+      SnapshotService snapshotService) {
     this.dependencyDao = dependencyDao;
     this.bigQueryPdao = bigQueryPdao;
     this.snapshotId = snapshotId;
@@ -41,7 +38,7 @@ public class DeleteSnapshotSourceDatasetDataGcpStep extends OptionalStep {
   }
 
   @Override
-  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap map = context.getWorkingMap();
     UUID datasetId = map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
     Dataset dataset = datasetService.retrieve(datasetId);

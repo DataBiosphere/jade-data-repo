@@ -4,35 +4,26 @@ import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
-import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.function.Predicate;
 
-public class IngestFileAzureMakeStorageAccountLinkStep extends OptionalStep {
+public class IngestFileAzureMakeStorageAccountLinkStep implements Step {
   private final DatasetStorageAccountDao datasetStorageAccountDao;
   private final Dataset dataset;
 
   public IngestFileAzureMakeStorageAccountLinkStep(
-      DatasetStorageAccountDao datasetStorageAccountDao,
-      Dataset dataset,
-      Predicate<FlightContext> doCondition) {
-    super(doCondition);
+      DatasetStorageAccountDao datasetStorageAccountDao, Dataset dataset) {
     this.datasetStorageAccountDao = datasetStorageAccountDao;
     this.dataset = dataset;
   }
 
-  public IngestFileAzureMakeStorageAccountLinkStep(
-      DatasetStorageAccountDao datasetStorageAccountDao, Dataset dataset) {
-    this(datasetStorageAccountDao, dataset, OptionalStep::alwaysDo);
-  }
-
   @Override
-  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
@@ -50,7 +41,7 @@ public class IngestFileAzureMakeStorageAccountLinkStep extends OptionalStep {
   }
 
   @Override
-  public StepResult undoOptionalStep(FlightContext context) {
+  public StepResult undoStep(FlightContext context) {
     // Parallel threads can try create the storage account link. We do not error on a
     // duplicate create attempt.
     // Therefore, we do not delete the link during undo. Instead, we use a counter on the storage

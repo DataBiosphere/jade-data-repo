@@ -2,23 +2,23 @@ package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeleteSnapshotPrimaryDataGcpStep extends OptionalStep {
+public class DeleteSnapshotPrimaryDataGcpStep implements Step {
 
-  private static Logger logger = LoggerFactory.getLogger(DeleteSnapshotPrimaryDataGcpStep.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(DeleteSnapshotPrimaryDataGcpStep.class);
 
   private final BigQueryPdao bigQueryPdao;
   private final SnapshotService snapshotService;
@@ -31,9 +31,7 @@ public class DeleteSnapshotPrimaryDataGcpStep extends OptionalStep {
       SnapshotService snapshotService,
       FireStoreDao fileDao,
       UUID snapshotId,
-      ConfigurationService configService,
-      Predicate<FlightContext> doCondition) {
-    super(doCondition);
+      ConfigurationService configService) {
     this.bigQueryPdao = bigQueryPdao;
     this.snapshotService = snapshotService;
     this.fileDao = fileDao;
@@ -42,7 +40,7 @@ public class DeleteSnapshotPrimaryDataGcpStep extends OptionalStep {
   }
 
   @Override
-  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     // this fault is used by the SnapshotConnectedTest > testOverlappingDeletes
     if (configService.testInsertFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
       logger.info("SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT");

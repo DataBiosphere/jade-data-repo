@@ -22,10 +22,10 @@ public class JdbcConfiguration {
    * Maximum number of database connections in the connection pool; -1 means no limit The goal of
    * these parameters is to prevent waiting for a database connection.
    */
-  private int poolMaxTotal;
+  protected int poolMaxTotal;
 
   /** Maximum number of database connections to keep idle */
-  private int poolMaxIdle;
+  protected int poolMaxIdle;
 
   // Not a property
   private PoolingDataSource<PoolableConnection> dataSource;

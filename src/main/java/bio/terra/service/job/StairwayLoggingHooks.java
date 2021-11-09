@@ -13,7 +13,7 @@ import org.slf4j.MDC;
 
 public class StairwayLoggingHooks implements StairwayHook {
   private static final String FlightLogFormat =
-      "Operation: {}, flightClass: {}, flightId: {}, timestamp: {}";
+      "Operation: {}, flightClass: {}, flightId: {}, status: {}, timestamp: {}";
   private static final String StepLogFormat =
       "Operation: {}, flightClass: {}, flightId: {}, stepClass: {}, "
           + "stepIndex: {}, direction: {}, timestamp: {}";
@@ -54,6 +54,7 @@ public class StairwayLoggingHooks implements StairwayHook {
         FLIGHT_OPERATION_START,
         context.getFlightClassName(),
         context.getFlightId(),
+        context.getFlightStatus(),
         Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
     performanceLogger.log(
         context.getFlightId(), context.getFlightClassName(), FLIGHT_OPERATION_START);
@@ -89,6 +90,7 @@ public class StairwayLoggingHooks implements StairwayHook {
         FLIGHT_OPERATION_END,
         context.getFlightClassName(),
         context.getFlightId(),
+        context.getFlightStatus(),
         Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
     performanceLogger.log(
         context.getFlightId(), context.getFlightClassName(), FLIGHT_OPERATION_END);

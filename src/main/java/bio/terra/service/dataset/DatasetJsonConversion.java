@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -270,10 +271,12 @@ public final class DatasetJsonConversion {
   public static AssetSpecification assetModelToAssetSpecification(
       AssetModel assetModel,
       Map<String, DatasetTable> tables,
-      Map<String, Relationship> relationships) {
+      Map<String, Relationship> datasetRelationships) {
     AssetSpecification spec = new AssetSpecification().name(assetModel.getName());
+    List<String> assetRelationships =
+        Objects.requireNonNullElse(assetModel.getFollow(), new ArrayList<>());
     spec.assetTables(processAssetTables(spec, assetModel, tables));
-    spec.assetRelationships(processAssetRelationships(assetModel.getFollow(), relationships));
+    spec.assetRelationships(processAssetRelationships(assetRelationships, datasetRelationships));
     return spec;
   }
 

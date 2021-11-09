@@ -3028,7 +3028,6 @@ components:
     DatasetSpecificationModel:
       required:
         - tables
-        - relationships
       type: object
       properties:
         tables:
@@ -3037,7 +3036,6 @@ components:
             $ref: '#/components/schemas/TableModel'
         relationships:
           type: array
-          nullable: false
           items:
             $ref: '#/components/schemas/RelationshipModel'
         assets:

@@ -510,7 +510,8 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         equalTo(HttpStatus.NOT_FOUND));
 
     // Delete dataset should now succeed
-    dataRepoFixtures.deleteDataset(steward, snapshotId);
+    dataRepoFixtures.deleteDataset(steward, datasetId);
+    datasetId = null;
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();

@@ -114,6 +114,6 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(new PerformAzureStep(new DeleteSnapshotMetadataAzureStep(azureStorageAccountService)));
     addStep(new PerformSnapshotStep(new UnlockSnapshotStep(snapshotDao, snapshotId)));
 
-    addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, true)));
+    addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, false)));
   }
 }

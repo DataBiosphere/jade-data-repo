@@ -8,6 +8,10 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
+/**
+ * This step ensures that the billing account added to the working map by the
+ * AuthorizeBillingProfileUseStep remains enabled and is accessible to the data repo.
+ */
 public class VerifyBillingAccountAccessStep implements Step {
   private final GoogleBillingService googleBillingService;
 
@@ -21,9 +25,7 @@ public class VerifyBillingAccountAccessStep implements Step {
     BillingProfileModel profileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     String billingAccountId = profileModel.getBillingAccountId();
-    // TODO: check bill account usable and validate delegation path
-    //  For now we just make sure that the building account is accessible to the
-    //  TDR service account.
+    //  TODO: check bill account usable and validate delegation path
     if (!googleBillingService.repositoryCanAccess(billingAccountId)) {
       throw new InaccessibleBillingAccountException(
           "The repository needs access to billing account "

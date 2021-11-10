@@ -304,108 +304,32 @@ public class SnapshotDao {
   public SnapshotProject retrieveSnapshotProject(UUID snapshotId, boolean onlyRetrieveAvailable) {
     logger.debug("retrieve snapshot id: " + snapshotId);
     String sql =
-        "SELECT snapshot.id, name, snapshot.profile_id, "
+        "SELECT snapshot.id, name, snapshot.profile_id, google_project_id, "
+            // Select the source dataset project information
+            + "(SELECT jsonb_agg(ds)\n"
+            + "  FROM (SELECT d.id, d.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n"
+            + "        FROM snapshot_source ss"
+            + "        JOIN dataset d ON ss.dataset_id = d.id"
+            + "        LEFT JOIN project_resource p ON d.project_resource_id = p.id"
+            + "        WHERE snapshot.id = ss.snapshot_id) ds)"
+            + "  AS dataset_sources, "
+            // Detect the cloud provider of the snapshot
             + "case "
             + "when storage_account_resource_id is not null then 'azure' "
             + "when project_resource_id is not null then 'gcp' "
             + "end AS cloud_platform "
             + "FROM snapshot "
+            + "LEFT JOIN project_resource ON snapshot.project_resource_id = project_resource.id "
             + "WHERE snapshot.id = :id";
     if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
       sql += " AND flightid IS NULL";
     }
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", snapshotId);
-    try {
-      SnapshotProject snapshotProject =
-          jdbcTemplate.queryForObject(
-              sql,
-              params,
-              (rs, rowNum) -> {
-                return new SnapshotProject()
-                    .id(rs.getObject("id", UUID.class))
-                    .name(rs.getString("name"))
-                    .profileId(rs.getObject("profile_id", UUID.class))
-                    .cloudPlatform(CloudPlatform.fromValue(rs.getString("cloud_platform")));
-              });
-      if (snapshotProject != null) {
-        snapshotProject.dataProject(retrieveSnapshotDataProject(snapshotProject));
-        if (snapshotProject.getCloudPlatform().equals(CloudPlatform.GCP)) {
-          snapshotProject.sourceDatasetProjects(retrieveGCPDatasetProjects(snapshotProject));
-        } else if (snapshotProject.getCloudPlatform().equals(CloudPlatform.AZURE)) {
-          snapshotProject.sourceDatasetProjects(retrieveAzureDatasetProjects(snapshotProject));
-        } else {
-          throw new CorruptMetadataException("Invalid cloud platform for snapshot");
-        }
-      }
-      return snapshotProject;
-    } catch (EmptyResultDataAccessException ex) {
+    SnapshotProject snapshotProject = retrieveSnapshotProject(sql, params);
+    if (snapshotProject == null) {
       throw new SnapshotNotFoundException("Snapshot not found - id: " + snapshotId);
     }
-  }
-
-  private String retrieveSnapshotDataProject(SnapshotProject snapshotProject) {
-    if (snapshotProject.getCloudPlatform().equals(CloudPlatform.GCP)) {
-      String projectSql =
-          "SELECT google_project_id FROM snapshot "
-              + "JOIN project_resource ON snapshot.project_resource_id = project_resource.id "
-              + "WHERE snapshot.id = :id";
-      MapSqlParameterSource projectSqlParams =
-          new MapSqlParameterSource().addValue("id", snapshotProject.getId());
-      return jdbcTemplate.queryForObject(
-          projectSql, projectSqlParams, (rs, rowNum) -> rs.getString("google_project_id"));
-    } else {
-      return null;
-    }
-  }
-
-  private List<DatasetProject> retrieveGCPDatasetProjects(SnapshotProject snapshotProject) {
-    String sql =
-        "SELECT d.id, d.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n"
-            + " FROM snapshot_source ss, dataset d, project_resource p\n"
-            + " WHERE ss.dataset_id = d.id"
-            + " AND d.project_resource_id = p.id"
-            + " AND :id = ss.snapshot_id";
-    MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("id", snapshotProject.getId());
-    try {
-      return jdbcTemplate.query(
-          sql,
-          params,
-          (rs, rowNum) -> {
-            return new DatasetProject()
-                .id(rs.getObject("id", UUID.class))
-                .name(rs.getString("name"))
-                .profileId(rs.getObject("profileId", UUID.class))
-                .dataProject(rs.getString("dataProject"));
-          });
-    } catch (EmptyResultDataAccessException ex) {
-      throw new CorruptMetadataException(
-          String.format("No source datasets found for snapshot %s", snapshotProject.getId()));
-    }
-  }
-
-  private List<DatasetProject> retrieveAzureDatasetProjects(SnapshotProject snapshotProject) {
-    String sql =
-        "SELECT d.id, d.name, d.default_profile_id as \"profileId\" FROM snapshot_source ss, dataset d\n"
-            + " WHERE ss.dataset_id = d.id"
-            + " AND :id = ss.snapshot_id";
-    MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("id", snapshotProject.getId());
-
-    try {
-      return jdbcTemplate.query(
-          sql,
-          params,
-          (rs, rowNum) -> {
-            return new DatasetProject()
-                .id(rs.getObject("id", UUID.class))
-                .name(rs.getString("name"))
-                .profileId(rs.getObject("profileId", UUID.class));
-          });
-    } catch (EmptyResultDataAccessException ex) {
-      throw new CorruptMetadataException(
-          String.format("No source datasets found for snapshot %s", snapshotProject.getId()));
-    }
+    return snapshotProject;
   }
 
   @Transactional(
@@ -465,6 +389,35 @@ public class SnapshotDao {
             .ifPresent(snapshot::storageAccountResource);
       }
       return snapshot;
+    } catch (EmptyResultDataAccessException ex) {
+      return null;
+    }
+  }
+
+  private SnapshotProject retrieveSnapshotProject(String sql, MapSqlParameterSource params) {
+    try {
+      SnapshotProject snapshotProject =
+          jdbcTemplate.queryForObject(
+              sql,
+              params,
+              (rs, rowNum) -> {
+                List<DatasetProject> datasetProjects;
+                try {
+                  datasetProjects =
+                      objectMapper.readValue(
+                          rs.getString("dataset_sources"), new TypeReference<>() {});
+                } catch (JsonProcessingException e) {
+                  throw new CorruptMetadataException("Invalid dataset sources for snapshot");
+                }
+                return new SnapshotProject()
+                    .id(rs.getObject("id", UUID.class))
+                    .name(rs.getString("name"))
+                    .profileId(rs.getObject("profile_id", UUID.class))
+                    .dataProject(rs.getString("google_project_id"))
+                    .cloudPlatform(CloudPlatform.fromValue(rs.getString("cloud_platform")))
+                    .sourceDatasetProjects(datasetProjects);
+              });
+      return snapshotProject;
     } catch (EmptyResultDataAccessException ex) {
       return null;
     }

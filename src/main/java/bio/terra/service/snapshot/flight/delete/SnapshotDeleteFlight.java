@@ -65,7 +65,7 @@ public class SnapshotDeleteFlight extends Flight {
 
     addStep(
         new DeleteSnapshotPopAndLockDatasetStep(
-            snapshotId, snapshotService, datasetService, userReq, true));
+            snapshotId, snapshotService, datasetService, userReq, false));
 
     // Delete access control on objects that were explicitly added by data repo operations.  Do
     // this before delete

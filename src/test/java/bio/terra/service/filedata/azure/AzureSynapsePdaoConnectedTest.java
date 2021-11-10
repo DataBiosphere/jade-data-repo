@@ -250,7 +250,7 @@ public class AzureSynapsePdaoConnectedTest {
         synapseUtils.ingestRequestURL(
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
-            "azure-simple-dataset-ingest-request.json");
+            "azure-ingest-request.json");
     testSynapseQuery(ingestRequestModel, ingestFileLocation);
   }
 
@@ -396,7 +396,7 @@ public class AzureSynapsePdaoConnectedTest {
             "dateCol",
             "dateTimeCol",
             "dirRefCol",
-            "fileRefCol",
+            "file", // test use of reserved word
             "floatCol",
             "float64Col",
             "intCol",

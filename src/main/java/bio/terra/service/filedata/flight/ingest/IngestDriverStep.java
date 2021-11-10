@@ -6,11 +6,11 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.flight.ingest.OptionalStep;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadCandidates;
@@ -36,7 +36,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +53,7 @@ import org.slf4j.LoggerFactory;
 // - BUCKET_INFO is a GoogleBucketResource
 // - STORAGE_ACCOUNT_RESOURCE is a AzureStorageAccountResource
 //
-public class IngestDriverStep extends OptionalStep {
+public class IngestDriverStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
   private final LoadService loadService;
@@ -78,9 +77,7 @@ public class IngestDriverStep extends OptionalStep {
       int driverWaitSeconds,
       UUID profileId,
       CloudPlatform platform,
-      AuthenticatedUserRequest userReq,
-      Predicate<FlightContext> doCondition) {
-    super(doCondition);
+      AuthenticatedUserRequest userReq) {
     this.loadService = loadService;
     this.configurationService = configurationService;
     this.jobService = jobService;
@@ -93,33 +90,8 @@ public class IngestDriverStep extends OptionalStep {
     this.userReq = userReq;
   }
 
-  public IngestDriverStep(
-      LoadService loadService,
-      ConfigurationService configurationService,
-      JobService jobService,
-      String datasetId,
-      String loadTag,
-      int maxFailedFileLoads,
-      int driverWaitSeconds,
-      UUID profileId,
-      CloudPlatform platform,
-      AuthenticatedUserRequest userReq) {
-    this(
-        loadService,
-        configurationService,
-        jobService,
-        datasetId,
-        loadTag,
-        maxFailedFileLoads,
-        driverWaitSeconds,
-        profileId,
-        platform,
-        userReq,
-        OptionalStep::alwaysDo);
-  }
-
   @Override
-  public StepResult doOptionalStep(FlightContext context) throws InterruptedException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     // Gather inputs
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);

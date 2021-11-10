@@ -14,13 +14,12 @@ import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.storage.BlobId;
 import java.util.List;
 
-public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
+public class DataDeletionCopyFilesToBigQueryScratchBucketStep {
 
   private final DatasetService datasetService;
   private final GcsPdao gcsPdao;
@@ -55,7 +54,7 @@ public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
 
     return StepResult.getStepResultSuccess();
   }
-
+  
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     DataDeletionUtils.deleteScratchFiles(context, gcsPdao);

@@ -8,10 +8,8 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.load.LoadService;
-import bio.terra.stairway.FlightContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class IngestPopulateFileStateFromFlightMapGcpStep
@@ -27,9 +25,8 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      AuthenticatedUserRequest userRequest,
-      Predicate<FlightContext> doCondition) {
-    super(loadService, fileService, objectMapper, dataset, batchSize, doCondition);
+      AuthenticatedUserRequest userRequest) {
+    super(loadService, fileService, objectMapper, dataset, batchSize);
     this.gcsPdao = gcsPdao;
     this.userRequest = userRequest;
   }

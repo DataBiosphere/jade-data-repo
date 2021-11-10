@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
 
 public class LockSnapshotStep implements Step {
 
-  private SnapshotDao snapshotDao;
-  private UUID snapshotId;
-  private boolean suppressNotFoundException; // default to false
+  private final SnapshotDao snapshotDao;
+  private final UUID snapshotId;
+  private final boolean suppressNotFoundException; // default to false
 
   private static Logger logger = LoggerFactory.getLogger(LockSnapshotStep.class);
 

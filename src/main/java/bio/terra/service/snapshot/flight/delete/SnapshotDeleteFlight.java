@@ -4,26 +4,26 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
-import java.util.List;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
@@ -41,10 +41,14 @@ public class SnapshotDeleteFlight extends Flight {
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     IamService iamClient = appContext.getBean(IamService.class);
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
+    ProfileService profileService = appContext.getBean(ProfileService.class);
+    AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
+    AzureStorageAccountService azureStorageAccountService =
+        appContext.getBean(AzureStorageAccountService.class);
 
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
@@ -57,49 +61,59 @@ public class SnapshotDeleteFlight extends Flight {
     // Lock the source dataset while deleting ACLs to avoid a race condition
     // Skip this step if the snapshot was already deleted
     // TODO note that with multi-dataset snapshots this will need to change
-    UUID datasetId;
-    try {
-      List<UUID> sourceDatasetIds =
-          snapshotService.getSourceDatasetIdsFromSnapshotId(snapshotId, userReq);
-      datasetId = sourceDatasetIds.get(0);
-    } catch (SnapshotNotFoundException notFoundEx) {
-      datasetId = null;
-    }
-    if (datasetId != null) {
-      addStep(new LockDatasetStep(datasetDao, datasetId, false));
-    }
-
     addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
 
-    // Delete access control on objects that were explicitly added by data repo operations.  Do this
-    // before delete
+    addStep(
+        new DeleteSnapshotPopAndLockDatasetStep(
+            snapshotId, snapshotService, datasetService, userReq, true));
+
+    // Delete access control on objects that were explicitly added by data repo operations.  Do
+    // this before delete
     // resource from SAM to ensure we can get the metadata needed to perform the operation
     addStep(
-        new DeleteSnapshotAuthzBqAclsStep(
-            iamClient, resourceService, snapshotService, snapshotId, userReq));
+        new PerformGcpStep(
+            new DeleteSnapshotAuthzBqAclsStep(
+                iamClient, resourceService, snapshotService, snapshotId, userReq)));
+
     // Delete access control first so Readers and Discoverers can no longer see snapshot
     // Google auto-magically removes the ACLs from BQ objects when SAM
     // deletes the snapshot group, so no ACL cleanup is needed beyond that.
     addStep(new DeleteSnapshotAuthzResource(iamClient, snapshotId, userReq));
 
-    // Must delete primary data before metadata; it relies on being able to retrieve the
+    // Primary Data Deletion
+    // Note: Must delete primary data before metadata; it relies on being able to retrieve the
     // snapshot object from the metadata to know what to delete.
+    // --- GCP ---
     addStep(
-        new DeleteSnapshotPrimaryDataStep(
-            bigQueryPdao,
-            snapshotService,
-            dependencyDao,
-            fileDao,
-            snapshotId,
-            datasetService,
-            configService),
+        new PerformGCPDatasetDependencyStep(
+            new DeleteSnapshotSourceDatasetDataGcpStep(
+                dependencyDao, bigQueryPdao, snapshotId, datasetService, snapshotService)),
         randomBackoffRetry);
-    addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
-    addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
+    addStep(
+        new PerformGcpStep(
+            new DeleteSnapshotPrimaryDataGcpStep(
+                bigQueryPdao, snapshotService, fileDao, snapshotId, configService)),
+        randomBackoffRetry);
+    // --- Azure --
+    addStep(
+        new PerformAzureDatasetDependencyStep(
+            new DeleteSnapshotDependencyDataAzureStep(
+                tableDependencyDao,
+                snapshotId,
+                datasetService,
+                profileService,
+                resourceService,
+                azureAuthService)));
+    addStep(
+        new PerformAzureStep(
+            new DeleteSnapshotDeleteStorageAccountStep(
+                snapshotId, resourceService, azureStorageAccountService)));
 
-    // Unlock dataset
-    if (datasetId != null) {
-      addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
-    }
+    // Delete Metadata
+    addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
+    addStep(new PerformAzureStep(new DeleteSnapshotMetadataAzureStep(azureStorageAccountService)));
+    addStep(new PerformSnapshotStep(new UnlockSnapshotStep(snapshotDao, snapshotId)));
+
+    addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, true)));
   }
 }

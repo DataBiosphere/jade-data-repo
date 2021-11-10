@@ -96,13 +96,13 @@ public class AzureSynapsePdao {
           + "    FILE_FORMAT = [<fileFormat>]\n"
           + ") AS SELECT "
           + "<if(isCSV)>newid() as datarepo_row_id,\n       "
-          + "<columns:{c|<c.name>}; separator=\",\n       \">"
+          + "<columns:{c|[<c.name>]}; separator=\",\n       \">"
           + "<else>"
           + "newid() as datarepo_row_id,\n       "
           + "<columns:{c|"
           + "<if(c.requiresJSONCast)>"
-          + "cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) <c.name>"
-          + "<else>JSON_VALUE(doc, '$.<c.name>') <c.name>"
+          + "cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]"
+          + "<else>JSON_VALUE(doc, '$.<c.name>') [<c.name>]"
           + "<endif>"
           + "}; separator=\",\n       \">\n"
           + "<endif>"
@@ -122,7 +122,7 @@ public class AzureSynapsePdao {
           + "<endif>"
           + "    ) WITH (\n"
           + "      <if(isCSV)>"
-          + "<columns:{c|<c.name> <c.synapseDataType>"
+          + "<columns:{c|[<c.name>] <c.synapseDataType>"
           + "<if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>"
           + "}; separator=\",\n\">"
           + "<else>doc nvarchar(max)"
@@ -130,7 +130,7 @@ public class AzureSynapsePdao {
           + ") AS rows;";
 
   private static final String queryColumnsFromExternalTableTemplate =
-      "SELECT DISTINCT <refCol> FROM [<tableName>] WHERE <refCol> IS NOT NULL;";
+      "SELECT DISTINCT [<refCol>] FROM [<tableName>] WHERE [<refCol>] IS NOT NULL;";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 

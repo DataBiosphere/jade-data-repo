@@ -54,7 +54,7 @@ public class DataDeletionCopyFilesToBigQueryScratchBucketStep {
 
     return StepResult.getStepResultSuccess();
   }
-  
+
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     DataDeletionUtils.deleteScratchFiles(context, gcsPdao);

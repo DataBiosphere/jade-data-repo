@@ -1,9 +1,9 @@
 package bio.terra.service.dataset.flight.delete;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.profile.ProfileDao;
@@ -49,7 +49,7 @@ public class DeleteDatasetAzureValidateStep extends DeleteDatasetValidateStep {
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);
 
     FlightMap map = context.getWorkingMap();
-    map.put(DatasetWorkingMapKeys.AZURE_STORAGE_AUTH_INFO, storageAuthInfo);
+    map.put(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, storageAuthInfo);
 
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return tableDependencyDao.datasetHasSnapshotReference(tableServiceClient, dataset.getId());

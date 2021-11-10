@@ -1,9 +1,9 @@
 package bio.terra.service.dataset.flight.delete;
 
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -15,9 +15,9 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.elasticsearch.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -59,14 +59,12 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap map = context.getWorkingMap();
     AzureStorageAuthInfo storageAuthInfo =
-        map.get(DatasetWorkingMapKeys.AZURE_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+        Objects.requireNonNull(
+            map.get(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class),
+            "No Azure storage auth info found");
 
-    if (storageAuthInfo != null) {
-      tableDao.deleteFilesFromDataset(
-          storageAuthInfo, f -> azureBlobStorePdao.deleteFile(f, userRequest));
-    } else {
-      throw new ResourceNotFoundException("No Azure storage auth info found");
-    }
+    tableDao.deleteFilesFromDataset(
+        storageAuthInfo, f -> azureBlobStorePdao.deleteFile(f, userRequest));
 
     // this fault is used by the DatasetConnectedTest > testOverlappingDeletes
     if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT)) {

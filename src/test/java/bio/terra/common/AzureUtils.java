@@ -44,14 +44,6 @@ public class AzureUtils {
         connectedTestConfiguration.getSourceStorageAccountName());
   }
 
-  public String getIntegrationSourceStorageAccountPrimarySharedKey() {
-    return getSourceStorageAccountPrimarySharedKey(
-        testConfiguration.getTargetTenantId(),
-        testConfiguration.getTargetSubscriptionId(),
-        testConfiguration.getTargetResourceGroupName(),
-        testConfiguration.getSourceStorageAccountName());
-  }
-
   public void assertEntityCorrect(
       TableEntity entity, UUID snapshotId, String fileId, Long refCount) {
     assertThat(

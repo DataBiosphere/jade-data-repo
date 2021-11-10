@@ -250,7 +250,7 @@ public class AzureSynapsePdaoConnectedTest {
         synapseUtils.ingestRequestURL(
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
-            "azure-simple-dataset-ingest-request.json");
+            "azure-ingest-request.json");
     testSynapseQuery(ingestRequestModel, ingestFileLocation);
   }
 

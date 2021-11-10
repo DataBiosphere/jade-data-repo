@@ -26,7 +26,6 @@ import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
-import bio.terra.service.profile.flight.VerifyDeployedApplicationAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
@@ -140,7 +139,6 @@ public class FileIngestFlight extends Flight {
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {
-      addStep(new VerifyDeployedApplicationAccessStep(profileService, userReq));
       addStep(
           new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
       addStep(

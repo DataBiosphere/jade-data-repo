@@ -25,7 +25,6 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
-import bio.terra.service.profile.flight.VerifyDeployedApplicationAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -117,8 +116,6 @@ public class SnapshotCreateFlight extends Flight {
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isAzure()) {
-      addStep(new VerifyDeployedApplicationAccessStep(profileService, userReq));
-
       addStep(
           new CreateSnapshotCreateAzureStorageAccountStep(
               resourceService, sourceDataset, snapshotReq));

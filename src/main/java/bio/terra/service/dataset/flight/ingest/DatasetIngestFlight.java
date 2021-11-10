@@ -43,7 +43,6 @@ import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
-import bio.terra.service.profile.flight.VerifyDeployedApplicationAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -98,8 +97,6 @@ public class DatasetIngestFlight extends Flight {
       addStep(
           new AuthorizeBillingProfileUseStep(
               profileService, ingestRequestModel.getProfileId(), userReq));
-
-      addStep(new VerifyDeployedApplicationAccessStep(profileService, userReq));
 
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
     }

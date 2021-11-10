@@ -12,9 +12,9 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 public class StairwayLoggingHooks implements StairwayHook {
-  private static final String FlightLogFormat =
-      "Operation: {}, flightClass: {}, flightId: {}, timestamp: {}";
-  private static final String StepLogFormat =
+  private static final String FLIGHT_LOG_FORMAT =
+      "Operation: {}, flightClass: {}, flightId: {}, status: {}, timestamp: {}";
+  private static final String STEP_LOG_FORMAT =
       "Operation: {}, flightClass: {}, flightId: {}, stepClass: {}, "
           + "stepIndex: {}, direction: {}, timestamp: {}";
   /** Id of the flight */
@@ -50,10 +50,11 @@ public class StairwayLoggingHooks implements StairwayHook {
     MDC.put(FLIGHT_CLASS_KEY, context.getFlightClassName());
     MDC.put(FLIGHT_OPERATION_KEY, FLIGHT_OPERATION_START);
     logger.info(
-        FlightLogFormat,
+        FLIGHT_LOG_FORMAT,
         FLIGHT_OPERATION_START,
         context.getFlightClassName(),
         context.getFlightId(),
+        context.getFlightStatus(),
         Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
     performanceLogger.log(
         context.getFlightId(), context.getFlightClassName(), FLIGHT_OPERATION_START);
@@ -69,7 +70,7 @@ public class StairwayLoggingHooks implements StairwayHook {
     MDC.put(FLIGHT_STEP_NUMBER_KEY, Integer.toString(context.getStepIndex()));
     MDC.put(FLIGHT_OPERATION_KEY, FLIGHT_STEP_OPERATION_START);
     logger.info(
-        StepLogFormat,
+        STEP_LOG_FORMAT,
         FLIGHT_STEP_OPERATION_START,
         context.getFlightClassName(),
         context.getFlightId(),
@@ -85,10 +86,11 @@ public class StairwayLoggingHooks implements StairwayHook {
   public HookAction endFlight(FlightContext context) {
     MDC.put(FLIGHT_OPERATION_KEY, FLIGHT_OPERATION_END);
     logger.info(
-        FlightLogFormat,
+        FLIGHT_LOG_FORMAT,
         FLIGHT_OPERATION_END,
         context.getFlightClassName(),
         context.getFlightId(),
+        context.getFlightStatus(),
         Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
     performanceLogger.log(
         context.getFlightId(), context.getFlightClassName(), FLIGHT_OPERATION_END);
@@ -100,7 +102,7 @@ public class StairwayLoggingHooks implements StairwayHook {
   public HookAction endStep(FlightContext context) {
     MDC.put(FLIGHT_OPERATION_KEY, FLIGHT_STEP_OPERATION_END);
     logger.info(
-        StepLogFormat,
+        STEP_LOG_FORMAT,
         FLIGHT_STEP_OPERATION_END,
         context.getFlightClassName(),
         context.getFlightId(),

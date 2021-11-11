@@ -30,7 +30,7 @@ public class DeleteFilePrimaryDataStep implements Step {
     if (fireStoreFile != null) {
       GoogleBucketResource bucketResource =
           resourceService.lookupBucket(fireStoreFile.getBucketResourceId());
-      gcsPdao.deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
+      gcsPdao.deleteFileByGspath(fireStoreFile.getGspath(), bucketResource.projectIdForBucket());
     }
     return StepResult.getStepResultSuccess();
   }

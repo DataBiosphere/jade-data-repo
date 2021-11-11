@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
 import bio.terra.common.CollectionType;
+import bio.terra.common.EmbeddedDatabaseConnectedTest;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -52,6 +53,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseConnectedTest
 public class AzureIngestFileConnectedTest {
   private static final Logger logger = LoggerFactory.getLogger(AzureIngestFileConnectedTest.class);
 

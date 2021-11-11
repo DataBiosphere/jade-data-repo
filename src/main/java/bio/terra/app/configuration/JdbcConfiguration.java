@@ -14,10 +14,10 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 /** Base class for accessing JDBC configuration properties. */
 public class JdbcConfiguration {
-  private String uri;
-  private String username;
-  private String password;
-  private String changesetFile;
+  protected String uri;
+  protected String username;
+  protected String password;
+  protected String changesetFile;
   /**
    * Maximum number of database connections in the connection pool; -1 means no limit The goal of
    * these parameters is to prevent waiting for a database connection.
@@ -28,7 +28,7 @@ public class JdbcConfiguration {
   protected int poolMaxIdle;
 
   // Not a property
-  private PoolingDataSource<PoolableConnection> dataSource;
+  protected PoolingDataSource<PoolableConnection> dataSource;
 
   public String getUri() {
     return uri;
@@ -89,7 +89,7 @@ public class JdbcConfiguration {
     return dataSource;
   }
 
-  private void configureDataSource() {
+  protected void configureDataSource() {
     final Properties props = new Properties();
     props.setProperty("user", getUsername());
     props.setProperty("password", getPassword());

@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import bio.terra.common.EmbeddedDatabaseConnectedTest;
 import bio.terra.common.category.Connected;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -25,6 +26,7 @@ import org.springframework.test.web.servlet.ResultActions;
 @AutoConfigureMockMvc
 @SpringBootTest
 @Category(Connected.class)
+@EmbeddedDatabaseConnectedTest
 public class AvailabilityTest {
 
   @Autowired private MockMvc mvc;

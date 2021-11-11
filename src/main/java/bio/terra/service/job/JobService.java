@@ -125,7 +125,7 @@ public class JobService {
       recordedStairways =
           stairway.initialize(
               stairwayJdbcConfiguration.getDataSource(),
-              migrateConfiguration.getDropAllOnStart(),
+              false,
               migrateConfiguration.getUpdateAllOnStart());
 
       // Order is important here. There are two concerns we need to handle:

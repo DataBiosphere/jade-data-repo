@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.EmbeddedDatabaseConnectedTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.exception.PdaoException;
@@ -80,6 +81,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseConnectedTest
 public class EncodeFileTest {
   private static final Logger logger = LoggerFactory.getLogger(EncodeFileTest.class);
 

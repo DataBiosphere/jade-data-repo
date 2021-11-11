@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNull;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
+import bio.terra.common.EmbeddedDatabaseConnectedTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.Names;
 import bio.terra.service.common.azure.StorageTableName;
@@ -44,6 +45,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseConnectedTest
 public class TableDaoConnectedTest {
   private final Logger logger = LoggerFactory.getLogger(TableDaoConnectedTest.class);
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;

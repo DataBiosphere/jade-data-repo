@@ -14,6 +14,7 @@ import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.EmbeddedDatabaseConnectedTest;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
@@ -79,6 +80,7 @@ import org.stringtemplate.v4.ST;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseConnectedTest
 public class BigQueryPdaoTest {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryPdaoTest.class);
 

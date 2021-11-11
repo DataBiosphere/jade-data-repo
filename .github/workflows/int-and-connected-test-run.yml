@@ -69,7 +69,7 @@ jobs:
           # write vault token
           base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
       - name: "Run Connected test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@tl_non_root_user
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}

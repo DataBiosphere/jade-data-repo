@@ -98,7 +98,6 @@ public class AzureIngestFileConnectedTest {
             .id(UUID.randomUUID())
             .profileName(Names.randomizeName("somename"))
             .biller("direct")
-            .billingAccountId(testConfig.getGoogleBillingAccountId())
             .description("random description")
             .cloudPlatform(CloudPlatform.AZURE)
             .tenantId(testConfig.getTargetTenantId())

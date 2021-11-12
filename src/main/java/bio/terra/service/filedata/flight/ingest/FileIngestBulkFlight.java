@@ -25,6 +25,8 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
+import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
@@ -67,6 +69,7 @@ public class FileIngestBulkFlight extends Flight {
     DatasetStorageAccountDao datasetStorageAccountDao =
         appContext.getBean(DatasetStorageAccountDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
+    GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     ObjectMapper bulkLoadObjectMapper = appConfig.bulkLoadObjectMapper();
@@ -146,6 +149,7 @@ public class FileIngestBulkFlight extends Flight {
     addStep(new LockDatasetStep(datasetService, datasetUuid, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
     if (platform.isGcp()) {
+      addStep(new VerifyBillingAccountAccessStep(googleBillingService));
       addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
       addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
 

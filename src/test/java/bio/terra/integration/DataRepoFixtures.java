@@ -114,8 +114,7 @@ public class DataRepoFixtures {
                 testConfig.getTargetTenantId(),
                 testConfig.getTargetSubscriptionId(),
                 testConfig.getTargetResourceGroupName(),
-                testConfig.getTargetApplicationName(),
-                testConfig.getGoogleBillingAccountId()));
+                testConfig.getTargetApplicationName()));
     String json = TestUtils.mapToJson(billingProfileRequestModel);
 
     DataRepoResponse<JobModel> jobResponse =

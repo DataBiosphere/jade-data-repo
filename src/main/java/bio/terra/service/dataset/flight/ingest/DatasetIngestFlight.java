@@ -42,6 +42,8 @@ import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
+import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
@@ -92,13 +94,10 @@ public class DatasetIngestFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     if (cloudPlatform.isAzure()) {
-      // TODO: We can get rid of this once https://broadworkbench.atlassian.net/browse/DR-2107
-      // is complete
       addStep(
           new AuthorizeBillingProfileUseStep(
               profileService, ingestRequestModel.getProfileId(), userReq));
 
-      // This will need to stay even after DR-2107
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
     }
 
@@ -224,6 +223,7 @@ public class DatasetIngestFlight extends Flight {
     JobService jobService = appContext.getBean(JobService.class);
 
     GoogleProjectService projectService = appContext.getBean(GoogleProjectService.class);
+    GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
 
     var platform = CloudPlatform.GCP;
 
@@ -235,9 +235,11 @@ public class DatasetIngestFlight extends Flight {
     // will not be run.
     addStep(new IngestJsonFileSetupGcpStep(gcsPdao, appConfig.objectMapper(), dataset, userReq));
 
-    // Authorize the billing profile for use.
+    // Make sure this user is authorized to use the billing profile in SAM
     addOptionalCombinedIngestStep(
         new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
+
+    addOptionalCombinedIngestStep(new VerifyBillingAccountAccessStep(googleBillingService));
 
     // Lock the load.
     addOptionalCombinedIngestStep(new LoadLockStep(loadService));

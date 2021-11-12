@@ -114,7 +114,8 @@ public final class DatasetJsonConversion {
       datasetModel.schema(datasetSpecificationModelFromDatasetSchema(dataset));
     }
 
-    if (include.contains(DatasetRequestAccessIncludeModel.DATA_PROJECT)) {
+    if (include.contains(DatasetRequestAccessIncludeModel.DATA_PROJECT)
+        && dataset.getProjectResource() != null) {
       datasetModel.dataProject(dataset.getProjectResource().getGoogleProjectId());
     }
 

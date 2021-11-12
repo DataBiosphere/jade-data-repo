@@ -69,6 +69,7 @@ public class DatasetTableDao {
       params.addValue("name", table.getName());
       params.addValue("raw_table_name", table.getRawTableName());
       params.addValue("soft_delete_table_name", table.getSoftDeleteTableName());
+      params.addValue("row_metadata_table_name", table.getRowMetadataTableName());
       params.addValue(
           "bigquery_partition_config",
           objectMapper.writeValueAsString(table.getBigQueryPartitionConfig()));

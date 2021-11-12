@@ -15,6 +15,6 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 @Inherited
 @AutoConfigureEmbeddedDatabase(
     type = AutoConfigureEmbeddedDatabase.DatabaseType.POSTGRES,
-    provider = AutoConfigureEmbeddedDatabase.DatabaseProvider.ZONKY)
+    provider = AutoConfigureEmbeddedDatabase.DatabaseProvider.DOCKER)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public @interface EmbeddedDatabaseConnectedTest {}

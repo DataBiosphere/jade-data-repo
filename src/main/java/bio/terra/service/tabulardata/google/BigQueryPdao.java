@@ -135,6 +135,8 @@ public class BigQueryPdao {
             table.getBigQueryPartitionConfig());
         bigQueryProject.createTable(
             datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
+        bigQueryProject.createTable(
+            datasetName, table.getRowMetadataTableName(), buildRowMetadataSchema());
         bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
       }
       // TODO: don't catch generic exceptions
@@ -1077,6 +1079,16 @@ public class BigQueryPdao {
 
   public static String prefixName(String name) {
     return PDAO_PREFIX + name;
+  }
+
+  private Schema buildRowMetadataSchema() {
+    List<Field> fieldList = new ArrayList<>();
+    fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
+    fieldList.add(
+        Field.newBuilder("load_time", LegacySQLTypeName.TIMESTAMP)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+    return Schema.of(fieldList);
   }
 
   private Schema buildSoftDeletesSchema() {

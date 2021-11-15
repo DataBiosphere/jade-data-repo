@@ -1085,7 +1085,15 @@ public class BigQueryPdao {
     List<Field> fieldList = new ArrayList<>();
     fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
     fieldList.add(
-        Field.newBuilder("load_time", LegacySQLTypeName.TIMESTAMP)
+        Field.newBuilder("ingested_by", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+    fieldList.add(
+        Field.newBuilder("ingest_time", LegacySQLTypeName.TIMESTAMP)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+    fieldList.add(
+        Field.newBuilder("load_tag", LegacySQLTypeName.STRING)
             .setMode(Field.Mode.REQUIRED)
             .build());
     return Schema.of(fieldList);

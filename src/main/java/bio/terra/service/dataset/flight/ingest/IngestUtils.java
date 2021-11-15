@@ -38,8 +38,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
 // Common code for the ingest steps
@@ -200,13 +198,7 @@ public final class IngestUtils {
         Objects.requireNonNullElse(
             flightContext.getWorkingMap().get(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, Long.class),
             0L);
-    if (numFiles == 0) {
-      Logger logger = LoggerFactory.getLogger(flightContext.getFlightClassName());
-      logger.info(
-          "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
-      return false;
-    }
-    return true;
+    return numFiles != 0;
   }
 
   public static Stream<JsonNode> getJsonNodesStreamFromFile(

@@ -478,9 +478,10 @@ task testIntegration(type: Test) {
           maxFailures = 15
         }
         maxParallelForks = 2
+    } else {
+        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
     }
     outputs.upToDateWhen { false }
-    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 }
 
 task testUnit(type: Test) {

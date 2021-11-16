@@ -75,8 +75,8 @@ public class AzureBlobStorePdaoTest {
   private static final OffsetDateTime BLOB_CREATION_TIME = OffsetDateTime.now();
   private static final long BLOB_SIZE = 1234567890L;
   private static final byte[] BLOB_CONTENT_MD5 = "FOOBAR".getBytes(StandardCharsets.UTF_8);
-  // This is the base64 encoding of FOOBAR
-  private static final String BLOB_CONTENT_MD5_B64 = "Rk9PQkFS";
+  // This is bytes of the FOOBAR string in Hex
+  private static final String BLOB_CONTENT_MD5_B64 = "464f4f424152";
   private static final String LOAD_TAG = "tag";
   private static final String MIME_TYPE = "txt/plain";
 

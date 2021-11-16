@@ -621,7 +621,9 @@ public class SnapshotService {
       snapshotModel.profileId(snapshot.getProfileId());
     }
     if (include.contains(SnapshotRequestAccessIncludeModel.DATA_PROJECT)) {
-      snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
+      if (snapshot.getProjectResource() != null) {
+        snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
+      }
     }
     if (include.contains(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION)) {
       snapshotModel.accessInformation(

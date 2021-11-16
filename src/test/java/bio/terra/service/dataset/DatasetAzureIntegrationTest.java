@@ -17,6 +17,7 @@ import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.ParquetUtils;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -53,6 +54,8 @@ import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.service.filedata.DrsId;
+import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -454,19 +457,42 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     TestUtils.verifyHttpAccess(snapshotParquetUrl, Map.of());
     verifySignedUrl(snapshotParquetUrl, steward(), "rl");
 
+    List<String> drsIds = new ArrayList<>();
     for (AccessInfoParquetModelTable table : snapshotParquetAccessInfo.getTables()) {
       if (tablesToCheck.contains(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
         verifySignedUrl(tableUrl, steward(), "rl");
+
+        // The vocabulary table has file data so test Drs on that one
+        // TODO: once we have an endpoint to expose parquet data, we should use that mechanism here
+        if (table.getName().equals("vocabulary")) {
+          List<Map<String, String>> records = ParquetUtils.readParquetRecords(tableUrl);
+          assertThat("2 rows are present", records.size(), equalTo(2));
+          // Extract the DRS Ids
+          drsIds.addAll(
+              records.stream()
+                  .map(r -> r.get("vocabulary_reference"))
+                  .collect(Collectors.toList()));
+        }
       }
     }
+
+    // Assert that 2 drs ids were loaded
+    assertThat("2 drs ids are present", drsIds.size(), equalTo(2));
+    // Ensure that all DRS can be parsed
+    List<String> drsObjectIds =
+        drsIds.stream()
+            .map(DrsIdService::fromUri)
+            .map(DrsId::toDrsObjectId)
+            .collect(Collectors.toList());
 
     String fileId = result.getLoadFileResults().get(0).getFileId();
     String filePath = result.getLoadFileResults().get(0).getTargetPath();
 
     // Do a Drs lookup
     String drsId = String.format("v1_%s_%s", snapshotId, fileId);
+    assertThat("Expected Drs object Id exists", drsObjectIds.contains(drsId), equalTo(true));
     DRSObject drsObject = dataRepoFixtures.drsGetObject(steward(), drsId);
     assertThat(
         "DRS object has single access method", drsObject.getAccessMethods().size(), equalTo(1));

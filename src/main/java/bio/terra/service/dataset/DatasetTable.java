@@ -18,6 +18,7 @@ public class DatasetTable implements Table {
   private String name;
   private String rawTableName;
   private String softDeleteTableName;
+  private String rowMetadataTableName;
   private List<Column> columns = Collections.emptyList();
   private List<Column> primaryKey = Collections.emptyList();
   private BigQueryPartitionConfigV1 bqPartitionConfig;
@@ -56,6 +57,15 @@ public class DatasetTable implements Table {
 
   public DatasetTable softDeleteTableName(String name) {
     this.softDeleteTableName = name;
+    return this;
+  }
+
+  public String getRowMetadataTableName() {
+    return rowMetadataTableName;
+  }
+
+  public DatasetTable rowMetadataTableName(String name) {
+    this.rowMetadataTableName = name;
     return this;
   }
 

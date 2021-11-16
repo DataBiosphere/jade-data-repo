@@ -32,14 +32,14 @@ public class DatasetTableDao {
 
   private static final String sqlInsertTable =
       "INSERT INTO dataset_table "
-          + "(name, raw_table_name, soft_delete_table_name, dataset_id, primary_key, bigquery_partition_config) "
-          + "VALUES (:name, :raw_table_name, :soft_delete_table_name, :dataset_id, :primary_key, "
+          + "(name, raw_table_name, soft_delete_table_name, row_metadata_table_name, dataset_id, primary_key, bigquery_partition_config) "
+          + "VALUES (:name, :raw_table_name, :soft_delete_table_name, :row_metadata_table_name, :dataset_id, :primary_key, "
           + "cast(:bigquery_partition_config AS jsonb))";
   private static final String sqlInsertColumn =
       "INSERT INTO dataset_column "
           + "(table_id, name, type, array_of) VALUES (:table_id, :name, :type, :array_of)";
   private static final String sqlSelectTable =
-      "SELECT id, name, raw_table_name, soft_delete_table_name, primary_key, bigquery_partition_config::text, "
+      "SELECT id, name, raw_table_name, soft_delete_table_name, row_metadata_table_name, primary_key, bigquery_partition_config::text, "
           + "(bigquery_partition_config->>'version')::bigint AS bigquery_partition_config_version "
           + "FROM dataset_table WHERE dataset_id = :dataset_id";
   private static final String sqlSelectColumn =
@@ -69,6 +69,7 @@ public class DatasetTableDao {
       params.addValue("name", table.getName());
       params.addValue("raw_table_name", table.getRawTableName());
       params.addValue("soft_delete_table_name", table.getSoftDeleteTableName());
+      params.addValue("row_metadata_table_name", table.getRowMetadataTableName());
       params.addValue(
           "bigquery_partition_config",
           objectMapper.writeValueAsString(table.getBigQueryPartitionConfig()));
@@ -116,7 +117,8 @@ public class DatasetTableDao {
                   .id(rs.getObject("id", UUID.class))
                   .name(rs.getString("name"))
                   .rawTableName(rs.getString("raw_table_name"))
-                  .softDeleteTableName(rs.getString("soft_delete_table_name"));
+                  .softDeleteTableName(rs.getString("soft_delete_table_name"))
+                  .rowMetadataTableName(rs.getString("row_metadata_table_name"));
 
           List<Column> columns = retrieveColumns(table);
           table.columns(columns);

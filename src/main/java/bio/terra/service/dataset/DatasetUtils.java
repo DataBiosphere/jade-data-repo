@@ -48,6 +48,7 @@ public final class DatasetUtils {
             t -> {
               t.rawTableName(generateAuxTableName(t, "raw"));
               t.softDeleteTableName(generateAuxTableName(t, "sd"));
+              t.rowMetadataTableName(generateAuxTableName(t, "row_metadata"));
             });
     return baseDataset;
   }

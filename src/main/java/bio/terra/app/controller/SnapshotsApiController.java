@@ -16,6 +16,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SqlSortDirection;
@@ -200,19 +201,16 @@ public class SnapshotsApiController implements SnapshotsApi {
     return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
   }
 
-  // @Override
-   public ResponseEntity<PreviewModel> lookupSnapshotPreviewById(
-       UUID id,
-       String table,
-       Integer count) {
-     logger.info("Verifying user access");
-     iamService.verifyAuthorization(
-         getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(),
-   IamAction.READ_DATA);
-     logger.info("Retrieving snapshot");
-     PreviewModel previewModel = snapshotService.retrievePreview(id, table, count);
-     return new ResponseEntity<>(previewModel, HttpStatus.OK);
-   }
+  @Override
+  public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
+      UUID id, String table, Integer count) {
+    logger.info("Verifying user access");
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    logger.info("Retrieving snapshot");
+    SnapshotPreviewModel previewModel = snapshotService.retrievePreview(id, table, count);
+    return new ResponseEntity<>(previewModel, HttpStatus.OK);
+  }
 
   @Override
   public ResponseEntity<FileModel> lookupSnapshotFileById(

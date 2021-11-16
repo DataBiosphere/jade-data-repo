@@ -14,6 +14,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -41,6 +42,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
+import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -60,7 +62,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import common.utils.BigQueryUtils;
 
 @Component
 public class SnapshotService {
@@ -360,25 +361,26 @@ public class SnapshotService {
         .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
   }
 
-  public PreviewModel retrievePreview(TestUserSpecification testUser, String id, String table, Integer count) {
-    // 1. look up snapshot, extract project, snapshot name
-    Snapshot snapshot = retrieve(UUID.fromString(id));
+  public SnapshotPreviewModel retrievePreview(UUID snapshotId, String tableName, Integer count) {
+    Snapshot snapshot = retrieve(snapshotId);
 
-    // 2. generate the sql query:
-    //     `SELECT ${tableName}, COUNT(30) FROM \`${datasetProject}.datarepo_${datasetBqSnapshotName}.${tableName}\``
-    String sqlQuery = String.format("SELECT %s, COUNT(%d) FROM '%s'.datarepo_%s.%s", table, count, snapshot.);
+    Optional<SnapshotTable> table =
+        snapshot.getTables().stream().filter(t -> t.getName().equals(tableName)).findFirst();
 
-    // 3. connect with bigquery service
-    // Not sure where test user is declared... yet
-    BigQuery bigQueryClient =
-        BigQueryUtils.getClientForTestUser(testUser, datasetModel.getDataProject());
-    TableResult results = BigQueryUtils.queryBigQuery(bigQueryClient, sqlQuery)
+    if (table.isEmpty()) {
+      throw new SnapshotPreviewException("No snapshot table exists with the name: " + tableName);
+    }
 
-    // 4. convert bigquery response to json - create PreviewModel in openapi.yaml
-    // - --- https://github.com/ga4gh-discovery/data-connect/blob/develop/TABLE.md
-    // 5. send query results to response entity
+    try {
+      List<Map<String, Object>> values = bigQueryPdao.getSnapshotTable(snapshot, tableName, count);
 
-    return null;
+      SnapshotPreviewModel previewModel = new SnapshotPreviewModel();
+      previewModel.setResult(Collections.singletonList(values));
+      return previewModel;
+    } catch (InterruptedException e) {
+      throw new SnapshotPreviewException(
+          "Error retrieving preview for snapshot " + snapshot.getName() + ": " + e);
+    }
   }
 
   private AssetSpecification getAssetSpecificationFromRequest(

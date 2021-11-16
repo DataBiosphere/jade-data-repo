@@ -1976,16 +1976,7 @@ public class BigQueryPdao {
     }
   }
 
-  /*
-   * WARNING: Ensure SQL is validated before executing this method!
-   */
-  public List<Map<String, Object>> getSnapshotTableData(Snapshot snapshot, String sql)
-      throws InterruptedException {
-    // execute query and get result
-    final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
-    final TableResult result = bigQueryProject.query(sql);
-
-    // aggregate into single object
+  public List<Map<String, Object>> aggregateTableColumnsRows(TableResult result) {
     final FieldList columns = result.getSchema().getFields();
     final List<Map<String, Object>> values = new ArrayList<>();
     result
@@ -2003,6 +1994,35 @@ public class BigQueryPdao {
             });
 
     return values;
+  }
+
+  private static final String snapshotDataTemplate =
+      "SELECT * FROM `<project>.<snapshot>.<table>` LIMIT <count>";
+
+  public List<Map<String, Object>> getSnapshotTable(
+      Snapshot snapshot, String tableName, Integer count) throws InterruptedException {
+    final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    final String sql =
+        new ST(snapshotDataTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("snapshot", snapshot.getName())
+            .add("table", tableName)
+            .add("count", count)
+            .render();
+    final TableResult result = bigQueryProject.query(sql);
+
+    return aggregateTableColumnsRows(result);
+  }
+
+  /*
+   * WARNING: Ensure SQL is validated before executing this method!
+   */
+  public List<Map<String, Object>> getSnapshotTableData(Snapshot snapshot, String sql)
+      throws InterruptedException {
+    final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    final TableResult result = bigQueryProject.query(sql);
+
+    return aggregateTableColumnsRows(result);
   }
 
   // we select from the live view here so that the row counts take into account rows that have been

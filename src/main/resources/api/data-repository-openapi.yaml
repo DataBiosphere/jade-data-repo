@@ -698,7 +698,7 @@ paths:
         - $ref: '#/components/parameters/Id'
         - name: table
           in: query
-          description: Table Name to be return
+          description: Table name to be return
           required: true
           schema:
             type: string
@@ -714,7 +714,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PreviewModel'
+                $ref: '#/components/schemas/SnapshotPreviewModel'
   /api/repository/v1/snapshots/{id}/files/{fileid}:
     get:
       tags:
@@ -3168,26 +3168,16 @@ components:
         dataset bucket.
         Eventually, this will include attributes of the storage including
         billing, temperature, geography, etc. But for now...
-    PreviewModel:
+    SnapshotPreviewModel:
       type: object
       properties:
-        dataSchema:
-          $ref: '#/components/schemas/PreviewDataSchemaModel'
-        data:
+        result:
           type: array
-            description: Array of table contents
-            items:
-              type: object
-              description: >
-                The preview data values of the snapshot
-                Keys are mapped to the column heading
-                Values are mapped to value of the row
-    PreviewDataSchemaModel:
-      type: object
-      properties:
-        properties:
-          type: object
-          description: The schema that the preview data is modeled with
+          items:
+            type: object
+        description: A preview of a snapshot table
+      description: >
+        The previews of tables in the snapshot
     FileModel:
       type: object
       properties:

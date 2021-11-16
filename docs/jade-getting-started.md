@@ -189,8 +189,8 @@ git clone git@github.com:DataBiosphere/jade-data-repo.git
 git clone git@github.com:DataBiosphere/jade-data-repo-ui.git
 git clone git@github.com:DataBiosphere/jade-data-repo-cli
 git clone git@github.com:DataBiosphere/terraform-jade
-git clone git@github.com:DataBiosphere/datarepo-helm
-git clone git@github.com:DataBiosphere/datarepo-helm-definitions
+git clone git@github.com:broadinstitute/datarepo-helm
+git clone git@github.com:broadinstitute/datarepo-helm-definitions
 ```
 
 ## 8. Set up your Development Environment

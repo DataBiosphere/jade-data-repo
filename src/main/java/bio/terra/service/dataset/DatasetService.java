@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadHistoryModel;
@@ -261,7 +262,7 @@ public class DatasetService {
     } else if (platformWrapper.isGcp()) {
       return bigQueryPdao.getLoadHistory(dataset, loadTag, offset, limit);
     } else {
-      throw new IllegalArgumentException("Unrecognized cloud platform");
+      throw new InvalidCloudPlatformException();
     }
   }
 

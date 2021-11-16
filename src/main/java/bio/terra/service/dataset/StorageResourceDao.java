@@ -6,6 +6,7 @@ import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.exception.InvalidStorageException;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
@@ -86,7 +87,7 @@ public class StorageResourceDao {
               AzureCloudResource.valueOf(rs.getString("cloud_resource")),
               AzureRegion.valueOf(rs.getString("region")));
         default:
-          throw new IllegalArgumentException("Unrecognized cloud platform");
+          throw new InvalidCloudPlatformException();
       }
     }
   }

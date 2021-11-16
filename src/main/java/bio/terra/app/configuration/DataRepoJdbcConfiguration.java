@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableConfigurationProperties
 @EnableTransactionManagement
 @ConfigurationProperties(prefix = "db.datarepo")
-@ConditionalOnMissingClass({"bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration"})
+@ConditionalOnMissingClass("bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration")
 public class DataRepoJdbcConfiguration extends JdbcConfiguration {
 
   @Bean("dataRepoTransactionManager")

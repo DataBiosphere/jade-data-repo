@@ -8,5 +8,5 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "db.stairway")
-@ConditionalOnMissingClass({"bio.terra.app.configuration.EmbeddedStairwayTestConfiguration"})
+@ConditionalOnMissingClass("bio.terra.app.configuration.EmbeddedStairwayTestConfiguration")
 public class StairwayJdbcConfiguration extends JdbcConfiguration {}

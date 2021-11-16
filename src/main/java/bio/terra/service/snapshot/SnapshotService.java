@@ -364,9 +364,13 @@ public class SnapshotService {
   public SnapshotPreviewModel retrievePreview(UUID snapshotId, String tableName, int count) {
     Snapshot snapshot = retrieve(snapshotId);
 
-    snapshot.getTables().stream().filter(t -> t.getName().equals(tableName))
+    snapshot.getTables().stream()
+        .filter(t -> t.getName().equals(tableName))
         .findFirst()
-        .orElseThrow(() ->  new SnapshotPreviewException("No snapshot table exists with the name: " + tableName));
+        .orElseThrow(
+            () ->
+                new SnapshotPreviewException(
+                    "No snapshot table exists with the name: " + tableName));
 
     try {
       List<Map<String, Object>> values = bigQueryPdao.getSnapshotTable(snapshot, tableName, count);

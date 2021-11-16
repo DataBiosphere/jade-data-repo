@@ -404,18 +404,13 @@ public class ResourceService {
       String projectId,
       GoogleRegion region,
       String datasetName,
-      UUID datasetId,
-      Boolean isAzure)
+      UUID datasetId)
       throws InterruptedException {
 
     Map<String, String> labels = new HashMap<>();
     labels.put("dataset-name", datasetName);
     labels.put("dataset-id", datasetId.toString());
     labels.put("project-usage", "dataset");
-
-    if (isAzure) {
-      labels.put("is-azure", "true");
-    }
 
     GoogleProjectResource googleProjectResource =
         projectService.initializeGoogleProject(

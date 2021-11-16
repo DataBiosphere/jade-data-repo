@@ -2833,10 +2833,6 @@ components:
           $ref: '#/components/schemas/DatasetSpecificationModel'
         region:
           type: string
-        gcpRegion:
-          type: string
-          description: >
-            This is a temporary parameter until GCP and Azure resources are no longer entwined.  This parameter will disappear shortly
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
       description: >

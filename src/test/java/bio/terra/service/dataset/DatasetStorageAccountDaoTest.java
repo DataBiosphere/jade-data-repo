@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -38,6 +39,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class DatasetStorageAccountDaoTest {
   private static final Logger logger = LoggerFactory.getLogger(DatasetStorageAccountDaoTest.class);
   @Autowired private JsonLoader jsonLoader;

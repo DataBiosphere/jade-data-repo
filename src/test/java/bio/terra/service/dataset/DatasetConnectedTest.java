@@ -13,7 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.common.EmbeddedDatabaseConnectedTest;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
@@ -79,7 +79,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-@EmbeddedDatabaseConnectedTest
+@EmbeddedDatabaseTest
 public class DatasetConnectedTest {
   @Autowired private MockMvc mvc;
   @Autowired private JsonLoader jsonLoader;

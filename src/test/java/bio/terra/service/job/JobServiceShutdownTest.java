@@ -3,7 +3,8 @@ package bio.terra.service.job;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.common.category.Unit;
+import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.category.Connected;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -25,7 +26,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
 @SpringBootTest
-@Category(Unit.class)
+@Category(Connected.class)
+@EmbeddedDatabaseTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class JobServiceShutdownTest {
   private static final Logger logger = LoggerFactory.getLogger(JobServiceShutdownTest.class);

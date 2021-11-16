@@ -12,6 +12,7 @@ import bio.terra.app.model.CloudResource;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
@@ -54,6 +55,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class SnapshotDaoTest {
 
   @Autowired private SnapshotDao snapshotDao;

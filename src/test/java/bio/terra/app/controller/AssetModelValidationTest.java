@@ -26,7 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(properties = {"tdr.testNoDatabase=true"})
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class AssetModelValidationTest {

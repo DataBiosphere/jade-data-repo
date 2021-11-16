@@ -10,6 +10,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import com.azure.core.http.rest.PagedIterable;
@@ -35,6 +36,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class TableDependencyDaoTest {
   @MockBean private AzureAuthService authService;
   @MockBean private TableServiceClient tableServiceClient;

@@ -442,6 +442,10 @@ test {
         includeCategories 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
+    retry {
+        maxRetries = 3
+    }
+    maxParallelForks = 2
 }
 
 task testConnected(type: Test) {
@@ -487,6 +491,10 @@ task testIntegration(type: Test) {
 task testUnit(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.common.category.Unit'
+    }
+    maxParallelForks = 2
+    retry {
+        maxRetries = 3
     }
     outputs.upToDateWhen { false }
 }

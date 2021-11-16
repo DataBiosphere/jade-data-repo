@@ -8,7 +8,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import bio.terra.common.EmbeddedDatabaseConnectedTest;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
@@ -38,7 +38,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-@EmbeddedDatabaseConnectedTest
+@EmbeddedDatabaseTest
 public class FireStoreDaoTest {
   private final Logger logger =
       LoggerFactory.getLogger("bio.terra.service.filedata.google.firestore.FireStoreDaoTest");

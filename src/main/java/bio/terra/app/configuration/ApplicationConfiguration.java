@@ -12,7 +12,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.SmartInitializingSingleton;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
@@ -23,7 +23,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "datarepo")
-@ConditionalOnMissingClass({"bio.terra.app.configuration.IntegrationApplicationConfiguration"})
+@ConditionalOnProperty(
+    prefix = "tdr",
+    name = "testNoDatabase",
+    havingValue = "false",
+    matchIfMissing = true)
 public class ApplicationConfiguration {
 
   private String userEmail;

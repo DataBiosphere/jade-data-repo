@@ -5,7 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
-import bio.terra.common.EmbeddedDatabaseConnectedTest;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -43,7 +43,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-@EmbeddedDatabaseConnectedTest
+@EmbeddedDatabaseTest
 public class LoadHistoryStorageTableConnectedTest {
   private UUID datasetId;
   private TableServiceClient serviceClient;

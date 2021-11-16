@@ -6,7 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
-import bio.terra.common.EmbeddedDatabaseConnectedTest;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -30,7 +30,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-@EmbeddedDatabaseConnectedTest
+@EmbeddedDatabaseTest
 public class TableFileConnectedTest {
 
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;

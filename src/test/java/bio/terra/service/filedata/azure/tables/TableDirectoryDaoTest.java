@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.FileMetadataUtils;
@@ -41,6 +42,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class TableDirectoryDaoTest {
   private static final String FULL_PATH = "/directory/file.json";
   private static final UUID DATASET_ID = UUID.randomUUID();

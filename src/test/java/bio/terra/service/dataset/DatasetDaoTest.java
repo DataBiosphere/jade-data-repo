@@ -14,6 +14,7 @@ import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
@@ -54,6 +55,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class DatasetDaoTest {
 
   @Autowired private JsonLoader jsonLoader;

@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.common.EmbeddedDatabaseConnectedTest;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -95,7 +95,7 @@ import org.stringtemplate.v4.ST;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-@EmbeddedDatabaseConnectedTest
+@EmbeddedDatabaseTest
 public class SnapshotConnectedTest {
   // TODO: MORE TESTS to be done when we can ingest data:
   // - test more complex datasets with relationships

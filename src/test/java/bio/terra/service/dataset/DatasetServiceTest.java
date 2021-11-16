@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -51,6 +52,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class DatasetServiceTest {
   private AuthenticatedUserRequest testUser =
       new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");

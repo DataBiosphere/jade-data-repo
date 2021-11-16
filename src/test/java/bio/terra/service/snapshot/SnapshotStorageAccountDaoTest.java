@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.AzureStorageResource;
@@ -34,6 +35,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class SnapshotStorageAccountDaoTest {
 
   @MockBean private SnapshotStorageAccountDao snapshotStorageAccountDao;

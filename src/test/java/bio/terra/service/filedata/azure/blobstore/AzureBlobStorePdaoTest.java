@@ -13,6 +13,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.BillingProfileModel;
@@ -51,6 +52,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class AzureBlobStorePdaoTest {
   private static final AuthenticatedUserRequest TEST_USER =
       new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");

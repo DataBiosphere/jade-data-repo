@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.service.configuration.ConfigurationService;
@@ -29,6 +30,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class LoadDaoUnitTest {
   private final Logger logger = LoggerFactory.getLogger(LoadDaoUnitTest.class);
 

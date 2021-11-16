@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -29,6 +30,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @SpringBootTest
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class JobServiceTest {
   private static final Logger logger = LoggerFactory.getLogger(JobServiceTest.class);
 

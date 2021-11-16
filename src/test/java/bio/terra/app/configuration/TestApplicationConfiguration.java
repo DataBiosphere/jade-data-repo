@@ -25,16 +25,16 @@ import bio.terra.service.snapshot.SnapshotRelationshipDao;
 import bio.terra.service.snapshot.SnapshotStorageAccountDao;
 import bio.terra.service.snapshot.SnapshotTableDao;
 import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles({"integrationtest"})
 @Configuration
-public class IntegrationApplicationConfiguration extends ApplicationConfiguration {
+@ConditionalOnProperty(prefix = "tdr", name = "testNoDatabase")
+public class TestApplicationConfiguration extends ApplicationConfiguration {
 
   @MockBean(name = "jdbcTemplate")
   public NamedParameterJdbcTemplate namedParameterJdbcTemplate;

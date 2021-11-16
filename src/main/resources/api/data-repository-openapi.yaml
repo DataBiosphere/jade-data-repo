@@ -692,13 +692,13 @@ paths:
       tags:
         - snapshots
         - repository
-      description: Look up preview data for a snapshot
+      description: Retrieve preview data for a table in a snapshot
       operationId: lookupSnapshotPreviewById
       parameters:
         - $ref: '#/components/parameters/Id'
         - name: table
           in: query
-          description: Table name to be return
+          description: Name of table to get preview data from
           required: true
           schema:
             type: string

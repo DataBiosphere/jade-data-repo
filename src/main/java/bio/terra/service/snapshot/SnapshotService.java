@@ -361,25 +361,22 @@ public class SnapshotService {
         .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
   }
 
-  public SnapshotPreviewModel retrievePreview(UUID snapshotId, String tableName, Integer count) {
+  public SnapshotPreviewModel retrievePreview(UUID snapshotId, String tableName, int count) {
     Snapshot snapshot = retrieve(snapshotId);
 
-    Optional<SnapshotTable> table =
-        snapshot.getTables().stream().filter(t -> t.getName().equals(tableName)).findFirst();
-
-    if (table.isEmpty()) {
-      throw new SnapshotPreviewException("No snapshot table exists with the name: " + tableName);
-    }
+    snapshot.getTables().stream().filter(t -> t.getName().equals(tableName))
+        .findFirst()
+        .orElseThrow(() ->  new SnapshotPreviewException("No snapshot table exists with the name: " + tableName));
 
     try {
       List<Map<String, Object>> values = bigQueryPdao.getSnapshotTable(snapshot, tableName, count);
 
       SnapshotPreviewModel previewModel = new SnapshotPreviewModel();
-      previewModel.setResult(Collections.singletonList(values));
+      previewModel.setResult(List.of(values));
       return previewModel;
     } catch (InterruptedException e) {
       throw new SnapshotPreviewException(
-          "Error retrieving preview for snapshot " + snapshot.getName() + ": " + e);
+          "Error retrieving preview for snapshot " + snapshot.getName(), e);
     }
   }
 

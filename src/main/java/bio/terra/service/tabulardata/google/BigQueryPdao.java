@@ -103,6 +103,9 @@ public class BigQueryPdao {
   private final String datarepoDnsName;
   private final BigQueryConfiguration bigQueryConfiguration;
 
+  public final static int MIN_ROW_COUNT = 1;
+  public final static int MAX_ROW_COUNT = 1000;
+
   @Autowired
   public BigQueryPdao(
       ApplicationConfiguration applicationConfiguration,
@@ -1977,7 +1980,7 @@ public class BigQueryPdao {
     }
   }
 
-  public List<Map<String, Object>> aggregateTableColumnsRows(TableResult result) {
+  private static List<Map<String, Object>> aggregateTableColumnsRows(TableResult result) {
     final FieldList columns = result.getSchema().getFields();
     final List<Map<String, Object>> values = new ArrayList<>();
     result
@@ -1997,22 +2000,22 @@ public class BigQueryPdao {
     return values;
   }
 
-  private static final String snapshotDataTemplate =
+  private static final String SNAPSHOT_DATA_TEMPLATE =
       "SELECT * FROM `<project>.<snapshot>.<table>` LIMIT <count>";
 
   public List<Map<String, Object>> getSnapshotTable(
-      Snapshot snapshot, String tableName, Integer count) throws InterruptedException {
+      Snapshot snapshot, String tableName, int count) throws InterruptedException {
+    final int truncatedCount = Math.max(Math.min(count, MAX_ROW_COUNT), MIN_ROW_COUNT);
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final String sql =
-        new ST(snapshotDataTemplate)
+        new ST(SNAPSHOT_DATA_TEMPLATE)
             .add("project", bigQueryProject.getProjectId())
             .add("snapshot", snapshot.getName())
             .add("table", tableName)
-            .add("count", count)
+            .add("count", truncatedCount)
             .render();
-    final TableResult result = bigQueryProject.query(sql);
 
-    return aggregateTableColumnsRows(result);
+    return getSnapshotTableData(snapshot, sql);
   }
 
   /*

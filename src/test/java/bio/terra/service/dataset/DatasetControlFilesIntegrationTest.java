@@ -43,7 +43,6 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfiguration;
 
   private String stewardToken;
-  private UUID datasetId;
   private UUID profileId;
 
   @Before
@@ -52,16 +51,11 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
-    datasetId = null;
   }
 
   @After
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
-
-    if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
-    }
 
     if (profileId != null) {
       dataRepoFixtures.deleteProfileLog(steward(), profileId);

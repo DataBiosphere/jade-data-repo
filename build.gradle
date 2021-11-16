@@ -460,8 +460,7 @@ task testConnected(type: Test) {
         if (isCiServer) {
             maxRetries = 3
             maxFailures = 15
-        }
-        else {
+        } else {
             maxRetries = 2
         }
     }
@@ -483,8 +482,7 @@ task testIntegration(type: Test) {
         if (isCiServer) {
             maxRetries = 3
             maxFailures = 15
-        }
-        else {
+        } else {
             maxRetries = 2
         }
     }

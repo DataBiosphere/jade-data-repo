@@ -1,8 +1,11 @@
 package bio.terra.service.tabulardata.google;
 
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_INGESTED_BY_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_INGEST_TIME_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_TAG_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
@@ -1082,20 +1085,20 @@ public class BigQueryPdao {
   }
 
   private Schema buildRowMetadataSchema() {
-    List<Field> fieldList = new ArrayList<>();
-    fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
-    fieldList.add(
-        Field.newBuilder("ingested_by", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-    fieldList.add(
-        Field.newBuilder("ingest_time", LegacySQLTypeName.TIMESTAMP)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-    fieldList.add(
-        Field.newBuilder("load_tag", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
+    List<Field> fieldList =
+        List.of(
+            Field.newBuilder(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING)
+                .setMode(Field.Mode.REQUIRED)
+                .build(),
+            Field.newBuilder(PDAO_INGESTED_BY_COLUMN, LegacySQLTypeName.STRING)
+                .setMode(Field.Mode.REQUIRED)
+                .build(),
+            Field.newBuilder(PDAO_INGEST_TIME_COLUMN, LegacySQLTypeName.TIMESTAMP)
+                .setMode(Field.Mode.REQUIRED)
+                .build(),
+            Field.newBuilder(PDAO_LOAD_TAG_COLUMN, LegacySQLTypeName.STRING)
+                .setMode(Field.Mode.REQUIRED)
+                .build());
     return Schema.of(fieldList);
   }
 

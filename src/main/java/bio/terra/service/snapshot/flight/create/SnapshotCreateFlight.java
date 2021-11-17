@@ -3,8 +3,6 @@ package bio.terra.service.snapshot.flight.create;
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 
 import bio.terra.app.logging.PerformanceLogger;
-import bio.terra.app.model.GoogleCloudResource;
-import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.common.exception.NotImplementedException;
@@ -84,11 +82,6 @@ public class SnapshotCreateFlight extends Flight {
 
     var platform =
         CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
-    GoogleRegion firestoreRegion =
-        (GoogleRegion)
-            sourceDataset
-                .getDatasetSummary()
-                .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
 
     // Make sure this user is authorized to use the billing profile in SAM
     addStep(
@@ -103,14 +96,13 @@ public class SnapshotCreateFlight extends Flight {
       // Get a new google project from RBS and store it in the working map
       addStep(new GetResourceBufferProjectStep(bufferService));
 
-      // create the snapshot metadata object in postgres and lock it
-
       // Get or initialize the project where the snapshot resources will be created
       addStep(
-          new CreateSnapshotInitializeProjectStep(
-              resourceService, firestoreRegion, sourceDatasets, snapshotName),
+          new CreateSnapshotInitializeProjectStep(resourceService, sourceDatasets, snapshotName),
           getDefaultExponentialBackoffRetryRule());
     }
+
+    // create the snapshot metadata object in postgres and lock it
     addStep(
         new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq),
         getDefaultExponentialBackoffRetryRule());

@@ -242,6 +242,31 @@ dependencies {
     implementation 'com.azure:azure-storage-file-datalake:12.5.1'
     implementation 'com.azure:azure-data-tables:12.1.0'
 
+    testImplementation "org.apache.parquet:parquet-common:1.12.0"
+    testImplementation "org.apache.parquet:parquet-hadoop:1.12.0"
+    testImplementation "org.apache.parquet:parquet-hadoop-bundle:1.12.0"
+    testImplementation "org.apache.parquet:parquet-encoding:1.12.0"
+    testImplementation "org.apache.parquet:parquet-column:1.12.0"
+    testImplementation ('org.apache.hadoop:hadoop-common:3.3.1')  {
+        exclude group: 'com.sun.jersey', module: 'jersey-core'
+        exclude group: 'com.sun.jersey', module: 'jersey-servlet'
+        exclude group: 'com.sun.jersey', module: 'jersey-json'
+        exclude group: 'com.sun.jersey', module: 'jersey-server'
+    }
+    testImplementation ('org.apache.hadoop:hadoop-azure:3.3.1') {
+        exclude group: 'com.sun.jersey', module: 'jersey-core'
+        exclude group: 'com.sun.jersey', module: 'jersey-servlet'
+        exclude group: 'com.sun.jersey', module: 'jersey-json'
+        exclude group: 'com.sun.jersey', module: 'jersey-server'
+    }
+    testImplementation('org.apache.hadoop:hadoop-mapreduce-client-core:3.3.1') {
+        exclude group: 'com.sun.jersey', module: 'jersey-core'
+        exclude group: 'com.sun.jersey', module: 'jersey-servlet'
+        exclude group: 'com.sun.jersey', module: 'jersey-json'
+        exclude group: 'com.sun.jersey', module: 'jersey-server'
+    }
+
+
     antlr "org.antlr:antlr4:4.8"
     spotbugs 'com.github.spotbugs:spotbugs:4.2.2'
 

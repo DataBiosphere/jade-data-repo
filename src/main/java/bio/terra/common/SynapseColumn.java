@@ -1,9 +1,12 @@
 package bio.terra.common;
 
 import bio.terra.model.TableDataType;
+import java.util.Set;
 import javax.ws.rs.NotSupportedException;
 
 public class SynapseColumn extends Column {
+  private static final Set<TableDataType> FILE_TYPES =
+      Set.of(TableDataType.FILEREF, TableDataType.DIRREF);
   private String synapseDataType;
   private boolean requiresCollate;
   private boolean requiresJSONCast;
@@ -41,6 +44,10 @@ public class SynapseColumn extends Column {
   public SynapseColumn requiresJSONCast(boolean requiresJSONCast) {
     this.requiresJSONCast = requiresJSONCast;
     return this;
+  }
+
+  public boolean getIsFileType() {
+    return FILE_TYPES.contains(getType());
   }
 
   static String translateDataType(TableDataType datatype, boolean isArrayOf) {

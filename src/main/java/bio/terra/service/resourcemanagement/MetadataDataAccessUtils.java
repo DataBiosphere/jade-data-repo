@@ -3,6 +3,7 @@ package bio.terra.service.resourcemanagement;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Table;
+import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
@@ -125,7 +126,7 @@ public final class MetadataDataAccessUtils {
       return makeAccessInfoAzure(
           dataset, storageAccountResource, dataset.getTables(), profileModel, userRequest);
     } else {
-      throw new IllegalArgumentException("Unrecognized cloud platform");
+      throw new InvalidCloudPlatformException();
     }
   }
 

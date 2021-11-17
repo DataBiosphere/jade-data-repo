@@ -22,8 +22,8 @@ import org.stringtemplate.v4.ST;
 @Component
 public class SynapseUtils {
   private static final Logger logger = LoggerFactory.getLogger(SynapseUtils.class);
-  private static final String readFromParquetFile =
-      "SELECT *\n"
+  private static final String READ_FROM_PARQUET_FILE =
+      "SELECT [<columnName>] AS [<columnName>]\n"
           + "FROM OPENROWSET(\n"
           + "    BULK '<parquetFilePath>',\n"
           + "    DATA_SOURCE = '<dataSourceName>',\n"
@@ -34,9 +34,10 @@ public class SynapseUtils {
 
   public List<String> readParquetFileStringColumn(
       String parquetFilePath, String dataSourceName, String columnName, boolean expectSuccess) {
-    ST sqlReadTemplate = new ST(readFromParquetFile);
+    ST sqlReadTemplate = new ST(READ_FROM_PARQUET_FILE);
     sqlReadTemplate.add("parquetFilePath", parquetFilePath);
     sqlReadTemplate.add("dataSourceName", dataSourceName);
+    sqlReadTemplate.add("columnName", columnName);
     SQLServerDataSource ds = azureSynapsePdao.getDatasource();
     List<String> resultList = new ArrayList<>();
     try (Connection connection = ds.getConnection();

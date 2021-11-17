@@ -85,9 +85,6 @@ public abstract class CloudPlatformWrapper {
         .createStorageResourceValues(datasetRequestModel);
   }
 
-  public abstract GoogleRegion getGoogleRegionFromDatasetRequestModel(
-      DatasetRequestModel datasetRequestModel);
-
   static class GcpPlatform extends CloudPlatformWrapper {
     static final GcpPlatform INSTANCE = new GcpPlatform();
 
@@ -109,7 +106,7 @@ public abstract class CloudPlatformWrapper {
     @Override
     public List<? extends StorageResource<?, ?>> createStorageResourceValues(
         DatasetRequestModel datasetRequest) {
-      final GoogleRegion region = getGoogleRegionFromDatasetRequestModel(datasetRequest);
+      final GoogleRegion region = GoogleRegion.fromValueWithDefault(datasetRequest.getRegion());
       return Arrays.stream(GoogleCloudResource.values())
           .map(
               resource -> {
@@ -127,12 +124,6 @@ public abstract class CloudPlatformWrapper {
                 return new GoogleStorageResource(null, resource, finalRegion);
               })
           .collect(Collectors.toList());
-    }
-
-    @Override
-    public GoogleRegion getGoogleRegionFromDatasetRequestModel(
-        DatasetRequestModel datasetRequestModel) {
-      return GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
     }
   }
 
@@ -165,12 +156,6 @@ public abstract class CloudPlatformWrapper {
                   .map(resource -> new AzureStorageResource(null, resource, region)),
               CloudPlatformWrapper.getGoogleResourcesForAzure(datasetRequest).stream())
           .collect(Collectors.toList());
-    }
-
-    @Override
-    public GoogleRegion getGoogleRegionFromDatasetRequestModel(
-        DatasetRequestModel datasetRequestModel) {
-      return GoogleRegion.fromValueWithDefault(datasetRequestModel.getGcpRegion());
     }
   }
 }

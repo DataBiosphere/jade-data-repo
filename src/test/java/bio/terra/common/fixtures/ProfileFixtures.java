@@ -46,12 +46,10 @@ public final class ProfileFixtures {
       final UUID tenantId,
       final UUID subscriptionId,
       final String resourceGroupName,
-      final String applicationDeploymentName,
-      final String accountId) {
+      final String applicationDeploymentName) {
     return new BillingProfileModel()
         .id(UUID.randomUUID())
         .cloudPlatform(CloudPlatform.AZURE)
-        .billingAccountId(accountId)
         .tenantId(tenantId)
         .subscriptionId(subscriptionId)
         .resourceGroupName(resourceGroupName)
@@ -70,8 +68,7 @@ public final class ProfileFixtures {
         UUID.randomUUID(),
         UUID.randomUUID(),
         randomizeName("resourcegroup"),
-        randomizeName("appdeployment"),
-        randomBillingAccountId());
+        randomizeName("appdeployment"));
   }
 
   public static BillingProfileRequestModel billingProfileRequest(

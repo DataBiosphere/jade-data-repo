@@ -92,4 +92,10 @@ public class TableDependencyDao {
       logger.warn("No snapshot file dependencies found to be deleted from dataset");
     }
   }
+
+  public boolean datasetHasSnapshotReference(
+      TableServiceClient tableServiceClient, UUID datasetId) {
+    String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
+    return TableServiceClientUtils.tableHasEntries(tableServiceClient, dependencyTableName);
+  }
 }

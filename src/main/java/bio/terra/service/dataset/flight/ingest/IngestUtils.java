@@ -1,11 +1,13 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.FlightUtils;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.TableDataType;
+import bio.terra.service.common.gcs.CommonFlightKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
@@ -14,9 +16,11 @@ import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.CloudFileReader;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import com.azure.storage.blob.BlobUrlParts;
@@ -34,8 +38,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
 // Common code for the ingest steps
@@ -196,13 +198,7 @@ public final class IngestUtils {
         Objects.requireNonNullElse(
             flightContext.getWorkingMap().get(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, Long.class),
             0L);
-    if (numFiles == 0) {
-      Logger logger = LoggerFactory.getLogger(flightContext.getFlightClassName());
-      logger.info(
-          "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
-      return false;
-    }
-    return true;
+    return numFiles != 0;
   }
 
   public static Stream<JsonNode> getJsonNodesStreamFromFile(
@@ -359,5 +355,13 @@ public final class IngestUtils {
         .filter(bp -> bp.getId().equals(ingestRequest.getProfileId()))
         .findFirst()
         .orElseThrow();
+  }
+
+  public static void deleteScratchFile(FlightContext context, GcsPdao gcsPdao) {
+    FlightMap workingMap = context.getWorkingMap();
+    GoogleBucketResource bucketResource =
+        FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
+    String pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class);
+    gcsPdao.deleteFileByGspath(pathToIngestFile, bucketResource.projectIdForBucket());
   }
 }

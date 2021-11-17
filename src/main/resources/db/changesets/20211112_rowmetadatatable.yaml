@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: rowmetadatatable
+      author: sholden
+      changes:
+        - addColumn:
+            tableName: dataset_table
+            columns:
+              - column:
+                  name: row_metadata_table_name
+                  type: text
+        - sql:
+            comment: Backfill
+            sql: >
+              UPDATE dataset_table SET
+              row_metadata_table_name = 'datarepo_row_metadata_' || name
+        - addNotNullConstraint:
+            tableName: dataset_table
+            columnName: row_metadata_table_name

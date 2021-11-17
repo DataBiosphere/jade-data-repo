@@ -46,4 +46,10 @@ public class IngestCopyControlFileStep extends DefaultUndoStep {
     workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, newPath);
     return StepResult.getStepResultSuccess();
   }
+
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    IngestUtils.deleteScratchFile(context, gcsPdao);
+    return StepResult.getStepResultSuccess();
+  }
 }

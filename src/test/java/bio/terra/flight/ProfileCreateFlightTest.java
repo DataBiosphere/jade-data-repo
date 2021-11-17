@@ -39,7 +39,6 @@ public class ProfileCreateFlightTest {
         is(
             List.of(
                 packageName + ".CreateProfileMetadataStep",
-                packageName + ".CreateProfileVerifyAccountStep",
                 packageName + ".CreateProfileVerifyDeployedApplicationStep",
                 packageName + ".CreateProfileAuthzIamStep")));
   }

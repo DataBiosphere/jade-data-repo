@@ -54,7 +54,8 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
             .filter(Column::isFileOrDirRef)
             .flatMap(
                 column -> {
-                  List<String> refIdArray = azureSynapsePdao.getRefIds(tableName, column);
+                  List<String> refIdArray =
+                      azureSynapsePdao.getRefIds(tableName, column, dataset.getCollectionType());
                   return tableDirectoryDao.validateRefIds(tableServiceClient, refIdArray).stream()
                       .map(id -> new InvalidRefId(id, column.getName()));
                 })

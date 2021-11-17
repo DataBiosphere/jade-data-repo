@@ -13,4 +13,9 @@ public class CombinedFileIngestOptionalStep extends OptionalStep {
   public boolean isEnabled(FlightContext context) {
     return IngestUtils.isCombinedFileIngest(context);
   }
+
+  @Override
+  public String getReason() {
+    return "there are no files to ingest";
+  }
 }

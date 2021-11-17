@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -733,5 +734,20 @@ public class DatasetDaoTest {
     // confirm that it succeeds with no rows updated
     rowUpdated = datasetDao.unlockExclusive(nonExistentDatasetId, "flightid40");
     assertFalse("shared unlock did not update any rows", rowUpdated);
+  }
+
+  @Test
+  public void rowMetadataTable() throws Exception {
+    UUID datasetId = createDataset("dataset-minimal.json");
+    Dataset dataset = datasetDao.retrieve(datasetId);
+    dataset
+        .getTables()
+        .forEach(
+            t ->
+                assertThat(
+                    "can retrieve row metadata table name",
+                    t.getRowMetadataTableName(),
+                    containsString("row_metadata")));
+    datasetDao.delete(datasetId);
   }
 }

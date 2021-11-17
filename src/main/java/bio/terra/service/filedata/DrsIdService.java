@@ -43,16 +43,16 @@ public class DrsIdService {
         .build();
   }
 
-  public DrsId fromUri(String drsuri) {
-    URI uri = URI.create(drsuri);
+  public static DrsId fromUri(String drsUri) {
+    URI uri = URI.create(drsUri);
     if (!StringUtils.equals(uri.getScheme(), "drs")
         || uri.getAuthority() == null
         || !StringUtils.startsWith(uri.getPath(), "/")) {
-      throw new InvalidDrsIdException("Invalid DRS URI '" + drsuri + "'");
+      throw new InvalidDrsIdException("Invalid DRS URI '" + drsUri + "'");
     }
-
+    String datarepoDnsName = uri.getAuthority();
     String objectId = StringUtils.remove(uri.getPath(), '/');
-    return parseObjectId(objectId).dnsname(uri.getAuthority()).build();
+    return parseObjectId(datarepoDnsName, objectId).dnsname(uri.getAuthority()).build();
   }
 
   public DrsId fromObjectId(String drsObjectId) {
@@ -60,6 +60,10 @@ public class DrsIdService {
   }
 
   private DrsId.Builder parseObjectId(String objectId) {
+    return parseObjectId(datarepoDnsName, objectId);
+  }
+
+  private static DrsId.Builder parseObjectId(String datarepoDnsName, String objectId) {
     // The format is v1_<snapshotid>_<fsobjectid>
     String[] idParts = StringUtils.split(objectId, '_');
     if (idParts.length != 3 || !StringUtils.equals(idParts[0], "v1")) {

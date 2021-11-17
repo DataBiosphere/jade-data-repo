@@ -11,7 +11,6 @@ import static org.junit.Assert.assertEquals;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
@@ -456,9 +455,7 @@ public class BigQueryPdaoTest {
     DatasetRequestModel datasetRequest =
         jsonLoader.loadObject(requestFile, DatasetRequestModel.class);
     datasetRequest.defaultProfileId(profileModel.getId()).name(datasetName);
-    GoogleRegion region =
-        CloudPlatformWrapper.of(datasetRequest.getCloudPlatform())
-            .getGoogleRegionFromDatasetRequestModel(datasetRequest);
+    GoogleRegion region = GoogleRegion.fromValueWithDefault(datasetRequest.getRegion());
     Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
     dataset.id(UUID.randomUUID());
     ResourceInfo resource = bufferService.handoutResource();
@@ -466,7 +463,7 @@ public class BigQueryPdaoTest {
     projectService.addLabelsToProject(googleProjectId, Map.of("test-name", "bigquery-pdao-test"));
     UUID projectId =
         resourceService.getOrCreateDatasetProject(
-            profileModel, googleProjectId, region, dataset.getName(), dataset.getId(), false);
+            profileModel, googleProjectId, region, dataset.getName(), dataset.getId());
     dataset
         .projectResourceId(projectId)
         .projectResource(resourceService.getProjectResource(projectId));

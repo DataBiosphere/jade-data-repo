@@ -11,8 +11,8 @@ import java.util.UUID;
 
 /**
  * This step is intended to be shared by all flights that are allocating new resources within a
- * billing profile. The step ensures that the caller has proper access to the billing profile and
- * that the reference billing account remains enabled and accessible.
+ * billing profile. The step ensures that the caller has proper access to the billing profile in
+ * SAM.
  *
  * <p>It takes the profile id as input. On successful authorization, the associated billing profile
  * is stored in the working map of the flight in the ProfileMapKeys.PROFILE_MODEL entry. On failure,

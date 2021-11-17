@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.profile.flight.ProfileMapKeys;
@@ -17,17 +16,12 @@ import java.util.UUID;
 
 public class CreateSnapshotInitializeProjectStep implements Step {
   private final ResourceService resourceService;
-  private final GoogleRegion region;
   private final List<Dataset> sourceDatasets;
   private final String snapshotName;
 
   public CreateSnapshotInitializeProjectStep(
-      ResourceService resourceService,
-      GoogleRegion region,
-      List<Dataset> sourceDatasets,
-      String snapshotName) {
+      ResourceService resourceService, List<Dataset> sourceDatasets, String snapshotName) {
     this.resourceService = resourceService;
-    this.region = region;
     this.sourceDatasets = sourceDatasets;
     this.snapshotName = snapshotName;
   }
@@ -47,7 +41,7 @@ public class CreateSnapshotInitializeProjectStep implements Step {
     try {
       projectResourceId =
           resourceService.initializeSnapshotProject(
-              profileModel, projectId, region, sourceDatasets, snapshotName, snapshotId);
+              profileModel, projectId, sourceDatasets, snapshotName, snapshotId);
     } catch (GoogleResourceException e) {
       if (e.getCause().getMessage().contains("500 Internal Server Error")) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);

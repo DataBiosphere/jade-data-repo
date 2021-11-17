@@ -305,14 +305,13 @@ public class SnapshotDao {
     logger.debug("retrieve snapshot id: " + snapshotId);
     String sql =
         "SELECT snapshot.id, name, snapshot.profile_id, google_project_id, "
-            +
             // Select the source dataset project information
-            "(SELECT jsonb_agg(ds)\n"
+            + "(SELECT jsonb_agg(ds)\n"
             + "  FROM (SELECT d.id, d.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n"
-            + "        FROM snapshot_source ss, dataset d, project_resource p\n"
-            + "        WHERE ss.dataset_id = d.id"
-            + "        AND d.project_resource_id = p.id"
-            + "        AND snapshot.id = ss.snapshot_id) ds)"
+            + "        FROM snapshot_source ss"
+            + "        JOIN dataset d ON ss.dataset_id = d.id"
+            + "        LEFT JOIN project_resource p ON d.project_resource_id = p.id"
+            + "        WHERE snapshot.id = ss.snapshot_id) ds)"
             + "  AS dataset_sources, "
             // Detect the cloud provider of the snapshot
             + "case "
@@ -320,7 +319,7 @@ public class SnapshotDao {
             + "when project_resource_id is not null then 'gcp' "
             + "end AS cloud_platform "
             + "FROM snapshot "
-            + "JOIN project_resource ON snapshot.project_resource_id = project_resource.id "
+            + "LEFT JOIN project_resource ON snapshot.project_resource_id = project_resource.id "
             + "WHERE snapshot.id = :id";
     if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
       sql += " AND flightid IS NULL";
@@ -378,8 +377,11 @@ public class SnapshotDao {
         // Retrieve the project resource associated with the snapshot
         // This is a bit sketchy filling in the object via a dao in another package.
         // It seemed like the cleanest thing to me at the time.
-        snapshot.projectResource(
-            resourceService.getProjectResource(snapshot.getProjectResourceId()));
+        UUID projectResourceId = snapshot.getProjectResourceId();
+        if (projectResourceId != null) {
+          snapshot.projectResource(
+              resourceService.getProjectResource(snapshot.getProjectResourceId()));
+        }
 
         // Retrieve the Azure Storage Account associated with the snapshot.
         resourceService

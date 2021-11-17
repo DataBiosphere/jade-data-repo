@@ -17,6 +17,7 @@ import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 
 public class CreateDatasetMetadataStep implements Step {
 
@@ -50,6 +51,7 @@ public class CreateDatasetMetadataStep implements Step {
           DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(
               newDataset.getDatasetSummary());
       workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);
+      workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
       return StepResult.getStepResultSuccess();
     } catch (InvalidDatasetException idEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, idEx);

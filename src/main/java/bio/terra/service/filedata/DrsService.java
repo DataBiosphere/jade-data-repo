@@ -5,6 +5,7 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSAccessMethod;
@@ -301,12 +302,13 @@ public class DrsService {
     } else if (platform.isAzure()) {
       accessMethods = getDrsAccessMethodsOnAzure(fsFile);
     } else {
-      throw new IllegalArgumentException("Unrecognized cloud platform");
+      throw new InvalidCloudPlatformException();
     }
 
     fileObject
         .mimeType(fsFile.getMimeType())
         .checksums(fileService.makeChecksums(fsFile))
+        .selfUri(drsIdService.makeDrsId(fsFile, snapshotId).toDrsUri())
         .accessMethods(accessMethods);
 
     return fileObject;

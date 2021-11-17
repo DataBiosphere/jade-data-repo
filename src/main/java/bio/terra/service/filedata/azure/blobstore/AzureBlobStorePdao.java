@@ -34,10 +34,10 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -126,7 +126,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
             String.format(
                 "%s/%s",
                 targetClientFactory.getBlobContainerClient().getBlobContainerUrl(), blobName))
-        .checksumMd5(Base64.getEncoder().encodeToString((blobProperties.getContentMd5())))
+        .checksumMd5(Hex.encodeHexString(blobProperties.getContentMd5()))
         .size(blobProperties.getBlobSize())
         .bucketResourceId(storageAccountResource.getResourceId().toString());
   }

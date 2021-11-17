@@ -4,11 +4,16 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.DrsId;
+import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.filedata.DrsService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;
@@ -18,6 +23,7 @@ import com.azure.storage.blob.BlobUrlParts;
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -27,9 +33,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,8 +71,14 @@ public class AzureSynapsePdao {
           + "    LOCATION = '<destinationParquetFile>',\n"
           + "    DATA_SOURCE = [<destinationDataSourceName>],\n" // metadata container
           + "    FILE_FORMAT = [<fileFormat>]\n"
-          + ") AS SELECT * FROM\n"
-          + "    OPENROWSET(\n"
+          + ") AS SELECT datarepo_row_id,<columns:{c|"
+          + "          <if(c.isFileType)>"
+          + "             'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]"
+          + "          <else>"
+          + "             <c.name> AS [<c.name>]"
+          + "          <endif>\n"
+          + "          }; separator=\",\n\">"
+          + "    FROM OPENROWSET(\n"
           + "       BULK '<ingestFileName>',\n"
           + "       DATA_SOURCE = '<ingestFileDataSourceName>',\n"
           + "       FORMAT = 'parquet') AS rows;";
@@ -96,13 +110,13 @@ public class AzureSynapsePdao {
           + "    FILE_FORMAT = [<fileFormat>]\n"
           + ") AS SELECT "
           + "<if(isCSV)>newid() as datarepo_row_id,\n       "
-          + "<columns:{c|<c.name>}; separator=\",\n       \">"
+          + "<columns:{c|[<c.name>]}; separator=\",\n       \">"
           + "<else>"
           + "newid() as datarepo_row_id,\n       "
           + "<columns:{c|"
           + "<if(c.requiresJSONCast)>"
-          + "cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) <c.name>"
-          + "<else>JSON_VALUE(doc, '$.<c.name>') <c.name>"
+          + "cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]"
+          + "<else>JSON_VALUE(doc, '$.<c.name>') [<c.name>]"
           + "<endif>"
           + "}; separator=\",\n       \">\n"
           + "<endif>"
@@ -122,7 +136,7 @@ public class AzureSynapsePdao {
           + "<endif>"
           + "    ) WITH (\n"
           + "      <if(isCSV)>"
-          + "<columns:{c|<c.name> <c.synapseDataType>"
+          + "<columns:{c|[<c.name>] <c.synapseDataType>"
           + "<if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>"
           + "}; separator=\",\n\">"
           + "<else>doc nvarchar(max)"
@@ -130,7 +144,7 @@ public class AzureSynapsePdao {
           + ") AS rows;";
 
   private static final String queryColumnsFromExternalTableTemplate =
-      "SELECT DISTINCT <refCol> FROM [<tableName>] WHERE <refCol> IS NOT NULL;";
+      "SELECT DISTINCT [<refCol>] FROM [<tableName>] WHERE [<refCol>] IS NOT NULL;";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
@@ -140,7 +154,21 @@ public class AzureSynapsePdao {
   private static final String dropScopedCredentialTemplate =
       "DROP DATABASE SCOPED CREDENTIAL [<resourceName>];";
 
-  public List<String> getRefIds(String tableName, SynapseColumn refColumn) {
+  private final ApplicationConfiguration applicationConfiguration;
+  private final DrsIdService drsIdService;
+
+  @Autowired
+  public AzureSynapsePdao(
+      AzureResourceConfiguration azureResourceConfiguration,
+      ApplicationConfiguration applicationConfiguration,
+      DrsIdService drsIdService) {
+    this.azureResourceConfiguration = azureResourceConfiguration;
+    this.applicationConfiguration = applicationConfiguration;
+    this.drsIdService = drsIdService;
+  }
+
+  public List<String> getRefIds(
+      String tableName, SynapseColumn refColumn, CollectionType collectionType) {
 
     var template = new ST(queryColumnsFromExternalTableTemplate);
     template.add("refCol", refColumn.getName());
@@ -152,13 +180,36 @@ public class AzureSynapsePdao {
         Statement statement = connection.createStatement();
         ResultSet resultSet = statement.executeQuery(query)) {
       var refIds = new ArrayList<String>();
-      while (resultSet.next()) {
-        refIds.add(resultSet.getString(refColumn.getName()));
+      switch (collectionType) {
+        case SNAPSHOT:
+          while (resultSet.next()) {
+            extractFileIdFromDrs(resultSet.getString(refColumn.getName())).ifPresent(refIds::add);
+          }
+          break;
+        case DATASET:
+          while (resultSet.next()) {
+            String refId = resultSet.getString(refColumn.getName());
+            if (!StringUtils.isEmpty(refId)) {
+              refIds.add(refId);
+            }
+          }
+          break;
       }
       return refIds;
     } catch (SQLException ex) {
       throw new AzureResourceException("Could not query dataset table for fileref columns", ex);
     }
+  }
+
+  private Optional<String> extractFileIdFromDrs(final String drsUri) {
+    if (StringUtils.isEmpty(drsUri)) {
+      return Optional.empty();
+    }
+    URI uri = URI.create(drsUri);
+    String fileName = DrsService.getLastNameFromPath(uri.getPath());
+    DrsId drsId = drsIdService.fromObjectId(fileName);
+
+    return Optional.of(drsId.getFsObjectId());
   }
 
   public List<String> getRefIdsForSnapshot(Snapshot snapshot) {
@@ -171,14 +222,11 @@ public class AzureSynapsePdao {
               return table.getColumns().stream()
                   .map(Column::toSynapseColumn)
                   .filter(Column::isFileOrDirRef)
-                  .flatMap(column -> getRefIds(tableName, column).stream());
+                  .flatMap(
+                      column ->
+                          getRefIds(tableName, column, snapshot.getCollectionType()).stream());
             })
         .collect(Collectors.toList());
-  }
-
-  @Autowired
-  public AzureSynapsePdao(AzureResourceConfiguration azureResourceConfiguration) {
-    this.azureResourceConfiguration = azureResourceConfiguration;
   }
 
   public void createExternalDataSource(
@@ -302,6 +350,9 @@ public class AzureSynapsePdao {
           IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
       String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
 
+      List<SynapseColumn> columns =
+          table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
+
       ST sqlCreateSnapshotTableTemplate =
           new ST(createSnapshotTableTemplate)
               .add("tableName", tableName)
@@ -309,10 +360,13 @@ public class AzureSynapsePdao {
               .add("destinationDataSourceName", snapshotDataSourceName)
               .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
               .add("ingestFileName", datasetParquetFileName)
-              .add("ingestFileDataSourceName", datasetDataSourceName);
+              .add("ingestFileDataSourceName", datasetDataSourceName)
+              .add("hostname", applicationConfiguration.getDnsName())
+              .add("snapshotId", snapshotId)
+              .add("columns", columns);
       try {
         int rows = executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
-        tableRowCounts.put(table.getName(), Long.valueOf(rows));
+        tableRowCounts.put(table.getName(), (long) rows);
       } catch (SQLServerException ex) {
         tableRowCounts.put(table.getName(), 0L);
         logger.info(
@@ -335,20 +389,6 @@ public class AzureSynapsePdao {
     cleanup(credentialNames, dropScopedCredentialTemplate);
   }
 
-  private void cleanup(List<String> resourceNames, String sql) {
-    resourceNames.stream()
-        .forEach(
-            resource -> {
-              try {
-                ST sqlTemplate = new ST(sql);
-                sqlTemplate.add("resourceName", resource);
-                executeSynapseQuery(sqlTemplate.render());
-              } catch (Exception ex) {
-                logger.warn("Unable to clean up synapse resource {}.", resource, ex);
-              }
-            });
-  }
-
   public int executeSynapseQuery(String query) throws SQLException {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
@@ -366,5 +406,19 @@ public class AzureSynapsePdao {
     ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
     ds.setDatabaseName(azureResourceConfiguration.getSynapse().getDatabaseName());
     return ds;
+  }
+
+  private void cleanup(List<String> resourceNames, String sql) {
+    resourceNames.stream()
+        .forEach(
+            resource -> {
+              try {
+                ST sqlTemplate = new ST(sql);
+                sqlTemplate.add("resourceName", resource);
+                executeSynapseQuery(sqlTemplate.render());
+              } catch (Exception ex) {
+                logger.warn("Unable to clean up synapse resource {}.", resource, ex);
+              }
+            });
   }
 }

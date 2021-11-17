@@ -13,6 +13,7 @@ import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
+import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -21,6 +22,7 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
@@ -50,6 +52,8 @@ public class DatasetDeleteFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     TableDao tableDao = appContext.getBean(TableDao.class);
     ProfileDao profileDao = appContext.getBean(ProfileDao.class);
+    TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
+    AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
 
     // get data from inputs that steps need
     UUID datasetId =
@@ -70,7 +74,8 @@ public class DatasetDeleteFlight extends Flight {
     }
     if (platform.isGcp()) {
       // TODO: Do this check for Azure datasets
-      addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
+      addStep(
+          new DeleteDatasetGcpValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
       addStep(
           new DeleteDatasetPrimaryDataStep(
               bigQueryPdao, gcsPdao, fileDao, datasetService, datasetId, configService),
@@ -83,6 +88,16 @@ public class DatasetDeleteFlight extends Flight {
           new DeleteDatasetAuthzBqAclsStep(
               iamClient, datasetService, resourceService, datasetId, userReq));
     } else if (platform.isAzure()) {
+      addStep(
+          new DeleteDatasetAzureValidateStep(
+              snapshotDao,
+              dependencyDao,
+              datasetService,
+              datasetId,
+              tableDependencyDao,
+              azureAuthService,
+              profileDao,
+              resourceService));
       addStep(
           new DeleteDatasetAzurePrimaryDataStep(
               azureBlobStorePdao,

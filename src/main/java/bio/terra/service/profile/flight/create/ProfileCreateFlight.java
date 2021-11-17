@@ -23,9 +23,13 @@ public class ProfileCreateFlight extends Flight {
     AuthenticatedUserRequest user =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(request.getCloudPlatform());
+
     addStep(new CreateProfileMetadataStep(profileService, request, user));
-    addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
-    if (CloudPlatformWrapper.of(request.getCloudPlatform()).isAzure()) {
+    if (platform.isGcp()) {
+      addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
+    }
+    if (platform.isAzure()) {
       addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));
     }
     addStep(new CreateProfileAuthzIamStep(profileService, request, user));

@@ -3,14 +3,12 @@ package bio.terra.service.dataset.flight.create;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
-import org.springframework.http.HttpStatus;
 
 public class CreateDatasetPrimaryDataStep implements Step {
   private final BigQueryPdao pdao;
@@ -31,9 +29,6 @@ public class CreateDatasetPrimaryDataStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = getDataset(context);
     pdao.createDataset(dataset);
-
-    FlightMap map = context.getWorkingMap();
-    map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
     return StepResult.getStepResultSuccess();
   }
 

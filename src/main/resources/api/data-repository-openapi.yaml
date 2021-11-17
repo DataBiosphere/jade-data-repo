@@ -710,7 +710,7 @@ paths:
             default: 30
       responses:
         200:
-          description: Returns preview of snapshot and Table exist
+          description: Returns the preview table data from a snapshot
           content:
             application/json:
               schema:

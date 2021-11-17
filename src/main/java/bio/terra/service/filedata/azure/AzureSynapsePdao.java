@@ -73,7 +73,7 @@ public class AzureSynapsePdao {
           + "    FILE_FORMAT = [<fileFormat>]\n"
           + ") AS SELECT datarepo_row_id,<columns:{c|"
           + "          <if(c.isFileType)>"
-          + "             'drs://<hostname>/v1_<snapshotId>_' + <c.name> AS [<c.name>]"
+          + "             'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]"
           + "          <else>"
           + "             <c.name> AS [<c.name>]"
           + "          <endif>\n"

@@ -380,11 +380,6 @@ public class FileOperationTest {
     return model;
   }
 
-  private String makeValidUniqueFilePath() {
-    validFileCounter++;
-    return String.format("/dd/files/foo/ValidFileName%d.pdf", validFileCounter);
-  }
-
   private FileLoadModel makeFileLoad(UUID profileId) {
     String targetDir = Names.randomizeName("dir");
     String uri = "gs://" + testConfig.getIngestbucket() + "/files/" + testPdfFile;

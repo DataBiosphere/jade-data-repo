@@ -28,11 +28,9 @@ import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.RelationshipModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.model.TableModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -41,17 +39,11 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.FieldValue;
-import com.google.cloud.bigquery.FieldValueList;
-import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -74,7 +66,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.stringtemplate.v4.ST;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -132,101 +123,16 @@ public class SnapshotConnectedTest {
   }
 
   @Test
-  public void testMinimal() throws Exception {
-    DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
-    String datasetName = PDAO_PREFIX + datasetMinimalSummary.getName();
-    BigQueryProject bigQueryProject =
-        TestUtils.bigQueryProjectForDatasetName(datasetDao, datasetMinimalSummary.getName());
-    long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
-    assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
-    long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
-    assertThat("dataset samples loaded properly", datasetSamples, equalTo(5L));
-
-    SnapshotRequestModel snapshotRequest =
-        SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json");
-    MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
-    SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-    SnapshotModel snapshotModel =
-        SnapshotConnectedTestUtils.getTestSnapshot(
-            mvc, objectMapper, summaryModel.getId(), snapshotRequest, datasetMinimalSummary);
-    List<TableModel> tables = snapshotModel.getTables();
-    Optional<TableModel> participantTable =
-        tables.stream().filter(t -> t.getName().equals("participant")).findFirst();
-    Optional<TableModel> sampleTable =
-        tables.stream().filter(t -> t.getName().equals("sample")).findFirst();
-    assertThat("participant table exists", participantTable.isPresent(), equalTo(true));
-    assertThat("sample table exists", sampleTable.isPresent(), equalTo(true));
-
-    BigQueryProject bigQuerySnapshotProject =
-        TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshotModel.getName());
-
-    long snapshotParticipants =
-        queryForCount(summaryModel.getName(), "participant", bigQuerySnapshotProject);
-    assertThat("dataset participants loaded properly", snapshotParticipants, equalTo(1L));
-    assertThat(
-        "participant row count matches expectation",
-        participantTable.get().getRowCount(),
-        equalTo(1));
-    long snapshotSamples = queryForCount(summaryModel.getName(), "sample", bigQuerySnapshotProject);
-    assertThat("dataset samples loaded properly", snapshotSamples, equalTo(2L));
-    assertThat("sample row count matches expectation", sampleTable.get().getRowCount(), equalTo(2));
-    List<RelationshipModel> relationships = snapshotModel.getRelationships();
-    assertThat("a relationship comes back", relationships.size(), equalTo(1));
-    RelationshipModel relationshipModel = relationships.get(0);
-    assertThat(
-        "relationship name is right", relationshipModel.getName(), equalTo("participant_sample"));
-    assertThat(
-        "from table is right", relationshipModel.getFrom().getTable(), equalTo("participant"));
-    assertThat("from column is right", relationshipModel.getFrom().getColumn(), equalTo("id"));
-    assertThat("to table is right", relationshipModel.getTo().getTable(), equalTo("sample"));
-    assertThat(
-        "to column is right", relationshipModel.getTo().getColumn(), equalTo("participant_id"));
-  }
-
-  @Test
-  public void snapshotRowIdsScaleTest() throws Exception {
-    // use the dataset already created in setup
-
-    // load add'l data rows into the dataset with rows from the GCS bucket
-    IngestRequestModel ingestRequest =
-        new IngestRequestModel()
-            .table("thetable")
-            .format(IngestRequestModel.FormatEnum.CSV)
-            .path(
-                "gs://jade-testdata/scratch/buildSnapshotWithRowIds/hca-mvp-analysis-file-row-ids-dataset-data.csv");
-
-    ingestRequest.csvSkipLeadingRows(1);
-    ingestRequest.csvGenerateRowIds(false);
-    connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
-
-    // TODO put big snapshot request into a GCS bucket
-    SnapshotRequestModel snapshotRequestScale =
-        SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetSummary, "hca-mvp-analysis-file-row-ids-snapshot.json");
-
-    MockHttpServletResponse response = performCreateSnapshot(snapshotRequestScale, "");
-    SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequestScale, response);
-
-    SnapshotModel snapshotModel =
-        SnapshotConnectedTestUtils.getTestSnapshot(
-            mvc, objectMapper, summaryModel.getId(), snapshotRequestScale, datasetSummary);
-
-    connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-    // Duplicate delete should work
-    connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-    connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
-  }
-
-  @Test
   public void testArrayStruct() throws Exception {
     DatasetSummaryModel datasetArraySummary = setupArrayStructDataset();
     String datasetName = PDAO_PREFIX + datasetArraySummary.getName();
     BigQueryProject bigQueryProject =
         TestUtils.bigQueryProjectForDatasetName(datasetDao, datasetArraySummary.getName());
-    long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
+    long datasetParticipants =
+        SnapshotConnectedTestUtils.queryForCount(datasetName, "participant", bigQueryProject);
     assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
-    long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
+    long datasetSamples =
+        SnapshotConnectedTestUtils.queryForCount(datasetName, "sample", bigQueryProject);
     assertThat("dataset samples loaded properly", datasetSamples, equalTo(5L));
 
     SnapshotRequestModel snapshotRequest =
@@ -240,21 +146,13 @@ public class SnapshotConnectedTest {
     BigQueryProject bigQuerySnaphsotProject =
         TestUtils.bigQueryProjectForSnapshotName(snapshotDao, summaryModel.getName());
     long snapshotParticipants =
-        queryForCount(summaryModel.getName(), "participant", bigQuerySnaphsotProject);
+        SnapshotConnectedTestUtils.queryForCount(
+            summaryModel.getName(), "participant", bigQuerySnaphsotProject);
     assertThat("dataset participants loaded properly", snapshotParticipants, equalTo(2L));
-    long snapshotSamples = queryForCount(summaryModel.getName(), "sample", bigQuerySnaphsotProject);
+    long snapshotSamples =
+        SnapshotConnectedTestUtils.queryForCount(
+            summaryModel.getName(), "sample", bigQuerySnaphsotProject);
     assertThat("dataset samples loaded properly", snapshotSamples, equalTo(3L));
-  }
-
-  @Test
-  public void testMinimalBadAsset() throws Exception {
-    DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
-    SnapshotRequestModel snapshotRequest =
-        SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot-bad-asset.json");
-    MvcResult result = SnapshotConnectedTestUtils.launchCreateSnapshot(mvc, snapshotRequest, "");
-    MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
-    assertThat(response.getStatus(), equalTo(HttpStatus.NOT_FOUND.value()));
   }
 
   @Test
@@ -448,29 +346,6 @@ public class SnapshotConnectedTest {
     connectedOperations.getSnapshotExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
   }
 
-  private DatasetSummaryModel setupMinimalDataset() throws Exception {
-    DatasetSummaryModel datasetMinimalSummary =
-        SnapshotConnectedTestUtils.createTestDataset(
-            connectedOperations, billingProfile, "dataset-minimal.json");
-    SnapshotConnectedTestUtils.loadCsvData(
-        connectedOperations,
-        jsonLoader,
-        storage,
-        testConfig.getIngestbucket(),
-        datasetMinimalSummary.getId(),
-        "participant",
-        "dataset-minimal-participant.csv");
-    SnapshotConnectedTestUtils.loadCsvData(
-        connectedOperations,
-        jsonLoader,
-        storage,
-        testConfig.getIngestbucket(),
-        datasetMinimalSummary.getId(),
-        "sample",
-        "dataset-minimal-sample.csv");
-    return datasetMinimalSummary;
-  }
-
   private DatasetSummaryModel setupArrayStructDataset() throws Exception {
     DatasetSummaryModel datasetArraySummary =
         SnapshotConnectedTestUtils.createTestDataset(
@@ -538,27 +413,5 @@ public class SnapshotConnectedTest {
     EnumerateSnapshotModel summary =
         TestUtils.mapFromJson(response.getContentAsString(), EnumerateSnapshotModel.class);
     return summary;
-  }
-
-  private static final String queryForCountTemplate =
-      "SELECT COUNT(*) FROM `<project>.<snapshot>.<table>`";
-
-  // Get the count of rows in a table or view
-  private long queryForCount(String snapshotName, String tableName, BigQueryProject bigQueryProject)
-      throws Exception {
-    String bigQueryProjectId = bigQueryProject.getProjectId();
-    BigQuery bigQuery = bigQueryProject.getBigQuery();
-
-    ST sqlTemplate = new ST(queryForCountTemplate);
-    sqlTemplate.add("project", bigQueryProjectId);
-    sqlTemplate.add("snapshot", snapshotName);
-    sqlTemplate.add("table", tableName);
-
-    QueryJobConfiguration queryConfig =
-        QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
-    TableResult result = bigQuery.query(queryConfig);
-    FieldValueList row = result.iterateAll().iterator().next();
-    FieldValue countValue = row.get(0);
-    return countValue.getLongValue();
   }
 }

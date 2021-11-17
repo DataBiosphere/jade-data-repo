@@ -19,7 +19,13 @@ import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import java.util.UUID;
@@ -28,6 +34,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.stringtemplate.v4.ST;
 
 public class SnapshotConnectedTestUtils {
 
@@ -186,5 +193,27 @@ public class SnapshotConnectedTestUtils {
     } finally {
       storage.delete(stagingBlob.getBlobId());
     }
+  }
+
+  private static final String queryForCountTemplate =
+      "SELECT COUNT(*) FROM `<project>.<snapshot>.<table>`";
+
+  // Get the count of rows in a table or view
+  static long queryForCount(String snapshotName, String tableName, BigQueryProject bigQueryProject)
+      throws Exception {
+    String bigQueryProjectId = bigQueryProject.getProjectId();
+    BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+    ST sqlTemplate = new ST(queryForCountTemplate);
+    sqlTemplate.add("project", bigQueryProjectId);
+    sqlTemplate.add("snapshot", snapshotName);
+    sqlTemplate.add("table", tableName);
+
+    QueryJobConfiguration queryConfig =
+        QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
+    TableResult result = bigQuery.query(queryConfig);
+    FieldValueList row = result.iterateAll().iterator().next();
+    FieldValue countValue = row.get(0);
+    return countValue.getLongValue();
   }
 }

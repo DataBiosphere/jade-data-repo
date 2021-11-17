@@ -33,7 +33,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 @Configuration
-@ConditionalOnProperty(prefix = "tdr", name = "testNoDatabase")
+@ConditionalOnProperty(prefix = "datarepo", name = "testWithDatabase", havingValue = "false")
 public class TestApplicationConfiguration extends ApplicationConfiguration {
 
   @MockBean(name = "jdbcTemplate")

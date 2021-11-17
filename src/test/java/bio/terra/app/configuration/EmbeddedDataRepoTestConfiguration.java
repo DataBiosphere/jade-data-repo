@@ -29,11 +29,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
       JdbcTemplateAutoConfiguration.class
     })
 @ConfigurationProperties(prefix = "db.datarepo")
-@ConditionalOnProperty(
-    prefix = "tdr",
-    name = "testNoDatabase",
-    havingValue = "false",
-    matchIfMissing = true)
+@ConditionalOnProperty(prefix = "datarepo", name = "testWithDatabase", matchIfMissing = true)
 public class EmbeddedDataRepoTestConfiguration extends DataRepoJdbcConfiguration {
 
   @Autowired private DataSource embeddedDataSource;
@@ -61,6 +57,7 @@ public class EmbeddedDataRepoTestConfiguration extends DataRepoJdbcConfiguration
       throw new RuntimeException("Could not install extension pgcrypto", ex);
     }
     dataSource =
-        EmbeddedDatabaseInitialization.initialize(embeddedDataSource, poolMaxIdle, poolMaxTotal);
+        EmbeddedDatabaseInitialization.createConnectionPool(
+            embeddedDataSource, poolMaxIdle, poolMaxTotal);
   }
 }

@@ -16,7 +16,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"tdr.testNoDatabase=true"})
+@SpringBootTest(properties = {"datarepo.testWithDatabase=false"})
 @TestPropertySource(locations = "classpath:configuration-test.properties")
 @AutoConfigureMockMvc
 @Category(Unit.class)

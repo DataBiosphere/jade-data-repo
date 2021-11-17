@@ -18,7 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"tdr.testNoDatabase=true"})
+@SpringBootTest(properties = {"datarepo.testWithDatabase=false"})
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class DatasetUtilsTest {

@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
@@ -38,12 +37,8 @@ public class StorageResourceDao {
   private static final String SQL_GET_LIST =
       "SELECT " + STORAGE_COLUMNS + "FROM storage_resource where dataset_id in (:dataset_ids)";
   private static final Logger logger = LoggerFactory.getLogger(StorageResourceDao.class);
-  private final NamedParameterJdbcTemplate jdbcTemplate;
 
-  @Autowired
-  public StorageResourceDao(DataRepoJdbcConfiguration jdbcConfiguration) {
-    jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-  }
+  @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public List<StorageResource<?, ?>> getStorageResourcesByDatasetId(UUID datasetId) {

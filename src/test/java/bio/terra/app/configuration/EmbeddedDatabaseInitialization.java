@@ -11,7 +11,7 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 public class EmbeddedDatabaseInitialization {
-  public static PoolingDataSource<PoolableConnection> initialize(
+  public static PoolingDataSource<PoolableConnection> createConnectionPool(
       DataSource embeddedDataSource, int poolMaxIdle, int poolMaxTotal) {
     final ConnectionFactory connectionFactory = new DataSourceConnectionFactory(embeddedDataSource);
 

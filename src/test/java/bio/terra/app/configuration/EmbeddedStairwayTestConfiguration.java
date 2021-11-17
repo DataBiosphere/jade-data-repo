@@ -22,11 +22,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
       JdbcTemplateAutoConfiguration.class
     })
 @ConfigurationProperties(prefix = "db.stairway")
-@ConditionalOnProperty(
-    prefix = "tdr",
-    name = "testNoDatabase",
-    havingValue = "false",
-    matchIfMissing = true)
+@ConditionalOnProperty(prefix = "datarepo", name = "testWithDatabase", matchIfMissing = true)
 public class EmbeddedStairwayTestConfiguration extends StairwayJdbcConfiguration {
 
   @Autowired private DataSource embeddedDataSource;
@@ -34,6 +30,7 @@ public class EmbeddedStairwayTestConfiguration extends StairwayJdbcConfiguration
   @Override
   protected void configureDataSource() {
     dataSource =
-        EmbeddedDatabaseInitialization.initialize(embeddedDataSource, poolMaxIdle, poolMaxTotal);
+        EmbeddedDatabaseInitialization.createConnectionPool(
+            embeddedDataSource, poolMaxIdle, poolMaxTotal);
   }
 }

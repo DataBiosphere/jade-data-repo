@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.Column;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Relationship;
@@ -23,12 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class AssetDao {
-  private final NamedParameterJdbcTemplate jdbcTemplate;
 
-  @Autowired
-  public AssetDao(DataRepoJdbcConfiguration jdbcConfiguration) {
-    jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-  }
+  @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
 
   // part of a transaction propagated from DatasetDao
   public List<UUID> createAssets(Dataset dataset) {

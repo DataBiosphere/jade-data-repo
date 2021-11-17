@@ -37,7 +37,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 @EmbeddedDatabaseTest
-public class SnaphotHappyPathConnectedTest {
+public class SnapshotHappyPathConnectedTest {
 
   @Autowired ConfigurationService configService;
   @Autowired private MockMvc mvc;

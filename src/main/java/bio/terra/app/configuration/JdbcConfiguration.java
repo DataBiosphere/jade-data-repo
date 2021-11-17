@@ -14,10 +14,10 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 /** Base class for accessing JDBC configuration properties. */
 public class JdbcConfiguration {
-  protected String uri;
-  protected String username;
-  protected String password;
-  protected String changesetFile;
+  private String uri;
+  private String username;
+  private String password;
+  private String changesetFile;
   /**
    * Maximum number of database connections in the connection pool; -1 means no limit The goal of
    * these parameters is to prevent waiting for a database connection.

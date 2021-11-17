@@ -38,7 +38,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"features.search.api=enabled", "tdr.testNoDatabase=true"})
+@SpringBootTest(properties = {"features.search.api=enabled", "datarepo.testWithDatabase=false"})
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class SearchApiControllerTest {

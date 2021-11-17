@@ -465,7 +465,12 @@ task testConnected(type: Test) {
         }
     }
 
-    maxParallelForks = 2
+    if (isCiServer) {
+        maxParallelForks = 2
+    } else {
+        maxParallelForks = 4
+    }
+
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"
 }

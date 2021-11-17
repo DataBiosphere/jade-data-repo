@@ -468,18 +468,16 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         // TODO: once we have an endpoint to expose parquet data, we should use that mechanism here
         if (table.getName().equals("vocabulary")) {
           List<Map<String, String>> records = ParquetUtils.readParquetRecords(tableUrl);
-          assertThat("2 rows are present", records.size(), equalTo(2));
+          assertThat("2 rows are present", records, hasSize(2));
+
           // Extract the DRS Ids
-          drsIds.addAll(
-              records.stream()
-                  .map(r -> r.get("vocabulary_reference"))
-                  .collect(Collectors.toList()));
+          records.stream().map(r -> r.get("vocabulary_reference")).forEach(drsIds::add);
         }
       }
     }
 
     // Assert that 2 drs ids were loaded
-    assertThat("2 drs ids are present", drsIds.size(), equalTo(2));
+    assertThat("2 drs ids are present", drsIds, hasSize(2));
     // Ensure that all DRS can be parsed
     List<String> drsObjectIds =
         drsIds.stream()
@@ -492,10 +490,9 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Do a Drs lookup
     String drsId = String.format("v1_%s_%s", snapshotId, fileId);
-    assertThat("Expected Drs object Id exists", drsObjectIds.contains(drsId), equalTo(true));
+    assertThat("Expected Drs object Id exists", drsObjectIds.contains(drsId));
     DRSObject drsObject = dataRepoFixtures.drsGetObject(steward(), drsId);
-    assertThat(
-        "DRS object has single access method", drsObject.getAccessMethods().size(), equalTo(1));
+    assertThat("DRS object has single access method", drsObject.getAccessMethods(), hasSize(1));
     assertThat(
         "DRS object has HTTPS",
         drsObject.getAccessMethods().get(0).getType(),

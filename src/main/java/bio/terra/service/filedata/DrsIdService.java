@@ -43,12 +43,12 @@ public class DrsIdService {
         .build();
   }
 
-  public static DrsId fromUri(String drsuri) {
-    URI uri = URI.create(drsuri);
+  public static DrsId fromUri(String drsUri) {
+    URI uri = URI.create(drsUri);
     if (!StringUtils.equals(uri.getScheme(), "drs")
         || uri.getAuthority() == null
         || !StringUtils.startsWith(uri.getPath(), "/")) {
-      throw new InvalidDrsIdException("Invalid DRS URI '" + drsuri + "'");
+      throw new InvalidDrsIdException("Invalid DRS URI '" + drsUri + "'");
     }
     String datarepoDnsName = uri.getAuthority();
     String objectId = StringUtils.remove(uri.getPath(), '/');

@@ -154,6 +154,19 @@ public class AzureSynapsePdao {
   private static final String dropScopedCredentialTemplate =
       "DROP DATABASE SCOPED CREDENTIAL [<resourceName>];";
 
+  private final ApplicationConfiguration applicationConfiguration;
+  private final DrsIdService drsIdService;
+
+  @Autowired
+  public AzureSynapsePdao(
+      AzureResourceConfiguration azureResourceConfiguration,
+      ApplicationConfiguration applicationConfiguration,
+      DrsIdService drsIdService) {
+    this.azureResourceConfiguration = azureResourceConfiguration;
+    this.applicationConfiguration = applicationConfiguration;
+    this.drsIdService = drsIdService;
+  }
+
   public List<String> getRefIds(
       String tableName, SynapseColumn refColumn, CollectionType collectionType) {
 
@@ -214,19 +227,6 @@ public class AzureSynapsePdao {
                           getRefIds(tableName, column, snapshot.getCollectionType()).stream());
             })
         .collect(Collectors.toList());
-  }
-
-  private final ApplicationConfiguration applicationConfiguration;
-  private final DrsIdService drsIdService;
-
-  @Autowired
-  public AzureSynapsePdao(
-      AzureResourceConfiguration azureResourceConfiguration,
-      ApplicationConfiguration applicationConfiguration,
-      DrsIdService drsIdService) {
-    this.azureResourceConfiguration = azureResourceConfiguration;
-    this.applicationConfiguration = applicationConfiguration;
-    this.drsIdService = drsIdService;
   }
 
   public void createExternalDataSource(
@@ -389,20 +389,6 @@ public class AzureSynapsePdao {
     cleanup(credentialNames, dropScopedCredentialTemplate);
   }
 
-  private void cleanup(List<String> resourceNames, String sql) {
-    resourceNames.stream()
-        .forEach(
-            resource -> {
-              try {
-                ST sqlTemplate = new ST(sql);
-                sqlTemplate.add("resourceName", resource);
-                executeSynapseQuery(sqlTemplate.render());
-              } catch (Exception ex) {
-                logger.warn("Unable to clean up synapse resource {}.", resource, ex);
-              }
-            });
-  }
-
   public int executeSynapseQuery(String query) throws SQLException {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
@@ -420,5 +406,19 @@ public class AzureSynapsePdao {
     ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
     ds.setDatabaseName(azureResourceConfiguration.getSynapse().getDatabaseName());
     return ds;
+  }
+
+  private void cleanup(List<String> resourceNames, String sql) {
+    resourceNames.stream()
+        .forEach(
+            resource -> {
+              try {
+                ST sqlTemplate = new ST(sql);
+                sqlTemplate.add("resourceName", resource);
+                executeSynapseQuery(sqlTemplate.render());
+              } catch (Exception ex) {
+                logger.warn("Unable to clean up synapse resource {}.", resource, ex);
+              }
+            });
   }
 }

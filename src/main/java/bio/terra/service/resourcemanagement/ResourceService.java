@@ -357,17 +357,23 @@ public class ResourceService {
    * Create a new project for a snapshot, if none exists already.
    *
    * @param billingProfile authorized billing profile to pay for the project
-   * @param region the region to create the Firestore in
    * @return project resource id
    */
   public UUID initializeSnapshotProject(
       BillingProfileModel billingProfile,
       String projectId,
-      GoogleRegion region,
       List<Dataset> sourceDatasets,
       String snapshotName,
       UUID snapshotId)
       throws InterruptedException {
+
+    GoogleRegion region =
+        (GoogleRegion)
+            sourceDatasets
+                .iterator()
+                .next()
+                .getDatasetSummary()
+                .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
 
     String datasetNames =
         sourceDatasets.stream().map(Dataset::getName).collect(Collectors.joining(","));

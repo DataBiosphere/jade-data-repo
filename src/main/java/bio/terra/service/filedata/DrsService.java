@@ -158,7 +158,6 @@ public class DrsService {
       } catch (IllegalArgumentException ex) {
         throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
       } catch (SnapshotNotFoundException ex) {
-        logger.error("No snapshot found for DRS object id '" + drsObjectId + "'", ex);
         throw new DrsObjectNotFoundException(
             "No snapshot found for DRS object id '" + drsObjectId + "'", ex);
       }

@@ -3,8 +3,6 @@ package bio.terra.service.snapshot.flight.create;
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 
 import bio.terra.app.logging.PerformanceLogger;
-import bio.terra.app.model.GoogleCloudResource;
-import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.common.exception.NotImplementedException;
@@ -99,15 +97,8 @@ public class SnapshotCreateFlight extends Flight {
       addStep(new GetResourceBufferProjectStep(bufferService));
 
       // Get or initialize the project where the snapshot resources will be created
-      GoogleRegion firestoreRegion =
-          (GoogleRegion)
-              sourceDataset
-                  .getDatasetSummary()
-                  .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
-
       addStep(
-          new CreateSnapshotInitializeProjectStep(
-              resourceService, firestoreRegion, sourceDatasets, snapshotName),
+          new CreateSnapshotInitializeProjectStep(resourceService, sourceDatasets, snapshotName),
           getDefaultExponentialBackoffRetryRule());
     }
 

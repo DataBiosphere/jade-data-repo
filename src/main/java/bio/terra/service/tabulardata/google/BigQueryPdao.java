@@ -2006,9 +2006,10 @@ public class BigQueryPdao {
       throws InterruptedException {
     final int truncatedCount = Math.max(Math.min(count, MAX_ROW_COUNT), MIN_ROW_COUNT);
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    final String snapshotProjectId = bigQueryProject.getProjectId();
     final String sql =
         new ST(SNAPSHOT_DATA_TEMPLATE)
-            .add("project", bigQueryProject.getProjectId())
+            .add("project", snapshotProjectId)
             .add("snapshot", snapshot.getName())
             .add("table", tableName)
             .add("count", truncatedCount)
@@ -2036,6 +2037,7 @@ public class BigQueryPdao {
   public Map<String, Long> getSnapshotTableRowCounts(Snapshot snapshot)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+
     Map<String, Long> rowCounts = new HashMap<>();
     for (SnapshotTable snapshotTable : snapshot.getTables()) {
       String tableName = snapshotTable.getName();

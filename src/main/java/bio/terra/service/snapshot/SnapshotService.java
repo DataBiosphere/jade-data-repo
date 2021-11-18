@@ -375,9 +375,7 @@ public class SnapshotService {
     try {
       List<Map<String, Object>> values = bigQueryPdao.getSnapshotTable(snapshot, tableName, count);
 
-      SnapshotPreviewModel previewModel = new SnapshotPreviewModel();
-      previewModel.setResult(List.of(values));
-      return previewModel;
+      return new SnapshotPreviewModel().result(new ArrayList<>(values));
     } catch (InterruptedException e) {
       throw new SnapshotPreviewException(
           "Error retrieving preview for snapshot " + snapshot.getName(), e);

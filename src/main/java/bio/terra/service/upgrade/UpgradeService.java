@@ -21,7 +21,6 @@ public class UpgradeService {
     PLACEHOLDER(null),
     ROW_METADATA_UPDATE(RowMetadataUpdateFlight.class);
 
-
     private final Class<? extends Flight> flightClass;
 
     CustomFlight(Class<? extends Flight> flightClass) {

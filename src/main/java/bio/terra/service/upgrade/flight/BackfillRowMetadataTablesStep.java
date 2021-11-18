@@ -45,7 +45,6 @@ public class BackfillRowMetadataTablesStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    logger.info("HELLO FROM BackfillRowMetadataTablesStep");
     // enumerate datasets
     // Appears the max in an environment is 188 in dev
     int limit = 1000;

@@ -47,7 +47,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
       TransactionAutoConfiguration.class
     })
 @Configuration
-@ConditionalOnProperty(prefix = "datarepo", name = "testWithDatabase", havingValue = "false")
+@ConditionalOnProperty(
+    prefix = "datarepo",
+    name = "testWithEmbeddedDatabase",
+    havingValue = "false")
 public class TestApplicationConfiguration extends ApplicationConfiguration {
 
   @MockBean(name = "jdbcTemplate")

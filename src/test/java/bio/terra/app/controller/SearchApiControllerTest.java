@@ -39,7 +39,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"features.search.api=enabled", "datarepo.testWithDatabase=false"})
+@SpringBootTest(
+    properties = {"features.search.api=enabled", "datarepo.testWithEmbeddedDatabase=false"})
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)

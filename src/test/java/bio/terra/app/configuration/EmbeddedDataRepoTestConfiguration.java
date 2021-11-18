@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
       JdbcTemplateAutoConfiguration.class
     })
 @ConfigurationProperties(prefix = "db.datarepo")
-@ConditionalOnProperty(prefix = "datarepo", name = "testWithDatabase")
+@ConditionalOnProperty(prefix = "datarepo", name = "testWithEmbeddedDatabase")
 public class EmbeddedDataRepoTestConfiguration extends DataRepoJdbcConfiguration {
 
   @Autowired private DataSource embeddedDataSource;

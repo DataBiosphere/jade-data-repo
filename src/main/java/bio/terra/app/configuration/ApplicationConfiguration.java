@@ -23,7 +23,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "datarepo")
-@ConditionalOnProperty(prefix = "datarepo", name = "testWithDatabase", matchIfMissing = true)
+@ConditionalOnProperty(
+    prefix = "datarepo",
+    name = "testWithEmbeddedDatabase",
+    matchIfMissing = true)
 public class ApplicationConfiguration {
 
   private String userEmail;

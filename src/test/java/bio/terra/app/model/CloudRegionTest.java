@@ -19,7 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithDatabase=false"})
+@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)

@@ -17,7 +17,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(
-    properties = {"oauth.clientId=whateverstringyoulike", "datarepo.testWithDatabase=false"})
+    properties = {
+      "oauth.clientId=whateverstringyoulike",
+      "datarepo.testWithEmbeddedDatabase=false"
+    })
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)

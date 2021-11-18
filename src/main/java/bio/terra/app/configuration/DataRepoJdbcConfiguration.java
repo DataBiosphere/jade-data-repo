@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @ConfigurationProperties(prefix = "db.datarepo")
 @ConditionalOnProperty(
     prefix = "datarepo",
-    name = "testWithDatabase",
+    name = "testWithEmbeddedDatabase",
     havingValue = "false",
     matchIfMissing = true)
 public class DataRepoJdbcConfiguration extends JdbcConfiguration {

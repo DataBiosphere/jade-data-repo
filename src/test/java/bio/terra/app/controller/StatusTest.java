@@ -26,7 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithDatabase=false"})
+@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)

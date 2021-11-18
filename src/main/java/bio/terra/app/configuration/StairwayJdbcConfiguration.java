@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "db.stairway")
 @ConditionalOnProperty(
     prefix = "datarepo",
-    name = "testWithDatabase",
+    name = "testWithEmbeddedDatabase",
     havingValue = "false",
     matchIfMissing = true)
 public class StairwayJdbcConfiguration extends JdbcConfiguration {}

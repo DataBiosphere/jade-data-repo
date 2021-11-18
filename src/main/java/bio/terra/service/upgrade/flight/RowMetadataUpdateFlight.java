@@ -1,6 +1,9 @@
 package bio.terra.service.upgrade.flight;
 
 import bio.terra.model.UpgradeModel;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -11,10 +14,13 @@ public class RowMetadataUpdateFlight extends Flight {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    // ProfileService profileService = (ProfileService) appContext.getBean("profileService");
+    DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
+    IamService iamService = (IamService) appContext.getBean("iamService");
 
     UpgradeModel request = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UpgradeModel.class);
+    AuthenticatedUserRequest userReq =
+        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    addStep(new BackfillRowMetadataTablesStep(request));
+    addStep(new BackfillRowMetadataTablesStep(request, datasetService, iamService, userReq));
   }
 }

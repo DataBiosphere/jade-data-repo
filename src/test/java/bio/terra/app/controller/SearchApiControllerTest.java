@@ -52,7 +52,7 @@ public class SearchApiControllerTest {
 
   @MockBean private IamService iamService;
 
-  @Autowired private SnapshotSearchMetadataDao snapshotMetadataDao;
+  @MockBean private SnapshotSearchMetadataDao snapshotMetadataDao;
 
   @MockBean private SearchService searchService;
 

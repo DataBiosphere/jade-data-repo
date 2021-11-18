@@ -702,9 +702,15 @@ paths:
           required: true
           schema:
             type: string
-        - name: count
+        - name: offset
           in: query
-          description: Count of number of rows to return for the preview
+          description: The number of rows to skip when retrieving the next preview page
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          description: The number of rows to return for the preview
           schema:
             type: integer
             default: 30

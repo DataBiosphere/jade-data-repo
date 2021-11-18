@@ -203,12 +203,12 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
-      UUID id, String table, Integer count) {
+      UUID id, String table, Integer offset, Integer limit) {
     logger.info("Verifying user access");
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
     logger.info("Retrieving snapshot");
-    SnapshotPreviewModel previewModel = snapshotService.retrievePreview(id, table, count);
+    SnapshotPreviewModel previewModel = snapshotService.retrievePreview(id, table, limit, offset);
     return new ResponseEntity<>(previewModel, HttpStatus.OK);
   }
 

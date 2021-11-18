@@ -361,7 +361,8 @@ public class SnapshotService {
         .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
   }
 
-  public SnapshotPreviewModel retrievePreview(UUID snapshotId, String tableName, int count) {
+  public SnapshotPreviewModel retrievePreview(
+      UUID snapshotId, String tableName, int limit, int offset) {
     Snapshot snapshot = retrieve(snapshotId);
 
     snapshot.getTables().stream()
@@ -373,7 +374,8 @@ public class SnapshotService {
                     "No snapshot table exists with the name: " + tableName));
 
     try {
-      List<Map<String, Object>> values = bigQueryPdao.getSnapshotTable(snapshot, tableName, count);
+      List<Map<String, Object>> values =
+          bigQueryPdao.getSnapshotTable(snapshot, tableName, limit, offset);
 
       return new SnapshotPreviewModel().result(new ArrayList<>(values));
     } catch (InterruptedException e) {

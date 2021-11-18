@@ -103,7 +103,7 @@ public class BigQueryPdao {
   private final BigQueryConfiguration bigQueryConfiguration;
 
   public static final int MIN_ROW_COUNT = 1;
-  public static final int MAX_ROW_COUNT = 1000;
+  public static final int MAX_ROW_COUNT = 100;
 
   @Autowired
   public BigQueryPdao(
@@ -1979,7 +1979,7 @@ public class BigQueryPdao {
     }
   }
 
-  private static List<Map<String, Object>> aggregateTableColumnsRows(TableResult result) {
+  public static List<Map<String, Object>> aggregateTableColumnsRows(TableResult result) {
     final FieldList columns = result.getSchema().getFields();
     final List<Map<String, Object>> values = new ArrayList<>();
     result
@@ -2000,11 +2000,12 @@ public class BigQueryPdao {
   }
 
   private static final String SNAPSHOT_DATA_TEMPLATE =
-      "SELECT * FROM `<project>.<snapshot>.<table>` LIMIT <count>";
+      "SELECT * FROM `<project>.<snapshot>.<table>` ORDER BY datarepo_row_id"
+          + " LIMIT <limit> OFFSET <offset>";
 
-  public List<Map<String, Object>> getSnapshotTable(Snapshot snapshot, String tableName, int count)
-      throws InterruptedException {
-    final int truncatedCount = Math.max(Math.min(count, MAX_ROW_COUNT), MIN_ROW_COUNT);
+  public List<Map<String, Object>> getSnapshotTable(
+      Snapshot snapshot, String tableName, int limit, int offset) throws InterruptedException {
+    final int truncatedCount = Math.max(Math.min(limit, MAX_ROW_COUNT), MIN_ROW_COUNT);
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final String snapshotProjectId = bigQueryProject.getProjectId();
     final String sql =
@@ -2012,10 +2013,13 @@ public class BigQueryPdao {
             .add("project", snapshotProjectId)
             .add("snapshot", snapshot.getName())
             .add("table", tableName)
-            .add("count", truncatedCount)
+            .add("limit", truncatedCount)
+            .add("offset", offset)
             .render();
 
-    return getSnapshotTableData(snapshot, sql);
+    final TableResult result = bigQueryProject.query(sql);
+
+    return aggregateTableColumnsRows(result);
   }
 
   /*

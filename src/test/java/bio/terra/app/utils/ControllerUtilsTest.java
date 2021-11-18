@@ -10,7 +10,9 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class ControllerUtilsTest {
 

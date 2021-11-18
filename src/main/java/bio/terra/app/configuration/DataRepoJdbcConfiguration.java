@@ -1,6 +1,6 @@
 package bio.terra.app.configuration;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -13,7 +13,11 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableConfigurationProperties
 @EnableTransactionManagement
 @ConfigurationProperties(prefix = "db.datarepo")
-@ConditionalOnMissingClass("bio.terra.app.configuration.EmbeddedDataRepoTestConfiguration")
+@ConditionalOnProperty(
+    prefix = "datarepo",
+    name = "testWithDatabase",
+    havingValue = "false",
+    matchIfMissing = true)
 public class DataRepoJdbcConfiguration extends JdbcConfiguration {
 
   @Bean("dataRepoTransactionManager")

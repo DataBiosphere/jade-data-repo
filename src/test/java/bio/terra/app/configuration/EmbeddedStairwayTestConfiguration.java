@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
       JdbcTemplateAutoConfiguration.class
     })
 @ConfigurationProperties(prefix = "db.stairway")
-@ConditionalOnProperty(prefix = "datarepo", name = "testWithDatabase", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "datarepo", name = "testWithDatabase")
 public class EmbeddedStairwayTestConfiguration extends StairwayJdbcConfiguration {
 
   @Autowired private DataSource embeddedDataSource;

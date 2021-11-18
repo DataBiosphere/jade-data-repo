@@ -489,13 +489,7 @@ task testConnected(type: Test) {
             maxRetries = 2
         }
     }
-
-    if (isCiServer) {
-        maxParallelForks = 2
-    } else {
-        maxParallelForks = 4
-    }
-
+    maxParallelForks = 2
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"
 }

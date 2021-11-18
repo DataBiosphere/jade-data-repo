@@ -7,7 +7,9 @@ import java.util.Arrays;
 import java.util.List;
 import junit.framework.TestCase;
 import org.junit.experimental.categories.Category;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class DataRepoExceptionTest extends TestCase {
 

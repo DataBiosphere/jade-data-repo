@@ -29,10 +29,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class AzureApplicationDeploymentServiceTest {
 

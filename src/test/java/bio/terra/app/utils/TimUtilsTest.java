@@ -6,7 +6,9 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.common.category.Unit;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class TimUtilsTest {
 

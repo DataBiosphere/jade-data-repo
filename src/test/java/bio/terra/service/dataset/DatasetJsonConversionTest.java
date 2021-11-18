@@ -27,7 +27,9 @@ import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class DatasetJsonConversionTest {
   private AuthenticatedUserRequest testUser =

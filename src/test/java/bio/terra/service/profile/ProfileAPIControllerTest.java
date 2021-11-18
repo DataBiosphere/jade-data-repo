@@ -32,8 +32,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class ProfileAPIControllerTest {
 

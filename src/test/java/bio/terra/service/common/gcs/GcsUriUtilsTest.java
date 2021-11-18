@@ -11,7 +11,9 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class GcsUriUtilsTest {
 

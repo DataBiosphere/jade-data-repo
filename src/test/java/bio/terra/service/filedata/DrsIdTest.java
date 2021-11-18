@@ -7,7 +7,9 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class DrsIdTest {
 

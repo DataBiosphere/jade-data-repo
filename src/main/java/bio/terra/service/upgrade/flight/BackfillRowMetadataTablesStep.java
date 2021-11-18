@@ -11,6 +11,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -27,16 +28,19 @@ public class BackfillRowMetadataTablesStep implements Step {
   private final DatasetService datasetService;
   private final IamService iamService;
   private final AuthenticatedUserRequest userReq;
+  private final BigQueryPdao bigQueryPdao;
 
   BackfillRowMetadataTablesStep(
       UpgradeModel request,
       DatasetService datasetService,
       IamService iamService,
+      BigQueryPdao bigQueryPdao,
       AuthenticatedUserRequest userReq) {
     this.request = request;
     this.datasetService = datasetService;
     this.iamService = iamService;
     this.userReq = userReq;
+    this.bigQueryPdao = bigQueryPdao;
   }
 
   @Override
@@ -62,6 +66,7 @@ public class BackfillRowMetadataTablesStep implements Step {
               // connect to big query for dataset's data project
               Dataset dataset = datasetService.retrieve(datasetSummaryModel.getId());
               BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+              String bigQueryDatasetName = prefixName(dataset.getName());
               dataset
                   .getTables()
                   .forEach(
@@ -71,21 +76,21 @@ public class BackfillRowMetadataTablesStep implements Step {
                         String rowMetadataTableName = table.getRowMetadataTableName();
                         // check if row metadata table already exists in big query
                         boolean rowMetadataTableExists =
-                            bigQueryProject.tableExists(
-                                prefixName(dataset.getName()), rowMetadataTableName);
-                        // TODO - Remove - Sanity check: Does this check find the soft delete
-                        // table name?
-                        boolean softDeleteTableExists =
-                            bigQueryProject.tableExists(
-                                prefixName(dataset.getName()), table.getSoftDeleteTableName());
-                        logger.info(
-                            "For dataset {}, table: {}, Found metadata table {}, Found soft delete table {}",
-                            dataset.getId(),
-                            table.getName(),
-                            rowMetadataTableExists,
-                            softDeleteTableExists);
-                        // if doesn't exist, create row metadata table
-
+                            bigQueryProject.tableExists(bigQueryDatasetName, rowMetadataTableName);
+                        if (rowMetadataTableExists) {
+                          logger.info(
+                              "SKIPPING - [{}]: Row Metadata Table already exists: {}",
+                              dataset.getId(),
+                              rowMetadataTableName);
+                        } else {
+                          logger.info(
+                              "CREATING TABLE - [{}]: {}", dataset.getId(), rowMetadataTableName);
+                          // if doesn't exist, create row metadata table
+                          bigQueryProject.createTable(
+                              bigQueryDatasetName,
+                              rowMetadataTableName,
+                              bigQueryPdao.buildRowMetadataSchema());
+                        }
                       });
             });
     logger.info("DONE - Total datasets updated: {}", totalDatasetCount);

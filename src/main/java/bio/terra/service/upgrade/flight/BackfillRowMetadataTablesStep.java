@@ -1,5 +1,7 @@
 package bio.terra.service.upgrade.flight;
 
+import static bio.terra.service.tabulardata.google.BigQueryPdao.prefixName;
+
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
@@ -41,67 +43,52 @@ public class BackfillRowMetadataTablesStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     logger.info("HELLO FROM BackfillRowMetadataTablesStep");
     // enumerate datasets
-    int chunkSize = 100;
-    int currentChunk = 0;
+    // Appears the max in an environment is 188 in dev
+    int limit = 1000;
+    int skip = 0;
     int totalDatasetCount = 0;
-    while (true) {
-      Set<UUID> resources =
-          iamService.listAuthorizedResources(userReq, IamResourceType.DATASET).keySet();
-      EnumerateDatasetModel enumerateDatasetModel =
-          datasetService.enumerate(
-              currentChunk,
-              chunkSize,
-              EnumerateSortByParam.NAME,
-              SqlSortDirection.ASC,
-              null,
-              null,
-              resources);
-      // kill forever loop when no more datasets
-      int chunkDatasetCount = enumerateDatasetModel.getFilteredTotal();
-      totalDatasetCount += chunkDatasetCount;
-      if (chunkDatasetCount == 0) {
-        logger.info("DONE - Total datasets updated: {}", totalDatasetCount);
-        break;
-      }
-      // update chunk parameters
-      currentChunk += chunkSize;
+    Set<UUID> resources =
+        iamService.listAuthorizedResources(userReq, IamResourceType.DATASET).keySet();
+    EnumerateDatasetModel enumerateDatasetModel =
+        datasetService.enumerate(
+            skip, limit, EnumerateSortByParam.NAME, SqlSortDirection.ASC, null, null, resources);
+    int chunkDatasetCount = enumerateDatasetModel.getFilteredTotal();
+    totalDatasetCount += chunkDatasetCount;
 
-      // for each dataset:
-      enumerateDatasetModel.getItems().stream()
-          .forEach(
-              datasetSummaryModel -> {
-                // connect to big query for dataset's data project
-                Dataset dataset = datasetService.retrieve(datasetSummaryModel.getId());
-                BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
-                dataset
-                    .getTables()
-                    .forEach(
-                        table -> {
-                          // for each table:
-                          // retrieve the row metadata table name from the database
-                          String rowMetadataTableName = table.getRowMetadataTableName();
-                          // check if row metadata table already exists in big query
-                          boolean rowMetadataTableExists =
-                              bigQueryProject.tableExists(dataset.getName(), rowMetadataTableName);
-                          // TODO - Remove - Sanity check: Does this check find the soft delete
-                          // table name?
-                          boolean softDeleteTableExists =
-                              bigQueryProject.tableExists(
-                                  dataset.getName(), table.getSoftDeleteTableName());
-                          logger.info(
-                              "For dataset {}, table: {}, Found metadata table {}: {}, Found soft delete table {}: {}",
-                              dataset.getName(),
-                              table.getName(),
-                              rowMetadataTableName,
-                              rowMetadataTableExists,
-                              table.getSoftDeleteTableName(),
-                              softDeleteTableExists);
-                          // if doesn't exist, create row metadata table
+    // for each dataset:
+    enumerateDatasetModel.getItems().stream()
+        .forEach(
+            datasetSummaryModel -> {
+              // connect to big query for dataset's data project
+              Dataset dataset = datasetService.retrieve(datasetSummaryModel.getId());
+              BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+              dataset
+                  .getTables()
+                  .forEach(
+                      table -> {
+                        // for each table:
+                        // retrieve the row metadata table name from the database
+                        String rowMetadataTableName = table.getRowMetadataTableName();
+                        // check if row metadata table already exists in big query
+                        boolean rowMetadataTableExists =
+                            bigQueryProject.tableExists(
+                                prefixName(dataset.getName()), rowMetadataTableName);
+                        // TODO - Remove - Sanity check: Does this check find the soft delete
+                        // table name?
+                        boolean softDeleteTableExists =
+                            bigQueryProject.tableExists(
+                                prefixName(dataset.getName()), table.getSoftDeleteTableName());
+                        logger.info(
+                            "For dataset {}, table: {}, Found metadata table {}, Found soft delete table {}",
+                            dataset.getId(),
+                            table.getName(),
+                            rowMetadataTableExists,
+                            softDeleteTableExists);
+                        // if doesn't exist, create row metadata table
 
-                        });
-              });
-    }
-
+                      });
+            });
+    logger.info("DONE - Total datasets updated: {}", totalDatasetCount);
     return StepResult.getStepResultSuccess();
   }
 

@@ -64,33 +64,44 @@ public class BackfillRowMetadataTablesStep implements Step {
             datasetSummaryModel -> {
               // connect to big query for dataset's data project
               Dataset dataset = datasetService.retrieve(datasetSummaryModel.getId());
-              BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
-              String bigQueryDatasetName = prefixName(dataset.getName());
-              dataset
-                  .getTables()
-                  .forEach(
-                      table -> {
-                        // for each table:
-                        // retrieve the row metadata table name from the database
-                        String rowMetadataTableName = table.getRowMetadataTableName();
-                        // check if row metadata table already exists in big query
-                        boolean rowMetadataTableExists =
-                            bigQueryProject.tableExists(bigQueryDatasetName, rowMetadataTableName);
-                        if (rowMetadataTableExists) {
-                          logger.info(
-                              "SKIPPING - [{}]: Row Metadata Table already exists: {}",
-                              dataset.getId(),
-                              rowMetadataTableName);
-                        } else {
-                          logger.info(
-                              "CREATING TABLE - [{}]: {}", dataset.getId(), rowMetadataTableName);
-                          // if doesn't exist, create row metadata table
-                          bigQueryProject.createTable(
-                              bigQueryDatasetName,
-                              rowMetadataTableName,
-                              bigQueryPdao.buildRowMetadataSchema());
-                        }
-                      });
+              // skip Azure datasets
+              if (dataset.getProjectResourceId() != null) {
+                try {
+                  BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+                  String bigQueryDatasetName = prefixName(dataset.getName());
+                  dataset
+                      .getTables()
+                      .forEach(
+                          table -> {
+                            // for each table:
+                            // retrieve the row metadata table name from the database
+                            String rowMetadataTableName = table.getRowMetadataTableName();
+                            // check if row metadata table already exists in big query
+                            boolean rowMetadataTableExists =
+                                bigQueryProject.tableExists(
+                                    bigQueryDatasetName, rowMetadataTableName);
+                            if (rowMetadataTableExists) {
+                              logger.info(
+                                  "SKIPPING - [{}]: Row Metadata Table already exists: {}",
+                                  dataset.getId(),
+                                  rowMetadataTableName);
+                            } else {
+                              logger.info(
+                                  "CREATING TABLE - [{}]: {}",
+                                  dataset.getId(),
+                                  rowMetadataTableName);
+                              // if doesn't exist, create row metadata table
+                              bigQueryProject.createTable(
+                                  bigQueryDatasetName,
+                                  rowMetadataTableName,
+                                  bigQueryPdao.buildRowMetadataSchema());
+                            }
+                          });
+                } catch (Exception ex) {
+                  logger.error(
+                      "Unable to add row metadata tables for dataset {}", dataset.getId(), ex);
+                }
+              }
             });
     logger.info("DONE - Total datasets updated: {}", totalDatasetCount);
     return StepResult.getStepResultSuccess();

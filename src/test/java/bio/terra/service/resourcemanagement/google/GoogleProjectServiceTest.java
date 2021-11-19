@@ -9,9 +9,11 @@ import bio.terra.service.resourcemanagement.exception.AppengineException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class GoogleProjectServiceTest {
 

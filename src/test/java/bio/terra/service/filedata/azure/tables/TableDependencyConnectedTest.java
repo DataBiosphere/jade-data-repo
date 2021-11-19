@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThrows;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.service.common.azure.StorageTableName;
 import com.azure.core.credential.AzureNamedKeyCredential;
@@ -31,6 +32,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class TableDependencyConnectedTest {
 
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;

@@ -15,7 +15,9 @@ import java.util.Set;
 import org.apache.commons.collections4.map.LRUMap;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class FileMetadataUtilsTest {
 

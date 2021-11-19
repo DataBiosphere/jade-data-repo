@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
@@ -33,6 +34,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class TableServiceClientUtilsTest {
   private static final Logger logger = LoggerFactory.getLogger(TableServiceClientUtilsTest.class);
   private TableServiceClient tableServiceClient;

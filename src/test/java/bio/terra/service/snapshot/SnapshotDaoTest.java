@@ -12,6 +12,7 @@ import bio.terra.app.model.CloudResource;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
@@ -48,12 +49,15 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class SnapshotDaoTest {
 
   @Autowired private SnapshotDao snapshotDao;

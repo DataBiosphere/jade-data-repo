@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.StringListCompare;
@@ -35,6 +36,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class FireStoreDirectoryDaoTest {
 
   @Autowired private FireStoreDirectoryDao directoryDao;

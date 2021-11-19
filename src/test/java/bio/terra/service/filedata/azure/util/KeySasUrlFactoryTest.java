@@ -25,8 +25,10 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.test.context.ActiveProfiles;
 
 @RunWith(MockitoJUnitRunner.class)
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class KeySasUrlFactoryTest {
   private static final String SAS_TOKEN = "sig=123&sv=2020-06-10&sp=crwl";

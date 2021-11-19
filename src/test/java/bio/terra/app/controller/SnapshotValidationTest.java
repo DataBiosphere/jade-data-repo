@@ -39,9 +39,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
 @AutoConfigureMockMvc
-@ActiveProfiles("google")
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class SnapshotValidationTest {
 

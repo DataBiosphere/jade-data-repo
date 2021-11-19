@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
 
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -45,12 +46,15 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class DatasetServiceTest {
   private AuthenticatedUserRequest testUser =
       new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");

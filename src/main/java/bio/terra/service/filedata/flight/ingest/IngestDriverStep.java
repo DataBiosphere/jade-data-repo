@@ -29,7 +29,7 @@ import bio.terra.stairway.Stairway;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.DatabaseOperationException;
-import bio.terra.stairway.exception.DuplicateFlightIdSubmittedException;
+import bio.terra.stairway.exception.DuplicateFlightIdException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import java.util.LinkedList;
@@ -160,7 +160,7 @@ public class IngestDriverStep extends DefaultUndoStep {
       }
     } catch (DatabaseOperationException
         | StairwayExecutionException
-        | DuplicateFlightIdSubmittedException ex) {
+        | DuplicateFlightIdException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
     return StepResult.getStepResultSuccess();
@@ -168,7 +168,7 @@ public class IngestDriverStep extends DefaultUndoStep {
 
   private void waitForAny(
       FlightContext context, UUID loadId, int concurrentLoads, int originallyRunning)
-      throws DatabaseOperationException, InterruptedException {
+      throws DatabaseOperationException, InterruptedException, DuplicateFlightIdException {
     while (true) {
       // This code used to wait before getting load candidates again. however,
       // when there are a large number of files being loaded, there is always something completing.
@@ -296,8 +296,7 @@ public class IngestDriverStep extends DefaultUndoStep {
       BillingProfileModel billingProfileModel,
       AzureStorageAccountResource storageAccountResource,
       CloudPlatform platform)
-      throws DatabaseOperationException, StairwayExecutionException, InterruptedException,
-          DuplicateFlightIdSubmittedException {
+      throws DatabaseOperationException, StairwayExecutionException, InterruptedException {
 
     Stairway stairway = context.getStairway();
 

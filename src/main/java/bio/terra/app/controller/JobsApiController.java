@@ -113,12 +113,6 @@ public class JobsApiController implements JobsApi {
     return ResponseEntity.status(resultHolder.getStatusCode()).body(resultHolder.getResult());
   }
 
-  @Override
-  public ResponseEntity<Void> deleteJob(@PathVariable("id") String id) {
-    jobService.releaseJob(id, getAuthenticatedInfo());
-    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-  }
-
   private void validiateOffsetAndLimit(Integer offset, Integer limit) {
     String errors = "";
     offset = (offset == null) ? offset = 0 : offset;

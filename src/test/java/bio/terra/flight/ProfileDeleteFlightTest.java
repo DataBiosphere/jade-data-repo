@@ -7,6 +7,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.stairway.FlightMap;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -25,17 +26,18 @@ public class ProfileDeleteFlightTest {
   @Test
   public void testConstructFlight() {
     var flight = new ProfileDeleteFlight(new FlightMap(), context);
-
-    var packageName = "bio.terra.service.profile.flight.delete";
-
+    var steps =
+        flight.getSteps().stream()
+            .map(step -> step.getClass().getSimpleName())
+            .collect(Collectors.toList());
     assertThat(
-        flight.context().getStepClassNames(),
+        steps,
         is(
             List.of(
-                packageName + ".DeleteProfileMarkUnusedProjects",
-                packageName + ".DeleteProfileDeleteUnusedProjects",
-                packageName + ".DeleteProfileProjectMetadata",
-                packageName + ".DeleteProfileMetadataStep",
-                packageName + ".DeleteProfileAuthzIamStep")));
+                "DeleteProfileMarkUnusedProjects",
+                "DeleteProfileDeleteUnusedProjects",
+                "DeleteProfileProjectMetadata",
+                "DeleteProfileMetadataStep",
+                "DeleteProfileAuthzIamStep")));
   }
 }

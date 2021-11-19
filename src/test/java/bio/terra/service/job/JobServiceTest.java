@@ -8,7 +8,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.stairway.exception.FlightNotFoundException;
+import bio.terra.stairway.exception.StairwayException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -55,36 +55,30 @@ public class JobServiceTest {
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
     List<String> jobIds = new ArrayList<>();
-    try {
-      List<ResourceAndAccessPolicy> allowedIds = new ArrayList<>();
-      for (int i = 0; i < 7; i++) {
-        String jobId = runFlight(makeDescription(i));
-        jobIds.add(jobId);
-        allowedIds.add(new ResourceAndAccessPolicy().resourceId(jobId));
-      }
-
-      // Test single retrieval
-      testSingleRetrieval(jobIds);
-
-      // Test result retrieval - the body should be the description string
-      testResultRetrieval(jobIds);
-
-      // Retrieve everything
-      testEnumRange(jobIds, 0, 100, allowedIds);
-
-      // Retrieve the middle 3; offset means skip 2 rows
-      testEnumRange(jobIds, 2, 3, allowedIds);
-
-      // Retrieve from the end; should only get the last one back
-      testEnumCount(1, 6, 3, allowedIds);
-
-      // Retrieve past the end; should get nothing
-      testEnumCount(0, 22, 3, allowedIds);
-    } finally {
-      for (String jobId : jobIds) {
-        jobService.releaseJob(jobId, null);
-      }
+    List<ResourceAndAccessPolicy> allowedIds = new ArrayList<>();
+    for (int i = 0; i < 7; i++) {
+      String jobId = runFlight(makeDescription(i));
+      jobIds.add(jobId);
+      allowedIds.add(new ResourceAndAccessPolicy().resourceId(jobId));
     }
+
+    // Test single retrieval
+    testSingleRetrieval(jobIds);
+
+    // Test result retrieval - the body should be the description string
+    testResultRetrieval(jobIds);
+
+    // Retrieve everything
+    testEnumRange(jobIds, 0, 100, allowedIds);
+
+    // Retrieve the middle 3; offset means skip 2 rows
+    testEnumRange(jobIds, 2, 3, allowedIds);
+
+    // Retrieve from the end; should only get the last one back
+    testEnumCount(1, 6, 3, allowedIds);
+
+    // Retrieve past the end; should get nothing
+    testEnumCount(0, 22, 3, allowedIds);
   }
 
   private void testSingleRetrieval(List<String> fids) throws InterruptedException {
@@ -124,12 +118,12 @@ public class JobServiceTest {
     Assert.assertThat(jobList.size(), is(count));
   }
 
-  @Test(expected = FlightNotFoundException.class)
+  @Test(expected = StairwayException.class)
   public void testBadIdRetrieveJob() throws InterruptedException {
     jobService.retrieveJob("abcdef", null);
   }
 
-  @Test(expected = FlightNotFoundException.class)
+  @Test(expected = StairwayException.class)
   public void testBadIdRetrieveResult() throws InterruptedException {
     jobService.retrieveJobResult("abcdef", Object.class, null);
   }

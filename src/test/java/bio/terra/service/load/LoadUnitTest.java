@@ -3,6 +3,8 @@ package bio.terra.service.load;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -11,7 +13,6 @@ import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -130,10 +131,12 @@ public class LoadUnitTest {
   @Test
   public void getLoadTagTest() throws Exception {
     // Should get tag from working map
+    FlightContext flightContext = mock(FlightContext.class);
     FlightMap inputParams = new FlightMap();
-    FlightContext flightContext = new FlightContext(inputParams, null, Collections.emptyList());
-    FlightMap workingMap = flightContext.getWorkingMap();
+    FlightMap workingMap = new FlightMap();
     workingMap.put(LoadMapKeys.LOAD_TAG, LoadTagsUsedByTest.LOADTAG_1.getTag());
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    when(flightContext.getInputParameters()).thenReturn(inputParams);
 
     String loadTag = loadService.getLoadTag(flightContext);
     assertThat("working map load tag", loadTag, equalTo(LoadTagsUsedByTest.LOADTAG_1.getTag()));
@@ -141,9 +144,9 @@ public class LoadUnitTest {
     // Should get from input Params
     FlightMap inputParams1 = new FlightMap();
     inputParams1.put(LoadMapKeys.LOAD_TAG, LoadTagsUsedByTest.LOADTAG_1.getTag());
-    flightContext = new FlightContext(inputParams1, null, Collections.emptyList());
-    workingMap = flightContext.getWorkingMap();
+    when(flightContext.getInputParameters()).thenReturn(inputParams1);
     workingMap.put(LoadMapKeys.LOAD_TAG, LoadTagsUsedByTest.LOADTAG_2.getTag());
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     loadTag = loadService.getLoadTag(flightContext);
     assertThat("input params load tag", loadTag, equalTo(LoadTagsUsedByTest.LOADTAG_1.getTag()));
@@ -152,7 +155,10 @@ public class LoadUnitTest {
   @Test(expected = LoadLockFailureException.class)
   public void getLoadTagFailTest() throws Exception {
     FlightMap inputParams = new FlightMap();
-    FlightContext flightContext = new FlightContext(inputParams, null, Collections.emptyList());
+    FlightMap workingMap = new FlightMap();
+    FlightContext flightContext = mock(FlightContext.class);
+    when(flightContext.getInputParameters()).thenReturn(inputParams);
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
     loadService.getLoadTag(flightContext);
   }
 }

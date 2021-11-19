@@ -101,6 +101,8 @@ public class BackfillRowMetadataTablesStep implements Step {
                   logger.error(
                       "Unable to add row metadata tables for dataset {}", dataset.getId(), ex);
                 }
+              } else {
+                logger.info("SKIPPING AZURE DATASET - [{}]", dataset.getId());
               }
             });
     logger.info("DONE - Total datasets updated: {}", totalDatasetCount);

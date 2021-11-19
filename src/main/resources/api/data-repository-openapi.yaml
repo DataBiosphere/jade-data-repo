@@ -687,7 +687,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/snapshots/{id}/preview:
+  /api/repository/v1/snapshots/{id}/data:
     get:
       tags:
         - snapshots

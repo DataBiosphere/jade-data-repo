@@ -1979,7 +1979,7 @@ public class BigQueryPdao {
     }
   }
 
-  public static List<Map<String, Object>> aggregateTableColumnsRows(TableResult result) {
+  public static List<Map<String, Object>> aggregateSnapshotTable(TableResult result) {
     final FieldList columns = result.getSchema().getFields();
     final List<Map<String, Object>> values = new ArrayList<>();
     result
@@ -2019,18 +2019,18 @@ public class BigQueryPdao {
 
     final TableResult result = bigQueryProject.query(sql);
 
-    return aggregateTableColumnsRows(result);
+    return aggregateSnapshotTable(result);
   }
 
   /*
    * WARNING: Ensure SQL is validated before executing this method!
    */
-  public List<Map<String, Object>> getSnapshotTableData(Snapshot snapshot, String sql)
+  public List<Map<String, Object>> getSnapshotTableUnsafe(Snapshot snapshot, String sql)
       throws InterruptedException {
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final TableResult result = bigQueryProject.query(sql);
 
-    return aggregateTableColumnsRows(result);
+    return aggregateSnapshotTable(result);
   }
 
   // we select from the live view here so that the row counts take into account rows that have been

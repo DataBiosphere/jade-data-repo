@@ -109,7 +109,7 @@ public class SearchServiceTest {
   @Test
   public void indexSnapshotTest() throws Exception {
     // Mock snapshot table data
-    when(bigQueryPdao.getSnapshotTableData(any(Snapshot.class), any(String.class)))
+    when(bigQueryPdao.getSnapshotTableUnsafe(any(Snapshot.class), any(String.class)))
         .thenReturn(values);
 
     // Mock index request

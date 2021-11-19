@@ -104,6 +104,10 @@ public class GoogleProjectService {
     return googleProjectId + "-bq-scratch-bucket";
   }
 
+  public String bucketForSnapshotExport(String googleProjectId) {
+    return googleProjectId + "-snapshot-export-bucket";
+  }
+
   /**
    * @param dataset Dataset the file belongs to
    * @param billingProfile

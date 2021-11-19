@@ -2049,23 +2049,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-    delete:
-      tags:
-        - jobs
-        - repository
-      description: Delete the job and data associated with it
-      operationId: deleteJob
-      parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
-      responses:
-        204:
-          description: Job was deleted
-          content: {}
   /api/repository/v1/jobs/{id}/result:
     get:
       tags:

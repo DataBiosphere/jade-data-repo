@@ -4,22 +4,19 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.kubernetes.KubeService;
+import bio.terra.common.stairway.StairwayComponent;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.job.exception.InternalStairwayException;
 import bio.terra.service.job.exception.InvalidResultStateException;
 import bio.terra.service.job.exception.JobNotCompleteException;
 import bio.terra.service.job.exception.JobNotFoundException;
 import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.service.job.exception.JobServiceShutdownException;
-import bio.terra.service.job.exception.JobServiceStartupException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.upgrade.Migrate;
-import bio.terra.service.upgrade.MigrateConfiguration;
 import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightFilter;
@@ -28,15 +25,12 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
-import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.StringUtils;
@@ -55,22 +49,24 @@ public class JobService {
   private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
   private static final String API_POD_FILTER = "datarepo-api";
 
-  private final Stairway stairway;
   private final IamService samService;
   private final ApplicationConfiguration appConfig;
+  private final StairwayComponent stairwayComponent;
   private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
-  private final MigrateConfiguration migrateConfiguration;
   private final KubeService kubeService;
   private final AtomicBoolean isRunning;
   private final Migrate migrate;
+  private final ObjectMapper objectMapper;
+  private final PerformanceLogger performanceLogger;
+  private final ApplicationContext applicationContext;
+  private Stairway stairway;
 
   @Autowired
   public JobService(
       IamService samService,
       ApplicationConfiguration appConfig,
       StairwayJdbcConfiguration stairwayJdbcConfiguration,
-      MigrateConfiguration migrateConfiguration,
-      GoogleResourceConfiguration googleResourceConfiguration,
+      StairwayComponent stairwayComponent,
       ApplicationContext applicationContext,
       Migrate migrate,
       ObjectMapper objectMapper,
@@ -79,36 +75,16 @@ public class JobService {
     this.samService = samService;
     this.appConfig = appConfig;
 
+    this.stairwayComponent = stairwayComponent;
     this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
-    this.migrateConfiguration = migrateConfiguration;
     this.isRunning = new AtomicBoolean(true);
     this.migrate = migrate;
-
+    this.applicationContext = applicationContext;
+    this.objectMapper = objectMapper;
+    this.performanceLogger = performanceLogger;
     this.kubeService =
         new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
-
-    String projectId = googleResourceConfiguration.getProjectId();
-    String stairwayClusterName = kubeService.getNamespace() + "-stairwaycluster";
-
-    logger.info(
-        "Creating Stairway: maxStairwayThreads: "
-            + appConfig.getMaxStairwayThreads()
-            + " in project: "
-            + projectId);
-    ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
-    stairway =
-        Stairway.newBuilder()
-            // for debugging stairway flights, set this true and the flight logs will be retained
-            .keepFlightLog(true)
-            .maxParallelFlights(appConfig.getMaxStairwayThreads())
-            .exceptionSerializer(serializer)
-            .applicationContext(applicationContext)
-            .stairwayName(appConfig.getPodName())
-            .stairwayHook(new StairwayLoggingHooks(performanceLogger))
-            .stairwayClusterName(stairwayClusterName)
-            .workQueueProjectId(projectId)
-            .enableWorkQueue(appConfig.isInKubernetes())
-            .build();
+    initialize();
   }
 
   /**
@@ -117,56 +93,18 @@ public class JobService {
    * encapsulates all Stairway interaction.
    */
   public void initialize() {
-    try {
-      List<String> recordedStairways;
-      migrate.migrateDatabase();
+    migrate.migrateDatabase();
 
-      // Initialize stairway - only do the stairway migration if we did the data repo migration
-      recordedStairways =
-          stairway.initialize(
-              stairwayJdbcConfiguration.getDataSource(),
-              migrateConfiguration.getDropAllOnStart(),
-              migrateConfiguration.getUpdateAllOnStart());
-
-      // Order is important here. There are two concerns we need to handle:
-      // 1. We need to avoid a window where a running pod could get onto the Stairway list, but not
-      // be
-      //    on the pod list. That is why we get the recorded list from Stairway *before* we read the
-      // Kubernetes
-      //    pod list.
-      // 2. We want to clean up pods that fail, so we start the kubePodListener as early as possible
-      // so we
-      //    detect pods that get deleted. The Stairway recovery method called by kubePodListener
-      // works once
-      //    Stairway initialization is done, so it is safe to start the listener before we have
-      // called
-      //    Stairway recoveryAndStart
-      kubeService.startPodListener(stairway);
-
-      // Lookup all of the stairway instances we know about
-      Set<String> existingStairways = kubeService.getPodSet();
-      List<String> obsoleteStairways = new LinkedList<>();
-
-      // Any instances that stairway knows about, but we cannot see are obsolete.
-      for (String recordedStairway : recordedStairways) {
-        if (!existingStairways.contains(recordedStairway)) {
-          obsoleteStairways.add(recordedStairway);
-        }
-      }
-
-      // Add our own pod name to the list of obsolete stairways. Sometimes Kubernetes will
-      // restart the container without redeploying the pod. In that case we must ask
-      // Stairway to recover the flights we were working on before being restarted.
-      obsoleteStairways.add(kubeService.getPodName());
-
-      // Recover and start stairway - step 3 of the stairway startup sequence
-      stairway.recoverAndStart(obsoleteStairways);
-
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException("Stairway initialization failed", stairwayEx);
-    } catch (InterruptedException ex) {
-      throw new JobServiceStartupException("Stairway startup process interrupted", ex);
-    }
+    // Initialize stairway - only do the stairway migration if we did the data repo migration
+    ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
+    stairwayComponent.initialize(
+        stairwayComponent
+            .newStairwayOptionsBuilder()
+            .dataSource(stairwayJdbcConfiguration.getDataSource())
+            .context(applicationContext)
+            .addHook(new StairwayLoggingHooks(performanceLogger))
+            .exceptionSerializer(serializer));
+    stairway = stairwayComponent.get();
   }
 
   /** Stop accepting jobs and shutdown stairway */
@@ -250,8 +188,6 @@ public class JobService {
       String jobId = createJobId();
       try {
         stairway.submit(jobId, flightClass, parameterMap);
-      } catch (StairwayException stairwayEx) {
-        throw new InternalStairwayException(stairwayEx);
       } catch (InterruptedException ex) {
         throw new JobServiceShutdownException("Job service interrupted", ex);
       }
@@ -276,8 +212,6 @@ public class JobService {
   void waitForJob(String jobId) {
     try {
       stairway.waitForFlight(jobId, null, null);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -287,32 +221,7 @@ public class JobService {
   private String createJobId() {
     // in the future, if we have multiple stairways, we may need to maintain a connection from job
     // id to flight id
-    return stairway.createFlightId().toString();
-  }
-
-  public void releaseJob(String jobId, AuthenticatedUserRequest userReq) {
-    try {
-      if (userReq != null) {
-        // currently, this check will be true for stewards only
-        boolean canDeleteAnyJob =
-            samService.isAuthorized(
-                userReq,
-                IamResourceType.DATAREPO,
-                appConfig.getResourceId(),
-                IamAction.DELETE_JOBS);
-
-        // if the user has access to all jobs, no need to check for this one individually
-        // otherwise, check that the user has access to this job before deleting
-        if (!canDeleteAnyJob) {
-          verifyUserAccess(jobId, userReq); // jobId=flightId
-        }
-      }
-      stairway.deleteFlight(jobId, false);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
-    } catch (InterruptedException ex) {
-      throw new JobServiceShutdownException("Job service interrupted", ex);
-    }
+    return stairway.createFlightId();
   }
 
   public JobModel mapFlightStateToJobModel(FlightState flightState) {
@@ -379,8 +288,6 @@ public class JobService {
       }
 
       flightStateList = stairway.getFlights(offset, limit, filter);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -404,8 +311,6 @@ public class JobService {
       }
       FlightState flightState = stairway.getFlightState(jobId);
       return mapFlightStateToJobModel(flightState);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -445,8 +350,6 @@ public class JobService {
         verifyUserAccess(jobId, userReq); // jobId=flightId
       }
       return retrieveJobResultWorker(jobId, resultClass);
-    } catch (StairwayException stairwayEx) {
-      throw new InternalStairwayException(stairwayEx);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -536,8 +439,6 @@ public class JobService {
       if (!StringUtils.equals(flightSubjectId, userReq.getSubjectId())) {
         throw new JobUnauthorizedException("Unauthorized");
       }
-    } catch (DatabaseOperationException ex) {
-      throw new InternalStairwayException("Stairway exception looking up the job", ex);
     } catch (FlightNotFoundException ex) {
       throw new JobNotFoundException("Job not found", ex);
     } catch (InterruptedException ex) {

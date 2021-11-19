@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.emptyCollectionOf;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -33,6 +34,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@EmbeddedDatabaseTest
 public class GcsPdaoTest {
 
   private static final AuthenticatedUserRequest TEST_USER =

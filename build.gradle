@@ -182,7 +182,7 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
     compile 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
-    compile 'org.postgresql:postgresql:42.2.8'           // Postgres jdbc driver
+    compile 'org.postgresql:postgresql:42.2.18'           // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation group: "javax.validation", name: "validation-api"
@@ -286,6 +286,9 @@ dependencies {
     testCompile "org.springframework.boot:spring-boot-starter-test"
     testCompile 'org.postgresql:postgresql:42.2.8'
     testCompile 'com.google.code.findbugs:annotations:3.0.1'
+    testCompile 'io.zonky.test:embedded-database-spring-test:2.1.1'
+    testCompile 'io.zonky.test:embedded-postgres:1.3.1'
+    implementation enforcedPlatform('io.zonky.test.postgres:embedded-postgres-binaries-bom:12.8.0')
 
     testImplementation 'org.awaitility:awaitility:4.0.3'
 
@@ -464,6 +467,10 @@ test {
         includeCategories 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
+    retry {
+        maxRetries = 3
+    }
+    maxParallelForks = 2
 }
 
 task testConnected(type: Test) {
@@ -473,12 +480,16 @@ task testConnected(type: Test) {
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
-    if (isCiServer) {
-        retry {
-          maxRetries = 3
-          maxFailures = 15
+
+    retry {
+        if (isCiServer) {
+            maxRetries = 3
+            maxFailures = 15
+        } else {
+            maxRetries = 2
         }
     }
+    maxParallelForks = 2
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"
 }
@@ -490,18 +501,26 @@ task testIntegration(type: Test) {
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
-    if (isCiServer) {
-        retry {
-          maxRetries = 3
-          maxFailures = 15
+
+    retry {
+        if (isCiServer) {
+            maxRetries = 3
+            maxFailures = 15
+        } else {
+            maxRetries = 2
         }
     }
+    maxParallelForks = 2
     outputs.upToDateWhen { false }
 }
 
 task testUnit(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.common.category.Unit'
+    }
+    maxParallelForks = 2
+    retry {
+        maxRetries = 3
     }
     outputs.upToDateWhen { false }
 }

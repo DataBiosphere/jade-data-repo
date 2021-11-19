@@ -22,13 +22,13 @@ public class JdbcConfiguration {
    * Maximum number of database connections in the connection pool; -1 means no limit The goal of
    * these parameters is to prevent waiting for a database connection.
    */
-  private int poolMaxTotal;
+  protected int poolMaxTotal;
 
   /** Maximum number of database connections to keep idle */
-  private int poolMaxIdle;
+  protected int poolMaxIdle;
 
   // Not a property
-  private PoolingDataSource<PoolableConnection> dataSource;
+  protected PoolingDataSource<PoolableConnection> dataSource;
 
   public String getUri() {
     return uri;
@@ -89,7 +89,7 @@ public class JdbcConfiguration {
     return dataSource;
   }
 
-  private void configureDataSource() {
+  protected void configureDataSource() {
     final Properties props = new Properties();
     props.setProperty("user", getUsername());
     props.setProperty("password", getPassword());

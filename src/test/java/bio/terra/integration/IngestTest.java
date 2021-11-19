@@ -12,11 +12,8 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -44,10 +41,8 @@ public class IngestTest extends UsersBase {
 
   @Autowired private TestConfiguration testConfig;
 
-  private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
   private UUID profileId;
-  private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
   @Before
   public void setup() throws Exception {
@@ -56,7 +51,7 @@ public class IngestTest extends UsersBase {
     dataRepoFixtures.addPolicyMember(
         steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
 
-    datasetSummaryModel =
+    DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addDatasetPolicyMember(
@@ -65,10 +60,6 @@ public class IngestTest extends UsersBase {
 
   @After
   public void teardown() throws Exception {
-    for (UUID snapshotId : createdSnapshotIds) {
-      dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotId);
-    }
-
     if (datasetId != null) {
       dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
@@ -105,30 +96,6 @@ public class IngestTest extends UsersBase {
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
-  }
-
-  @Test
-  public void ingestBuildSnapshot() throws Exception {
-    IngestRequestModel ingestRequest =
-        dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json");
-    IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-    assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
-
-    ingestRequest =
-        dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
-    ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-    assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
-
-    ingestRequest = dataRepoFixtures.buildSimpleIngest("file", "ingest-test/ingest-test-file.json");
-    ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-    assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
-
-    SnapshotSummaryModel snapshotSummary =
-        dataRepoFixtures.createSnapshot(
-            custodian(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
-    createdSnapshotIds.add(snapshotSummary.getId());
   }
 
   @Test

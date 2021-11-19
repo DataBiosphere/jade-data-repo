@@ -15,6 +15,7 @@ import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
+import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
@@ -49,12 +50,15 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
+@EmbeddedDatabaseTest
 public class DatasetDaoTest {
 
   @Autowired private JsonLoader jsonLoader;

@@ -12,6 +12,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
@@ -22,6 +23,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "datarepo")
+@ConditionalOnProperty(
+    prefix = "datarepo",
+    name = "testWithEmbeddedDatabase",
+    matchIfMissing = true)
 public class ApplicationConfiguration {
 
   private String userEmail;
@@ -382,8 +387,6 @@ public class ApplicationConfiguration {
   // done, it should happen inside this method.
   @Bean
   public SmartInitializingSingleton postSetupInitialization(ApplicationContext applicationContext) {
-    return () -> {
-      StartupInitializer.initialize(applicationContext);
-    };
+    return () -> StartupInitializer.initialize(applicationContext);
   }
 }

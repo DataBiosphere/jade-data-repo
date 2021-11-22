@@ -32,9 +32,10 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
   public AuthenticatedUserRequest from(HttpServletRequest servletRequest) {
     HttpServletRequest req = servletRequest;
 
-    Optional<String> token =
+    String token =
         Optional.ofNullable(req.getHeader("Authorization"))
-            .map(header -> header.substring("Bearer ".length()));
+            .map(header -> header.substring("Bearer ".length()))
+            .orElse("");
 
     String email =
         Optional.ofNullable(req.getHeader("From")).orElse(applicationConfiguration.getUserEmail());
@@ -44,7 +45,7 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
     return AuthenticatedUserRequest.builder()
         .setEmail(email)
         .setSubjectId(userId)
-        .setToken(String.valueOf(token))
+        .setToken(token)
         .build();
   }
 }

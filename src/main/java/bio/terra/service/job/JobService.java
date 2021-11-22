@@ -85,28 +85,7 @@ public class JobService {
     this.kubeService =
         new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
 
-    String projectId = googleResourceConfiguration.getProjectId();
-    String stairwayClusterName = kubeService.getNamespace() + "-stairwaycluster";
-
-    logger.info(
-        "Creating Stairway: maxStairwayThreads: "
-            + appConfig.getMaxStairwayThreads()
-            + " in project: "
-            + projectId);
-    ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
-    stairway =
-        Stairway.newBuilder()
-            // for debugging stairway flights, set this true and the flight logs will be retained
-            .keepFlightLog(true)
-            .maxParallelFlights(appConfig.getMaxStairwayThreads())
-            .exceptionSerializer(serializer)
-            .applicationContext(applicationContext)
-            .stairwayName(appConfig.getPodName())
-            .stairwayHook(new StairwayLoggingHooks(performanceLogger))
-            .stairwayClusterName(stairwayClusterName)
-            .workQueueProjectId(projectId)
-            .enableWorkQueue(appConfig.isInKubernetes())
-            .build();
+    initialize();
   }
 
   /**

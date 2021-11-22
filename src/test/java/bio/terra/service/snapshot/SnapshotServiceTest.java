@@ -45,6 +45,7 @@ public class SnapshotServiceTest {
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
           .setEmail("dataset@unit.com")
+          .setToken("token")
           .build();
 
   private static final String SNAPSHOT_NAME = "snapshotName";

@@ -49,6 +49,7 @@ public class ProfileAPIControllerTest {
   @Mock private JobService jobService;
 
   private ProfileApiController apiController;
+  private AuthenticatedUserRequest user;
 
   @Before
   public void setup() throws Exception {
@@ -62,11 +63,16 @@ public class ProfileAPIControllerTest {
             policyMemberValidator,
             jobService,
             authenticatedUserRequestFactory);
+    user =
+        AuthenticatedUserRequest.builder()
+            .setSubjectId("DatasetUnit")
+            .setEmail("dataset@unit.com")
+            .setToken("token")
+            .build();
   }
 
   @Test
   public void testCreateProfile() {
-    var user = AuthenticatedUserRequest.builder().build();
     when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
     var billingProfileRequestModel = new BillingProfileRequestModel();
     String jobId = "jobId";
@@ -84,7 +90,6 @@ public class ProfileAPIControllerTest {
 
   @Test
   public void testUpdateProfile() {
-    var user = AuthenticatedUserRequest.builder().build();
     when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
     var billingProfileUpdateModel = new BillingProfileUpdateModel();
     String jobId = "jobId";
@@ -101,7 +106,6 @@ public class ProfileAPIControllerTest {
 
   @Test
   public void testDeleteProfile() {
-    var user = AuthenticatedUserRequest.builder().build();
     when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     String jobId = "jobId";
@@ -118,7 +122,6 @@ public class ProfileAPIControllerTest {
 
   @Test
   public void testAddProfilePolicyMember() {
-    var user = AuthenticatedUserRequest.builder().build();
     when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
 
     UUID id = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");

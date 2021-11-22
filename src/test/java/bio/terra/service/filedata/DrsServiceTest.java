@@ -76,7 +76,11 @@ public class DrsServiceTest {
   private UUID snapshotId;
 
   private final AuthenticatedUserRequest authUser =
-      AuthenticatedUserRequest.builder().setToken("token").build();
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
 
   @Before
   public void before() throws Exception {

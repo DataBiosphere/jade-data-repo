@@ -60,6 +60,7 @@ public class AzureBlobStorePdaoTest {
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
           .setEmail("dataset@unit.com")
+          .setToken("token")
           .build();
   private static final UUID PROFILE_ID = UUID.randomUUID();
   private static final UUID RESOURCE_ID = UUID.randomUUID();

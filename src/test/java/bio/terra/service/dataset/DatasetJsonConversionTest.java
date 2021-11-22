@@ -36,6 +36,7 @@ public class DatasetJsonConversionTest {
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
           .setEmail("dataset@unit.com")
+          .setToken("token")
           .build();
 
   private static final UUID DATASET_PROFILE_ID = UUID.randomUUID();

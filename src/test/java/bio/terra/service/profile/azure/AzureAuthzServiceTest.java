@@ -57,7 +57,11 @@ public class AzureAuthzServiceTest {
   public void testValidateHappyPath() {
     assertThat(
         azureAuthzService.canAccess(
-            AuthenticatedUserRequest.builder().setEmail(USER_EMAIL).build(),
+            AuthenticatedUserRequest.builder()
+                .setSubjectId("DatasetUnit")
+                .setEmail(USER_EMAIL)
+                .setToken("token")
+                .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
             APPLICATION_DEPLOYMENT_NAME),
@@ -69,7 +73,9 @@ public class AzureAuthzServiceTest {
     assertThat(
         azureAuthzService.canAccess(
             AuthenticatedUserRequest.builder()
+                .setSubjectId("DatasetUnit")
                 .setEmail("voldemort.admin@test.firecloud.org")
+                .setToken("token")
                 .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
@@ -83,7 +89,11 @@ public class AzureAuthzServiceTest {
 
     assertThat(
         azureAuthzService.canAccess(
-            AuthenticatedUserRequest.builder().setEmail(USER_EMAIL).build(),
+            AuthenticatedUserRequest.builder()
+                .setSubjectId("DatasetUnit")
+                .setEmail(USER_EMAIL)
+                .setToken("token")
+                .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
             APPLICATION_DEPLOYMENT_NAME),

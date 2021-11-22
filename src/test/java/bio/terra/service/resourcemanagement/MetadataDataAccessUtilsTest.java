@@ -39,6 +39,7 @@ public class MetadataDataAccessUtilsTest {
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
           .setEmail("dataset@unit.com")
+          .setToken("token")
           .build();
 
   @InjectMocks private MetadataDataAccessUtils metadataDataAccessUtils;

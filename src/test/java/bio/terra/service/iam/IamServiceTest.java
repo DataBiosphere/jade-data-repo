@@ -37,7 +37,12 @@ public class IamServiceTest {
   public void setup() {
     when(configurationService.getParameterValue(eq(ConfigEnum.AUTH_CACHE_SIZE))).thenReturn(1);
     iamService = new IamService(iamProvider, configurationService);
-    authenticatedUserRequest = AuthenticatedUserRequest.builder().build();
+    authenticatedUserRequest =
+        AuthenticatedUserRequest.builder()
+            .setSubjectId("DatasetUnit")
+            .setEmail("dataset@unit.com")
+            .setToken("token")
+            .build();
   }
 
   @Test

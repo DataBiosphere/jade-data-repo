@@ -60,6 +60,7 @@ public class DatasetServiceTest {
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
           .setEmail("dataset@unit.com")
+          .setToken("token")
           .build();
 
   @Autowired private JsonLoader jsonLoader;

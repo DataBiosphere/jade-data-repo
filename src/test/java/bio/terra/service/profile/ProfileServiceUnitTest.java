@@ -58,7 +58,12 @@ public class ProfileServiceUnitTest {
     profileService =
         new ProfileService(
             profileDao, iamService, jobService, googleBillingService, azureAuthzService);
-    user = AuthenticatedUserRequest.builder().build();
+    user =
+        AuthenticatedUserRequest.builder()
+            .setSubjectId("DatasetUnit")
+            .setEmail("dataset@unit.com")
+            .setToken("token")
+            .build();
   }
 
   @Test

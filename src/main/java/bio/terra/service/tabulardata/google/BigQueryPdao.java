@@ -1084,8 +1084,7 @@ public class BigQueryPdao {
     return PDAO_PREFIX + name;
   }
 
-  // TODO- make private after reverting upgrade flight
-  public Schema buildRowMetadataSchema() {
+  private Schema buildRowMetadataSchema() {
     List<Field> fieldList =
         List.of(
             Field.newBuilder(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING)

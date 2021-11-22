@@ -84,7 +84,6 @@ public class JobService {
     this.performanceLogger = performanceLogger;
     this.kubeService =
         new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
-
     initialize();
   }
 

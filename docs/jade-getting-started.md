@@ -226,11 +226,6 @@ DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
 create extension pgcrypto;
 ```
 
-5. Ask a colleague from DevOps to create a google project for you with the following details.
-This will be used to host the stairway pub/sub queue.
-  * Google Project Name: `broad-jade-ZZ` (replacing `ZZ` with your initials)
-  * Google Organization: broadinstitute.org
-
 ## 9. Google Cloud Platform setup
 
 1. Log in to [Google Cloud Platform](https://console.cloud.google.com). In the
@@ -302,7 +297,6 @@ variable by switching to upper case and every "." to "_".
 
 ```
 # Point to your personal dev project/deployment
-export GOOGLE_CLOUD_PROJECT=broad-jade-ZZ
 export PROXY_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
 export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
 

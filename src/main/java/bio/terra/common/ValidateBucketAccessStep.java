@@ -1,11 +1,11 @@
 package bio.terra.common;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;

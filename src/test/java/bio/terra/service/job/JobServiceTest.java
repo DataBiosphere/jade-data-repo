@@ -6,12 +6,11 @@ import static org.hamcrest.CoreMatchers.is;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.exception.StairwayException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -37,10 +36,11 @@ public class JobServiceTest {
   private static final Logger logger = LoggerFactory.getLogger(JobServiceTest.class);
 
   private AuthenticatedUserRequest testUser =
-      new AuthenticatedUserRequest()
-          .subjectId("StairwayUnit")
-          .email("stairway@unit.com")
-          .token(Optional.empty());
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("StairwayUnit")
+          .setEmail("stairway@unit.com")
+          .setToken("")
+          .build();
 
   @Autowired private JobService jobService;
 

@@ -1,5 +1,6 @@
 package bio.terra.service.iam;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.UserStatusInfo;

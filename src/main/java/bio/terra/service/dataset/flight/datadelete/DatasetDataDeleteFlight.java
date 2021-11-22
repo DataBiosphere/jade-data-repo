@@ -4,13 +4,13 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.ValidateBucketAccessStep;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;

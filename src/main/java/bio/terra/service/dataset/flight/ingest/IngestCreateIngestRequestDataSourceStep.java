@@ -2,12 +2,12 @@ package bio.terra.service.dataset.flight.ingest;
 
 import static bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.*;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;

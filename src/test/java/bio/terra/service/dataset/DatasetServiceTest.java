@@ -12,6 +12,7 @@ import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
@@ -22,7 +23,6 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileDao;
@@ -57,7 +57,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 @EmbeddedDatabaseTest
 public class DatasetServiceTest {
   private AuthenticatedUserRequest testUser =
-      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .build();
 
   @Autowired private JsonLoader jsonLoader;
 

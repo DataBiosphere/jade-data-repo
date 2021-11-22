@@ -1,6 +1,8 @@
 package bio.terra.service.iam;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -37,6 +39,10 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
 
     String userId = applicationConfiguration.getUserId();
 
-    return new AuthenticatedUserRequest().email(email).subjectId(userId).token(token);
+    return AuthenticatedUserRequest.builder()
+        .setEmail(email)
+        .setSubjectId(userId)
+        .setToken(String.valueOf(token))
+        .build();
   }
 }

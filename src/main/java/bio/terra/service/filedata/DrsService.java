@@ -7,6 +7,7 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessMethod.TypeEnum;
@@ -22,7 +23,6 @@ import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -429,7 +429,7 @@ public class DrsService {
       return Collections.emptyList();
     }
 
-    String hdr = String.format("Authorization: Bearer %s", authUser.getRequiredToken());
+    String hdr = String.format("Authorization: Bearer %s", authUser.getToken());
     return Collections.singletonList(hdr);
   }
 

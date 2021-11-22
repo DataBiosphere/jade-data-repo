@@ -1,12 +1,12 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.common.gcs.CommonFlightKeys;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;

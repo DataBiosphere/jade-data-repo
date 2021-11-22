@@ -1,6 +1,6 @@
 package bio.terra.service.profile.azure;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;

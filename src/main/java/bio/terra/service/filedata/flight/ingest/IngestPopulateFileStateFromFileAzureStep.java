@@ -1,12 +1,12 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.flight.ProfileMapKeys;

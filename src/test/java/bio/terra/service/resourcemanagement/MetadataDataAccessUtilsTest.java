@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.AzureStorageResource;
@@ -16,7 +17,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
@@ -36,7 +36,10 @@ import org.springframework.test.context.ActiveProfiles;
 @Category(Unit.class)
 public class MetadataDataAccessUtilsTest {
   private static final AuthenticatedUserRequest TEST_USER =
-      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .build();
 
   @InjectMocks private MetadataDataAccessUtils metadataDataAccessUtils;
 

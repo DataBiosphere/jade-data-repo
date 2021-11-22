@@ -14,12 +14,12 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -67,7 +67,7 @@ public class SamIamTest {
     MockitoAnnotations.initMocks(this);
     samIam = spy(new SamIam(samConfig, configurationService));
     final String userToken = "some_token";
-    when(userReq.getRequiredToken()).thenReturn(userToken);
+    when(userReq.getToken()).thenReturn(userToken);
     when(configurationService.getParameterValue(ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS))
         .thenReturn(0);
     when(configurationService.getParameterValue(ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS))

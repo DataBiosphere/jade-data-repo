@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
@@ -22,7 +23,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -42,7 +42,10 @@ import org.springframework.test.context.ActiveProfiles;
 @Category(Unit.class)
 public class SnapshotServiceTest {
   private static final AuthenticatedUserRequest TEST_USER =
-      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .build();
 
   private static final String SNAPSHOT_NAME = "snapshotName";
   private static final String SNAPSHOT_DESCRIPTION = "snapshotDescription";

@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot.flight.delete;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;

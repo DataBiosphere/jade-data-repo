@@ -10,6 +10,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.JobModel;
@@ -17,8 +19,6 @@ import bio.terra.model.JobModel.JobStatusEnum;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import bio.terra.service.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,7 +66,7 @@ public class ProfileAPIControllerTest {
 
   @Test
   public void testCreateProfile() {
-    var user = new AuthenticatedUserRequest();
+    var user = AuthenticatedUserRequest.builder().build();
     when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
     var billingProfileRequestModel = new BillingProfileRequestModel();
     String jobId = "jobId";
@@ -84,7 +84,7 @@ public class ProfileAPIControllerTest {
 
   @Test
   public void testUpdateProfile() {
-    var user = new AuthenticatedUserRequest();
+    var user = AuthenticatedUserRequest.builder().build();
     when(authenticatedUserRequestFactory.from(eq(request))).thenReturn(user);
     var billingProfileUpdateModel = new BillingProfileUpdateModel();
     String jobId = "jobId";
@@ -101,7 +101,7 @@ public class ProfileAPIControllerTest {
 
   @Test
   public void testDeleteProfile() {
-    var user = new AuthenticatedUserRequest();
+    var user = AuthenticatedUserRequest.builder().build();
     when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     String jobId = "jobId";
@@ -118,7 +118,7 @@ public class ProfileAPIControllerTest {
 
   @Test
   public void testAddProfilePolicyMember() {
-    var user = new AuthenticatedUserRequest();
+    var user = AuthenticatedUserRequest.builder().build();
     when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
 
     UUID id = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");

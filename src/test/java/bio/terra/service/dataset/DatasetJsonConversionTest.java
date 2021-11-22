@@ -7,6 +7,7 @@ import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
@@ -16,7 +17,6 @@ import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import java.io.IOException;
@@ -33,7 +33,10 @@ import org.springframework.test.context.ActiveProfiles;
 @Category(Unit.class)
 public class DatasetJsonConversionTest {
   private AuthenticatedUserRequest testUser =
-      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .build();
 
   private static final UUID DATASET_PROFILE_ID = UUID.randomUUID();
   private static final String DATASET_NAME = "dataset_name";

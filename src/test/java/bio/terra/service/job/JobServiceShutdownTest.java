@@ -5,12 +5,11 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -34,11 +33,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class JobServiceShutdownTest {
   private static final Logger logger = LoggerFactory.getLogger(JobServiceShutdownTest.class);
 
-  private AuthenticatedUserRequest testUser =
-      new AuthenticatedUserRequest()
-          .subjectId("StairwayUnit")
-          .email("stairway@unit.com")
-          .token(Optional.empty());
+  private final AuthenticatedUserRequest testUser =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("StairwayUnit")
+          .setEmail("stairway@unit.com")
+          .setToken("")
+          .build();
 
   @Autowired private JobService jobService;
 

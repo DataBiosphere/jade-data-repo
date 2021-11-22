@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
@@ -9,7 +10,6 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;

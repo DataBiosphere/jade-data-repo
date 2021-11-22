@@ -15,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
@@ -29,7 +30,6 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
@@ -115,11 +115,15 @@ public class DrsTest extends UsersBase {
     profileId = setupResult.getProfileId();
     datasetId = setupResult.getDatasetId();
     authenticatedStewardRequest =
-        new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
+        AuthenticatedUserRequest.builder()
+            .setEmail(steward().getEmail())
+            .setToken(stewardToken)
+            .build();
     authenticatedCustodianRequest =
-        new AuthenticatedUserRequest()
-            .email(custodian().getEmail())
-            .token(Optional.of(custodianToken));
+        AuthenticatedUserRequest.builder()
+            .setEmail(custodian().getEmail())
+            .setToken(custodianToken)
+            .build();
     datasetIamRoles =
         iamService.retrievePolicyEmails(
             authenticatedStewardRequest, IamResourceType.DATASET, datasetId);

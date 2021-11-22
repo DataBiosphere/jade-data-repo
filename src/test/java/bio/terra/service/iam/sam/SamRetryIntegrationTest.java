@@ -6,10 +6,10 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.PolicyModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -62,9 +62,10 @@ public class SamRetryIntegrationTest extends UsersBase {
     stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     dataRepoFixtures.resetConfig(steward());
     userRequest =
-        new AuthenticatedUserRequest()
-            .email(steward().getEmail())
-            .token(java.util.Optional.ofNullable(stewardToken));
+        AuthenticatedUserRequest.builder()
+            .setEmail(steward().getEmail())
+            .setToken(stewardToken)
+            .build();
     fakeDatasetId = UUID.randomUUID();
     samGoogleApi = new GoogleApi(getApiClient(stewardToken));
   }

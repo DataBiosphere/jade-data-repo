@@ -1,7 +1,7 @@
 package bio.terra.common.auth;
 
 import bio.terra.common.configuration.TestConfiguration;
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
@@ -127,8 +127,9 @@ public class AuthService {
     try {
       return iamProvider
           .getPetToken(
-              new AuthenticatedUserRequest()
-                  .token(Optional.of(makeToken(userEmail).getAccessToken())),
+              AuthenticatedUserRequest.builder()
+                  .setToken(makeToken(userEmail).getAccessToken())
+                  .build(),
               userLoginScopes)
           .replaceAll("\\.+$", "");
     } catch (InterruptedException e) {

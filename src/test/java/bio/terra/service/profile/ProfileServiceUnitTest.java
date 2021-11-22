@@ -11,11 +11,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.CloudPlatform;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -51,12 +51,14 @@ public class ProfileServiceUnitTest {
   @Mock private AzureAuthzService azureAuthzService;
 
   private ProfileService profileService;
+  private AuthenticatedUserRequest user;
 
   @Before
   public void setup() throws Exception {
     profileService =
         new ProfileService(
             profileDao, iamService, jobService, googleBillingService, azureAuthzService);
+    user = AuthenticatedUserRequest.builder().build();
   }
 
   @Test
@@ -68,7 +70,6 @@ public class ProfileServiceUnitTest {
     var billingProfileRequestModel = new BillingProfileRequestModel();
     billingProfileRequestModel.setProfileName("name");
 
-    var user = new AuthenticatedUserRequest();
     when(jobService.newJob(
             anyString(), eq(ProfileCreateFlight.class), eq(billingProfileRequestModel), eq(user)))
         .thenReturn(jobBuilder);
@@ -89,7 +90,6 @@ public class ProfileServiceUnitTest {
     String jobId = "jobId";
     when(jobBuilder.submit()).thenReturn(jobId);
 
-    var user = new AuthenticatedUserRequest();
     when(jobService.newJob(
             anyString(), eq(ProfileUpdateFlight.class), eq(billingProfileUpdateModel), eq(user)))
         .thenReturn(jobBuilder);
@@ -107,7 +107,6 @@ public class ProfileServiceUnitTest {
 
   @Test(expected = IamForbiddenException.class)
   public void testUpdateProfileNoAccess() {
-    var user = new AuthenticatedUserRequest();
     doThrow(IamForbiddenException.class)
         .when(iamService)
         .verifyAuthorization(
@@ -137,7 +136,6 @@ public class ProfileServiceUnitTest {
     billingProfileModel.setCloudPlatform(CloudPlatform.GCP);
     when(profileDao.getBillingProfileById(deleteId)).thenReturn(billingProfileModel);
 
-    var user = new AuthenticatedUserRequest();
     when(jobService.newJob(anyString(), eq(ProfileDeleteFlight.class), eq(null), eq(user)))
         .thenReturn(jobBuilder);
 
@@ -154,7 +152,6 @@ public class ProfileServiceUnitTest {
 
   @Test(expected = IamForbiddenException.class)
   public void testDeleteProfileNoAccess() {
-    var user = new AuthenticatedUserRequest();
     doThrow(IamForbiddenException.class)
         .when(iamService)
         .verifyAuthorization(
@@ -164,7 +161,6 @@ public class ProfileServiceUnitTest {
 
   @Test
   public void testVerifyAccountHasAccess() {
-    var user = new AuthenticatedUserRequest();
     String id = "id";
 
     when(googleBillingService.canAccess(any(), eq(id))).thenReturn(true);
@@ -174,7 +170,6 @@ public class ProfileServiceUnitTest {
 
   @Test(expected = InaccessibleBillingAccountException.class)
   public void testVerifyAccountNoAccess() {
-    var user = new AuthenticatedUserRequest();
     String id = "id";
 
     when(googleBillingService.canAccess(any(), eq(id))).thenReturn(false);

@@ -14,6 +14,7 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DRSAccessURL;
@@ -23,7 +24,6 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -38,7 +38,6 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,7 +76,7 @@ public class DrsServiceTest {
   private UUID snapshotId;
 
   private final AuthenticatedUserRequest authUser =
-      new AuthenticatedUserRequest().token(Optional.of("token"));
+      AuthenticatedUserRequest.builder().setToken("token").build();
 
   @Before
   public void before() throws Exception {

@@ -73,6 +73,7 @@ public class AzureSynapsePdaoConnectedTest {
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
           .setEmail("dataset@unit.com")
+          .setToken("token")
           .build();
 
   private static final String INGEST_REQUEST_SCOPED_CREDENTIAL_PREFIX = "irsas_";

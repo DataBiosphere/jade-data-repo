@@ -61,6 +61,7 @@ public class AzureIngestFileConnectedTest {
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
           .setEmail("dataset@unit.com")
+          .setToken("token")
           .build();
 
   private UUID datasetId;

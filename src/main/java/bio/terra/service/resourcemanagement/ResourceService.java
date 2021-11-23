@@ -22,6 +22,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotStorageAccountDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.Collection;
@@ -117,7 +118,8 @@ public class ResourceService {
         projectResource,
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
-        flightId);
+        flightId,
+        null);
   }
 
   /**
@@ -140,7 +142,36 @@ public class ResourceService {
         projectResource,
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
-        flightId);
+        flightId,
+        null);
+  }
+
+  /**
+   * Get or create a bucket for snapshot export files
+   *
+   * @param flightId used to lock the bucket metadata during possible creation
+   * @return a reference to the bucket as a POJO GoogleBucketResource
+   * @throws CorruptMetadataException in two cases.
+   *     <ul>
+   *       <li>if the bucket already exists, but the metadata does not AND the application property
+   *           allowReuseExistingBuckets=false.
+   *       <li>if the metadata exists, but the bucket does not
+   *     </ul>
+   */
+  public GoogleBucketResource getOrCreateBucketForSnapshotExport(Snapshot snapshot, String flightId)
+      throws InterruptedException, GoogleResourceNamingException {
+    GoogleProjectResource projectResource = snapshot.getProjectResource();
+    return bucketService.getOrCreateBucket(
+        projectService.bucketForSnapshotExport(projectResource.getGoogleProjectId()),
+        projectResource,
+        (GoogleRegion)
+            snapshot
+                .getFirstSnapshotSource()
+                .getDataset()
+                .getDatasetSummary()
+                .getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
+        flightId,
+        1);
   }
 
   /**

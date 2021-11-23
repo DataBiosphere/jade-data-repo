@@ -116,11 +116,13 @@ public class DrsTest extends UsersBase {
     datasetId = setupResult.getDatasetId();
     authenticatedStewardRequest =
         AuthenticatedUserRequest.builder()
+            .setSubjectId("DRSIntegration")
             .setEmail(steward().getEmail())
             .setToken(stewardToken)
             .build();
     authenticatedCustodianRequest =
         AuthenticatedUserRequest.builder()
+            .setSubjectId("DRSIntegration")
             .setEmail(custodian().getEmail())
             .setToken(custodianToken)
             .build();

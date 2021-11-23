@@ -63,6 +63,7 @@ public class SamRetryIntegrationTest extends UsersBase {
     dataRepoFixtures.resetConfig(steward());
     userRequest =
         AuthenticatedUserRequest.builder()
+            .setSubjectId("SamIntegration")
             .setEmail(steward().getEmail())
             .setToken(stewardToken)
             .build();

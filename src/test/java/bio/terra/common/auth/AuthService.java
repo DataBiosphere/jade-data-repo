@@ -128,6 +128,8 @@ public class AuthService {
       return iamProvider
           .getPetToken(
               AuthenticatedUserRequest.builder()
+                  .setSubjectId("PetServiceAccount")
+                  .setEmail(userEmail)
                   .setToken(makeToken(userEmail).getAccessToken())
                   .build(),
               userLoginScopes)

@@ -25,6 +25,7 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotStorageAccountDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -171,7 +172,7 @@ public class ResourceService {
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId,
-        1);
+        Duration.ofDays(1));
   }
 
   /**

@@ -17,7 +17,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
-import java.util.ArrayList;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -136,7 +136,7 @@ public class GoogleBucketService {
       GoogleProjectResource projectResource,
       GoogleRegion region,
       String flightId,
-      Integer daysToLive)
+      Duration daysToLive)
       throws InterruptedException {
 
     boolean allowReuseExistingBuckets =
@@ -205,7 +205,7 @@ public class GoogleBucketService {
       GoogleProjectResource projectResource,
       GoogleRegion region,
       String flightId,
-      Integer daysToLive)
+      Duration daysToLive)
       throws InterruptedException {
 
     // insert a new bucket_resource row and lock it
@@ -240,7 +240,7 @@ public class GoogleBucketService {
 
   // Step 2 of creating a new bucket
   private GoogleBucketResource createCloudBucket(
-      GoogleBucketResource bucketResource, String flightId, Integer daysToLive) {
+      GoogleBucketResource bucketResource, String flightId, Duration daysToLive) {
     // If the bucket doesn't exist, create it
     Bucket bucket = getCloudBucket(bucketResource.getName());
     if (bucket == null) {
@@ -287,17 +287,19 @@ public class GoogleBucketService {
    * @param bucketResource description of the bucket resource to be created
    * @return a reference to the bucket as a GCS Bucket object
    */
-  private Bucket newCloudBucket(GoogleBucketResource bucketResource, Integer daysToLive) {
+  private Bucket newCloudBucket(GoogleBucketResource bucketResource, Duration daysToLive) {
     boolean doVersioning =
         Arrays.stream(env.getActiveProfiles()).noneMatch(env -> env.contains("test"));
     String bucketName = bucketResource.getName();
     GoogleRegion region = bucketResource.getRegion();
-    List<BucketInfo.LifecycleRule> lifecycleRules = new ArrayList<>();
+    List<BucketInfo.LifecycleRule> lifecycleRules = null;
     if (daysToLive != null) {
-      lifecycleRules.add(
-          new BucketInfo.LifecycleRule(
-              BucketInfo.LifecycleRule.LifecycleAction.newDeleteAction(),
-              BucketInfo.LifecycleRule.LifecycleCondition.newBuilder().setAge(daysToLive).build()));
+      int days = (int) daysToLive.toDays();
+      lifecycleRules =
+          List.of(
+              new BucketInfo.LifecycleRule(
+                  BucketInfo.LifecycleRule.LifecycleAction.newDeleteAction(),
+                  BucketInfo.LifecycleRule.LifecycleCondition.newBuilder().setAge(days).build()));
     }
     StorageClass storageClass =
         region.isMultiRegional() ? StorageClass.MULTI_REGIONAL : StorageClass.REGIONAL;

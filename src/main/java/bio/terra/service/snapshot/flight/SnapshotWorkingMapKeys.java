@@ -16,4 +16,5 @@ public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
   public static final String DATASET_EXISTS = "datasetExists";
   public static final String STORAGE_ACCOUNT_RESOURCE_NAME = "storageAccountResourceName";
   public static final String SNAPSHOT_EXPORT_BUCKET = "snapshotExportBucket";
+  public static final String SNAPSHOT_EXPORT_PARQUET_PATHS = "snapshotExportParquetPaths";
 }

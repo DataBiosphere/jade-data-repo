@@ -35,6 +35,7 @@ import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -358,7 +359,7 @@ public class BucketResourceTest {
             projectResource,
             GoogleRegion.DEFAULT_GOOGLE_REGION,
             flightWithTtlId,
-            deleteAge);
+            Duration.ofDays(1));
 
     GoogleBucketResource bucketWithoutTtlResource =
         createBucket(
@@ -400,7 +401,7 @@ public class BucketResourceTest {
       GoogleProjectResource projectResource,
       GoogleRegion bucketRegion,
       String flightId,
-      Integer ttl)
+      Duration ttl)
       throws InterruptedException {
 
     GoogleBucketResource bucketResource =

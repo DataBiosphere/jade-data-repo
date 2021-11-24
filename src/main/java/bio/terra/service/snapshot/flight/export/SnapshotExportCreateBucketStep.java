@@ -15,13 +15,13 @@ import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
 
-public class CreateBucketForSnapshotExport extends DefaultUndoStep {
+public class SnapshotExportCreateBucketStep extends DefaultUndoStep {
 
   private final ResourceService resourceService;
   private final SnapshotService snapshotService;
   private final UUID snapshotId;
 
-  public CreateBucketForSnapshotExport(
+  public SnapshotExportCreateBucketStep(
       ResourceService resourceService, SnapshotService snapshotService, UUID snapshotId) {
     this.resourceService = resourceService;
     this.snapshotService = snapshotService;

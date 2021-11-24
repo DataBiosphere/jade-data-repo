@@ -17,7 +17,9 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.StringUtils;
@@ -124,6 +126,7 @@ public class GoogleBucketService {
    * @param bucketName name for a new or existing bucket
    * @param projectResource project in which the bucket should be retrieved or created
    * @param flightId flight making the request
+   * @param daysToLive an optional retention period for the bucket
    * @return a reference to the bucket as a POJO GoogleBucketResource
    * @throws CorruptMetadataException in CASE 5 and CASE 6
    * @throws BucketLockFailureException in CASE 2 and CASE 7, and sometimes case 9
@@ -132,7 +135,8 @@ public class GoogleBucketService {
       String bucketName,
       GoogleProjectResource projectResource,
       GoogleRegion region,
-      String flightId)
+      String flightId,
+      Duration daysToLive)
       throws InterruptedException {
 
     boolean allowReuseExistingBuckets =
@@ -162,7 +166,7 @@ public class GoogleBucketService {
         // bucket exists, but metadata record does not exist.
         if (allowReuseExistingBuckets) {
           // CASE 4: go ahead and reuse the bucket and its location
-          return createMetadataRecord(bucketName, projectResource, region, flightId);
+          return createMetadataRecord(bucketName, projectResource, region, flightId, daysToLive);
         } else {
           // CASE 5:
           throw new CorruptMetadataException(
@@ -183,10 +187,10 @@ public class GoogleBucketService {
           throw bucketLockException(lockingFlightId);
         }
         // CASE 8: this flight has the metadata locked, but didn't finish creating the bucket
-        return createCloudBucket(googleBucketResource, flightId);
+        return createCloudBucket(googleBucketResource, flightId, daysToLive);
       } else {
         // CASE 9: no bucket and no record
-        return createMetadataRecord(bucketName, projectResource, region, flightId);
+        return createMetadataRecord(bucketName, projectResource, region, flightId, daysToLive);
       }
     }
   }
@@ -200,7 +204,8 @@ public class GoogleBucketService {
       String bucketName,
       GoogleProjectResource projectResource,
       GoogleRegion region,
-      String flightId)
+      String flightId,
+      Duration daysToLive)
       throws InterruptedException {
 
     // insert a new bucket_resource row and lock it
@@ -230,16 +235,16 @@ public class GoogleBucketService {
       logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
     }
 
-    return createCloudBucket(googleBucketResource, flightId);
+    return createCloudBucket(googleBucketResource, flightId, daysToLive);
   }
 
   // Step 2 of creating a new bucket
   private GoogleBucketResource createCloudBucket(
-      GoogleBucketResource bucketResource, String flightId) {
+      GoogleBucketResource bucketResource, String flightId, Duration daysToLive) {
     // If the bucket doesn't exist, create it
     Bucket bucket = getCloudBucket(bucketResource.getName());
     if (bucket == null) {
-      bucket = newCloudBucket(bucketResource);
+      bucket = newCloudBucket(bucketResource, daysToLive);
     }
     return createFinish(bucket, flightId, bucketResource);
   }
@@ -282,11 +287,20 @@ public class GoogleBucketService {
    * @param bucketResource description of the bucket resource to be created
    * @return a reference to the bucket as a GCS Bucket object
    */
-  private Bucket newCloudBucket(GoogleBucketResource bucketResource) {
+  private Bucket newCloudBucket(GoogleBucketResource bucketResource, Duration daysToLive) {
     boolean doVersioning =
         Arrays.stream(env.getActiveProfiles()).noneMatch(env -> env.contains("test"));
     String bucketName = bucketResource.getName();
     GoogleRegion region = bucketResource.getRegion();
+    List<BucketInfo.LifecycleRule> lifecycleRules = null;
+    if (daysToLive != null) {
+      int days = (int) daysToLive.toDays();
+      lifecycleRules =
+          List.of(
+              new BucketInfo.LifecycleRule(
+                  BucketInfo.LifecycleRule.LifecycleAction.newDeleteAction(),
+                  BucketInfo.LifecycleRule.LifecycleCondition.newBuilder().setAge(days).build()));
+    }
     StorageClass storageClass =
         region.isMultiRegional() ? StorageClass.MULTI_REGIONAL : StorageClass.REGIONAL;
     BucketInfo bucketInfo =
@@ -296,6 +310,7 @@ public class GoogleBucketService {
             .setStorageClass(storageClass)
             .setLocation(region.toString())
             .setVersioningEnabled(doVersioning)
+            .setLifecycleRules(lifecycleRules)
             .build();
 
     GoogleProjectResource projectResource = bucketResource.getProjectResource();

@@ -37,7 +37,7 @@ public class JobServiceShutdownTest {
       AuthenticatedUserRequest.builder()
           .setSubjectId("StairwayUnit")
           .setEmail("stairway@unit.com")
-          .setToken("")
+          .setToken("token")
           .build();
 
   @Autowired private JobService jobService;

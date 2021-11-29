@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.After;
 import org.junit.Before;
@@ -138,6 +139,12 @@ public class SnapshotMinimalConnectedTest {
     assertThat("to table is right", relationshipModel.getTo().getTable(), equalTo("sample"));
     assertThat(
         "to column is right", relationshipModel.getTo().getColumn(), equalTo("participant_id"));
+
+    List<Map<String, Object>> result =
+        SnapshotConnectedTestUtils.getSnapshotTableRows(summaryModel.getName(), "participant",
+            bigQuerySnapshotProject);
+
+    assertThat("participant has the correct age", result.get(0).get("age"), equalTo("23"));
   }
 
   @Test

@@ -226,10 +226,6 @@ DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
 create extension pgcrypto;
 ```
 
-5. Ask a colleague from DevOps to create a google project for you with the following details:
-  * Google Project Name: `broad-jade-ZZ` (replacing `ZZ` with your initials)
-  * Google Organization: broadinstitute.org
-
 ## 9. Google Cloud Platform setup
 
 1. Log in to [Google Cloud Platform](https://console.cloud.google.com). In the
@@ -301,14 +297,11 @@ variable by switching to upper case and every "." to "_".
 
 ```
 # Point to your personal dev project/deployment
-export GOOGLE_CLOUD_PROJECT=broad-jade-ZZ
-export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-ZZ-data
 export PROXY_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
 export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
 
 # Integration test setting: change this to http://localhost:8080/ to run against a local instance
 export IT_JADE_API_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
-export IT_INGEST_BUCKET=broad-jade-ZZ-data-bucket
 
 # This file will be populated when you run ./render-configs.sh
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
@@ -344,13 +337,6 @@ export HOST=localhost
 ./gradlew testConnected   # connected tests
 ./gradlew testIntegration  # integration tests
 ```
-
-* The first run of the integration tests should create a corresponding Google
-Cloud Project with the name `broad-jade-ZZ-data`, where `ZZ` is replaced by
-your initials. After this is created, Firestore needs to be enabled:
-  1. Go to the [Google Cloud Console](http://console.cloud.google.com/).
-  2. From the `DATA.TEST-TERRA.BIO` organization, select your newly created GCP
-  project: `broad-jade-ZZ-data`.
 
 ### 2. Build `jade-data-repo-ui`
 

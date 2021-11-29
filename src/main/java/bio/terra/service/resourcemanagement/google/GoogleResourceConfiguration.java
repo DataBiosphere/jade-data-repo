@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 public class GoogleResourceConfiguration {
   private String applicationName;
   private long projectCreateTimeoutSeconds;
-  private String projectId;
   private int firestoreRetries;
   private boolean allowReuseExistingProjects;
   private boolean allowReuseExistingBuckets;
@@ -29,14 +28,6 @@ public class GoogleResourceConfiguration {
 
   public void setProjectCreateTimeoutSeconds(long projectCreateTimeoutSeconds) {
     this.projectCreateTimeoutSeconds = projectCreateTimeoutSeconds;
-  }
-
-  public String getProjectId() {
-    return projectId;
-  }
-
-  public void setProjectId(String projectId) {
-    this.projectId = projectId;
   }
 
   public boolean getAllowReuseExistingProjects() {

@@ -353,7 +353,9 @@ public class AzureSynapsePdaoConnectedTest {
             snapshotId,
             destinationDataSourceName,
             snapshotDataSourceName,
-            randomFlightId);
+            randomFlightId,
+            false,
+            null);
     String snapshotParquetFileName =
         IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
     List<String> snapshotFirstNames =

@@ -170,10 +170,18 @@ public class SnapshotCreateFlight extends Flight {
               new CreateSnapshotPrimaryDataRowIdsStep(
                   bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
           break;
-        } else {
-          throw new FeatureNotImplementedException(
-              "By Row ID Snapshots are not yet supported in Azure datasets.");
+        } else if (platform.isAzure()) {
+          addStep(
+              new CreateSnapshotSourceDatasetDataSourceAzureStep(
+                  azureSynapsePdao, azureBlobStorePdao, userReq));
+          addStep(
+              new CreateSnapshotTargetDataSourceAzureStep(
+                  azureSynapsePdao, azureBlobStorePdao, userReq));
+          addStep(
+              new CreateSnapshotByRowIdParquetFilesAzureStep(
+                  azureSynapsePdao, snapshotService, snapshotReq));
         }
+        break;
       default:
         throw new InvalidSnapshotException("Snapshot does not have required mode information");
     }

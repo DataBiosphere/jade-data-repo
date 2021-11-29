@@ -224,7 +224,7 @@ public class SnapshotConnectedTestUtils {
       "SELECT * FROM `<project>.<snapshot>.<table>` ORDER BY datarepo_row_id"
           + " LIMIT <limit> OFFSET <offset>";
 
-  static List<Map<String, Object>> getSnapshotTableRows(
+  static List<Map<String, Object>> getSnapshotTable(
       String snapshotName, String tableName, BigQueryProject bigQueryProject) throws Exception {
     final int limit = 30;
     final int offset = 0;

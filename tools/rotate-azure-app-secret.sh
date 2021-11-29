@@ -22,7 +22,7 @@ update_secret () {
   local secret_location="$2"
 
   echo "Updating secret for environment $location_name"
-  vault read --format=json $secret_location | jq --arg AZURE_APP_SECRET "$AZURE_APP_SECRET" '.data | .applicationsecret2=$AZURE_APP_SECRET' | vault write ${secret_location} -
+  vault read --format=json --field=data $secret_location | jq --arg AZURE_APP_SECRET "$AZURE_APP_SECRET" '.applicationsecret2=$AZURE_APP_SECRET' | vault write ${secret_location} -
 }
 
 

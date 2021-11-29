@@ -141,7 +141,7 @@ public class SnapshotMinimalConnectedTest {
         "to column is right", relationshipModel.getTo().getColumn(), equalTo("participant_id"));
 
     List<Map<String, Object>> result =
-        SnapshotConnectedTestUtils.getSnapshotTableRows(
+        SnapshotConnectedTestUtils.getSnapshotTable(
             summaryModel.getName(), "participant", bigQuerySnapshotProject);
 
     assertThat("participant has the correct age", result.get(0).get("age"), equalTo("23"));

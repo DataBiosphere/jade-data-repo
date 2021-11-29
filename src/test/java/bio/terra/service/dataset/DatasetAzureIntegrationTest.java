@@ -116,6 +116,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private User steward;
   private UUID datasetId;
   private UUID snapshotId;
+  private UUID snapshotByRowsId;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
 
@@ -149,6 +150,10 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     dataRepoFixtures.resetConfig(steward);
     if (snapshotId != null) {
       dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+      snapshotId = null;
+    }
+    if (snapshotByRowsId != null) {
+      dataRepoFixtures.deleteSnapshot(steward, snapshotByRowsId);
       snapshotId = null;
     }
     if (datasetId != null) {
@@ -589,13 +594,78 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     TestUtils.verifyHttpAccess(signedUrl, Map.of());
     verifySignedUrl(signedUrl, steward(), "r");
 
+    // Create snapshot by row id
+    SnapshotRequestModel requestModelByRowId =
+        jsonLoader.loadObject("ingest-test-snapshot-row-ids-test.json", SnapshotRequestModel.class);
+    requestModelByRowId.getContents().get(0).datasetName(summaryModel.getName());
+
+    SnapshotSummaryModel snapshotSummaryByRowId =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward(), summaryModel.getName(), profileId, requestModelByRowId);
+    snapshotByRowsId = snapshotSummaryByRowId.getId();
+    assertThat(
+        "Snapshot exists",
+        snapshotSummaryByRowId.getName(),
+        equalTo(requestModelByRowId.getName()));
+
+    // Read the ingested metadata
+    AccessInfoParquetModel snapshotByRowIdParquetAccessInfo =
+        dataRepoFixtures
+            .getSnapshot(
+                steward(),
+                snapshotByRowsId,
+                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION))
+            .getAccessInformation()
+            .getParquet();
+
+    String snapshotByRowIdParquetUrl =
+        snapshotByRowIdParquetAccessInfo.getUrl()
+            + "?"
+            + snapshotByRowIdParquetAccessInfo.getSasToken();
+    TestUtils.verifyHttpAccess(snapshotByRowIdParquetUrl, Map.of());
+    verifySignedUrl(snapshotByRowIdParquetUrl, steward(), "rl");
+
+    for (AccessInfoParquetModelTable table : snapshotByRowIdParquetAccessInfo.getTables()) {
+      if (tablesToCheck.contains(table.getName())) {
+        String tableUrl = table.getUrl() + "?" + table.getSasToken();
+        TestUtils.verifyHttpAccess(tableUrl, Map.of());
+        verifySignedUrl(tableUrl, steward(), "rl");
+      }
+    }
+
+    // Do a Drs lookup
+    String drsIdByRowId = String.format("v1_%s_%s", snapshotByRowsId, fileId);
+    DRSObject drsObjectByRowId = dataRepoFixtures.drsGetObject(steward(), drsIdByRowId);
+    assertThat(
+        "DRS object has single access method",
+        drsObjectByRowId.getAccessMethods().size(),
+        equalTo(1));
+    assertThat(
+        "DRS object has HTTPS",
+        drsObjectByRowId.getAccessMethods().get(0).getType(),
+        equalTo(TypeEnum.HTTPS));
+    assertThat(
+        "DRS object has access id",
+        drsObjectByRowId.getAccessMethods().get(0).getAccessId(),
+        equalTo("az-centralus"));
+    // Make sure we can read the drs object
+    DrsResponse<DRSAccessURL> accessForByRowId =
+        dataRepoFixtures.getObjectAccessUrl(steward(), drsIdByRowId, "az-centralus");
+    assertThat("Returns DRS access", accessForByRowId.getResponseObject().isPresent(), is(true));
+    String signedUrlForByRowId = accessForByRowId.getResponseObject().get().getUrl();
+
+    TestUtils.verifyHttpAccess(signedUrlForByRowId, Map.of());
+    verifySignedUrl(signedUrlForByRowId, steward(), "r");
+
     // Delete dataset should fail
     dataRepoFixtures.deleteDatasetShouldFail(steward, datasetId);
 
     // Delete snapshot
     dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+    dataRepoFixtures.deleteSnapshot(steward, snapshotByRowsId);
 
     dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotId);
+    dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotByRowsId);
     snapshotId = null;
 
     // Delete the file we just ingested

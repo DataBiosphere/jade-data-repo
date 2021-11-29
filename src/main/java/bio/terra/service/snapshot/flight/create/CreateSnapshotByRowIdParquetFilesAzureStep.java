@@ -2,6 +2,10 @@ package bio.terra.service.snapshot.flight.create;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 
+import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -18,15 +22,18 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class CreateSnapshotParquetFilesAzureStep implements Step {
-
+public class CreateSnapshotByRowIdParquetFilesAzureStep implements Step {
   private AzureSynapsePdao azureSynapsePdao;
   private SnapshotService snapshotService;
+  private SnapshotRequestModel snapshotReq;
 
-  public CreateSnapshotParquetFilesAzureStep(
-      AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService) {
+  public CreateSnapshotByRowIdParquetFilesAzureStep(
+      AzureSynapsePdao azureSynapsePdao,
+      SnapshotService snapshotService,
+      SnapshotRequestModel snapshotReq) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.snapshotService = snapshotService;
+    this.snapshotReq = snapshotReq;
   }
 
   @Override
@@ -36,6 +43,10 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
 
     List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
 
+    SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
+    SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
+    List<SnapshotRequestRowIdTableModel> rowIdTableModels = rowIdModel.getTables();
+
     try {
       Map<String, Long> tableRowCounts =
           azureSynapsePdao.createSnapshotParquetFiles(
@@ -44,8 +55,8 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
               IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
               IngestUtils.getTargetDataSourceName(context.getFlightId()),
               null,
-              false,
-              null);
+              true,
+              rowIdModel);
 
       azureSynapsePdao.createSnapshotRowIdsParquetFile(
           tables,

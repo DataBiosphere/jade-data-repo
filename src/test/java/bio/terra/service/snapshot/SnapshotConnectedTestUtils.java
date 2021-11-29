@@ -19,6 +19,7 @@ import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
@@ -28,6 +29,8 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.apache.commons.io.IOUtils;
 import org.springframework.http.MediaType;
@@ -215,5 +218,28 @@ public class SnapshotConnectedTestUtils {
     FieldValueList row = result.iterateAll().iterator().next();
     FieldValue countValue = row.get(0);
     return countValue.getLongValue();
+  }
+
+  private static final String SNAPSHOT_DATA_TEMPLATE =
+      "SELECT * FROM `<project>.<snapshot>.<table>` ORDER BY datarepo_row_id"
+          + " LIMIT <limit> OFFSET <offset>";
+
+  static List<Map<String, Object>> getSnapshotTableRows(
+      String snapshotName, String tableName, BigQueryProject bigQueryProject) throws Exception {
+    final int limit = 30;
+    final int offset = 0;
+    final String snapshotProjectId = bigQueryProject.getProjectId();
+    final String sql =
+        new ST(SNAPSHOT_DATA_TEMPLATE)
+            .add("project", snapshotProjectId)
+            .add("snapshot", snapshotName)
+            .add("table", tableName)
+            .add("limit", limit)
+            .add("offset", offset)
+            .render();
+
+    final TableResult result = bigQueryProject.query(sql);
+
+    return BigQueryPdao.aggregateSnapshotTable(result);
   }
 }

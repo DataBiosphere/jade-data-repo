@@ -106,7 +106,7 @@ jobs:
           roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
           secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/dev/azure-test applicationsecret | AZURE_CREDENTIALS_SECRET
+            secret/dsde/datarepo/integration/helm-azure-integration applicationsecret | AZURE_CREDENTIALS_SECRET
       - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions/actions/main@0.61.0
         with:

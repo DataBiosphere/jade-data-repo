@@ -164,7 +164,7 @@ public class SearchServiceTest {
     final int offset = 30;
 
     SnapshotPreviewModel expectedSnapshotPreviewModel =
-        new SnapshotPreviewModel().result(new ArrayList<>(values));
+        new SnapshotPreviewModel().result(List.copyOf(values));
 
     SnapshotService mockSnapshotService = mock(SnapshotService.class);
     when(mockSnapshotService.retrievePreview(snapshotId, tableName, limit, offset))

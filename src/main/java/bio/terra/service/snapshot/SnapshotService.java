@@ -379,6 +379,7 @@ public class SnapshotService {
 
       return new SnapshotPreviewModel().result(List.copyOf(values));
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new SnapshotPreviewException(
           "Error retrieving preview for snapshot " + snapshot.getName(), e);
     }

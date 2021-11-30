@@ -411,6 +411,33 @@ public class GcsPdao implements CloudFileReader {
     fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, policies);
   }
 
+  public void setAclOnBlobs(List<BlobId> blobIds, AuthenticatedUserRequest userRequest, GoogleBucketResource bucketResource) throws InterruptedException {
+    blobAclUpdates(blobIds, userRequest, bucketResource, AclOp.ACL_OP_CREATE);
+  }
+
+  public void removeAclOnBlobs(List<BlobId> blobIds, AuthenticatedUserRequest userRequest, GoogleBucketResource bucketResource) throws InterruptedException {
+      blobAclUpdates(blobIds, userRequest, bucketResource, AclOp.ACL_OP_DELETE);
+  }
+
+  private void blobAclUpdates(List<BlobId> blobIds, AuthenticatedUserRequest userRequest, GoogleBucketResource bucketResource, AclOp op) throws  InterruptedException{
+    final Storage storage = storageForBucket(bucketResource);
+    final String proxyGroup = iamClient.getProxyGroup(userRequest);
+    final Acl.Group group = new Acl.Group(proxyGroup);
+    switch (op) {
+      case ACL_OP_CREATE:
+        final Acl acl = Acl.newBuilder(group, Acl.Role.READER).build();
+        for (BlobId blobId : blobIds) {
+          AclUtils.aclUpdateRetry(() -> storage.updateAcl(blobId, acl));
+        }
+        break;
+      case ACL_OP_DELETE:
+        for (BlobId blobId : blobIds) {
+          AclUtils.aclUpdateRetry(() -> storage.deleteAcl(blobId, group));
+        }
+        break;
+    }
+  }
+
   public static Blob getBlobFromGsPath(Storage storage, String gspath, String targetProjectId) {
     BlobId locator = GcsUriUtils.parseBlobUri(gspath);
 

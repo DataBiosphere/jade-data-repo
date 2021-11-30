@@ -68,6 +68,13 @@ dependencies {
     implementation "org.glassfish.jersey.inject:jersey-hk2:${jersey}"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jackson}"
 
+    // Azure related dependencies
+    implementation 'com.azure:azure-identity:1.2.5'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.4.0'
+    implementation 'com.azure:azure-storage-common:12.11.1'
+    implementation 'com.azure:azure-storage-file-datalake:12.5.1'
+    implementation 'com.azure:azure-data-tables:12.1.0'
+
     // Gradle project property "datarepoclientjar" overrides the fetch from Maven
     if (project.hasProperty("datarepoclientjar")) {
         implementation files(project.findProperty("datarepoclientjar"))

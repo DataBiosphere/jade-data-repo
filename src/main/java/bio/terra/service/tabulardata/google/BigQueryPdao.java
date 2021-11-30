@@ -103,9 +103,6 @@ public class BigQueryPdao {
   private final String datarepoDnsName;
   private final BigQueryConfiguration bigQueryConfiguration;
 
-  public static final int MIN_ROW_COUNT = 1;
-  public static final int MAX_ROW_COUNT = 100;
-
   @Autowired
   public BigQueryPdao(
       ApplicationConfiguration applicationConfiguration,
@@ -2006,7 +2003,6 @@ public class BigQueryPdao {
 
   public List<Map<String, Object>> getSnapshotTable(
       Snapshot snapshot, String tableName, int limit, int offset) throws InterruptedException {
-    final int truncatedCount = Math.max(Math.min(limit, MAX_ROW_COUNT), MIN_ROW_COUNT);
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final String snapshotProjectId = bigQueryProject.getProjectId();
     final String sql =
@@ -2014,7 +2010,7 @@ public class BigQueryPdao {
             .add("project", snapshotProjectId)
             .add("snapshot", snapshot.getName())
             .add("table", tableName)
-            .add("limit", truncatedCount)
+            .add("limit", limit)
             .add("offset", offset)
             .render();
 

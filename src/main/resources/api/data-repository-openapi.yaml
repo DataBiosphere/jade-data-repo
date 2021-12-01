@@ -687,7 +687,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/snapshots/{id}/data:
+  /api/repository/v1/snapshots/{id}/data/{table}:
     get:
       tags:
         - snapshots
@@ -697,7 +697,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Id'
         - name: table
-          in: query
+          in: path
           description: Name of table to get data from
           required: true
           schema:

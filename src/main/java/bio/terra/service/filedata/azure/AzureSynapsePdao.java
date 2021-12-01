@@ -90,20 +90,10 @@ public class AzureSynapsePdao {
           + "    FROM OPENROWSET(\n"
           + "       BULK '<ingestFileName>',\n"
           + "       DATA_SOURCE = '<ingestFileDataSourceName>',\n"
-          + "       FORMAT = 'parquet') AS rows;";
+          + "       FORMAT = 'parquet') AS rows \n";
 
   private static final String createSnapshotTableByRowIdTemplate =
-      "CREATE EXTERNAL TABLE [<tableName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<destinationParquetFile>',\n"
-          + "    DATA_SOURCE = [<destinationDataSourceName>],\n" // metadata container
-          + "    FILE_FORMAT = [<fileFormat>]\n"
-          + ") AS SELECT * FROM\n"
-          + "    OPENROWSET(\n"
-          + "       BULK '<ingestFileName>',\n"
-          + "       DATA_SOURCE = '<ingestFileDataSourceName>',\n"
-          + "       FORMAT = 'parquet') AS rows"
-          + "WHERE(rows.datarepo_row_id IN ('datarepoRowIds'));";
+      createSnapshotTableTemplate + "WHERE rows.datarepo_row_id IN (<datarepoRowIds>);";
 
   private static final String createSnapshotRowIdTableTemplate =
       "CREATE EXTERNAL TABLE [<tableName>]\n"
@@ -416,7 +406,10 @@ public class AzureSynapsePdao {
               new ST(createSnapshotTableByRowIdTemplate)
                   .add(
                       "datarepoRowIds",
-                      rowIds.stream().map(UUID::toString).collect(Collectors.joining(",")));
+                      rowIds.stream()
+                          .map(UUID::toString)
+                          .map(uuid -> String.format("'%s'", uuid))
+                          .collect(Collectors.joining(",")));
         } else {
           throw new TableNotFoundException("Matching row id table not found");
         }

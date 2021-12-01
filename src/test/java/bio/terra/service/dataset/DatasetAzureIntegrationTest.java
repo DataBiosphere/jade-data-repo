@@ -52,7 +52,11 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotRequestAccessIncludeModel;
+import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestContentsModel.ModeEnum;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
@@ -97,6 +101,7 @@ import org.springframework.util.ResourceUtils;
 @AutoConfigureMockMvc
 @Category(Integration.class)
 public class DatasetAzureIntegrationTest extends UsersBase {
+
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
@@ -454,18 +459,45 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .getAccessInformation()
             .getParquet();
 
+    // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
         datasetParquetAccessInfo.getUrl() + "?" + datasetParquetAccessInfo.getSasToken();
     TestUtils.verifyHttpAccess(datasetParquetUrl, Map.of());
     verifySignedUrl(datasetParquetUrl, steward(), "rl");
+
+    SnapshotRequestModel snapshotByRowIdModel = new SnapshotRequestModel();
+    snapshotByRowIdModel.setName("row_id_test");
+    snapshotByRowIdModel.setDescription("snapshot by row id test");
+
+    SnapshotRequestContentsModel contentsModel = new SnapshotRequestContentsModel();
+    contentsModel.setDatasetName(summaryModel.getName());
+    contentsModel.setMode(ModeEnum.BYROWID);
+
+    SnapshotRequestRowIdModel snapshotRequestRowIdModel = new SnapshotRequestRowIdModel();
 
     for (AccessInfoParquetModelTable table : datasetParquetAccessInfo.getTables()) {
       if (tablesToCheck.contains(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
         verifySignedUrl(tableUrl, steward(), "rl");
+
+        SnapshotRequestRowIdTableModel tableModel = new SnapshotRequestRowIdTableModel();
+        tableModel.setTableName(table.getName());
+        tableModel.setColumns(List.of("id"));
+
+        List<UUID> rowIds = new ArrayList<>();
+        List<Map<String, String>> records = ParquetUtils.readParquetRecords(tableUrl);
+        records.stream()
+            .map(r -> r.get("datarepo_row_id"))
+            .forEach(rowId -> rowIds.add(UUID.fromString(rowId)));
+
+        tableModel.setRowIds(rowIds);
+        snapshotRequestRowIdModel.addTablesItem(tableModel);
       }
     }
+
+    contentsModel.setRowIdSpec(snapshotRequestRowIdModel);
+    snapshotByRowIdModel.setContents(List.of(contentsModel));
 
     // Create Snapshot by full view
     SnapshotRequestModel requestModelAll =
@@ -595,18 +627,14 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     verifySignedUrl(signedUrl, steward(), "r");
 
     // Create snapshot by row id
-    SnapshotRequestModel requestModelByRowId =
-        jsonLoader.loadObject("ingest-test-snapshot-row-ids-test.json", SnapshotRequestModel.class);
-    requestModelByRowId.getContents().get(0).datasetName(summaryModel.getName());
-
     SnapshotSummaryModel snapshotSummaryByRowId =
         dataRepoFixtures.createSnapshotWithRequest(
-            steward(), summaryModel.getName(), profileId, requestModelByRowId);
+            steward(), summaryModel.getName(), profileId, snapshotByRowIdModel);
     snapshotByRowsId = snapshotSummaryByRowId.getId();
     assertThat(
         "Snapshot exists",
         snapshotSummaryByRowId.getName(),
-        equalTo(requestModelByRowId.getName()));
+        equalTo(snapshotByRowIdModel.getName()));
 
     // Read the ingested metadata
     AccessInfoParquetModel snapshotByRowIdParquetAccessInfo =

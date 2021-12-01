@@ -2032,11 +2032,11 @@ public class BigQueryPdao {
 
   private static final String exportToParquetTemplate =
       "export data OPTIONS( "
-          + "uri='<exportPath><table>-*.parquet', "
+          + "uri='<exportPath>/<table>-*.parquet', "
           + "format='PARQUET') "
           + "AS select * from `<project>.<snapshot>.<table>`";
 
-  private static final String exportPathTemplate = "gs://<bucket>/<flightId>/<table>/";
+  private static final String exportPathTemplate = "gs://<bucket>/<flightId>/<table>";
 
   public List<String> exportTableToParquet(
       Snapshot snapshot, GoogleBucketResource bucketResource, String flightId)

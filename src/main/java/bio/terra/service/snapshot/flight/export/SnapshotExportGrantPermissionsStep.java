@@ -14,6 +14,7 @@ import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.storage.BlobId;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SnapshotExportGrantPermissionsStep implements Step {
 
@@ -42,7 +43,13 @@ public class SnapshotExportGrantPermissionsStep implements Step {
         workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
     List<String> paths =
         FlightUtils.getTyped(workingMap, SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_PARQUET_PATHS);
-    List<BlobId> blobs = paths.stream().map(GcsUriUtils::parseBlobUri).collect(Collectors.toList());
+    String exportManifestPath =
+        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_MANIFEST_PATH, String.class);
+
+    List<BlobId> blobs =
+        Stream.concat(paths.stream(), Stream.of(exportManifestPath))
+            .map(GcsUriUtils::parseBlobUri)
+            .collect(Collectors.toList());
 
     switch (aclOp) {
       case CREATE_OP:
@@ -56,7 +63,7 @@ public class SnapshotExportGrantPermissionsStep implements Step {
     return StepResult.getStepResultSuccess();
   }
 
-  private static enum AclOp {
+  private enum AclOp {
     CREATE_OP,
     DELETE_OP;
   }

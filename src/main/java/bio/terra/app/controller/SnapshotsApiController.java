@@ -156,6 +156,17 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
+  public ResponseEntity<JobModel> exportSnapshot(@PathVariable("id") UUID id) {
+    logger.info("Verifying user access");
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    String jobId = snapshotService.exportSnapshot(id, userReq);
+    // we can retrieve the job we just created
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
   public ResponseEntity<EnumerateSnapshotModel> enumerateSnapshots(
       @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
       @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,

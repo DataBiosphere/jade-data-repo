@@ -5,8 +5,8 @@
   "billingAccount": "00708C-45D19D-27AAFA",
   "tenantId": "efc08443-0082-4d6c-8931-c5794c156abd",
   "subscriptionId": "71d52ec1-5886-480a-9d6e-ed98cbf1f69f",
-  "applicationDeploymentName": "integrationapp",
-  "resourceGroupName": "TDR_integration",
+  "applicationDeploymentName": "perfapp",
+  "resourceGroupName": "TDR_perf",
   "cloudPlatform": "azure",
   "kubernetes": {
     "numberOfInitialPods" : 1

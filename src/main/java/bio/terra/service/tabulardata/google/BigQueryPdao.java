@@ -38,6 +38,7 @@ import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotMapColumn;
@@ -2027,6 +2028,46 @@ public class BigQueryPdao {
       rowCounts.put(tableName, getSingleLongValue(result));
     }
     return rowCounts;
+  }
+
+  private static final String exportToParquetTemplate =
+      "export data OPTIONS( "
+          + "uri='<exportPath><table>-*.parquet', "
+          + "format='PARQUET') "
+          + "AS select * from `<project>.<snapshot>.<table>`";
+
+  private static final String exportPathTemplate = "gs://<bucket>/<flightId>/<table>/";
+
+  public List<String> exportTableToParquet(
+      Snapshot snapshot, GoogleBucketResource bucketResource, String flightId)
+      throws InterruptedException {
+    List<String> paths = new ArrayList<>();
+    String snapshotProject = snapshot.getProjectResource().getGoogleProjectId();
+    String snapshotName = snapshot.getName();
+    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+
+    for (var table : snapshot.getTables()) {
+      String tableName = table.getName();
+      String exportPath =
+          new ST(exportPathTemplate)
+              .add("bucket", bucketResource.getName())
+              .add("flightId", flightId)
+              .add("table", tableName)
+              .render();
+
+      String exportStatement =
+          new ST(exportToParquetTemplate)
+              .add("exportPath", exportPath)
+              .add("table", tableName)
+              .add("project", snapshotProject)
+              .add("snapshot", snapshotName)
+              .render();
+
+      bigQueryProject.query(exportStatement);
+      paths.add(exportPath);
+    }
+
+    return paths;
   }
 
   /**

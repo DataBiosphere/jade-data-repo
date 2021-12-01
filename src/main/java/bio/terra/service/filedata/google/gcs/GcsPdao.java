@@ -411,15 +411,28 @@ public class GcsPdao implements CloudFileReader {
     fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, policies);
   }
 
-  public void setAclOnBlobs(List<BlobId> blobIds, AuthenticatedUserRequest userRequest, GoogleBucketResource bucketResource) throws InterruptedException {
+  public void setAclOnBlobs(
+      List<BlobId> blobIds,
+      AuthenticatedUserRequest userRequest,
+      GoogleBucketResource bucketResource)
+      throws InterruptedException {
     blobAclUpdates(blobIds, userRequest, bucketResource, AclOp.ACL_OP_CREATE);
   }
 
-  public void removeAclOnBlobs(List<BlobId> blobIds, AuthenticatedUserRequest userRequest, GoogleBucketResource bucketResource) throws InterruptedException {
-      blobAclUpdates(blobIds, userRequest, bucketResource, AclOp.ACL_OP_DELETE);
+  public void removeAclOnBlobs(
+      List<BlobId> blobIds,
+      AuthenticatedUserRequest userRequest,
+      GoogleBucketResource bucketResource)
+      throws InterruptedException {
+    blobAclUpdates(blobIds, userRequest, bucketResource, AclOp.ACL_OP_DELETE);
   }
 
-  private void blobAclUpdates(List<BlobId> blobIds, AuthenticatedUserRequest userRequest, GoogleBucketResource bucketResource, AclOp op) throws  InterruptedException{
+  private void blobAclUpdates(
+      List<BlobId> blobIds,
+      AuthenticatedUserRequest userRequest,
+      GoogleBucketResource bucketResource,
+      AclOp op)
+      throws InterruptedException {
     final Storage storage = storageForBucket(bucketResource);
     final String proxyGroup = iamClient.getProxyGroup(userRequest);
     final Acl.Group group = new Acl.Group(proxyGroup);

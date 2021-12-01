@@ -1,9 +1,9 @@
 package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.common.FlightUtils;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -12,7 +12,6 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.storage.BlobId;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,8 +38,10 @@ public class SnapshotExportGrantPermissionsStep implements Step {
   private StepResult dispatchAclOp(FlightContext context, AclOp aclOp) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
 
-    GoogleBucketResource bucketResource = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
-    List<String> paths = FlightUtils.getTyped(workingMap, SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_PARQUET_PATHS);
+    GoogleBucketResource bucketResource =
+        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
+    List<String> paths =
+        FlightUtils.getTyped(workingMap, SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_PARQUET_PATHS);
     List<BlobId> blobs = paths.stream().map(GcsUriUtils::parseBlobUri).collect(Collectors.toList());
 
     switch (aclOp) {
@@ -56,6 +57,7 @@ public class SnapshotExportGrantPermissionsStep implements Step {
   }
 
   private static enum AclOp {
-    CREATE_OP, DELETE_OP;
+    CREATE_OP,
+    DELETE_OP;
   }
 }

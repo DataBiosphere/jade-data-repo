@@ -159,7 +159,8 @@ public class ResourceService {
    *       <li>if the metadata exists, but the bucket does not
    *     </ul>
    */
-  public GoogleBucketResource getOrCreateBucketForSnapshotExport(Snapshot snapshot, String flightId)
+  public GoogleBucketResource getOrCreateBucketForSnapshotExport(
+      Snapshot snapshot, String flightId, Duration daysToLive)
       throws InterruptedException, GoogleResourceNamingException {
     GoogleProjectResource projectResource = snapshot.getProjectResource();
     return bucketService.getOrCreateBucket(
@@ -172,34 +173,7 @@ public class ResourceService {
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId,
-        Duration.ofDays(1));
-  }
-
-  /**
-   * Get or create a bucket for snapshot export files
-   *
-   * @param flightId used to lock the bucket metadata during possible creation
-   * @return a reference to the bucket as a POJO GoogleBucketResource
-   * @throws CorruptMetadataException in two cases.
-   *     <ul>
-   *       <li>if the bucket already exists, but the metadata does not AND the application property
-   *           allowReuseExistingBuckets=false.
-   *       <li>if the metadata exists, but the bucket does not
-   *     </ul>
-   */
-  public GoogleBucketResource getOrCreateBucketForSnapshotExport(Snapshot snapshot, String flightId)
-      throws InterruptedException, GoogleResourceNamingException {
-    GoogleProjectResource projectResource = snapshot.getProjectResource();
-    return bucketService.getOrCreateBucket(
-        projectService.bucketForSnapshotExport(projectResource.getGoogleProjectId()),
-        projectResource,
-        (GoogleRegion)
-            snapshot
-                .getFirstSnapshotSource()
-                .getDataset()
-                .getDatasetSummary()
-                .getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
-        flightId);
+        daysToLive);
   }
 
   /**

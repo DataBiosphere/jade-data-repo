@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.After;
@@ -94,7 +95,7 @@ public class SnapshotExportConnectedTest {
   public void testSnapshotExportToParquet() throws Exception {
     String flightId = "snapshotExportToParquet";
     GoogleBucketResource exportBucket =
-        resourceService.getOrCreateBucketForSnapshotExport(snapshot, flightId);
+        resourceService.getOrCreateBucketForSnapshotExport(snapshot, flightId, Duration.ofDays(1));
 
     String bucketPath = String.format("gs://%s/%s/*", exportBucket.getName(), flightId);
     String participantPath =

@@ -2001,6 +2001,9 @@ public class BigQueryPdao {
       "SELECT * FROM `<project>.<snapshot>.<table>` ORDER BY datarepo_row_id"
           + " LIMIT <limit> OFFSET <offset>";
 
+  /*
+   * WARNING: Ensure input parameters are validated before executing this method!
+   */
   public List<Map<String, Object>> getSnapshotTable(
       Snapshot snapshot, String tableName, int limit, int offset) throws InterruptedException {
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);

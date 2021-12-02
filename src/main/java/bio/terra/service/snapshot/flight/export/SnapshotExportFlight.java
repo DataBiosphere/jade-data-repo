@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.export;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
@@ -22,7 +23,8 @@ public class SnapshotExportFlight extends Flight {
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
-    ObjectMapper objectMapper = appContext.getBean(ObjectMapper.class);
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    ObjectMapper objectMapper = appConfig.objectMapper();
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
@@ -30,7 +32,9 @@ public class SnapshotExportFlight extends Flight {
         UUID.fromString(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
 
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
-    addStep(new SnapshotExportCreateParquetFilesStep(bigQueryPdao, snapshotService, snapshotId));
+    addStep(
+        new SnapshotExportCreateParquetFilesStep(
+            bigQueryPdao, gcsPdao, snapshotService, snapshotId));
     addStep(new SnapshotExportWriteManifestStep(gcsPdao, objectMapper));
     addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
   }

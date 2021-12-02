@@ -396,7 +396,7 @@ public class GcsPdao implements CloudFileReader {
     return false;
   }
 
-  private enum AclOp {
+  public enum AclOp {
     ACL_OP_CREATE,
     ACL_OP_DELETE
   }
@@ -411,23 +411,7 @@ public class GcsPdao implements CloudFileReader {
     fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, policies);
   }
 
-  public void setAclOnBlobs(
-      List<BlobId> blobIds,
-      AuthenticatedUserRequest userRequest,
-      GoogleBucketResource bucketResource)
-      throws InterruptedException {
-    blobAclUpdates(blobIds, userRequest, bucketResource, AclOp.ACL_OP_CREATE);
-  }
-
-  public void removeAclOnBlobs(
-      List<BlobId> blobIds,
-      AuthenticatedUserRequest userRequest,
-      GoogleBucketResource bucketResource)
-      throws InterruptedException {
-    blobAclUpdates(blobIds, userRequest, bucketResource, AclOp.ACL_OP_DELETE);
-  }
-
-  private void blobAclUpdates(
+  public void blobAclUpdates(
       List<BlobId> blobIds,
       AuthenticatedUserRequest userRequest,
       GoogleBucketResource bucketResource,

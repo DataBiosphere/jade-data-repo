@@ -26,6 +26,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.time.Instant;
 import java.util.Collections;
@@ -266,5 +267,30 @@ public class SnapshotServiceTest {
                                                     GoogleRegion.DEFAULT_GOOGLE_REGION)))))))
                 .snapshotTables(
                     List.of(new SnapshotTable().name(SNAPSHOT_TABLE_NAME).id(snapshotTableId))));
+  }
+
+  @Test
+  public void retrievePreview() throws Exception {
+    var id = UUID.randomUUID();
+    var table = "some_table";
+    var limit = 10;
+    var offset = 0;
+    var snapshot = new Snapshot().snapshotTables(List.of(new SnapshotTable().name(table)));
+    when(snapshotDao.retrieveSnapshot(id)).thenReturn(snapshot);
+    when(bigQueryPdao.getSnapshotTable(snapshot, table, limit, offset)).thenReturn(List.of());
+    var result = service.retrievePreview(id, table, limit, offset);
+    assertThat(result.getResult(), equalTo(List.of()));
+  }
+
+  @Test(expected = SnapshotPreviewException.class)
+  public void retrievePreviewBadTable() throws Exception {
+    var id = UUID.randomUUID();
+    var table = "some_table";
+    var limit = 10;
+    var offset = 0;
+    var snapshot = new Snapshot().snapshotTables(List.of(new SnapshotTable().name("other_table")));
+    when(snapshotDao.retrieveSnapshot(id)).thenReturn(snapshot);
+    when(bigQueryPdao.getSnapshotTable(snapshot, table, limit, offset)).thenReturn(List.of());
+    service.retrievePreview(id, table, limit, offset);
   }
 }

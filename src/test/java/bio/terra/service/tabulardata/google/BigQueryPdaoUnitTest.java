@@ -6,6 +6,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,6 +48,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.ViewDefinition;
 import java.time.Instant;
 import java.util.Collections;
@@ -1113,5 +1115,16 @@ public class BigQueryPdaoUnitTest {
             + "WHERE R.datarepo_row_id = T.datarepo_row_id",
         Schema.of(Field.of("val", LegacySQLTypeName.NUMERIC)),
         List.of(Map.of("val", Integer.toString(numRowIds))));
+  }
+
+  @Test
+  void getSnapshotTableTest() throws Exception {
+    Snapshot snapshot = new Snapshot();
+    var table = "table";
+    var limit = 10;
+    var offset = 0;
+    BigQueryProject project = mock(BigQueryProject.class);
+    when(project.query("")).thenReturn(new TableResult());
+    BigQueryProject.put(project);
   }
 }

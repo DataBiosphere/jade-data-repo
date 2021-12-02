@@ -12,6 +12,7 @@ import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
@@ -27,7 +28,6 @@ import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.azure.*;
 import com.azure.core.credential.AzureNamedKeyCredential;
@@ -58,7 +58,11 @@ public class AzureIngestFileConnectedTest {
   private static final Logger logger = LoggerFactory.getLogger(AzureIngestFileConnectedTest.class);
 
   private static final AuthenticatedUserRequest TEST_USER =
-      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
 
   private UUID datasetId;
   private String targetPath;

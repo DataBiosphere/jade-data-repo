@@ -7,8 +7,8 @@ import static org.hamcrest.Matchers.equalTo;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -38,7 +38,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class GcsPdaoTest {
 
   private static final AuthenticatedUserRequest TEST_USER =
-      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
 
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private GcsPdao gcsPdao;

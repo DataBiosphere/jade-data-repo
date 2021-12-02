@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.filedata.FSFileInfo;
@@ -24,7 +25,6 @@ import bio.terra.service.filedata.azure.util.BlobContainerCopier;
 import bio.terra.service.filedata.azure.util.BlobContainerCopySyncPoller;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
@@ -57,7 +57,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 @EmbeddedDatabaseTest
 public class AzureBlobStorePdaoTest {
   private static final AuthenticatedUserRequest TEST_USER =
-      new AuthenticatedUserRequest().subjectId("DatasetUnit").email("dataset@unit.com");
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
   private static final UUID PROFILE_ID = UUID.randomUUID();
   private static final UUID RESOURCE_ID = UUID.randomUUID();
   private static final UUID TENANT_ID = UUID.randomUUID();

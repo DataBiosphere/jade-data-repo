@@ -3,6 +3,8 @@ package bio.terra.service.profile;
 import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.ProfilesApi;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
@@ -12,8 +14,6 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import bio.terra.service.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;

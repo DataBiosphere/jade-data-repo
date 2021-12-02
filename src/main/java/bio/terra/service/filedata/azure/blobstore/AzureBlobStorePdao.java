@@ -3,6 +3,7 @@ package bio.terra.service.filedata.azure.blobstore;
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
 import bio.terra.common.exception.PdaoException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.filedata.CloudFileReader;
@@ -13,7 +14,6 @@ import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;

@@ -1,7 +1,7 @@
 package bio.terra.app.logging;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import com.google.gson.Gson;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;

@@ -1,9 +1,9 @@
 package bio.terra.service.filedata.flight.delete;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

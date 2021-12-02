@@ -2,8 +2,8 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.snapshot.SnapshotService;

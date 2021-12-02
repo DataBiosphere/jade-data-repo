@@ -1,6 +1,6 @@
 package bio.terra.service.iam.flight;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;

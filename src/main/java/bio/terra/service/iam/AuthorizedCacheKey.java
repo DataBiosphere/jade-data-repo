@@ -1,5 +1,6 @@
 package bio.terra.service.iam;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import java.util.Objects;
 
 public class AuthorizedCacheKey {

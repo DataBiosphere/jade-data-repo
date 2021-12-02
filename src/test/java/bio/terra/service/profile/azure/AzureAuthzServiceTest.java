@@ -6,7 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
@@ -57,7 +57,11 @@ public class AzureAuthzServiceTest {
   public void testValidateHappyPath() {
     assertThat(
         azureAuthzService.canAccess(
-            new AuthenticatedUserRequest().email(USER_EMAIL),
+            AuthenticatedUserRequest.builder()
+                .setSubjectId("DatasetUnit")
+                .setEmail(USER_EMAIL)
+                .setToken("token")
+                .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
             APPLICATION_DEPLOYMENT_NAME),
@@ -68,7 +72,11 @@ public class AzureAuthzServiceTest {
   public void testValidateUserDoesNotHaveAccess() {
     assertThat(
         azureAuthzService.canAccess(
-            new AuthenticatedUserRequest().email("voldemort.admin@test.firecloud.org"),
+            AuthenticatedUserRequest.builder()
+                .setSubjectId("DatasetUnit")
+                .setEmail("voldemort.admin@test.firecloud.org")
+                .setToken("token")
+                .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
             APPLICATION_DEPLOYMENT_NAME),
@@ -81,7 +89,11 @@ public class AzureAuthzServiceTest {
 
     assertThat(
         azureAuthzService.canAccess(
-            new AuthenticatedUserRequest().email(USER_EMAIL),
+            AuthenticatedUserRequest.builder()
+                .setSubjectId("DatasetUnit")
+                .setEmail(USER_EMAIL)
+                .setToken("token")
+                .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
             APPLICATION_DEPLOYMENT_NAME),

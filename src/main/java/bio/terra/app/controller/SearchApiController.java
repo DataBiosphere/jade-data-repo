@@ -2,6 +2,8 @@ package bio.terra.app.controller;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.controller.exception.ApiException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.SearchApi;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
@@ -9,8 +11,6 @@ import bio.terra.model.SearchMetadataModel;
 import bio.terra.model.SearchMetadataResponse;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;

@@ -2,8 +2,8 @@ package bio.terra.service.upgrade;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.UpgradeModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;

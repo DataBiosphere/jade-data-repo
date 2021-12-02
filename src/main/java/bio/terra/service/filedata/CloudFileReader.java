@@ -1,6 +1,6 @@
 package bio.terra.service.filedata;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import java.util.stream.Stream;
 
 public interface CloudFileReader {

@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.CommonMapKeys;
@@ -11,7 +12,6 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;

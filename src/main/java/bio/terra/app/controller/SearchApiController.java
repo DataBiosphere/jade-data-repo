@@ -11,6 +11,7 @@ import bio.terra.model.SearchMetadataModel;
 import bio.terra.model.SearchMetadataResponse;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -35,6 +36,8 @@ import java.util.Set;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -47,6 +50,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 @Api(tags = {"search"})
 @ConditionalOnProperty(name = "features.search.api", havingValue = "enabled")
 public class SearchApiController implements SearchApi {
+
+  private Logger logger = LoggerFactory.getLogger(SearchApiController.class);
 
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
@@ -89,6 +94,17 @@ public class SearchApiController implements SearchApi {
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
     return authenticatedUserRequestFactory.from(request);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
+      UUID id, String table, Integer offset, Integer limit) {
+    logger.info("Verifying user access");
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    logger.info("Retrieving snapshot id {}", id);
+    SnapshotPreviewModel previewModel = snapshotService.retrievePreview(id, table, limit, offset);
+    return new ResponseEntity<>(previewModel, HttpStatus.OK);
   }
 
   @Override

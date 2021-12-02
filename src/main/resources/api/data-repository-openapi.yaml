@@ -690,6 +690,7 @@ paths:
   /api/repository/v1/snapshots/{id}/data/{table}:
     get:
       tags:
+        - search
         - snapshots
         - repository
       description: Retrieve data for a table in a snapshot

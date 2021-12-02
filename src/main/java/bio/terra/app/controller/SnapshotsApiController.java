@@ -16,7 +16,6 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SqlSortDirection;
@@ -199,17 +198,6 @@ public class SnapshotsApiController implements SnapshotsApi {
     SnapshotModel snapshotModel =
         snapshotService.retrieveAvailableSnapshotModel(id, include, authenticatedInfo);
     return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
-  }
-
-  @Override
-  public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
-      UUID id, String table, Integer offset, Integer limit) {
-    logger.info("Verifying user access");
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
-    logger.info("Retrieving snapshot");
-    SnapshotPreviewModel previewModel = snapshotService.retrievePreview(id, table, limit, offset);
-    return new ResponseEntity<>(previewModel, HttpStatus.OK);
   }
 
   @Override

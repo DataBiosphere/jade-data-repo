@@ -159,8 +159,7 @@ public class ResourceService {
    *       <li>if the metadata exists, but the bucket does not
    *     </ul>
    */
-  public GoogleBucketResource getOrCreateBucketForSnapshotExport(
-      Snapshot snapshot, String flightId, Duration daysToLive)
+  public GoogleBucketResource getOrCreateBucketForSnapshotExport(Snapshot snapshot, String flightId)
       throws InterruptedException, GoogleResourceNamingException {
     GoogleProjectResource projectResource = snapshot.getProjectResource();
     return bucketService.getOrCreateBucket(
@@ -173,7 +172,7 @@ public class ResourceService {
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId,
-        daysToLive);
+        Duration.ofDays(1));
   }
 
   /**

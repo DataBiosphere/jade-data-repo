@@ -13,7 +13,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
-import java.time.Duration;
 import java.util.UUID;
 
 public class SnapshotExportCreateBucketStep extends DefaultUndoStep {
@@ -35,8 +34,7 @@ public class SnapshotExportCreateBucketStep extends DefaultUndoStep {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     try {
       GoogleBucketResource bucketForSnapshot =
-          resourceService.getOrCreateBucketForSnapshotExport(
-              snapshot, context.getFlightId(), Duration.ofDays(1));
+          resourceService.getOrCreateBucketForSnapshotExport(snapshot, context.getFlightId());
       workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, bucketForSnapshot);
     } catch (BucketLockException e) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);

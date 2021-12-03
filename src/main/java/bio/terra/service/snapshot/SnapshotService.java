@@ -15,6 +15,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -41,6 +42,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
+import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
@@ -366,6 +368,30 @@ public class SnapshotService {
         .map(s -> s.getDataset().getId())
         .findFirst()
         .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
+  }
+
+  public SnapshotPreviewModel retrievePreview(
+      UUID snapshotId, String tableName, int limit, int offset) {
+    Snapshot snapshot = retrieve(snapshotId);
+
+    snapshot.getTables().stream()
+        .filter(t -> t.getName().equals(tableName))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new SnapshotPreviewException(
+                    "No snapshot table exists with the name: " + tableName));
+
+    try {
+      List<Map<String, Object>> values =
+          bigQueryPdao.getSnapshotTable(snapshot, tableName, limit, offset);
+
+      return new SnapshotPreviewModel().result(List.copyOf(values));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new SnapshotPreviewException(
+          "Error retrieving preview for snapshot " + snapshot.getName(), e);
+    }
   }
 
   private AssetSpecification getAssetSpecificationFromRequest(

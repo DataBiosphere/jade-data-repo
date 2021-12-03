@@ -131,7 +131,7 @@ public class SearchService {
       throws InterruptedException {
 
     String sql = TimUtils.encodeSqlColumns(searchIndexRequest.getSql());
-    List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, sql);
+    List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableUnsafe(snapshot, sql);
     validateSnapshotDataNotEmpty(values);
     String indexName = createEmptyIndex(snapshot);
     createIndexMapping(indexName, values);

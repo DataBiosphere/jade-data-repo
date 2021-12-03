@@ -373,7 +373,7 @@ public class BigQueryPdaoTest {
                 new GoogleProjectResource().profileId(profileId).googleProjectId(dataProjectId));
     List<Map<String, Object>> expected = getExampleSnapshotTableData();
     List<Map<String, Object>> actual =
-        bigQueryPdao.getSnapshotTableData(snapshot, snapshotTableDataSqlExample);
+        bigQueryPdao.getSnapshotTableUnsafe(snapshot, snapshotTableDataSqlExample);
     assertEquals(expected, actual);
   }
 

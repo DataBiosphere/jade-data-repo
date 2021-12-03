@@ -14,6 +14,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
@@ -24,6 +25,7 @@ import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import org.junit.After;
@@ -43,7 +45,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@SpringBootTest(properties = {"features.search.api=enabled"})
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
@@ -138,6 +140,15 @@ public class SnapshotMinimalConnectedTest {
     assertThat("to table is right", relationshipModel.getTo().getTable(), equalTo("sample"));
     assertThat(
         "to column is right", relationshipModel.getTo().getColumn(), equalTo("participant_id"));
+
+    SnapshotPreviewModel snapshotPreviewModel =
+        SnapshotConnectedTestUtils.getTablePreview(
+            connectedOperations, summaryModel.getId(), "participant", 10, 0);
+
+    assertThat(
+        "participant has the correct age",
+        ((LinkedHashMap) snapshotPreviewModel.getResult().get(0)).get("age"),
+        equalTo("23"));
   }
 
   @Test

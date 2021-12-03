@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -30,16 +31,22 @@ public class IamServiceTest {
   @Mock private ConfigurationService configurationService;
 
   private IamService iamService;
+  private AuthenticatedUserRequest authenticatedUserRequest;
 
   @Before
   public void setup() {
     when(configurationService.getParameterValue(eq(ConfigEnum.AUTH_CACHE_SIZE))).thenReturn(1);
     iamService = new IamService(iamProvider, configurationService);
+    authenticatedUserRequest =
+        AuthenticatedUserRequest.builder()
+            .setSubjectId("DatasetUnit")
+            .setEmail("dataset@unit.com")
+            .setToken("token")
+            .build();
   }
 
   @Test
   public void testAddPolicyMember() throws InterruptedException {
-    var authenticatedUserRequest = new AuthenticatedUserRequest();
     var policyModel = new PolicyModel();
     String policyName = "policyName";
     String email = "email";
@@ -66,7 +73,6 @@ public class IamServiceTest {
 
   @Test
   public void testDeletePolicyMember() throws InterruptedException {
-    var authenticatedUserRequest = new AuthenticatedUserRequest();
     var policyModel = new PolicyModel();
     String policyName = "policyName";
     String email = "email";

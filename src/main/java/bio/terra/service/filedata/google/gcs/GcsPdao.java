@@ -10,6 +10,7 @@ import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigurationService;
@@ -21,7 +22,6 @@ import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -221,7 +221,7 @@ public class GcsPdao implements CloudFileReader {
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
     String token =
         petAccountTokens.computeIfAbsent(
-            user.getRequiredToken(),
+            user.getToken(),
             t -> {
               try {
                 return iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);

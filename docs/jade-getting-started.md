@@ -281,7 +281,16 @@ psql -f db/create-data-repo-db
 psql --list
 ```
 
-## 11. Repository Setup
+## 11. Configure Azure
+You will need to have an Azure account created (see https://docs.google.com/spreadsheets/d/1Q6CldqVPrATkWCAXljKrwlLz8oFsCQwcfOz_io-gcrA)
+and granted access to the TDR application in Azure and added to the jadedev group.
+
+The Azure user should look like <your email id>@azure.dev.envs-terra.bio
+
+Both are performed by a teammate in the Azure portal: https://portal.azure.com
+
+
+## 12. Repository Setup
 
 ### 1. Build `jade-data-repo`
 

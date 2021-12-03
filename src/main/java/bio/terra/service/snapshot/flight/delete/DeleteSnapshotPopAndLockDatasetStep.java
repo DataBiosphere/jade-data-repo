@@ -1,11 +1,11 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.common.exception.RetryQueryException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;

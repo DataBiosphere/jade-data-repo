@@ -1,14 +1,18 @@
 package bio.terra.service.iam;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+@Primary
 @Component
 @Profile({"!terra", "!dev", "!integration"})
 public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {
@@ -28,15 +32,20 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
   public AuthenticatedUserRequest from(HttpServletRequest servletRequest) {
     HttpServletRequest req = servletRequest;
 
-    Optional<String> token =
+    String token =
         Optional.ofNullable(req.getHeader("Authorization"))
-            .map(header -> header.substring("Bearer ".length()));
+            .map(header -> header.substring("Bearer ".length()))
+            .orElse("");
 
     String email =
         Optional.ofNullable(req.getHeader("From")).orElse(applicationConfiguration.getUserEmail());
 
     String userId = applicationConfiguration.getUserId();
 
-    return new AuthenticatedUserRequest().email(email).subjectId(userId).token(token);
+    return AuthenticatedUserRequest.builder()
+        .setEmail(email)
+        .setSubjectId(userId)
+        .setToken(token)
+        .build();
   }
 }

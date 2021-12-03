@@ -11,6 +11,7 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.OnDemand;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
@@ -42,7 +43,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.StringUtils;
@@ -196,7 +196,10 @@ public class AccessTest extends UsersBase {
         custodian(), snapshotSummaryModel.getId(), IamRole.READER, reader().getEmail());
 
     AuthenticatedUserRequest authenticatedReaderRequest =
-        new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
+        AuthenticatedUserRequest.builder()
+            .setEmail(reader().getEmail())
+            .setToken(readerToken)
+            .build();
     assertThat(
         "correctly added reader",
         iamService.isAuthorized(
@@ -259,7 +262,10 @@ public class AccessTest extends UsersBase {
         custodian(), snapshotModel.getId(), IamRole.READER, reader().getEmail());
 
     AuthenticatedUserRequest authenticatedReaderRequest =
-        new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
+        AuthenticatedUserRequest.builder()
+            .setEmail(reader().getEmail())
+            .setToken(readerToken)
+            .build();
     boolean authorized =
         iamService.isAuthorized(
             authenticatedReaderRequest,

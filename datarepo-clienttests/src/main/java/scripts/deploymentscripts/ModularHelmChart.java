@@ -224,8 +224,6 @@ public class ModularHelmChart extends DeploymentScript {
     // confirm that the expected environment variables/application properties are set
     final List<String> environmentSpecificVariables =
         Arrays.asList(
-            "GOOGLE_PROJECTID",
-            "GOOGLE_SINGLEDATAPROJECTID",
             "DB_DATAREPO_USERNAME",
             "DB_STAIRWAY_USERNAME",
             "DB_DATAREPO_URI",

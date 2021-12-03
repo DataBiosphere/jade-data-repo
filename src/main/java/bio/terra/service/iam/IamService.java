@@ -3,6 +3,7 @@ package bio.terra.service.iam;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigurationService;
@@ -93,9 +94,8 @@ public class IamService {
     return callProvider(
         () -> {
           int timeoutSeconds = configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS);
-          AuthenticatedUserRequest userReqNoId = userReq.reqId(null);
           AuthorizedCacheKey authorizedCacheKey =
-              new AuthorizedCacheKey(userReqNoId, iamResourceType, resourceId, action);
+              new AuthorizedCacheKey(userReq, iamResourceType, resourceId, action);
           AuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
           if (authorizedCacheValue != null) { // check if it's in the cache
             // check if it's still in the allotted time

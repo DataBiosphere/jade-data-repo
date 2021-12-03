@@ -1,6 +1,6 @@
 package bio.terra.service.job;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.exception.JobServiceShutdownException;
 import java.util.LinkedList;
 import java.util.List;

@@ -3,11 +3,11 @@ package bio.terra.service.iam.sam;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.DataRepoException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
@@ -124,7 +124,7 @@ public class SamIam implements IamProviderInterface {
       String resourceId,
       IamAction action)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     boolean authorized =
         samResourceApi.resourcePermissionV2(
             iamResourceType.toString(), resourceId, action.toString());
@@ -142,7 +142,7 @@ public class SamIam implements IamProviderInterface {
 
   private Map<UUID, Set<IamRole>> listAuthorizedResourcesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType) throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     return samResourceApi.listResourcesAndPolicies(iamResourceType.getSamResourceName()).stream()
         .filter(resource -> ValidationUtils.isValidUuid(resource.getResourceId()))
         .collect(
@@ -164,7 +164,7 @@ public class SamIam implements IamProviderInterface {
   private boolean hasActionsInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     List<String> actionList =
         samResourceApi.resourceActions(iamResourceType.toString(), resourceId);
     return (actionList.size() > 0);
@@ -192,7 +192,7 @@ public class SamIam implements IamProviderInterface {
   private void deleteResourceInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     samResourceApi.deleteResource(iamResourceType.toString(), resourceId);
   }
 
@@ -221,7 +221,7 @@ public class SamIam implements IamProviderInterface {
     req.addPoliciesItem(
         IamRole.SNAPSHOT_CREATOR.toString(), createAccessPolicy(IamRole.SNAPSHOT_CREATOR, null));
 
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     logger.debug(req.toString());
 
     // create the resource in sam
@@ -276,7 +276,7 @@ public class SamIam implements IamProviderInterface {
     req.addPoliciesItem(
         IamRole.DISCOVERER.toString(), createAccessPolicy(IamRole.DISCOVERER, null));
 
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     logger.debug("SAM request: " + req.toString());
 
     // create the resource in sam
@@ -301,7 +301,7 @@ public class SamIam implements IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType resourceType, UUID id, IamRole role)
       throws ApiException {
     Map<String, List<Object>> results =
-        samGoogleApi(userReq.getRequiredToken())
+        samGoogleApi(userReq.getToken())
             .syncPolicy(resourceType.toString(), id.toString(), role.toString());
     String policyEmail = getPolicyGroupEmailFromResponse(results);
     logger.debug(
@@ -335,7 +335,7 @@ public class SamIam implements IamProviderInterface {
         createAccessPolicyOne(IamRole.OWNER, userStatusInfo.getUserEmail()));
     req.addPoliciesItem(IamRole.USER.toString(), createAccessPolicy(IamRole.USER, null));
 
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     logger.debug("SAM request: " + req.toString());
 
     // Simply ensure that the call can complete
@@ -360,7 +360,7 @@ public class SamIam implements IamProviderInterface {
   private List<PolicyModel> retrievePoliciesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     try (Stream<AccessPolicyResponseEntry> resultStream =
         samResourceApi
             .listResourcePolicies(iamResourceType.toString(), resourceId.toString())
@@ -387,7 +387,7 @@ public class SamIam implements IamProviderInterface {
   private Map<IamRole, String> retrievePolicyEmailsInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     try (Stream<AccessPolicyResponseEntry> resultStream =
         samResourceApi
             .listResourcePolicies(iamResourceType.toString(), resourceId.toString())
@@ -421,7 +421,7 @@ public class SamIam implements IamProviderInterface {
       String policyName,
       String userEmail)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     logger.debug(
         "addUserPolicy resourceType {} resourceId {} policyName {} userEmail {}",
         iamResourceType.toString(),
@@ -455,7 +455,7 @@ public class SamIam implements IamProviderInterface {
       String policyName,
       String userEmail)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     samResourceApi.removeUserFromPolicy(
         iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
   }
@@ -466,7 +466,7 @@ public class SamIam implements IamProviderInterface {
       UUID resourceId,
       String policyName)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     AccessPolicyMembership result =
         samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
     return new PolicyModel().name(policyName).members(result.getMemberEmails());
@@ -474,7 +474,7 @@ public class SamIam implements IamProviderInterface {
 
   @Override
   public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) {
-    UsersApi samUsersApi = samUsersApi(userReq.getRequiredToken());
+    UsersApi samUsersApi = samUsersApi(userReq.getToken());
     try {
       org.broadinstitute.dsde.workbench.client.sam.model.UserStatusInfo samInfo =
           samUsersApi.getUserStatusInfo();
@@ -493,7 +493,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   private String getProxyGroupInner(AuthenticatedUserRequest userReq) throws ApiException {
-    return samGoogleApi(userReq.getRequiredToken()).getProxyGroup(userReq.getEmail());
+    return samGoogleApi(userReq.getToken()).getProxyGroup(userReq.getEmail());
   }
 
   @Override
@@ -523,7 +523,7 @@ public class SamIam implements IamProviderInterface {
 
   private String getPetTokenInner(AuthenticatedUserRequest userReq, List<String> scopes)
       throws ApiException {
-    return samGoogleApi(userReq.getRequiredToken()).getArbitraryPetServiceAccountToken(scopes);
+    return samGoogleApi(userReq.getToken()).getArbitraryPetServiceAccountToken(scopes);
   }
 
   private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {

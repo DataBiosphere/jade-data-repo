@@ -6,11 +6,14 @@ import bio.terra.model.SnapshotExportResponseModelFormat;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotExportResponseModelFormatParquetLocation;
 import bio.terra.model.SnapshotExportResponseModelFormatParquetLocationTables;
+import bio.terra.model.SnapshotModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -22,16 +25,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
 
+  private final UUID snapshotId;
+  private final SnapshotService snapshotService;
   private final GcsPdao gcsPdao;
   private final ObjectMapper objectMapper;
+  private final AuthenticatedUserRequest userReq;
 
-  public SnapshotExportWriteManifestStep(GcsPdao gcsPdao, ObjectMapper objectMapper) {
+  public SnapshotExportWriteManifestStep(
+      UUID snapshotId,
+      SnapshotService snapshotService,
+      GcsPdao gcsPdao,
+      ObjectMapper objectMapper,
+      AuthenticatedUserRequest userReq) {
+    this.snapshotId = snapshotId;
+    this.snapshotService = snapshotService;
     this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
+    this.userReq = userReq;
   }
 
   @Override
@@ -69,8 +84,11 @@ public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
 
+    SnapshotModel snapshot = snapshotService.retrieveAvailableSnapshotModel(snapshotId, userReq);
+
     SnapshotExportResponseModel responseModel =
         new SnapshotExportResponseModel()
+            .snapshot(snapshot)
             .format(
                 new SnapshotExportResponseModelFormat()
                     .parquet(

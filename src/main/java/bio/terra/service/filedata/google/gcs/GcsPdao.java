@@ -432,6 +432,8 @@ public class GcsPdao implements CloudFileReader {
           AclUtils.aclUpdateRetry(() -> storage.deleteAcl(blobId, group));
         }
         break;
+      default:
+        throw new UnsupportedOperationException("Can only create or delete ACLs");
     }
   }
 

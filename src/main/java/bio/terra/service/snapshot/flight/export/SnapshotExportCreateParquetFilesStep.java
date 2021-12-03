@@ -49,6 +49,7 @@ public class SnapshotExportCreateParquetFilesStep extends DefaultUndoStep {
         paths.stream()
             .map(
                 path -> {
+                  // Path will always be gs://<bucket>/<flightId>/<tableName>/<parquetFiles*>
                   String tableName = path.split("/")[4];
                   List<String> files =
                       gcsPdao

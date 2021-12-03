@@ -3621,6 +3621,8 @@ components:
     SnapshotExportResponseModel:
       type: object
       properties:
+        snapshot:
+          $ref: '#/components/schemas/SnapshotModel'
         format:
           type: object
           properties:

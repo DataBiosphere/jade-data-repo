@@ -35,7 +35,9 @@ public class SnapshotExportFlight extends Flight {
     addStep(
         new SnapshotExportCreateParquetFilesStep(
             bigQueryPdao, gcsPdao, snapshotService, snapshotId));
-    addStep(new SnapshotExportWriteManifestStep(gcsPdao, objectMapper));
+    addStep(
+        new SnapshotExportWriteManifestStep(
+            snapshotId, snapshotService, gcsPdao, objectMapper, userReq));
     addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
   }
 }

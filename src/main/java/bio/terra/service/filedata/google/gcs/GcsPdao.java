@@ -396,7 +396,7 @@ public class GcsPdao implements CloudFileReader {
     return false;
   }
 
-  private enum AclOp {
+  public enum AclOp {
     ACL_OP_CREATE,
     ACL_OP_DELETE
   }
@@ -409,6 +409,32 @@ public class GcsPdao implements CloudFileReader {
   public void removeAclOnFiles(Dataset dataset, List<String> fileIds, Map<IamRole, String> policies)
       throws InterruptedException {
     fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, policies);
+  }
+
+  public void blobAclUpdates(
+      List<BlobId> blobIds,
+      AuthenticatedUserRequest userRequest,
+      GoogleBucketResource bucketResource,
+      AclOp op)
+      throws InterruptedException {
+    final Storage storage = storageForBucket(bucketResource);
+    final String proxyGroup = iamClient.getProxyGroup(userRequest);
+    final Acl.Group group = new Acl.Group(proxyGroup);
+    switch (op) {
+      case ACL_OP_CREATE:
+        final Acl acl = Acl.newBuilder(group, Acl.Role.READER).build();
+        for (BlobId blobId : blobIds) {
+          AclUtils.aclUpdateRetry(() -> storage.updateAcl(blobId, acl));
+        }
+        break;
+      case ACL_OP_DELETE:
+        for (BlobId blobId : blobIds) {
+          AclUtils.aclUpdateRetry(() -> storage.deleteAcl(blobId, group));
+        }
+        break;
+      default:
+        throw new UnsupportedOperationException("Can only create or delete ACLs");
+    }
   }
 
   public static Blob getBlobFromGsPath(Storage storage, String gspath, String targetProjectId) {

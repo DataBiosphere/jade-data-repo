@@ -12,10 +12,8 @@ import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
-import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.time.Instant;
@@ -154,26 +152,6 @@ public class SearchServiceTest {
     expectedResultModel.result(List.of(Map.of(timPropertyName, "0")));
 
     assertEquals(expectedResultModel.getResult(), actualResultModel.getResult());
-  }
-
-  @Test
-  public void snapshotPreviewTest() throws Exception {
-    final UUID snapshotId = UUID.randomUUID();
-    final String tableName = "mockTable";
-    final int limit = 0;
-    final int offset = 30;
-
-    SnapshotPreviewModel expectedSnapshotPreviewModel =
-        new SnapshotPreviewModel().result(List.copyOf(values));
-
-    SnapshotService mockSnapshotService = mock(SnapshotService.class);
-    when(mockSnapshotService.retrievePreview(snapshotId, tableName, limit, offset))
-        .thenReturn(expectedSnapshotPreviewModel);
-
-    SnapshotPreviewModel actualSnapshotPreviewModel =
-        mockSnapshotService.retrievePreview(snapshotId, tableName, limit, offset);
-
-    assertEquals(expectedSnapshotPreviewModel.getResult(), actualSnapshotPreviewModel.getResult());
   }
 
   private SearchIndexRequest getSearchIndexRequest() {

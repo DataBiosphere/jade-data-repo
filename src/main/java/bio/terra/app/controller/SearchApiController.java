@@ -51,7 +51,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @ConditionalOnProperty(name = "features.search.api", havingValue = "enabled")
 public class SearchApiController implements SearchApi {
 
-  private Logger logger = LoggerFactory.getLogger(SearchApiController.class);
+  private static final Logger logger = LoggerFactory.getLogger(SearchApiController.class);
 
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;

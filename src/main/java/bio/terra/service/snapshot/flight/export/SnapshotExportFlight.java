@@ -1,8 +1,8 @@
 package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotService;

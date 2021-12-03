@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormat;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
@@ -9,7 +10,6 @@ import bio.terra.model.SnapshotExportResponseModelFormatParquetLocationTables;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;

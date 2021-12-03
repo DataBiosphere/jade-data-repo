@@ -1,9 +1,9 @@
 package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;

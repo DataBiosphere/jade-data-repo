@@ -43,6 +43,7 @@ import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
+import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -123,6 +124,14 @@ public class SnapshotService {
     String description = "Delete snapshot " + id;
     return jobService
         .newJob(description, SnapshotDeleteFlight.class, null, userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
+        .submit();
+  }
+
+  public String exportSnapshot(UUID id, AuthenticatedUserRequest userReq) {
+    String description = "Export snapshot " + id;
+    return jobService
+        .newJob(description, SnapshotExportFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
         .submit();
   }

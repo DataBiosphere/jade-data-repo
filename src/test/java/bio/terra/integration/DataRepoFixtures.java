@@ -44,6 +44,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
+import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -617,6 +618,22 @@ public class DataRepoFixtures {
         "Valid delete response",
         (deleteModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED
             || deleteModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
+  }
+
+  public DataRepoResponse<SnapshotExportResponseModel> exportSnapshotLog(
+      TestConfiguration.User user, UUID snapshotId) throws Exception {
+    DataRepoResponse<JobModel> jobResponse = exportSnapshot(user, snapshotId);
+    assertTrue("snapshot export launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(
+        "snapshot export launch response is present", jobResponse.getResponseObject().isPresent());
+
+    return dataRepoClient.waitForResponseLog(user, jobResponse, SnapshotExportResponseModel.class);
+  }
+
+  public DataRepoResponse<JobModel> exportSnapshot(TestConfiguration.User user, UUID snapshotId)
+      throws Exception {
+    return dataRepoClient.get(
+        user, String.format("/api/repository/v1/snapshots/%s/export", snapshotId), JobModel.class);
   }
 
   public DataRepoResponse<JobModel> ingestJsonDataLaunch(

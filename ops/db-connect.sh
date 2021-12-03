@@ -13,8 +13,8 @@
 # delete it using kubectl, where ZZ is the SUFFIX.
 # $ kubectl --namespace ZZ delete pod ZZ-sql
 
-: ${DB:?}
-: ${ENVIRONMENT:?}
+: "${DB:?}"
+: "${ENVIRONMENT:?}"
 SUFFIX=${SUFFIX:-$ENVIRONMENT}
 
 VAULT_PATH="secret/dsde/datarepo/${ENVIRONMENT}/helm-datarepodb-${ENVIRONMENT}"

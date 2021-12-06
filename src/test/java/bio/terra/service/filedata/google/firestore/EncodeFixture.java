@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
@@ -37,9 +39,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
-
-import static org.apache.parquet.filter.ColumnPredicates.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 @ActiveProfiles({"google", "integrationtest"})
 @Component
@@ -146,11 +145,13 @@ public class EncodeFixture {
         snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
     String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
-    BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
-    boolean hasAccess = BigQueryFixtures.hasAccess(
-        bigQueryReader,
-        snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
-        snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
+    BigQuery bigQueryReader =
+        BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
+    boolean hasAccess =
+        BigQueryFixtures.hasAccess(
+            bigQueryReader,
+            snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+            snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
     assertThat("has access to BQ", hasAccess);
 

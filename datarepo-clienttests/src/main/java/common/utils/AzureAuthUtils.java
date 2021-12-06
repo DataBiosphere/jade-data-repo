@@ -17,11 +17,11 @@ public class AzureAuthUtils {
   }
 
   public static TokenCredential getAppToken(final UUID tenantId) {
-    String APPLICATION_ID = System.getenv("AZURE_CREDENTIALS_APPLICATIONID");
-    String SECRET = System.getenv("AZURE_CREDENTIALS_SECRET");
+    String azureCredentialsApplicationid = System.getenv("AZURE_CREDENTIALS_APPLICATIONID");
+    String azureCredentialsSecret = System.getenv("AZURE_CREDENTIALS_SECRET");
     return new ClientSecretCredentialBuilder()
-        .clientId(APPLICATION_ID)
-        .clientSecret(SECRET)
+        .clientId(azureCredentialsApplicationid)
+        .clientSecret(azureCredentialsSecret)
         .tenantId(tenantId.toString())
         .build();
   }

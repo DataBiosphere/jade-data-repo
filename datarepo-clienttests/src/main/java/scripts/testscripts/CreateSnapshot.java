@@ -36,6 +36,7 @@ import scripts.utils.DataRepoUtils;
 
 public class CreateSnapshot extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(CreateSnapshot.class);
+  private static final String testDataStorageAccount = "tdrtestdatauseast";
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public CreateSnapshot() {
@@ -67,7 +68,7 @@ public class CreateSnapshot extends SimpleDataset {
           new RequestRetryOptions(RetryPolicyType.EXPONENTIAL, 3, 60, null, null, null);
       blobIOTestUtility =
           new BlobIOTestUtility(
-              AzureAuthUtils.getAppToken(tenantId), "tdrtestdatauseast", null, retryOptions);
+              AzureAuthUtils.getAppToken(tenantId), testDataStorageAccount, null, retryOptions);
     }
     // Be careful testing this at larger sizes
     DataRepoUtils.setConfigParameter(repositoryApi, "LOAD_BULK_ARRAY_FILES_MAX", filesToLoad);
@@ -80,6 +81,8 @@ public class CreateSnapshot extends SimpleDataset {
       arrayLoad =
           BulkLoadUtils.buildAzureBulkLoadFileRequest100B(
               filesToLoad, billingProfileModel.getId(), blobIOTestUtility, azureClient);
+    } else {
+      throw new RuntimeException("Unsupported cloud platform");
     }
     JobModel bulkLoadArrayJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
@@ -107,8 +110,7 @@ public class CreateSnapshot extends SimpleDataset {
       ingestRequest = BulkLoadUtils.makeIngestRequestFromScratchFile(scratchFile);
       scratchFiles.add(scratchFile); // make sure the scratch file gets cleaned up later
     } else if (cloudPlatform.equals(CloudPlatform.AZURE)) {
-      String flightId = UUID.randomUUID().toString();
-      String fileRefName = flightId + "/file-ingest-request.json";
+      String fileRefName = UUID.randomUUID().toString() + "/file-ingest-request.json";
       String scratchFile =
           BulkLoadUtils.azureWriteScratchFileForIngestRequest(
               blobIOTestUtility, result, fileRefName);
@@ -121,6 +123,8 @@ public class CreateSnapshot extends SimpleDataset {
               .path(scratchFile)
               .profileId(billingProfileModel.getId())
               .loadTag(FileUtils.randomizeName("azureCombinedIngestTest"));
+    } else {
+      throw new RuntimeException("Unsupported cloud platform");
     }
 
     // load the data

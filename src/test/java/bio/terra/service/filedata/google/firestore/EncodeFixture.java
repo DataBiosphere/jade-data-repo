@@ -4,6 +4,7 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -19,6 +20,7 @@ import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
@@ -35,6 +37,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
+
+import static org.apache.parquet.filter.ColumnPredicates.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @ActiveProfiles({"google", "integrationtest"})
 @Component
@@ -140,18 +145,15 @@ public class EncodeFixture {
         snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
         snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
-    // TODO: re-add once CA-1406 is resolved
-    /*
-        String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
-        BigQuery bigQueryReader =
-            BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
-        boolean hasAccess = BigQueryFixtures.hasAccess(
+    String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
+    BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
+    boolean hasAccess = BigQueryFixtures.hasAccess(
         bigQueryReader,
         snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
         snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
-    assertThat("has access to BQ", hasAccess, equalTo(true));
-         */
+    assertThat("has access to BQ", hasAccess);
+
     logger.info("Successfully checked access");
     return new SetupResult(profileId, datasetId, snapshotSummary);
   }

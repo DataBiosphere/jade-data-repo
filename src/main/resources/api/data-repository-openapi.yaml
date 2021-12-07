@@ -687,6 +687,84 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/data/{table}:
+    get:
+      tags:
+        - search
+        - snapshots
+        - repository
+      description: Retrieve data for a table in a snapshot
+      operationId: lookupSnapshotPreviewById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: table
+          in: path
+          description: Name of table to get data from
+          required: true
+          schema:
+            type: string
+        - name: offset
+          in: query
+          description: The number of rows to skip when retrieving the next page
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: limit
+          in: query
+          description: The number of rows to return for the data
+          schema:
+            type: integer
+            default: 30
+            minimum: 1
+            maximum: 1000
+      responses:
+        200:
+          description: Returns the table data from a snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotPreviewModel'
+  /api/repository/v1/snapshots/{id}/export:
+    get:
+      tags:
+        - snapshots
+        - repository
+      description: Export a snapshot by id
+      operationId: exportSnapshot
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        202:
+          description: Job status of snapshot export job & url for polling in the
+            response header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to export snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshots/{id}/files/{fileid}:
     get:
       tags:
@@ -3140,6 +3218,16 @@ components:
         dataset bucket.
         Eventually, this will include attributes of the storage including
         billing, temperature, geography, etc. But for now...
+    SnapshotPreviewModel:
+      type: object
+      properties:
+        result:
+          type: array
+          items:
+            type: object
+        description: A preview of a snapshot table
+      description: >
+        The previews of tables in the snapshot
     FileModel:
       type: object
       properties:
@@ -3578,6 +3666,48 @@ components:
           $ref: '#/components/schemas/AccessInfoModel'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
+    SnapshotExportResponseModel:
+      type: object
+      properties:
+        snapshot:
+          $ref: '#/components/schemas/SnapshotModel'
+        format:
+          type: object
+          properties:
+            parquet:
+              type: object
+              properties:
+                location:
+                  type: object
+                  properties:
+                    tables:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            description: "Name of the table exported"
+                          paths:
+                            type: array
+                            items:
+                              type: string
+                              description: "path to a parquet file for a table"
+                manifest:
+                  type: string
+                  description: "path to manifest file detailing paths to parquet files"
+            workspace:
+              type: object
+              properties:
+                namespace:
+                  type: string
+                  description: "Workspace namespace the snapshot was exported to"
+                name:
+                  type: string
+                  description: "Workspace name the snapshot was exported to"
+                link:
+                  type: string
+                  description: "Link to the workspace the snapshot was exported to"
     AccessInfoModel:
       type: object
       description: >

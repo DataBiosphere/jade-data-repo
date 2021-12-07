@@ -43,6 +43,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.common.azure.StorageTableName;
@@ -803,6 +804,27 @@ public class ConnectedOperations {
     MockHttpServletResponse response = lookupSnapshotFileByPathRaw(snapshotId, path, depth);
     assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
     return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
+  }
+
+  public MockHttpServletResponse retrieveSnapshotPreviewByIdRaw(
+      UUID snapshotId, String tableName, int limit, int offset) throws Exception {
+    String url = "/api/repository/v1/snapshots/{id}/data/{table}";
+    MvcResult result =
+        mvc.perform(
+                get(url, snapshotId, tableName)
+                    .param("limit", String.valueOf(limit))
+                    .param("offset", String.valueOf(offset)))
+            .andReturn();
+
+    return result.getResponse();
+  }
+
+  public SnapshotPreviewModel retrieveSnapshotPreviewByIdSuccess(
+      UUID snapshotId, String tableName, int limit, int offset) throws Exception {
+    MockHttpServletResponse response =
+        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset);
+    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+    return TestUtils.mapFromJson(response.getContentAsString(), SnapshotPreviewModel.class);
   }
 
   /*

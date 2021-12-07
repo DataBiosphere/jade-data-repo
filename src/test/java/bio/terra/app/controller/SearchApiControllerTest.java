@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexRequest;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -23,6 +24,7 @@ import bio.terra.service.search.SearchService;
 import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -46,6 +48,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @Category(Unit.class)
 public class SearchApiControllerTest {
 
+  private static final String GET_PREVIEW_ENDPOINT =
+      "/api/repository/v1/snapshots/{id}/data/{table}";
   private static final String UPSERT_DELETE_ENDPOINT = "/api/repository/v1/search/{id}/metadata";
 
   @Autowired private MockMvc mvc;
@@ -57,6 +61,27 @@ public class SearchApiControllerTest {
   @MockBean private SearchService searchService;
 
   @MockBean private SnapshotService snapshotService;
+
+  @Test
+  public void testSnapshotPreviewById() throws Exception {
+    var id = UUID.randomUUID();
+    var table = "good_table";
+    var limit = 10;
+    var offset = 0;
+    var list = List.of("hello", "world");
+    var result = new SnapshotPreviewModel().result(List.copyOf(list));
+    when(snapshotService.retrievePreview(id, table, limit, offset)).thenReturn(result);
+    mvc.perform(
+            get(GET_PREVIEW_ENDPOINT, id, table)
+                .queryParam("limit", String.valueOf(limit))
+                .queryParam("offset", String.valueOf(offset)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.result").isArray());
+    verify(iamService)
+        .verifyAuthorization(
+            any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
+    verify(snapshotService).retrievePreview(id, table, limit, offset);
+  }
 
   @Test
   public void testUpsert() throws Exception {

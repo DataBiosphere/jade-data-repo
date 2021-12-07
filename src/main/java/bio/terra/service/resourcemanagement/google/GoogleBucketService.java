@@ -17,6 +17,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -329,7 +330,8 @@ public class GoogleBucketService {
    * @param bucketName name of the bucket to retrieve
    * @return a reference to the bucket as a GCS Bucket object, null if not found
    */
-  Bucket getCloudBucket(String bucketName) {
+  @VisibleForTesting
+  public Bucket getCloudBucket(String bucketName) {
     Storage storage = StorageOptions.getDefaultInstance().getService();
     try {
       return storage.get(bucketName);

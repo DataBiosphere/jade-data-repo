@@ -1977,16 +1977,7 @@ public class BigQueryPdao {
     }
   }
 
-  /*
-   * WARNING: Ensure SQL is validated before executing this method!
-   */
-  public List<Map<String, Object>> getSnapshotTableData(Snapshot snapshot, String sql)
-      throws InterruptedException {
-    // execute query and get result
-    final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
-    final TableResult result = bigQueryProject.query(sql);
-
-    // aggregate into single object
+  public static List<Map<String, Object>> aggregateSnapshotTable(TableResult result) {
     final FieldList columns = result.getSchema().getFields();
     final List<Map<String, Object>> values = new ArrayList<>();
     result
@@ -2006,6 +1997,42 @@ public class BigQueryPdao {
     return values;
   }
 
+  private static final String SNAPSHOT_DATA_TEMPLATE =
+      "SELECT * FROM `<project>.<snapshot>.<table>` ORDER BY datarepo_row_id"
+          + " LIMIT <limit> OFFSET <offset>";
+
+  /*
+   * WARNING: Ensure input parameters are validated before executing this method!
+   */
+  public List<Map<String, Object>> getSnapshotTable(
+      Snapshot snapshot, String tableName, int limit, int offset) throws InterruptedException {
+    final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    final String snapshotProjectId = bigQueryProject.getProjectId();
+    final String sql =
+        new ST(SNAPSHOT_DATA_TEMPLATE)
+            .add("project", snapshotProjectId)
+            .add("snapshot", snapshot.getName())
+            .add("table", tableName)
+            .add("limit", limit)
+            .add("offset", offset)
+            .render();
+
+    final TableResult result = bigQueryProject.query(sql);
+
+    return aggregateSnapshotTable(result);
+  }
+
+  /*
+   * WARNING: Ensure SQL is validated before executing this method!
+   */
+  public List<Map<String, Object>> getSnapshotTableUnsafe(Snapshot snapshot, String sql)
+      throws InterruptedException {
+    final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    final TableResult result = bigQueryProject.query(sql);
+
+    return aggregateSnapshotTable(result);
+  }
+
   // we select from the live view here so that the row counts take into account rows that have been
   // hard deleted
   private static final String rowCountTemplate =
@@ -2014,6 +2041,7 @@ public class BigQueryPdao {
   public Map<String, Long> getSnapshotTableRowCounts(Snapshot snapshot)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+
     Map<String, Long> rowCounts = new HashMap<>();
     for (SnapshotTable snapshotTable : snapshot.getTables()) {
       String tableName = snapshotTable.getName();
@@ -2032,11 +2060,11 @@ public class BigQueryPdao {
 
   private static final String exportToParquetTemplate =
       "export data OPTIONS( "
-          + "uri='<exportPath><table>-*.parquet', "
+          + "uri='<exportPath>/<table>-*.parquet', "
           + "format='PARQUET') "
           + "AS select * from `<project>.<snapshot>.<table>`";
 
-  private static final String exportPathTemplate = "gs://<bucket>/<flightId>/<table>/";
+  private static final String exportPathTemplate = "gs://<bucket>/<flightId>/<table>";
 
   public List<String> exportTableToParquet(
       Snapshot snapshot, GoogleBucketResource bucketResource, String flightId)

@@ -15,6 +15,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSourceModel;
@@ -139,6 +140,17 @@ public class SnapshotConnectedTestUtils {
       String resourcePath)
       throws Exception {
     return connectedOperations.createDataset(billingProfile, resourcePath);
+  }
+
+  static SnapshotPreviewModel getTablePreview(
+      ConnectedOperations connectedOperations,
+      UUID snapshotId,
+      String tableName,
+      int limit,
+      int offset)
+      throws Exception {
+    return connectedOperations.retrieveSnapshotPreviewByIdSuccess(
+        snapshotId, tableName, limit, offset);
   }
 
   static void loadCsvData(

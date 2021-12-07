@@ -531,7 +531,7 @@ public class SnapshotDao {
 
     // get filtered total count of objects
     String countSql =
-        "SELECT count(s.id) AS total FROM snapshot s"
+        "SELECT count(s.id) AS total FROM snapshot s "
             + joinSql
             + " WHERE "
             + StringUtils.join(whereClauses, " AND ");
@@ -548,7 +548,7 @@ public class SnapshotDao {
 
     // get filtered total count of objects
     String filteredCountSql =
-        "SELECT count(s.id) AS total FROM snapshot s"
+        "SELECT count(s.id) AS total FROM snapshot s "
             + joinSql
             + " WHERE "
             + StringUtils.join(whereClauses, " AND ");
@@ -561,7 +561,7 @@ public class SnapshotDao {
         "SELECT s.id, s.name, s.description, s.created_date, s.profile_id, "
             + "snapshot_source.id, d.security_classification, "
             + snapshotSourceStorageQuery
-            + "FROM snapshot s"
+            + "FROM snapshot s "
             + joinSql
             + whereSql
             + DaoUtils.orderByClause(sort, direction)
@@ -607,7 +607,7 @@ public class SnapshotDao {
           "SELECT s.id, s.name, s.description, s.created_date, s.profile_id, "
               + "d.security_classification, "
               + snapshotSourceStorageQuery
-              + "FROM snapshot s"
+              + "FROM snapshot s "
               + "JOIN snapshot_source ON s.id = snapshot_source.snapshot_id "
               + "JOIN dataset d ON d.id = snapshot_source.dataset_id "
               + "WHERE snapshot_source.dataset_id = :datasetId";

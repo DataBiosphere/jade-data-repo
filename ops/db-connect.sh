@@ -26,5 +26,5 @@ if [ -z "$PW" ]; then
   exit 1 # error
 fi
 
-kubectl --namespace "${SUFFIX}" run "${SUFFIX}-psql" -it --restart=Never --rm --image postgres:9.6 -- \
+kubectl --namespace "${SUFFIX}" run "${SUFFIX}-psql" -it --restart=Never --rm --image postgres:11 -- \
     psql "postgresql://drmanager:${PW}@${SUFFIX}-jade-gcloud-sqlproxy.${SUFFIX}/${DB}"

@@ -5,6 +5,7 @@ import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.CloudPlatform;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.JobModel;
@@ -47,9 +48,25 @@ public class SimpleDataset extends runner.TestScript {
 
     // create a new profile
     if (billingProfileModel == null) {
-      billingProfileModel =
-          DataRepoUtils.createProfile(
-              resourcesApi, repositoryApi, billingAccount, "profile-simple", true);
+      if (cloudPlatform.equals(CloudPlatform.GCP)) {
+        billingProfileModel =
+            DataRepoUtils.createProfile(
+                resourcesApi, repositoryApi, billingAccount, "profile-simple", true);
+      } else if (cloudPlatform.equals(CloudPlatform.AZURE)) {
+        billingProfileModel =
+            DataRepoUtils.createAzureProfile(
+                resourcesApi,
+                repositoryApi,
+                tenantId,
+                subscriptionId,
+                resourceGroupName,
+                applicationDeploymentName,
+                "azure-profile-simple",
+                billingAccount,
+                true);
+      } else {
+        throw new RuntimeException("Unsupported cloud platform");
+      }
       logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
     } else {
       logger.info("Using existing profile: {}", billingProfileModel.getProfileName());
@@ -58,7 +75,7 @@ public class SimpleDataset extends runner.TestScript {
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
         DataRepoUtils.createDataset(
-            repositoryApi, billingProfileModel.getId(), "dataset-simple.json", true);
+            repositoryApi, billingProfileModel.getId(), cloudPlatform, "dataset-simple.json", true);
 
     // save a reference to the dataset summary model so we can delete it in cleanup()
     datasetSummaryModel =

@@ -6,6 +6,7 @@ import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.CloudPlatform;
 import bio.terra.datarepo.model.ConfigEnableModel;
 import bio.terra.datarepo.model.ConfigGroupModel;
 import bio.terra.datarepo.model.ConfigModel;
@@ -254,7 +255,11 @@ public final class DataRepoUtils {
    * @return the completed job model
    */
   public static JobModel createDataset(
-      RepositoryApi repositoryApi, UUID profileId, String apipayloadFilename, boolean randomizeName)
+      RepositoryApi repositoryApi,
+      UUID profileId,
+      CloudPlatform cloudPlatform,
+      String apipayloadFilename,
+      boolean randomizeName)
       throws Exception {
     logger.debug("Creating a dataset");
     // use Jackson to map the stream contents to a DatasetRequestModel object
@@ -264,6 +269,7 @@ public final class DataRepoUtils {
     DatasetRequestModel createDatasetRequest =
         objectMapper.readValue(datasetRequestFile, DatasetRequestModel.class);
     createDatasetRequest.defaultProfileId(profileId);
+    createDatasetRequest.setCloudPlatform(cloudPlatform);
 
     if (randomizeName) {
       createDatasetRequest.setName(FileUtils.randomizeName(createDatasetRequest.getName()));
@@ -353,6 +359,46 @@ public final class DataRepoUtils {
             .billingAccountId(billingAccount)
             .profileName(profileName)
             .description(profileName + " created in TestRunner RunTests");
+
+    // make the create request and wait for the job to finish
+    JobModel jobModel = resourcesApi.createProfile(createProfileRequest);
+    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel);
+
+    BillingProfileModel billingProfile =
+        DataRepoUtils.expectJobSuccess(repositoryApi, jobModel, BillingProfileModel.class);
+
+    return billingProfile;
+  }
+
+  public static BillingProfileModel createAzureProfile(
+      ResourcesApi resourcesApi,
+      RepositoryApi repositoryApi,
+      UUID tenantId,
+      UUID subscriptionId,
+      String resourceGroupName,
+      String applicationDeploymentName,
+      String profileName,
+      String billingAccount,
+      boolean randomizeName)
+      throws Exception {
+    logger.debug("Creating a billing profile");
+
+    if (randomizeName) {
+      profileName = FileUtils.randomizeName(profileName);
+    }
+
+    BillingProfileRequestModel createProfileRequest =
+        new BillingProfileRequestModel()
+            .id(UUID.randomUUID())
+            .cloudPlatform(CloudPlatform.AZURE)
+            .tenantId(tenantId)
+            .subscriptionId(subscriptionId)
+            .resourceGroupName(resourceGroupName)
+            .applicationDeploymentName(applicationDeploymentName)
+            .profileName(profileName)
+            .billingAccountId(billingAccount)
+            .biller("direct")
+            .description("test profile description (Azure)");
 
     // make the create request and wait for the job to finish
     JobModel jobModel = resourcesApi.createProfile(createProfileRequest);

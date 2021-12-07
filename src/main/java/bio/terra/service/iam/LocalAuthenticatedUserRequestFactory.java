@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Primary
 @Component
-@Profile({"local", "connectedtest"})
+@Profile({"local", "connectedtest", "unittest"})
 public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {
   private Logger logger = LoggerFactory.getLogger(LocalAuthenticatedUserRequestFactory.class);
 

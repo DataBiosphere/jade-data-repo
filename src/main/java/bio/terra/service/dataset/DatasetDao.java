@@ -593,7 +593,7 @@ public class DatasetDao {
       Collection<UUID> accessibleDatasetIds) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
-    DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses);
+    DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses, "dataset");
     whereClauses.add(" flightid IS NULL"); // exclude datasets that are exclusively locked
 
     // get total count of objects

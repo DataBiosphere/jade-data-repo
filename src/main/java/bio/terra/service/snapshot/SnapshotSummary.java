@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.service.dataset.StorageResource;
 import java.time.Instant;
 import java.util.List;
@@ -12,6 +13,7 @@ public class SnapshotSummary {
   private Instant createdDate;
   private UUID profileId;
   private List<StorageResource> storage;
+  private DatasetSecurityClassification securityClassification;
 
   public UUID getId() {
     return id;
@@ -64,6 +66,16 @@ public class SnapshotSummary {
 
   public SnapshotSummary storage(List<StorageResource> storage) {
     this.storage = storage;
+    return this;
+  }
+
+  public DatasetSecurityClassification getSecurityClassification() {
+    return securityClassification;
+  }
+
+  public SnapshotSummary securityClassification(
+      DatasetSecurityClassification securityClassification) {
+    this.securityClassification = securityClassification;
     return this;
   }
 }

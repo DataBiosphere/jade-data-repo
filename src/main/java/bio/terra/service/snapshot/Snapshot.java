@@ -4,6 +4,7 @@ import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
+import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -175,5 +176,9 @@ public class Snapshot implements FSContainerInterface {
 
   public AzureRegion getStorageAccountRegion() {
     return getFirstSnapshotSource().getDataset().getStorageAccountRegion();
+  }
+
+  public DatasetSecurityClassification getSecurityClassification() {
+    return getFirstSnapshotSource().getDataset().getSecurityClassification();
   }
 }

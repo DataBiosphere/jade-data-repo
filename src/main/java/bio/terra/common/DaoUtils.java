@@ -52,15 +52,9 @@ public final class DaoUtils {
   }
 
   public static void addAuthzIdsClause(
-      Collection<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
+      Collection<UUID> authzIds, MapSqlParameterSource params, List<String> clauses, String table) {
     params.addValue("idlist", authzIds);
-    clauses.add(" dataset.id in (:idlist) ");
-  }
-
-  public static void addAuthzSnapshotIdsClause(
-      Collection<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
-    params.addValue("idlist", authzIds);
-    clauses.add(" snapshot.id in (:idlist) ");
+    clauses.add(String.format(" %s.id in (:idlist) ", table));
   }
 
   public static String escapeFilter(String filter) {

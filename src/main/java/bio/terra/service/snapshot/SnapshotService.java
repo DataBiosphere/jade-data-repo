@@ -607,7 +607,8 @@ public class SnapshotService {
             .description(snapshotSummary.getDescription())
             .createdDate(snapshotSummary.getCreatedDate().toString())
             .profileId(snapshotSummary.getProfileId())
-            .storage(storageResourceModelFromSnapshotSummary(snapshotSummary));
+            .storage(storageResourceModelFromSnapshotSummary(snapshotSummary))
+            .securityClassification(snapshotSummary.getSecurityClassification());
     return summaryModel;
   }
 
@@ -627,7 +628,8 @@ public class SnapshotService {
             .id(snapshot.getId())
             .name(snapshot.getName())
             .description(snapshot.getDescription())
-            .createdDate(snapshot.getCreatedDate().toString());
+            .createdDate(snapshot.getCreatedDate().toString())
+            .securityClassification(snapshot.getSecurityClassification());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRequestAccessIncludeModel.NONE)) {
@@ -692,7 +694,8 @@ public class SnapshotService {
             .storage(
                 dataset.getDatasetSummary().getStorage().stream()
                     .map(StorageResource::toModel)
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toList()))
+            .securityClassification(dataset.getSecurityClassification());
 
     SnapshotSourceModel sourceModel = new SnapshotSourceModel().dataset(summaryModel);
 

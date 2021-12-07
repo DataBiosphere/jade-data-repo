@@ -3627,6 +3627,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StorageResourceModel'
+        securityClassification:
+          $ref: '#/components/schemas/DatasetSecurityClassification'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -3676,6 +3678,8 @@ components:
           description: Project id of the snapshot data project
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
+        securityClassification:
+          $ref: '#/components/schemas/DatasetSecurityClassification'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:

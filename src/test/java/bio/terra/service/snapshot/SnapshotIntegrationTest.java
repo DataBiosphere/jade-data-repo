@@ -13,6 +13,7 @@ import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
@@ -164,6 +165,11 @@ public class SnapshotIntegrationTest extends UsersBase {
         "the right relationship comes through",
         snapshot.getRelationships().get(0).getName(),
         equalTo("sample_participants"));
+
+    assertThat(
+        "The security classification is propagated from the dataset",
+        snapshot.getSecurityClassification(),
+        equalTo(DatasetSecurityClassification.NONE));
   }
 
   @Test

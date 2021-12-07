@@ -17,6 +17,7 @@ import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.RetryRuleRandomBackoff;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
@@ -83,8 +84,9 @@ public class FileIngestWorkerFlight extends Flight {
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
-      addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset));
-      addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
+      var retry = new RetryRuleExponentialBackoff(2, 30, 1200);
+      addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset), retry);
+      addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), retry);
       addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService, userReq));
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), fileSystemRetry);
     }

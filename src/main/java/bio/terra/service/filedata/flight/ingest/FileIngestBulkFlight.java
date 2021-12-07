@@ -114,7 +114,7 @@ public class FileIngestBulkFlight extends Flight {
 
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
-    RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
+    RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 900);
 
     // The flight plan:
     // 0. Make sure this user is allowed to use the billing profile and that the underlying
@@ -224,7 +224,8 @@ public class FileIngestBulkFlight extends Flight {
               datasetService,
               datasetUuid,
               loadTag,
-              loadHistoryChunkSize));
+              loadHistoryChunkSize),
+          randomBackoffRetry);
     }
     addStep(new IngestCleanFileStateStep(loadService));
 

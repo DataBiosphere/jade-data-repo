@@ -24,6 +24,7 @@ import bio.terra.model.DataDeletionGcsFileModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
@@ -187,6 +188,16 @@ public class DatasetIntegrationTest extends UsersBase {
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
+
+    assertThat(
+        "Default security classification was applied to summary model",
+        summaryModel.getSecurityClassification(),
+        equalTo(DatasetSecurityClassification.NONE));
+
+    assertThat(
+        "Default security classification was propagated to model",
+        datasetModel.getSecurityClassification(),
+        equalTo(DatasetSecurityClassification.NONE));
   }
 
   @Test

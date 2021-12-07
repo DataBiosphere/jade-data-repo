@@ -12,6 +12,7 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DatePartitionOptionsModel;
@@ -68,12 +69,17 @@ public final class DatasetJsonConversion {
     final List<? extends StorageResource<?, ?>> storageResources =
         cloudPlatform.createStorageResourceValues(datasetRequest);
 
+    DatasetSecurityClassification securityClassification =
+        Objects.requireNonNullElse(
+            datasetRequest.getSecurityClassification(), DatasetSecurityClassification.NONE);
+
     return new Dataset(
             new DatasetSummary()
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
                 .storage(storageResources)
-                .defaultProfileId(defaultProfileId))
+                .defaultProfileId(defaultProfileId)
+                .securityClassification(securityClassification))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
@@ -87,7 +93,8 @@ public final class DatasetJsonConversion {
         .description(datasetSummary.getDescription())
         .createdDate(datasetSummary.getCreatedDate().toString())
         .defaultProfileId(datasetSummary.getDefaultProfileId())
-        .storage(storageResourceModelFromDatasetSummary(datasetSummary));
+        .storage(storageResourceModelFromDatasetSummary(datasetSummary))
+        .securityClassification(datasetSummary.getSecurityClassification());
   }
 
   public static DatasetModel populateDatasetModelFromDataset(
@@ -100,7 +107,8 @@ public final class DatasetJsonConversion {
             .id(dataset.getId())
             .name(dataset.getName())
             .description(dataset.getDescription())
-            .createdDate(dataset.getCreatedDate().toString());
+            .createdDate(dataset.getCreatedDate().toString())
+            .securityClassification(dataset.getSecurityClassification());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;

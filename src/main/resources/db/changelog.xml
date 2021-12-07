@@ -46,5 +46,6 @@
     <include file="changesets/20211007_snapshot_storage_account.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20211015_allownullbillingaccountandprojectresourceid.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20211112_rowmetadatatable.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20211206_datasetsecurityattributes.yaml" relativeToChangelogFile="true" />
 
 </databaseChangeLog>

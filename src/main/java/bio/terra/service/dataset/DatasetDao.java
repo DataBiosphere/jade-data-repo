@@ -7,6 +7,7 @@ import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SqlSortDirection;
@@ -61,8 +62,8 @@ public class DatasetDao {
   private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
   private static final String summaryQueryColumns =
-      " dataset.id, name, description, default_profile_id, project_resource_id, application_resource_id, "
-          + "created_date, ";
+      " dataset.id, name, description, default_profile_id, project_resource_id, "
+          + "application_resource_id, security_classification, created_date, ";
 
   private static final String datasetStorageQuery =
       "(SELECT jsonb_agg(json_build_object( "
@@ -368,9 +369,9 @@ public class DatasetDao {
     String sql =
         "INSERT INTO dataset "
             + "(name, default_profile_id, id, project_resource_id, application_resource_id, flightid, description, "
-            + "sharedlock) "
+            + "security_classification, sharedlock) "
             + "VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id, :flightid, "
-            + ":description, ARRAY[]::TEXT[]) ";
+            + ":description, :security_classification, ARRAY[]::TEXT[]) ";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -380,7 +381,8 @@ public class DatasetDao {
             .addValue("application_resource_id", dataset.getApplicationDeploymentResourceId())
             .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
-            .addValue("description", dataset.getDescription());
+            .addValue("description", dataset.getDescription())
+            .addValue("security_classification", dataset.getSecurityClassification().name());
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
       jdbcTemplate.update(sql, params, keyHolder);
@@ -666,7 +668,9 @@ public class DatasetDao {
           .applicationDeploymentResourceId(rs.getObject("application_resource_id", UUID.class))
           .createdDate(rs.getTimestamp("created_date").toInstant())
           .storage(storageResources)
-          .billingProfiles(billingProfileModels);
+          .billingProfiles(billingProfileModels)
+          .securityClassification(
+              DatasetSecurityClassification.valueOf(rs.getString("security_classification")));
     }
   }
 

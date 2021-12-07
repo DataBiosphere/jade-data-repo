@@ -187,6 +187,16 @@ public class DataRepoFixtures {
   }
 
   public DatasetSummaryModel createDataset(
+      TestConfiguration.User user, DatasetRequestModel requestModel, boolean usePetAccount)
+      throws Exception {
+    String json = TestUtils.mapToJson(requestModel);
+    DataRepoResponse<JobModel> post =
+        dataRepoClient.post(
+            user, "/api/repository/v1/datasets", json, JobModel.class, usePetAccount);
+    return waitForDatasetCreate(user, post);
+  }
+
+  public DatasetSummaryModel createDataset(
       TestConfiguration.User user,
       UUID profileId,
       String filename,
@@ -195,6 +205,11 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         createDatasetRaw(user, profileId, filename, cloudPlatform, usePetAccount);
+    return waitForDatasetCreate(user, jobResponse);
+  }
+
+  private DatasetSummaryModel waitForDatasetCreate(
+      TestConfiguration.User user, DataRepoResponse<JobModel> jobResponse) throws Exception {
     assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "dataset create launch response is present", jobResponse.getResponseObject().isPresent());

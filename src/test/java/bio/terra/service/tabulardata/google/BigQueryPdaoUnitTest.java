@@ -1061,9 +1061,9 @@ public class BigQueryPdaoUnitTest {
 
     List<Map<String, Object>> result = BigQueryPdao.aggregateSnapshotTable(table);
 
-    assertEquals(result.get(0).get("STRING"), stringTest);
-    assertEquals(result.get(0).get("INT64"), intTest);
-    assertEquals(result.get(0).get("ARRAY"), listTest);
+    assertEquals(stringTest, result.get(0).get("STRING"));
+    assertEquals(intTest, result.get(0).get("INT64"));
+    assertEquals(listTest, result.get(0).get("ARRAY"));
   }
 
   private Snapshot mockSnapshot() {

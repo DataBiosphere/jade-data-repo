@@ -83,8 +83,8 @@ public class IngestFileAzureDirectoryStep implements Step {
         tableDao.createDirectoryEntry(
             newEntry, storageAuthInfo, datasetId, StorageTableName.DATASET.toTableName());
       } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION)) {
-        FireStoreDirectoryEntry existingEntry = workingMap.get(FileMapKeys.FIRESTORE_FILE,
-            FireStoreDirectoryEntry.class);
+        FireStoreDirectoryEntry existingEntry =
+            workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreDirectoryEntry.class);
         if (existingEntry != null && !StringUtils.equals(existingEntry.getFileId(), fileId)) {
           // (b) We are in a re-run of a load job. Try to get the file entry.
           fileId = existingEntry.getFileId();
@@ -94,7 +94,8 @@ public class IngestFileAzureDirectoryStep implements Step {
             // (b)(i) We successfully loaded this file already
             workingMap.put(FileMapKeys.LOAD_COMPLETED, true);
           }
-          // (b)(ii) We are recovering and should continue this load; leave load completed false/unset
+          // (b)(ii) We are recovering and should continue this load; leave load completed
+          // false/unset
         }
       }
     } catch (FileSystemAbortTransactionException rex) {

@@ -1990,7 +1990,7 @@ public class BigQueryPdao {
                     String columnName = column.getName();
                     FieldValue fieldValue = rows.get(columnName);
                     Object value;
-                    if (fieldValue.getAttribute().name().equals("REPEATED")) {
+                    if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
                       value =
                           fieldValue.getRepeatedValue().stream()
                               .map(FieldValue::getStringValue)

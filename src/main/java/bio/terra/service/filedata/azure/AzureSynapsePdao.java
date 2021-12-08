@@ -379,28 +379,16 @@ public class AzureSynapsePdao {
           IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
       String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
 
-      // List<SynapseColumn> columns =
-      //     table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
-
-      // ST sqlCreateSnapshotTableTemplate =
-      //     new ST(createSnapshotTableTemplate)
-      //         .add("tableName", tableName)
-      //         .add("destinationParquetFile", snapshotParquetFileName)
-      //         .add("destinationDataSourceName", snapshotDataSourceName)
-      //         .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
-      //         .add("ingestFileName", datasetParquetFileName)
-      //         .add("ingestFileDataSourceName", datasetDataSourceName)
-      //         .add("hostname", applicationConfiguration.getDnsName())
-      //         .add("snapshotId", snapshotId)
-      //         .add("columns", columns);
       ST sqlCreateSnapshotTableTemplate;
       if (isByRowId) {
+        // get the referenced table from the request model
         Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
             rowIdModel.getTables().stream()
                 .filter(t -> Objects.equals(t.getTableName(), tableName))
                 .findFirst();
 
         if (rowIdTableModel.isPresent()) {
+          // from request, get the list of row ids in the request for the table
           List<UUID> rowIds = rowIdTableModel.get().getRowIds();
           sqlCreateSnapshotTableTemplate =
               new ST(createSnapshotTableByRowIdTemplate)
@@ -417,13 +405,21 @@ public class AzureSynapsePdao {
         sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
       }
 
+      // Q: Can you also specify the columsn in a byRowId request? It's a field in
+      // SnapshotRequestRowIdTableModel
+      List<SynapseColumn> columns =
+          table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
+
       sqlCreateSnapshotTableTemplate
           .add("tableName", tableName)
           .add("destinationParquetFile", snapshotParquetFileName)
           .add("destinationDataSourceName", snapshotDataSourceName)
           .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
           .add("ingestFileName", datasetParquetFileName)
-          .add("ingestFileDataSourceName", datasetDataSourceName);
+          .add("ingestFileDataSourceName", datasetDataSourceName)
+          .add("hostname", applicationConfiguration.getDnsName())
+          .add("snapshotId", snapshotId)
+          .add("columns", columns);
 
       try {
         int rows = executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());

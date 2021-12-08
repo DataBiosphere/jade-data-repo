@@ -333,7 +333,7 @@ public class BigQueryPdaoDatasetConnectedTest {
     GoogleRegion region = GoogleRegion.fromValueWithDefault(datasetRequest.getRegion());
     Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
     dataset.id(UUID.randomUUID());
-    ResourceInfo resource = bufferService.handoutResource();
+    ResourceInfo resource = bufferService.handoutResource(dataset.getSecurityClassification());
     String googleProjectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     projectService.addLabelsToProject(googleProjectId, Map.of("test-name", "bigquery-pdao-test"));
     UUID projectId =

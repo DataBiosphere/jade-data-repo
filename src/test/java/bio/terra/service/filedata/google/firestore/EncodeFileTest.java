@@ -111,7 +111,8 @@ public class EncodeFileTest {
     profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
     loadTag = "encodeLoadTag" + UUID.randomUUID();
     datasetSummary = connectedOperations.createDataset(profileModel, "encodefiletest-dataset.json");
-    ResourceInfo resourceInfo = bufferService.handoutResource();
+    ResourceInfo resourceInfo =
+        bufferService.handoutResource(datasetSummary.getSecurityClassification());
     targetProjectId = resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     googleProjectService.addLabelsToProject(
         targetProjectId, Map.of("test-name", "encode-file-test"));

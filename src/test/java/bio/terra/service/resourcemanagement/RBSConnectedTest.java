@@ -17,6 +17,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
@@ -25,12 +26,17 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.resourcemanagement.google.CloudResourceManagerService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.services.cloudresourcemanager.model.Project;
+import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.commons.io.IOUtils;
@@ -66,11 +72,15 @@ public class RBSConnectedTest {
   @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private ConfigurationService configService;
+  @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+  @Autowired private CloudResourceManagerService resourceManagerService;
 
   @MockBean private IamProviderInterface samService;
 
   private Storage storage = StorageOptions.getDefaultInstance().getService();
   private BillingProfileModel billingProfile;
+
+  private List<String> googleProjectIds = new ArrayList<>();
 
   @Before
   public void setup() throws Exception {
@@ -82,13 +92,16 @@ public class RBSConnectedTest {
 
   @After
   public void tearDown() throws Exception {
+    for (String googleProjectId : googleProjectIds) {
+      resourceManagerService.cloudResourceManager().projects().delete(googleProjectId).execute();
+    }
     connectedOperations.teardown();
     configService.reset();
   }
 
   @Test
   public void testProjectHandout() {
-    ResourceInfo resource = bufferService.handoutResource();
+    ResourceInfo resource = bufferService.handoutResource(DatasetSecurityClassification.NONE);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     Project project = projectService.getProject(projectId);
     projectService.addLabelsToProject(projectId, Map.of("test-name", "rbs-connected-test"));
@@ -126,6 +139,34 @@ public class RBSConnectedTest {
         "Dataset and Snapshot have separate projects from RBS",
         dataset.getDataProject(),
         not(snapshotModel.getDataProject()));
+  }
+
+  @Test
+  public void testProjectRefoldering() throws Exception {
+    ResourceInfo sensitiveResource =
+        bufferService.handoutResource(DatasetSecurityClassification.CONTAINS_PHI);
+    String sensitiveProjectId =
+        sensitiveResource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+    googleProjectIds.add(sensitiveProjectId);
+    Project sensitiveProject = projectService.getProject(sensitiveProjectId);
+    ResourceId sensitiveParent = sensitiveProject.getParent();
+
+    ResourceInfo normalResource = bufferService.handoutResource(DatasetSecurityClassification.NONE);
+    String normalProjectId =
+        normalResource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+    googleProjectIds.add(normalProjectId);
+    Project normalProject = projectService.getProject(normalProjectId);
+    ResourceId normalParent = normalProject.getParent();
+
+    assertThat(
+        "Sensitive project is in a different folder than non-sensitive project",
+        sensitiveParent.getId(),
+        not(normalParent.getId()));
+
+    assertThat(
+        "Sensitive project was moved to the correct folder",
+        sensitiveParent.getId(),
+        equalTo(googleResourceConfiguration.getSecureFolderResourceId()));
   }
 
   private SnapshotModel getTestSnapshot(UUID id) throws Exception {

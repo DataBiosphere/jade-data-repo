@@ -13,6 +13,7 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
+import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.profile.google.GoogleBillingService;
@@ -163,7 +164,7 @@ public class ProfileServiceTest {
     Map<String, List<String>> roleToStewardMap = new HashMap<>();
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
-    ResourceInfo resourceInfo = bufferService.handoutResource();
+    ResourceInfo resourceInfo = bufferService.handoutResource(DatasetSecurityClassification.NONE);
 
     // create project metadata
     return googleProjectService.initializeGoogleProject(

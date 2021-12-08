@@ -19,6 +19,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -455,7 +456,7 @@ public class BucketResourceTest {
     Map<String, List<String>> roleToStewardMap = new HashMap<>();
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
-    ResourceInfo resourceInfo = bufferService.handoutResource();
+    ResourceInfo resourceInfo = bufferService.handoutResource(DatasetSecurityClassification.NONE);
 
     // create project metadata
     return projectService.initializeGoogleProject(

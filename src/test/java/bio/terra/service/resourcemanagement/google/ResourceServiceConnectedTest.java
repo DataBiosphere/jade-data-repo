@@ -7,8 +7,13 @@ import static org.hamcrest.Matchers.not;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetSecurityClassification;
+import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
 import com.google.api.client.util.Lists;
 import com.google.api.services.cloudresourcemanager.model.Project;
@@ -18,29 +23,38 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureMockMvc
 @SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
+@Category(Connected.class)
+@EmbeddedDatabaseTest
 public class ResourceServiceConnectedTest {
 
   @Autowired private GoogleResourceConfiguration resourceConfiguration;
+  @Autowired private BufferService bufferService;
   @Autowired private GoogleProjectService projectService;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private BufferService bufferService;
+  @Autowired private ConfigurationService configService;
+
+  @MockBean private IamProviderInterface samService;
 
   private BillingProfileModel profile;
 
   @Before
   public void setup() throws Exception {
+    connectedOperations.stubOutSamCalls(samService);
+    configService.reset();
     profile = connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
   }
 
@@ -51,7 +65,7 @@ public class ResourceServiceConnectedTest {
 
   @Test
   public void createAndDeleteProjectTest() throws Exception {
-    ResourceInfo resource = bufferService.handoutResource();
+    ResourceInfo resource = bufferService.handoutResource(DatasetSecurityClassification.NONE);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
 
     String role = "roles/bigquery.jobUser";

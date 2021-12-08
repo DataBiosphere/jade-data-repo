@@ -78,6 +78,7 @@ public class GoogleProjectService {
   private final GoogleBillingService billingService;
   private final GoogleResourceDao resourceDao;
   private final GoogleResourceConfiguration resourceConfiguration;
+  private final CloudResourceManagerService resourceManagerService;
   private final BufferService bufferService;
   private final DatasetBucketDao datasetBucketDao;
   private final Environment environment;
@@ -89,12 +90,14 @@ public class GoogleProjectService {
       GoogleResourceDao resourceDao,
       GoogleResourceConfiguration resourceConfiguration,
       GoogleBillingService billingService,
+      CloudResourceManagerService resourceManagerService,
       BufferService bufferService,
       DatasetBucketDao datasetBucketDao,
       Environment environment) {
     this.resourceDao = resourceDao;
     this.resourceConfiguration = resourceConfiguration;
     this.billingService = billingService;
+    this.resourceManagerService = resourceManagerService;
     this.bufferService = bufferService;
     this.datasetBucketDao = datasetBucketDao;
     this.environment = environment;
@@ -139,7 +142,7 @@ public class GoogleProjectService {
     // Case 3 -
     // Condition: Ingest Billing profile != source dataset billing profile && project does NOT exist
     // Action: Request a new project
-    ResourceInfo resource = bufferService.handoutResource();
+    ResourceInfo resource = bufferService.handoutResource(dataset.getSecurityClassification());
     return resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
   }
 
@@ -224,7 +227,7 @@ public class GoogleProjectService {
   // package access for use in tests
   public Project getProject(String googleProjectId) {
     try {
-      CloudResourceManager resourceManager = cloudResourceManager();
+      CloudResourceManager resourceManager = resourceManagerService.cloudResourceManager();
       CloudResourceManager.Projects.Get request = resourceManager.projects().get(googleProjectId);
       return request.execute();
     } catch (GoogleJsonResponseException e) {
@@ -280,7 +283,7 @@ public class GoogleProjectService {
       logger.info("Reusing projects: skipping delete of {}", googleProjectId);
     } else {
       try {
-        CloudResourceManager resourceManager = cloudResourceManager();
+        CloudResourceManager resourceManager = resourceManagerService.cloudResourceManager();
         CloudResourceManager.Projects.Delete request =
             resourceManager.projects().delete(googleProjectId);
         // the response will be empty if the request is successful in the delete
@@ -323,7 +326,7 @@ public class GoogleProjectService {
     }
 
     try {
-      CloudResourceManager resourceManager = cloudResourceManager();
+      CloudResourceManager resourceManager = resourceManagerService.cloudResourceManager();
       Project project = resourceManager.projects().get(googleProjectId).execute();
       Map<String, String> cleanedLabels =
           Stream.concat(
@@ -407,7 +410,7 @@ public class GoogleProjectService {
     AclUtils.aclUpdateRetry(
         () -> {
           try {
-            CloudResourceManager resourceManager = cloudResourceManager();
+            CloudResourceManager resourceManager = resourceManagerService.cloudResourceManager();
             Policy policy =
                 resourceManager.projects().getIamPolicy(projectId, getIamPolicyRequest).execute();
             final List<Binding> bindingsList = policy.getBindings();
@@ -447,26 +450,6 @@ public class GoogleProjectService {
                 "Encountered an error while updating IAM permissions", ex, ex.getMessage());
           }
         });
-  }
-
-  // TODO: convert this to using the resource manager service interface instead of the api interface
-  //  https://googleapis.dev/java/google-cloud-resourcemanager/latest/index.html
-  //     ?com/google/cloud/resourcemanager/ResourceManager.html
-  //  And use GoogleCredentials instead of the deprecated class. (DR-1459)
-  private CloudResourceManager cloudResourceManager() throws IOException, GeneralSecurityException {
-    HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-    JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-
-    GoogleCredential credential = GoogleCredential.getApplicationDefault();
-    if (credential.createScopedRequired()) {
-      credential =
-          credential.createScoped(
-              Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
-    }
-
-    return new CloudResourceManager.Builder(httpTransport, jsonFactory, credential)
-        .setApplicationName(resourceConfiguration.getApplicationName())
-        .build();
   }
 
   /** Create a client to speak to the appengine admin api */

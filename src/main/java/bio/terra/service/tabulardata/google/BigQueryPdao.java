@@ -1993,10 +1993,10 @@ public class BigQueryPdao {
                     if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
                       value =
                           fieldValue.getRepeatedValue().stream()
-                              .map(FieldValue::getStringValue)
+                              .map(FieldValue::getValue)
                               .collect(Collectors.toList());
                     } else {
-                      value = fieldValue.getStringValue();
+                      value = fieldValue.getValue();
                     }
                     rowData.put(columnName, value);
                   });

@@ -5,6 +5,7 @@ import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,20 +40,27 @@ import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
+import com.google.api.gax.paging.Page;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.ViewDefinition;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -984,6 +992,78 @@ public class BigQueryPdaoUnitTest {
                 + drRowId2
                 + "']) AS row_id"
                 + ") AS T");
+  }
+
+  @Test
+  public void aggregateSnapshotTableTest() {
+    String stringTest = "hello";
+    int intTest = 1234567;
+    List<String> listTest = List.of("a", "b", "c");
+
+    List<FieldValueList> listOfFieldValueList =
+        List.of(
+            FieldValueList.of(
+                List.of(
+                    FieldValue.of(FieldValue.Attribute.PRIMITIVE, stringTest),
+                    FieldValue.of(FieldValue.Attribute.PRIMITIVE, intTest),
+                    FieldValue.of(
+                        FieldValue.Attribute.REPEATED,
+                        listTest.stream()
+                            .map(s -> FieldValue.of(FieldValue.Attribute.PRIMITIVE, s))
+                            .collect(Collectors.toList())))));
+
+    List<StandardSQLTypeName> standardSQLTypeNames =
+        List.of(StandardSQLTypeName.STRING, StandardSQLTypeName.INT64, StandardSQLTypeName.ARRAY);
+
+    Schema schema =
+        Schema.of(
+            FieldList.of(
+                standardSQLTypeNames.stream()
+                    .map(
+                        s -> {
+                          Field.Builder fieldBuilder = Field.newBuilder(s.name(), s);
+                          if (s == StandardSQLTypeName.ARRAY) {
+                            fieldBuilder.setType(StandardSQLTypeName.STRING);
+                          }
+                          return fieldBuilder.build();
+                        })
+                    .collect(Collectors.toList())));
+
+    Page<FieldValueList> page =
+        new Page<>() {
+          @Override
+          public boolean hasNextPage() {
+            return false;
+          }
+
+          @Override
+          public String getNextPageToken() {
+            return "";
+          }
+
+          @Override
+          public Page<FieldValueList> getNextPage() {
+            return this;
+          }
+
+          @Override
+          public Iterable<FieldValueList> iterateAll() {
+            return listOfFieldValueList;
+          }
+
+          @Override
+          public Iterable<FieldValueList> getValues() {
+            return listOfFieldValueList;
+          }
+        };
+
+    TableResult table = new TableResult(schema, 10, page);
+
+    List<Map<String, Object>> result = BigQueryPdao.aggregateSnapshotTable(table);
+
+    assertEquals(result.get(0).get("STRING"), stringTest);
+    assertEquals(result.get(0).get("INT64"), intTest);
+    assertEquals(result.get(0).get("ARRAY"), listTest);
   }
 
   private Snapshot mockSnapshot() {

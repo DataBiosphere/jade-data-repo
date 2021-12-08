@@ -468,7 +468,9 @@ test {
     }
     outputs.upToDateWhen { false }
     retry {
-        maxRetries = 3
+        if (isCiServer) {
+           maxRetries = 3
+        }
     }
     maxParallelForks = 2
 }
@@ -520,7 +522,9 @@ task testUnit(type: Test) {
     }
     maxParallelForks = 2
     retry {
-        maxRetries = 3
+        if (isCiServer) {
+            maxRetries = 3
+        }
     }
     outputs.upToDateWhen { false }
 }

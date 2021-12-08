@@ -284,6 +284,7 @@ public class DatasetConnectedTest {
     assertEquals(rowIds.size(), 4);
     assertEquals(ingestedBy.size(), 1);
     assertEquals(ingestedBy.iterator().next(), applicationConfiguration.getUserEmail());
+    assertEquals(ingestTime.size(), 1);
     assertEquals(loadTags.size(), 1);
     assertEquals(loadTags.iterator().next(), loadTag);
   }

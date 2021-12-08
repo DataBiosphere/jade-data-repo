@@ -1,6 +1,8 @@
 package runner;
 
+import bio.terra.datarepo.model.CloudPlatform;
 import java.util.List;
+import java.util.UUID;
 import runner.config.ServerSpecification;
 import runner.config.TestUserSpecification;
 
@@ -12,7 +14,11 @@ public abstract class TestScript {
   protected String billingAccount;
   protected ServerSpecification server;
   protected boolean manipulatesKubernetes = false;
-
+  protected CloudPlatform cloudPlatform;
+  protected UUID tenantId;
+  protected UUID subscriptionId;
+  protected String resourceGroupName;
+  protected String applicationDeploymentName;
   /**
    * Setter for the billing account property of this class. This property will be set by the Test
    * Runner based on the current Test Configuration, and can be accessed by the Test Script methods.
@@ -43,6 +49,27 @@ public abstract class TestScript {
    */
   public boolean manipulatesKubernetes() {
     return manipulatesKubernetes;
+  }
+
+  /** Setter for the cloud platform to use. */
+  public void setCloudPlatform(CloudPlatform cloudPlatform) {
+    this.cloudPlatform = cloudPlatform;
+  }
+
+  public void setTenantId(UUID tenantId) {
+    this.tenantId = tenantId;
+  }
+
+  public void setSubscriptionId(UUID subscriptionId) {
+    this.subscriptionId = subscriptionId;
+  }
+
+  public void setResourceGroupName(String resourceGroupName) {
+    this.resourceGroupName = resourceGroupName;
+  }
+
+  public void setApplicationDeploymentName(String applicationDeploymentName) {
+    this.applicationDeploymentName = applicationDeploymentName;
   }
 
   /**

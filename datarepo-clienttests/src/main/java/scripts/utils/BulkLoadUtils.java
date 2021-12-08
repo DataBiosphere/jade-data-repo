@@ -8,7 +8,9 @@ import bio.terra.datarepo.model.BulkLoadFileResultModel;
 import bio.terra.datarepo.model.BulkLoadResultModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.JobModel;
+import com.azure.resourcemanager.AzureResourceManager;
 import com.google.cloud.storage.BlobId;
+import common.utils.BlobIOTestUtility;
 import common.utils.FileUtils;
 import common.utils.StorageUtils;
 import java.nio.charset.StandardCharsets;
@@ -51,6 +53,24 @@ public class BulkLoadUtils {
         "/file100B-%02d.txt");
   }
 
+  public static BulkLoadArrayRequestModel buildAzureBulkLoadFileRequest100B(
+      int filesToLoad,
+      UUID billingProfileId,
+      BlobIOTestUtility blobIOTestUtility,
+      AzureResourceManager client) {
+    String loadTag = FileUtils.randomizeName("100Btest");
+
+    return buildAzureLoadArray(
+        filesToLoad,
+        billingProfileId,
+        loadTag,
+        26,
+        "https://tdrtestdatauseast.blob.core.windows.net/testrunner-data",
+        "/file100B-%02d.txt",
+        blobIOTestUtility,
+        client);
+  }
+
   private static BulkLoadArrayRequestModel buildLoadArray(
       int filesToLoad,
       UUID billingProfileId,
@@ -67,6 +87,42 @@ public class BulkLoadUtils {
 
     for (int i = 0; i < filesToLoad; i++) {
       String sourcePath = sourcePrefix + String.format(fileFormat, i % numberOfSourceFiles);
+      String targetPath = "/" + loadTag + String.format(fileFormat, i);
+      BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
+      model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);
+      arrayLoad.addLoadArrayItem(model);
+    }
+
+    return arrayLoad;
+  }
+
+  private static BulkLoadArrayRequestModel buildAzureLoadArray(
+      int filesToLoad,
+      UUID billingProfileId,
+      String loadTag,
+      int numberOfSourceFiles,
+      String sourcePrefix,
+      String fileFormat,
+      BlobIOTestUtility blobIOTestUtility,
+      AzureResourceManager client) {
+
+    BulkLoadArrayRequestModel arrayLoad =
+        new BulkLoadArrayRequestModel()
+            .profileId(billingProfileId)
+            .loadTag(loadTag)
+            .maxFailedFileLoads(filesToLoad); // do not stop if there is a failure.
+
+    for (int i = 0; i < filesToLoad; i++) {
+      String sourcePath = sourcePrefix + String.format(fileFormat, i % numberOfSourceFiles);
+      String sourceFile = String.format("file100B-%02d.txt", i % numberOfSourceFiles);
+      String key =
+          blobIOTestUtility.getSourceStorageAccountPrimarySharedKey(
+              client, "TDR_data", "tdrtestdatauseast");
+      String signedSourcePath =
+          String.format(
+              "%s?%s",
+              sourcePath,
+              blobIOTestUtility.generateBlobSasTokenWithReadPermissions(key, sourceFile));
       String targetPath = "/" + loadTag + String.format(fileFormat, i);
       BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
       model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);
@@ -120,6 +176,24 @@ public class BulkLoadUtils {
         bucketName,
         fileName,
         fileRefBytes);
+  }
+
+  public static String azureWriteScratchFileForIngestRequest(
+      BlobIOTestUtility blobIOTestUtility,
+      BulkLoadArrayResultModel arrayResultModel,
+      String fileName)
+      throws Exception {
+
+    String jsonLine =
+        "{\"VCF_File_Name\":\"%s\", \"Description\":\"%s\", \"VCF_File_Ref\":\"%s\"}%n";
+    StringBuilder sb = new StringBuilder();
+
+    for (BulkLoadFileResultModel fileResult : arrayResultModel.getLoadFileResults()) {
+      sb.append(
+          String.format(
+              jsonLine, fileResult.getTargetPath(), fileResult.getState(), fileResult.getFileId()));
+    }
+    return blobIOTestUtility.uploadFileWithContents(fileName, sb.toString());
   }
 
   // Given a scratch file to use for loading into the simple dataset, make the associated ingest

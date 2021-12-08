@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertEquals;
 
 import bio.terra.common.auth.AuthService;
@@ -156,13 +157,17 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
     EnumerateSnapshotModel enumSnapByNoDatasetId =
         dataRepoFixtures.enumerateSnapshotsByDatasetIds(steward(), Collections.emptyList());
 
-    assertThat("Dataset filters to dataSnapshots", enumSnapByNoDatasetId.getTotal(), equalTo(1));
+    assertThat(
+        "Retrieve the dataSnapshot by dataset when no dataset is passed in",
+        enumSnapByNoDatasetId.getItems(),
+        hasItem(enumSnapByDatasetId.getItems().get(0)));
 
     EnumerateSnapshotModel enumSnapByBadDatasetId =
         dataRepoFixtures.enumerateSnapshotsByDatasetIds(
             steward(), Collections.singletonList(UUID.randomUUID()));
 
-    assertThat("Dataset filters to dataSnapshots", enumSnapByBadDatasetId.getTotal(), equalTo(0));
+    assertThat(
+        "Invalid dataset filters out dataSnapshots", enumSnapByBadDatasetId.getTotal(), equalTo(0));
 
     // Delete snapshot as custodian for this test since teardown uses steward
     dataRepoFixtures.deleteSnapshot(custodian(), snapshotSummary.getId());

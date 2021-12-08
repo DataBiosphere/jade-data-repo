@@ -1029,33 +1029,7 @@ public class BigQueryPdaoUnitTest {
                         })
                     .collect(Collectors.toList())));
 
-    Page<FieldValueList> page =
-        new Page<>() {
-          @Override
-          public boolean hasNextPage() {
-            return false;
-          }
-
-          @Override
-          public String getNextPageToken() {
-            return "";
-          }
-
-          @Override
-          public Page<FieldValueList> getNextPage() {
-            return this;
-          }
-
-          @Override
-          public Iterable<FieldValueList> iterateAll() {
-            return listOfFieldValueList;
-          }
-
-          @Override
-          public Iterable<FieldValueList> getValues() {
-            return listOfFieldValueList;
-          }
-        };
+    Page<FieldValueList> page = mockPage(listOfFieldValueList);
 
     TableResult table = new TableResult(schema, 10, page);
 
@@ -1193,5 +1167,34 @@ public class BigQueryPdaoUnitTest {
             + "WHERE R.datarepo_row_id = T.datarepo_row_id",
         Schema.of(Field.of("val", LegacySQLTypeName.NUMERIC)),
         List.of(Map.of("val", Integer.toString(numRowIds))));
+  }
+
+  private Page<FieldValueList> mockPage(List<FieldValueList> listOfFieldValueList) {
+    return new Page<>() {
+      @Override
+      public boolean hasNextPage() {
+        return false;
+      }
+
+      @Override
+      public String getNextPageToken() {
+        return "";
+      }
+
+      @Override
+      public Page<FieldValueList> getNextPage() {
+        return this;
+      }
+
+      @Override
+      public Iterable<FieldValueList> iterateAll() {
+        return listOfFieldValueList;
+      }
+
+      @Override
+      public Iterable<FieldValueList> getValues() {
+        return listOfFieldValueList;
+      }
+    };
   }
 }

@@ -1,9 +1,9 @@
 package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertEquals;
 
 import bio.terra.common.auth.AuthService;
@@ -160,7 +160,7 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
     assertThat(
         "Retrieve the dataSnapshot by dataset when no dataset is passed in",
         enumSnapByNoDatasetId.getItems(),
-        contains(enumSnapByDatasetId.getItems().get(0)));
+        hasItem(enumSnapByDatasetId.getItems().get(0)));
 
     EnumerateSnapshotModel enumSnapByBadDatasetId =
         dataRepoFixtures.enumerateSnapshotsByDatasetIds(

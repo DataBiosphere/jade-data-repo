@@ -5,7 +5,6 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
-import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -45,7 +44,7 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep implements Step {
 
     SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
-    List<SnapshotRequestRowIdTableModel> rowIdTableModels = rowIdModel.getTables();
+    // List<SnapshotRequestRowIdTableModel> rowIdTableModels = rowIdModel.getTables();
 
     try {
       Map<String, Long> tableRowCounts =

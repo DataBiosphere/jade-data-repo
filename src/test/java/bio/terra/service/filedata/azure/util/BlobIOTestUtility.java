@@ -8,6 +8,9 @@ import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobListDetails;
+import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
@@ -142,6 +145,27 @@ public class BlobIOTestUtility {
         .collect(Collectors.toList());
   }
 
+  public List<BlobItem> listFilesInBlob(String blobName) {
+    BlobContainerClientFactory sourceBlobContainerClientFactory =
+        new BlobContainerClientFactory(
+            getSourceBlobContainerClient().getAccountName(),
+            tokenCredential,
+            blobName,
+            retryOptions);
+
+    ListBlobsOptions options = new ListBlobsOptions();
+    BlobListDetails details = new BlobListDetails();
+    options.setDetails(details);
+    options.setPrefix("int");
+    Duration listOperationTimeout = Duration.ofSeconds(60);
+
+    return sourceBlobContainerClientFactory
+        .getBlobContainerClient()
+        .listBlobs(options, listOperationTimeout)
+        .stream()
+        .collect(Collectors.toList());
+  }
+
   public String uploadSourceFile(String blobName, long length) {
     sourceBlobContainerClient.getBlobClient(blobName).upload(createInputStream(length), length);
     return blobName;
@@ -197,6 +221,14 @@ public class BlobIOTestUtility {
   public void deleteContainers() {
     destinationBlobContainerClient.ifPresent(BlobContainerClient::delete);
     sourceBlobContainerClient.delete();
+  }
+
+  public BlobContainerClientFactory createSourceClientFactory(String containerName) {
+    return new BlobContainerClientFactory(
+        getSourceBlobContainerClient().getAccountName(),
+        tokenCredential,
+        containerName,
+        retryOptions);
   }
 
   public BlobContainerClientFactory createDestinationClientFactory() {

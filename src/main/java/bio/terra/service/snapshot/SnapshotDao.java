@@ -541,7 +541,7 @@ public class SnapshotDao {
     }
 
     // add the filter to the clause to get the actual items
-    DaoUtils.addFilterClause(filter, params, whereClauses);
+    DaoUtils.addFilterClause(filter, params, whereClauses, "s");
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "snapshot_source.dataset_id");
 
     String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
@@ -564,7 +564,7 @@ public class SnapshotDao {
             + "FROM snapshot s "
             + joinSql
             + whereSql
-            + DaoUtils.orderByClause(sort, direction)
+            + DaoUtils.orderByClause(sort, direction, "s")
             + " OFFSET :offset LIMIT :limit";
 
     params.addValue("offset", offset).addValue("limit", limit);

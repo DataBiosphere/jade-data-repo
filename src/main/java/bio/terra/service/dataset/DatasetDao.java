@@ -605,7 +605,7 @@ public class DatasetDao {
     }
 
     // add the filters to the clause to get the actual items
-    DaoUtils.addFilterClause(filter, params, whereClauses);
+    DaoUtils.addFilterClause(filter, params, whereClauses, "dataset");
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "dataset.id");
 
     String whereSql = "";
@@ -629,7 +629,7 @@ public class DatasetDao {
             + billingProfileQuery
             + "FROM dataset "
             + whereSql
-            + DaoUtils.orderByClause(sort, direction)
+            + DaoUtils.orderByClause(sort, direction, "dataset")
             + " OFFSET :offset LIMIT :limit";
     params.addValue("offset", offset).addValue("limit", limit);
     List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());

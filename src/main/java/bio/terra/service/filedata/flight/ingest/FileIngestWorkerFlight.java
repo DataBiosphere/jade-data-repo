@@ -84,7 +84,7 @@ public class FileIngestWorkerFlight extends Flight {
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
-      var retry = new RetryRuleExponentialBackoff(2, 30, 1200);
+      var retry = new RetryRuleExponentialBackoff(2, 30, 3600);
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset), retry);
       addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), retry);
       addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService, userReq));

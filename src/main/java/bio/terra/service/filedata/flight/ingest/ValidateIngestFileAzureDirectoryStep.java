@@ -55,6 +55,7 @@ public class ValidateIngestFileAzureDirectoryStep extends DefaultUndoStep {
         throw new FileAlreadyExistsException("Path already exists: " + targetPath);
       } else {
         workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CHECK_ENTRY_ACTION);
+        workingMap.put(FileMapKeys.FIRESTORE_FILE, existingEntry);
       }
     } catch (FileSystemAbortTransactionException | ManagementException e) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);

@@ -9,7 +9,6 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.service.resourcemanagement.BufferService;
 import com.google.api.client.util.Lists;
 import com.google.api.services.cloudresourcemanager.model.Project;
@@ -53,7 +52,7 @@ public class ResourceServiceConnectedTest {
 
   @Test
   public void createAndDeleteProjectTest() throws Exception {
-    ResourceInfo resource = bufferService.handoutResource(DatasetSecurityClassification.NONE);
+    ResourceInfo resource = bufferService.handoutResource(false);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
 
     String role = "roles/bigquery.jobUser";

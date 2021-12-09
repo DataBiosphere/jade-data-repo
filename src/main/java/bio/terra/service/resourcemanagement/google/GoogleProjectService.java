@@ -127,7 +127,7 @@ public class GoogleProjectService {
     // Case 3 -
     // Condition: Ingest Billing profile != source dataset billing profile && project does NOT exist
     // Action: Request a new project
-    ResourceInfo resource = bufferService.handoutResource(dataset.getSecurityClassification());
+    ResourceInfo resource = bufferService.handoutResource(dataset.isSecureMonitoringEnabled());
     return resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
   }
 

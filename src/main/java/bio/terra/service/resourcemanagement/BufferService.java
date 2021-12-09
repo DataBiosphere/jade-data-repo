@@ -10,7 +10,6 @@ import bio.terra.buffer.model.PoolInfo;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.buffer.model.SystemStatus;
 import bio.terra.buffer.model.SystemStatusSystems;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.resourcemanagement.exception.BufferServiceAPIException;
 import bio.terra.service.resourcemanagement.exception.BufferServiceAuthorizationException;
@@ -99,7 +98,7 @@ public class BufferService {
    *
    * @return ResourceInfo
    */
-  public ResourceInfo handoutResource(DatasetSecurityClassification securityClassification) {
+  public ResourceInfo handoutResource(boolean enableSecureMonitoring) {
     String handoutRequestId = UUID.randomUUID().toString();
     logger.info("Using request ID: {} to get project from RBS", handoutRequestId);
     HandoutRequestBody requestBody = new HandoutRequestBody().handoutRequestId(handoutRequestId);
@@ -112,7 +111,7 @@ public class BufferService {
           bufferServiceConfiguration.getPoolId(),
           bufferServiceConfiguration.getInstanceUrl());
 
-      if (securityClassification != DatasetSecurityClassification.NONE) {
+      if (enableSecureMonitoring) {
         var projectId = info.getCloudResourceUid().getGoogleProjectUid().getProjectId();
         try {
           refolderProjectToSecureFolder(projectId);

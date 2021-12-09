@@ -11,7 +11,6 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
@@ -143,7 +142,7 @@ public class GoogleBillingServiceTest {
     Map<String, List<String>> roleToStewardMap = new HashMap<>();
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
-    ResourceInfo resourceInfo = bufferService.handoutResource(DatasetSecurityClassification.NONE);
+    ResourceInfo resourceInfo = bufferService.handoutResource(false);
     // create project metadata
     return projectService.initializeGoogleProject(
         resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),

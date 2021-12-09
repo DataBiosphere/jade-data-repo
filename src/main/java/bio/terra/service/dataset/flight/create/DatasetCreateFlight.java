@@ -71,7 +71,7 @@ public class DatasetCreateFlight extends Flight {
       // Get a new google project from RBS and store it in the working map
       addStep(
           new GetResourceBufferProjectStep(
-              bufferService, datasetRequest.getSecurityClassification()));
+              bufferService, datasetRequest.isEnableSecureMonitoring()));
 
       // Get or initialize the project where the dataset resources will be created
       addStep(

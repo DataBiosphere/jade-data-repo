@@ -17,7 +17,6 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
@@ -99,7 +98,7 @@ public class BufferServiceConnectedTest {
 
   @Test
   public void testProjectHandout() {
-    ResourceInfo resource = bufferService.handoutResource(DatasetSecurityClassification.NONE);
+    ResourceInfo resource = bufferService.handoutResource(false);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     Project project = resourceManagerService.getProject(projectId);
     resourceManagerService.addLabelsToProject(projectId, Map.of("test-name", "rbs-connected-test"));
@@ -141,15 +140,14 @@ public class BufferServiceConnectedTest {
 
   @Test
   public void testProjectRefoldering() throws Exception {
-    ResourceInfo sensitiveResource =
-        bufferService.handoutResource(DatasetSecurityClassification.CONTAINS_PHI);
+    ResourceInfo sensitiveResource = bufferService.handoutResource(true);
     String sensitiveProjectId =
         sensitiveResource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     googleProjectIds.add(sensitiveProjectId);
     Project sensitiveProject = resourceManagerService.getProject(sensitiveProjectId);
     ResourceId sensitiveParent = sensitiveProject.getParent();
 
-    ResourceInfo normalResource = bufferService.handoutResource(DatasetSecurityClassification.NONE);
+    ResourceInfo normalResource = bufferService.handoutResource(false);
     String normalProjectId =
         normalResource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     googleProjectIds.add(normalProjectId);

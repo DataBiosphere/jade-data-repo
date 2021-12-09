@@ -21,7 +21,6 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
@@ -363,7 +362,7 @@ public class BigQueryPdaoTest {
   @Test
   public void testGetSnapshotTableData() throws Exception {
     UUID profileId = profileModel.getId();
-    ResourceInfo resourceInfo = bufferService.handoutResource(DatasetSecurityClassification.NONE);
+    ResourceInfo resourceInfo = bufferService.handoutResource(false);
 
     String dataProjectId = resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     resourceManagerService.addLabelsToProject(
@@ -460,7 +459,7 @@ public class BigQueryPdaoTest {
     GoogleRegion region = GoogleRegion.fromValueWithDefault(datasetRequest.getRegion());
     Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
     dataset.id(UUID.randomUUID());
-    ResourceInfo resource = bufferService.handoutResource(dataset.getSecurityClassification());
+    ResourceInfo resource = bufferService.handoutResource(false);
     String googleProjectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     resourceManagerService.addLabelsToProject(
         googleProjectId, Map.of("test-name", "bigquery-pdao-test"));

@@ -463,6 +463,9 @@ spotless {
 // There are separate tasks for running just the unit tests and just the connected tests.
 // connected tests and running all of the tests.
 test {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         includeCategories 'bio.terra.common.category.Unit'
     }
@@ -476,6 +479,9 @@ test {
 }
 
 task testConnected(type: Test) {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         includeCategories 'bio.terra.common.category.Connected'
     }
@@ -497,6 +503,9 @@ task testConnected(type: Test) {
 }
 
 task testIntegration(type: Test) {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         includeCategories 'bio.terra.common.category.Integration'
     }
@@ -517,6 +526,9 @@ task testIntegration(type: Test) {
 }
 
 task testUnit(type: Test) {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         includeCategories 'bio.terra.common.category.Unit'
     }
@@ -530,6 +542,9 @@ task testUnit(type: Test) {
 }
 
 task testOnDemand(type: Test) {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         includeCategories 'bio.terra.common.category.OnDemand'
     }
@@ -540,6 +555,9 @@ task testOnDemand(type: Test) {
 }
 
 task testAll(type: Test) {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         // Note: explicitly not including OnDemand tests
         includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'

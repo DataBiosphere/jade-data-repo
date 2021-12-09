@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--We need this file to override the terra-commons-lib configuration for human-readable logging-->
+<configuration>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>"%date %-5level [%thread] %logger{36}: %message%n"</Pattern>
+        </layout>
+    </appender>
+
+    <property name="LOG_LEVEL_PATTERN" value="%X{requestId} %5p" />
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

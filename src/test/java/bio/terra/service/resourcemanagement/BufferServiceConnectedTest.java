@@ -61,7 +61,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 @EmbeddedDatabaseTest
-public class RBSConnectedTest {
+public class BufferServiceConnectedTest {
 
   @Autowired private BufferService bufferService;
   @Autowired private ConnectedOperations connectedOperations;

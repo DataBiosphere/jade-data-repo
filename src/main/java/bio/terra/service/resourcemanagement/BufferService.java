@@ -118,7 +118,7 @@ public class BufferService {
           refolderProjectToSecureFolder(projectId);
         } catch (IOException | GeneralSecurityException e) {
           deleteProject(projectId);
-          throw new GoogleResourceException("Could not refolder new project", e);
+          throw new GoogleResourceException("Could not re-folder new project", e);
         }
       }
 

@@ -5,7 +5,6 @@ import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
@@ -221,7 +220,7 @@ public class Dataset implements FSContainerInterface {
         datasetSummary.getStorageResourceRegion(AzureCloudResource.STORAGE_ACCOUNT);
   }
 
-  public DatasetSecurityClassification getSecurityClassification() {
-    return datasetSummary.getSecurityClassification();
+  public boolean isSecureMonitoringEnabled() {
+    return datasetSummary.isSecureMonitoringEnabled();
   }
 }

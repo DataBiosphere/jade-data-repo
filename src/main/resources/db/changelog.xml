@@ -47,5 +47,6 @@
     <include file="changesets/20211015_allownullbillingaccountandprojectresourceid.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20211112_rowmetadatatable.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20211206_datasetsecurityattributes.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20211209_datasetrequireslogging.yaml" relativeToChangelogFile="true" />
 
 </databaseChangeLog>

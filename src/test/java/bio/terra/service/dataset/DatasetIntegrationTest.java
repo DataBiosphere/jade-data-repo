@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
 
@@ -24,7 +25,6 @@ import bio.terra.model.DataDeletionGcsFileModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
@@ -190,14 +190,14 @@ public class DatasetIntegrationTest extends UsersBase {
         equalTo(HttpStatus.OK));
 
     assertThat(
-        "Default security classification was applied to summary model",
-        summaryModel.getSecurityClassification(),
-        equalTo(DatasetSecurityClassification.NONE));
+        "Default secure monitoring was applied to summary model",
+        summaryModel.isSecureMonitoringEnabled(),
+        is(false));
 
     assertThat(
         "Default security classification was propagated to model",
-        datasetModel.getSecurityClassification(),
-        equalTo(DatasetSecurityClassification.NONE));
+        datasetModel.isSecureMonitoringEnabled(),
+        is(false));
   }
 
   @Test

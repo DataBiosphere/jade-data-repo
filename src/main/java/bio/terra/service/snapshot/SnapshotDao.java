@@ -4,7 +4,6 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetSpecification;
@@ -54,6 +53,8 @@ public class SnapshotDao {
   private final DatasetDao datasetDao;
   private final ResourceService resourceService;
   private final ObjectMapper objectMapper;
+
+  private static final String TABLE_NAME = "snapshot";
 
   private static final String snapshotSourceStorageQuery =
       "(SELECT jsonb_agg(sr) "
@@ -308,10 +309,10 @@ public class SnapshotDao {
         "SELECT snapshot.id, name, snapshot.profile_id, google_project_id, "
             // Select the source dataset project information
             + "(SELECT jsonb_agg(ds)\n"
-            + "  FROM (SELECT d.id, d.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n"
+            + "  FROM (SELECT dataset.id, dataset.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n"
             + "        FROM snapshot_source ss"
-            + "        JOIN dataset d ON ss.dataset_id = d.id"
-            + "        LEFT JOIN project_resource p ON d.project_resource_id = p.id"
+            + "        JOIN dataset ON ss.dataset_id = dataset.id"
+            + "        LEFT JOIN project_resource p ON dataset.project_resource_id = p.id"
             + "        WHERE snapshot.id = ss.snapshot_id) ds)"
             + "  AS dataset_sources, "
             // Detect the cloud provider of the snapshot
@@ -517,11 +518,11 @@ public class SnapshotDao {
             + StringUtils.join(datasetIds, ","));
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
-    DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses, "s");
-    whereClauses.add(" s.flightid IS NULL"); // exclude snapshots that are exclusively locked
+    DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses, TABLE_NAME);
+    whereClauses.add(" snapshot.flightid IS NULL"); // exclude snapshots that are exclusively locked
     String joinSql =
-        " JOIN snapshot_source ON s.id = snapshot_source.snapshot_id "
-            + "JOIN dataset d on d.id = snapshot_source.dataset_id ";
+        " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
+            + "JOIN dataset on dataset.id = snapshot_source.dataset_id ";
 
     if (!datasetIds.isEmpty()) {
       String datasetMatchSql = "snapshot_source.dataset_id IN (:datasetIds)";
@@ -531,7 +532,7 @@ public class SnapshotDao {
 
     // get filtered total count of objects
     String countSql =
-        "SELECT count(s.id) AS total FROM snapshot s "
+        "SELECT count(snapshot.id) AS total FROM snapshot "
             + joinSql
             + " WHERE "
             + StringUtils.join(whereClauses, " AND ");
@@ -541,14 +542,14 @@ public class SnapshotDao {
     }
 
     // add the filter to the clause to get the actual items
-    DaoUtils.addFilterClause(filter, params, whereClauses, "s");
+    DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "snapshot_source.dataset_id");
 
     String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 
     // get filtered total count of objects
     String filteredCountSql =
-        "SELECT count(s.id) AS total FROM snapshot s "
+        "SELECT count(snapshot.id) AS total FROM snapshot "
             + joinSql
             + " WHERE "
             + StringUtils.join(whereClauses, " AND ");
@@ -558,13 +559,13 @@ public class SnapshotDao {
     }
 
     String sql =
-        "SELECT s.id, s.name, s.description, s.created_date, s.profile_id, "
-            + "snapshot_source.id, d.security_classification, "
+        "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
+            + "snapshot_source.id, dataset.secure_monitoring, "
             + snapshotSourceStorageQuery
-            + "FROM snapshot s "
+            + "FROM snapshot "
             + joinSql
             + whereSql
-            + DaoUtils.orderByClause(sort, direction, "s")
+            + DaoUtils.orderByClause(sort, direction, TABLE_NAME)
             + " OFFSET :offset LIMIT :limit";
 
     params.addValue("offset", offset).addValue("limit", limit);
@@ -584,7 +585,7 @@ public class SnapshotDao {
     logger.debug("retrieve snapshot summary for id: " + id);
     try {
       String sql =
-          "SELECT snapshot.*, dataset.security_classification, "
+          "SELECT snapshot.*, dataset.secure_monitoring, "
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
@@ -604,12 +605,12 @@ public class SnapshotDao {
   public List<SnapshotSummary> retrieveSnapshotsForDataset(UUID datasetId) {
     try {
       String sql =
-          "SELECT s.id, s.name, s.description, s.created_date, s.profile_id, "
-              + "d.security_classification, "
+          "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
+              + "dataset.secure_monitoring, "
               + snapshotSourceStorageQuery
-              + "FROM snapshot s "
-              + "JOIN snapshot_source ON s.id = snapshot_source.snapshot_id "
-              + "JOIN dataset d ON d.id = snapshot_source.dataset_id "
+              + "FROM snapshot "
+              + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
+              + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
               + "WHERE snapshot_source.dataset_id = :datasetId";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
       return jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
@@ -649,9 +650,6 @@ public class SnapshotDao {
             String.format("Invalid storage for snapshot - id: %s", rs.getString("id")));
       }
 
-      DatasetSecurityClassification classification =
-          DatasetSecurityClassification.valueOf(rs.getString("security_classification"));
-
       return new SnapshotSummary()
           .id(UUID.fromString(rs.getString("id")))
           .name(rs.getString("name"))
@@ -659,7 +657,7 @@ public class SnapshotDao {
           .createdDate(rs.getTimestamp("created_date").toInstant())
           .profileId(rs.getObject("profile_id", UUID.class))
           .storage(storageResources)
-          .securityClassification(classification);
+          .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"));
     }
   }
 }

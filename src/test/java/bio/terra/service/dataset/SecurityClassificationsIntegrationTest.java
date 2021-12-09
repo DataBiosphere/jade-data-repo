@@ -1,7 +1,7 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -12,7 +12,6 @@ import bio.terra.integration.UsersBase;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
@@ -80,24 +79,19 @@ public class SecurityClassificationsIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void testDatasetSecurityClassifications() throws Exception {
-    DatasetSecurityClassification classification = DatasetSecurityClassification.CONTAINS_PHI;
-    DatasetSummaryModel summary = datasetWithSecurityClassification(classification);
+  public void testDatasetWithSecureMonitoring() throws Exception {
+    DatasetSummaryModel summary = datasetWithSecureMonitoring(true);
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), summary.getId());
 
     assertThat(
-        String.format(
-            "'%s' security classification was applied to the dataset summary model",
-            classification.name()),
-        summary.getSecurityClassification(),
-        equalTo(classification));
+        "Secure monitoring enabled on the dataset summary model",
+        summary.isSecureMonitoringEnabled(),
+        is(true));
 
     assertThat(
-        String.format(
-            "'%s' security classification was propagated to the dataset model",
-            classification.name()),
-        dataset.getSecurityClassification(),
-        equalTo(classification));
+        "Secure monitoring flag was propagated to the dataset model",
+        dataset.isSecureMonitoringEnabled(),
+        is(true));
 
     String datasetName = dataset.getName();
     SnapshotRequestModel requestModel =
@@ -110,17 +104,16 @@ public class SecurityClassificationsIntegrationTest extends UsersBase {
     snapshotId = snapshotSummary.getId();
 
     assertThat(
-        String.format(
-            "Snapshot summary has the '%s' security classification", classification.name()),
-        snapshotSummary.getSecurityClassification(),
-        equalTo(classification));
+        "Snapshot summary denotes secure monitoring enabled",
+        snapshotSummary.isSecureMonitoringEnabled(),
+        is(true));
 
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotId, List.of());
 
     assertThat(
-        String.format("Snapshot model has the '%s' security classification", classification.name()),
-        snapshot.getSecurityClassification(),
-        equalTo(classification));
+        "Snapshot model denotes secure monitoring enabled",
+        snapshot.isSecureMonitoringEnabled(),
+        is(true));
 
     Optional<SnapshotSummaryModel> enumeratedModel =
         dataRepoFixtures.enumerateSnapshots(steward()).getItems().stream()
@@ -128,10 +121,9 @@ public class SecurityClassificationsIntegrationTest extends UsersBase {
             .findFirst();
 
     assertThat(
-        String.format(
-            "Enumerated snapshot model has '%s' security classification", classification.name()),
-        enumeratedModel.get().getSecurityClassification(),
-        equalTo(classification));
+        "Enumerated snapshot model has secure monitoring flag",
+        enumeratedModel.get().isSecureMonitoringEnabled(),
+        is(true));
 
     Optional<SnapshotSummaryModel> enumeratedByDatasetModel =
         dataRepoFixtures
@@ -142,21 +134,19 @@ public class SecurityClassificationsIntegrationTest extends UsersBase {
             .findFirst();
 
     assertThat(
-        String.format(
-            "Enumerated by dataset id snapshot model has '%s' security classification",
-            classification.name()),
-        enumeratedByDatasetModel.get().getSecurityClassification(),
-        equalTo(classification));
+        "Enumerated by dataset id snapshot model has secure monitoring flag",
+        enumeratedByDatasetModel.get().isSecureMonitoringEnabled(),
+        is(true));
   }
 
-  private DatasetSummaryModel datasetWithSecurityClassification(
-      DatasetSecurityClassification securityClassification) throws Exception {
+  private DatasetSummaryModel datasetWithSecureMonitoring(boolean secureMonitoringEnabled)
+      throws Exception {
     DatasetRequestModel requestModel =
         jsonLoader.loadObject("ingest-test-dataset.json", DatasetRequestModel.class);
     requestModel.setDefaultProfileId(profileId);
     requestModel.setName(Names.randomizeName(requestModel.getName()));
     requestModel.setCloudPlatform(CloudPlatform.GCP);
-    requestModel.setSecurityClassification(securityClassification);
+    requestModel.setSecureMonitoringEnabled(secureMonitoringEnabled);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(steward(), requestModel, false);
     datasetId = summaryModel.getId();

@@ -7,7 +7,6 @@ import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import java.time.Instant;
 import java.util.List;
@@ -24,7 +23,7 @@ public class DatasetSummary {
   private Instant createdDate;
   private List<BillingProfileModel> billingProfiles;
   private List<? extends StorageResource<?, ?>> storage;
-  private DatasetSecurityClassification securityClassification;
+  private boolean secureMonitoringEnabled;
 
   public UUID getId() {
     return id;
@@ -151,13 +150,12 @@ public class DatasetSummary {
                         "%s could not be found for dataset %s", cloudResource.name(), id)));
   }
 
-  public DatasetSecurityClassification getSecurityClassification() {
-    return securityClassification;
+  public boolean isSecureMonitoringEnabled() {
+    return secureMonitoringEnabled;
   }
 
-  public DatasetSummary securityClassification(
-      DatasetSecurityClassification securityClassification) {
-    this.securityClassification = securityClassification;
+  public DatasetSummary secureMonitoringEnabled(boolean secureMonitoringEnabled) {
+    this.secureMonitoringEnabled = secureMonitoringEnabled;
     return this;
   }
 }

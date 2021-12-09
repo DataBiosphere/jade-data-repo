@@ -2,6 +2,7 @@ package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
 import bio.terra.common.PdaoConstant;
@@ -13,7 +14,6 @@ import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSecurityClassification;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
@@ -167,9 +167,9 @@ public class SnapshotIntegrationTest extends UsersBase {
         equalTo("sample_participants"));
 
     assertThat(
-        "The security classification is propagated from the dataset",
-        snapshot.getSecurityClassification(),
-        equalTo(DatasetSecurityClassification.NONE));
+        "The secure monitoring is propagated from the dataset",
+        snapshot.isSecureMonitoringEnabled(),
+        is(false));
   }
 
   @Test

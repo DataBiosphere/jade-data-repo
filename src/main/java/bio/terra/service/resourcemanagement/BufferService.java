@@ -132,7 +132,7 @@ public class BufferService {
         throw new BufferServiceAPIException(e);
       }
     } catch (GeneralSecurityException e) {
-      throw new GoogleResourceException("Failed to cleanup after failing to refolder project", e);
+      throw new GoogleResourceException("Failed to cleanup after failing to re-folder project", e);
     }
   }
 

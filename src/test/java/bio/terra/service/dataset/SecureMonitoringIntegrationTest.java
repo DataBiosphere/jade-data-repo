@@ -40,10 +40,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "integrationtest"})
 @AutoConfigureMockMvc
 @Category(Integration.class)
-public class SecurityClassificationsIntegrationTest extends UsersBase {
+public class SecureMonitoringIntegrationTest extends UsersBase {
 
-  private static Logger logger =
-      LoggerFactory.getLogger(SecurityClassificationsIntegrationTest.class);
+  private static Logger logger = LoggerFactory.getLogger(SecureMonitoringIntegrationTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;

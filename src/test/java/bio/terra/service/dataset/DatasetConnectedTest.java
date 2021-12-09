@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.PdaoConstant;
@@ -25,6 +26,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -36,6 +38,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -74,6 +77,7 @@ public class DatasetConnectedTest {
   @Autowired private DatasetDao datasetDao;
   @Autowired private ConfigurationService configService;
   @Autowired private ConnectedTestConfiguration testConfig;
+  @Autowired private ApplicationConfiguration applicationConfiguration;
   @MockBean private IamProviderInterface samService;
 
   private DatasetRequestModel datasetRequest;
@@ -222,6 +226,67 @@ public class DatasetConnectedTest {
             });
     assertEquals(rowIds.size(), 4);
     assertEquals(expectedNames, datasetNames);
+  }
+
+  @Test
+  public void testMetadataTableUpdate() throws Exception {
+    String resourceFileName = "snapshot-test-dataset-data.csv";
+    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID().toString();
+    String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
+    // ingest the table
+    String tableName = "thetable";
+    String loadTag = UUID.randomUUID().toString();
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .table(tableName)
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .csvSkipLeadingRows(1)
+            .path(tableIngestInputFilePath)
+            .csvGenerateRowIds(true)
+            .loadTag(loadTag);
+    connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+
+    Optional<DatasetTable> table =
+        datasetDao.retrieve(summaryModel.getId()).getTableByName(tableName);
+    String metadataTableName;
+    if (table.isPresent()) {
+      metadataTableName = table.get().getRowMetadataTableName();
+    } else {
+      throw new TableNotFoundException("Table not found: " + tableName);
+    }
+    List<String> columns =
+        List.of(
+            PdaoConstant.PDAO_ROW_ID_COLUMN,
+            PdaoConstant.PDAO_INGESTED_BY_COLUMN,
+            PdaoConstant.PDAO_INGEST_TIME_COLUMN,
+            PdaoConstant.PDAO_LOAD_TAG_COLUMN);
+    TableResult bqQueryResult =
+        TestUtils.selectFromBigQueryDataset(
+            bigQueryPdao,
+            datasetDao,
+            dataLocationService,
+            datasetRequest.getName(),
+            metadataTableName,
+            String.join(",", columns));
+    Set<UUID> rowIds = new HashSet<>();
+    Set<String> ingestedBy = new HashSet<>();
+    Set<Long> ingestTime = new HashSet<>();
+    Set<String> loadTags = new HashSet<>();
+    bqQueryResult
+        .iterateAll()
+        .forEach(
+            r -> {
+              rowIds.add(UUID.fromString(r.get(PdaoConstant.PDAO_ROW_ID_COLUMN).getStringValue()));
+              ingestedBy.add(r.get(PdaoConstant.PDAO_INGESTED_BY_COLUMN).getStringValue());
+              ingestTime.add(r.get(PdaoConstant.PDAO_INGEST_TIME_COLUMN).getTimestampValue());
+              loadTags.add(r.get(PdaoConstant.PDAO_LOAD_TAG_COLUMN).getStringValue());
+            });
+    assertEquals(rowIds.size(), 4);
+    assertEquals(ingestedBy.size(), 1);
+    assertEquals(ingestedBy.iterator().next(), applicationConfiguration.getUserEmail());
+    assertEquals(ingestTime.size(), 1);
+    assertEquals(loadTags.size(), 1);
+    assertEquals(loadTags.iterator().next(), loadTag);
   }
 
   private String uploadIngestInputFile(String resourceFileName, String dirInCloud)

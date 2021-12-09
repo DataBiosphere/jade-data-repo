@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.PdaoLoadStatistics;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
@@ -15,13 +16,17 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
 public class IngestInsertIntoDatasetTableStep implements Step {
-  private DatasetService datasetService;
-  private BigQueryPdao bigQueryPdao;
+  private final DatasetService datasetService;
+  private final BigQueryPdao bigQueryPdao;
+  private final AuthenticatedUserRequest userRequest;
 
   public IngestInsertIntoDatasetTableStep(
-      DatasetService datasetService, BigQueryPdao bigQueryPdao) {
+      DatasetService datasetService,
+      BigQueryPdao bigQueryPdao,
+      AuthenticatedUserRequest userRequest) {
     this.datasetService = datasetService;
     this.bigQueryPdao = bigQueryPdao;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -57,6 +62,12 @@ public class IngestInsertIntoDatasetTableStep implements Step {
     workingMap.put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 
     bigQueryPdao.insertIntoDatasetTable(dataset, targetTable, stagingTableName);
+    bigQueryPdao.insertIntoMetadataTable(
+        dataset,
+        targetTable.getRowMetadataTableName(),
+        stagingTableName,
+        userRequest.getEmail(),
+        ingestRequest.getLoadTag());
 
     return StepResult.getStepResultSuccess();
   }

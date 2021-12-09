@@ -169,7 +169,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
-      addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
+      addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao, userReq));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
       addStep(new IngestScratchFileDeleteGcpStep(gcsPdao));
     } else if (cloudPlatform.isAzure()) {

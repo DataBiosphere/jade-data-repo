@@ -1988,8 +1988,17 @@ public class BigQueryPdao {
               columns.forEach(
                   column -> {
                     String columnName = column.getName();
-                    Object fieldValue = rows.get(columnName).getValue();
-                    rowData.put(columnName, fieldValue);
+                    FieldValue fieldValue = rows.get(columnName);
+                    Object value;
+                    if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
+                      value =
+                          fieldValue.getRepeatedValue().stream()
+                              .map(FieldValue::getValue)
+                              .collect(Collectors.toList());
+                    } else {
+                      value = fieldValue.getValue();
+                    }
+                    rowData.put(columnName, value);
                   });
               values.add(rowData);
             });

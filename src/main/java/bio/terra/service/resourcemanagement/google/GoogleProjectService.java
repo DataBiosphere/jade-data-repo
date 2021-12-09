@@ -2,7 +2,6 @@ package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
-import bio.terra.common.AclUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
@@ -15,19 +14,14 @@ import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundExce
 import bio.terra.service.resourcemanagement.exception.MismatchedBillingProfilesException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.appengine.v1.Appengine;
 import com.google.api.services.appengine.v1.model.Application;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
-import com.google.api.services.cloudresourcemanager.model.Binding;
-import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Operation;
-import com.google.api.services.cloudresourcemanager.model.Policy;
 import com.google.api.services.cloudresourcemanager.model.Project;
-import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
 import com.google.api.services.serviceusage.v1.ServiceUsage;
 import com.google.api.services.serviceusage.v1.model.BatchEnableServicesRequest;
@@ -40,21 +34,15 @@ import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -78,10 +66,9 @@ public class GoogleProjectService {
   private final GoogleBillingService billingService;
   private final GoogleResourceDao resourceDao;
   private final GoogleResourceConfiguration resourceConfiguration;
-  private final CloudResourceManagerService resourceManagerService;
+  private final GoogleResourceManagerService resourceManagerService;
   private final BufferService bufferService;
   private final DatasetBucketDao datasetBucketDao;
-  private final Environment environment;
 
   private static final String GS_BUCKET_PATTERN = "[a-z0-9\\-\\.\\_]{3,63}";
 
@@ -90,17 +77,15 @@ public class GoogleProjectService {
       GoogleResourceDao resourceDao,
       GoogleResourceConfiguration resourceConfiguration,
       GoogleBillingService billingService,
-      CloudResourceManagerService resourceManagerService,
+      GoogleResourceManagerService resourceManagerService,
       BufferService bufferService,
-      DatasetBucketDao datasetBucketDao,
-      Environment environment) {
+      DatasetBucketDao datasetBucketDao) {
     this.resourceDao = resourceDao;
     this.resourceConfiguration = resourceConfiguration;
     this.billingService = billingService;
     this.resourceManagerService = resourceManagerService;
     this.bufferService = bufferService;
     this.datasetBucketDao = datasetBucketDao;
-    this.environment = environment;
   }
 
   public String bucketForBigQueryScratchFile(String googleProjectId) {
@@ -199,7 +184,7 @@ public class GoogleProjectService {
     }
 
     // Otherwise this project needs to be initialized
-    Project project = getProject(googleProjectId);
+    Project project = resourceManagerService.getProject(googleProjectId);
     if (project == null) {
       throw new GoogleResourceException("Could not get project after handout");
     }
@@ -222,25 +207,6 @@ public class GoogleProjectService {
 
   public void deleteProjectMetadata(List<UUID> projectIdList) {
     resourceDao.deleteProjectMetadata(projectIdList);
-  }
-
-  // package access for use in tests
-  public Project getProject(String googleProjectId) {
-    try {
-      CloudResourceManager resourceManager = resourceManagerService.cloudResourceManager();
-      CloudResourceManager.Projects.Get request = resourceManager.projects().get(googleProjectId);
-      return request.execute();
-    } catch (GoogleJsonResponseException e) {
-      // if the project does not exist, the API will return a 403 unauth. to prevent people probing
-      // for projects. We tolerate non-existent projects, because we want to be able to retry
-      // failures on deleting other projects.
-      if (e.getDetails().getCode() != 403) {
-        throw new GoogleResourceException("Unexpected error while checking on project state", e);
-      }
-      return null;
-    } catch (IOException | GeneralSecurityException e) {
-      throw new GoogleResourceException("Could not check on project state", e);
-    }
   }
 
   // Common project initialization for new projects, in the case where we are reusing
@@ -269,79 +235,19 @@ public class GoogleProjectService {
       billingService.assignProjectBilling(billingProfile, googleProjectResource);
     }
     enableServices(googleProjectResource, region);
-    updateIamPermissions(roleIdentityMapping, googleProjectId, PermissionOp.ENABLE_PERMISSIONS);
-    addLabelsToProject(googleProjectResource.getGoogleProjectId(), labels);
+    resourceManagerService.updateIamPermissions(
+        roleIdentityMapping, googleProjectId, PermissionOp.ENABLE_PERMISSIONS);
+    resourceManagerService.addLabelsToProject(googleProjectResource.getGoogleProjectId(), labels);
 
     UUID id = resourceDao.createProject(googleProjectResource);
     googleProjectResource.id(id);
     return googleProjectResource;
   }
 
-  private void deleteGoogleProject(String googleProjectId) {
-    // Don't actually delete the project if we are reusing projects!
-    if (resourceConfiguration.getAllowReuseExistingProjects()) {
-      logger.info("Reusing projects: skipping delete of {}", googleProjectId);
-    } else {
-      try {
-        CloudResourceManager resourceManager = resourceManagerService.cloudResourceManager();
-        CloudResourceManager.Projects.Delete request =
-            resourceManager.projects().delete(googleProjectId);
-        // the response will be empty if the request is successful in the delete
-        request.execute();
-      } catch (IOException | GeneralSecurityException e) {
-        throw new GoogleResourceException("Could not delete project", e);
-      }
-    }
-  }
-
   @VisibleForTesting
   void deleteGoogleProject(UUID resourceId) {
     GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(resourceId);
-    deleteGoogleProject(projectResource.getGoogleProjectId());
-  }
-
-  /**
-   * Google requires labels to consist of only lowercase, alphanumeric, "_", and "-" characters.
-   * This value can be at most 63 characters long.
-   *
-   * @param string String to clean
-   * @return The cleaned String
-   */
-  @VisibleForTesting
-  static String cleanForLabels(String string) {
-    return string
-        .toLowerCase(Locale.ROOT)
-        .trim()
-        .replaceAll("[^a-z0-9_-]", "-")
-        .substring(0, Math.min(string.length(), 63));
-  }
-
-  public void addLabelsToProject(String googleProjectId, Map<String, String> labels) {
-    final Stream<Map.Entry<String, String>> additionalLabels;
-    if (Arrays.stream(environment.getActiveProfiles())
-        .anyMatch(env -> env.contains("test") || env.contains("int"))) {
-      additionalLabels = Stream.of(Map.entry("project-for-test", "true"));
-    } else {
-      additionalLabels = Stream.empty();
-    }
-
-    try {
-      CloudResourceManager resourceManager = resourceManagerService.cloudResourceManager();
-      Project project = resourceManager.projects().get(googleProjectId).execute();
-      Map<String, String> cleanedLabels =
-          Stream.concat(
-                  Stream.concat(project.getLabels().entrySet().stream(), additionalLabels),
-                  labels.entrySet().stream()
-                      .map(
-                          e -> Map.entry(cleanForLabels(e.getKey()), cleanForLabels(e.getValue()))))
-              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1));
-      project.setLabels(cleanedLabels);
-      logger.info("Adding labels to project {}", googleProjectId);
-      resourceManager.projects().update(googleProjectId, project).execute();
-    } catch (Exception ex) {
-      // only a soft failure - we do not want to fail project create just on adding project labels
-      logger.warn("Encountered error while updating project labels. ex: {}, stacktrace: {}", ex);
-    }
+    resourceManagerService.deleteProject(projectResource.getGoogleProjectId());
   }
 
   @VisibleForTesting
@@ -393,63 +299,6 @@ public class GoogleProjectService {
   public enum PermissionOp {
     ENABLE_PERMISSIONS,
     REVOKE_PERMISSIONS
-  }
-
-  // Set permissions on a project
-  public void updateIamPermissions(
-      Map<String, List<String>> userPermissions, String projectId, PermissionOp permissionOp)
-      throws InterruptedException {
-
-    // Nothing to do if no permissions updates are requested
-    if (userPermissions == null || userPermissions.size() == 0) {
-      return;
-    }
-
-    GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
-
-    AclUtils.aclUpdateRetry(
-        () -> {
-          try {
-            CloudResourceManager resourceManager = resourceManagerService.cloudResourceManager();
-            Policy policy =
-                resourceManager.projects().getIamPolicy(projectId, getIamPolicyRequest).execute();
-            final List<Binding> bindingsList = policy.getBindings();
-
-            switch (permissionOp) {
-              case ENABLE_PERMISSIONS:
-                for (var entry : userPermissions.entrySet()) {
-                  Binding binding =
-                      new Binding().setRole(entry.getKey()).setMembers(entry.getValue());
-                  bindingsList.add(binding);
-                }
-                break;
-
-              case REVOKE_PERMISSIONS:
-                // Remove members from the current policies
-                for (var entry : userPermissions.entrySet()) {
-                  CollectionUtils.filter(
-                      bindingsList,
-                      b -> {
-                        if (Objects.equals(b.getRole(), entry.getKey())) {
-                          // Remove the members that were passed in
-                          b.setMembers(ListUtils.subtract(b.getMembers(), entry.getValue()));
-                          // Remove any entries from the bindings list with no members
-                          return !b.getMembers().isEmpty();
-                        }
-                        return true;
-                      });
-                }
-            }
-
-            policy.setBindings(bindingsList);
-            SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
-            resourceManager.projects().setIamPolicy(projectId, setIamPolicyRequest).execute();
-            return null;
-          } catch (IOException | GeneralSecurityException ex) {
-            throw new AclUtils.AclRetryException(
-                "Encountered an error while updating IAM permissions", ex, ex.getMessage());
-          }
-        });
   }
 
   /** Create a client to speak to the appengine admin api */

@@ -26,9 +26,8 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.google.CloudResourceManagerService;
-import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
@@ -65,7 +64,6 @@ import org.springframework.test.web.servlet.MvcResult;
 public class RBSConnectedTest {
 
   @Autowired private BufferService bufferService;
-  @Autowired private GoogleProjectService projectService;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ObjectMapper objectMapper;
   @Autowired private MockMvc mvc;
@@ -73,7 +71,7 @@ public class RBSConnectedTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private ConfigurationService configService;
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
-  @Autowired private CloudResourceManagerService resourceManagerService;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
 
   @MockBean private IamProviderInterface samService;
 
@@ -103,8 +101,8 @@ public class RBSConnectedTest {
   public void testProjectHandout() {
     ResourceInfo resource = bufferService.handoutResource(DatasetSecurityClassification.NONE);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
-    Project project = projectService.getProject(projectId);
-    projectService.addLabelsToProject(projectId, Map.of("test-name", "rbs-connected-test"));
+    Project project = resourceManagerService.getProject(projectId);
+    resourceManagerService.addLabelsToProject(projectId, Map.of("test-name", "rbs-connected-test"));
     assertThat(
         "The project requested from RBS is active", project.getLifecycleState(), equalTo("ACTIVE"));
   }
@@ -148,14 +146,14 @@ public class RBSConnectedTest {
     String sensitiveProjectId =
         sensitiveResource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     googleProjectIds.add(sensitiveProjectId);
-    Project sensitiveProject = projectService.getProject(sensitiveProjectId);
+    Project sensitiveProject = resourceManagerService.getProject(sensitiveProjectId);
     ResourceId sensitiveParent = sensitiveProject.getParent();
 
     ResourceInfo normalResource = bufferService.handoutResource(DatasetSecurityClassification.NONE);
     String normalProjectId =
         normalResource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     googleProjectIds.add(normalProjectId);
-    Project normalProject = projectService.getProject(normalProjectId);
+    Project normalProject = resourceManagerService.getProject(normalProjectId);
     ResourceId normalParent = normalProject.getParent();
 
     assertThat(

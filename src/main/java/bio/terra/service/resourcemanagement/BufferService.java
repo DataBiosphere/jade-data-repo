@@ -15,8 +15,8 @@ import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.resourcemanagement.exception.BufferServiceAPIException;
 import bio.terra.service.resourcemanagement.exception.BufferServiceAuthorizationException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.resourcemanagement.google.CloudResourceManagerService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import java.io.IOException;
@@ -36,16 +36,16 @@ public class BufferService {
 
   private final ResourceBufferServiceConfiguration bufferServiceConfiguration;
   private final GoogleResourceConfiguration googleConfig;
-  private final CloudResourceManagerService cloudResourceManagerService;
+  private final GoogleResourceManagerService googleResourceManagerService;
 
   @Autowired
   public BufferService(
       ResourceBufferServiceConfiguration bufferServiceConfiguration,
       GoogleResourceConfiguration googleConfig,
-      CloudResourceManagerService cloudResourceManagerService) {
+      GoogleResourceManagerService googleResourceManagerService) {
     this.bufferServiceConfiguration = bufferServiceConfiguration;
     this.googleConfig = googleConfig;
-    this.cloudResourceManagerService = cloudResourceManagerService;
+    this.googleResourceManagerService = googleResourceManagerService;
   }
 
   private ApiClient getApiClient(String accessToken) {
@@ -138,7 +138,7 @@ public class BufferService {
 
   private void refolderProjectToSecureFolder(String projectId)
       throws IOException, GeneralSecurityException {
-    CloudResourceManager cloudResourceManager = cloudResourceManagerService.cloudResourceManager();
+    CloudResourceManager cloudResourceManager = googleResourceManagerService.cloudResourceManager();
     var project = cloudResourceManager.projects().get(projectId).execute();
 
     ResourceId resourceId =
@@ -150,7 +150,7 @@ public class BufferService {
   }
 
   private void deleteProject(String projectId) throws IOException, GeneralSecurityException {
-    CloudResourceManager cloudResourceManager = cloudResourceManagerService.cloudResourceManager();
+    CloudResourceManager cloudResourceManager = googleResourceManagerService.cloudResourceManager();
     cloudResourceManager.projects().delete(projectId).execute();
   }
 

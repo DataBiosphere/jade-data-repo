@@ -32,7 +32,7 @@ import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
-import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
@@ -89,7 +89,7 @@ public class EncodeFileTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private SnapshotDao snapshotDao;
   @Autowired private ConnectedOperations connectedOperations;
-  @Autowired private GoogleProjectService googleProjectService;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private DrsIdService drsIdService;
   @Autowired private BufferService bufferService;
 
@@ -114,7 +114,7 @@ public class EncodeFileTest {
     ResourceInfo resourceInfo =
         bufferService.handoutResource(datasetSummary.getSecurityClassification());
     targetProjectId = resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId();
-    googleProjectService.addLabelsToProject(
+    resourceManagerService.addLabelsToProject(
         targetProjectId, Map.of("test-name", "encode-file-test"));
     // Build a storage object for the data project of the dataset.
     StorageOptions storageOptions =

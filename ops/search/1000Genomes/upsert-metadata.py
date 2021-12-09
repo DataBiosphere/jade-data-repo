@@ -6,7 +6,9 @@ from urllib.error import HTTPError
 from datetime import datetime
 from tqdm import tqdm
 
-
+# to set AUTH_TOKEN in your environment, go to the swagger ui and authorize
+# then run any API, such as enumerateSnapshots, and copy the "authorization: Bearer <token string>"
+# from the curl request
 auth, token = os.environ["AUTH_TOKEN"].split(": ", 1)
 thousand_genomes_search_snapshot_id = "77f1365e-b88d-48e2-a9ab-88ccd6cec68e"
 url_retrieve_snapshot = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/snapshots/{uuid}".format(

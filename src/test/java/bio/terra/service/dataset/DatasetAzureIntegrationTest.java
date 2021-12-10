@@ -61,10 +61,12 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
+import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobUrlParts;
+import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -123,6 +125,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private UUID snapshotByRowsId;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
+  private RequestRetryOptions retryOptions;
 
   @Before
   public void setup() throws Exception {
@@ -133,7 +136,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
     datasetId = null;
-    RequestRetryOptions retryOptions =
+    retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL,
             azureResourceConfiguration.getMaxRetries(),
@@ -458,7 +461,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .getAccessInformation()
             .getParquet();
 
-    // blobIOTestUtility.listFilesInBlob("metadata/parquet/vocabulary");
     // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
         datasetParquetAccessInfo.getUrl() + "?" + datasetParquetAccessInfo.getSasToken();
@@ -481,12 +483,23 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
         verifySignedUrl(tableUrl, steward(), "rl");
 
+        BlobContainerClientFactory fact = new BlobContainerClientFactory(tableUrl, retryOptions);
+
+        List<BlobItem> blobItems =
+            fact.getBlobContainerClient().listBlobsByHierarchy(String.format("parquet/%s/", table.getName())).stream()
+                .collect(Collectors.toList());
+
+        BlobUrlParts url = BlobUrlParts.parse(table.getUrl());
+        String container = blobItems.get(0).getName();
+        url.setBlobName(container);
+        String newUrl = url.toUrl() + "?" + table.getSasToken();
+
         SnapshotRequestRowIdTableModel tableModel = new SnapshotRequestRowIdTableModel();
         tableModel.setTableName(table.getName());
         tableModel.setColumns(List.of("id"));
 
         List<UUID> rowIds = new ArrayList<>();
-        List<Map<String, String>> records = ParquetUtils.readParquetRecords(tableUrl);
+        List<Map<String, String>> records = ParquetUtils.readParquetRecords(newUrl);
         records.stream()
             .map(r -> r.get("datarepo_row_id"))
             .forEach(rowId -> rowIds.add(UUID.fromString(rowId)));

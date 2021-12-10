@@ -4,10 +4,13 @@ import com.azure.storage.blob.BlobUrlParts;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -77,5 +80,12 @@ public class ParquetUtils {
       // No value at position index or empty array
       return null;
     }
+  }
+  
+  public static UUID getUUIDFromByteArray(byte[] bytes) {
+    ByteBuffer bb = ByteBuffer.wrap(bytes);
+    long high = bb.getLong();
+    long low = bb.getLong();
+    return new UUID(high, low);
   }
 }

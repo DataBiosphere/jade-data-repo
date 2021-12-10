@@ -59,9 +59,24 @@ public class TableDependencyDao {
                       .map(e -> e.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME).toString())
                       .collect(Collectors.toList());
               // Create any entities that do not already exist
-              refIdChunk.stream()
-                  .filter(id -> !existing.contains(id))
-                  .forEach(refId -> createDependencyEntity(tableClient, snapshotId, refId));
+              List<TableTransactionAction> batchEntities =
+                  refIdChunk.stream()
+                      .filter(id -> !existing.contains(id))
+                      .map(
+                          refId -> {
+                            FireStoreDependency fireStoreDependency =
+                                new FireStoreDependency()
+                                    .snapshotId(snapshotId.toString())
+                                    .fileId(refId)
+                                    .refCount(1L);
+                            TableEntity fireStoreDependencyEntity =
+                                FireStoreDependency.toTableEntity(fireStoreDependency);
+                            return new TableTransactionAction(
+                                TableTransactionActionType.UPSERT_REPLACE,
+                                fireStoreDependencyEntity);
+                          })
+                      .collect(Collectors.toList());
+              tableClient.submitTransaction(batchEntities);
             });
   }
 

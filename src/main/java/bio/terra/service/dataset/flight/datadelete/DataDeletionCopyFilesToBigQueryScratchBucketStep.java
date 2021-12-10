@@ -4,6 +4,7 @@ import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getD
 import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.model.DataDeletionGcsFileModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.service.common.gcs.CommonFlightKeys;
@@ -18,7 +19,10 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.storage.BlobId;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Stream;
 
 public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
 
@@ -39,6 +43,28 @@ public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
     DataDeletionRequest dataDeletionRequest = getRequest(context);
     GoogleBucketResource bucketResource =
         FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
+    List<DataDeletionTableModel> tables;
+    if (dataDeletionRequest.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
+      tables = copyGcsFileSpecPaths(context, dataDeletionRequest, projectId, bucketResource);
+    } else {
+      tables = writeJsonArraysToFile(context, dataDeletionRequest, projectId, bucketResource);
+    }
+    workingMap.put(DataDeletionMapKeys.TABLES, tables);
+
+    return StepResult.getStepResultSuccess();
+  }
+
+  @Override
+  public StepResult undoStep(FlightContext context) throws InterruptedException {
+    DataDeletionUtils.deleteScratchFiles(context, gcsPdao);
+    return StepResult.getStepResultSuccess();
+  }
+
+  private List<DataDeletionTableModel> copyGcsFileSpecPaths(
+      FlightContext context,
+      DataDeletionRequest dataDeletionRequest,
+      String projectId,
+      GoogleBucketResource bucketResource) {
     List<DataDeletionTableModel> tables = dataDeletionRequest.getTables();
     for (var table : tables) {
       String tablePath = table.getGcsFileSpec().getPath();
@@ -51,14 +77,39 @@ public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
       String newPath = GcsUriUtils.getControlPath(tablePath, bucketResource, context.getFlightId());
       table.getGcsFileSpec().path(newPath);
     }
-    workingMap.put(DataDeletionMapKeys.TABLES, tables);
-
-    return StepResult.getStepResultSuccess();
+    return tables;
   }
 
-  @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
-    DataDeletionUtils.deleteScratchFiles(context, gcsPdao);
-    return StepResult.getStepResultSuccess();
+  private List<DataDeletionTableModel> writeJsonArraysToFile(
+      FlightContext context,
+      DataDeletionRequest dataDeletionRequest,
+      String projectId,
+      GoogleBucketResource bucketResource) {
+
+    List<DataDeletionTableModel> jsonTables = dataDeletionRequest.getTables();
+    List<DataDeletionTableModel> gcsFileTables = new ArrayList<>();
+    String flightId = context.getFlightId();
+
+    for (var jsonTable : jsonTables) {
+      var scratchFilePath =
+          GcsUriUtils.getBlobForFlight(
+              bucketResource.getName(), jsonTable.getTableName(), flightId);
+      gcsPdao.createGcsFile(scratchFilePath, projectId);
+
+      String path = GcsUriUtils.getGsPathFromBlob(scratchFilePath);
+      Stream<String> rowIds = jsonTable.getJsonArraySpec().getRowIds().stream().map(UUID::toString);
+      gcsPdao.writeStreamToCloudFile(path, rowIds, projectId);
+
+      var gcsFileTable =
+          new DataDeletionTableModel()
+              .tableName(jsonTable.getTableName())
+              .gcsFileSpec(
+                  new DataDeletionGcsFileModel()
+                      .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
+                      .path(path));
+
+      gcsFileTables.add(gcsFileTable);
+    }
+    return gcsFileTables;
   }
 }

@@ -199,14 +199,6 @@ public class BlobIOTestUtility {
     sourceBlobContainerClient.delete();
   }
 
-  public BlobContainerClientFactory createSourceClientFactory(String containerName) {
-    return new BlobContainerClientFactory(
-        getSourceBlobContainerClient().getAccountName(),
-        tokenCredential,
-        containerName,
-        retryOptions);
-  }
-
   public BlobContainerClientFactory createDestinationClientFactory() {
     return new BlobContainerClientFactory(
         getDestinationBlobContainerClient().getAccountName(),

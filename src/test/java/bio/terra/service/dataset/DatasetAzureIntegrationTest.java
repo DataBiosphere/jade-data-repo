@@ -45,6 +45,7 @@ import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FileModel;
@@ -430,6 +431,9 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .getAccessInformation()
             .getParquet();
 
+    DatasetSpecificationModel datasetSchema =
+        dataRepoFixtures.getDataset(steward(), datasetId).getSchema();
+
     // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
         datasetParquetAccessInfo.getUrl() + "?" + datasetParquetAccessInfo.getSasToken();
@@ -455,7 +459,10 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         BlobContainerClientFactory fact = new BlobContainerClientFactory(tableUrl, retryOptions);
 
         List<BlobItem> blobItems =
-            fact.getBlobContainerClient().listBlobsByHierarchy(String.format("parquet/%s/", table.getName())).stream()
+            fact
+                .getBlobContainerClient()
+                .listBlobsByHierarchy(String.format("parquet/%s/", table.getName()))
+                .stream()
                 .collect(Collectors.toList());
 
         BlobUrlParts url = BlobUrlParts.parse(table.getUrl());
@@ -465,13 +472,20 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
         SnapshotRequestRowIdTableModel tableModel = new SnapshotRequestRowIdTableModel();
         tableModel.setTableName(table.getName());
-        tableModel.setColumns(List.of("id"));
+        tableModel.setColumns(
+            datasetSchema.getTables().stream()
+                .filter(t -> t.getName().equals(table.getName()))
+                .flatMap(t -> t.getColumns().stream().map(c -> c.getName()))
+                .collect(Collectors.toList()));
 
         List<UUID> rowIds = new ArrayList<>();
         List<Map<String, String>> records = ParquetUtils.readParquetRecords(newUrl);
         records.stream()
             .map(r -> r.get("datarepo_row_id"))
-            .forEach(rowId -> rowIds.add(UUID.fromString(rowId)));
+            .forEach(
+                rowId -> {
+                  rowIds.add(ParquetUtils.getUUIDFromByteArray(rowId.getBytes()));
+                });
 
         tableModel.setRowIds(rowIds);
         snapshotRequestRowIdModel.addTablesItem(tableModel);
@@ -560,65 +574,64 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     TestUtils.verifyHttpAccess(signedUrl, Map.of());
     verifySignedUrl(signedUrl, steward(), "r");
 
-        // Create snapshot by row id
-        SnapshotSummaryModel snapshotSummaryByRowId =
-            dataRepoFixtures.createSnapshotWithRequest(
-                steward(), summaryModel.getName(), profileId, snapshotByRowIdModel);
-        snapshotByRowsId = snapshotSummaryByRowId.getId();
-        assertThat(
-            "Snapshot exists",
-            snapshotSummaryByRowId.getName(),
-            equalTo(snapshotByRowIdModel.getName()));
+    // Create snapshot by row id
+    SnapshotSummaryModel snapshotSummaryByRowId =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward(), summaryModel.getName(), profileId, snapshotByRowIdModel);
+    snapshotByRowsId = snapshotSummaryByRowId.getId();
+    assertThat(
+        "Snapshot exists",
+        snapshotSummaryByRowId.getName(),
+        equalTo(snapshotByRowIdModel.getName()));
 
-        // Read the ingested metadata
-        AccessInfoParquetModel snapshotByRowIdParquetAccessInfo =
-            dataRepoFixtures
-                .getSnapshot(
-                    steward(),
-                    snapshotByRowsId,
-                    List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION))
-                .getAccessInformation()
-                .getParquet();
+    // Read the ingested metadata
+    AccessInfoParquetModel snapshotByRowIdParquetAccessInfo =
+        dataRepoFixtures
+            .getSnapshot(
+                steward(),
+                snapshotByRowsId,
+                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION))
+            .getAccessInformation()
+            .getParquet();
 
-        String snapshotByRowIdParquetUrl =
-            snapshotByRowIdParquetAccessInfo.getUrl()
-                + "?"
-                + snapshotByRowIdParquetAccessInfo.getSasToken();
-        TestUtils.verifyHttpAccess(snapshotByRowIdParquetUrl, Map.of());
-        verifySignedUrl(snapshotByRowIdParquetUrl, steward(), "rl");
+    String snapshotByRowIdParquetUrl =
+        snapshotByRowIdParquetAccessInfo.getUrl()
+            + "?"
+            + snapshotByRowIdParquetAccessInfo.getSasToken();
+    TestUtils.verifyHttpAccess(snapshotByRowIdParquetUrl, Map.of());
+    verifySignedUrl(snapshotByRowIdParquetUrl, steward(), "rl");
 
-        for (AccessInfoParquetModelTable table : snapshotByRowIdParquetAccessInfo.getTables()) {
-          if (tablesToCheck.contains(table.getName())) {
-            String tableUrl = table.getUrl() + "?" + table.getSasToken();
-            TestUtils.verifyHttpAccess(tableUrl, Map.of());
-            verifySignedUrl(tableUrl, steward(), "rl");
-          }
-        }
+    for (AccessInfoParquetModelTable table : snapshotByRowIdParquetAccessInfo.getTables()) {
+      if (tablesToCheck.contains(table.getName())) {
+        String tableUrl = table.getUrl() + "?" + table.getSasToken();
+        TestUtils.verifyHttpAccess(tableUrl, Map.of());
+        verifySignedUrl(tableUrl, steward(), "rl");
+      }
+    }
 
-        // Do a Drs lookup
-        String drsIdByRowId = String.format("v1_%s_%s", snapshotByRowsId, fileId);
-        DRSObject drsObjectByRowId = dataRepoFixtures.drsGetObject(steward(), drsIdByRowId);
-        assertThat(
-            "DRS object has single access method",
-            drsObjectByRowId.getAccessMethods().size(),
-            equalTo(1));
-        assertThat(
-            "DRS object has HTTPS",
-            drsObjectByRowId.getAccessMethods().get(0).getType(),
-            equalTo(TypeEnum.HTTPS));
-        assertThat(
-            "DRS object has access id",
-            drsObjectByRowId.getAccessMethods().get(0).getAccessId(),
-            equalTo("az-centralus"));
-        // Make sure we can read the drs object
-        DrsResponse<DRSAccessURL> accessForByRowId =
-            dataRepoFixtures.getObjectAccessUrl(steward(), drsIdByRowId, "az-centralus");
-        assertThat("Returns DRS access", accessForByRowId.getResponseObject().isPresent(),
-     is(true));
-        String signedUrlForByRowId = accessForByRowId.getResponseObject().get().getUrl();
+    // Do a Drs lookup
+    String drsIdByRowId = String.format("v1_%s_%s", snapshotByRowsId, fileId);
+    DRSObject drsObjectByRowId = dataRepoFixtures.drsGetObject(steward(), drsIdByRowId);
+    assertThat(
+        "DRS object has single access method",
+        drsObjectByRowId.getAccessMethods().size(),
+        equalTo(1));
+    assertThat(
+        "DRS object has HTTPS",
+        drsObjectByRowId.getAccessMethods().get(0).getType(),
+        equalTo(TypeEnum.HTTPS));
+    assertThat(
+        "DRS object has access id",
+        drsObjectByRowId.getAccessMethods().get(0).getAccessId(),
+        equalTo("az-centralus"));
+    // Make sure we can read the drs object
+    DrsResponse<DRSAccessURL> accessForByRowId =
+        dataRepoFixtures.getObjectAccessUrl(steward(), drsIdByRowId, "az-centralus");
+    assertThat("Returns DRS access", accessForByRowId.getResponseObject().isPresent(), is(true));
+    String signedUrlForByRowId = accessForByRowId.getResponseObject().get().getUrl();
 
-        TestUtils.verifyHttpAccess(signedUrlForByRowId, Map.of());
-        verifySignedUrl(signedUrlForByRowId, steward(), "r");
+    TestUtils.verifyHttpAccess(signedUrlForByRowId, Map.of());
+    verifySignedUrl(signedUrlForByRowId, steward(), "r");
 
     // Delete dataset should fail
     dataRepoFixtures.deleteDatasetShouldFail(steward, datasetId);

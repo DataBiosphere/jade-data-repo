@@ -4,9 +4,11 @@ import com.azure.storage.blob.BlobUrlParts;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.tuple.Pair;
@@ -68,5 +70,12 @@ public class ParquetUtils {
       throw new RuntimeException("Error reading parquet data data", ex);
     }
     return results;
+  }
+
+  public static UUID getUUIDFromByteArray(byte[] bytes) {
+    ByteBuffer bb = ByteBuffer.wrap(bytes);
+    long high = bb.getLong();
+    long low = bb.getLong();
+    return new UUID(high, low);
   }
 }

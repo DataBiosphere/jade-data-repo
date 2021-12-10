@@ -365,7 +365,7 @@ public class AzureSynapsePdao {
         // get the referenced table from the request model
         Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
             rowIdModel.getTables().stream()
-                .filter(t -> Objects.equals(t.getTableName(), tableName))
+                .filter(t -> Objects.equals(t.getTableName(), table.getName()))
                 .findFirst();
 
         if (rowIdTableModel.isPresent()) {

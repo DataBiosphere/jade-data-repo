@@ -25,8 +25,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-  private final Logger logger =
-      LoggerFactory.getLogger("bio.terra.controller.exception.GlobalExceptionHandler");
+  private final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   // -- data repository base exceptions --
   @ExceptionHandler(NotFoundException.class)

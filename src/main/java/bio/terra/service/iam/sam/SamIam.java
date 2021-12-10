@@ -1,6 +1,7 @@
 package bio.terra.service.iam.sam;
 
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.ExceptionUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.ErrorReportException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -511,7 +512,9 @@ public class SamIam implements IamProviderInterface {
     } catch (Exception ex) {
       String errorMsg = "Sam status check failed";
       logger.error(errorMsg, ex);
-      return new RepositoryStatusModelSystems().ok(false).message(errorMsg + ": " + ex);
+      return new RepositoryStatusModelSystems()
+          .ok(false)
+          .message(errorMsg + ": " + ExceptionUtils.formatException(ex));
     }
   }
 

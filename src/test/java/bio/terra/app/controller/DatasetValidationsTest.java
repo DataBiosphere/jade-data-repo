@@ -398,7 +398,7 @@ public class DatasetValidationsTest {
   @Test
   public void testDatasetEnumerateValidations() throws Exception {
     String expected = "Invalid enumerate parameter(s).";
-    String expectedEnum = "Invalid enum parameter: '%s'.";
+    String expectedEnum = "Invalid enum parameter: %s.";
     expectBadDatasetEnumerateRequest(
         -1,
         3,

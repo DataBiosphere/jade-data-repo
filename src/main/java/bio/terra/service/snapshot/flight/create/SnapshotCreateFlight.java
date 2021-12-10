@@ -5,7 +5,7 @@ import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
-import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
@@ -126,7 +126,7 @@ public class SnapshotCreateFlight extends Flight {
                   bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
           break;
         } else {
-          throw new NotImplementedException(
+          throw new FeatureNotImplementedException(
               "By Asset Snapshots are not yet supported in Azure datasets.");
         }
       case BYFULLVIEW:
@@ -160,7 +160,7 @@ public class SnapshotCreateFlight extends Flight {
                   userReq));
           break;
         } else {
-          throw new NotImplementedException(
+          throw new FeatureNotImplementedException(
               "By Query Snapshots are not yet supported in Azure datasets.");
         }
 
@@ -171,7 +171,7 @@ public class SnapshotCreateFlight extends Flight {
                   bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
           break;
         } else {
-          throw new NotImplementedException(
+          throw new FeatureNotImplementedException(
               "By Row ID Snapshots are not yet supported in Azure datasets.");
         }
       default:

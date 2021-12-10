@@ -1,6 +1,6 @@
 package bio.terra.service.common.azure;
 
-import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.exception.FeatureNotImplementedException;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -12,7 +12,7 @@ public enum StorageTableName {
     // TODO - With DR-2127, move remove special case for dataset
     @Override
     public String toTableName(UUID resourceId) {
-      throw new NotImplementedException(
+      throw new FeatureNotImplementedException(
           "Dataset storage table names are not unique per resource. Use DATASET_TABLE.toTableName() instead.");
     }
 
@@ -23,7 +23,7 @@ public enum StorageTableName {
   FILES_TABLE("files") {
     @Override
     public String toTableName(UUID resourceId) {
-      throw new NotImplementedException(
+      throw new FeatureNotImplementedException(
           "Files storage table names are not unique per resource. Use FILES_TABLE.toTableName() instead.");
     }
 

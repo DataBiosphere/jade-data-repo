@@ -1,6 +1,6 @@
 package bio.terra.service.resourcemanagement;
 
-import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.model.BillingProfileModel;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -50,7 +50,7 @@ public class AzureDataLocationSelector {
       }
       return result.toString();
     } catch (NoSuchAlgorithmException e) {
-      throw new NotImplementedException("SHA512 not supported in this JVM", e);
+      throw new FeatureNotImplementedException("SHA512 not supported in this JVM", e);
     }
   }
 }

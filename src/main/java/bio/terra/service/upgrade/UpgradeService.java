@@ -1,7 +1,7 @@
 package bio.terra.service.upgrade;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.UpgradeModel;
 import bio.terra.service.iam.IamAction;
@@ -44,7 +44,7 @@ public class UpgradeService {
         user, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.LIST_JOBS);
 
     if (request.getUpgradeType() != UpgradeModel.UpgradeTypeEnum.CUSTOM) {
-      throw new NotImplementedException(
+      throw new FeatureNotImplementedException(
           "Upgrade type is not implemented: " + request.getUpgradeType().name());
     }
 

@@ -2,7 +2,7 @@ package bio.terra.service.iam.sam;
 
 import static java.time.Instant.now;
 
-import bio.terra.common.exception.DataRepoException;
+import bio.terra.common.exception.ErrorReportException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
@@ -90,7 +90,7 @@ class SamRetry {
   }
 
   private void handleApiException(ApiException ex) {
-    DataRepoException rex = SamIam.convertSAMExToDataRepoEx(ex);
+    ErrorReportException rex = SamIam.convertSAMExToDataRepoEx(ex);
     if (!(rex instanceof IamInternalServerErrorException)) {
       throw rex;
     }

@@ -1,7 +1,7 @@
 package bio.terra.app.controller.converters;
 
-import bio.terra.app.controller.exception.ValidationException;
-import java.util.Collections;
+import bio.terra.common.exception.ValidationException;
+import java.util.List;
 import org.springframework.core.convert.converter.Converter;
 
 /**
@@ -31,8 +31,7 @@ public abstract class OpenApiEnumConverter<T> implements Converter<String, T> {
     T result = fromValue(source.toLowerCase());
     if (result == null) {
       throw new ValidationException(
-          String.format("Invalid enum parameter: '%s'.", source),
-          Collections.singletonList(errorString()));
+          String.format("Invalid enum parameter: %s.", source), List.of(errorString()));
     }
     return result;
   }

@@ -409,8 +409,11 @@ jib {
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())
     }
+    // Make sure that we disable remote lookups in message printing.  See
+    // https://www.randori.com/blog/cve-2021-44228/
+    // for more information
     container {
-        jvmFlags = ["-Xms1g", "-Xmx2g"]
+        jvmFlags = ["-Xms1g", "-Xmx2g", "-Dlog4j2.formatMsgNoLookups=true"]
     }
     container.creationTime = buildTime()
 }

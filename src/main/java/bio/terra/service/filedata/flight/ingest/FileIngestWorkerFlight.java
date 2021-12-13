@@ -17,7 +17,6 @@ import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.RetryRuleRandomBackoff;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;

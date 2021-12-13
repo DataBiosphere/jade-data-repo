@@ -74,6 +74,7 @@ public class CreateSnapshot extends SimpleDataset {
     DataRepoUtils.setConfigParameter(repositoryApi, "LOAD_BULK_ARRAY_FILES_MAX", filesToLoad);
 
     // set up and start bulk load job of small local files
+    long loadStart = System.currentTimeMillis();
     if (cloudPlatform.equals(CloudPlatform.GCP)) {
       arrayLoad =
           BulkLoadUtils.buildBulkLoadFileRequest100B(filesToLoad, billingProfileModel.getId());
@@ -94,11 +95,15 @@ public class CreateSnapshot extends SimpleDataset {
         DataRepoUtils.expectJobSuccess(
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
     BulkLoadResultModel loadSummary = result.getLoadSummary();
+    long loadEnd = System.currentTimeMillis();
+    long loadDuration = loadEnd - loadStart;
+    logger.info(String.format("Bulk load duration: %d", loadDuration));
     assertThat(
         "Number of successful files loaded should equal total files.",
         loadSummary.getTotalFiles(),
         equalTo(loadSummary.getSucceededFiles()));
 
+    long ingestStart = System.currentTimeMillis();
     if (cloudPlatform.equals(CloudPlatform.GCP)) {
       // generate load for the simple dataset
       String testConfigGetIngestbucket = "jade-testdata";
@@ -136,6 +141,9 @@ public class CreateSnapshot extends SimpleDataset {
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
+    long ingestEnd = System.currentTimeMillis();
+    long ingestDuration = ingestEnd - ingestStart;
+    logger.info(String.format("Dataset ingest duration: %d", ingestDuration));
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
   }
 

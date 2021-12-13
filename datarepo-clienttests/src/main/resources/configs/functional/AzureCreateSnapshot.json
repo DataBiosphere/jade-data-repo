@@ -15,7 +15,7 @@
   "testScripts": [
     {
       "name": "CreateSnapshot",
-      "parameters": [200],
+      "parameters": [500],
       "numberOfUserJourneyThreadsToRun": 1,
       "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 2,

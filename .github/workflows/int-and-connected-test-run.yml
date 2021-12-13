@@ -147,12 +147,12 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.61.0
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
-      - name: "Run Integration test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
-        with:
-          actions_subcommand: 'gradleinttest'
-          pgport: ${{ job.services.postgres.ports[5432] }}
-          test_to_run: 'testIntegration'
+#      - name: "Run Integration test via Gradle"
+#        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+#        with:
+#          actions_subcommand: 'gradleinttest'
+#          pgport: ${{ job.services.postgres.ports[5432] }}
+#          test_to_run: 'testIntegration'
       - name: "Archive code coverage results"
         uses: actions/upload-artifact@v2
         with:

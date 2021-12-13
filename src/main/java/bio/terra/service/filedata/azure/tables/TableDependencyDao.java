@@ -2,7 +2,6 @@ package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
-import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
@@ -90,19 +89,29 @@ public class TableDependencyDao {
   public void deleteSnapshotFileDependencies(
       TableServiceClient tableServiceClient, UUID datasetId, UUID snapshotId) {
     String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
-    ;
+
     if (TableServiceClientUtils.tableHasEntries(tableServiceClient, dependencyTableName)) {
       TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("snapshotId eq '%s'", snapshotId));
-      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      var batchEntities =
-          entities.stream()
-              .map(entity -> new TableTransactionAction(TableTransactionActionType.DELETE, entity))
-              .collect(Collectors.toList());
-      logger.info(
-          "Deleting snapshot {} file dependencies from {}", snapshotId, dependencyTableName);
-      tableClient.submitTransaction(batchEntities);
+      List<TableEntity> entities =
+          tableClient.listEntities(options, null, null).stream().collect(Collectors.toList());
+      ListUtils.partition(entities, MAX_FILTER_CLAUSES - 1)
+          .forEach(
+              entityChunk -> {
+                List<TableTransactionAction> batchEntities =
+                    entityChunk.stream()
+                        .map(
+                            entity ->
+                                new TableTransactionAction(
+                                    TableTransactionActionType.DELETE, entity))
+                        .collect(Collectors.toList());
+                logger.info(
+                    "Deleting snapshot {} file dependencies from {}",
+                    snapshotId,
+                    dependencyTableName);
+                tableClient.submitTransaction(batchEntities);
+              });
     } else {
       logger.warn("No snapshot file dependencies found to be deleted from dataset");
     }

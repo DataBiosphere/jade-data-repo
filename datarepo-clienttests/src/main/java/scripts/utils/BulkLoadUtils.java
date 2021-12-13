@@ -112,12 +112,12 @@ public class BulkLoadUtils {
             .loadTag(loadTag)
             .maxFailedFileLoads(filesToLoad); // do not stop if there is a failure.
 
+    String key =
+        blobIOTestUtility.getSourceStorageAccountPrimarySharedKey(
+            client, "TDR_data", "tdrtestdatauseast");
     for (int i = 0; i < filesToLoad; i++) {
       String sourcePath = sourcePrefix + String.format(fileFormat, i % numberOfSourceFiles);
       String sourceFile = String.format("file100B-%02d.txt", i % numberOfSourceFiles);
-      String key =
-          blobIOTestUtility.getSourceStorageAccountPrimarySharedKey(
-              client, "TDR_data", "tdrtestdatauseast");
       String signedSourcePath =
           String.format(
               "%s?%s",

@@ -2,6 +2,7 @@ package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
 import bio.terra.common.PdaoConstant;
@@ -164,6 +165,11 @@ public class SnapshotIntegrationTest extends UsersBase {
         "the right relationship comes through",
         snapshot.getRelationships().get(0).getName(),
         equalTo("sample_participants"));
+
+    assertThat(
+        "The secure monitoring is propagated from the dataset",
+        snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled(),
+        is(false));
   }
 
   @Test

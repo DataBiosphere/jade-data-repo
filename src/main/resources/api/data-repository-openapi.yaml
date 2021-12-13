@@ -2851,6 +2851,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StorageResourceModel'
+        secureMonitoringEnabled:
+          type: boolean
+          default: false
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
       description: >
@@ -2874,6 +2877,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StorageResourceModel'
+        secureMonitoringEnabled:
+          type: boolean
+          default: false
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -2896,6 +2902,9 @@ components:
           type: string
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
+        secureMonitoringEnabled:
+          type: boolean
+          default: false
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     DatasetRequestAccessIncludeModel:
@@ -3615,6 +3624,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StorageResourceModel'
+        secureMonitoringEnabled:
+          type: boolean
+          default: false
       description: >
         summary of snapshot
     EnumerateSnapshotModel:

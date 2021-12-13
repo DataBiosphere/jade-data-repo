@@ -68,12 +68,16 @@ public final class DatasetJsonConversion {
     final List<? extends StorageResource<?, ?>> storageResources =
         cloudPlatform.createStorageResourceValues(datasetRequest);
 
+    boolean secureMonitoringEnabled =
+        Objects.requireNonNullElse(datasetRequest.isSecureMonitoringEnabled(), false);
+
     return new Dataset(
             new DatasetSummary()
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
                 .storage(storageResources)
-                .defaultProfileId(defaultProfileId))
+                .defaultProfileId(defaultProfileId)
+                .secureMonitoringEnabled(secureMonitoringEnabled))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
@@ -87,7 +91,8 @@ public final class DatasetJsonConversion {
         .description(datasetSummary.getDescription())
         .createdDate(datasetSummary.getCreatedDate().toString())
         .defaultProfileId(datasetSummary.getDefaultProfileId())
-        .storage(storageResourceModelFromDatasetSummary(datasetSummary));
+        .storage(storageResourceModelFromDatasetSummary(datasetSummary))
+        .secureMonitoringEnabled(datasetSummary.isSecureMonitoringEnabled());
   }
 
   public static DatasetModel populateDatasetModelFromDataset(
@@ -100,7 +105,8 @@ public final class DatasetJsonConversion {
             .id(dataset.getId())
             .name(dataset.getName())
             .description(dataset.getDescription())
-            .createdDate(dataset.getCreatedDate().toString());
+            .createdDate(dataset.getCreatedDate().toString())
+            .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;

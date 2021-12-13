@@ -23,6 +23,7 @@ public class DatasetSummary {
   private Instant createdDate;
   private List<BillingProfileModel> billingProfiles;
   private List<? extends StorageResource<?, ?>> storage;
+  private boolean secureMonitoringEnabled;
 
   public UUID getId() {
     return id;
@@ -147,5 +148,14 @@ public class DatasetSummary {
                 new StorageResourceNotFoundException(
                     String.format(
                         "%s could not be found for dataset %s", cloudResource.name(), id)));
+  }
+
+  public boolean isSecureMonitoringEnabled() {
+    return secureMonitoringEnabled;
+  }
+
+  public DatasetSummary secureMonitoringEnabled(boolean secureMonitoringEnabled) {
+    this.secureMonitoringEnabled = secureMonitoringEnabled;
+    return this;
   }
 }

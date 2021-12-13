@@ -12,6 +12,7 @@ public class SnapshotSummary {
   private Instant createdDate;
   private UUID profileId;
   private List<StorageResource> storage;
+  private boolean secureMonitoringEnabled;
 
   public UUID getId() {
     return id;
@@ -64,6 +65,15 @@ public class SnapshotSummary {
 
   public SnapshotSummary storage(List<StorageResource> storage) {
     this.storage = storage;
+    return this;
+  }
+
+  public boolean isSecureMonitoringEnabled() {
+    return secureMonitoringEnabled;
+  }
+
+  public SnapshotSummary secureMonitoringEnabled(boolean secureMonitoringEnabled) {
+    this.secureMonitoringEnabled = secureMonitoringEnabled;
     return this;
   }
 }

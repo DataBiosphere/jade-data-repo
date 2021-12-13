@@ -60,9 +60,11 @@ public class DatasetDao {
 
   private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
+  public static final String TABLE_NAME = "dataset";
+
   private static final String summaryQueryColumns =
-      " dataset.id, name, description, default_profile_id, project_resource_id, application_resource_id, "
-          + "created_date, ";
+      " dataset.id, name, description, default_profile_id, project_resource_id, "
+          + "application_resource_id, secure_monitoring, created_date, ";
 
   private static final String datasetStorageQuery =
       "(SELECT jsonb_agg(json_build_object( "
@@ -368,9 +370,9 @@ public class DatasetDao {
     String sql =
         "INSERT INTO dataset "
             + "(name, default_profile_id, id, project_resource_id, application_resource_id, flightid, description, "
-            + "sharedlock) "
+            + "secure_monitoring, sharedlock) "
             + "VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id, :flightid, "
-            + ":description, ARRAY[]::TEXT[]) ";
+            + ":description, :secure_monitoring, ARRAY[]::TEXT[]) ";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -380,7 +382,8 @@ public class DatasetDao {
             .addValue("application_resource_id", dataset.getApplicationDeploymentResourceId())
             .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
-            .addValue("description", dataset.getDescription());
+            .addValue("description", dataset.getDescription())
+            .addValue("secure_monitoring", dataset.isSecureMonitoringEnabled());
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
       jdbcTemplate.update(sql, params, keyHolder);
@@ -591,7 +594,7 @@ public class DatasetDao {
       Collection<UUID> accessibleDatasetIds) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
-    DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses);
+    DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses, TABLE_NAME);
     whereClauses.add(" flightid IS NULL"); // exclude datasets that are exclusively locked
 
     // get total count of objects
@@ -603,7 +606,7 @@ public class DatasetDao {
     }
 
     // add the filters to the clause to get the actual items
-    DaoUtils.addFilterClause(filter, params, whereClauses);
+    DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "dataset.id");
 
     String whereSql = "";
@@ -627,7 +630,7 @@ public class DatasetDao {
             + billingProfileQuery
             + "FROM dataset "
             + whereSql
-            + DaoUtils.orderByClause(sort, direction)
+            + DaoUtils.orderByClause(sort, direction, TABLE_NAME)
             + " OFFSET :offset LIMIT :limit";
     params.addValue("offset", offset).addValue("limit", limit);
     List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
@@ -666,7 +669,8 @@ public class DatasetDao {
           .applicationDeploymentResourceId(rs.getObject("application_resource_id", UUID.class))
           .createdDate(rs.getTimestamp("created_date").toInstant())
           .storage(storageResources)
-          .billingProfiles(billingProfileModels);
+          .billingProfiles(billingProfileModels)
+          .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"));
     }
   }
 

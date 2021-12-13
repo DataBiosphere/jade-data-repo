@@ -3676,9 +3676,6 @@ components:
           description: Project id of the snapshot data project
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
-        secureMonitoringEnabled:
-          type: boolean
-          default: false
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:

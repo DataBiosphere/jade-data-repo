@@ -628,8 +628,7 @@ public class SnapshotService {
             .id(snapshot.getId())
             .name(snapshot.getName())
             .description(snapshot.getDescription())
-            .createdDate(snapshot.getCreatedDate().toString())
-            .secureMonitoringEnabled(snapshot.isSecureMonitoringEnabled());
+            .createdDate(snapshot.getCreatedDate().toString());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRequestAccessIncludeModel.NONE)) {

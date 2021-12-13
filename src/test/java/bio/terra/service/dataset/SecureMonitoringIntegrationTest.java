@@ -111,7 +111,7 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
 
     assertThat(
         "Snapshot model denotes secure monitoring enabled",
-        snapshot.isSecureMonitoringEnabled(),
+        snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled(),
         is(true));
 
     Optional<SnapshotSummaryModel> enumeratedModel =

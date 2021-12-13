@@ -168,7 +168,7 @@ public class SnapshotIntegrationTest extends UsersBase {
 
     assertThat(
         "The secure monitoring is propagated from the dataset",
-        snapshot.isSecureMonitoringEnabled(),
+        snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled(),
         is(false));
   }
 

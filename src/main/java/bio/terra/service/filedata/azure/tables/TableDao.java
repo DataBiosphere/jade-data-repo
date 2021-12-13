@@ -113,7 +113,6 @@ public class TableDao {
 
   public FireStoreDirectoryEntry lookupDirectoryEntryByPath(
       Dataset dataset, String path, AzureStorageAuthInfo storageAuthInfo) {
-    logger.info("Test lookup file path");
     TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     return directoryDao.retrieveByPath(
         tableServiceClient, dataset.getId(), StorageTableName.DATASET.toTableName(), path);

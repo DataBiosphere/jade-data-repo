@@ -33,16 +33,7 @@ def retrieve_snapshot():
     }
     req = Request(url_retrieve_snapshot, headers=headers, method='GET')
 
-
-    #try:
     res = urlopen(req)
-   # except HTTPError as err:
-
-    #    if err.code == 401:
-
-     #       raise err
-      #  if err.code == 404:
-       #     raise err
 
     snapshot = json.load(res)
 

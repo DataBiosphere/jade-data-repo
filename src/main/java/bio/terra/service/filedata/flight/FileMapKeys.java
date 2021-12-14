@@ -9,6 +9,7 @@ public final class FileMapKeys {
   public static final String INGEST_FILE_ACTION = "ingestFileAction";
   public static final String BUCKET_INFO = "bucketInfo";
   public static final String FIRESTORE_FILE = "fireStoreFile";
+  public static final String FIRESTORE_DIRECTORY_ENTRY = "fireStoreDirectoryEntry";
   public static final String REQUEST = "request";
   public static final String LOAD_COMPLETED = "loadCompleted";
   public static final String PROJECT_RESOURCE = "projectResource";

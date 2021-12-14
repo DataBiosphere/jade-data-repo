@@ -84,7 +84,7 @@ public class IngestFileAzureDirectoryStep implements Step {
             newEntry, storageAuthInfo, datasetId, StorageTableName.DATASET.toTableName());
       } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION)) {
         FireStoreDirectoryEntry existingEntry =
-            workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreDirectoryEntry.class);
+            workingMap.get(FileMapKeys.FIRESTORE_DIRECTORY_ENTRY, FireStoreDirectoryEntry.class);
         if (existingEntry != null && !StringUtils.equals(existingEntry.getFileId(), fileId)) {
           // (b) We are in a re-run of a load job. Try to get the file entry.
           fileId = existingEntry.getFileId();

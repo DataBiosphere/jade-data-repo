@@ -484,7 +484,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .map(r -> r.get("datarepo_row_id"))
             .forEach(
                 rowId -> {
-                  rowIds.add(ParquetUtils.getUUIDFromByteArray(rowId.getBytes()));
+                  rowIds.add(UUID.fromString(rowId));
                 });
 
         tableModel.setRowIds(rowIds);

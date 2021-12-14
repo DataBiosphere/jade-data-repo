@@ -15,7 +15,6 @@ import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DataDeletionRequest;
-import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
@@ -30,6 +29,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.DataDeletionRequestValidator;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetService;
@@ -45,7 +45,6 @@ import io.swagger.annotations.Api;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -81,6 +80,7 @@ public class DatasetsApiController implements DatasetsApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
   private final IngestRequestValidator ingestRequestValidator;
+  private final DataDeletionRequestValidator dataDeletionRequestValidator;
 
   @Autowired
   public DatasetsApiController(
@@ -93,7 +93,8 @@ public class DatasetsApiController implements DatasetsApi {
       FileService fileService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator,
-      IngestRequestValidator ingestRequestValidator) {
+      IngestRequestValidator ingestRequestValidator,
+      DataDeletionRequestValidator dataDeletionRequestValidator) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.jobService = jobService;
@@ -104,6 +105,7 @@ public class DatasetsApiController implements DatasetsApi {
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.assetModelValidator = assetModelValidator;
     this.ingestRequestValidator = ingestRequestValidator;
+    this.dataDeletionRequestValidator = dataDeletionRequestValidator;
   }
 
   @InitBinder
@@ -111,6 +113,7 @@ public class DatasetsApiController implements DatasetsApi {
     binder.addValidators(ingestRequestValidator);
     binder.addValidators(datasetRequestValidator);
     binder.addValidators(assetModelValidator);
+    binder.addValidators(dataDeletionRequestValidator);
   }
 
   @Override
@@ -217,7 +220,6 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> applyDatasetDataDeletion(
       UUID id, @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    validateDataDeletionRequest(dataDeletionRequest);
     String jobId = datasetService.deleteTabularData(id.toString(), dataDeletionRequest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -383,33 +385,6 @@ public class DatasetsApiController implements DatasetsApi {
     }
     if (!errors.isEmpty()) {
       throw new InvalidJobParameterException("Invalid ingest parameters detected", errors);
-    }
-  }
-
-  private void validateDataDeletionRequest(DataDeletionRequest dataDeletionRequest) {
-    List<String> errors = new ArrayList<>();
-
-    if (dataDeletionRequest.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
-      boolean containsJsonArraySpecs =
-          dataDeletionRequest.getTables().stream()
-              .map(DataDeletionTableModel::getJsonArraySpec)
-              .anyMatch(Objects::nonNull);
-      if (containsJsonArraySpecs) {
-        errors.add("Json Array specs provided when GCS File spec chosen.");
-      }
-    } else if (dataDeletionRequest.getSpecType() == DataDeletionRequest.SpecTypeEnum.JSONARRAY) {
-      boolean containsGcsFileSpecs =
-          dataDeletionRequest.getTables().stream()
-              .map(DataDeletionTableModel::getGcsFileSpec)
-              .anyMatch(Objects::nonNull);
-      if (containsGcsFileSpecs) {
-        errors.add("GCS File specs provided when Json Array spec chosen.");
-      }
-    } else {
-      errors.add("No spec chosen");
-    }
-    if (!errors.isEmpty()) {
-      throw new InvalidJobParameterException("Invalid data deletion parameters detected", errors);
     }
   }
 }

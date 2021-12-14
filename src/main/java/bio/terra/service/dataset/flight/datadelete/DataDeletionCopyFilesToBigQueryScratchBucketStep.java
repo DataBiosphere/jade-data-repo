@@ -43,14 +43,20 @@ public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
     DataDeletionRequest dataDeletionRequest = getRequest(context);
     GoogleBucketResource bucketResource =
         FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
-    List<DataDeletionTableModel> tables;
-    if (dataDeletionRequest.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
-      tables = copyGcsFileSpecPaths(context, dataDeletionRequest, projectId, bucketResource);
-    } else {
-      tables = writeJsonArraysToFile(context, dataDeletionRequest, projectId, bucketResource);
-    }
-    workingMap.put(DataDeletionMapKeys.TABLES, tables);
 
+    List<DataDeletionTableModel> tables;
+    switch (dataDeletionRequest.getSpecType()) {
+      case GCSFILE:
+        tables = copyGcsFileSpecPaths(context, dataDeletionRequest, projectId, bucketResource);
+        break;
+      case JSONARRAY:
+        tables = writeJsonArraysToFile(context, dataDeletionRequest, projectId, bucketResource);
+        break;
+      default:
+        throw new IllegalStateException("Unexpected value: " + dataDeletionRequest.getSpecType());
+    }
+
+    workingMap.put(DataDeletionMapKeys.TABLES, tables);
     return StepResult.getStepResultSuccess();
   }
 

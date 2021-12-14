@@ -283,6 +283,7 @@ dependencies {
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
+    testCompile 'org.junit.jupiter:junit-jupiter-params:5.8.2'
     testCompile "org.springframework.boot:spring-boot-starter-test"
     testCompile 'org.postgresql:postgresql:42.2.8'
     testCompile 'com.google.code.findbugs:annotations:3.0.1'

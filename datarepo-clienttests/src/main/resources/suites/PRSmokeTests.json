@@ -4,6 +4,11 @@
   "serverSpecificationFile": "integration-6.json",
   "testConfigurationFiles":
     [
-      "functional/AzureCreateSnapshot.json"
+      "basicexamples/BasicAuthenticated.json",
+      "basicexamples/BasicUnauthenticated.json",
+      "basicexamples/LookupDataset.json",
+      "functional/BillingProfileAccess.json",
+      "functional/BillingProfileInUse.json",
+      "functional/BillingProfileOwnerHandoff.json"
     ]
 }

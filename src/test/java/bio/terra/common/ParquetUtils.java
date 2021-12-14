@@ -17,6 +17,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.example.GroupReadSupport;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
 
 /** Helper test methods for working directly with parquet files */
 public class ParquetUtils {
@@ -64,7 +65,17 @@ public class ParquetUtils {
         Map<String, String> resultRecord = new HashMap<>();
         // Unfortunately, we can't use collectors with null values
         IntStream.range(0, r.getType().getFields().size())
-            .forEach(i -> resultRecord.put(r.getType().getFieldName(i), readFieldValue(r, i)));
+            .forEach(i -> {
+              if (r.getType()
+                          .getType(i)
+                          .getLogicalTypeAnnotation()
+                          .equals(LogicalTypeAnnotation.uuidType())) {
+                            resultRecord.put(r.getType().getFieldName(i), getUUIDFromByteArray(r.getBinary(i, 0).getBytes()));
+                          }else {
+              resultRecord.put(r.getType().getFieldName(i), readFieldValue(r, i));
+                          }
+            });
+
         results.add(resultRecord);
       }
     } catch (IOException ex) {
@@ -82,10 +93,11 @@ public class ParquetUtils {
     }
   }
   
-  public static UUID getUUIDFromByteArray(byte[] bytes) {
+  public static String getUUIDFromByteArray(byte[] bytes) {
     ByteBuffer bb = ByteBuffer.wrap(bytes);
     long high = bb.getLong();
     long low = bb.getLong();
-    return new UUID(high, low);
+    UUID id = new UUID(high, low);
+    return id.toString();
   }
 }

@@ -30,6 +30,7 @@ appender("Console-Stackdriver", ConsoleAppender) {
 logger("org.springframework", WARN)
 logger("liquibase.executor", WARN)
 logger("io.swagger.models.parameters.AbstractSerializableParameter", ERROR)
+logger("bio.terra.common.logging.RequestLoggingFilter", OFF)
 
 // enable the next 4 lines to see acl and policies
 /*

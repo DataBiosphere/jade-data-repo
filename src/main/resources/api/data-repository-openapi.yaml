@@ -2730,7 +2730,6 @@ components:
     BillingProfileRequestModel:
       required:
         - biller
-        - id
         - profileName
       type: object
       properties:

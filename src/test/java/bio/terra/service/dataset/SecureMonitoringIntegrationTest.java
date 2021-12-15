@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.auth.AuthService;
@@ -17,6 +18,10 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
+import com.google.api.services.cloudresourcemanager.model.Project;
+import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,6 +52,8 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
   @Autowired private JsonLoader jsonLoader;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
+  @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
 
   private UUID datasetId;
   private UUID snapshotId;
@@ -92,6 +99,14 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
         dataset.isSecureMonitoringEnabled(),
         is(true));
 
+    var datasetGoogleDataProject = dataset.getDataProject();
+    Project datasetProject = resourceManagerService.getProject(datasetGoogleDataProject);
+    ResourceId datasetParent = datasetProject.getParent();
+    assertThat(
+        "The parent of the dataset project is in the 'secure' folder",
+        datasetParent.getId(),
+        equalTo(googleResourceConfiguration.getSecureFolderResourceId()));
+
     String datasetName = dataset.getName();
     SnapshotRequestModel requestModel =
         jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
@@ -136,6 +151,14 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
         "Enumerated by dataset id snapshot model has secure monitoring flag",
         enumeratedByDatasetModel.get().isSecureMonitoringEnabled(),
         is(true));
+
+    var snapshotGoogleProject = snapshot.getDataProject();
+    Project snapshotProject = resourceManagerService.getProject(snapshotGoogleProject);
+    ResourceId snapshotParent = snapshotProject.getParent();
+    assertThat(
+        "The parent of the snapshot project is in the 'secure' folder",
+        snapshotParent.getId(),
+        equalTo(googleResourceConfiguration.getSecureFolderResourceId()));
   }
 
   private DatasetSummaryModel datasetWithSecureMonitoring(boolean secureMonitoringEnabled)
@@ -145,7 +168,7 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
     requestModel.setDefaultProfileId(profileId);
     requestModel.setName(Names.randomizeName(requestModel.getName()));
     requestModel.setCloudPlatform(CloudPlatform.GCP);
-    requestModel.setSecureMonitoringEnabled(secureMonitoringEnabled);
+    requestModel.setEnableSecureMonitoring(secureMonitoringEnabled);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(steward(), requestModel, false);
     datasetId = summaryModel.getId();

@@ -13,7 +13,13 @@ import bio.terra.buffer.model.SystemStatusSystems;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.resourcemanagement.exception.BufferServiceAPIException;
 import bio.terra.service.resourcemanagement.exception.BufferServiceAuthorizationException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
+import com.google.api.services.cloudresourcemanager.CloudResourceManager;
+import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -27,11 +33,20 @@ import org.springframework.stereotype.Component;
 public class BufferService {
   private static final Logger logger = LoggerFactory.getLogger(BufferService.class);
 
+  private static final String GCS_FOLDER_TYPE = "folder";
+
   private final ResourceBufferServiceConfiguration bufferServiceConfiguration;
+  private final GoogleResourceConfiguration googleConfig;
+  private final GoogleResourceManagerService googleResourceManagerService;
 
   @Autowired
-  public BufferService(ResourceBufferServiceConfiguration bufferServiceConfiguration) {
+  public BufferService(
+      ResourceBufferServiceConfiguration bufferServiceConfiguration,
+      GoogleResourceConfiguration googleConfig,
+      GoogleResourceManagerService googleResourceManagerService) {
     this.bufferServiceConfiguration = bufferServiceConfiguration;
+    this.googleConfig = googleConfig;
+    this.googleResourceManagerService = googleResourceManagerService;
   }
 
   private ApiClient getApiClient(String accessToken) {
@@ -85,7 +100,7 @@ public class BufferService {
    *
    * @return ResourceInfo
    */
-  public ResourceInfo handoutResource() {
+  public ResourceInfo handoutResource(boolean enableSecureMonitoring) {
     String handoutRequestId = UUID.randomUUID().toString();
     logger.info("Using request ID: {} to get project from RBS", handoutRequestId);
     HandoutRequestBody requestBody = new HandoutRequestBody().handoutRequestId(handoutRequestId);
@@ -97,6 +112,17 @@ public class BufferService {
           "Retrieved resource from pool {} on Buffer Service instance {}",
           bufferServiceConfiguration.getPoolId(),
           bufferServiceConfiguration.getInstanceUrl());
+
+      if (enableSecureMonitoring) {
+        var projectId = info.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+        try {
+          refolderProjectToSecureFolder(projectId);
+        } catch (IOException | GeneralSecurityException e) {
+          deleteProject(projectId);
+          throw new GoogleResourceException("Could not re-folder new project", e);
+        }
+      }
+
       return info;
     } catch (IOException e) {
       throw new BufferServiceAuthorizationException("Error reading or parsing credentials file", e);
@@ -106,7 +132,27 @@ public class BufferService {
       } else {
         throw new BufferServiceAPIException(e);
       }
+    } catch (GeneralSecurityException e) {
+      throw new GoogleResourceException("Failed to cleanup after failing to re-folder project", e);
     }
+  }
+
+  private void refolderProjectToSecureFolder(String projectId)
+      throws IOException, GeneralSecurityException {
+    CloudResourceManager cloudResourceManager = googleResourceManagerService.cloudResourceManager();
+    var project = cloudResourceManager.projects().get(projectId).execute();
+
+    ResourceId resourceId =
+        new ResourceId().setType(GCS_FOLDER_TYPE).setId(googleConfig.getSecureFolderResourceId());
+
+    project.setParent(resourceId);
+
+    cloudResourceManager.projects().update(projectId, project).execute();
+  }
+
+  private void deleteProject(String projectId) throws IOException, GeneralSecurityException {
+    CloudResourceManager cloudResourceManager = googleResourceManagerService.cloudResourceManager();
+    cloudResourceManager.projects().delete(projectId).execute();
   }
 
   public RepositoryStatusModelSystems status() {

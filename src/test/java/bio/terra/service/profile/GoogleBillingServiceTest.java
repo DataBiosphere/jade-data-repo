@@ -142,7 +142,7 @@ public class GoogleBillingServiceTest {
     Map<String, List<String>> roleToStewardMap = new HashMap<>();
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
-    ResourceInfo resourceInfo = bufferService.handoutResource();
+    ResourceInfo resourceInfo = bufferService.handoutResource(false);
     // create project metadata
     return projectService.initializeGoogleProject(
         resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),

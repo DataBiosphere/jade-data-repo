@@ -33,6 +33,7 @@ public class ResourceServiceConnectedTest {
 
   @Autowired private GoogleResourceConfiguration resourceConfiguration;
   @Autowired private GoogleProjectService projectService;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private BufferService bufferService;
@@ -51,7 +52,7 @@ public class ResourceServiceConnectedTest {
 
   @Test
   public void createAndDeleteProjectTest() throws Exception {
-    ResourceInfo resource = bufferService.handoutResource();
+    ResourceInfo resource = bufferService.handoutResource(false);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
 
     String role = "roles/bigquery.jobUser";
@@ -69,13 +70,13 @@ public class ResourceServiceConnectedTest {
             GoogleRegion.DEFAULT_GOOGLE_REGION,
             Map.of("test-name", "resource-service-connected-test"));
 
-    Project project = projectService.getProject(projectId);
+    Project project = resourceManagerService.getProject(projectId);
     assertThat("the project is active", project.getLifecycleState(), equalTo("ACTIVE"));
 
     // TODO check to make sure a steward can complete a job in another test
 
     projectService.deleteGoogleProject(projectResource.getId());
-    project = projectService.getProject(projectId);
+    project = resourceManagerService.getProject(projectId);
     assertThat(
         "the project is not active after delete",
         project.getLifecycleState(),

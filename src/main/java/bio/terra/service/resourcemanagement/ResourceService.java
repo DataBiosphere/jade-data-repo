@@ -22,6 +22,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotStorageAccountDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -53,6 +54,7 @@ public class ResourceService {
   private final SamConfiguration samConfiguration;
   private final DatasetStorageAccountDao datasetStorageAccountDao;
   private final SnapshotStorageAccountDao snapshotStorageAccountDao;
+  private final GoogleResourceManagerService resourceManagerService;
 
   @Autowired
   public ResourceService(
@@ -63,7 +65,8 @@ public class ResourceService {
       AzureStorageAccountService storageAccountService,
       SamConfiguration samConfiguration,
       DatasetStorageAccountDao datasetStorageAccountDao,
-      SnapshotStorageAccountDao snapshotStorageAccountDao) {
+      SnapshotStorageAccountDao snapshotStorageAccountDao,
+      GoogleResourceManagerService resourceManagerService) {
     this.azureDataLocationSelector = azureDataLocationSelector;
     this.projectService = projectService;
     this.bucketService = bucketService;
@@ -72,6 +75,7 @@ public class ResourceService {
     this.samConfiguration = samConfiguration;
     this.datasetStorageAccountDao = datasetStorageAccountDao;
     this.snapshotStorageAccountDao = snapshotStorageAccountDao;
+    this.resourceManagerService = resourceManagerService;
   }
 
   /**
@@ -481,7 +485,7 @@ public class ResourceService {
       throws InterruptedException {
     final List<String> emails =
         policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
-    projectService.updateIamPermissions(
+    resourceManagerService.updateIamPermissions(
         Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject, ENABLE_PERMISSIONS);
   }
 
@@ -489,7 +493,7 @@ public class ResourceService {
       throws InterruptedException {
     final List<String> emails =
         policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
-    projectService.updateIamPermissions(
+    resourceManagerService.updateIamPermissions(
         Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject, REVOKE_PERMISSIONS);
   }
 

@@ -13,6 +13,7 @@ public class GoogleResourceConfiguration {
   private int firestoreRetries;
   private boolean allowReuseExistingProjects;
   private boolean allowReuseExistingBuckets;
+  private String secureFolderResourceId;
 
   public String getApplicationName() {
     return applicationName;
@@ -52,5 +53,13 @@ public class GoogleResourceConfiguration {
 
   public void setFirestoreRetries(int firestoreRetries) {
     this.firestoreRetries = firestoreRetries;
+  }
+
+  public String getSecureFolderResourceId() {
+    return secureFolderResourceId;
+  }
+
+  public void setSecureFolderResourceId(String secureFolderResourceId) {
+    this.secureFolderResourceId = secureFolderResourceId;
   }
 }

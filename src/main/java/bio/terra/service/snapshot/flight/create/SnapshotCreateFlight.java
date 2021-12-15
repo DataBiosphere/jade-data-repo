@@ -94,7 +94,9 @@ public class SnapshotCreateFlight extends Flight {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));
 
       // Get a new google project from RBS and store it in the working map
-      addStep(new GetResourceBufferProjectStep(bufferService));
+      addStep(
+          new GetResourceBufferProjectStep(
+              bufferService, sourceDataset.isSecureMonitoringEnabled()));
 
       // Get or initialize the project where the snapshot resources will be created
       addStep(

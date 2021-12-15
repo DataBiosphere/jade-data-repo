@@ -68,8 +68,8 @@ public final class DatasetJsonConversion {
     final List<? extends StorageResource<?, ?>> storageResources =
         cloudPlatform.createStorageResourceValues(datasetRequest);
 
-    boolean secureMonitoringEnabled =
-        Objects.requireNonNullElse(datasetRequest.isSecureMonitoringEnabled(), false);
+    boolean enableSecureMonitoring =
+        Objects.requireNonNullElse(datasetRequest.isEnableSecureMonitoring(), false);
 
     return new Dataset(
             new DatasetSummary()
@@ -77,7 +77,7 @@ public final class DatasetJsonConversion {
                 .description(datasetRequest.getDescription())
                 .storage(storageResources)
                 .defaultProfileId(defaultProfileId)
-                .secureMonitoringEnabled(secureMonitoringEnabled))
+                .secureMonitoringEnabled(enableSecureMonitoring))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);

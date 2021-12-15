@@ -29,6 +29,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.DataDeletionRequestValidator;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetService;
@@ -79,6 +80,7 @@ public class DatasetsApiController implements DatasetsApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
   private final IngestRequestValidator ingestRequestValidator;
+  private final DataDeletionRequestValidator dataDeletionRequestValidator;
 
   @Autowired
   public DatasetsApiController(
@@ -91,7 +93,8 @@ public class DatasetsApiController implements DatasetsApi {
       FileService fileService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator,
-      IngestRequestValidator ingestRequestValidator) {
+      IngestRequestValidator ingestRequestValidator,
+      DataDeletionRequestValidator dataDeletionRequestValidator) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.jobService = jobService;
@@ -102,6 +105,7 @@ public class DatasetsApiController implements DatasetsApi {
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.assetModelValidator = assetModelValidator;
     this.ingestRequestValidator = ingestRequestValidator;
+    this.dataDeletionRequestValidator = dataDeletionRequestValidator;
   }
 
   @InitBinder
@@ -109,6 +113,7 @@ public class DatasetsApiController implements DatasetsApi {
     binder.addValidators(ingestRequestValidator);
     binder.addValidators(datasetRequestValidator);
     binder.addValidators(assetModelValidator);
+    binder.addValidators(dataDeletionRequestValidator);
   }
 
   @Override

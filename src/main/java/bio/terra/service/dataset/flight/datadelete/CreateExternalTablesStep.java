@@ -52,6 +52,7 @@ public class CreateExternalTablesStep implements Step {
 
     validateTablesExistInDataset(tables, dataset);
 
+    // At this point, all table models have a GcsFileSpec
     for (DataDeletionTableModel table : tables) {
       String path = table.getGcsFileSpec().getPath();
       // let any exception here trigger an undo, no use trying to continue

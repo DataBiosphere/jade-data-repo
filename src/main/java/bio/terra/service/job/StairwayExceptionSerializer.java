@@ -1,6 +1,6 @@
 package bio.terra.service.job;
 
-import bio.terra.common.exception.DataRepoException;
+import bio.terra.common.exception.ErrorReportException;
 import bio.terra.service.job.exception.ExceptionSerializerException;
 import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.stairway.ExceptionSerializer;
@@ -35,10 +35,10 @@ public class StairwayExceptionSerializer implements ExceptionSerializer {
             .setClassName(exception.getClass().getName())
             .setMessage(exception.getMessage());
 
-    if (exception instanceof DataRepoException) {
+    if (exception instanceof ErrorReportException) {
       fields
           .setDataRepoException(true)
-          .setErrorDetails(((DataRepoException) exception).getErrorDetails());
+          .setErrorDetails(((ErrorReportException) exception).getCauses());
     } else {
       fields.setDataRepoException(false);
     }

@@ -1,8 +1,9 @@
 package bio.terra.service.iam.sam;
 
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.ExceptionUtils;
 import bio.terra.common.ValidationUtils;
-import bio.terra.common.exception.DataRepoException;
+import bio.terra.common.exception.ErrorReportException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
@@ -511,7 +512,9 @@ public class SamIam implements IamProviderInterface {
     } catch (Exception ex) {
       String errorMsg = "Sam status check failed";
       logger.error(errorMsg, ex);
-      return new RepositoryStatusModelSystems().ok(false).message(errorMsg + ": " + ex);
+      return new RepositoryStatusModelSystems()
+          .ok(false)
+          .message(errorMsg + ": " + ExceptionUtils.formatException(ex));
     }
   }
 
@@ -622,7 +625,7 @@ public class SamIam implements IamProviderInterface {
    * Converts a SAM-specific ApiException to a DataRepo-specific common exception, based on the HTTP
    * status code.
    */
-  public static DataRepoException convertSAMExToDataRepoEx(final ApiException samEx) {
+  public static ErrorReportException convertSAMExToDataRepoEx(final ApiException samEx) {
     logger.warn("SAM client exception code: {}", samEx.getCode());
     logger.warn("SAM client exception message: {}", samEx.getMessage());
     logger.warn("SAM client exception details: {}", samEx.getResponseBody());

@@ -5,6 +5,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -48,11 +49,16 @@ public class DatasetDataDeleteFlight extends Flight {
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
+    DataDeletionRequest request =
+        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DataDeletionRequest.class);
+
     addStep(
         new VerifyAuthorizationStep(
             iamClient, IamResourceType.DATASET, datasetId, IamAction.SOFT_DELETE));
 
-    addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
+    if (request.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
+      addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
+    }
 
     // need to lock, need dataset name and flight id
     addStep(

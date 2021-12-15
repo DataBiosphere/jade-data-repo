@@ -969,6 +969,37 @@ public class BigQueryPdao {
     bigQueryProject.query(sqlTemplate.render());
   }
 
+  private static final String insertIntoMetadataTableTemplate =
+      "INSERT INTO `<project>.<dataset>.<metadataTable>` (<rowIdColumn>, <ingestByColumn>, "
+          + "<ingestTimeColumn>, <loadTagColumn>) "
+          + "SELECT <rowIdColumn>, '<ingestEmail>' AS <ingestByColumn>, "
+          + "CURRENT_TIMESTAMP() AS <ingestTimeColumn>, '<loadTag>' AS <loadTagColumn> "
+          + "FROM `<project>.<dataset>.<stagingTable>`";
+
+  public void insertIntoMetadataTable(
+      Dataset dataset,
+      String metadataTableName,
+      String stagingTableName,
+      String email,
+      String loadTag)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(insertIntoMetadataTableTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("metadataTable", metadataTableName);
+    sqlTemplate.add("stagingTable", stagingTableName);
+    sqlTemplate.add("rowIdColumn", PDAO_ROW_ID_COLUMN);
+    sqlTemplate.add("ingestEmail", email);
+    sqlTemplate.add("ingestByColumn", PDAO_INGESTED_BY_COLUMN);
+    sqlTemplate.add("ingestTimeColumn", PDAO_INGEST_TIME_COLUMN);
+    sqlTemplate.add("loadTag", loadTag);
+    sqlTemplate.add("loadTagColumn", PDAO_LOAD_TAG_COLUMN);
+
+    bigQueryProject.query(sqlTemplate.render());
+  }
+
   private FormatOptions buildFormatOptions(IngestRequestModel ingestRequest) {
     FormatOptions options;
     switch (ingestRequest.getFormat()) {
@@ -1988,8 +2019,17 @@ public class BigQueryPdao {
               columns.forEach(
                   column -> {
                     String columnName = column.getName();
-                    Object fieldValue = rows.get(columnName).getValue();
-                    rowData.put(columnName, fieldValue);
+                    FieldValue fieldValue = rows.get(columnName);
+                    Object value;
+                    if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
+                      value =
+                          fieldValue.getRepeatedValue().stream()
+                              .map(FieldValue::getValue)
+                              .collect(Collectors.toList());
+                    } else {
+                      value = fieldValue.getValue();
+                    }
+                    rowData.put(columnName, value);
                   });
               values.add(rowData);
             });

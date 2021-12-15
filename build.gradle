@@ -42,7 +42,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.244.0-SNAPSHOT'
+    version '1.257.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -166,6 +166,10 @@ configurations {
     generatedCompile
     runtimeClasspath
 }
+
+// Fix for CVE-2021-45046
+// See https://spring.io/blog/2021/12/10/log4j2-vulnerability-and-spring-boot
+ext['log4j2.version'] = '2.16.0'
 
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
@@ -409,8 +413,11 @@ jib {
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())
     }
+    // Make sure that we disable remote lookups in message printing.  See
+    // https://www.randori.com/blog/cve-2021-44228/
+    // for more information
     container {
-        jvmFlags = ["-Xms1g", "-Xmx2g"]
+        jvmFlags = ["-Xms1g", "-Xmx2g", "-Dlog4j2.formatMsgNoLookups=true"]
     }
     container.creationTime = buildTime()
 }
@@ -463,17 +470,25 @@ spotless {
 // There are separate tasks for running just the unit tests and just the connected tests.
 // connected tests and running all of the tests.
 test {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         includeCategories 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
     retry {
-        maxRetries = 3
+        if (isCiServer) {
+           maxRetries = 3
+        }
     }
     maxParallelForks = 2
 }
 
 task testConnected(type: Test) {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         includeCategories 'bio.terra.common.category.Connected'
     }
@@ -495,6 +510,9 @@ task testConnected(type: Test) {
 }
 
 task testIntegration(type: Test) {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         includeCategories 'bio.terra.common.category.Integration'
     }
@@ -515,17 +533,25 @@ task testIntegration(type: Test) {
 }
 
 task testUnit(type: Test) {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         includeCategories 'bio.terra.common.category.Unit'
     }
     maxParallelForks = 2
     retry {
-        maxRetries = 3
+        if (isCiServer) {
+            maxRetries = 3
+        }
     }
     outputs.upToDateWhen { false }
 }
 
 task testOnDemand(type: Test) {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         includeCategories 'bio.terra.common.category.OnDemand'
     }
@@ -536,6 +562,9 @@ task testOnDemand(type: Test) {
 }
 
 task testAll(type: Test) {
+    if (!isCiServer) {
+        systemProperty 'spring.profiles.include', 'human-readable-logging'
+    }
     useJUnit {
         // Note: explicitly not including OnDemand tests
         includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'

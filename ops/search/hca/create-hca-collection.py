@@ -29,6 +29,7 @@ def get_publications(project):
                 "dcat:accessURL": publication["publicationUrl"],
             }
         )
+    return publications
 
 
 def get_files(hit):

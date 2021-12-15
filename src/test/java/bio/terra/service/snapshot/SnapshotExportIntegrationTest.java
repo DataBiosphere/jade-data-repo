@@ -151,19 +151,23 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     BlobId manifestBlob = GcsUriUtils.parseBlobUri(parquet.getManifest());
 
     String bucketProject = manifestBlob.getBucket().replace("-snapshot-export-bucket", "");
-    String manifestContents =
+    String manifestContentsRaw =
         gcsPdao
             .getBlobsLinesStream(parquet.getManifest(), bucketProject, null)
             .collect(Collectors.joining("\n"));
 
-    TypeReference<List<SnapshotExportResponseModelFormatParquetLocationTables>> ref =
-        new TypeReference<>() {};
-    List<SnapshotExportResponseModelFormatParquetLocationTables> tables =
-        objectMapper.convertValue(objectMapper.readTree(manifestContents), ref);
+    TypeReference<SnapshotExportResponseModel> ref = new TypeReference<>() {};
+    SnapshotExportResponseModel manifestContents =
+        objectMapper.convertValue(objectMapper.readTree(manifestContentsRaw), ref);
+
+    assertThat(
+        "The manifest contains a snapshot model",
+        manifestContents.getSnapshot().getId(),
+        equalTo(snapshotId));
 
     assertThat(
         "The manifest and response have the same tables",
-        tables,
+        manifestContents.getFormat().getParquet().getLocation().getTables(),
         equalTo(parquet.getLocation().getTables()));
 
     Integer deleteAge = 1;

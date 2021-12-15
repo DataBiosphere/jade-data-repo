@@ -2,7 +2,7 @@ package bio.terra.service.filedata;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.CollectionType;
-import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -243,7 +243,7 @@ public class FileService {
           storageAuthInfo,
           storageAuthInfo);
     } else {
-      throw new NotImplementedException("Cloud platform not implemented");
+      throw new FeatureNotImplementedException("Cloud platform not implemented");
     }
   }
 

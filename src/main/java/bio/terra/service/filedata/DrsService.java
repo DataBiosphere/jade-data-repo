@@ -5,8 +5,8 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
-import bio.terra.common.exception.NotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSAccessMethod;
@@ -238,7 +238,7 @@ public class DrsService {
         throw new IllegalArgumentException(e);
       }
     } else {
-      throw new NotImplementedException("Cloud platform not implemented");
+      throw new FeatureNotImplementedException("Cloud platform not implemented");
     }
   }
 

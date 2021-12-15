@@ -71,19 +71,6 @@ public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
                         .paths(entry.getValue()))
             .collect(Collectors.toList());
 
-    try {
-      String manifestContents =
-          objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(tables);
-
-      gcsPdao.createGcsFile(exportManifestPath, exportBucket.projectIdForBucket());
-      gcsPdao.writeStreamToCloudFile(
-          exportManifestPath,
-          Arrays.stream(manifestContents.split("\n")),
-          exportBucket.projectIdForBucket());
-    } catch (JsonProcessingException ex) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
-    }
-
     SnapshotModel snapshot = snapshotService.retrieveAvailableSnapshotModel(snapshotId, userReq);
 
     SnapshotExportResponseModel responseModel =
@@ -97,6 +84,19 @@ public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
                             .location(
                                 new SnapshotExportResponseModelFormatParquetLocation()
                                     .tables(tables))));
+
+    try {
+      String manifestContents =
+          objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(responseModel);
+
+      gcsPdao.createGcsFile(exportManifestPath, exportBucket.projectIdForBucket());
+      gcsPdao.writeStreamToCloudFile(
+          exportManifestPath,
+          Arrays.stream(manifestContents.split("\n")),
+          exportBucket.projectIdForBucket());
+    } catch (JsonProcessingException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+    }
 
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_MANIFEST_PATH, exportManifestPath);
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), responseModel);

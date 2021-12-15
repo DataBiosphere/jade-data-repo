@@ -197,11 +197,15 @@ public class GcsPdao implements CloudFileReader {
    * @return the Blob of the created file
    */
   public Blob createGcsFile(String path, String projectId) {
-    Storage storage = gcsProjectFactory.getStorage(projectId);
-    logger.info("Creating GCS file at {}", path);
     BlobId locator = GcsUriUtils.parseBlobUri(path);
+    return createGcsFile(locator, projectId);
+  }
+
+  public Blob createGcsFile(BlobId blobId, String projectId) {
+    Storage storage = gcsProjectFactory.getStorage(projectId);
+    logger.info("Creating GCS file at {}", blobId.getName());
     return storage.create(
-        BlobInfo.newBuilder(locator).build(), Storage.BlobTargetOption.userProject(projectId));
+        BlobInfo.newBuilder(blobId).build(), Storage.BlobTargetOption.userProject(projectId));
   }
 
   /**

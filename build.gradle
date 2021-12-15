@@ -167,6 +167,10 @@ configurations {
     runtimeClasspath
 }
 
+// Fix for CVE-2021-45046
+// See https://spring.io/blog/2021/12/10/log4j2-vulnerability-and-spring-boot
+ext['log4j2.version'] = '2.16.0'
+
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
     compile 'com.google.cloud:google-cloud-billing:1.1.6'

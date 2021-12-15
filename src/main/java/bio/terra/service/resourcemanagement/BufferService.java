@@ -33,6 +33,8 @@ import org.springframework.stereotype.Component;
 public class BufferService {
   private static final Logger logger = LoggerFactory.getLogger(BufferService.class);
 
+  private static final String GCS_FOLDER_TYPE = "folder";
+
   private final ResourceBufferServiceConfiguration bufferServiceConfiguration;
   private final GoogleResourceConfiguration googleConfig;
   private final GoogleResourceManagerService googleResourceManagerService;
@@ -141,7 +143,7 @@ public class BufferService {
     var project = cloudResourceManager.projects().get(projectId).execute();
 
     ResourceId resourceId =
-        new ResourceId().setType("folder").setId(googleConfig.getSecureFolderResourceId());
+        new ResourceId().setType(GCS_FOLDER_TYPE).setId(googleConfig.getSecureFolderResourceId());
 
     project.setParent(resourceId);
 

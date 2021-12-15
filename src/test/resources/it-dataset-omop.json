@@ -1,6 +1,6 @@
 {
     "name": "it_dataset_omop",
-    "description": "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki",
+    "description": "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom",
     "defaultProfileId": "deadbeef-face-cafe-bead-0ddba11deed5",
     "schema": {
         "tables": [
@@ -88,6 +88,26 @@
                     {
                         "name": "domain_concept_id",
                         "datatype": "int64"
+                    },
+                    {
+                        "name": "domain_array_tags_custom",
+                        "datatype": "string",
+                        "array_of": true
+                    },
+                    {
+                        "name": "domain_files_custom_1",
+                        "datatype": "fileref",
+                        "array_of": true
+                    },
+                    {
+                        "name": "domain_files_custom_2",
+                        "datatype": "fileref",
+                        "array_of": true
+                    },
+                    {
+                        "name": "domain_files_custom_3",
+                        "datatype": "fileref",
+                        "array_of": false
                     }
                 ]
             },

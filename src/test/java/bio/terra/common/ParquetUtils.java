@@ -5,11 +5,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.example.data.Group;
@@ -59,14 +58,24 @@ public class ParquetUtils {
       Group record;
       while ((record = pReader.read()) != null) {
         final Group r = record;
-        results.add(
-            IntStream.range(0, r.getType().getFields().size())
-                .mapToObj(i -> Pair.of(r.getType().getFieldName(i), r.getValueToString(i, 0)))
-                .collect(Collectors.toMap(Pair::getKey, Pair::getValue)));
+        Map<String, String> resultRecord = new HashMap<>();
+        // Unfortunately, we can't use collectors with null values
+        IntStream.range(0, r.getType().getFields().size())
+            .forEach(i -> resultRecord.put(r.getType().getFieldName(i), readFieldValue(r, i)));
+        results.add(resultRecord);
       }
     } catch (IOException ex) {
       throw new RuntimeException("Error reading parquet data data", ex);
     }
     return results;
+  }
+
+  private static String readFieldValue(final Group record, final int index) {
+    try {
+      return record.getValueToString(index, 0);
+    } catch (RuntimeException e) {
+      // No value at position index or empty array
+      return null;
+    }
   }
 }

@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,6 +110,40 @@ public class DatasetSoftDeletesTest extends UsersBase {
             DatasetIntegrationTest.deletionTableFile("sample", samplePath));
     DataDeletionRequest request =
         DatasetIntegrationTest.dataDeletionRequest().tables(dataDeletionTableModels);
+
+    // send off the soft delete request
+    dataRepoFixtures.deleteData(steward(), datasetId, request);
+
+    // make sure the new counts make sense
+    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "participant", 2L);
+    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample", 5L);
+  }
+
+  @Test
+  public void testSoftDeleteJsonArrayHappyPath() throws Exception {
+    datasetId = ingestedDataset();
+
+    // get row ids
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+    List<UUID> participantRowIds =
+        DatasetIntegrationTest.getRowIds(bigQuery, dataset, "participant", 3L).stream()
+            .map(UUID::fromString)
+            .collect(Collectors.toList());
+    List<UUID> sampleRowIds =
+        DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample", 2L).stream()
+            .map(UUID::fromString)
+            .collect(Collectors.toList());
+
+    // build the deletion request with pointers to the two files with row ids to soft delete
+    List<DataDeletionTableModel> dataDeletionTableModels =
+        Arrays.asList(
+            DatasetIntegrationTest.deletionTableJson("participant", participantRowIds),
+            DatasetIntegrationTest.deletionTableJson("sample", sampleRowIds));
+    DataDeletionRequest request =
+        DatasetIntegrationTest.dataDeletionRequest()
+            .specType(DataDeletionRequest.SpecTypeEnum.JSONARRAY)
+            .tables(dataDeletionTableModels);
 
     // send off the soft delete request
     dataRepoFixtures.deleteData(steward(), datasetId, request);

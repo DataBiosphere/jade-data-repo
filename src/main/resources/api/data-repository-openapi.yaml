@@ -3950,6 +3950,7 @@ components:
           type: string
           enum:
             - gcsFile
+            - jsonArray
         tables:
           type: array
           items:
@@ -3966,6 +3967,8 @@ components:
           description: the name of a table in the dataset
         gcsFileSpec:
           $ref: '#/components/schemas/DataDeletionGcsFileModel'
+        jsonArraySpec:
+          $ref: '#/components/schemas/DataDeletionJsonArrayModel'
       description: >
         a specification for how to delete tabular data in one table
     DataDeletionGcsFileModel:
@@ -3983,6 +3986,18 @@ components:
           description: a gs://path/to/a/file that can include a wildcard (*)
       description: >
         a specification of a gcs file containing row ids to delete
+    DataDeletionJsonArrayModel:
+      required:
+        - rowIds
+      type: object
+      properties:
+        rowIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+      description: >
+        a specification of row ids to delete
     UserStatusInfo:
       required:
         - enabled

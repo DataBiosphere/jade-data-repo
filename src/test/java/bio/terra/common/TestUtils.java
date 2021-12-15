@@ -24,6 +24,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -234,6 +235,15 @@ public final class TestUtils {
     } catch (IOException ex) {
       logger.error(
           "unable to map JSON response to " + valueType.getName() + "JSON: " + content, ex);
+      throw ex;
+    }
+  }
+
+  public static <T> T mapFromJson(String content, TypeReference<T> valueType) throws IOException {
+    try {
+      return objectMapper.readValue(content, valueType);
+    } catch (IOException ex) {
+      logger.error("unable to map JSON response to " + valueType + "JSON: " + content, ex);
       throw ex;
     }
   }

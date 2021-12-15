@@ -87,6 +87,10 @@ public class LoadService {
     return loadDao.findCandidates(loadId, candidatesToFind);
   }
 
+  public List<LoadFile> getFailedLoads(UUID loadId, int maxRecords) {
+    return loadDao.getFailedLoads(loadId, maxRecords);
+  }
+
   public void setLoadFileSucceeded(
       UUID loadId, String targetPath, String fileId, FSFileInfo fileInfo) {
     loadDao.setLoadFileSucceeded(loadId, targetPath, fileId, fileInfo);

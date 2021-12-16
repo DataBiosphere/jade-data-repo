@@ -342,71 +342,56 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
 
-  public Map<String, Long> createSnapshotParquetFiles(
+  public Map<String, Long> createSnapshotParquetFilesByRowId(
       List<SnapshotTable> tables,
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
       String datasetFlightId,
-      boolean isByRowId,
       SnapshotRequestRowIdModel rowIdModel)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     for (SnapshotTable table : tables) {
-      String datasetParquetFileName =
-          IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
-      String snapshotParquetFileName =
-          IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
       String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
-
       ST sqlCreateSnapshotTableTemplate;
       List<SynapseColumn> columns;
-      if (isByRowId) {
-        Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
-            rowIdModel.getTables().stream()
-                .filter(t -> Objects.equals(t.getTableName(), table.getName()))
-                .findFirst();
+      Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
+          rowIdModel.getTables().stream()
+              .filter(t -> Objects.equals(t.getTableName(), table.getName()))
+              .findFirst();
 
-        if (rowIdTableModel.isPresent()) {
-          List<UUID> rowIds = rowIdTableModel.get().getRowIds();
-          sqlCreateSnapshotTableTemplate =
-              new ST(createSnapshotTableByRowIdTemplate)
-                  .add(
-                      "datarepoRowIds",
-                      rowIds.stream()
-                          .map(UUID::toString)
-                          .map(uuid -> String.format("'%s'", uuid))
-                          .collect(Collectors.joining(",")));
+      if (rowIdTableModel.isPresent()) {
+        List<UUID> rowIds = rowIdTableModel.get().getRowIds();
+        sqlCreateSnapshotTableTemplate =
+            new ST(createSnapshotTableByRowIdTemplate)
+                .add(
+                    "datarepoRowIds",
+                    rowIds.stream()
+                        .map(UUID::toString)
+                        .map(uuid -> String.format("'%s'", uuid))
+                        .collect(Collectors.joining(",")));
 
-          List<String> columnsToInclude = rowIdTableModel.get().getColumns();
-          columns =
-              table.getColumns().stream()
-                  .filter(c -> columnsToInclude.contains(c.getName()))
-                  .map(Column::toSynapseColumn)
-                  .collect(Collectors.toList());
-        } else {
-          throw new TableNotFoundException("Matching row id table not found");
-        }
-      } else {
-        sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
+        List<String> columnsToInclude = rowIdTableModel.get().getColumns();
         columns =
-            table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
+            table.getColumns().stream()
+                .filter(c -> columnsToInclude.contains(c.getName()))
+                .map(Column::toSynapseColumn)
+                .collect(Collectors.toList());
+
+        sqlCreateSnapshotTableTemplate.add("columns", columns).add("tableName", tableName);
+      } else {
+        throw new TableNotFoundException("Matching row id table not found");
       }
-
-      sqlCreateSnapshotTableTemplate
-          .add("tableName", tableName)
-          .add("destinationParquetFile", snapshotParquetFileName)
-          .add("destinationDataSourceName", snapshotDataSourceName)
-          .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
-          .add("ingestFileName", datasetParquetFileName)
-          .add("ingestFileDataSourceName", datasetDataSourceName)
-          .add("hostname", applicationConfiguration.getDnsName())
-          .add("snapshotId", snapshotId)
-          .add("columns", columns);
-
       try {
-        int rows = executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
+        int rows =
+            getRowCounts(
+                sqlCreateSnapshotTableTemplate,
+                table,
+                snapshotId,
+                datasetDataSourceName,
+                snapshotDataSourceName,
+                datasetFlightId);
         tableRowCounts.put(table.getName(), (long) rows);
       } catch (SQLServerException ex) {
         tableRowCounts.put(table.getName(), 0L);
@@ -416,6 +401,69 @@ public class AzureSynapsePdao {
       }
     }
     return tableRowCounts;
+  }
+
+  public Map<String, Long> createSnapshotParquetFiles(
+      List<SnapshotTable> tables,
+      UUID snapshotId,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String datasetFlightId)
+      throws SQLException {
+    Map<String, Long> tableRowCounts = new HashMap<>();
+
+    for (SnapshotTable table : tables) {
+      String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
+
+      ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
+      List<SynapseColumn> columns =
+          table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
+
+      sqlCreateSnapshotTableTemplate.add("columns", columns).add("tableName", tableName);
+
+      try {
+        int rows =
+            getRowCounts(
+                sqlCreateSnapshotTableTemplate,
+                table,
+                snapshotId,
+                datasetDataSourceName,
+                snapshotDataSourceName,
+                datasetFlightId);
+        tableRowCounts.put(table.getName(), (long) rows);
+      } catch (SQLServerException ex) {
+        tableRowCounts.put(table.getName(), 0L);
+        logger.info(
+            "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
+            tableName);
+      }
+    }
+    return tableRowCounts;
+  }
+
+  private int getRowCounts(
+      ST sqlCreateSnapshotTableTemplate,
+      SnapshotTable table,
+      UUID snapshotId,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String datasetFlightId)
+      throws SQLException {
+    String datasetParquetFileName =
+        IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
+    String snapshotParquetFileName =
+        IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
+
+    sqlCreateSnapshotTableTemplate
+        .add("destinationParquetFile", snapshotParquetFileName)
+        .add("destinationDataSourceName", snapshotDataSourceName)
+        .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
+        .add("ingestFileName", datasetParquetFileName)
+        .add("ingestFileDataSourceName", datasetDataSourceName)
+        .add("hostname", applicationConfiguration.getDnsName())
+        .add("snapshotId", snapshotId);
+
+    return executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
   }
 
   public void dropTables(List<String> tableNames) {

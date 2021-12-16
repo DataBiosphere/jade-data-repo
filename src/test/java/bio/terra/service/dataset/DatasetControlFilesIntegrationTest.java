@@ -122,7 +122,8 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .ignoreUnknownValues(false)
-            .maxBadRecords(0)
+            .maxBadRecords(1)
+            .maxFailedFileLoads(2)
             .table("sample_vcf")
             .path(
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array-3.json");
@@ -154,6 +155,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
             .format(IngestRequestModel.FormatEnum.JSON)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
+            .maxFailedFileLoads(0)
             .table("sample_vcf")
             .path(
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");

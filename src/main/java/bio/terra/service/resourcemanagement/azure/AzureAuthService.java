@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,14 +155,13 @@ public class AzureAuthService {
   private String getStorageAccountKey(
       UUID subscriptionId, String resourceGroupName, String storageAccountResourceName) {
 
-    int timeoutSeconds = 86400;
+    long timeoutSeconds = TimeUnit.HOURS.toSeconds(24);
     AzureAuthorizedCacheKey authorizedCacheKey =
         new AzureAuthorizedCacheKey(subscriptionId, resourceGroupName, storageAccountResourceName);
     AzureAuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
     if (authorizedCacheValue != null) { // check if it's in the cache
       // check if it's still in the allotted time
       if (Instant.now().isBefore(authorizedCacheValue.getTimeout())) {
-        logger.debug("Using the cache!");
         return authorizedCacheValue.getStorageAccountKey();
       }
       authorizedMap.remove(authorizedCacheKey); // if timed out, remove it

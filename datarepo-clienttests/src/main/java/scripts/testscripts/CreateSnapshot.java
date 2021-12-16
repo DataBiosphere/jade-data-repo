@@ -97,7 +97,7 @@ public class CreateSnapshot extends SimpleDataset {
     BulkLoadResultModel loadSummary = result.getLoadSummary();
     long loadEnd = System.currentTimeMillis();
     long loadDuration = loadEnd - loadStart;
-    logger.info(String.format("Bulk load duration: %d", loadDuration));
+    logger.info(String.format("Bulk load duration: {}", loadDuration));
     assertThat(
         "Number of successful files loaded should equal total files.",
         loadSummary.getTotalFiles(),
@@ -143,7 +143,7 @@ public class CreateSnapshot extends SimpleDataset {
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     long ingestEnd = System.currentTimeMillis();
     long ingestDuration = ingestEnd - ingestStart;
-    logger.info(String.format("Dataset ingest duration: %d", ingestDuration));
+    logger.info(String.format("Dataset ingest duration: {}", ingestDuration));
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
   }
 

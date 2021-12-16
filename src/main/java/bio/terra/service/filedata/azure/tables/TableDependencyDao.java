@@ -2,6 +2,7 @@ package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.common.azure.StorageTableName;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
@@ -79,13 +80,6 @@ public class TableDependencyDao {
             });
   }
 
-  private void createDependencyEntity(TableClient tableClient, UUID snapshotId, String refId) {
-    FireStoreDependency fireStoreDependency =
-        new FireStoreDependency().snapshotId(snapshotId.toString()).fileId(refId).refCount(1L);
-    TableEntity fireStoreDependencyEntity = FireStoreDependency.toTableEntity(fireStoreDependency);
-    tableClient.upsertEntity(fireStoreDependencyEntity);
-  }
-
   public void deleteSnapshotFileDependencies(
       TableServiceClient tableServiceClient, UUID datasetId, UUID snapshotId) {
     String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
@@ -94,13 +88,13 @@ public class TableDependencyDao {
       TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("snapshotId eq '%s'", snapshotId));
-      List<TableEntity> entities =
-          tableClient.listEntities(options, null, null).stream().collect(Collectors.toList());
-      ListUtils.partition(entities, MAX_FILTER_CLAUSES - 1)
+      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+      entities
+          .streamByPage()
           .forEach(
               entityChunk -> {
                 List<TableTransactionAction> batchEntities =
-                    entityChunk.stream()
+                    entityChunk.getElements().stream()
                         .map(
                             entity ->
                                 new TableTransactionAction(

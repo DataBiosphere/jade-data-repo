@@ -1,7 +1,9 @@
 package bio.terra.service.dataset;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -14,6 +16,7 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import com.google.cloud.bigquery.BigQuery;
@@ -119,7 +122,8 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .ignoreUnknownValues(false)
-            .maxBadRecords(0)
+            .maxBadRecords(1)
+            .maxFailedFileLoads(2)
             .table("sample_vcf")
             .path(
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array-3.json");
@@ -138,6 +142,48 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         "Files fail to ingest if already exist and not told to resolve",
         thirdResponseModel.getLoadResult().getLoadSummary().getFailedFiles(),
         equalTo(2));
+  }
+
+  @Test
+  public void testMaxBadRecords() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    UUID datasetId = datasetSummaryModel.getId();
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .maxFailedFileLoads(0)
+            .table("sample_vcf")
+            .path(
+                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
+
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+
+    IngestRequestModel secondIngestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .resolveExistingFiles(false)
+            .path(
+                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
+
+    DataRepoResponse<IngestResponseModel> secondIngestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, secondIngestRequest);
+
+    assertThat(
+        "The ingest fails if there were more bad rows than badRowCount",
+        secondIngestResponse.getErrorObject().isPresent(),
+        is(true));
+
+    ErrorModel errorModel = secondIngestResponse.getErrorObject().get();
+
+    assertThat(
+        "The failed file loads have error messages", errorModel.getErrorDetail(), hasSize(4));
   }
 
   @Test

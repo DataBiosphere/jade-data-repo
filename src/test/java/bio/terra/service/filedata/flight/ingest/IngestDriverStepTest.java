@@ -20,6 +20,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.Collections;
 import java.util.UUID;
 import junit.framework.TestCase;
@@ -43,7 +44,7 @@ public class IngestDriverStepTest extends TestCase {
 
   private final UUID loadUuid = UUID.randomUUID();
 
-  private void runTest(int maxFailedFileLoads) throws Exception {
+  private StepResult runTest(int maxFailedFileLoads) throws Exception {
     given(jobService.getActivePodCount()).willReturn(1);
     given(configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES)).willReturn(1);
 
@@ -81,13 +82,15 @@ public class IngestDriverStepTest extends TestCase {
         .when(loadService)
         .setLoadFileRunning(loadUuid, null, null);
 
-    assertEquals(StepResult.getStepResultSuccess(), step.doStep(flightContext));
+    return step.doStep(flightContext);
   }
 
   @Test
   public void testDoStepAllowFailed() throws Exception {
     // Allow unlimited file load errors.
-    runTest(-1);
+    StepResult stepResult = runTest(-1);
+
+    assertEquals(StepStatus.STEP_RESULT_SUCCESS, stepResult.getStepStatus());
 
     // Verify that the step started the candidate file.
     verify(loadService).setLoadFileRunning(loadUuid, null, null);
@@ -96,7 +99,9 @@ public class IngestDriverStepTest extends TestCase {
   @Test
   public void testDoStepDisallowFailed() throws Exception {
     // Don't allow any file load errors.
-    runTest(0);
+    StepResult stepResult = runTest(0);
+
+    assertEquals(StepStatus.STEP_RESULT_FAILURE_FATAL, stepResult.getStepStatus());
 
     // Verify that the step never started the candidate file.
     verify(loadService, never()).setLoadFileRunning(loadUuid, null, null);

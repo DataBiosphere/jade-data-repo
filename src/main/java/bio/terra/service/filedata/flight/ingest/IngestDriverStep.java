@@ -7,6 +7,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -36,6 +37,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,6 +107,9 @@ public class IngestDriverStep extends DefaultUndoStep {
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
+    int concurrentFiles = configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
+    boolean maxBadRecordsReached = false;
+
     try {
       // Check for launch orphans - these are loads in the RUNNING state that never
       // got recorded by stairway.
@@ -113,21 +118,25 @@ public class IngestDriverStep extends DefaultUndoStep {
       // Load Loop
       while (true) {
         int podCount = jobService.getActivePodCount();
-        int concurrentFiles =
-            configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
         int scaledConcurrentFiles = podCount * concurrentFiles;
         // Get the state of active and failed loads
         LoadCandidates candidates = getLoadCandidates(context, loadId, scaledConcurrentFiles);
 
         int currentRunning = candidates.getRunningLoads().size();
         int candidateCount = candidates.getCandidateFiles().size();
+
+        if (maxFailedFileLoads != -1 && candidates.getFailedLoads() > maxFailedFileLoads) {
+          maxBadRecordsReached = true;
+        }
+
         if (currentRunning == 0 && candidateCount == 0) {
           // Nothing doing and nothing to do
           break;
         }
 
         // Test for exceeding max failed loads; if so, wait for all RUNNINGs to finish
-        if (maxFailedFileLoads != -1 && candidates.getFailedLoads() > maxFailedFileLoads) {
+        // If we exceed tha max failed loads, fail the flight.
+        if (maxBadRecordsReached) {
           waitForAll(context, loadId, scaledConcurrentFiles);
           break;
         }
@@ -162,6 +171,21 @@ public class IngestDriverStep extends DefaultUndoStep {
         | StairwayExecutionException
         | DuplicateFlightIdException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+    }
+
+    if (maxBadRecordsReached) {
+      List<String> loadErrors =
+          loadService.getFailedLoads(loadId, concurrentFiles).stream()
+              .map(lf -> lf.getSourcePath() + " -> " + lf.getTargetPath() + ": " + lf.getError())
+              .collect(Collectors.toList());
+      return new StepResult(
+          StepStatus.STEP_RESULT_FAILURE_FATAL,
+          new IngestFailureException(
+              String.format(
+                  "More than %d file(s) failed to ingest, which was the allowed amount."
+                      + " See error details for the first %d error(s) ",
+                  maxFailedFileLoads, concurrentFiles),
+              loadErrors));
     }
     return StepResult.getStepResultSuccess();
   }

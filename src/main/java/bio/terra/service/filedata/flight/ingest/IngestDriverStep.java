@@ -182,8 +182,8 @@ public class IngestDriverStep extends DefaultUndoStep {
           StepStatus.STEP_RESULT_FAILURE_FATAL,
           new IngestFailureException(
               String.format(
-                  "More than %d files failed to ingest, which was the allowed amount."
-                      + " See error details for the first %d errors ",
+                  "More than %d file(s) failed to ingest, which was the allowed amount."
+                      + " See error details for the first %d error(s) ",
                   maxFailedFileLoads, concurrentFiles),
               loadErrors));
     }

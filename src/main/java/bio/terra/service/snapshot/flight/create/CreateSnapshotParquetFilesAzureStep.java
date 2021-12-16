@@ -37,7 +37,7 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
     List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
 
     try {
-      Map<String, Long> tableRowCounts = getTableRowCounts(tables, snapshotId, context);
+      Map<String, Long> tableRowCounts = createSnapshotParquetFiles(tables, snapshotId, context);
 
       azureSynapsePdao.createSnapshotRowIdsParquetFile(
           tables,
@@ -56,7 +56,7 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
     return StepResult.getStepResultSuccess();
   }
 
-  public Map<String, Long> getTableRowCounts(
+  public Map<String, Long> createSnapshotParquetFiles(
       List<SnapshotTable> tables, UUID snapshotId, FlightContext context) throws SQLException {
     return azureSynapsePdao.createSnapshotParquetFiles(
         tables,

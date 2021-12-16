@@ -404,7 +404,7 @@ public class AzureSynapsePdao {
       }
       try {
         int rows =
-            getRowCounts(
+            executeSnapshotParquetCreate(
                 sqlCreateSnapshotTableTemplate,
                 table,
                 snapshotId,
@@ -442,7 +442,7 @@ public class AzureSynapsePdao {
 
       try {
         int rows =
-            getRowCounts(
+            executeSnapshotParquetCreate(
                 sqlCreateSnapshotTableTemplate,
                 table,
                 snapshotId,
@@ -460,7 +460,7 @@ public class AzureSynapsePdao {
     return tableRowCounts;
   }
 
-  private int getRowCounts(
+  private int executeSnapshotParquetCreate(
       ST sqlCreateSnapshotTableTemplate,
       SnapshotTable table,
       UUID snapshotId,

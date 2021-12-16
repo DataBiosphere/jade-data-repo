@@ -26,7 +26,7 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep
   }
 
   @Override
-  public Map<String, Long> getTableRowCounts(
+  public Map<String, Long> createSnapshotParquetFiles(
       List<SnapshotTable> tables, UUID snapshotId, FlightContext context) throws SQLException {
     SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();

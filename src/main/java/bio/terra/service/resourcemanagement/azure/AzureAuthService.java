@@ -15,12 +15,11 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.collections4.map.LRUMap;
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +29,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class AzureAuthService {
   private final Logger logger = LoggerFactory.getLogger(AzureAuthService.class);
-  private static final int AUTH_CACHE_SIZE_DEFAULT = 100;
 
   private final AzureResourceConfiguration configuration;
   private final RequestRetryOptions retryOptions;
-  private final Map<AzureAuthorizedCacheKey, AzureAuthorizedCacheValue> authorizedMap;
+  private final Map<AzureAuthorizedCacheKey, String> authorizedMap;
 
   @Autowired
   public AzureAuthService(AzureResourceConfiguration configuration) {
@@ -45,7 +43,7 @@ public class AzureAuthService {
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL, maxRetries, retryTimeoutSeconds, null, null, null);
     // wrap the cache map with a synchronized map to safely share the cache across threads
-    authorizedMap = Collections.synchronizedMap(new LRUMap<>(AUTH_CACHE_SIZE_DEFAULT));
+    authorizedMap = Collections.synchronizedMap(new PassiveExpiringMap<>(24, TimeUnit.HOURS));
   }
 
   /**
@@ -155,29 +153,18 @@ public class AzureAuthService {
   private String getStorageAccountKey(
       UUID subscriptionId, String resourceGroupName, String storageAccountResourceName) {
 
-    long timeoutSeconds = TimeUnit.HOURS.toSeconds(24);
     AzureAuthorizedCacheKey authorizedCacheKey =
         new AzureAuthorizedCacheKey(subscriptionId, resourceGroupName, storageAccountResourceName);
-    AzureAuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
-    if (authorizedCacheValue != null) { // check if it's in the cache
-      // check if it's still in the allotted time
-      if (Instant.now().isBefore(authorizedCacheValue.getTimeout())) {
-        return authorizedCacheValue.getStorageAccountKey();
-      }
-      authorizedMap.remove(authorizedCacheKey); // if timed out, remove it
-    }
-    AzureResourceManager client = configuration.getClient(subscriptionId);
-    String storageAccountKey =
-        client
-            .storageAccounts()
-            .getByResourceGroup(resourceGroupName, storageAccountResourceName)
-            .getKeys()
-            .get(0)
-            .value();
-    Instant newTimeout = Instant.now().plusSeconds(timeoutSeconds);
-    AzureAuthorizedCacheValue newAuthorizedCacheValue =
-        new AzureAuthorizedCacheValue(newTimeout, storageAccountKey);
-    authorizedMap.put(authorizedCacheKey, newAuthorizedCacheValue);
-    return storageAccountKey;
+    return authorizedMap.computeIfAbsent(
+        authorizedCacheKey,
+        val -> {
+          AzureResourceManager client = configuration.getClient(subscriptionId);
+          return client
+              .storageAccounts()
+              .getByResourceGroup(resourceGroupName, storageAccountResourceName)
+              .getKeys()
+              .get(0)
+              .value();
+        });
   }
 }

@@ -454,11 +454,6 @@ public class GoogleResourceDao {
             });
 
     if (bucketResources.size() > 1) {
-      // TODO This is only here because of the dev case. It should be removed when we start using
-      // RBS in dev.
-      if (googleResourceConfiguration.getAllowReuseExistingBuckets()) {
-        return bucketResources.get(0).region(defaultRegion);
-      }
       throw new CorruptMetadataException(
           "Found more than one result for bucket resource: " + bucketResources.get(0).getName());
     }

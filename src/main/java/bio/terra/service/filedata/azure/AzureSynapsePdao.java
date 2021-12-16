@@ -363,14 +363,12 @@ public class AzureSynapsePdao {
       ST sqlCreateSnapshotTableTemplate;
       List<SynapseColumn> columns;
       if (isByRowId) {
-        // get the referenced table from the request model
         Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
             rowIdModel.getTables().stream()
                 .filter(t -> Objects.equals(t.getTableName(), table.getName()))
                 .findFirst();
 
         if (rowIdTableModel.isPresent()) {
-          // from request, get the list of row ids in the request for the table
           List<UUID> rowIds = rowIdTableModel.get().getRowIds();
           sqlCreateSnapshotTableTemplate =
               new ST(createSnapshotTableByRowIdTemplate)

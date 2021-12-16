@@ -99,7 +99,7 @@ import org.springframework.util.ResourceUtils;
 public class DatasetAzureIntegrationTest extends UsersBase {
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
-      "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
+      "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
   private static final String omopDatasetRegionName = AzureRegion.DEFAULT_AZURE_REGION.toString();
   private static final String omopDatasetGcpRegionName =
       GoogleRegion.DEFAULT_GOOGLE_REGION.toString();

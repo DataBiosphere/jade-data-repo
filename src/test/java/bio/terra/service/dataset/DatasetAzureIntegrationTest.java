@@ -496,11 +496,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
                 .stream()
                 .collect(Collectors.toList());
 
-        BlobUrlParts url = BlobUrlParts.parse(table.getUrl());
-        String container = blobItems.get(0).getName();
-        url.setBlobName(container);
-        String newUrl = url.toUrl() + "?" + table.getSasToken();
-
+        List<UUID> rowIds = new ArrayList<>();
         SnapshotRequestRowIdTableModel tableModel = new SnapshotRequestRowIdTableModel();
         tableModel.setTableName(table.getName());
         tableModel.setColumns(
@@ -509,15 +505,24 @@ public class DatasetAzureIntegrationTest extends UsersBase {
                 .flatMap(t -> t.getColumns().stream().map(c -> c.getName()))
                 .collect(Collectors.toList()));
 
-        List<UUID> rowIds = new ArrayList<>();
-        List<Map<String, String>> records = ParquetUtils.readParquetRecords(newUrl);
-        records.stream()
-            .map(r -> r.get("datarepo_row_id"))
+        // for each ingest in the dataset, read the associated parquet file
+        // in this test, should only be one
+        blobItems.stream()
             .forEach(
-                rowId -> {
-                  rowIds.add(UUID.fromString(rowId));
-                });
+                item -> {
+                  BlobUrlParts url = BlobUrlParts.parse(table.getUrl());
+                  String container = item.getName();
+                  url.setBlobName(container);
+                  String newUrl = url.toUrl() + "?" + table.getSasToken();
 
+                  List<Map<String, String>> records = ParquetUtils.readParquetRecords(newUrl);
+                  records.stream()
+                      .map(r -> r.get("datarepo_row_id"))
+                      .forEach(
+                          rowId -> {
+                            rowIds.add(UUID.fromString(rowId));
+                          });
+                });
         tableModel.setRowIds(rowIds);
         snapshotRequestRowIdModel.addTablesItem(tableModel);
       }

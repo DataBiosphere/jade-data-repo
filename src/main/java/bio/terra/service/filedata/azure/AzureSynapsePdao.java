@@ -380,6 +380,7 @@ public class AzureSynapsePdao {
       String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
 
       ST sqlCreateSnapshotTableTemplate;
+      List<SynapseColumn> columns;
       if (isByRowId) {
         // get the referenced table from the request model
         Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
@@ -398,17 +399,21 @@ public class AzureSynapsePdao {
                           .map(UUID::toString)
                           .map(uuid -> String.format("'%s'", uuid))
                           .collect(Collectors.joining(",")));
+
+          List<String> columnsToInclude = rowIdTableModel.get().getColumns();
+          columns =
+              table.getColumns().stream()
+                  .filter(c -> columnsToInclude.contains(c.getName()))
+                  .map(Column::toSynapseColumn)
+                  .collect(Collectors.toList());
         } else {
           throw new TableNotFoundException("Matching row id table not found");
         }
       } else {
         sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
+        columns =
+            table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
       }
-
-      // Q: Can you also specify the columsn in a byRowId request? It's a field in
-      // SnapshotRequestRowIdTableModel
-      List<SynapseColumn> columns =
-          table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
 
       sqlCreateSnapshotTableTemplate
           .add("tableName", tableName)

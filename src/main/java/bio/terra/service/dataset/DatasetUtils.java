@@ -14,6 +14,9 @@ public final class DatasetUtils {
   private static final String auxTableNamePattern =
       PdaoConstant.PDAO_PREFIX + "<auxId>_<table>_<randomSuffix>";
 
+  private static final String metadataTableNamePattern =
+      PdaoConstant.PDAO_PREFIX + "<auxId>_<table>";
+
   /**
    * Generate a semi-random name for an 'auxiliary' BigQuery table to support a user-defined table.
    *
@@ -33,6 +36,13 @@ public final class DatasetUtils {
     return nameTemplate.render();
   }
 
+  public static String generateMetadataTableName(DatasetTable table, String infixId) {
+    ST nameTemplate = new ST(metadataTableNamePattern);
+    nameTemplate.add("table", table.getName());
+    nameTemplate.add("auxId", infixId);
+    return nameTemplate.render();
+  }
+
   /**
    * Convert a dataset request into a fully-populated dataset model.
    *
@@ -48,7 +58,7 @@ public final class DatasetUtils {
             t -> {
               t.rawTableName(generateAuxTableName(t, "raw"));
               t.softDeleteTableName(generateAuxTableName(t, "sd"));
-              t.rowMetadataTableName(generateAuxTableName(t, "row_metadata"));
+              t.rowMetadataTableName(generateMetadataTableName(t, "row_metadata"));
             });
     return baseDataset;
   }

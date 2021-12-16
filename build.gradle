@@ -42,7 +42,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.254.0-SNAPSHOT'
+    version '1.257.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -166,6 +166,10 @@ configurations {
     generatedCompile
     runtimeClasspath
 }
+
+// Fix for CVE-2021-45046
+// See https://spring.io/blog/2021/12/10/log4j2-vulnerability-and-spring-boot
+ext['log4j2.version'] = '2.16.0'
 
 dependencies {
     // TODO: Unpack the "starter" and include just what we use

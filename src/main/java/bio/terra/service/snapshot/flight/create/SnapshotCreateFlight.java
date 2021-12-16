@@ -180,6 +180,9 @@ public class SnapshotCreateFlight extends Flight {
           addStep(
               new CreateSnapshotByRowIdParquetFilesAzureStep(
                   azureSynapsePdao, snapshotService, snapshotReq));
+          addStep(
+              new CreateSnapshotCountTableRowsAzureStep(
+                  azureSynapsePdao, snapshotDao, snapshotReq));
         }
         break;
       default:

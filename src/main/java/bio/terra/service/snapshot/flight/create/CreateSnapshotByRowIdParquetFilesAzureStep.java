@@ -44,7 +44,6 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep implements Step {
 
     SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
-    // List<SnapshotRequestRowIdTableModel> rowIdTableModels = rowIdModel.getTables();
 
     try {
       Map<String, Long> tableRowCounts =

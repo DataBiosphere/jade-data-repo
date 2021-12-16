@@ -361,15 +361,14 @@ public class AzureSynapsePdao {
       String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
 
       ST sqlCreateSnapshotTableTemplate;
+      List<SynapseColumn> columns;
       if (isByRowId) {
-        // get the referenced table from the request model
         Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
             rowIdModel.getTables().stream()
                 .filter(t -> Objects.equals(t.getTableName(), table.getName()))
                 .findFirst();
 
         if (rowIdTableModel.isPresent()) {
-          // from request, get the list of row ids in the request for the table
           List<UUID> rowIds = rowIdTableModel.get().getRowIds();
           sqlCreateSnapshotTableTemplate =
               new ST(createSnapshotTableByRowIdTemplate)
@@ -379,17 +378,21 @@ public class AzureSynapsePdao {
                           .map(UUID::toString)
                           .map(uuid -> String.format("'%s'", uuid))
                           .collect(Collectors.joining(",")));
+
+          List<String> columnsToInclude = rowIdTableModel.get().getColumns();
+          columns =
+              table.getColumns().stream()
+                  .filter(c -> columnsToInclude.contains(c.getName()))
+                  .map(Column::toSynapseColumn)
+                  .collect(Collectors.toList());
         } else {
           throw new TableNotFoundException("Matching row id table not found");
         }
       } else {
         sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
+        columns =
+            table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
       }
-
-      // Q: Can you also specify the columsn in a byRowId request? It's a field in
-      // SnapshotRequestRowIdTableModel
-      List<SynapseColumn> columns =
-          table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
 
       sqlCreateSnapshotTableTemplate
           .add("tableName", tableName)

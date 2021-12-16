@@ -21,6 +21,7 @@ import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DataDeletionGcsFileModel;
+import bio.terra.model.DataDeletionJsonArrayModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
@@ -330,6 +331,12 @@ public class DatasetIntegrationTest extends UsersBase {
             .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
             .path(path);
     return new DataDeletionTableModel().tableName(tableName).gcsFileSpec(deletionGcsFileModel);
+  }
+
+  static DataDeletionTableModel deletionTableJson(String tableName, List<UUID> rowIds) {
+    DataDeletionJsonArrayModel deletionJsonArrayModel =
+        new DataDeletionJsonArrayModel().rowIds(rowIds);
+    return new DataDeletionTableModel().tableName(tableName).jsonArraySpec(deletionJsonArrayModel);
   }
 
   static DataDeletionRequest dataDeletionRequest() {

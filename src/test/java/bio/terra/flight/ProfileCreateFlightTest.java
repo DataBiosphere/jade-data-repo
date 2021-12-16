@@ -44,6 +44,7 @@ public class ProfileCreateFlightTest {
         steps,
         is(
             List.of(
+                "GetOrCreateProfileIdStep",
                 "CreateProfileMetadataStep",
                 "CreateProfileVerifyDeployedApplicationStep",
                 "CreateProfileAuthzIamStep")));
@@ -59,17 +60,17 @@ public class ProfileCreateFlightTest {
 
     var flight = new ProfileCreateFlight(inputParameters, context);
 
-    var packageName = "bio.terra.service.profile.flight.create";
     var steps =
         flight.getSteps().stream()
-            .map(step -> step.getClass().getName())
+            .map(step -> step.getClass().getSimpleName())
             .collect(Collectors.toList());
     assertThat(
         steps,
         is(
             List.of(
-                packageName + ".CreateProfileMetadataStep",
-                packageName + ".CreateProfileVerifyAccountStep",
-                packageName + ".CreateProfileAuthzIamStep")));
+                "GetOrCreateProfileIdStep",
+                "CreateProfileMetadataStep",
+                "CreateProfileVerifyAccountStep",
+                "CreateProfileAuthzIamStep")));
   }
 }

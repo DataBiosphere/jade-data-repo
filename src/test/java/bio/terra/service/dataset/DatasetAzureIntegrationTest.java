@@ -455,15 +455,19 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     // Only check the subset of tables that have rows
     Set<String> tablesToCheck = Set.of(jsonIngestTableName, ingest2TableName);
     // Read the ingested metadata
-    AccessInfoParquetModel datasetParquetAccessInfo =
-        dataRepoFixtures
-            .getDataset(
-                steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION))
-            .getAccessInformation()
-            .getParquet();
 
-    DatasetSpecificationModel datasetSchema =
-        dataRepoFixtures.getDataset(steward(), datasetId).getSchema();
+    DatasetModel datasetModel =
+        dataRepoFixtures.getDataset(
+            steward(),
+            datasetId,
+            List.of(
+                DatasetRequestAccessIncludeModel.ACCESS_INFORMATION,
+                DatasetRequestAccessIncludeModel.SCHEMA));
+
+    AccessInfoParquetModel datasetParquetAccessInfo =
+        datasetModel.getAccessInformation().getParquet();
+
+    DatasetSpecificationModel datasetSchema = datasetModel.getSchema();
 
     // Create snapshot request for snapshot by row id
     String datasetParquetUrl =

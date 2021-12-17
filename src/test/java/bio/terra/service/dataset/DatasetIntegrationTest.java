@@ -72,7 +72,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class DatasetIntegrationTest extends UsersBase {
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
-      "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
+      "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
   private static final String omopDatasetRegion = GoogleRegion.US_CENTRAL1.toString();
   private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 

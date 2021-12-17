@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.oneOf;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -538,13 +539,13 @@ public class DataRepoFixtures {
     return response.getResponseObject().get();
   }
 
-  public void assertFailtoGetSnapshot(TestConfiguration.User user, UUID snapshotId)
+  public void assertFailToGetSnapshot(TestConfiguration.User user, UUID snapshotId)
       throws Exception {
     DataRepoResponse<SnapshotModel> response = getSnapshotRaw(user, snapshotId, null);
     assertThat(
-        "snapshot is successfully retrieved",
+        "snapshot is not successfully retrieved",
         response.getStatusCode(),
-        equalTo(HttpStatus.NOT_FOUND));
+        oneOf(HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND));
   }
 
   public DataRepoResponse<EnumerateSnapshotModel> enumerateSnapshotsByDatasetIdsRaw(

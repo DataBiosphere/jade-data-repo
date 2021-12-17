@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.in;
@@ -63,11 +64,13 @@ import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -96,7 +99,7 @@ import org.springframework.util.ResourceUtils;
 public class DatasetAzureIntegrationTest extends UsersBase {
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
-      "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
+      "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
   private static final String omopDatasetRegionName = AzureRegion.DEFAULT_AZURE_REGION.toString();
   private static final String omopDatasetGcpRegionName =
       GoogleRegion.DEFAULT_GOOGLE_REGION.toString();
@@ -282,6 +285,11 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .mimeType("text/plain")
             .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
             .targetPath("/test/target.txt");
+    BulkLoadFileModel fileLoadModelAlt1 =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
+            .targetPath("/test/target_alt1.txt");
     BulkLoadFileModel fileLoadModelSas =
         new BulkLoadFileModel()
             .mimeType("text/plain")
@@ -289,6 +297,11 @@ public class DatasetAzureIntegrationTest extends UsersBase {
                 blobIOTestUtility.createSourceSignedPath(
                     sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas.txt");
+    BulkLoadFileModel fileLoadModelAlt2 =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
+            .targetPath("/test/target_alt2.txt");
     BulkLoadArrayResultModel result =
         dataRepoFixtures.bulkLoadArray(
             steward,
@@ -297,9 +310,11 @@ public class DatasetAzureIntegrationTest extends UsersBase {
                 .profileId(summaryModel.getDefaultProfileId())
                 .loadTag("loadTag")
                 .addLoadArrayItem(fileLoadModel)
-                .addLoadArrayItem(fileLoadModelSas));
+                .addLoadArrayItem(fileLoadModelAlt1)
+                .addLoadArrayItem(fileLoadModelSas)
+                .addLoadArrayItem(fileLoadModelAlt2));
 
-    assertThat(result.getLoadSummary().getSucceededFiles(), equalTo(2));
+    assertThat(result.getLoadSummary().getSucceededFiles(), equalTo(4));
 
     assertThat(
         "file size matches",
@@ -317,10 +332,16 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     FileModel file1Model = dataRepoFixtures.getFileById(steward(), datasetId, file1.getFileId());
     assertThat("Test retrieve file by ID", file1Model.getFileId(), equalTo(file1.getFileId()));
 
-    BulkLoadFileResultModel file2 = loadedFiles.get(1);
     FileModel file2Model =
-        dataRepoFixtures.getFileByName(steward(), datasetId, file2.getTargetPath());
-    assertThat("Test retrieve file by path", file2Model.getFileId(), equalTo(file2.getFileId()));
+        dataRepoFixtures.getFileById(steward(), datasetId, loadedFiles.get(1).getFileId());
+
+    BulkLoadFileResultModel file3 = loadedFiles.get(2);
+    FileModel file3Model =
+        dataRepoFixtures.getFileByName(steward(), datasetId, file3.getTargetPath());
+    assertThat("Test retrieve file by path", file3Model.getFileId(), equalTo(file3.getFileId()));
+
+    FileModel file4Model =
+        dataRepoFixtures.getFileById(steward(), datasetId, loadedFiles.get(3).getFileId());
 
     // ingest via control file
     String flightId = UUID.randomUUID().toString();
@@ -362,10 +383,20 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     String datasetIngestFlightId = UUID.randomUUID().toString();
     String datasetIngestControlFileBlob =
         datasetIngestFlightId + "/azure-domain-ingest-request.json";
+    Map<String, Object> domainRowData =
+        Map.ofEntries(
+            Map.entry("domain_id", "1"),
+            Map.entry("domain_name", "domain1"),
+            Map.entry("domain_concept_id", 1),
+            Map.entry("domain_array_tags_custom", List.of("tag1", "tag2")),
+            Map.entry(
+                "domain_files_custom_1", List.of(file1Model.getFileId(), file3Model.getFileId())),
+            Map.entry("domain_files_custom_2", List.of(file2Model.getFileId())),
+            Map.entry("domain_files_custom_3", file4Model.getFileId()));
     String ingestRequestPathJSON =
         blobIOTestUtility.uploadFileWithContents(
             datasetIngestControlFileBlob,
-            "{\"domain_id\" : \"1\", \"domain_name\" : \"domain1\", \"domain_concept_id\" : 1}");
+            Objects.requireNonNull(TestUtils.mapToJson(domainRowData)));
 
     String jsonIngestTableName = "domain";
     IngestRequestModel ingestRequestJSON =
@@ -379,7 +410,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .loadTag(Names.randomizeName("test"));
     IngestResponseModel ingestResponseJSON =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestJSON);
-    assertThat("2 rows were ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
+    assertThat("1 row was ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
 
     // Ingest 2 rows from CSV
     String ingest2TableName = "vocabulary";
@@ -393,7 +424,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
                 "vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id%n"
                     + "\"1\",\"vocab1\",\"%s\",\"v1\",1%n"
                     + "\"2\",\"vocab2\",\"%s\",\"v2\",2",
-                file1Model.getFileId(), file2Model.getFileId()));
+                file1Model.getFileId(), file3Model.getFileId()));
     IngestRequestModel ingestRequestCSV =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.CSV)
@@ -476,6 +507,54 @@ public class DatasetAzureIntegrationTest extends UsersBase {
       }
     }
 
+    AccessInfoParquetModelTable domainTable =
+        snapshotParquetAccessInfo.getTables().stream()
+            .filter(t -> t.getName().equals("domain"))
+            .findAny()
+            .orElseThrow();
+
+    String domainTableUrl = domainTable.getUrl() + "?" + domainTable.getSasToken();
+    List<Map<String, String>> records = ParquetUtils.readParquetRecords(domainTableUrl);
+    assertThat("1 row is present", records, hasSize(1));
+    assertThat(
+        "record looks as expected - domain_id",
+        records.get(0).get("domain_id"),
+        equalTo(domainRowData.get("domain_id")));
+    assertThat(
+        "record looks as expected - domain_name",
+        records.get(0).get("domain_name"),
+        equalTo(domainRowData.get("domain_name")));
+    assertThat(
+        "record looks as expected - domain_concept_id",
+        records.get(0).get("domain_concept_id"),
+        equalTo(domainRowData.get("domain_concept_id").toString()));
+    assertThat(
+        "record looks as expected - domain_array_tags_custom",
+        records.get(0).get("domain_array_tags_custom"),
+        equalTo("[\"tag1\",\"tag2\"]"));
+    List<String> embeddedDrsIds1 =
+        TestUtils.mapFromJson(
+            records.get(0).get("domain_files_custom_1"), new TypeReference<>() {});
+    assertThat(
+        "record looks as expected - domain_files_custom_1 drs ids",
+        embeddedDrsIds1,
+        containsInAnyOrder(drsIds.toArray()));
+    List<String> embeddedDrsIds2 =
+        TestUtils.mapFromJson(
+            records.get(0).get("domain_files_custom_2"), new TypeReference<>() {});
+    assertThat(
+        "record looks as expected - domain_files_custom_2 drs ids - size",
+        embeddedDrsIds2,
+        hasSize(1));
+    assertThat(
+        "record looks as expected - domain_files_custom_2 drs ids - value",
+        DrsIdService.fromUri(embeddedDrsIds2.get(0)).toDrsObjectId(),
+        equalTo(String.format("v1_%s_%s", snapshotId, file2Model.getFileId())));
+    assertThat(
+        "record looks as expected - domain_files_custom_3 drs id",
+        DrsIdService.fromUri(records.get(0).get("domain_files_custom_3")).toDrsObjectId(),
+        equalTo(String.format("v1_%s_%s", snapshotId, file4Model.getFileId())));
+
     // Assert that 2 drs ids were loaded
     assertThat("2 drs ids are present", drsIds, hasSize(2));
     // Ensure that all DRS can be parsed
@@ -516,7 +595,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     // Delete snapshot
     dataRepoFixtures.deleteSnapshot(steward, snapshotId);
 
-    dataRepoFixtures.assertFailtoGetSnapshot(steward(), snapshotId);
+    dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotId);
     snapshotId = null;
 
     // Delete the file we just ingested

@@ -118,47 +118,70 @@ jobs:
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-1,integration-2,integration-3,integration-6'
-      - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@sh-helm-deploy
+      # - name: "Build docker container via Gradle"
+      #   uses: broadinstitute/datarepo-actions/actions/main@sh-helm-deploy
+      #   with:
+      #     actions_subcommand: 'gradlebuild'
+      - name: 'Checkout repo'
+        uses: actions/checkout@v2
         with:
-          actions_subcommand: 'gradlebuild'
-      - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions/actions/main@sh-helm-deploy
-        with:
-          actions_subcommand: 'helmdeploy'
-          helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.262
-          helm_datarepo_ui_chart_version: 0.0.112
-          helm_gcloud_sqlproxy_chart_version: 0.19.7
-          helm_oidc_proxy_chart_version: 0.0.24
-      - name: "Fetch gitHash for deployed integration version"
-        id: configuration
+          repository: 'broadinstitute/datarepo-helm-definitions'
+          token: ${{ secrets.BROADBOT_TOKEN }}
+          path: datarepo-helm-definitions
+      - name: "Fetch tag for branch"
+        id: "gcr_tag"
         run: |
-          git_hash=$(git rev-parse --short HEAD)
-          echo "::set-output name=git_hash::$git_hash"
-          echo "Latest git hash for this branch: $git_hash"
-      - name: "Wait for deployment to come back online"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@sh-helm-deploy
-        timeout-minutes: 20
-        env:
-          DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
-          DEPLOYMENT_TYPE: 'api'
-      - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@sh-helm-deploy
+          GCR_TAG=$(git rev-parse --short HEAD)
+          echo $GCR_TAG
+          echo "::set-output name=GCR_TAG::$GCR_TAG"
+      - name: "Local update to helm definitions to update tag"
+        uses: docker://mikefarah/yq:3.3.4
         with:
-          actions_subcommand: 'gradletestrunnersmoketest'
-      - name: "Run Integration test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@sh-helm-deploy
-        with:
-          actions_subcommand: 'gradleinttest'
-          pgport: ${{ job.services.postgres.ports[5432] }}
-          test_to_run: 'testIntegration'
-      - name: "Archive code coverage results"
-        uses: actions/upload-artifact@v2
-        with:
-          name: code-coverage-report
-          path: build/jacocoHtml
-          retention-days: 10
+          args: yq w -i datarepo-helm-definitions/integration/$NAMESPACEINUSE/datarepo-api.yaml image.tag ${{ steps.gcr_tag.outputs.GCR_TAG }}
+      - name: "Deploy to cluster via helmfile apply"
+        run: |
+          cd datarepo-helm-definitions/integration
+          echo $NAMESPACEINUSE
+
+          helmfile -e $NAMESPACEINUSE diff
+          #helmfile -e $NAMESPACEINUSE apply
+      # - name: "Deploy to cluster with Helm"
+      #   uses: broadinstitute/datarepo-actions/actions/main@sh-helm-deploy
+      #   with:
+      #     actions_subcommand: 'helmdeploy'
+      #     helm_create_secret_manager_secret_version: '0.0.6'
+      #     helm_datarepo_api_chart_version: 0.0.262
+      #     helm_datarepo_ui_chart_version: 0.0.112
+      #     helm_gcloud_sqlproxy_chart_version: 0.19.7
+      #     helm_oidc_proxy_chart_version: 0.0.24
+      # - name: "Fetch gitHash for deployed integration version"
+      #   id: configuration
+      #   run: |
+      #     git_hash=$(git rev-parse --short HEAD)
+      #     echo "::set-output name=git_hash::$git_hash"
+      #     echo "Latest git hash for this branch: $git_hash"
+      # - name: "Wait for deployment to come back online"
+      #   uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@sh-helm-deploy
+      #   timeout-minutes: 20
+      #   env:
+      #     DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
+      #     DEPLOYMENT_TYPE: 'api'
+      # - name: "Run Test Runner smoke tests via Gradle"
+      #   uses: broadinstitute/datarepo-actions/actions/main@sh-helm-deploy
+      #   with:
+      #     actions_subcommand: 'gradletestrunnersmoketest'
+      # - name: "Run Integration test via Gradle"
+      #   uses: broadinstitute/datarepo-actions/actions/main@sh-helm-deploy
+      #   with:
+      #     actions_subcommand: 'gradleinttest'
+      #     pgport: ${{ job.services.postgres.ports[5432] }}
+      #     test_to_run: 'testIntegration'
+      # - name: "Archive code coverage results"
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: code-coverage-report
+      #     path: build/jacocoHtml
+      #     retention-days: 10
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@sh-helm-deploy

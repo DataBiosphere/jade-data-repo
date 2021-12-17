@@ -134,10 +134,15 @@ jobs:
           GCR_TAG=$(git rev-parse --short HEAD)
           echo $GCR_TAG
           echo "::set-output name=GCR_TAG::$GCR_TAG"
+      - name: "Fetch selected namespace"
+        id: "namespace"
+        run: |
+          echo $NAMESPACEINUSE
+          echo "::set-output name=NAMESPACEINUSE::$NAMESPACEINUSE"
       - name: "Local update to helm definitions to update tag"
         uses: docker://mikefarah/yq:3.3.4
         with:
-          args: yq w -i datarepo-helm-definitions/integration/$NAMESPACEINUSE/datarepo-api.yaml image.tag ${{ steps.gcr_tag.outputs.GCR_TAG }}
+          args: yq w -i datarepo-helm-definitions/integration/${{ steps.namespace.outputs.NAMESPACEINUSE }}/datarepo-api.yaml image.tag ${{ steps.gcr_tag.outputs.GCR_TAG }}
       - name: "Deploy to cluster via helmfile apply"
         run: |
           cd datarepo-helm-definitions/integration

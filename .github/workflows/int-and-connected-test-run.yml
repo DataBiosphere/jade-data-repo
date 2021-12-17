@@ -143,6 +143,8 @@ jobs:
         uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/integration/${{ steps.namespace.outputs.NAMESPACEINUSE }}/datarepo-api.yaml image.tag ${{ steps.gcr_tag.outputs.GCR_TAG }}
+      - name: "Install Helmfile"
+        uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
       - name: "Deploy to cluster via helmfile apply"
         run: |
           cd datarepo-helm-definitions/integration

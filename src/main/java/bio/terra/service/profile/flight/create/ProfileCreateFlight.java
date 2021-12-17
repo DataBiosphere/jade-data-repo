@@ -25,6 +25,7 @@ public class ProfileCreateFlight extends Flight {
 
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(request.getCloudPlatform());
 
+    addStep(new GetOrCreateProfileIdStep(request));
     addStep(new CreateProfileMetadataStep(profileService, request, user));
     if (platform.isGcp()) {
       addStep(new CreateProfileVerifyAccountStep(profileService, request, user));

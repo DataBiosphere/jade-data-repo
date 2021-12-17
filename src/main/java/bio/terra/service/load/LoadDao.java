@@ -256,6 +256,11 @@ public class LoadDao {
         .failedLoads(failedFiles);
   }
 
+  @Transactional
+  public List<LoadFile> getFailedLoads(UUID loadId, int maxResults) {
+    return queryByState(loadId, BulkLoadFileState.FAILED, maxResults);
+  }
+
   public void setLoadFileNotTried(UUID loadId, String targetPath) {
     updateLoadFile(loadId, targetPath, BulkLoadFileState.NOT_TRIED, null, null, null, null);
   }

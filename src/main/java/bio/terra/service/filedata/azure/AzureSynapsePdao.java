@@ -71,13 +71,18 @@ public class AzureSynapsePdao {
           + "    LOCATION = '<destinationParquetFile>',\n"
           + "    DATA_SOURCE = [<destinationDataSourceName>],\n" // metadata container
           + "    FILE_FORMAT = [<fileFormat>]\n"
-          + ") AS SELECT datarepo_row_id,<columns:{c|"
+          + ") AS SELECT    datarepo_row_id,\n"
+          + "       <columns:{c|"
           + "          <if(c.isFileType)>"
-          + "             'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]"
+          + "             <if(c.arrayOf)>"
+          + "               (SELECT '[' + STRING_AGG('\"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '\"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]"
+          + "             <else>"
+          + "               'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]"
+          + "             <endif>"
           + "          <else>"
           + "             <c.name> AS [<c.name>]"
-          + "          <endif>\n"
-          + "          }; separator=\",\n\">"
+          + "          <endif>"
+          + "          }; separator=\",\n\">\n"
           + "    FROM OPENROWSET(\n"
           + "       BULK '<ingestFileName>',\n"
           + "       DATA_SOURCE = '<ingestFileDataSourceName>',\n"
@@ -116,6 +121,7 @@ public class AzureSynapsePdao {
           + "<columns:{c|"
           + "<if(c.requiresJSONCast)>"
           + "cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]"
+          + "<elseif (c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(8000)) [<c.name>]"
           + "<else>JSON_VALUE(doc, '$.<c.name>') [<c.name>]"
           + "<endif>"
           + "}; separator=\",\n       \">\n"
@@ -146,6 +152,15 @@ public class AzureSynapsePdao {
   private static final String queryColumnsFromExternalTableTemplate =
       "SELECT DISTINCT [<refCol>] FROM [<tableName>] WHERE [<refCol>] IS NOT NULL;";
 
+  private static final String queryArrayColumnsFromExternalTableTemplate =
+      "SELECT DISTINCT [Element] AS [<refCol>] "
+          + "FROM [<tableName>] "
+          // Note, refIds can be either UUIDs or drs ids, which is why we are extracting Element as
+          // a large value
+          + "CROSS APPLY OPENJSON([<refCol>]) WITH (Element VARCHAR(8000) '$') AS ARRAY_VALUES "
+          + "WHERE [<refCol>] IS NOT NULL "
+          + "AND [Element] IS NOT NULL;";
+
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
   private static final String dropDataSourceTemplate =
@@ -170,7 +185,11 @@ public class AzureSynapsePdao {
   public List<String> getRefIds(
       String tableName, SynapseColumn refColumn, CollectionType collectionType) {
 
-    var template = new ST(queryColumnsFromExternalTableTemplate);
+    var template =
+        refColumn.isArrayOf()
+            ? new ST(queryArrayColumnsFromExternalTableTemplate)
+            : new ST(queryColumnsFromExternalTableTemplate);
+
     template.add("refCol", refColumn.getName());
     template.add("tableName", tableName);
 

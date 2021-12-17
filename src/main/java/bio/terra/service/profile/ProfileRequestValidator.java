@@ -27,9 +27,6 @@ public class ProfileRequestValidator implements Validator {
   public void validate(@NotNull Object target, Errors errors) {
     if (target != null && target instanceof BillingProfileRequestModel) {
       BillingProfileRequestModel billingProfileRequestModel = (BillingProfileRequestModel) target;
-      if (billingProfileRequestModel.getId() == null) {
-        errors.rejectValue("id", "The billing profile id must be specified");
-      }
       isValidCloudPlatform(billingProfileRequestModel, errors);
     }
   }

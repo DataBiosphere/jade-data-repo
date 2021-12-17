@@ -1,5 +1,6 @@
 package bio.terra.service.profile;
 
+import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -21,9 +22,11 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import com.google.api.client.util.Lists;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -63,6 +66,7 @@ public class ProfileServiceTest {
   private GoogleProjectResource projectResource;
   private String oldBillingAccountId;
   private String newBillingAccountId;
+  private List<BillingProfileModel> profiles = new ArrayList<>();
 
   @Before
   public void setup() throws Exception {
@@ -70,6 +74,7 @@ public class ProfileServiceTest {
     newBillingAccountId = testConfig.getNoSpendGoogleBillingAccountId();
 
     profile = connectedOperations.createProfileForAccount(oldBillingAccountId);
+    profiles.add(profile);
     connectedOperations.stubOutSamCalls(samService);
 
     projectResource = buildProjectResource();
@@ -79,7 +84,7 @@ public class ProfileServiceTest {
   public void teardown() throws Exception {
     googleBillingService.assignProjectBilling(profile, projectResource);
     googleResourceDao.deleteProject(projectResource.getId());
-    profileDao.deleteBillingProfileById(profile.getId());
+    profiles.forEach(profile -> profileDao.deleteBillingProfileById(profile.getId()));
     // Connected operations resets the configuration
     connectedOperations.teardown();
   }
@@ -130,6 +135,19 @@ public class ProfileServiceTest {
         "There should be 2 errors: 1 for null errors, 1 for incorrect pattern for billing account",
         model.getErrorDetail().size(),
         equalTo(2));
+  }
+
+  @Test
+  public void testCreateProfileAddsProfileIdByDefault() throws Exception {
+    BillingProfileRequestModel requestWithoutId =
+        new BillingProfileRequestModel()
+            .biller("direct")
+            .billingAccountId(oldBillingAccountId)
+            .profileName(UUID.randomUUID().toString())
+            .description("profile description");
+    BillingProfileModel profile = connectedOperations.createProfile(requestWithoutId);
+    profiles.add(profile);
+    assertNotNull(profile.getId());
   }
 
   @Test

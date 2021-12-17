@@ -2730,7 +2730,6 @@ components:
     BillingProfileRequestModel:
       required:
         - biller
-        - id
         - profileName
       type: object
       properties:
@@ -3122,7 +3121,12 @@ components:
           $ref: '#/components/schemas/UniqueIdProperty'
         max_bad_records:
           type: integer
+          default: 0
           description: max number of bad records to skip; applies to JSON and CSV
+        max_failed_file_loads:
+          type: integer
+          default: 0
+          description: max number of failed file loads before stopping; if -1, allow any number of errors
         ignore_unknown_values:
           type: boolean
           description: skip extra data; applies to JSON and CSV

@@ -47,7 +47,6 @@ public class JobService {
   private static final Logger logger = LoggerFactory.getLogger(JobService.class);
   private static final int MIN_SHUTDOWN_TIMEOUT = 14;
   private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
-  private static final String API_POD_FILTER = "datarepo-api";
 
   private final IamService samService;
   private final ApplicationConfiguration appConfig;
@@ -67,6 +66,7 @@ public class JobService {
       ApplicationConfiguration appConfig,
       StairwayJdbcConfiguration stairwayJdbcConfiguration,
       StairwayComponent stairwayComponent,
+      KubeService kubeService,
       ApplicationContext applicationContext,
       Migrate migrate,
       ObjectMapper objectMapper,
@@ -82,8 +82,7 @@ public class JobService {
     this.applicationContext = applicationContext;
     this.objectMapper = objectMapper;
     this.performanceLogger = performanceLogger;
-    this.kubeService =
-        new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
+    this.kubeService = kubeService;
     initialize();
   }
 

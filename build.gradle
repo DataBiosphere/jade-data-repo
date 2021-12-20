@@ -169,7 +169,7 @@ configurations {
 
 // Fix for CVE-2021-45046
 // See https://spring.io/blog/2021/12/10/log4j2-vulnerability-and-spring-boot
-ext['log4j2.version'] = '2.16.0'
+ext['log4j2.version'] = '2.17.0'
 
 dependencies {
     // TODO: Unpack the "starter" and include just what we use

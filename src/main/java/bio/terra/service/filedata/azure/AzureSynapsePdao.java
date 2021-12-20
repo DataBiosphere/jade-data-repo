@@ -93,7 +93,7 @@ public class AzureSynapsePdao {
           + "       FORMAT = 'parquet') AS rows \n";
 
   private static final String createSnapshotTableByRowIdTemplate =
-      createSnapshotTableTemplate + "WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
+      createSnapshotTableTemplate + "WHERE rows.datarepo_row_id IN (<datarepoRowIds>);";
 
   private static final String createSnapshotRowIdTableTemplate =
       "CREATE EXTERNAL TABLE [<tableName>]\n"

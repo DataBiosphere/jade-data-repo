@@ -123,7 +123,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private User steward;
   private UUID datasetId;
   private UUID snapshotId;
-  private UUID snapshotByRowsId;
+  private UUID snapshotByRowId;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
   private RequestRetryOptions retryOptions;
@@ -160,8 +160,8 @@ public class DatasetAzureIntegrationTest extends UsersBase {
       dataRepoFixtures.deleteSnapshot(steward, snapshotId);
       snapshotId = null;
     }
-    if (snapshotByRowsId != null) {
-      dataRepoFixtures.deleteSnapshot(steward, snapshotByRowsId);
+    if (snapshotByRowId != null) {
+      dataRepoFixtures.deleteSnapshot(steward, snapshotByRowId);
       snapshotId = null;
     }
     if (datasetId != null) {
@@ -666,7 +666,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshotSummaryByRowId =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), summaryModel.getName(), profileId, snapshotByRowIdModel);
-    snapshotByRowsId = snapshotSummaryByRowId.getId();
+    snapshotByRowId = snapshotSummaryByRowId.getId();
     assertThat(
         "Snapshot exists",
         snapshotSummaryByRowId.getName(),
@@ -677,7 +677,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         dataRepoFixtures
             .getSnapshot(
                 steward(),
-                snapshotByRowsId,
+                snapshotByRowId,
                 List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
             .getParquet();
@@ -698,7 +698,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     }
 
     // Do a Drs lookup
-    String drsIdByRowId = String.format("v1_%s_%s", snapshotByRowsId, fileId);
+    String drsIdByRowId = String.format("v1_%s_%s", snapshotByRowId, fileId);
     DRSObject drsObjectByRowId = dataRepoFixtures.drsGetObject(steward(), drsIdByRowId);
     assertThat(
         "DRS object has single access method",
@@ -726,10 +726,10 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Delete snapshot
     dataRepoFixtures.deleteSnapshot(steward, snapshotId);
-    dataRepoFixtures.deleteSnapshot(steward, snapshotByRowsId);
+    dataRepoFixtures.deleteSnapshot(steward, snapshotByRowId);
 
     dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotId);
-    dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotByRowsId);
+    dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotByRowId);
     snapshotId = null;
 
     // Delete the file we just ingested

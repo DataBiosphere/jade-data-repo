@@ -372,7 +372,6 @@ public class AzureSynapsePdao {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     for (SnapshotTable table : tables) {
-      String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
       ST sqlCreateSnapshotTableTemplate;
       List<SynapseColumn> columns;
       Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
@@ -397,8 +396,6 @@ public class AzureSynapsePdao {
                 .filter(c -> columnsToInclude.contains(c.getName()))
                 .map(Column::toSynapseColumn)
                 .collect(Collectors.toList());
-
-        sqlCreateSnapshotTableTemplate.add("columns", columns).add("tableName", tableName);
       } else {
         throw new TableNotFoundException("Matching row id table not found");
       }
@@ -410,13 +407,14 @@ public class AzureSynapsePdao {
                 snapshotId,
                 datasetDataSourceName,
                 snapshotDataSourceName,
-                datasetFlightId);
+                datasetFlightId,
+                columns);
         tableRowCounts.put(table.getName(), (long) rows);
       } catch (SQLServerException ex) {
         tableRowCounts.put(table.getName(), 0L);
         logger.info(
             "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
-            tableName);
+            table.getName());
       }
     }
     return tableRowCounts;
@@ -432,13 +430,9 @@ public class AzureSynapsePdao {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     for (SnapshotTable table : tables) {
-      String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
-
       ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
       List<SynapseColumn> columns =
           table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
-
-      sqlCreateSnapshotTableTemplate.add("columns", columns).add("tableName", tableName);
 
       try {
         int rows =
@@ -448,13 +442,14 @@ public class AzureSynapsePdao {
                 snapshotId,
                 datasetDataSourceName,
                 snapshotDataSourceName,
-                datasetFlightId);
+                datasetFlightId,
+                columns);
         tableRowCounts.put(table.getName(), (long) rows);
       } catch (SQLServerException ex) {
         tableRowCounts.put(table.getName(), 0L);
         logger.info(
             "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
-            tableName);
+            table.getName());
       }
     }
     return tableRowCounts;
@@ -466,14 +461,18 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      String datasetFlightId)
+      String datasetFlightId,
+      List<SynapseColumn> columns)
       throws SQLException {
     String datasetParquetFileName =
         IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
     String snapshotParquetFileName =
         IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
+    String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
 
     sqlCreateSnapshotTableTemplate
+        .add("columns", columns)
+        .add("tableName", tableName)
         .add("destinationParquetFile", snapshotParquetFileName)
         .add("destinationDataSourceName", snapshotDataSourceName)
         .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())

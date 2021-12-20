@@ -44,6 +44,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
 
@@ -53,6 +56,7 @@ public class AzureSynapsePdao {
   private static final Logger logger = LoggerFactory.getLogger(AzureSynapsePdao.class);
 
   private final AzureResourceConfiguration azureResourceConfiguration;
+  private final NamedParameterJdbcTemplate synapseJdbcTemplate;
   private static final String PARSER_VERSION = "2.0";
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
   private static final String DEFAULT_CSV_QUOTE = "\"";
@@ -93,7 +97,7 @@ public class AzureSynapsePdao {
           + "       FORMAT = 'parquet') AS rows \n";
 
   private static final String createSnapshotTableByRowIdTemplate =
-      createSnapshotTableTemplate + "WHERE rows.datarepo_row_id IN (<datarepoRowIds>);";
+      createSnapshotTableTemplate + "WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
   private static final String createSnapshotRowIdTableTemplate =
       "CREATE EXTERNAL TABLE [<tableName>]\n"
@@ -183,10 +187,12 @@ public class AzureSynapsePdao {
   public AzureSynapsePdao(
       AzureResourceConfiguration azureResourceConfiguration,
       ApplicationConfiguration applicationConfiguration,
-      DrsIdService drsIdService) {
+      DrsIdService drsIdService,
+      @Qualifier("synapseJdbcTemplate") NamedParameterJdbcTemplate synapseJdbcTemplate) {
     this.azureResourceConfiguration = azureResourceConfiguration;
     this.applicationConfiguration = applicationConfiguration;
     this.drsIdService = drsIdService;
+    this.synapseJdbcTemplate = synapseJdbcTemplate;
   }
 
   public List<String> getRefIds(
@@ -374,34 +380,23 @@ public class AzureSynapsePdao {
     for (SnapshotTable table : tables) {
       ST sqlCreateSnapshotTableTemplate;
       List<SynapseColumn> columns;
+      MapSqlParameterSource params;
+      String query;
       Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
           rowIdModel.getTables().stream()
               .filter(t -> Objects.equals(t.getTableName(), table.getName()))
               .findFirst();
 
       if (rowIdTableModel.isPresent()) {
-        List<UUID> rowIds = rowIdTableModel.get().getRowIds();
-        sqlCreateSnapshotTableTemplate =
-            new ST(createSnapshotTableByRowIdTemplate)
-                .add(
-                    "datarepoRowIds",
-                    rowIds.stream()
-                        .map(UUID::toString)
-                        .map(uuid -> String.format("'%s'", uuid))
-                        .collect(Collectors.joining(",")));
-
         List<String> columnsToInclude = rowIdTableModel.get().getColumns();
         columns =
             table.getColumns().stream()
                 .filter(c -> columnsToInclude.contains(c.getName()))
                 .map(Column::toSynapseColumn)
                 .collect(Collectors.toList());
-      } else {
-        throw new TableNotFoundException("Matching row id table not found");
-      }
-      try {
-        int rows =
-            executeSnapshotParquetCreate(
+        sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByRowIdTemplate);
+        query =
+            generateSnapshotParquetCreateQuery(
                 sqlCreateSnapshotTableTemplate,
                 table,
                 snapshotId,
@@ -409,9 +404,16 @@ public class AzureSynapsePdao {
                 snapshotDataSourceName,
                 datasetFlightId,
                 columns);
-        tableRowCounts.put(table.getName(), (long) rows);
-      } catch (SQLServerException ex) {
-        tableRowCounts.put(table.getName(), 0L);
+
+        List<UUID> rowIds = rowIdTableModel.get().getRowIds();
+        params = new MapSqlParameterSource().addValue("datarepoRowIds", rowIds);
+      } else {
+        throw new TableNotFoundException("Matching row id table not found");
+      }
+      int rows = synapseJdbcTemplate.update(query, params);
+
+      tableRowCounts.put(table.getName(), (long) rows);
+      if (rows == 0) {
         logger.info(
             "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
             table.getName());
@@ -434,16 +436,17 @@ public class AzureSynapsePdao {
       List<SynapseColumn> columns =
           table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
 
+      String query =
+          generateSnapshotParquetCreateQuery(
+              sqlCreateSnapshotTableTemplate,
+              table,
+              snapshotId,
+              datasetDataSourceName,
+              snapshotDataSourceName,
+              datasetFlightId,
+              columns);
       try {
-        int rows =
-            executeSnapshotParquetCreate(
-                sqlCreateSnapshotTableTemplate,
-                table,
-                snapshotId,
-                datasetDataSourceName,
-                snapshotDataSourceName,
-                datasetFlightId,
-                columns);
+        int rows = executeSynapseQuery(query);
         tableRowCounts.put(table.getName(), (long) rows);
       } catch (SQLServerException ex) {
         tableRowCounts.put(table.getName(), 0L);
@@ -455,15 +458,14 @@ public class AzureSynapsePdao {
     return tableRowCounts;
   }
 
-  private int executeSnapshotParquetCreate(
+  private String generateSnapshotParquetCreateQuery(
       ST sqlCreateSnapshotTableTemplate,
       SnapshotTable table,
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
       String datasetFlightId,
-      List<SynapseColumn> columns)
-      throws SQLException {
+      List<SynapseColumn> columns) {
     String datasetParquetFileName =
         IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
     String snapshotParquetFileName =
@@ -481,7 +483,7 @@ public class AzureSynapsePdao {
         .add("hostname", applicationConfiguration.getDnsName())
         .add("snapshotId", snapshotId);
 
-    return executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
+    return sqlCreateSnapshotTableTemplate.render();
   }
 
   public void dropTables(List<String> tableNames) {

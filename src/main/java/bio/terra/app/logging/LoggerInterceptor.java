@@ -3,8 +3,13 @@ package bio.terra.app.logging;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -13,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.util.ContentCachingRequestWrapper;
 
 @Component
 public class LoggerInterceptor implements HandlerInterceptor {
@@ -28,6 +34,7 @@ public class LoggerInterceptor implements HandlerInterceptor {
   private static final long NOT_FOUND_DURATION = -1;
 
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Autowired
   public LoggerInterceptor(AuthenticatedUserRequestFactory authenticatedUserRequestFactory) {
@@ -75,6 +82,20 @@ public class LoggerInterceptor implements HandlerInterceptor {
     }
     // skip logging the status endpoint
     if (LOG_EXCLUDE_LIST.stream().noneMatch(url::endsWith)) {
+
+      Map<String, Object> stackDriverPayload = new HashMap<>();
+      if ("post".equalsIgnoreCase(method)) {
+        String postBody =
+            new String(
+                ((ContentCachingRequestWrapper) request).getContentAsByteArray(),
+                StandardCharsets.UTF_8)
+                .lines()
+                .collect(Collectors.joining(""));
+        JsonNode postBodyJson = objectMapper.readTree(postBody);
+        stackDriverPayload.put("postBody", postBodyJson);
+      }
+      // The warning here can be ignored, as StackDriver logging will interpret the extra arg
+      // and insert it into the `jsonPayload`. It is ignored when running locally.
       logger.info(
           "userId: {}, email: {}, institute: {}, url: {}, method: {}, params: {}, status: {}, duration: {}",
           userId,
@@ -84,7 +105,8 @@ public class LoggerInterceptor implements HandlerInterceptor {
           method,
           paramString,
           responseStatus,
-          requestDuration);
+          requestDuration,
+          stackDriverPayload);
     }
 
     if (ex != null) {

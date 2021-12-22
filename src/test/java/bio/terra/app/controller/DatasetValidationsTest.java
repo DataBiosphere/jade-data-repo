@@ -769,4 +769,16 @@ public class DatasetValidationsTest {
             .collect(Collectors.toList());
     assertThat("Detail codes are right", details, containsInAnyOrder(expectedMatches));
   }
+
+  @Test
+  public void testNoTablesProvided() throws Exception {
+    DatasetRequestModel req = buildDatasetRequest();
+    req.getSchema()
+        .tables(Collections.emptyList())
+        .relationships(Collections.emptyList())
+        .assets(Collections.emptyList());
+
+    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+    checkValidationErrorModel(errorModel, new String[] {"IncompleteSchemaDefinition"});
+  }
 }

@@ -781,4 +781,17 @@ public class DatasetValidationsTest {
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(errorModel, new String[] {"IncompleteSchemaDefinition"});
   }
+
+  @Test
+  public void testNoColumnsProvided() throws Exception {
+    TableModel table = new TableModel().name("table").columns(Collections.emptyList());
+    DatasetRequestModel req = buildDatasetRequest();
+    req.getSchema()
+        .tables(Collections.singletonList(table))
+        .relationships(Collections.emptyList())
+        .assets(Collections.emptyList());
+
+    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+    checkValidationErrorModel(errorModel, new String[] {"IncompleteSchemaDefinition"});
+  }
 }

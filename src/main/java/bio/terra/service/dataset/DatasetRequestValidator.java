@@ -1,7 +1,5 @@
 package bio.terra.service.dataset;
 
-import static java.util.stream.Collectors.joining;
-
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.ValidationUtils;
@@ -185,6 +183,7 @@ public class DatasetRequestValidator implements Validator {
   private void validateTable(TableModel table, Errors errors, SchemaValidationContext context) {
     String tableName = table.getName();
     List<ColumnModel> columns = table.getColumns();
+    List<String> primaryKeyList = table.getPrimaryKey();
     List<String> columnNames = new ArrayList<>();
     if (columns == null || columns.isEmpty()) {
       errors.rejectValue(
@@ -203,8 +202,7 @@ public class DatasetRequestValidator implements Validator {
             "DuplicateColumnNames",
             String.format("Duplicate columns: %s", String.join(", ", duplicates)));
       }
-      if (table != null && table.getPrimaryKey() != null) {
-        List<String> primaryKeyList = table.getPrimaryKey();
+      if (primaryKeyList != null) {
         if (!columnNames.containsAll(primaryKeyList)) {
           List<String> missingKeys = new ArrayList<>(primaryKeyList);
           missingKeys.removeAll(columnNames);
@@ -276,7 +274,7 @@ public class DatasetRequestValidator implements Validator {
           "schema",
           "InvalidDatatype",
           "invalid datatype in table column(s): "
-              + invalidColumns.stream().map(ColumnModel::getName).collect(joining(", "))
+              + invalidColumns.stream().map(ColumnModel::getName).collect(Collectors.joining(", "))
               + ", valid DataTypes are "
               + Arrays.toString(TableDataType.values()));
     }

@@ -1,4 +1,4 @@
-package bio.terra.app.controller;
+package bio.terra.service.dataset;
 
 import static bio.terra.common.fixtures.DatasetFixtures.buildAsset;
 import static bio.terra.common.fixtures.DatasetFixtures.buildAssetParticipantTable;
@@ -35,9 +35,6 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,7 +63,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
-public class DatasetValidationsTest {
+public class DatasetRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
 

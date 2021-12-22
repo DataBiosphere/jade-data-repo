@@ -452,7 +452,8 @@ public class DatasetValidationsTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"MissingPrimaryKeyColumn"});
+    checkValidationErrorModel(
+        errorModel, new String[] {"MissingPrimaryKeyColumn", "IncompleteSchemaDefinition"});
   }
 
   @Test
@@ -491,7 +492,10 @@ public class DatasetValidationsTest {
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel, new String[] {"MissingDatePartitionOptions", "InvalidIntPartitionOptions"});
+        errorModel,
+        new String[] {
+          "MissingDatePartitionOptions", "InvalidIntPartitionOptions", "IncompleteSchemaDefinition"
+        });
   }
 
   @Test
@@ -509,7 +513,8 @@ public class DatasetValidationsTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"InvalidDatePartitionColumnName"});
+    checkValidationErrorModel(
+        errorModel, new String[] {"InvalidDatePartitionColumnName", "IncompleteSchemaDefinition"});
   }
 
   @Test
@@ -547,7 +552,10 @@ public class DatasetValidationsTest {
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel, new String[] {"InvalidDatePartitionOptions", "MissingIntPartitionOptions"});
+        errorModel,
+        new String[] {
+          "InvalidDatePartitionOptions", "MissingIntPartitionOptions", "IncompleteSchemaDefinition"
+        });
   }
 
   @Test
@@ -566,7 +574,8 @@ public class DatasetValidationsTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"InvalidIntPartitionColumnName"});
+    checkValidationErrorModel(
+        errorModel, new String[] {"InvalidIntPartitionColumnName", "IncompleteSchemaDefinition"});
   }
 
   @Test
@@ -659,7 +668,10 @@ public class DatasetValidationsTest {
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel, new String[] {"InvalidDatePartitionOptions", "InvalidIntPartitionOptions"});
+        errorModel,
+        new String[] {
+          "InvalidDatePartitionOptions", "InvalidIntPartitionOptions", "IncompleteSchemaDefinition"
+        });
   }
 
   @Test

@@ -192,19 +192,6 @@ public class DatasetRequestValidator implements Validator {
     } else {
       columnNames.addAll(columns.stream().map(ColumnModel::getName).collect(Collectors.toList()));
     }
-    List<String> primaryKeyList = table.getPrimaryKey();
-    primaryKeyList.stream()
-        .forEach(
-            pk -> {
-              if (!columnNames.contains(pk)) {
-                errors.rejectValue(
-                    "schema",
-                    "InvalidPrimaryKey",
-                    String.format(
-                        "Primary key '%s' is not a valid column in table '%s'. Valid columns include: %s",
-                        pk, tableName, String.join(",", columnNames)));
-              }
-            });
 
     if (tableName != null && columns != null) {
       validateDataTypes(columns, errors);
@@ -216,7 +203,8 @@ public class DatasetRequestValidator implements Validator {
             "DuplicateColumnNames",
             String.format("Duplicate columns: %s", String.join(", ", duplicates)));
       }
-      if (primaryKeyList != null) {
+      if (table != null && table.getPrimaryKey() != null) {
+        List<String> primaryKeyList = table.getPrimaryKey();
         if (!columnNames.containsAll(primaryKeyList)) {
           List<String> missingKeys = new ArrayList<>(primaryKeyList);
           missingKeys.removeAll(columnNames);

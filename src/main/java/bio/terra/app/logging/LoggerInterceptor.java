@@ -1,9 +1,11 @@
 package bio.terra.app.logging;
 
+import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import com.google.gson.Gson;
 import java.util.Map;
+import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -14,7 +16,14 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
 public class LoggerInterceptor implements HandlerInterceptor {
-  private static Logger logger = LoggerFactory.getLogger(LoggerInterceptor.class);
+  private static final Logger logger = LoggerFactory.getLogger(LoggerInterceptor.class);
+  // Constants for requests coming in that aren't authenticated
+  private static final String UNAUTHED_USER_ID = "N/A";
+  private static final String UNAUTHED_EMAIL = "N/A";
+  private static final String UNAUTHED_INSTITUTE = "N/A";
+  // Don't log requests for URLs that end with any of the following paths
+  private static final Set<String> LOG_EXCLUDE_LIST = Set.of("/status");
+
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
   @Autowired
@@ -26,10 +35,21 @@ public class LoggerInterceptor implements HandlerInterceptor {
   public void afterCompletion(
       HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
       throws Exception {
-    AuthenticatedUserRequest userReq = authenticatedUserRequestFactory.from(request);
-    String userId = userReq.getSubjectId();
-    String userEmail = userReq.getEmail();
-    String institute = userEmail != null ? userEmail.substring(userEmail.indexOf("@") + 1) : null;
+
+    String userId;
+    String userEmail;
+    String institute;
+    try {
+      AuthenticatedUserRequest userReq = authenticatedUserRequestFactory.from(request);
+      userId = userReq.getSubjectId();
+      userEmail = userReq.getEmail();
+      institute = userEmail != null ? userEmail.substring(userEmail.indexOf("@") + 1) : null;
+    } catch (UnauthorizedException e) {
+      userId = UNAUTHED_USER_ID;
+      userEmail = UNAUTHED_EMAIL;
+      institute = UNAUTHED_INSTITUTE;
+    }
+
     String url = request.getRequestURL().toString();
     String method = request.getMethod();
     Map<String, String[]> paramMap = request.getParameterMap();
@@ -38,7 +58,7 @@ public class LoggerInterceptor implements HandlerInterceptor {
     String responseStatus = Integer.toString(response.getStatus());
 
     // skip logging the status endpoint
-    if (!url.endsWith("/status")) {
+    if (LOG_EXCLUDE_LIST.stream().noneMatch(url::endsWith)) {
       logger.info(
           "userId: {}, email: {}, institute: {}, url: {}, method: {}, params: {}, status: {}",
           userId,

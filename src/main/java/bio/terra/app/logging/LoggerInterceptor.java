@@ -25,7 +25,7 @@ public class LoggerInterceptor implements HandlerInterceptor {
   private static final Set<String> LOG_EXCLUDE_LIST = Set.of("/status");
 
   private static final String REQUEST_START_ATTRIBUTE = "x-request-start";
-  private static final Long NOT_FOUND_DURATION = -1L;
+  private static final long NOT_FOUND_DURATION = -1;
 
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 

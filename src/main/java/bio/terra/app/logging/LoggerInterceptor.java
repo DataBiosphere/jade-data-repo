@@ -21,14 +21,24 @@ public class LoggerInterceptor implements HandlerInterceptor {
   private static final String UNAUTHED_USER_ID = "N/A";
   private static final String UNAUTHED_EMAIL = "N/A";
   private static final String UNAUTHED_INSTITUTE = "N/A";
-  // Don't log requests for URLs that end with any of the following paths
+  // Don't log requests for URLs that end with any of   the following paths
   private static final Set<String> LOG_EXCLUDE_LIST = Set.of("/status");
+
+  private static final String REQUEST_START_ATTRIBUTE = "x-request-start";
+  private static final Long NOT_FOUND_DURATION = -1L;
 
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
   @Autowired
   public LoggerInterceptor(AuthenticatedUserRequestFactory authenticatedUserRequestFactory) {
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
+  }
+
+  @Override
+  public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+      throws Exception {
+    request.setAttribute(REQUEST_START_ATTRIBUTE, System.currentTimeMillis());
+    return true;
   }
 
   @Override
@@ -56,18 +66,25 @@ public class LoggerInterceptor implements HandlerInterceptor {
     Gson gson = new Gson();
     String paramString = gson.toJson(paramMap);
     String responseStatus = Integer.toString(response.getStatus());
-
+    long requestDuration;
+    Long requestStartTime = (Long) request.getAttribute(REQUEST_START_ATTRIBUTE);
+    if (requestStartTime != null) {
+      requestDuration = System.currentTimeMillis() - requestStartTime;
+    } else {
+      requestDuration = NOT_FOUND_DURATION;
+    }
     // skip logging the status endpoint
     if (LOG_EXCLUDE_LIST.stream().noneMatch(url::endsWith)) {
       logger.info(
-          "userId: {}, email: {}, institute: {}, url: {}, method: {}, params: {}, status: {}",
+          "userId: {}, email: {}, institute: {}, url: {}, method: {}, params: {}, status: {}, duration: {}",
           userId,
           userEmail,
           institute,
           url,
           method,
           paramString,
-          responseStatus);
+          responseStatus,
+          requestDuration);
     }
 
     if (ex != null) {

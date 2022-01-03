@@ -61,6 +61,7 @@ public class TableDependencyDao {
               // Create any entities that do not already exist
               List<TableTransactionAction> batchEntities =
                   refIdChunk.stream()
+                      .distinct()
                       .filter(id -> !existing.contains(id))
                       .map(
                           refId -> {

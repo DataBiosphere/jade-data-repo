@@ -187,7 +187,7 @@ public class DatasetRequestValidator implements Validator {
     List<String> columnNames = new ArrayList<>();
     if (columns == null || columns.isEmpty()) {
       errors.rejectValue(
-          "schema", "IncompleteSchemaDefinition", "Each table must at least one column");
+          "schema", "IncompleteSchemaDefinition", "Each table must contain at least one column");
     } else {
       columnNames.addAll(columns.stream().map(ColumnModel::getName).collect(Collectors.toList()));
     }
@@ -386,16 +386,16 @@ public class DatasetRequestValidator implements Validator {
   private void validateSchema(DatasetSpecificationModel schema, Errors errors) {
     SchemaValidationContext context = new SchemaValidationContext();
     List<TableModel> tables = schema.getTables();
-    if (tables != null && !tables.isEmpty()) {
+    if (tables == null || tables.isEmpty()) {
+      errors.rejectValue(
+          "schema", "IncompleteSchemaDefinition", "Dataset tables must be defined in the schema");
+    } else {
       List<String> tableNames =
           tables.stream().map(TableModel::getName).collect(Collectors.toList());
       if (ValidationUtils.hasDuplicates(tableNames)) {
         errors.rejectValue("schema", "DuplicateTableNames");
       }
       tables.forEach((table) -> validateTable(table, errors, context));
-    } else {
-      errors.rejectValue(
-          "schema", "IncompleteSchemaDefinition", "Dataset tables must be defined in the schema");
     }
 
     List<RelationshipModel> relationships = schema.getRelationships();

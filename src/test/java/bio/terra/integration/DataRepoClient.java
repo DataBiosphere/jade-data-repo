@@ -244,8 +244,7 @@ public class DataRepoClient {
     URI uri = response.getHeaders().getLocation();
     drResponse.setLocationHeader((uri == null) ? Optional.empty() : Optional.of(uri.toString()));
 
-    if (response.getStatusCode().is2xxSuccessful()
-        || response.getStatusCode().equals(HttpStatus.UNPROCESSABLE_ENTITY)) {
+    if (response.getStatusCode().is2xxSuccessful()) {
       if (responseClass != null) {
         T responseObject = mapFromJson(response.getBody(), responseClass);
         drResponse.setResponseObject(Optional.of(responseObject));

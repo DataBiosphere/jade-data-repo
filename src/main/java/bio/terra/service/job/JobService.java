@@ -151,7 +151,6 @@ public class JobService {
 
   public static class JobResultWithStatus<T> {
     private T result;
-    private JobModel.JobStatusEnum jobStatus;
     private HttpStatus statusCode;
 
     public T getResult() {

@@ -3,8 +3,6 @@ package bio.terra.app.logging;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -17,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 
@@ -34,7 +33,11 @@ public class LoggerInterceptor implements HandlerInterceptor {
   private static final long NOT_FOUND_DURATION = -1;
 
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  // A Java char is 16 bits, and Stackdiver's limit is 256kb.
+  // Although this works out to 128,000 chars, we limit to 100,000 to allow for the rest of
+  // the log message
+  private static final int STACKDRIVER_MAX_CHARS = 100000;
 
   @Autowired
   public LoggerInterceptor(AuthenticatedUserRequestFactory authenticatedUserRequestFactory) {
@@ -83,19 +86,23 @@ public class LoggerInterceptor implements HandlerInterceptor {
     // skip logging the status endpoint
     if (LOG_EXCLUDE_LIST.stream().noneMatch(url::endsWith)) {
 
-      Map<String, Object> stackDriverPayload = new HashMap<>();
-      if ("post".equalsIgnoreCase(method)) {
-        String postBody =
+      Map<String, String> stackDriverPayload = new HashMap<>();
+      if (RequestMethod.POST.name().equalsIgnoreCase(method)
+          || RequestMethod.PUT.name().equalsIgnoreCase(method)) {
+        String requestBody =
             new String(
                 ((ContentCachingRequestWrapper) request).getContentAsByteArray(),
-                StandardCharsets.UTF_8)
-                .lines()
-                .collect(Collectors.joining(""));
-        JsonNode postBodyJson = objectMapper.readTree(postBody);
-        stackDriverPayload.put("postBody", postBodyJson);
+                StandardCharsets.UTF_8);
+        String requestBodyPayload =
+            requestBody.length() > STACKDRIVER_MAX_CHARS
+                ? requestBody.substring(0, STACKDRIVER_MAX_CHARS)
+                : requestBody;
+        stackDriverPayload.put("requestBody", requestBodyPayload);
       }
       // The warning here can be ignored, as StackDriver logging will interpret the extra arg
       // and insert it into the `jsonPayload`. It is ignored when running locally.
+      // This copies the Terra Commons logging.
+      // See bio.terra.common.logging.RequestLoggingFilter.doFilter:92 for another example.
       logger.info(
           "userId: {}, email: {}, institute: {}, url: {}, method: {}, params: {}, status: {}, duration: {}",
           userId,

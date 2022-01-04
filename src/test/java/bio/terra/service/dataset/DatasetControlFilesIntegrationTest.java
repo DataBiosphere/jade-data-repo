@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -9,23 +8,27 @@ import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.BigQueryFixtures;
+import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
+import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.JobModel;
 import com.google.cloud.bigquery.BigQuery;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.platform.commons.util.StringUtils;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -43,6 +46,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
   @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private DataRepoClient dataRepoClient;
   @Autowired private TestConfiguration testConfiguration;
 
   private String stewardToken;
@@ -172,18 +176,28 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
             .path(
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
 
+    DataRepoResponse<JobModel> secondIngestJobModel =
+        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, secondIngestRequest);
     DataRepoResponse<IngestResponseModel> secondIngestResponse =
-        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, secondIngestRequest);
+        dataRepoClient.waitForResponse(steward(), secondIngestJobModel, IngestResponseModel.class);
+
+    JobModel secondIngestSucceededJobModel =
+        dataRepoClient
+            .get(steward(), secondIngestJobModel.getLocationHeader().orElseThrow(), JobModel.class)
+            .getResponseObject()
+            .get();
 
     assertThat(
-        "The ingest fails if there were more bad rows than badRowCount",
-        secondIngestResponse.getErrorObject().isPresent(),
-        is(true));
+        "The job response is succeeded_with_warnings",
+        secondIngestSucceededJobModel.getJobStatus(),
+        equalTo(JobModel.JobStatusEnum.SUCCEEDED_WITH_WARNINGS));
 
-    ErrorModel errorModel = secondIngestResponse.getErrorObject().get();
-
-    assertThat(
-        "The failed file loads have error messages", errorModel.getErrorDetail(), hasSize(4));
+    IngestResponseModel secondIngestResponseModel = secondIngestResponse.getResponseObject().get();
+    List<BulkLoadFileResultModel> fileResultsWithErrors =
+        secondIngestResponseModel.getLoadResult().getLoadFileResults().stream()
+            .filter(m -> StringUtils.isNotBlank(m.getError()))
+            .collect(Collectors.toList());
+    assertThat("The failed file loads have error messages", fileResultsWithErrors, hasSize(4));
   }
 
   @Test

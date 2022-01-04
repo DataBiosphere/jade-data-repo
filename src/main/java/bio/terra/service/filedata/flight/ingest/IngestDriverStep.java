@@ -5,9 +5,9 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.CommonMapKeys;
+import bio.terra.service.common.gcs.CommonFlightKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -37,7 +37,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -173,20 +172,7 @@ public class IngestDriverStep extends DefaultUndoStep {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
 
-    if (maxBadRecordsReached) {
-      List<String> loadErrors =
-          loadService.getFailedLoads(loadId, concurrentFiles).stream()
-              .map(lf -> lf.getSourcePath() + " -> " + lf.getTargetPath() + ": " + lf.getError())
-              .collect(Collectors.toList());
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL,
-          new IngestFailureException(
-              String.format(
-                  "More than %d file(s) failed to ingest, which was the allowed amount."
-                      + " See error details for the first %d error(s) ",
-                  maxFailedFileLoads, concurrentFiles),
-              loadErrors));
-    }
+    workingMap.put(CommonFlightKeys.FLIGHT_HAS_WARNINGS, maxBadRecordsReached);
     return StepResult.getStepResultSuccess();
   }
 

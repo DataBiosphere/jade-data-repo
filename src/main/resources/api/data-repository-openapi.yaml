@@ -3874,6 +3874,7 @@ components:
             - running
             - succeeded
             - failed
+            - succeeded_with_warnings
         status_code:
           type: integer
           description: HTTP code

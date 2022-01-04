@@ -7,6 +7,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.kubernetes.KubeService;
 import bio.terra.common.stairway.StairwayComponent;
 import bio.terra.model.JobModel;
+import bio.terra.service.common.gcs.CommonFlightKeys;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -150,6 +151,7 @@ public class JobService {
 
   public static class JobResultWithStatus<T> {
     private T result;
+    private JobModel.JobStatusEnum jobStatus;
     private HttpStatus statusCode;
 
     public T getResult() {
@@ -226,9 +228,8 @@ public class JobService {
   public JobModel mapFlightStateToJobModel(FlightState flightState) {
     FlightMap inputParameters = flightState.getInputParameters();
     String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);
-    FlightStatus flightStatus = flightState.getFlightStatus();
     String submittedDate = flightState.getSubmitted().toString();
-    JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
+    JobModel.JobStatusEnum jobStatus = getJobStatus(flightState);
 
     String completedDate = null;
     HttpStatus statusCode = HttpStatus.ACCEPTED;
@@ -245,28 +246,33 @@ public class JobService {
       completedDate = flightState.getCompleted().get().toString();
     }
 
-    JobModel jobModel =
-        new JobModel()
-            .id(flightState.getFlightId())
-            .description(description)
-            .jobStatus(jobStatus)
-            .statusCode(statusCode.value())
-            .submitted(submittedDate)
-            .completed(completedDate);
-
-    return jobModel;
+    return new JobModel()
+        .id(flightState.getFlightId())
+        .description(description)
+        .jobStatus(jobStatus)
+        .statusCode(statusCode.value())
+        .submitted(submittedDate)
+        .completed(completedDate);
   }
 
-  private JobModel.JobStatusEnum getJobStatus(FlightStatus flightStatus) {
+  private JobModel.JobStatusEnum getJobStatus(FlightState flightState) {
+    FlightStatus flightStatus = flightState.getFlightStatus();
     switch (flightStatus) {
       case ERROR:
-        return JobModel.JobStatusEnum.FAILED;
       case FATAL:
         return JobModel.JobStatusEnum.FAILED;
       case RUNNING:
         return JobModel.JobStatusEnum.RUNNING;
       case SUCCESS:
-        return JobModel.JobStatusEnum.SUCCEEDED;
+        boolean succeededWithWarnings =
+            flightState
+                .getResultMap()
+                .filter(rm -> rm.containsKey(CommonFlightKeys.FLIGHT_HAS_WARNINGS))
+                .map(rm -> rm.get(CommonFlightKeys.FLIGHT_HAS_WARNINGS, Boolean.class))
+                .orElse(false);
+        return succeededWithWarnings
+            ? JobModel.JobStatusEnum.SUCCEEDED_WITH_WARNINGS
+            : JobModel.JobStatusEnum.SUCCEEDED;
     }
     return JobModel.JobStatusEnum.FAILED;
   }

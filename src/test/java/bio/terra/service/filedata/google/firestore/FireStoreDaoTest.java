@@ -41,7 +41,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @EmbeddedDatabaseTest
 public class FireStoreDaoTest {
   private final Logger logger =
-      LoggerFactory.getLogger("bio.terra.service.filedata.google.firestore.FireStoreDaoTest");
+      LoggerFactory.getLogger(FireStoreDaoTest.class);
 
   @Autowired private FireStoreDirectoryDao directoryDao;
 

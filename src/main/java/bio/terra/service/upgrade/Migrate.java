@@ -32,7 +32,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class Migrate {
-  private static final Logger logger = LoggerFactory.getLogger(UpgradeService.class);
+  private static final Logger logger = LoggerFactory.getLogger(Migrate.class);
   private final DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
   private final MigrateConfiguration migrateConfiguration;
 

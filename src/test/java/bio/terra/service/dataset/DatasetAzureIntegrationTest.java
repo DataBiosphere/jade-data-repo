@@ -46,22 +46,28 @@ import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotRequestAccessIncludeModel;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
+import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobUrlParts;
+import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -97,6 +103,7 @@ import org.springframework.util.ResourceUtils;
 @AutoConfigureMockMvc
 @Category(Integration.class)
 public class DatasetAzureIntegrationTest extends UsersBase {
+
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom";
@@ -116,8 +123,10 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private User steward;
   private UUID datasetId;
   private UUID snapshotId;
+  private UUID snapshotByRowId;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
+  private RequestRetryOptions retryOptions;
 
   @Before
   public void setup() throws Exception {
@@ -128,7 +137,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
     datasetId = null;
-    RequestRetryOptions retryOptions =
+    retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL,
             azureResourceConfiguration.getMaxRetries(),
@@ -149,6 +158,10 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     dataRepoFixtures.resetConfig(steward);
     if (snapshotId != null) {
       dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+      snapshotId = null;
+    }
+    if (snapshotByRowId != null) {
+      dataRepoFixtures.deleteSnapshot(steward, snapshotByRowId);
       snapshotId = null;
     }
     if (datasetId != null) {
@@ -442,25 +455,85 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     // Only check the subset of tables that have rows
     Set<String> tablesToCheck = Set.of(jsonIngestTableName, ingest2TableName);
     // Read the ingested metadata
-    AccessInfoParquetModel datasetParquetAccessInfo =
-        dataRepoFixtures
-            .getDataset(
-                steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION))
-            .getAccessInformation()
-            .getParquet();
 
+    DatasetModel datasetModel =
+        dataRepoFixtures.getDataset(
+            steward(),
+            datasetId,
+            List.of(
+                DatasetRequestAccessIncludeModel.ACCESS_INFORMATION,
+                DatasetRequestAccessIncludeModel.SCHEMA));
+
+    AccessInfoParquetModel datasetParquetAccessInfo =
+        datasetModel.getAccessInformation().getParquet();
+
+    DatasetSpecificationModel datasetSchema = datasetModel.getSchema();
+
+    // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
         datasetParquetAccessInfo.getUrl() + "?" + datasetParquetAccessInfo.getSasToken();
     TestUtils.verifyHttpAccess(datasetParquetUrl, Map.of());
     verifySignedUrl(datasetParquetUrl, steward(), "rl");
+
+    SnapshotRequestModel snapshotByRowIdModel = new SnapshotRequestModel();
+    snapshotByRowIdModel.setName("row_id_test");
+    snapshotByRowIdModel.setDescription("snapshot by row id test");
+
+    SnapshotRequestContentsModel contentsModel = new SnapshotRequestContentsModel();
+    contentsModel.setDatasetName(summaryModel.getName());
+    contentsModel.setMode(SnapshotRequestContentsModel.ModeEnum.BYROWID);
+
+    SnapshotRequestRowIdModel snapshotRequestRowIdModel = new SnapshotRequestRowIdModel();
 
     for (AccessInfoParquetModelTable table : datasetParquetAccessInfo.getTables()) {
       if (tablesToCheck.contains(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
         verifySignedUrl(tableUrl, steward(), "rl");
+
+        BlobContainerClientFactory fact = new BlobContainerClientFactory(tableUrl, retryOptions);
+
+        List<BlobItem> blobItems =
+            fact
+                .getBlobContainerClient()
+                .listBlobsByHierarchy(String.format("parquet/%s/", table.getName()))
+                .stream()
+                .collect(Collectors.toList());
+
+        List<UUID> rowIds = new ArrayList<>();
+        SnapshotRequestRowIdTableModel tableModel = new SnapshotRequestRowIdTableModel();
+        tableModel.setTableName(table.getName());
+        tableModel.setColumns(
+            datasetSchema.getTables().stream()
+                .filter(t -> t.getName().equals(table.getName()))
+                .flatMap(t -> t.getColumns().stream().map(c -> c.getName()))
+                .collect(Collectors.toList()));
+
+        // for each ingest in the dataset, read the associated parquet file
+        // in this test, should only be one
+        blobItems.stream()
+            .forEach(
+                item -> {
+                  BlobUrlParts url = BlobUrlParts.parse(table.getUrl());
+                  String container = item.getName();
+                  url.setBlobName(container);
+                  String newUrl = url.toUrl() + "?" + table.getSasToken();
+
+                  List<Map<String, String>> records = ParquetUtils.readParquetRecords(newUrl);
+                  records.stream()
+                      .map(r -> r.get("datarepo_row_id"))
+                      .forEach(
+                          rowId -> {
+                            rowIds.add(UUID.fromString(rowId));
+                          });
+                });
+        tableModel.setRowIds(rowIds);
+        snapshotRequestRowIdModel.addTablesItem(tableModel);
       }
     }
+
+    contentsModel.setRowIdSpec(snapshotRequestRowIdModel);
+    snapshotByRowIdModel.setContents(List.of(contentsModel));
 
     // Create Snapshot by full view
     SnapshotRequestModel requestModelAll =
@@ -589,13 +662,74 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     TestUtils.verifyHttpAccess(signedUrl, Map.of());
     verifySignedUrl(signedUrl, steward(), "r");
 
+    // Create snapshot by row id
+    SnapshotSummaryModel snapshotSummaryByRowId =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward(), summaryModel.getName(), profileId, snapshotByRowIdModel);
+    snapshotByRowId = snapshotSummaryByRowId.getId();
+    assertThat(
+        "Snapshot exists",
+        snapshotSummaryByRowId.getName(),
+        equalTo(snapshotByRowIdModel.getName()));
+
+    // Read the ingested metadata
+    AccessInfoParquetModel snapshotByRowIdParquetAccessInfo =
+        dataRepoFixtures
+            .getSnapshot(
+                steward(),
+                snapshotByRowId,
+                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION))
+            .getAccessInformation()
+            .getParquet();
+
+    String snapshotByRowIdParquetUrl =
+        snapshotByRowIdParquetAccessInfo.getUrl()
+            + "?"
+            + snapshotByRowIdParquetAccessInfo.getSasToken();
+    TestUtils.verifyHttpAccess(snapshotByRowIdParquetUrl, Map.of());
+    verifySignedUrl(snapshotByRowIdParquetUrl, steward(), "rl");
+
+    for (AccessInfoParquetModelTable table : snapshotByRowIdParquetAccessInfo.getTables()) {
+      if (tablesToCheck.contains(table.getName())) {
+        String tableUrl = table.getUrl() + "?" + table.getSasToken();
+        TestUtils.verifyHttpAccess(tableUrl, Map.of());
+        verifySignedUrl(tableUrl, steward(), "rl");
+      }
+    }
+
+    // Do a Drs lookup
+    String drsIdByRowId = String.format("v1_%s_%s", snapshotByRowId, fileId);
+    DRSObject drsObjectByRowId = dataRepoFixtures.drsGetObject(steward(), drsIdByRowId);
+    assertThat(
+        "DRS object has single access method",
+        drsObjectByRowId.getAccessMethods().size(),
+        equalTo(1));
+    assertThat(
+        "DRS object has HTTPS",
+        drsObjectByRowId.getAccessMethods().get(0).getType(),
+        equalTo(TypeEnum.HTTPS));
+    assertThat(
+        "DRS object has access id",
+        drsObjectByRowId.getAccessMethods().get(0).getAccessId(),
+        equalTo("az-centralus"));
+    // Make sure we can read the drs object
+    DrsResponse<DRSAccessURL> accessForByRowId =
+        dataRepoFixtures.getObjectAccessUrl(steward(), drsIdByRowId, "az-centralus");
+    assertThat("Returns DRS access", accessForByRowId.getResponseObject().isPresent(), is(true));
+    String signedUrlForByRowId = accessForByRowId.getResponseObject().get().getUrl();
+
+    TestUtils.verifyHttpAccess(signedUrlForByRowId, Map.of());
+    verifySignedUrl(signedUrlForByRowId, steward(), "r");
+
     // Delete dataset should fail
     dataRepoFixtures.deleteDatasetShouldFail(steward, datasetId);
 
     // Delete snapshot
     dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+    dataRepoFixtures.deleteSnapshot(steward, snapshotByRowId);
 
     dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotId);
+    dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotByRowId);
     snapshotId = null;
 
     // Delete the file we just ingested

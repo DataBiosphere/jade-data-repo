@@ -43,9 +43,11 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -97,6 +99,10 @@ public class AzureBlobStorePdaoTest {
   @MockBean private AzureResourceDao azureResourceDao;
   @MockBean private AzureAuthService azureAuthService;
   @Autowired private AzureBlobStorePdao dao;
+
+  @MockBean
+  @Qualifier("synapseJdbcTemplate")
+  private NamedParameterJdbcTemplate synapseJdbcTemplate;
 
   private FileLoadModel fileLoadModel;
 

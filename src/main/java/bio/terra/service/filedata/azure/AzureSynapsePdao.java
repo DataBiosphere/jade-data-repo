@@ -9,7 +9,10 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
@@ -41,14 +44,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
 
 @Component
 public class AzureSynapsePdao {
+
   private static final Logger logger = LoggerFactory.getLogger(AzureSynapsePdao.class);
 
   private final AzureResourceConfiguration azureResourceConfiguration;
+  private final NamedParameterJdbcTemplate synapseJdbcTemplate;
   private static final String PARSER_VERSION = "2.0";
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
   private static final String DEFAULT_CSV_QUOTE = "\"";
@@ -86,7 +94,10 @@ public class AzureSynapsePdao {
           + "    FROM OPENROWSET(\n"
           + "       BULK '<ingestFileName>',\n"
           + "       DATA_SOURCE = '<ingestFileDataSourceName>',\n"
-          + "       FORMAT = 'parquet') AS rows;";
+          + "       FORMAT = 'parquet') AS rows \n";
+
+  private static final String createSnapshotTableByRowIdTemplate =
+      createSnapshotTableTemplate + "WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
   private static final String createSnapshotRowIdTableTemplate =
       "CREATE EXTERNAL TABLE [<tableName>]\n"
@@ -176,10 +187,12 @@ public class AzureSynapsePdao {
   public AzureSynapsePdao(
       AzureResourceConfiguration azureResourceConfiguration,
       ApplicationConfiguration applicationConfiguration,
-      DrsIdService drsIdService) {
+      DrsIdService drsIdService,
+      @Qualifier("synapseJdbcTemplate") NamedParameterJdbcTemplate synapseJdbcTemplate) {
     this.azureResourceConfiguration = azureResourceConfiguration;
     this.applicationConfiguration = applicationConfiguration;
     this.drsIdService = drsIdService;
+    this.synapseJdbcTemplate = synapseJdbcTemplate;
   }
 
   public List<String> getRefIds(
@@ -354,6 +367,61 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
 
+  public Map<String, Long> createSnapshotParquetFilesByRowId(
+      List<SnapshotTable> tables,
+      UUID snapshotId,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String datasetFlightId,
+      SnapshotRequestRowIdModel rowIdModel)
+      throws SQLException {
+    Map<String, Long> tableRowCounts = new HashMap<>();
+
+    for (SnapshotTable table : tables) {
+      ST sqlCreateSnapshotTableTemplate;
+      List<SynapseColumn> columns;
+      MapSqlParameterSource params;
+      String query;
+      Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
+          rowIdModel.getTables().stream()
+              .filter(t -> Objects.equals(t.getTableName(), table.getName()))
+              .findFirst();
+
+      if (rowIdTableModel.isPresent()) {
+        List<String> columnsToInclude = rowIdTableModel.get().getColumns();
+        columns =
+            table.getColumns().stream()
+                .filter(c -> columnsToInclude.contains(c.getName()))
+                .map(Column::toSynapseColumn)
+                .collect(Collectors.toList());
+        sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByRowIdTemplate);
+        query =
+            generateSnapshotParquetCreateQuery(
+                sqlCreateSnapshotTableTemplate,
+                table,
+                snapshotId,
+                datasetDataSourceName,
+                snapshotDataSourceName,
+                datasetFlightId,
+                columns);
+
+        List<UUID> rowIds = rowIdTableModel.get().getRowIds();
+        params = new MapSqlParameterSource().addValue("datarepoRowIds", rowIds);
+      } else {
+        throw new TableNotFoundException("Matching row id table not found");
+      }
+      int rows = synapseJdbcTemplate.update(query, params);
+
+      tableRowCounts.put(table.getName(), (long) rows);
+      if (rows == 0) {
+        logger.info(
+            "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
+            table.getName());
+      }
+    }
+    return tableRowCounts;
+  }
+
   public Map<String, Long> createSnapshotParquetFiles(
       List<SnapshotTable> tables,
       UUID snapshotId,
@@ -362,38 +430,60 @@ public class AzureSynapsePdao {
       String datasetFlightId)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
-    for (SnapshotTable table : tables) {
-      String datasetParquetFileName =
-          IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
-      String snapshotParquetFileName =
-          IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
-      String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
 
+    for (SnapshotTable table : tables) {
+      ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
       List<SynapseColumn> columns =
           table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
 
-      ST sqlCreateSnapshotTableTemplate =
-          new ST(createSnapshotTableTemplate)
-              .add("tableName", tableName)
-              .add("destinationParquetFile", snapshotParquetFileName)
-              .add("destinationDataSourceName", snapshotDataSourceName)
-              .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
-              .add("ingestFileName", datasetParquetFileName)
-              .add("ingestFileDataSourceName", datasetDataSourceName)
-              .add("hostname", applicationConfiguration.getDnsName())
-              .add("snapshotId", snapshotId)
-              .add("columns", columns);
+      String query =
+          generateSnapshotParquetCreateQuery(
+              sqlCreateSnapshotTableTemplate,
+              table,
+              snapshotId,
+              datasetDataSourceName,
+              snapshotDataSourceName,
+              datasetFlightId,
+              columns);
       try {
-        int rows = executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
+        int rows = executeSynapseQuery(query);
         tableRowCounts.put(table.getName(), (long) rows);
       } catch (SQLServerException ex) {
         tableRowCounts.put(table.getName(), 0L);
         logger.info(
             "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
-            tableName);
+            table.getName());
       }
     }
     return tableRowCounts;
+  }
+
+  private String generateSnapshotParquetCreateQuery(
+      ST sqlCreateSnapshotTableTemplate,
+      SnapshotTable table,
+      UUID snapshotId,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String datasetFlightId,
+      List<SynapseColumn> columns) {
+    String datasetParquetFileName =
+        IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
+    String snapshotParquetFileName =
+        IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
+    String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
+
+    sqlCreateSnapshotTableTemplate
+        .add("columns", columns)
+        .add("tableName", tableName)
+        .add("destinationParquetFile", snapshotParquetFileName)
+        .add("destinationDataSourceName", snapshotDataSourceName)
+        .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
+        .add("ingestFileName", datasetParquetFileName)
+        .add("ingestFileDataSourceName", datasetDataSourceName)
+        .add("hostname", applicationConfiguration.getDnsName())
+        .add("snapshotId", snapshotId);
+
+    return sqlCreateSnapshotTableTemplate.render();
   }
 
   public void dropTables(List<String> tableNames) {

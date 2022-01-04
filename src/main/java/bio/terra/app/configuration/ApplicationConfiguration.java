@@ -1,12 +1,14 @@
 package bio.terra.app.configuration;
 
 import bio.terra.app.utils.startup.StartupInitializer;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -18,6 +20,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 @Configuration
@@ -339,10 +342,24 @@ public class ApplicationConfiguration {
     this.maxPerformanceThreadQueueSize = maxPerformanceThreadQueueSize;
   }
 
+  @Primary
   @Bean("jdbcTemplate")
   public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(
       DataRepoJdbcConfiguration jdbcConfiguration) {
     return new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
+  }
+
+  @Bean("synapseJdbcTemplate")
+  public NamedParameterJdbcTemplate synapseJdbcTemplate(
+      AzureResourceConfiguration azureResourceConfiguration) {
+
+    SQLServerDataSource ds = new SQLServerDataSource();
+    ds.setServerName(azureResourceConfiguration.getSynapse().getWorkspaceName());
+    ds.setUser(azureResourceConfiguration.getSynapse().getSqlAdminUser());
+    ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
+    ds.setDatabaseName(azureResourceConfiguration.getSynapse().getDatabaseName());
+
+    return new NamedParameterJdbcTemplate(ds);
   }
 
   @Bean("objectMapper")

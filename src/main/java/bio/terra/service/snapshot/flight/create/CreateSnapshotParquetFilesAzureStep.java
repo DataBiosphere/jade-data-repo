@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
 
 public class CreateSnapshotParquetFilesAzureStep implements Step {
 
-  private AzureSynapsePdao azureSynapsePdao;
-  private SnapshotService snapshotService;
+  protected AzureSynapsePdao azureSynapsePdao;
+  private final SnapshotService snapshotService;
 
   public CreateSnapshotParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService) {
@@ -37,13 +37,7 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
     List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
 
     try {
-      Map<String, Long> tableRowCounts =
-          azureSynapsePdao.createSnapshotParquetFiles(
-              tables,
-              snapshotId,
-              IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
-              IngestUtils.getTargetDataSourceName(context.getFlightId()),
-              null);
+      Map<String, Long> tableRowCounts = createSnapshotParquetFiles(tables, snapshotId, context);
 
       azureSynapsePdao.createSnapshotRowIdsParquetFile(
           tables,
@@ -60,6 +54,16 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
     }
 
     return StepResult.getStepResultSuccess();
+  }
+
+  public Map<String, Long> createSnapshotParquetFiles(
+      List<SnapshotTable> tables, UUID snapshotId, FlightContext context) throws SQLException {
+    return azureSynapsePdao.createSnapshotParquetFiles(
+        tables,
+        snapshotId,
+        IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
+        IngestUtils.getTargetDataSourceName(context.getFlightId()),
+        null);
   }
 
   @Override

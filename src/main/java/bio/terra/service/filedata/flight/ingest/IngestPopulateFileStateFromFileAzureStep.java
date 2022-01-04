@@ -1,8 +1,10 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
@@ -24,12 +26,12 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
 
   public IngestPopulateFileStateFromFileAzureStep(
       LoadService loadService,
-      int maxBadLines,
+      int maxBadLoadFileLineErrorsReported,
       int batchSize,
       AzureBlobStorePdao azureBlobStorePdao,
       ObjectMapper bulkLoadObjectMapper,
       AuthenticatedUserRequest userRequest) {
-    super(loadService, maxBadLines, batchSize, bulkLoadObjectMapper);
+    super(loadService, maxBadLoadFileLineErrorsReported, batchSize, bulkLoadObjectMapper);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.userRequest = userRequest;
   }
@@ -53,7 +55,7 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
 
     // Stream from control file and build list of files to be ingested
     try (BufferedReader reader = new AzureBlobStoreBufferedReader(ingestRequestSignedUrl)) {
-      readFile(reader, context);
+      readFile(reader, context, CloudPlatformWrapper.of(CloudPlatform.AZURE));
 
     } catch (IOException ex) {
       throw new BulkLoadControlFileException(

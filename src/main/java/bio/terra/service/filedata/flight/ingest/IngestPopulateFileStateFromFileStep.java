@@ -1,7 +1,11 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -17,19 +21,38 @@ import java.util.UUID;
 
 public abstract class IngestPopulateFileStateFromFileStep implements Step {
   private final LoadService loadService;
-  private final int maxBadLines;
+  private final int maxBadLoadFileLineErrorsReported;
   private final int batchSize;
   private final ObjectMapper bulkLoadObjectMapper;
+  private final GcsPdao gcsPdao;
+  private final AuthenticatedUserRequest userRequest;
 
   public IngestPopulateFileStateFromFileStep(
-      LoadService loadService, int maxBadLines, int batchSize, ObjectMapper bulkLoadObjectMapper) {
+      LoadService loadService,
+      int maxBadLoadFileLineErrorsReported,
+      int batchSize,
+      ObjectMapper bulkLoadObjectMapper,
+      GcsPdao gcsPdao,
+      AuthenticatedUserRequest userRequest) {
     this.loadService = loadService;
-    this.maxBadLines = maxBadLines;
+    this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
     this.batchSize = batchSize;
     this.bulkLoadObjectMapper = bulkLoadObjectMapper;
+    this.gcsPdao = gcsPdao;
+    this.userRequest = userRequest;
   }
 
-  void readFile(BufferedReader reader, FlightContext context) throws IOException {
+  public IngestPopulateFileStateFromFileStep(
+      LoadService loadService,
+      int maxBadLoadFileLineErrorsReported,
+      int batchSize,
+      ObjectMapper bulkLoadObjectMapper) {
+    this(
+        loadService, maxBadLoadFileLineErrorsReported, batchSize, bulkLoadObjectMapper, null, null);
+  }
+
+  void readFile(BufferedReader reader, FlightContext context, CloudPlatformWrapper platform)
+      throws IOException {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 
@@ -43,12 +66,21 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
 
       try {
         BulkLoadFileModel loadFile = bulkLoadObjectMapper.readValue(line, BulkLoadFileModel.class);
+        if (platform.isGcp()) {
+          gcsPdao.validateUserCanRead(List.of(loadFile.getSourcePath()), userRequest);
+        }
         fileList.add(loadFile);
-      } catch (IOException ex) {
-        errorDetails.add("Format error at line " + lineCount + ": " + ex.getMessage());
-        if (errorDetails.size() > maxBadLines) {
+      } catch (IOException | BlobAccessNotAuthorizedException ex) {
+        if (errorDetails.size() < maxBadLoadFileLineErrorsReported) {
+          errorDetails.add("Error at line " + lineCount + ": " + ex.getMessage());
+        } else {
+          errorDetails.add(
+              "Error details truncated. [MaxBadLoadFileLineErrorsReported = "
+                  + maxBadLoadFileLineErrorsReported
+                  + "]");
           throw new BulkLoadControlFileException(
-              "More than " + maxBadLines + " bad lines in the control file", errorDetails);
+              "Invalid lines in the control file. [All lines in control file must be valid - maxFailedFileLoads field applicable once the control file is validated.]",
+              errorDetails);
         }
       }
 
@@ -62,7 +94,8 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     // If there are errors in the load file, don't do the load
     if (errorDetails.size() > 0) {
       throw new BulkLoadControlFileException(
-          "There were " + errorDetails.size() + " bad lines in the control file", errorDetails);
+          "Invalid lines in the control file. [All lines in control file must be valid in order to proceed - 'maxFailedFileLoads' not applicable here.]",
+          errorDetails);
     }
 
     if (fileList.size() > 0) {

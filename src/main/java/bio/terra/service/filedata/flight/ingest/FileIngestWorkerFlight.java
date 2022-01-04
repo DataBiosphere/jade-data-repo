@@ -4,7 +4,6 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -77,7 +76,6 @@ public class FileIngestWorkerFlight extends Flight {
     addStep(new IngestFileIdStep(configService));
 
     if (platform.isGcp()) {
-      addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
       addStep(new IngestFileDirectoryStep(fileDao, dataset), fileSystemRetry);
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));

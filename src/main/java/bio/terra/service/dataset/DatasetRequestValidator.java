@@ -184,12 +184,17 @@ public class DatasetRequestValidator implements Validator {
     String tableName = table.getName();
     List<ColumnModel> columns = table.getColumns();
     List<String> primaryKeyList = table.getPrimaryKey();
+    List<String> columnNames = new ArrayList<>();
+    if (columns.isEmpty()) {
+      errors.rejectValue(
+          "schema", "IncompleteSchemaDefinition", "Each table must contain at least one column");
+    } else {
+      columns.stream().map(ColumnModel::getName).forEach(columnNames::add);
+    }
 
-    if (tableName != null && columns != null) {
+    if (tableName != null) {
       validateDataTypes(columns, errors);
 
-      List<String> columnNames =
-          columns.stream().map(ColumnModel::getName).collect(Collectors.toList());
       if (ValidationUtils.hasDuplicates(columnNames)) {
         List<String> duplicates = ValidationUtils.findDuplicates(columnNames);
         errors.rejectValue(
@@ -381,7 +386,10 @@ public class DatasetRequestValidator implements Validator {
   private void validateSchema(DatasetSpecificationModel schema, Errors errors) {
     SchemaValidationContext context = new SchemaValidationContext();
     List<TableModel> tables = schema.getTables();
-    if (tables != null) {
+    if (tables.isEmpty()) {
+      errors.rejectValue(
+          "schema", "IncompleteSchemaDefinition", "Dataset tables must be defined in the schema");
+    } else {
       List<String> tableNames =
           tables.stream().map(TableModel::getName).collect(Collectors.toList());
       if (ValidationUtils.hasDuplicates(tableNames)) {

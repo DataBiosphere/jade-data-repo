@@ -1,4 +1,4 @@
-package bio.terra.app.controller;
+package bio.terra.service.dataset;
 
 import static bio.terra.common.fixtures.DatasetFixtures.buildAsset;
 import static bio.terra.common.fixtures.DatasetFixtures.buildAssetParticipantTable;
@@ -35,9 +35,6 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,7 +63,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
-public class DatasetValidationsTest {
+public class DatasetRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
 
@@ -452,7 +449,8 @@ public class DatasetValidationsTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"MissingPrimaryKeyColumn"});
+    checkValidationErrorModel(
+        errorModel, new String[] {"MissingPrimaryKeyColumn", "IncompleteSchemaDefinition"});
   }
 
   @Test
@@ -491,7 +489,10 @@ public class DatasetValidationsTest {
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel, new String[] {"MissingDatePartitionOptions", "InvalidIntPartitionOptions"});
+        errorModel,
+        new String[] {
+          "MissingDatePartitionOptions", "InvalidIntPartitionOptions", "IncompleteSchemaDefinition"
+        });
   }
 
   @Test
@@ -509,7 +510,8 @@ public class DatasetValidationsTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"InvalidDatePartitionColumnName"});
+    checkValidationErrorModel(
+        errorModel, new String[] {"InvalidDatePartitionColumnName", "IncompleteSchemaDefinition"});
   }
 
   @Test
@@ -547,7 +549,10 @@ public class DatasetValidationsTest {
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel, new String[] {"InvalidDatePartitionOptions", "MissingIntPartitionOptions"});
+        errorModel,
+        new String[] {
+          "InvalidDatePartitionOptions", "MissingIntPartitionOptions", "IncompleteSchemaDefinition"
+        });
   }
 
   @Test
@@ -566,7 +571,8 @@ public class DatasetValidationsTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"InvalidIntPartitionColumnName"});
+    checkValidationErrorModel(
+        errorModel, new String[] {"InvalidIntPartitionColumnName", "IncompleteSchemaDefinition"});
   }
 
   @Test
@@ -659,7 +665,10 @@ public class DatasetValidationsTest {
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
-        errorModel, new String[] {"InvalidDatePartitionOptions", "InvalidIntPartitionOptions"});
+        errorModel,
+        new String[] {
+          "InvalidDatePartitionOptions", "InvalidIntPartitionOptions", "IncompleteSchemaDefinition"
+        });
   }
 
   @Test
@@ -756,5 +765,30 @@ public class DatasetValidationsTest {
             .map(code -> containsString("'" + code + "'"))
             .collect(Collectors.toList());
     assertThat("Detail codes are right", details, containsInAnyOrder(expectedMatches));
+  }
+
+  @Test
+  public void testNoTablesProvided() throws Exception {
+    DatasetRequestModel req = buildDatasetRequest();
+    req.getSchema()
+        .tables(Collections.emptyList())
+        .relationships(Collections.emptyList())
+        .assets(Collections.emptyList());
+
+    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+    checkValidationErrorModel(errorModel, new String[] {"IncompleteSchemaDefinition"});
+  }
+
+  @Test
+  public void testNoColumnsProvided() throws Exception {
+    TableModel table = new TableModel().name("table").columns(Collections.emptyList());
+    DatasetRequestModel req = buildDatasetRequest();
+    req.getSchema()
+        .tables(Collections.singletonList(table))
+        .relationships(Collections.emptyList())
+        .assets(Collections.emptyList());
+
+    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+    checkValidationErrorModel(errorModel, new String[] {"IncompleteSchemaDefinition"});
   }
 }

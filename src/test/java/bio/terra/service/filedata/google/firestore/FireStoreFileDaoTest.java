@@ -43,8 +43,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Connected.class)
 @EmbeddedDatabaseTest
 public class FireStoreFileDaoTest {
-  private final Logger logger =
-      LoggerFactory.getLogger("bio.terra.service.filedata.google.firestore.FireStoreFileDaoTest");
+  private final Logger logger = LoggerFactory.getLogger(FireStoreFileDaoTest.class);
   private final Long FILE_SIZE = 42L;
   private final Long CHANGED_FILE_SIZE = 22L;
 

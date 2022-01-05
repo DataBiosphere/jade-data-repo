@@ -44,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class SnapshotDao {
-  private final Logger logger = LoggerFactory.getLogger("bio.terra.service.snapshot.SnapshotDao");
+  private final Logger logger = LoggerFactory.getLogger(SnapshotDao.class);
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final SnapshotTableDao snapshotTableDao;

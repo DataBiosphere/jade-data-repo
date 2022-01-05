@@ -64,7 +64,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DrsService {
 
-  private final Logger logger = LoggerFactory.getLogger("bio.terra.service.filedata.DrsService");
+  private final Logger logger = LoggerFactory.getLogger(DrsService.class);
 
   private static final String DRS_OBJECT_VERSION = "0";
   private static final Duration URL_TTL = Duration.ofMinutes(15);

@@ -101,7 +101,7 @@ public class IngestDriverStepTest extends TestCase {
     // Don't allow any file load errors.
     StepResult stepResult = runTest(0);
 
-    assertEquals(StepStatus.STEP_RESULT_FAILURE_FATAL, stepResult.getStepStatus());
+    assertEquals(StepStatus.STEP_RESULT_SUCCESS, stepResult.getStepStatus());
 
     // Verify that the step never started the candidate file.
     verify(loadService, never()).setLoadFileRunning(loadUuid, null, null);

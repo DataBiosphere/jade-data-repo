@@ -6,8 +6,6 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import com.google.api.client.util.Lists;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +17,8 @@ public class GoogleResourceUtils {
   @Autowired private GoogleProjectService projectService;
 
   public GoogleProjectResource buildProjectResource(BillingProfileModel profile) throws Exception {
-    var roleToStewardMap = Map.of("roles/bigquery.jobUser", List.of("group:JadeStewards-dev@dev.test.firecloud.org""));
+    var roleToStewardMap =
+        Map.of("roles/bigquery.jobUser", List.of("group:JadeStewards-dev@dev.test.firecloud.org"));
 
     ResourceInfo resourceInfo = bufferService.handoutResource(false);
 

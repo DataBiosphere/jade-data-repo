@@ -13,16 +13,19 @@ public class IngestJsonFileSetupAzureStep extends IngestJsonFileSetupStep {
   private final ObjectMapper objectMapper;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final AuthenticatedUserRequest userRequest;
+  private final int maxBadLoadFileLineErrorsReported;
 
   public IngestJsonFileSetupAzureStep(
       ObjectMapper objectMapper,
       AzureBlobStorePdao azureBlobStorePdao,
       Dataset dataset,
-      AuthenticatedUserRequest userRequest) {
+      AuthenticatedUserRequest userRequest,
+      int maxBadLoadFileLineErrorsReported) {
     super(dataset);
     this.objectMapper = objectMapper;
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.userRequest = userRequest;
+    this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
   }
 
   @Override
@@ -32,13 +35,14 @@ public class IngestJsonFileSetupAzureStep extends IngestJsonFileSetupStep {
         IngestUtils.getIngestBillingProfileFromDataset(dataset, ingestRequest)
             .getTenantId()
             .toString();
-    return IngestUtils.countBulkFileLoadModelsFromPath(
+    return IngestUtils.countAndValidateBulkFileLoadModelsFromPath(
         azureBlobStorePdao,
         objectMapper,
         ingestRequest,
         userRequest,
         tenantId,
         fileRefColumns,
-        errors);
+        errors,
+        maxBadLoadFileLineErrorsReported);
   }
 }

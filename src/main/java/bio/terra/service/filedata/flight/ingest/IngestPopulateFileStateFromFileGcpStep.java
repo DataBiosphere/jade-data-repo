@@ -1,10 +1,8 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FlightUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadRequestModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsBufferedReader;
@@ -49,7 +47,7 @@ public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileSt
     // Stream from control file and build list of files to be ingested
     try (BufferedReader reader =
         new GcsBufferedReader(storage, projectId, loadRequest.getLoadControlFile())) {
-      readFile(reader, context, CloudPlatformWrapper.of(CloudPlatform.GCP));
+      readFile(reader, context);
 
     } catch (IOException ex) {
       throw new BulkLoadControlFileException("Failure accessing the load control file in GCS", ex);

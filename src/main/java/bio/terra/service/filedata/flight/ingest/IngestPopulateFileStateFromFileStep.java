@@ -1,11 +1,11 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -24,7 +24,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
   private final int maxBadLoadFileLineErrorsReported;
   private final int batchSize;
   private final ObjectMapper bulkLoadObjectMapper;
-  private final GcsPdao gcsPdao;
+  private final CloudFileReader cloudFileReader;
   private final AuthenticatedUserRequest userRequest;
 
   public IngestPopulateFileStateFromFileStep(
@@ -32,13 +32,13 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
       int maxBadLoadFileLineErrorsReported,
       int batchSize,
       ObjectMapper bulkLoadObjectMapper,
-      GcsPdao gcsPdao,
+      CloudFileReader cloudFileReader,
       AuthenticatedUserRequest userRequest) {
     this.loadService = loadService;
     this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
     this.batchSize = batchSize;
     this.bulkLoadObjectMapper = bulkLoadObjectMapper;
-    this.gcsPdao = gcsPdao;
+    this.cloudFileReader = cloudFileReader;
     this.userRequest = userRequest;
   }
 
@@ -51,8 +51,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
         loadService, maxBadLoadFileLineErrorsReported, batchSize, bulkLoadObjectMapper, null, null);
   }
 
-  void readFile(BufferedReader reader, FlightContext context, CloudPlatformWrapper platform)
-      throws IOException {
+  void readFile(BufferedReader reader, FlightContext context) throws IOException {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 
@@ -61,27 +60,17 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     List<BulkLoadFileModel> fileList = new ArrayList<>();
 
     String line;
-    while ((line = reader.readLine()) != null) {
+    while ((line = reader.readLine()) != null
+        && errorDetails.size() <= maxBadLoadFileLineErrorsReported) {
       lineCount++;
 
       try {
         BulkLoadFileModel loadFile = bulkLoadObjectMapper.readValue(line, BulkLoadFileModel.class);
-        if (platform.isGcp()) {
-          gcsPdao.validateUserCanRead(List.of(loadFile.getSourcePath()), userRequest);
-        }
+        cloudFileReader.validateUserCanRead(List.of(loadFile.getSourcePath()), userRequest);
         fileList.add(loadFile);
       } catch (IOException | BlobAccessNotAuthorizedException ex) {
-        if (errorDetails.size() < maxBadLoadFileLineErrorsReported) {
-          errorDetails.add("Error at line " + lineCount + ": " + ex.getMessage());
-        } else {
-          errorDetails.add(
-              "Error details truncated. [MaxBadLoadFileLineErrorsReported = "
-                  + maxBadLoadFileLineErrorsReported
-                  + "]");
-          throw new BulkLoadControlFileException(
-              "Invalid lines in the control file. [All lines in control file must be valid - maxFailedFileLoads field applicable once the control file is validated.]",
-              errorDetails);
-        }
+        IngestUtils.recordControlFileValidationErrorMessage(
+            errorDetails, ex.getMessage(), maxBadLoadFileLineErrorsReported);
       }
 
       // Keep this check and load out of the inner try; it should only catch objectMapper failures

@@ -233,7 +233,13 @@ public class DatasetIngestFlight extends Flight {
     // Parse the JSON file and see if there's actually any files to load.
     // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`
     // will not be run.
-    addStep(new IngestJsonFileSetupGcpStep(gcsPdao, appConfig.objectMapper(), dataset, userReq));
+    addStep(
+        new IngestJsonFileSetupGcpStep(
+            gcsPdao,
+            appConfig.objectMapper(),
+            dataset,
+            userReq,
+            appConfig.getMaxBadLoadFileLineErrorsReported()));
 
     // Make sure this user is authorized to use the billing profile in SAM
     addOptionalCombinedIngestStep(
@@ -347,7 +353,11 @@ public class DatasetIngestFlight extends Flight {
     // will not be run.
     addStep(
         new IngestJsonFileSetupAzureStep(
-            appConfig.objectMapper(), azureBlobStorePdao, dataset, userReq));
+            appConfig.objectMapper(),
+            azureBlobStorePdao,
+            dataset,
+            userReq,
+            appConfig.getMaxBadLoadFileLineErrorsReported()));
 
     // Lock the load.
     addOptionalCombinedIngestStep(new LoadLockStep(loadService));

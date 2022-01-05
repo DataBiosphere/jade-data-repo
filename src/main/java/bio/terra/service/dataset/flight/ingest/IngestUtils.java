@@ -17,6 +17,7 @@ import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.CloudFileReader;
+import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -222,14 +223,15 @@ public final class IngestUtils {
         .filter(Objects::nonNull);
   }
 
-  public static long countBulkFileLoadModelsFromPath(
+  public static long countAndValidateBulkFileLoadModelsFromPath(
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
       AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
       List<Column> fileRefColumns,
-      List<String> errors) {
+      List<String> errors,
+      int maxBadLoadFileLineErrorsReported) {
     try (var nodesStream =
         IngestUtils.getBulkFileLoadModelsStream(
             cloudFileReader,
@@ -239,7 +241,31 @@ public final class IngestUtils {
             cloudEncapsulationId,
             fileRefColumns,
             errors)) {
+      nodesStream
+          .takeWhile(bulkLoadFileModel -> errors.size() <= maxBadLoadFileLineErrorsReported)
+          .forEach(
+              loadFileModel -> {
+                try {
+                  cloudFileReader.validateUserCanRead(
+                      List.of(loadFileModel.getSourcePath()), userRequest);
+                } catch (BlobAccessNotAuthorizedException ex) {
+                  recordControlFileValidationErrorMessage(
+                      errors, ex.getMessage(), maxBadLoadFileLineErrorsReported);
+                }
+              });
       return nodesStream.count();
+    }
+  }
+
+  public static void recordControlFileValidationErrorMessage(
+      List<String> errors, String exceptionMsg, int maxBadLoadFileLineErrorsReported) {
+    if (errors.size() < maxBadLoadFileLineErrorsReported) {
+      errors.add("Error: " + exceptionMsg);
+    } else {
+      errors.add(
+          "Error details truncated. [MaxBadLoadFileLineErrorsReported = "
+              + maxBadLoadFileLineErrorsReported
+              + "]");
     }
   }
 

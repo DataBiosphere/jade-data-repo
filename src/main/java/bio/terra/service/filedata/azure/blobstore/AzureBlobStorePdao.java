@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -148,6 +149,11 @@ public class AzureBlobStorePdao implements CloudFileReader {
     AzureBlobStoreBufferedReader azureBlobStoreBufferedReader =
         new AzureBlobStoreBufferedReader(signedBlobUrl);
     return azureBlobStoreBufferedReader.lines();
+  }
+
+  @Override
+  public void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user) {
+    // TODO - not yet implemented
   }
 
   public void writeBlobLines(String signedPath, Stream<String> lines) {

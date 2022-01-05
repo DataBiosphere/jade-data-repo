@@ -103,7 +103,8 @@ public class SnapshotDeleteFlight extends Flight {
                 datasetService,
                 profileService,
                 resourceService,
-                azureAuthService)));
+                azureAuthService)),
+        randomBackoffRetry);
     addStep(
         new PerformAzureStep(
             new DeleteSnapshotDeleteStorageAccountStep(

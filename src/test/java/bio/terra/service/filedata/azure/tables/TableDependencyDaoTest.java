@@ -72,7 +72,7 @@ public class TableDependencyDaoTest {
     UUID snapshotId = UUID.randomUUID();
     String refId = UUID.randomUUID().toString();
     dao.storeSnapshotFileDependencies(tableServiceClient, datasetId, snapshotId, List.of(refId));
-    verify(tableClient, times(1)).upsertEntity(any());
+    verify(tableClient, times(1)).submitTransaction(any());
   }
 
   @Test

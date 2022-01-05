@@ -400,7 +400,8 @@ public class DatasetIngestFlight extends Flight {
             datasetService,
             dataset.getId(),
             ingestRequest.getLoadTag(),
-            loadHistoryChunkSize));
+            loadHistoryChunkSize),
+        randomBackoffRetry);
 
     // Clean up the load table.
     addOptionalCombinedIngestStep(new IngestCleanFileStateStep(loadService));

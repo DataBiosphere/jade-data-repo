@@ -1,10 +1,14 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.load.LoadService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.List;
@@ -45,37 +49,44 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    FlightMap workingMap = context.getWorkingMap();
     var resources =
         getResources(context, loadService, datasetService, datasetId, loadHistoryChunkSize);
+    AzureStorageAccountResource storageAccountForFile =
+        workingMap.get(
+            CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
-    List<InterruptedException> maybeExceptions =
-        StreamSupport.stream(
-                Spliterators.spliteratorUnknownSize(resources.loadHistoryIterator, 0), true)
-            .map(
-                models -> {
-                  try {
-                    storageTableService.loadHistoryToAStorageTable(
-                        resources.dataset,
-                        context.getFlightId(),
-                        loadTag,
-                        resources.loadTime,
-                        models);
-                    return null;
-                  } catch (InterruptedException ex) {
-                    return ex;
-                  }
-                })
-            .filter(Objects::nonNull)
-            .distinct()
-            .collect(Collectors.toList());
-    if (!maybeExceptions.isEmpty()) {
-      for (var iex : maybeExceptions) {
-        logger.error("Encountered error while loading history into storage table", iex);
+    Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
+    if (loadComplete == null || !loadComplete) {
+      List<InterruptedException> maybeExceptions =
+          StreamSupport.stream(
+                  Spliterators.spliteratorUnknownSize(resources.loadHistoryIterator, 0), true)
+              .map(
+                  models -> {
+                    try {
+                      storageTableService.loadHistoryToAStorageTable(
+                          storageAccountForFile,
+                          resources.dataset,
+                          loadTag,
+                          resources.loadTime,
+                          models);
+                      return null;
+                    } catch (InterruptedException ex) {
+                      return ex;
+                    }
+                  })
+              .filter(Objects::nonNull)
+              .distinct()
+              .collect(Collectors.toList());
+      if (!maybeExceptions.isEmpty()) {
+        for (var iex : maybeExceptions) {
+          logger.error("Encountered error while loading history into storage table", iex);
+        }
+        var ex =
+            new AzureResourceException(
+                "Could not load entities into load history storage table", maybeExceptions.get(0));
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
       }
-      var ex =
-          new AzureResourceException(
-              "Could not load entities into load history storage table", maybeExceptions.get(0));
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
 
     return StepResult.getStepResultSuccess();

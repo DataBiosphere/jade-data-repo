@@ -16,6 +16,7 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.models.TableTransactionFailedException;
 import java.util.UUID;
 
 public class DeleteSnapshotDependencyDataAzureStep implements Step {
@@ -57,8 +58,12 @@ public class DeleteSnapshotDependencyDataAzureStep implements Step {
             datasetBillingProfile, datasetStorageAccountResource);
     TableServiceClient datasetTableServiceClient =
         azureAuthService.getTableServiceClient(datasetAzureStorageAuthInfo);
-    tableDependencyDao.deleteSnapshotFileDependencies(
-        datasetTableServiceClient, dataset.getId(), snapshotId);
+    try {
+      tableDependencyDao.deleteSnapshotFileDependencies(
+          datasetTableServiceClient, dataset.getId(), snapshotId);
+    } catch (TableTransactionFailedException e) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
+    }
 
     return StepResult.getStepResultSuccess();
   }

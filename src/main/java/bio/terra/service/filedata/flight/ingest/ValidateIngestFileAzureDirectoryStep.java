@@ -16,6 +16,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.azure.core.management.exception.ManagementException;
 
 public class ValidateIngestFileAzureDirectoryStep extends DefaultUndoStep {
   public static final String CREATE_ENTRY_ACTION = "createEntry";
@@ -54,8 +55,9 @@ public class ValidateIngestFileAzureDirectoryStep extends DefaultUndoStep {
         throw new FileAlreadyExistsException("Path already exists: " + targetPath);
       } else {
         workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CHECK_ENTRY_ACTION);
+        workingMap.put(FileMapKeys.FIRESTORE_DIRECTORY_ENTRY, existingEntry);
       }
-    } catch (FileSystemAbortTransactionException e) {
+    } catch (FileSystemAbortTransactionException | ManagementException e) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
 

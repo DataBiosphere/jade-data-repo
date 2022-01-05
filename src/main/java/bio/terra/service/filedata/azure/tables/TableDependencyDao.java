@@ -59,35 +59,54 @@ public class TableDependencyDao {
                       .map(e -> e.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME).toString())
                       .collect(Collectors.toList());
               // Create any entities that do not already exist
-              refIdChunk.stream()
-                  .filter(id -> !existing.contains(id))
-                  .forEach(refId -> createDependencyEntity(tableClient, snapshotId, refId));
+              List<TableTransactionAction> batchEntities =
+                  refIdChunk.stream()
+                      .distinct()
+                      .filter(id -> !existing.contains(id))
+                      .map(
+                          refId -> {
+                            FireStoreDependency fireStoreDependency =
+                                new FireStoreDependency()
+                                    .snapshotId(snapshotId.toString())
+                                    .fileId(refId)
+                                    .refCount(1L);
+                            TableEntity fireStoreDependencyEntity =
+                                FireStoreDependency.toTableEntity(fireStoreDependency);
+                            return new TableTransactionAction(
+                                TableTransactionActionType.UPSERT_REPLACE,
+                                fireStoreDependencyEntity);
+                          })
+                      .collect(Collectors.toList());
+              tableClient.submitTransaction(batchEntities);
             });
-  }
-
-  private void createDependencyEntity(TableClient tableClient, UUID snapshotId, String refId) {
-    FireStoreDependency fireStoreDependency =
-        new FireStoreDependency().snapshotId(snapshotId.toString()).fileId(refId).refCount(1L);
-    TableEntity fireStoreDependencyEntity = FireStoreDependency.toTableEntity(fireStoreDependency);
-    tableClient.upsertEntity(fireStoreDependencyEntity);
   }
 
   public void deleteSnapshotFileDependencies(
       TableServiceClient tableServiceClient, UUID datasetId, UUID snapshotId) {
     String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(datasetId);
-    ;
+
     if (TableServiceClientUtils.tableHasEntries(tableServiceClient, dependencyTableName)) {
       TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("snapshotId eq '%s'", snapshotId));
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      var batchEntities =
-          entities.stream()
-              .map(entity -> new TableTransactionAction(TableTransactionActionType.DELETE, entity))
-              .collect(Collectors.toList());
-      logger.info(
-          "Deleting snapshot {} file dependencies from {}", snapshotId, dependencyTableName);
-      tableClient.submitTransaction(batchEntities);
+      entities
+          .streamByPage()
+          .forEach(
+              entityChunk -> {
+                List<TableTransactionAction> batchEntities =
+                    entityChunk.getElements().stream()
+                        .map(
+                            entity ->
+                                new TableTransactionAction(
+                                    TableTransactionActionType.DELETE, entity))
+                        .collect(Collectors.toList());
+                logger.info(
+                    "Deleting snapshot {} file dependencies from {}",
+                    snapshotId,
+                    dependencyTableName);
+                tableClient.submitTransaction(batchEntities);
+              });
     } else {
       logger.warn("No snapshot file dependencies found to be deleted from dataset");
     }

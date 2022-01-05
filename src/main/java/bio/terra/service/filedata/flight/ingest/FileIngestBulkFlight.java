@@ -224,7 +224,8 @@ public class FileIngestBulkFlight extends Flight {
               datasetService,
               datasetUuid,
               loadTag,
-              loadHistoryChunkSize));
+              loadHistoryChunkSize),
+          randomBackoffRetry);
     }
     addStep(new IngestCleanFileStateStep(loadService));
 

@@ -396,7 +396,6 @@ public final class DataRepoUtils {
             .resourceGroupName(resourceGroupName)
             .applicationDeploymentName(applicationDeploymentName)
             .profileName(profileName)
-            .billingAccountId(billingAccount)
             .biller("direct")
             .description("test profile description (Azure)");
 

@@ -241,9 +241,9 @@ public final class IngestUtils {
             cloudEncapsulationId,
             fileRefColumns,
             errors)) {
-      nodesStream
+      return nodesStream
           .takeWhile(bulkLoadFileModel -> errors.size() <= maxBadLoadFileLineErrorsReported)
-          .forEach(
+          .peek(
               loadFileModel -> {
                 try {
                   cloudFileReader.validateUserCanRead(
@@ -252,8 +252,8 @@ public final class IngestUtils {
                   recordControlFileValidationErrorMessage(
                       errors, ex.getMessage(), maxBadLoadFileLineErrorsReported);
                 }
-              });
-      return nodesStream.count();
+              })
+          .count();
     }
   }
 

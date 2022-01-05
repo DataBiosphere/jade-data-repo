@@ -19,12 +19,7 @@ public class GoogleResourceUtils {
   @Autowired private GoogleProjectService projectService;
 
   public GoogleProjectResource buildProjectResource(BillingProfileModel profile) throws Exception {
-    String role = "roles/bigquery.jobUser";
-    String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";
-    List<String> stewardsGroupEmailList = Lists.newArrayList();
-    stewardsGroupEmailList.add(stewardsGroupEmail);
-    Map<String, List<String>> roleToStewardMap = new HashMap<>();
-    roleToStewardMap.put(role, stewardsGroupEmailList);
+    var roleToStewardMap = Map.of("roles/bigquery.jobUser", List.of("group:JadeStewards-dev@dev.test.firecloud.org""));
 
     ResourceInfo resourceInfo = bufferService.handoutResource(false);
 

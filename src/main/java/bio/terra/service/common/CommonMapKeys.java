@@ -11,4 +11,7 @@ public final class CommonMapKeys {
       PREFIX + "datasetStorageAccountResource";
   public static final String SNAPSHOT_STORAGE_ACCOUNT_RESOURCE =
       PREFIX + "snapshotStorageAccountResource";
+
+  public static final String COMPLETION_TO_FAILURE_EXCEPTION =
+      PREFIX + "completionToFailureException";
 }

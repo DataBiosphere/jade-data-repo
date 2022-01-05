@@ -7,6 +7,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.kubernetes.KubeService;
 import bio.terra.common.stairway.StairwayComponent;
 import bio.terra.model.JobModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -31,6 +32,7 @@ import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.StringUtils;
@@ -226,9 +228,8 @@ public class JobService {
   public JobModel mapFlightStateToJobModel(FlightState flightState) {
     FlightMap inputParameters = flightState.getInputParameters();
     String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);
-    FlightStatus flightStatus = flightState.getFlightStatus();
     String submittedDate = flightState.getSubmitted().toString();
-    JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
+    JobModel.JobStatusEnum jobStatus = getJobStatus(flightState);
 
     String completedDate = null;
     HttpStatus statusCode = HttpStatus.ACCEPTED;
@@ -245,27 +246,27 @@ public class JobService {
       completedDate = flightState.getCompleted().get().toString();
     }
 
-    JobModel jobModel =
-        new JobModel()
-            .id(flightState.getFlightId())
-            .description(description)
-            .jobStatus(jobStatus)
-            .statusCode(statusCode.value())
-            .submitted(submittedDate)
-            .completed(completedDate);
-
-    return jobModel;
+    return new JobModel()
+        .id(flightState.getFlightId())
+        .description(description)
+        .jobStatus(jobStatus)
+        .statusCode(statusCode.value())
+        .submitted(submittedDate)
+        .completed(completedDate);
   }
 
-  private JobModel.JobStatusEnum getJobStatus(FlightStatus flightStatus) {
+  private JobModel.JobStatusEnum getJobStatus(FlightState flightState) {
+    FlightStatus flightStatus = flightState.getFlightStatus();
     switch (flightStatus) {
       case ERROR:
-        return JobModel.JobStatusEnum.FAILED;
       case FATAL:
         return JobModel.JobStatusEnum.FAILED;
       case RUNNING:
         return JobModel.JobStatusEnum.RUNNING;
       case SUCCESS:
+        if (getCompletionToFailureException(flightState).isPresent()) {
+          return JobModel.JobStatusEnum.FAILED;
+        }
         return JobModel.JobStatusEnum.SUCCEEDED;
     }
     return JobModel.JobStatusEnum.FAILED;
@@ -373,20 +374,26 @@ public class JobService {
       throw new InvalidResultStateException("No result map returned from flight");
     }
 
-    switch (flightState.getFlightStatus()) {
-      case FATAL:
-      case ERROR:
-        if (flightState.getException().isPresent()) {
-          Exception exception = flightState.getException().get();
-          if (exception instanceof RuntimeException) {
-            throw (RuntimeException) exception;
-          } else {
-            throw new JobResponseException("wrap non-runtime exception", exception);
-          }
-        }
-        throw new InvalidResultStateException("Failed operation with no exception reported");
+    JobModel.JobStatusEnum jobStatus = getJobStatus(flightState);
 
-      case SUCCESS:
+    switch (jobStatus) {
+      case FAILED:
+        final Exception exceptionToThrow;
+
+        if (flightState.getException().isPresent()) {
+          exceptionToThrow = flightState.getException().get();
+        } else if (getCompletionToFailureException(flightState).isPresent()) {
+          exceptionToThrow = getCompletionToFailureException(flightState).get();
+        } else {
+          exceptionToThrow =
+              new InvalidResultStateException("Failed operation with no exception reported");
+        }
+        if (exceptionToThrow instanceof RuntimeException) {
+          throw (RuntimeException) exceptionToThrow;
+        } else {
+          throw new JobResponseException("wrap non-runtime exception", exceptionToThrow);
+        }
+      case SUCCEEDED:
         HttpStatus statusCode =
             resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
         if (statusCode == null) {
@@ -443,5 +450,12 @@ public class JobService {
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
+  }
+
+  private Optional<Exception> getCompletionToFailureException(FlightState flightState) {
+    return flightState
+        .getResultMap()
+        .filter(rm -> rm.containsKey(CommonMapKeys.COMPLETION_TO_FAILURE_EXCEPTION))
+        .map(rm -> rm.get(CommonMapKeys.COMPLETION_TO_FAILURE_EXCEPTION, Exception.class));
   }
 }

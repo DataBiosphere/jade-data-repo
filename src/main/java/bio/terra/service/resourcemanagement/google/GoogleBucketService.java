@@ -150,17 +150,17 @@ public class GoogleBucketService {
       if (googleBucketResource != null) {
         String lockingFlightId = googleBucketResource.getFlightId();
         if (lockingFlightId == null) {
-          // CASE 1: everything exists and is unlocked
+          // everything exists and is unlocked
           return googleBucketResource;
         }
         if (!StringUtils.equals(lockingFlightId, flightId)) {
-          // CASE 2: another flight is creating the bucket
+          // another flight is creating the bucket
           throw bucketLockException(lockingFlightId);
         }
-        // CASE 3: we have the flight locked, but we did all of the creating.
+        // we have the flight locked, but we did all of the creating.
         return createFinish(bucket, flightId, googleBucketResource);
       } else {
-        // CASE 4: bucket exists
+        // bucket exists
         throw new CorruptMetadataException(
             "Bucket already exists, metadata out of sync with cloud state: " + bucketName);
       }
@@ -169,18 +169,18 @@ public class GoogleBucketService {
       if (googleBucketResource != null) {
         String lockingFlightId = googleBucketResource.getFlightId();
         if (lockingFlightId == null) {
-          // CASE 5: no bucket, but the metadata record exists unlocked
+          // no bucket, but the metadata record exists unlocked
           throw new CorruptMetadataException(
               "Bucket does not exist, metadata out of sync with cloud state: " + bucketName);
         }
         if (!StringUtils.equals(lockingFlightId, flightId)) {
-          // CASE 6: another flight is creating the bucket
+          // another flight is creating the bucket
           throw bucketLockException(lockingFlightId);
         }
-        // CASE 7: this flight has the metadata locked, but didn't finish creating the bucket
+        // this flight has the metadata locked, but didn't finish creating the bucket
         return createCloudBucket(googleBucketResource, flightId, daysToLive);
       } else {
-        // CASE 8: no bucket and no record
+        // no bucket and no record
         return createMetadataRecord(bucketName, projectResource, region, flightId, daysToLive);
       }
     }

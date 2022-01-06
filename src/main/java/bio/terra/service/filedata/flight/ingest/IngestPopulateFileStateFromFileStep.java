@@ -42,15 +42,6 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     this.userRequest = userRequest;
   }
 
-  public IngestPopulateFileStateFromFileStep(
-      LoadService loadService,
-      int maxBadLoadFileLineErrorsReported,
-      int batchSize,
-      ObjectMapper bulkLoadObjectMapper) {
-    this(
-        loadService, maxBadLoadFileLineErrorsReported, batchSize, bulkLoadObjectMapper, null, null);
-  }
-
   void readFile(BufferedReader reader, FlightContext context) throws IOException {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));

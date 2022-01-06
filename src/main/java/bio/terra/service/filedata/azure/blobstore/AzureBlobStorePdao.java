@@ -153,7 +153,10 @@ public class AzureBlobStorePdao implements CloudFileReader {
 
   @Override
   public void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user) {
-    // TODO - not yet implemented
+    // This checked is not needed for Azure because we use signed URLS that by default check
+    // permissions
+    // Keeping this method because we do need to do this check for GCP in code that is shared
+    // between gcp and azure [See CloudFileReader]
   }
 
   public void writeBlobLines(String signedPath, Stream<String> lines) {

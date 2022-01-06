@@ -100,8 +100,11 @@ public class LoggerInterceptor implements HandlerInterceptor {
       }
       // The warning here can be ignored, as StackDriver logging will interpret the extra arg
       // and insert it into the `jsonPayload`. It is ignored when running locally.
-      // This copies the Terra Commons logging.
+      // This copies the Terra Commons logging, which relies on the GoogleJsonLayout.
       // See bio.terra.common.logging.RequestLoggingFilter.doFilter:92 for another example.
+      // Also see
+      // https://github.com/DataBiosphere/terra-common-lib/blob/develop/src/main/java/bio/terra/common/logging/GoogleJsonLayout.java
+      // for the layout implementation.
       logger.info(
           "userId: {}, email: {}, institute: {}, url: {}, method: {}, params: {}, status: {}, duration: {}",
           userId,

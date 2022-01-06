@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.IngestRequestModel;
@@ -18,7 +19,6 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
-import java.util.List;
 import java.util.stream.Stream;
 
 public class IngestBuildAndWriteScratchLoadFileAzureStep
@@ -42,19 +42,13 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
 
   @Override
   Stream<JsonNode> getJsonNodesFromCloudFile(
-      IngestRequestModel ingestRequest, List<String> errors, int maxBadLoadFileLineErrorsReported) {
+      IngestRequestModel ingestRequest, ErrorCollector errorCollector) {
     String tenantId =
         IngestUtils.getIngestBillingProfileFromDataset(dataset, ingestRequest)
             .getTenantId()
             .toString();
     return IngestUtils.getJsonNodesStreamFromFile(
-        azureBlobStorePdao,
-        objectMapper,
-        ingestRequest,
-        userRequest,
-        tenantId,
-        errors,
-        maxBadLoadFileLineErrorsReported);
+        azureBlobStorePdao, objectMapper, ingestRequest, userRequest, tenantId, errorCollector);
   }
 
   @Override

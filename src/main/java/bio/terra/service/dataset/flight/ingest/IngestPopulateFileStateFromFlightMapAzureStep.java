@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
@@ -44,8 +45,7 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
   Stream<BulkLoadFileModel> getModelsStream(
       IngestRequestModel ingestRequest,
       List<Column> fileRefColumns,
-      List<String> errors,
-      int maxBadLoadFileLineErrorsReported) {
+      ErrorCollector errorCollector) {
     String tenantId =
         IngestUtils.getIngestBillingProfileFromDataset(dataset, ingestRequest)
             .getTenantId()
@@ -57,7 +57,6 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
         userRequest,
         tenantId,
         fileRefColumns,
-        errors,
-        maxBadLoadFileLineErrorsReported);
+        errorCollector);
   }
 }

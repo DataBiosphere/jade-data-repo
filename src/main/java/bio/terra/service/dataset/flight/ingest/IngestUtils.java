@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.FlightUtils;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -208,8 +209,7 @@ public final class IngestUtils {
       IngestRequestModel ingestRequest,
       AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
-      List<String> errors,
-      int maxBadLoadFileLineErrorsReported) {
+      ErrorCollector errorCollector) {
     return cloudFileReader
         .getBlobsLinesStream(ingestRequest.getPath(), cloudEncapsulationId, userRequest)
         .map(
@@ -217,8 +217,7 @@ public final class IngestUtils {
               try {
                 return objectMapper.readTree(content);
               } catch (JsonProcessingException ex) {
-                recordControlFileValidationErrorMessage(
-                    errors, ex.getMessage(), maxBadLoadFileLineErrorsReported, "Format error: %s");
+                errorCollector.record("Format error: %s", ex.getMessage());
                 return null;
               }
             })
@@ -232,8 +231,7 @@ public final class IngestUtils {
       AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
       List<Column> fileRefColumns,
-      List<String> errors,
-      int maxBadLoadFileLineErrorsReported) {
+      ErrorCollector errorCollector) {
     try (var nodesStream =
         IngestUtils.getBulkFileLoadModelsStream(
             cloudFileReader,
@@ -242,47 +240,18 @@ public final class IngestUtils {
             userRequest,
             cloudEncapsulationId,
             fileRefColumns,
-            errors,
-            maxBadLoadFileLineErrorsReported)) {
+            errorCollector)) {
       return nodesStream
-          .takeWhile(bulkLoadFileModel -> errors.size() <= maxBadLoadFileLineErrorsReported)
           .peek(
               loadFileModel -> {
                 try {
                   cloudFileReader.validateUserCanRead(
                       List.of(loadFileModel.getSourcePath()), userRequest);
                 } catch (BlobAccessNotAuthorizedException ex) {
-                  recordControlFileValidationErrorMessage(
-                      errors, ex.getMessage(), maxBadLoadFileLineErrorsReported, "Error: %s");
+                  errorCollector.record("Error: %s", ex.getMessage());
                 }
               })
           .count();
-    }
-  }
-
-  /**
-   * Shared validation error handling between bulk and combined ingest Add the exceptionMsg to the
-   * list of errors unless we have reached the max errors to report Add the truncated error message
-   * to alert the user that there are more errors than reported
-   *
-   * @param errors - Running list of errors found while parsing and validating access for the ingest
-   *     control file
-   * @param exceptionMsg - Error message associated with particular line from control file
-   * @param maxBadLoadFileLineErrorsReported - Environment variable for the max number of errors
-   *     encountered during an ingest to report
-   */
-  public static void recordControlFileValidationErrorMessage(
-      List<String> errors,
-      String exceptionMsg,
-      int maxBadLoadFileLineErrorsReported,
-      String errorMsgFormat) {
-    if (errors.size() < maxBadLoadFileLineErrorsReported) {
-      errors.add(String.format(errorMsgFormat, exceptionMsg));
-    } else if (errors.size() == maxBadLoadFileLineErrorsReported) {
-      errors.add(
-          "Error details truncated. [MaxBadLoadFileLineErrorsReported = "
-              + maxBadLoadFileLineErrorsReported
-              + "]");
     }
   }
 
@@ -293,16 +262,14 @@ public final class IngestUtils {
       AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
       List<Column> fileRefColumns,
-      List<String> errors,
-      int maxBadLoadFileLineErrorsReported) {
+      ErrorCollector errorCollector) {
     return IngestUtils.getJsonNodesStreamFromFile(
             cloudFileReader,
             objectMapper,
             ingestRequest,
             userRequest,
             cloudEncapsulationId,
-            errors,
-            maxBadLoadFileLineErrorsReported)
+            errorCollector)
         .flatMap(
             node ->
                 fileRefColumns.stream()

@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -12,14 +13,12 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.job.DefaultUndoStep;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -46,9 +45,11 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndo
     var workingMap = context.getWorkingMap();
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
 
-    List<String> errors = new ArrayList<>();
-    try (Stream<JsonNode> jsonNodes =
-        getJsonNodesFromCloudFile(ingestRequest, errors, maxBadLoadFileLineErrorsReported)) {
+    ErrorCollector errorCollector =
+        new ErrorCollector(
+            maxBadLoadFileLineErrorsReported,
+            "Encountered invalid json while combining ingested files with load request");
+    try (Stream<JsonNode> jsonNodes = getJsonNodesFromCloudFile(ingestRequest, errorCollector)) {
 
       List<Column> fileColumns = IngestUtils.getDatasetFileRefColumns(dataset, ingestRequest);
       BulkLoadArrayResultModel result =
@@ -84,9 +85,8 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndo
       writeCloudFile(context, path, linesWithFileIds);
       // Check for parsing errors after new file is written because that's when
       // the stream is actually materialized.
-      if (!errors.isEmpty()) {
-        throw new CorruptMetadataException(
-            "Encountered invalid json while combining ingested files with load request");
+      if (errorCollector.anyErrorsCollected()) {
+        throw errorCollector.getFormattedException();
       }
 
       workingMap.put(IngestMapKeys.INGEST_CONTROL_FILE_PATH, path);
@@ -218,7 +218,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndo
   }
 
   abstract Stream<JsonNode> getJsonNodesFromCloudFile(
-      IngestRequestModel ingestRequest, List<String> errors, int maxBadLoadFileLineErrorsReported);
+      IngestRequestModel ingestRequest, ErrorCollector errorCollector);
 
   abstract String getOutputFilePath(FlightContext flightContext);
 

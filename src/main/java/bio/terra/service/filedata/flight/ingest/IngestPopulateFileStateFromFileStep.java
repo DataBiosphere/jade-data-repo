@@ -1,11 +1,10 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadFileModel;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
-import bio.terra.service.filedata.exception.BulkLoadControlFileException;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -46,13 +45,15 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 
-    List<String> errorDetails = new ArrayList<>();
+    ErrorCollector errorCollector =
+        new ErrorCollector(
+            maxBadLoadFileLineErrorsReported,
+            "Invalid lines in the control file. [All lines in control file must be valid in order to proceed - 'maxFailedFileLoads' not applicable here.]");
     long lineCount = 0;
     List<BulkLoadFileModel> fileList = new ArrayList<>();
 
     String line;
-    while ((line = reader.readLine()) != null
-        && errorDetails.size() <= maxBadLoadFileLineErrorsReported) {
+    while ((line = reader.readLine()) != null) {
       lineCount++;
 
       try {
@@ -60,11 +61,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
         cloudFileReader.validateUserCanRead(List.of(loadFile.getSourcePath()), userRequest);
         fileList.add(loadFile);
       } catch (IOException | BlobAccessNotAuthorizedException ex) {
-        IngestUtils.recordControlFileValidationErrorMessage(
-            errorDetails,
-            ex.getMessage(),
-            maxBadLoadFileLineErrorsReported,
-            "Error at line " + lineCount + ": %s");
+        errorCollector.record("Error at line " + lineCount + ": %s", ex.getMessage());
       }
 
       // Keep this check and load out of the inner try; it should only catch objectMapper failures
@@ -75,10 +72,8 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     }
 
     // If there are errors in the load file, don't do the load
-    if (errorDetails.size() > 0) {
-      throw new BulkLoadControlFileException(
-          "Invalid lines in the control file. [All lines in control file must be valid in order to proceed - 'maxFailedFileLoads' not applicable here.]",
-          errorDetails);
+    if (errorCollector.anyErrorsCollected()) {
+      throw errorCollector.getFormattedException();
     }
 
     if (fileList.size() > 0) {

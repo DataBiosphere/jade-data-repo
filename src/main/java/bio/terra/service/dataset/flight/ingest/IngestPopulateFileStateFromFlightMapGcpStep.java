@@ -17,6 +17,7 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
 
   private final GcsPdao gcsPdao;
   private final AuthenticatedUserRequest userRequest;
+  private final int maxBadLoadFileLineErrorsReported;
 
   public IngestPopulateFileStateFromFlightMapGcpStep(
       LoadService loadService,
@@ -25,15 +26,26 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      AuthenticatedUserRequest userRequest) {
-    super(loadService, fileService, objectMapper, dataset, batchSize);
+      AuthenticatedUserRequest userRequest,
+      int maxBadLoadFileLineErrorsReported) {
+    super(
+        loadService,
+        fileService,
+        objectMapper,
+        dataset,
+        batchSize,
+        maxBadLoadFileLineErrorsReported);
     this.gcsPdao = gcsPdao;
     this.userRequest = userRequest;
+    this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
   }
 
   @Override
   Stream<BulkLoadFileModel> getModelsStream(
-      IngestRequestModel ingestRequest, List<Column> fileRefColumns, List<String> errors) {
+      IngestRequestModel ingestRequest,
+      List<Column> fileRefColumns,
+      List<String> errors,
+      int maxBadLoadFileLineErrorsReported) {
     return IngestUtils.getBulkFileLoadModelsStream(
         gcsPdao,
         objectMapper,
@@ -41,6 +53,7 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
         userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
         fileRefColumns,
-        errors);
+        errors,
+        maxBadLoadFileLineErrorsReported);
   }
 }

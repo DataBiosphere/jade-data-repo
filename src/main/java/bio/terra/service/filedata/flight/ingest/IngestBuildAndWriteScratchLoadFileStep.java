@@ -32,10 +32,13 @@ import java.util.stream.Stream;
 public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndoStep {
   protected final ObjectMapper objectMapper;
   protected final Dataset dataset;
+  protected final int maxBadLoadFileLineErrorsReported;
 
-  public IngestBuildAndWriteScratchLoadFileStep(ObjectMapper objectMapper, Dataset dataset) {
+  public IngestBuildAndWriteScratchLoadFileStep(
+      ObjectMapper objectMapper, Dataset dataset, int maxBadLoadFileLineErrorsReported) {
     this.objectMapper = objectMapper;
     this.dataset = dataset;
+    this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
   }
 
   @Override
@@ -44,7 +47,8 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndo
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
 
     List<String> errors = new ArrayList<>();
-    try (Stream<JsonNode> jsonNodes = getJsonNodesFromCloudFile(ingestRequest, errors)) {
+    try (Stream<JsonNode> jsonNodes =
+        getJsonNodesFromCloudFile(ingestRequest, errors, maxBadLoadFileLineErrorsReported)) {
 
       List<Column> fileColumns = IngestUtils.getDatasetFileRefColumns(dataset, ingestRequest);
       BulkLoadArrayResultModel result =
@@ -214,7 +218,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndo
   }
 
   abstract Stream<JsonNode> getJsonNodesFromCloudFile(
-      IngestRequestModel ingestRequest, List<String> errors);
+      IngestRequestModel ingestRequest, List<String> errors, int maxBadLoadFileLineErrorsReported);
 
   abstract String getOutputFilePath(FlightContext flightContext);
 

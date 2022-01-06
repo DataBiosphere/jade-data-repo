@@ -32,8 +32,9 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
       AzureBlobStorePdao azureBlobStorePdao,
       AzureContainerPdao azureContainerPdao,
       Dataset dataset,
-      AuthenticatedUserRequest userRequest) {
-    super(objectMapper, dataset);
+      AuthenticatedUserRequest userRequest,
+      int maxBadLoadFileLineErrorsReported) {
+    super(objectMapper, dataset, maxBadLoadFileLineErrorsReported);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.azureContainerPdao = azureContainerPdao;
     this.userRequest = userRequest;
@@ -41,13 +42,19 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
 
   @Override
   Stream<JsonNode> getJsonNodesFromCloudFile(
-      IngestRequestModel ingestRequest, List<String> errors) {
+      IngestRequestModel ingestRequest, List<String> errors, int maxBadLoadFileLineErrorsReported) {
     String tenantId =
         IngestUtils.getIngestBillingProfileFromDataset(dataset, ingestRequest)
             .getTenantId()
             .toString();
     return IngestUtils.getJsonNodesStreamFromFile(
-        azureBlobStorePdao, objectMapper, ingestRequest, userRequest, tenantId, errors);
+        azureBlobStorePdao,
+        objectMapper,
+        ingestRequest,
+        userRequest,
+        tenantId,
+        errors,
+        maxBadLoadFileLineErrorsReported);
   }
 
   @Override

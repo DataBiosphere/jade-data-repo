@@ -24,22 +24,24 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
       ObjectMapper objectMapper,
       GcsPdao gcsPdao,
       Dataset dataset,
-      AuthenticatedUserRequest userRequest) {
-    super(objectMapper, dataset);
+      AuthenticatedUserRequest userRequest,
+      int maxBadLoadFileLineErrorsReported) {
+    super(objectMapper, dataset, maxBadLoadFileLineErrorsReported);
     this.gcsPdao = gcsPdao;
     this.userRequest = userRequest;
   }
 
   @Override
   Stream<JsonNode> getJsonNodesFromCloudFile(
-      IngestRequestModel ingestRequest, List<String> errors) {
+      IngestRequestModel ingestRequest, List<String> errors, int maxBadLoadFileLineErrorsReported) {
     return IngestUtils.getJsonNodesStreamFromFile(
         gcsPdao,
         objectMapper,
         ingestRequest,
         userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
-        errors);
+        errors,
+        maxBadLoadFileLineErrorsReported);
   }
 
   @Override

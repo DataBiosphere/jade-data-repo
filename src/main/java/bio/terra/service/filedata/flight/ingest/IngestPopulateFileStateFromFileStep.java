@@ -61,7 +61,10 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
         fileList.add(loadFile);
       } catch (IOException | BlobAccessNotAuthorizedException ex) {
         IngestUtils.recordControlFileValidationErrorMessage(
-            errorDetails, ex.getMessage(), maxBadLoadFileLineErrorsReported);
+            errorDetails,
+            ex.getMessage(),
+            maxBadLoadFileLineErrorsReported,
+            "Error at line " + lineCount + ": %s");
       }
 
       // Keep this check and load out of the inner try; it should only catch objectMapper failures

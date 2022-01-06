@@ -90,23 +90,13 @@ public class TableDependencyDao {
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("snapshotId eq '%s'", snapshotId));
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      entities
-          .streamByPage()
-          .forEach(
-              entityChunk -> {
-                List<TableTransactionAction> batchEntities =
-                    entityChunk.getElements().stream()
-                        .map(
-                            entity ->
-                                new TableTransactionAction(
-                                    TableTransactionActionType.DELETE, entity))
-                        .collect(Collectors.toList());
-                logger.info(
-                    "Deleting snapshot {} file dependencies from {}",
-                    snapshotId,
-                    dependencyTableName);
-                tableClient.submitTransaction(batchEntities);
-              });
+      var batchEntities =
+          entities.stream()
+              .map(entity -> new TableTransactionAction(TableTransactionActionType.DELETE, entity))
+              .collect(Collectors.toList());
+      logger.info(
+          "Deleting snapshot {} file dependencies from {}", snapshotId, dependencyTableName);
+      tableClient.submitTransaction(batchEntities);
     } else {
       logger.warn("No snapshot file dependencies found to be deleted from dataset");
     }

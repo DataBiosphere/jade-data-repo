@@ -17,22 +17,22 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     steps:
-      - name: "Fetch latest semantic version from data-repo dev"
-        id: "read_property"
-        run: |
-          CURRENT_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-          echo "Current Version: $CURRENT_VERSION"
-          echo "::set-output name=CURRENT_SEMVER::$CURRENT_VERSION"
-          LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-          echo "Latest Version: $LATEST_VERSION"
-          echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
-          LATEST_GITHASH=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
-          echo "Latest git hash: $LATEST_GITHASH"
-          echo "::set-output name=LATEST_GITHASH::$LATEST_GITHASH"
-      - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_VERSION }} branch"
+      # - name: "Fetch latest semantic version from data-repo dev"
+      #   id: "read_property"
+      #   run: |
+      #     CURRENT_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+      #     echo "Current Version: $CURRENT_VERSION"
+      #     echo "::set-output name=CURRENT_SEMVER::$CURRENT_VERSION"
+      #     LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+      #     echo "Latest Version: $LATEST_VERSION"
+      #     echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
+      #     LATEST_GITHASH=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+      #     echo "Latest git hash: $LATEST_GITHASH"
+      #     echo "::set-output name=LATEST_GITHASH::$LATEST_GITHASH"
+      - name: "Checkout jade-data-repo 1.272.0 branch"
         uses: actions/checkout@v2
         with:
-          ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
+          ref: 1.272.0
       - name: "Import Vault perf secrets"
         uses: hashicorp/vault-action@v2.1.0
         with:
@@ -85,30 +85,30 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
           google_project: broad-jade-perf
       - name: '[Update API version on Perf] Checkout datarepo-helm-definitions repo'
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+        # if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: actions/checkout@v2
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.BROADBOT_TOKEN }}
           path: datarepo-helm-definitions
       - name: "[Update API version on Perf] Update perf image tag with semVer"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+        # if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: docker://mikefarah/yq:3.3.4
         with:
-          args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
+          args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag 1.272.0
       - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+        # if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: broadinstitute/datarepo-actions/actions/merger@0.60.0
         env:
-          COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
+          COMMIT_MESSAGE:  "Perf Datarepo version update: 1.272.0"
           GITHUB_REPO: datarepo-helm-definitions
           SWITCH_DIRECTORIES: "true"
           MERGE_BRANCH: master
       - name: "[Update API version on Perf] Install Helmfile"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+        # if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
       - name: "[Update API version on Perf] Use helmfile reapply helm for api pod to update version"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+        # if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         run: |
           helmfile --version
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
@@ -150,28 +150,28 @@ jobs:
         env:
           NAMESPACEINUSE: perf
           IT_JADE_API_URL: "https://jade-perf.datarepo-perf.broadinstitute.org"
-          DESIRED_GITHASH: ${{ steps.read_property.outputs.LATEST_GITHASH }}
+          DESIRED_GITHASH: f99e165f
           DEPLOYMENT_TYPE: 'api'
-      - name: "Build and run Test Runner"
-        run: |
-          cd ${GITHUB_WORKSPACE}/${workingDir}
-          echo "Building Data Repo client library"
-          export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
-          ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
-          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
-          export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
-          echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
+      # - name: "Build and run Test Runner"
+      #   run: |
+      #     cd ${GITHUB_WORKSPACE}/${workingDir}
+      #     echo "Building Data Repo client library"
+      #     export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
+      #     ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
+      #     cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
+      #     export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
+      #     echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
-          echo "Running test suite"
-          ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
+      #     echo "Running test suite"
+      #     ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
-          echo "Collecting measurements"
-          ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
+      #     echo "Collecting measurements"
+      #     ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
-          echo "Uploading results"
-          ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
+      #     echo "Uploading results"
+      #     ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
-          cd ${GITHUB_WORKSPACE}/${workingDir}
+      #     cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.61.0
@@ -180,27 +180,27 @@ jobs:
         with:
           actions_subcommand: 'gcp_whitelist_clean'
           google_project: broad-jade-perf
-      - name: "Notify Jade Slack"
-        if: always()
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#jade-alerts"
-          username: "Data Repo tests"
-          text: "Perf tests"
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-      - name: "Notify QA Slack"
-        if: ${{ github.event_name != 'workflow_dispatch' && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#dsde-qa"
-          username: "Data Repo tests"
-          text: "Perf tests"
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      # - name: "Notify Jade Slack"
+      #   if: always()
+      #   uses: broadinstitute/action-slack@v3.8.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: "#jade-alerts"
+      #     username: "Data Repo tests"
+      #     text: "Perf tests"
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      # - name: "Notify QA Slack"
+      #   if: ${{ github.event_name != 'workflow_dispatch' && always() }}
+      #   uses: broadinstitute/action-slack@v3.8.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: "#dsde-qa"
+      #     username: "Data Repo tests"
+      #     text: "Perf tests"
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

@@ -174,18 +174,20 @@ public class IngestDriverStep extends DefaultUndoStep {
     }
 
     if (maxBadRecordsReached) {
+      String errorMessage =
+          String.format(
+              "More than %d file(s) failed to ingest, which was the allowed amount."
+                  + " See error details for the first %d error(s). "
+                  + " For a full report, see the load history table for this dataset.",
+              maxFailedFileLoads, concurrentFiles);
+
       List<String> loadErrors =
           loadService.getFailedLoads(loadId, concurrentFiles).stream()
               .map(lf -> lf.getSourcePath() + " -> " + lf.getTargetPath() + ": " + lf.getError())
               .collect(Collectors.toList());
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL,
-          new IngestFailureException(
-              String.format(
-                  "More than %d file(s) failed to ingest, which was the allowed amount."
-                      + " See error details for the first %d error(s) ",
-                  maxFailedFileLoads, concurrentFiles),
-              loadErrors));
+
+      Exception ex = new IngestFailureException(errorMessage, loadErrors);
+      workingMap.put(CommonMapKeys.COMPLETION_TO_FAILURE_EXCEPTION, ex);
     }
     return StepResult.getStepResultSuccess();
   }

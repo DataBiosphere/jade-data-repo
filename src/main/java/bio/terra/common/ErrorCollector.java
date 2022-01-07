@@ -19,10 +19,10 @@ public class ErrorCollector {
     return errors.size() > 0;
   }
 
-  public void record(String lineErrorMsgFormat, String lineErrorMsg) {
+  public void record(String lineErrorMsgFormat, Object... lineErrorMsgArgs) {
     if (errors.size() < maxErrorsReported) {
-      errors.add(String.format(lineErrorMsgFormat, lineErrorMsg));
-    } else {
+      errors.add(String.format(lineErrorMsgFormat, lineErrorMsgArgs));
+    } else if (errors.size() == maxErrorsReported) {
       errors.add(
           "Error details truncated. [MaxBadLoadFileLineErrorsReported = "
               + maxErrorsReported

@@ -61,7 +61,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
         cloudFileReader.validateUserCanRead(List.of(loadFile.getSourcePath()), userRequest);
         fileList.add(loadFile);
       } catch (IOException | BlobAccessNotAuthorizedException ex) {
-        errorCollector.record("Error at line " + lineCount + ": %s", ex.getMessage());
+        errorCollector.record("Error at line %d: %s", lineCount, ex.getMessage());
       }
 
       // Keep this check and load out of the inner try; it should only catch objectMapper failures

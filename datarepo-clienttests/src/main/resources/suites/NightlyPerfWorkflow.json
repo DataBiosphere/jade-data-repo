@@ -10,6 +10,7 @@
     "basicexamples/LookupDataset.json",
     "profiling/BuildSnapshotWithFiles1000_50.json",
     "profiling/BulkLoadScale200_20.json",
-    "functional/CreateSnapshot.json"
+    "functional/CreateSnapshot.json",
+    "functional/AzureCreateSnapshot.json"
   ]
 }

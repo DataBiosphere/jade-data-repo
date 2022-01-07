@@ -219,4 +219,8 @@ public class Dataset implements FSContainerInterface {
     return (AzureRegion)
         datasetSummary.getStorageResourceRegion(AzureCloudResource.STORAGE_ACCOUNT);
   }
+
+  public boolean isSecureMonitoringEnabled() {
+    return datasetSummary.isSecureMonitoringEnabled();
+  }
 }

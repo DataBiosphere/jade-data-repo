@@ -30,7 +30,7 @@ import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
@@ -73,7 +73,7 @@ public class BigQueryPdaoDatasetConnectedTest {
   @Autowired private SnapshotDao snapshotDao;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ResourceService resourceService;
-  @Autowired private GoogleProjectService projectService;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private BufferService bufferService;
 
   @MockBean private IamProviderInterface samService;
@@ -333,9 +333,10 @@ public class BigQueryPdaoDatasetConnectedTest {
     GoogleRegion region = GoogleRegion.fromValueWithDefault(datasetRequest.getRegion());
     Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
     dataset.id(UUID.randomUUID());
-    ResourceInfo resource = bufferService.handoutResource();
+    ResourceInfo resource = bufferService.handoutResource(dataset.isSecureMonitoringEnabled());
     String googleProjectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
-    projectService.addLabelsToProject(googleProjectId, Map.of("test-name", "bigquery-pdao-test"));
+    resourceManagerService.addLabelsToProject(
+        googleProjectId, Map.of("test-name", "bigquery-pdao-test"));
     UUID projectId =
         resourceService.getOrCreateDatasetProject(
             profileModel, googleProjectId, region, dataset.getName(), dataset.getId());

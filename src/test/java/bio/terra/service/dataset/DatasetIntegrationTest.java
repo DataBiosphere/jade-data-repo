@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
 
@@ -188,6 +189,16 @@ public class DatasetIntegrationTest extends UsersBase {
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
+
+    assertThat(
+        "Default secure monitoring was applied to summary model",
+        summaryModel.isSecureMonitoringEnabled(),
+        is(false));
+
+    assertThat(
+        "Default security classification was propagated to model",
+        datasetModel.isSecureMonitoringEnabled(),
+        is(false));
   }
 
   @Test

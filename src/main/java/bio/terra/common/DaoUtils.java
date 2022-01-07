@@ -21,18 +21,20 @@ public final class DaoUtils {
 
   private DaoUtils() {}
 
-  public static String orderByClause(EnumerateSortByParam sort, SqlSortDirection direction) {
+  public static String orderByClause(
+      EnumerateSortByParam sort, SqlSortDirection direction, String table) {
     if (sort == null || direction == null) {
       return "";
     }
-    return " ORDER BY " + sort + " " + direction + " ";
+    return String.format(" ORDER BY %s.%s %s ", table, sort, direction);
   }
 
   public static void addFilterClause(
-      String filter, MapSqlParameterSource params, List<String> clauses) {
+      String filter, MapSqlParameterSource params, List<String> clauses, String table) {
     if (!StringUtils.isEmpty(filter)) {
       params.addValue("filter", DaoUtils.escapeFilter(filter));
-      clauses.add(" (name ILIKE :filter OR description ILIKE :filter) ");
+      clauses.add(
+          String.format(" (%s.name ILIKE :filter OR %s.description ILIKE :filter) ", table, table));
     }
   }
 
@@ -52,15 +54,9 @@ public final class DaoUtils {
   }
 
   public static void addAuthzIdsClause(
-      Collection<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
+      Collection<UUID> authzIds, MapSqlParameterSource params, List<String> clauses, String table) {
     params.addValue("idlist", authzIds);
-    clauses.add(" dataset.id in (:idlist) ");
-  }
-
-  public static void addAuthzSnapshotIdsClause(
-      Collection<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
-    params.addValue("idlist", authzIds);
-    clauses.add(" snapshot.id in (:idlist) ");
+    clauses.add(String.format(" %s.id in (:idlist) ", table));
   }
 
   public static String escapeFilter(String filter) {

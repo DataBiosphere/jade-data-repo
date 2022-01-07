@@ -93,12 +93,12 @@ public class GoogleProjectServiceTest {
   public void testProjectLabelClean() {
     String tooLongName = "workflow_launcher_testing_dataset5243fe12db16406789e76e98dcf3aebd";
     assertEquals("Project label original length should be 65", tooLongName.length(), 65);
-    String trimmedName = GoogleProjectService.cleanForLabels(tooLongName);
+    String trimmedName = GoogleResourceManagerService.cleanForLabels(tooLongName);
     assertEquals("Project label should be trimmed down when too long", trimmedName.length(), 63);
 
     String nameWithCharacters = "workflow!_launcher+TESTING_dataset5243fe12db1640";
     String expectedCleanedName = "workflow-_launcher-testing_dataset5243fe12db1640";
-    String cleanedName = GoogleProjectService.cleanForLabels(nameWithCharacters);
+    String cleanedName = GoogleResourceManagerService.cleanForLabels(nameWithCharacters);
     assertEquals(
         "Original Project label should no longer contain non-valid characters",
         expectedCleanedName,

@@ -176,4 +176,8 @@ public class Snapshot implements FSContainerInterface {
   public AzureRegion getStorageAccountRegion() {
     return getFirstSnapshotSource().getDataset().getStorageAccountRegion();
   }
+
+  public boolean isSecureMonitoringEnabled() {
+    return getFirstSnapshotSource().getDataset().isSecureMonitoringEnabled();
+  }
 }

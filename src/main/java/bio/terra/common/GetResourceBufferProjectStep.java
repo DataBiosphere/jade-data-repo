@@ -13,15 +13,17 @@ public class GetResourceBufferProjectStep implements Step {
   private final Logger logger = LoggerFactory.getLogger(GetResourceBufferProjectStep.class);
 
   private final BufferService bufferService;
+  private final boolean enableSecureMonitoring;
 
-  public GetResourceBufferProjectStep(BufferService bufferService) {
+  public GetResourceBufferProjectStep(BufferService bufferService, boolean enableSecureMonitoring) {
     this.bufferService = bufferService;
+    this.enableSecureMonitoring = enableSecureMonitoring;
   }
 
   @Override
   public StepResult doStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
-    ResourceInfo resource = bufferService.handoutResource();
+    ResourceInfo resource = bufferService.handoutResource(enableSecureMonitoring);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     logger.info("Retrieved project from RBS with ID: {}", projectId);
 

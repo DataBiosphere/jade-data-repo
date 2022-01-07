@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: datasetSecurity
+      author: tlangs
+      changes:
+        - dropColumn:
+            tableName: dataset
+            columnName: security_classification
+        - addColumn:
+            tableName: dataset
+            columns:
+              name: secure_monitoring
+              type: boolean
+              defaultValue: false
+              constraints:
+                nullable: false
+
+

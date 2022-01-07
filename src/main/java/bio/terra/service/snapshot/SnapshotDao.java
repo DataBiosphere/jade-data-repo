@@ -54,6 +54,8 @@ public class SnapshotDao {
   private final ResourceService resourceService;
   private final ObjectMapper objectMapper;
 
+  private static final String TABLE_NAME = "snapshot";
+
   private static final String snapshotSourceStorageQuery =
       "(SELECT jsonb_agg(sr) "
           + "FROM (SELECT region, cloud_resource as \"cloudResource\", "
@@ -307,10 +309,10 @@ public class SnapshotDao {
         "SELECT snapshot.id, name, snapshot.profile_id, google_project_id, "
             // Select the source dataset project information
             + "(SELECT jsonb_agg(ds)\n"
-            + "  FROM (SELECT d.id, d.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n"
+            + "  FROM (SELECT dataset.id, dataset.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n"
             + "        FROM snapshot_source ss"
-            + "        JOIN dataset d ON ss.dataset_id = d.id"
-            + "        LEFT JOIN project_resource p ON d.project_resource_id = p.id"
+            + "        JOIN dataset ON ss.dataset_id = dataset.id"
+            + "        LEFT JOIN project_resource p ON dataset.project_resource_id = p.id"
             + "        WHERE snapshot.id = ss.snapshot_id) ds)"
             + "  AS dataset_sources, "
             // Detect the cloud provider of the snapshot
@@ -370,8 +372,8 @@ public class SnapshotDao {
         snapshot.snapshotTables(snapshotTableDao.retrieveTables(snapshot.getId()));
         snapshotRelationshipDao.retrieve(snapshot);
 
-        // Must be done after we we make the snapshot tables so we can resolve the table and column
-        // references
+        // Must be done after we make the snapshot tables so that we can resolve the table
+        // and column references
         snapshot.snapshotSources(retrieveSnapshotSources(snapshot));
 
         // Retrieve the project resource associated with the snapshot
@@ -516,9 +518,11 @@ public class SnapshotDao {
             + StringUtils.join(datasetIds, ","));
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
-    DaoUtils.addAuthzSnapshotIdsClause(accessibleSnapshotIds, params, whereClauses);
-    whereClauses.add(" flightid IS NULL"); // exclude snapshots that are exclusively locked
-    String joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
+    DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses, TABLE_NAME);
+    whereClauses.add(" snapshot.flightid IS NULL"); // exclude snapshots that are exclusively locked
+    String joinSql =
+        " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
+            + "JOIN dataset on dataset.id = snapshot_source.dataset_id ";
 
     if (!datasetIds.isEmpty()) {
       String datasetMatchSql = "snapshot_source.dataset_id IN (:datasetIds)";
@@ -538,7 +542,7 @@ public class SnapshotDao {
     }
 
     // add the filter to the clause to get the actual items
-    DaoUtils.addFilterClause(filter, params, whereClauses);
+    DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "snapshot_source.dataset_id");
 
     String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
@@ -555,12 +559,13 @@ public class SnapshotDao {
     }
 
     String sql =
-        "SELECT snapshot.id, name, description, created_date, profile_id, snapshot_source.id, "
+        "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
+            + "snapshot_source.id, dataset.secure_monitoring, "
             + snapshotSourceStorageQuery
             + "FROM snapshot "
             + joinSql
             + whereSql
-            + DaoUtils.orderByClause(sort, direction)
+            + DaoUtils.orderByClause(sort, direction, TABLE_NAME)
             + " OFFSET :offset LIMIT :limit";
 
     params.addValue("offset", offset).addValue("limit", limit);
@@ -580,10 +585,11 @@ public class SnapshotDao {
     logger.debug("retrieve snapshot summary for id: " + id);
     try {
       String sql =
-          "SELECT *, "
+          "SELECT snapshot.*, dataset.secure_monitoring, "
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
+              + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
               + "WHERE snapshot.id = :id ";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
       return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
@@ -599,10 +605,12 @@ public class SnapshotDao {
   public List<SnapshotSummary> retrieveSnapshotsForDataset(UUID datasetId) {
     try {
       String sql =
-          "SELECT snapshot.id, name, description, created_date, profile_id, "
+          "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
+              + "dataset.secure_monitoring, "
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
+              + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
               + "WHERE snapshot_source.dataset_id = :datasetId";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
       return jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
@@ -648,7 +656,8 @@ public class SnapshotDao {
           .description(rs.getString("description"))
           .createdDate(rs.getTimestamp("created_date").toInstant())
           .profileId(rs.getObject("profile_id", UUID.class))
-          .storage(storageResources);
+          .storage(storageResources)
+          .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"));
     }
   }
 }

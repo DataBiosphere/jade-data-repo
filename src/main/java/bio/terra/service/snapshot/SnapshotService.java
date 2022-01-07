@@ -607,7 +607,8 @@ public class SnapshotService {
             .description(snapshotSummary.getDescription())
             .createdDate(snapshotSummary.getCreatedDate().toString())
             .profileId(snapshotSummary.getProfileId())
-            .storage(storageResourceModelFromSnapshotSummary(snapshotSummary));
+            .storage(storageResourceModelFromSnapshotSummary(snapshotSummary))
+            .secureMonitoringEnabled(snapshotSummary.isSecureMonitoringEnabled());
     return summaryModel;
   }
 
@@ -692,7 +693,8 @@ public class SnapshotService {
             .storage(
                 dataset.getDatasetSummary().getStorage().stream()
                     .map(StorageResource::toModel)
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toList()))
+            .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled());
 
     SnapshotSourceModel sourceModel = new SnapshotSourceModel().dataset(summaryModel);
 

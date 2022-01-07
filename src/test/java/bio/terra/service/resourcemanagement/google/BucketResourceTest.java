@@ -115,7 +115,7 @@ public class BucketResourceTest {
   @Test
   // create and delete the bucket, checking that the metadata and cloud state match what is expected
   public void createAndDeleteBucketTest() throws Exception {
-    String bucketName = "testbucket_createanddeletebuckettest";
+    String bucketName = randomizeBucketName("testbucket_createanddeletebuckettest");
     String flightId = "createAndDeleteBucketTest";
 
     // create the bucket and metadata
@@ -135,7 +135,7 @@ public class BucketResourceTest {
   // create buckets in different regions and see if they're actually created there.
   public void createBucketsInDifferentRegionsTest() throws Exception {
     for (GoogleRegion region : List.of(GoogleRegion.US_CENTRAL1, GoogleRegion.US_EAST1)) {
-      String bucketName = "testbucket_bucketregionstest_" + region;
+      String bucketName = randomizeBucketName("testbucket_bucketregionstest_" + region);
       String flightId = "bucketRegionsTest_" + region;
 
       // create the bucket and metadata
@@ -158,7 +158,7 @@ public class BucketResourceTest {
   // after it's been created, confirm it succeeds.
   public void twoThreadsCompeteForLockTest() throws Exception {
     String flightIdBase = "twoThreadsCompeteForLockTest";
-    String bucketName = "twothreadscompeteforlocktest";
+    String bucketName = randomizeBucketName("twothreadscompeteforlocktest");
     GoogleRegion bucketRegion = GoogleRegion.DEFAULT_GOOGLE_REGION;
 
     BucketResourceLockTester resourceLockA =
@@ -228,7 +228,7 @@ public class BucketResourceTest {
   // the metadata)
   // bucket cloud resource exists, but the corresponding bucket_resource metadata row does not
   public void bucketExistsBeforeMetadataTest() throws Exception {
-    String bucketName = "testbucket_bucketexistsbeforemetadatatest";
+    String bucketName = randomizeBucketName("testbucket_bucketexistsbeforemetadatatest");
     String flightIdA = "bucketExistsBeforeMetadataTestA";
 
     // create the bucket and metadata
@@ -272,7 +272,7 @@ public class BucketResourceTest {
   // the metadata)
   // bucket_resource metadata row exists, but the corresponding bucket cloud resource does not
   public void noBucketButMetadataExistsTest() throws Exception {
-    String bucketName = "testbucket_nobucketbutmetadataexiststest";
+    String bucketName = randomizeBucketName("testbucket_nobucketbutmetadataexiststest");
     String flightIdA = "noBucketButMetadataExistsTestA";
 
     // create the bucket and metadata
@@ -314,10 +314,10 @@ public class BucketResourceTest {
 
   @Test
   public void createBucketWithTtlTest() throws Exception {
-    String bucketWithTtlName = "testbucket_bucketwithttl";
+    String bucketWithTtlName = randomizeBucketName("testbucket_bucketwithttl");
     String flightWithTtlId = "bucketwithttltest";
 
-    String bucketWithoutTtlName = "testbucket_bucketwithoutttl";
+    String bucketWithoutTtlName = randomizeBucketName("testbucket_bucketwithoutttl");
     String flightWithoutTtlId = "bucketwithoutttltest";
 
     Integer deleteAge = 1;
@@ -366,6 +366,10 @@ public class BucketResourceTest {
     }
   }
 
+  private String randomizeBucketName(String bucketName) {
+    return bucketName + ShortUUID.get().toLowerCase();
+  }
+
   private GoogleBucketResource createBucket(
       String bucketName,
       GoogleProjectResource projectResource,
@@ -374,7 +378,6 @@ public class BucketResourceTest {
       Duration ttl)
       throws InterruptedException {
 
-    bucketName += ShortUUID.get();
     GoogleBucketResource bucketResource =
         bucketService.getOrCreateBucket(bucketName, projectResource, bucketRegion, flightId, ttl);
 

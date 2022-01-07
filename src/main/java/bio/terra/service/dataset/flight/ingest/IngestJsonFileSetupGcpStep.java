@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
@@ -18,8 +19,9 @@ public class IngestJsonFileSetupGcpStep extends IngestJsonFileSetupStep {
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
       Dataset dataset,
-      AuthenticatedUserRequest userRequest) {
-    super(dataset);
+      AuthenticatedUserRequest userRequest,
+      int maxBadLoadFileLineErrorsReported) {
+    super(dataset, maxBadLoadFileLineErrorsReported);
     this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
     this.userRequest = userRequest;
@@ -27,14 +29,16 @@ public class IngestJsonFileSetupGcpStep extends IngestJsonFileSetupStep {
 
   @Override
   long getFileModelsCount(
-      IngestRequestModel ingestRequest, List<Column> fileRefColumns, List<String> errors) {
-    return IngestUtils.countBulkFileLoadModelsFromPath(
+      IngestRequestModel ingestRequest,
+      List<Column> fileRefColumns,
+      ErrorCollector errorCollector) {
+    return IngestUtils.countAndValidateBulkFileLoadModelsFromPath(
         gcsPdao,
         objectMapper,
         ingestRequest,
         userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
         fileRefColumns,
-        errors);
+        errorCollector);
   }
 }

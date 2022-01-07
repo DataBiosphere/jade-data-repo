@@ -187,6 +187,38 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   }
 
   @Test
+  public void testSourcePathAuth() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    UUID datasetId = datasetSummaryModel.getId();
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .maxFailedFileLoads(0)
+            .table("sample_vcf")
+            .path(
+                "gs://jade-testdata-useastregion/dataset-ingest-combined-control-unauth-source-path.json");
+
+    DataRepoResponse<IngestResponseModel> ingestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, ingestRequest);
+
+    assertThat(
+        "The ingest fails if there are any source paths that the user doesn't have access to",
+        ingestResponse.getErrorObject().isPresent(),
+        is(true));
+
+    ErrorModel errorModel = ingestResponse.getErrorObject().get();
+
+    assertThat(
+        "The number of error messages should be 5 (the max) + 1 to note the error messages have been truncated.",
+        errorModel.getErrorDetail(),
+        hasSize(6));
+  }
+
+  @Test
   public void testCopyingOfControlFiles() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");

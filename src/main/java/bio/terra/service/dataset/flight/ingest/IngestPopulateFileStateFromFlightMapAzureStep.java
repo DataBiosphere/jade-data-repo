@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
@@ -17,6 +18,7 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
 
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final AuthenticatedUserRequest userRequest;
+  private final int maxBadLoadFileLineErrorsReported;
 
   public IngestPopulateFileStateFromFlightMapAzureStep(
       LoadService loadService,
@@ -25,15 +27,25 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      AuthenticatedUserRequest userRequest) {
-    super(loadService, fileService, objectMapper, dataset, batchSize);
+      AuthenticatedUserRequest userRequest,
+      int maxBadLoadFileLineErrorsReported) {
+    super(
+        loadService,
+        fileService,
+        objectMapper,
+        dataset,
+        batchSize,
+        maxBadLoadFileLineErrorsReported);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.userRequest = userRequest;
+    this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
   }
 
   @Override
   Stream<BulkLoadFileModel> getModelsStream(
-      IngestRequestModel ingestRequest, List<Column> fileRefColumns, List<String> errors) {
+      IngestRequestModel ingestRequest,
+      List<Column> fileRefColumns,
+      ErrorCollector errorCollector) {
     String tenantId =
         IngestUtils.getIngestBillingProfileFromDataset(dataset, ingestRequest)
             .getTenantId()
@@ -45,6 +57,6 @@ public class IngestPopulateFileStateFromFlightMapAzureStep
         userRequest,
         tenantId,
         fileRefColumns,
-        errors);
+        errorCollector);
   }
 }

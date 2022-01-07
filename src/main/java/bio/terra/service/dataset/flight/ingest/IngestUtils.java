@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.FlightUtils;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -17,6 +18,7 @@ import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.CloudFileReader;
+import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -207,7 +209,7 @@ public final class IngestUtils {
       IngestRequestModel ingestRequest,
       AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
-      List<String> errors) {
+      ErrorCollector errorCollector) {
     return cloudFileReader
         .getBlobsLinesStream(ingestRequest.getPath(), cloudEncapsulationId, userRequest)
         .map(
@@ -215,21 +217,21 @@ public final class IngestUtils {
               try {
                 return objectMapper.readTree(content);
               } catch (JsonProcessingException ex) {
-                errors.add(ex.getMessage());
+                errorCollector.record("Format error: %s", ex.getMessage());
                 return null;
               }
             })
         .filter(Objects::nonNull);
   }
 
-  public static long countBulkFileLoadModelsFromPath(
+  public static long countAndValidateBulkFileLoadModelsFromPath(
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
       AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
       List<Column> fileRefColumns,
-      List<String> errors) {
+      ErrorCollector errorCollector) {
     try (var nodesStream =
         IngestUtils.getBulkFileLoadModelsStream(
             cloudFileReader,
@@ -238,8 +240,18 @@ public final class IngestUtils {
             userRequest,
             cloudEncapsulationId,
             fileRefColumns,
-            errors)) {
-      return nodesStream.count();
+            errorCollector)) {
+      return nodesStream
+          .peek(
+              loadFileModel -> {
+                try {
+                  cloudFileReader.validateUserCanRead(
+                      List.of(loadFileModel.getSourcePath()), userRequest);
+                } catch (BlobAccessNotAuthorizedException ex) {
+                  errorCollector.record("Error: %s", ex.getMessage());
+                }
+              })
+          .count();
     }
   }
 
@@ -250,9 +262,14 @@ public final class IngestUtils {
       AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
       List<Column> fileRefColumns,
-      List<String> errors) {
+      ErrorCollector errorCollector) {
     return IngestUtils.getJsonNodesStreamFromFile(
-            cloudFileReader, objectMapper, ingestRequest, userRequest, cloudEncapsulationId, errors)
+            cloudFileReader,
+            objectMapper,
+            ingestRequest,
+            userRequest,
+            cloudEncapsulationId,
+            errorCollector)
         .flatMap(
             node ->
                 fileRefColumns.stream()

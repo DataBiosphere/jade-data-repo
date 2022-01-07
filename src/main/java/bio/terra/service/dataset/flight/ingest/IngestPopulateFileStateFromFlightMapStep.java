@@ -1,11 +1,11 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
@@ -16,7 +16,6 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -33,18 +32,21 @@ public abstract class IngestPopulateFileStateFromFlightMapStep implements Step {
   final ObjectMapper objectMapper;
   final Dataset dataset;
   private final int batchSize;
+  private final int maxBadLoadFileLineErrorsReported;
 
   public IngestPopulateFileStateFromFlightMapStep(
       LoadService loadService,
       FileService fileService,
       ObjectMapper objectMapper,
       Dataset dataset,
-      int batchSize) {
+      int batchSize,
+      int maxBadLoadFileLineErrorsReported) {
     this.loadService = loadService;
     this.fileService = fileService;
     this.objectMapper = objectMapper;
     this.dataset = dataset;
     this.batchSize = batchSize;
+    this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
   }
 
   @Override
@@ -57,8 +59,11 @@ public abstract class IngestPopulateFileStateFromFlightMapStep implements Step {
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
     List<Column> fileColumns = IngestUtils.getDatasetFileRefColumns(dataset, ingestRequest);
 
-    List<String> errors = new ArrayList<>();
-    try (var bulkFileLoadModels = getModelsStream(ingestRequest, fileColumns, errors)) {
+    ErrorCollector errorCollector =
+        new ErrorCollector(
+            maxBadLoadFileLineErrorsReported,
+            "Ingest control file at " + ingestRequest.getPath() + " could not be processed");
+    try (var bulkFileLoadModels = getModelsStream(ingestRequest, fileColumns, errorCollector)) {
 
       if (ingestRequest.isResolveExistingFiles()) {
         Set<FileModel> existingFiles = new HashSet<>();
@@ -74,12 +79,9 @@ public abstract class IngestPopulateFileStateFromFlightMapStep implements Step {
 
       // Check for parsing errors after files are populated in the load table because that's when
       // the stream is actually materialized.
-      if (!errors.isEmpty()) {
-        IngestFailureException ingestFailureException =
-            new IngestFailureException(
-                "Ingest control file at " + ingestRequest.getPath() + " could not be processed",
-                errors);
-        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ingestFailureException);
+      if (errorCollector.anyErrorsCollected()) {
+        return new StepResult(
+            StepStatus.STEP_RESULT_FAILURE_FATAL, errorCollector.getFormattedException());
       }
     }
     return StepResult.getStepResultSuccess();
@@ -119,5 +121,5 @@ public abstract class IngestPopulateFileStateFromFlightMapStep implements Step {
   }
 
   abstract Stream<BulkLoadFileModel> getModelsStream(
-      IngestRequestModel ingestRequest, List<Column> fileRefColumns, List<String> errors);
+      IngestRequestModel ingestRequest, List<Column> fileRefColumns, ErrorCollector errorCollector);
 }

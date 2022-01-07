@@ -174,7 +174,8 @@ public class FileIngestBulkFlight extends Flight {
                 appConfig.getMaxBadLoadFileLineErrorsReported(),
                 appConfig.getLoadFilePopulateBatchSize(),
                 gcsPdao,
-                bulkLoadObjectMapper));
+                bulkLoadObjectMapper,
+                userReq));
       } else {
         addStep(
             new IngestPopulateFileStateFromFileAzureStep(

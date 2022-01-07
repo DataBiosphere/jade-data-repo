@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
@@ -25,15 +26,24 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
-      AuthenticatedUserRequest userRequest) {
-    super(loadService, fileService, objectMapper, dataset, batchSize);
+      AuthenticatedUserRequest userRequest,
+      int maxBadLoadFileLineErrorsReported) {
+    super(
+        loadService,
+        fileService,
+        objectMapper,
+        dataset,
+        batchSize,
+        maxBadLoadFileLineErrorsReported);
     this.gcsPdao = gcsPdao;
     this.userRequest = userRequest;
   }
 
   @Override
   Stream<BulkLoadFileModel> getModelsStream(
-      IngestRequestModel ingestRequest, List<Column> fileRefColumns, List<String> errors) {
+      IngestRequestModel ingestRequest,
+      List<Column> fileRefColumns,
+      ErrorCollector errorCollector) {
     return IngestUtils.getBulkFileLoadModelsStream(
         gcsPdao,
         objectMapper,
@@ -41,6 +51,6 @@ public class IngestPopulateFileStateFromFlightMapGcpStep
         userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
         fileRefColumns,
-        errors);
+        errorCollector);
   }
 }

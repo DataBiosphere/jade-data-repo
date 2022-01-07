@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.ErrorCollector;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.common.gcs.CommonFlightKeys;
@@ -12,7 +13,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.List;
 import java.util.stream.Stream;
 
 public class IngestBuildAndWriteScratchLoadFileGcpStep
@@ -24,22 +24,23 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
       ObjectMapper objectMapper,
       GcsPdao gcsPdao,
       Dataset dataset,
-      AuthenticatedUserRequest userRequest) {
-    super(objectMapper, dataset);
+      AuthenticatedUserRequest userRequest,
+      int maxBadLoadFileLineErrorsReported) {
+    super(objectMapper, dataset, maxBadLoadFileLineErrorsReported);
     this.gcsPdao = gcsPdao;
     this.userRequest = userRequest;
   }
 
   @Override
   Stream<JsonNode> getJsonNodesFromCloudFile(
-      IngestRequestModel ingestRequest, List<String> errors) {
+      IngestRequestModel ingestRequest, ErrorCollector errorCollector) {
     return IngestUtils.getJsonNodesStreamFromFile(
         gcsPdao,
         objectMapper,
         ingestRequest,
         userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
-        errors);
+        errorCollector);
   }
 
   @Override

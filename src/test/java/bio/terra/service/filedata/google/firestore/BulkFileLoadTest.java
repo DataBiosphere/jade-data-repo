@@ -3,7 +3,6 @@ package bio.terra.service.filedata.google.firestore;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.fail;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
@@ -149,27 +148,35 @@ public class BulkFileLoadTest {
     BulkLoadRequestModel loadRequest =
         makeBulkFileLoad(
             "multiFileLoadBadLineSuccess", 0, 3, false, new boolean[] {true, false, true, false});
-    loadRequest.maxFailedFileLoads(4);
+    loadRequest.maxFailedFileLoads(0);
 
     ErrorModel errorModel =
         connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
     assertThat(
-        "Expected error", errorModel.getMessage(), containsString("bad lines in the control file"));
-    assertThat("Expected error", errorModel.getMessage(), containsString("There were"));
+        "Expected error",
+        errorModel.getMessage(),
+        containsString("Invalid lines in the control file"));
     assertThat("Expected number of error details", errorModel.getErrorDetail().size(), equalTo(3));
 
     // part 2: test that we exit with bad line error when we have more than the max
     loadRequest =
         makeBulkFileLoad(
-            "multiFileLoadBadLineSuccess", 0, 6, false, new boolean[] {true, true, true, true});
-    loadRequest.maxFailedFileLoads(4);
+            "multiFileLoadBadLineSuccess", 0, 9, false, new boolean[] {true, true, true, true});
+    loadRequest.maxFailedFileLoads(0);
 
     errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
     assertThat(
-        "Expected error", errorModel.getMessage(), containsString("bad lines in the control file"));
-    assertThat("Expected error", errorModel.getMessage(), containsString("More than"));
+        "Expected error",
+        errorModel.getMessage(),
+        containsString("Invalid lines in the control file"));
+    // We should see the number of errors returned equal to maxBadLoadFileLineErrorsReported (set to
+    // 5 in app config)
+    // + 1 to indicate that the error details were truncated
+    assertThat("Expected number of error details", errorModel.getErrorDetail().size(), equalTo(6));
     assertThat(
-        "Expected number of error details", errorModel.getErrorDetail().size(), greaterThan(5));
+        "Expected error",
+        errorModel.getErrorDetail().get(5),
+        containsString("Error details truncated"));
   }
 
   private BulkLoadRequestModel makeBulkFileLoad(
@@ -177,7 +184,7 @@ public class BulkFileLoadTest {
     int fileCount = validPattern.length;
     String testId = Names.randomizeName("test");
     String loadTag = tagBase + testId;
-    String targetPath = "scratch/controlfile" + UUID.randomUUID().toString() + ".json";
+    String targetPath = "scratch/controlfile" + UUID.randomUUID() + ".json";
     connectedOperations.addScratchFile(targetPath); // track the file so it gets cleaned up
 
     String gspath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;

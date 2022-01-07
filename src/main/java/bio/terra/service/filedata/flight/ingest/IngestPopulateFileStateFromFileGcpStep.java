@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -26,8 +27,9 @@ public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileSt
       int maxBadLines,
       int batchSize,
       GcsPdao gcsPdao,
-      ObjectMapper bulkLoadObjectMapper) {
-    super(loadService, maxBadLines, batchSize, bulkLoadObjectMapper);
+      ObjectMapper bulkLoadObjectMapper,
+      AuthenticatedUserRequest userRequest) {
+    super(loadService, maxBadLines, batchSize, bulkLoadObjectMapper, gcsPdao, userRequest);
     this.gcsPdao = gcsPdao;
   }
 

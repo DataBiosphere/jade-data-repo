@@ -24,12 +24,18 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
 
   public IngestPopulateFileStateFromFileAzureStep(
       LoadService loadService,
-      int maxBadLines,
+      int maxBadLoadFileLineErrorsReported,
       int batchSize,
       AzureBlobStorePdao azureBlobStorePdao,
       ObjectMapper bulkLoadObjectMapper,
       AuthenticatedUserRequest userRequest) {
-    super(loadService, maxBadLines, batchSize, bulkLoadObjectMapper);
+    super(
+        loadService,
+        maxBadLoadFileLineErrorsReported,
+        batchSize,
+        bulkLoadObjectMapper,
+        azureBlobStorePdao,
+        userRequest);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.userRequest = userRequest;
   }

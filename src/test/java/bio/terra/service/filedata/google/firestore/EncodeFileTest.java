@@ -384,7 +384,8 @@ public class EncodeFileTest {
         ingestError.getMessage(),
         startsWith(String.format("Ingest control file at gs://%s/scratch/", bucketName)));
 
-    assertThat("All 10 lines of bad file return errors", ingestError.getErrorDetail(), hasSize(10));
+    assertThat(
+        "Max number of bad file lines returned (6)", ingestError.getErrorDetail(), hasSize(6));
 
     // entire error message should be:
     // "Unexpected character (';' (code 59)): was expecting a colon to separate field name
@@ -395,7 +396,10 @@ public class EncodeFileTest {
         ingestError.getErrorDetail().get(0),
         containsString(expectedError));
 
-    assertThat("all errors are the same", Set.copyOf(ingestError.getErrorDetail()), hasSize(1));
+    assertThat(
+        "all errors are the same plus truncate message",
+        Set.copyOf(ingestError.getErrorDetail()),
+        hasSize(2));
 
     // Delete the scratch blob
     Blob scratchBlob = storage.get(BlobId.of(bucketName, targetPath));

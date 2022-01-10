@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import static org.apache.parquet.filter.ColumnPredicates.equalTo;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringStartsWith.startsWith;
@@ -18,6 +19,7 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -226,6 +228,23 @@ public class DatasetConnectedTest {
             });
     assertEquals(rowIds.size(), 4);
     assertEquals(expectedNames, datasetNames);
+  }
+
+  @Test
+  public void validateBulkIngestControlFile() throws Exception {
+    String resourceFileName = "dataset-ingest-control-file-invalid.json";
+    String dirInCloud = "scratch/validateBulkIngestControlFile/" + UUID.randomUUID();
+    String ingestControlFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
+
+    String bulkLoadTag = Names.randomizeName("loadTag");
+    BulkLoadRequestModel request =
+        new BulkLoadRequestModel()
+            .loadControlFile(ingestControlFilePath)
+            .loadTag(bulkLoadTag)
+            .profileId(summaryModel.getDefaultProfileId());
+    ErrorModel errorModel =
+        connectedOperations.ingestBulkFileFailure(summaryModel.getId(), request);
+    assertEquals("Error message claims sourcepath is null.", errorModel.getMessage(), "null value in column \"source_path\" violates not-null constraint");
   }
 
   @Test

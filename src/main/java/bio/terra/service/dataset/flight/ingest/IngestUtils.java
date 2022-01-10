@@ -246,7 +246,7 @@ public final class IngestUtils {
           .peek(
               loadFileModel -> {
                 try {
-                  IngestUtils.validateBulkLoadFileModel(loadFileModel);
+                  validateBulkLoadFileModel(loadFileModel);
                   cloudFileReader.validateUserCanRead(
                       List.of(loadFileModel.getSourcePath()), userRequest);
                 } catch (BlobAccessNotAuthorizedException | BadRequestException ex) {

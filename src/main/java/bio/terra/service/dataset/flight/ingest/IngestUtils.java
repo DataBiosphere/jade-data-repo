@@ -4,6 +4,7 @@ import bio.terra.common.Column;
 import bio.terra.common.ErrorCollector;
 import bio.terra.common.FlightUtils;
 import bio.terra.common.PdaoLoadStatistics;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -39,7 +40,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import bio.terra.common.exception.BadRequestException;
 import org.apache.commons.lang3.StringUtils;
 import org.stringtemplate.v4.ST;
 

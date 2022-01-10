@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.ErrorCollector;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
@@ -18,7 +19,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import bio.terra.common.exception.BadRequestException;
 
 public abstract class IngestPopulateFileStateFromFileStep implements Step {
   private final LoadService loadService;

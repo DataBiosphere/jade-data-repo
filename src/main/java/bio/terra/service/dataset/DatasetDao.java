@@ -701,7 +701,7 @@ public class DatasetDao {
           .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"))
           .cloudPlatform(datasetCloudPlatform)
           .dataProject(rs.getString("google_project_id"))
-          .storageAccountResource(rs.getString("storage_account_resource_name"));
+          .storageAccount(rs.getString("storage_account_resource_name"));
     }
   }
 

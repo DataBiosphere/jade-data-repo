@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
@@ -62,6 +63,16 @@ public class SnapshotDao {
           + "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" "
           + "FROM storage_resource "
           + "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage ";
+
+  private static final String summaryCloudPlatformColumns =
+      " project_resource.id as google_project_id, "
+          + "storage_account_resource.name as storage_account_resource_name, ";
+
+  private static final String summaryCloudPlatformJoins =
+      "LEFT JOIN project_resource "
+          + "  ON project_resource.id = snapshot.project_resource_id "
+          + "LEFT JOIN storage_account_resource "
+          + "  ON storage_account_resource.id = snapshot.storage_account_resource_id ";
 
   @Autowired
   public SnapshotDao(
@@ -561,9 +572,11 @@ public class SnapshotDao {
     String sql =
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
             + "snapshot_source.id, dataset.secure_monitoring, "
+            + summaryCloudPlatformColumns
             + snapshotSourceStorageQuery
             + "FROM snapshot "
             + joinSql
+            + summaryCloudPlatformJoins
             + whereSql
             + DaoUtils.orderByClause(sort, direction, TABLE_NAME)
             + " OFFSET :offset LIMIT :limit";
@@ -586,10 +599,12 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.*, dataset.secure_monitoring, "
+              + summaryCloudPlatformColumns
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
               + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
+              + summaryCloudPlatformJoins
               + "WHERE snapshot.id = :id ";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
       return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
@@ -607,10 +622,12 @@ public class SnapshotDao {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
               + "dataset.secure_monitoring, "
+              + summaryCloudPlatformColumns
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
               + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
+              + summaryCloudPlatformJoins
               + "WHERE snapshot_source.dataset_id = :datasetId";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
       return jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
@@ -649,6 +666,11 @@ public class SnapshotDao {
         throw new CorruptMetadataException(
             String.format("Invalid storage for snapshot - id: %s", rs.getString("id")));
       }
+      boolean isAzure =
+          storageResources.stream()
+              .anyMatch(sr -> CloudPlatformWrapper.of(sr.getCloudPlatform()).isAzure());
+
+      CloudPlatform snapshotCloudPlatform = isAzure ? CloudPlatform.AZURE : CloudPlatform.GCP;
 
       return new SnapshotSummary()
           .id(UUID.fromString(rs.getString("id")))
@@ -657,7 +679,10 @@ public class SnapshotDao {
           .createdDate(rs.getTimestamp("created_date").toInstant())
           .profileId(rs.getObject("profile_id", UUID.class))
           .storage(storageResources)
-          .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"));
+          .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"))
+          .cloudPlatform(snapshotCloudPlatform)
+          .dataProject(rs.getString("google_project_id"))
+          .storageAccount(rs.getString("storage_account_resource_name"));
     }
   }
 }

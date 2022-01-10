@@ -184,8 +184,8 @@ public class DatasetSummary {
     return storageAccount;
   }
 
-  public DatasetSummary storageAccountResource(String storageAccountResource) {
-    this.storageAccount = storageAccountResource;
+  public DatasetSummary storageAccount(String storageAccount) {
+    this.storageAccount = storageAccount;
     return this;
   }
 }

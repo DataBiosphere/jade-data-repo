@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.hamcrest.Matchers;
@@ -140,6 +141,15 @@ public class DatasetDaoTest {
         "dataset enumerate returns datasets in the order created",
         datasets.get(0).getCreatedDate().toEpochMilli(),
         Matchers.lessThan(datasets.get(1).getCreatedDate().toEpochMilli()));
+
+    assertThat(
+        "datasets have GCP cloud platform and data project included",
+        datasets.stream()
+            .allMatch(
+                ds ->
+                    ds.getCloudPlatform() == CloudPlatform.GCP
+                        && Objects.nonNull(ds.getDataProject())),
+        is(true));
 
     // this is skipping the first item returned above
     // so compare the id from the previous retrieve

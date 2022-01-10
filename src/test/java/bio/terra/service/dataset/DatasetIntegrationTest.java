@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
 
@@ -168,6 +169,16 @@ public class DatasetIntegrationTest extends UsersBase {
                         String.format("dataset %s region is set", storage.getCloudResource()),
                         storage.getRegion(),
                         equalTo(expectedRegion.toString()));
+
+                    assertThat(
+                        "dataset summary has GCP cloud platform",
+                        oneDataset.getCloudPlatform(),
+                        equalTo(CloudPlatform.GCP));
+
+                    assertThat(
+                        "dataset summary has data project",
+                        oneDataset.getDataProject(),
+                        notNullValue());
                   }
 
                   found = true;

@@ -2879,6 +2879,14 @@ components:
         secureMonitoringEnabled:
           type: boolean
           default: false
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
+        dataProject:
+          type: string
+          description: The google project of this dataset
+        storageAccount:
+          type: string
+          description: The azure storage account of this dataset
       description: >
         Summary of a dataset.
     DatasetRequestModel:

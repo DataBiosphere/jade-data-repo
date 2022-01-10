@@ -248,6 +248,15 @@ public class DatasetAzureIntegrationTest extends UsersBase {
                           .orElseThrow(() -> new RuntimeException("Key not found")),
                       equalTo(omopDatasetRegion.getValue()));
 
+                  assertThat(
+                      "dataset summary has Azure cloud platform",
+                      oneDataset.getCloudPlatform(),
+                      equalTo(CloudPlatform.AZURE));
+
+                  assertThat(
+                      "dataset summary has storage account",
+                      oneDataset.getStorageAccount(),
+                      notNullValue());
                   found = true;
                   break;
                 }

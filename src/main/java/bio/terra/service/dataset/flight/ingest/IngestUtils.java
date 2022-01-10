@@ -246,9 +246,10 @@ public final class IngestUtils {
           .peek(
               loadFileModel -> {
                 try {
+                  IngestUtils.validateBulkLoadFileModel(loadFileModel);
                   cloudFileReader.validateUserCanRead(
                       List.of(loadFileModel.getSourcePath()), userRequest);
-                } catch (BlobAccessNotAuthorizedException ex) {
+                } catch (BlobAccessNotAuthorizedException | BadRequestException ex) {
                   errorCollector.record("Error: %s", ex.getMessage());
                 }
               })

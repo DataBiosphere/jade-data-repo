@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import static org.apache.parquet.filter.ColumnPredicates.equalTo;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringStartsWith.startsWith;
@@ -244,7 +243,10 @@ public class DatasetConnectedTest {
             .profileId(summaryModel.getDefaultProfileId());
     ErrorModel errorModel =
         connectedOperations.ingestBulkFileFailure(summaryModel.getId(), request);
-    assertEquals("Error message claims sourcepath is null.", errorModel.getMessage(), "null value in column \"source_path\" violates not-null constraint");
+    assertThat(
+        "Error message claims sourcepath is null.",
+        errorModel.getMessage(),
+        containsString("null value in column \"source_path\" violates not-null constraint"));
   }
 
   @Test

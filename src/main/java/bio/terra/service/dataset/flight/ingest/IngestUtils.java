@@ -39,6 +39,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import bio.terra.common.exception.BadRequestException;
 import org.apache.commons.lang3.StringUtils;
 import org.stringtemplate.v4.ST;
 
@@ -380,5 +381,23 @@ public final class IngestUtils {
         FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
     String pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class);
     gcsPdao.deleteFileByGspath(pathToIngestFile, bucketResource.projectIdForBucket());
+  }
+
+  // manual validation required because we tell the object mapper to allow unknown fields
+  // '.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)'
+  public static void validateBulkLoadFileModel(BulkLoadFileModel loadFile) {
+    List<String> itemsNotDefined = new ArrayList<>();
+    if (loadFile.getSourcePath() == null || loadFile.getSourcePath().isEmpty()) {
+      itemsNotDefined.add("sourcePath");
+    }
+    if (loadFile.getTargetPath() == null || loadFile.getTargetPath().isEmpty()) {
+      itemsNotDefined.add("targetPath");
+    }
+    if (itemsNotDefined.size() > 0) {
+      throw new BadRequestException(
+          String.format(
+              "The following required field(s) were not defined: %s",
+              itemsNotDefined.stream().collect(Collectors.joining(", "))));
+    }
   }
 }

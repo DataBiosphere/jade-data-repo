@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.common.ErrorCollector;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.load.LoadService;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import bio.terra.common.exception.BadRequestException;
 
 public abstract class IngestPopulateFileStateFromFileStep implements Step {
   private final LoadService loadService;
@@ -58,9 +60,10 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
 
       try {
         BulkLoadFileModel loadFile = bulkLoadObjectMapper.readValue(line, BulkLoadFileModel.class);
+        IngestUtils.validateBulkLoadFileModel(loadFile);
         cloudFileReader.validateUserCanRead(List.of(loadFile.getSourcePath()), userRequest);
         fileList.add(loadFile);
-      } catch (IOException | BlobAccessNotAuthorizedException ex) {
+      } catch (IOException | BlobAccessNotAuthorizedException | BadRequestException ex) {
         errorCollector.record("Error at line %d: %s", lineCount, ex.getMessage());
       }
 

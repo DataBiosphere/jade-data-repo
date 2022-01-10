@@ -244,9 +244,9 @@ public class DatasetConnectedTest {
     ErrorModel errorModel =
         connectedOperations.ingestBulkFileFailure(summaryModel.getId(), request);
     assertThat(
-        "Error message claims sourcepath is null.",
-        errorModel.getMessage(),
-        containsString("null value in column \"source_path\" violates not-null constraint"));
+        "Error message detail should include that the sourcePath and targetPath were not defined in the control file.",
+        errorModel.getErrorDetail().get(0),
+        containsString("The following required field(s) were not defined: sourcePath, targetPath"));
   }
 
   @Test

@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -293,5 +294,34 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
     // We should see that one row was deleted.
     DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 3L);
+  }
+
+  @Test
+  public void testInvalidControlFile() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(
+            steward(), profileId, "dataset-ingest-combined-array-us.json");
+    UUID datasetId = datasetSummaryModel.getId();
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path("gs://jade-testdata/dataset-combined-ingest-control-file-invalid.json");
+
+    ErrorModel error = dataRepoFixtures.ingestJsonDataFailure(steward(), datasetId, ingestRequest);
+    assertThat(
+        "Malformed source path field throws error",
+        error.getErrorDetail().get(0),
+        containsString(
+            "Unrecognized field \"source_path\" (class bio.terra.model.BulkLoadFileModel), not marked as ignorable"));
+    assertThat(
+        "Error message detail should include that the targetPath was not defined in the control file.",
+        error.getErrorDetail().get(1),
+        containsString("Error: The following required field(s) were not defined: targetPath"));
+
+    dataRepoFixtures.deleteDataset(steward(), datasetId);
   }
 }

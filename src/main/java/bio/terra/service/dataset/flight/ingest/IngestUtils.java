@@ -249,7 +249,9 @@ public final class IngestUtils {
                   validateBulkLoadFileModel(loadFileModel);
                   cloudFileReader.validateUserCanRead(
                       List.of(loadFileModel.getSourcePath()), userRequest);
-                } catch (BlobAccessNotAuthorizedException | BadRequestException ex) {
+                } catch (BlobAccessNotAuthorizedException
+                    | BadRequestException
+                    | IllegalArgumentException ex) {
                   errorCollector.record("Error: %s", ex.getMessage());
                 }
               })
@@ -290,8 +292,17 @@ public final class IngestUtils {
                             return Stream.empty();
                           }
                         })
-                    .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class)))
-        .distinct();
+                    .map(
+                        n -> {
+                          try {
+                            return objectMapper.convertValue(n, BulkLoadFileModel.class);
+                          } catch (IllegalArgumentException ex) {
+                            errorCollector.record("Error: %s", ex.getMessage());
+                          }
+                          return null;
+                        }))
+        .distinct()
+        .filter(Objects::nonNull);
   }
 
   public static List<Column> getDatasetFileRefColumns(

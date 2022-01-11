@@ -397,10 +397,10 @@ public final class IngestUtils {
 
   public static void validateBulkLoadFileModel(BulkLoadFileModel loadFile) {
     List<String> itemsNotDefined = new ArrayList<>();
-    if (loadFile.getSourcePath() == null || loadFile.getSourcePath().isEmpty()) {
+    if (StringUtils.isEmpty(loadFile.getSourcePath())) {
       itemsNotDefined.add("sourcePath");
     }
-    if (loadFile.getTargetPath() == null || loadFile.getTargetPath().isEmpty()) {
+    if (StringUtils.isEmpty(loadFile.getTargetPath())) {
       itemsNotDefined.add("targetPath");
     }
     if (itemsNotDefined.size() > 0) {

@@ -384,8 +384,6 @@ public final class IngestUtils {
     gcsPdao.deleteFileByGspath(pathToIngestFile, bucketResource.projectIdForBucket());
   }
 
-  // manual validation required because we tell the object mapper to allow unknown fields
-  // '.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)'
   public static void validateBulkLoadFileModel(BulkLoadFileModel loadFile) {
     List<String> itemsNotDefined = new ArrayList<>();
     if (loadFile.getSourcePath() == null || loadFile.getSourcePath().isEmpty()) {

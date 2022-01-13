@@ -157,8 +157,8 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, flightid) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :flightid) ";
+        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, flightid, mode) "
+            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :flightid, :mode) ";
     var objectMapper = new ObjectMapper();
     String mode;
     try {

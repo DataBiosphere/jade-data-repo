@@ -55,7 +55,7 @@ public class CreateSnapshotMetadataStep implements Step {
 
       FlightUtils.setResponse(context, response, HttpStatus.CREATED);
       return StepResult.getStepResultSuccess();
-    } catch (InvalidSnapshotException | JsonProcessingException isEx) {
+    } catch (InvalidSnapshotException isEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, isEx);
     } catch (SnapshotNotFoundException ex) {
       FlightUtils.setErrorResponse(context, ex.toString(), HttpStatus.BAD_REQUEST);

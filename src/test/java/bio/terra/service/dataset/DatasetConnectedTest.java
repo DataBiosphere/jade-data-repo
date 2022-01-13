@@ -18,6 +18,7 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -226,6 +227,26 @@ public class DatasetConnectedTest {
             });
     assertEquals(rowIds.size(), 4);
     assertEquals(expectedNames, datasetNames);
+  }
+
+  @Test
+  public void validateBulkIngestControlFile() throws Exception {
+    String resourceFileName = "dataset-ingest-control-file-invalid.json";
+    String dirInCloud = "scratch/validateBulkIngestControlFile/" + UUID.randomUUID();
+    String ingestControlFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
+
+    String bulkLoadTag = Names.randomizeName("loadTag");
+    BulkLoadRequestModel request =
+        new BulkLoadRequestModel()
+            .loadControlFile(ingestControlFilePath)
+            .loadTag(bulkLoadTag)
+            .profileId(summaryModel.getDefaultProfileId());
+    ErrorModel errorModel =
+        connectedOperations.ingestBulkFileFailure(summaryModel.getId(), request);
+    assertThat(
+        "Error message detail should include that the sourcePath and targetPath were not defined in the control file.",
+        errorModel.getErrorDetail().get(0),
+        containsString("The following required field(s) were not defined: sourcePath, targetPath"));
   }
 
   @Test

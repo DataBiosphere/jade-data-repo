@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
@@ -68,17 +67,15 @@ public class DatasetDao {
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
           + "dataset.application_resource_id, secure_monitoring, created_date, ";
 
-  private static final String summaryCloudPlatformColumns =
-      " project_resource.id as google_project_id, "
-          + "storage_account_resource.name as storage_account_resource_name, ";
-
-  private static final String summaryCloudPlatformJoins =
-      "LEFT JOIN project_resource "
-          + "  ON project_resource.id = dataset.project_resource_id "
-          + "LEFT JOIN dataset_storage_account "
-          + "  ON dataset_storage_account.dataset_id = dataset.id "
-          + "LEFT JOIN storage_account_resource "
-          + "  ON storage_account_resource.id = dataset_storage_account.storage_account_resource_id ";
+  private static final String summaryCloudPlatformQuery =
+      "(SELECT jsonb_agg(pr.google_project_id) "
+          + "  FROM project_resource pr "
+          + "  WHERE pr.id = dataset.project_resource_id) as google_project_ids, "
+          + "(SELECT jsonb_agg(sar.name) "
+          + "  FROM dataset_storage_account dsa "
+          + "    LEFT JOIN storage_account_resource sar "
+          + "      on dsa.storage_account_resource_id = sar.id "
+          + "  WHERE dsa.dataset_id = dataset.id) as storage_account_names, ";
 
   private static final String datasetStorageQuery =
       "(SELECT jsonb_agg(json_build_object( "
@@ -551,11 +548,10 @@ public class DatasetDao {
       String sql =
           "SELECT "
               + summaryQueryColumns
-              + summaryCloudPlatformColumns
+              + summaryCloudPlatformQuery
               + datasetStorageQuery
               + billingProfileQuery
               + "FROM dataset "
-              + summaryCloudPlatformJoins
               + "WHERE dataset.id = :id";
       if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
         sql += " AND dataset.flightid IS NULL";
@@ -572,11 +568,10 @@ public class DatasetDao {
       String sql =
           "SELECT "
               + summaryQueryColumns
-              + summaryCloudPlatformColumns
+              + summaryCloudPlatformQuery
               + datasetStorageQuery
               + billingProfileQuery
               + "FROM dataset "
-              + summaryCloudPlatformJoins
               + "WHERE dataset.name = :name";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
       return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
@@ -646,11 +641,10 @@ public class DatasetDao {
     String sql =
         "SELECT "
             + summaryQueryColumns
-            + summaryCloudPlatformColumns
+            + summaryCloudPlatformQuery
             + datasetStorageQuery
             + billingProfileQuery
             + "FROM dataset "
-            + summaryCloudPlatformJoins
             + whereSql
             + DaoUtils.orderByClause(sort, direction, TABLE_NAME)
             + " OFFSET :offset LIMIT :limit";
@@ -682,9 +676,23 @@ public class DatasetDao {
         throw new CorruptMetadataException(
             String.format("Invalid billing profiles for dataset - id: %s", datasetId), e);
       }
+
+      List<String> googleProjectIds;
+      List<String> storageAccountNames;
+      try {
+        googleProjectIds = DaoUtils.getJsonStringArray(rs, "google_project_ids", objectMapper);
+        storageAccountNames =
+            DaoUtils.getJsonStringArray(rs, "storage_account_names", objectMapper);
+      } catch (JsonProcessingException e) {
+        throw new CorruptMetadataException(
+            String.format(
+                "Invalid google project ids or storage account names for dataset - id: %s",
+                datasetId),
+            e);
+      }
+
       boolean isAzure =
-          storageResources.stream()
-              .anyMatch(sr -> CloudPlatformWrapper.of(sr.getCloudPlatform()).isAzure());
+          storageResources.stream().anyMatch(sr -> sr.getCloudPlatform() == CloudPlatform.AZURE);
 
       CloudPlatform datasetCloudPlatform = isAzure ? CloudPlatform.AZURE : CloudPlatform.GCP;
 
@@ -700,8 +708,8 @@ public class DatasetDao {
           .billingProfiles(billingProfileModels)
           .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"))
           .cloudPlatform(datasetCloudPlatform)
-          .dataProject(rs.getString("google_project_id"))
-          .storageAccount(rs.getString("storage_account_resource_name"));
+          .dataProjects(googleProjectIds)
+          .storageAccounts(storageAccountNames);
     }
   }
 

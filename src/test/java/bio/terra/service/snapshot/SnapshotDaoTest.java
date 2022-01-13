@@ -4,8 +4,8 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.CloudRegion;
@@ -281,7 +281,7 @@ public class SnapshotDaoTest {
           snapshotSummary.getCloudPlatform(),
           equalTo(CloudPlatform.GCP));
       assertThat(
-          "snapshot summary has a data project", snapshotSummary.getDataProject(), notNullValue());
+          "snapshot summary has a data project", snapshotSummary.getDataProjects(), hasSize(1));
     }
 
     testOneEnumerateRange(snapshotIdList, snapshotName, 0, 1000);

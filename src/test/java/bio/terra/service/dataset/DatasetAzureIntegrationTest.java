@@ -255,8 +255,8 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
                   assertThat(
                       "dataset summary has storage account",
-                      oneDataset.getStorageAccount(),
-                      notNullValue());
+                      oneDataset.getStorageAccounts(),
+                      hasSize(1));
                   found = true;
                   break;
                 }

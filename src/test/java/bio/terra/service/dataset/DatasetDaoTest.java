@@ -4,9 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -148,7 +148,7 @@ public class DatasetDaoTest {
           datasetSummary.getCloudPlatform(),
           equalTo(CloudPlatform.GCP));
       assertThat(
-          "dataset summary has a data project", datasetSummary.getDataProject(), notNullValue());
+          "dataset summary has a data project", datasetSummary.getDataProjects(), hasSize(1));
     }
 
     // this is skipping the first item returned above

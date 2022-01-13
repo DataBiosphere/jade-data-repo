@@ -64,15 +64,13 @@ public class SnapshotDao {
           + "FROM storage_resource "
           + "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage ";
 
-  private static final String summaryCloudPlatformColumns =
-      " project_resource.id as google_project_id, "
-          + "storage_account_resource.name as storage_account_resource_name, ";
-
-  private static final String summaryCloudPlatformJoins =
-      "LEFT JOIN project_resource "
-          + "  ON project_resource.id = snapshot.project_resource_id "
-          + "LEFT JOIN storage_account_resource "
-          + "  ON storage_account_resource.id = snapshot.storage_account_resource_id ";
+  private static final String summaryCloudPlatformQuery =
+      "(SELECT jsonb_agg(pr.google_project_id) "
+          + "  FROM project_resource pr "
+          + "  WHERE pr.id = snapshot.project_resource_id) as google_project_ids, "
+          + "(SELECT jsonb_agg(sar.name) "
+          + "  FROM storage_account_resource sar "
+          + "  WHERE sar.id = snapshot.storage_account_resource_id) as storage_account_names, ";
 
   @Autowired
   public SnapshotDao(
@@ -572,11 +570,10 @@ public class SnapshotDao {
     String sql =
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
             + "snapshot_source.id, dataset.secure_monitoring, "
-            + summaryCloudPlatformColumns
+            + summaryCloudPlatformQuery
             + snapshotSourceStorageQuery
             + "FROM snapshot "
             + joinSql
-            + summaryCloudPlatformJoins
             + whereSql
             + DaoUtils.orderByClause(sort, direction, TABLE_NAME)
             + " OFFSET :offset LIMIT :limit";
@@ -599,12 +596,11 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.*, dataset.secure_monitoring, "
-              + summaryCloudPlatformColumns
+              + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
               + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
-              + summaryCloudPlatformJoins
               + "WHERE snapshot.id = :id ";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
       return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
@@ -622,12 +618,11 @@ public class SnapshotDao {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
               + "dataset.secure_monitoring, "
-              + summaryCloudPlatformColumns
+              + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
               + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
               + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
-              + summaryCloudPlatformJoins
               + "WHERE snapshot_source.dataset_id = :datasetId";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
       return jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
@@ -658,14 +653,30 @@ public class SnapshotDao {
 
   private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
     public SnapshotSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+      String snapshotId = rs.getString("id");
       List<StorageResource> storageResources;
       try {
         storageResources =
             objectMapper.readValue(rs.getString("storage"), new TypeReference<>() {});
       } catch (JsonProcessingException e) {
         throw new CorruptMetadataException(
-            String.format("Invalid storage for snapshot - id: %s", rs.getString("id")));
+            String.format("Invalid storage for snapshot - id: %s", snapshotId));
       }
+
+      List<String> googleProjectIds;
+      List<String> storageAccountNames;
+      try {
+        googleProjectIds = DaoUtils.getJsonStringArray(rs, "google_project_ids", objectMapper);
+        storageAccountNames =
+            DaoUtils.getJsonStringArray(rs, "storage_account_names", objectMapper);
+      } catch (JsonProcessingException e) {
+        throw new CorruptMetadataException(
+            String.format(
+                "Invalid google project ids or storage account names for snapshot - id: %s",
+                snapshotId),
+            e);
+      }
+
       boolean isAzure =
           storageResources.stream()
               .anyMatch(sr -> CloudPlatformWrapper.of(sr.getCloudPlatform()).isAzure());
@@ -673,7 +684,7 @@ public class SnapshotDao {
       CloudPlatform snapshotCloudPlatform = isAzure ? CloudPlatform.AZURE : CloudPlatform.GCP;
 
       return new SnapshotSummary()
-          .id(UUID.fromString(rs.getString("id")))
+          .id(UUID.fromString(snapshotId))
           .name(rs.getString("name"))
           .description(rs.getString("description"))
           .createdDate(rs.getTimestamp("created_date").toInstant())
@@ -681,8 +692,8 @@ public class SnapshotDao {
           .storage(storageResources)
           .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"))
           .cloudPlatform(snapshotCloudPlatform)
-          .dataProject(rs.getString("google_project_id"))
-          .storageAccount(rs.getString("storage_account_resource_name"));
+          .dataProjects(googleProjectIds)
+          .storageAccounts(storageAccountNames);
     }
   }
 }

@@ -15,8 +15,8 @@ public class SnapshotSummary {
   private List<StorageResource> storage;
   private boolean secureMonitoringEnabled;
   private CloudPlatform cloudPlatform;
-  private String dataProject;
-  private String storageAccount;
+  private List<String> dataProjects;
+  private List<String> storageAccounts;
 
   public UUID getId() {
     return id;
@@ -90,21 +90,21 @@ public class SnapshotSummary {
     return this;
   }
 
-  public String getDataProject() {
-    return dataProject;
+  public List<String> getDataProjects() {
+    return dataProjects;
   }
 
-  public SnapshotSummary dataProject(String dataProject) {
-    this.dataProject = dataProject;
+  public SnapshotSummary dataProjects(List<String> dataProjects) {
+    this.dataProjects = dataProjects;
     return this;
   }
 
-  public String getStorageAccount() {
-    return storageAccount;
+  public List<String> getStorageAccounts() {
+    return storageAccounts;
   }
 
-  public SnapshotSummary storageAccount(String storageAccount) {
-    this.storageAccount = storageAccount;
+  public SnapshotSummary storageAccounts(List<String> storageAccounts) {
+    this.storageAccounts = storageAccounts;
     return this;
   }
 }

@@ -2881,12 +2881,16 @@ components:
           default: false
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
-        dataProject:
-          type: string
-          description: The google project of this dataset
-        storageAccount:
-          type: string
-          description: The azure storage account of this dataset
+        dataProjects:
+          type: array
+          items:
+            type: string
+          description: The google projects of this dataset
+        storageAccounts:
+          type: array
+          items:
+            type: string
+          description: The azure storage accounts of this dataset
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -3641,12 +3645,16 @@ components:
           default: false
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
-        dataProject:
-          type: string
-          description: The google project of this dataset
-        storageAccount:
-          type: string
-          description: The azure storage account of this dataset
+        dataProjects:
+          type: array
+          items:
+            type: string
+          description: The google projects of this dataset
+        storageAccounts:
+          type: array
+          items:
+            type: string
+          description: The azure storage accounts of this dataset
       description: >
         summary of snapshot
     EnumerateSnapshotModel:

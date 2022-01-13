@@ -3,6 +3,9 @@ package bio.terra.common;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -81,6 +84,17 @@ public final class DaoUtils {
       return List.of();
     }
     return List.of((String[]) sqlArray.getArray());
+  }
+
+  public static List<String> getJsonStringArray(
+      ResultSet rs, String column, ObjectMapper objectMapper)
+      throws SQLException, JsonProcessingException {
+    String jsonArrayRaw = rs.getString(column);
+    if (jsonArrayRaw != null) {
+      return objectMapper.readValue(jsonArrayRaw, new TypeReference<>() {});
+    } else {
+      return List.of();
+    }
   }
 
   // Based on Exception returned, determine if we should attempt to retry an operation/stairway step

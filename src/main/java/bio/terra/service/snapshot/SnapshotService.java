@@ -47,8 +47,6 @@ import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -297,7 +295,8 @@ public class SnapshotService {
     SnapshotRequestContentsModel requestContents = requestContentsList.get(0);
     Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
     SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(dataset);
-    SnapshotRequestContentsModel.ModeEnum modeEnum = snapshotRequestModel.getContents().get(0).getMode();
+    SnapshotRequestContentsModel.ModeEnum modeEnum =
+        snapshotRequestModel.getContents().get(0).getMode();
     mode.put("mode", modeEnum.toString());
     switch (modeEnum) {
       case BYASSET:

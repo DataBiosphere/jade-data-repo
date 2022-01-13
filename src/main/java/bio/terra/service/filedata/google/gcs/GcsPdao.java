@@ -215,6 +215,7 @@ public class GcsPdao implements CloudFileReader {
    * @param sourcePaths A list of gs:// formatted paths
    * @param user An authenticed user
    * @throws BlobAccessNotAuthorizedException if the user does not have an authorized pet
+   * @throws IllegalArgumentException if the source path is not a valid blob url
    */
   public void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user) {
     // If the connected profile is used, skip this check since we don't specify users when mocking

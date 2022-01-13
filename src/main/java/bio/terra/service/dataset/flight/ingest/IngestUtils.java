@@ -4,6 +4,7 @@ import bio.terra.common.Column;
 import bio.terra.common.ErrorCollector;
 import bio.terra.common.FlightUtils;
 import bio.terra.common.PdaoLoadStatistics;
+import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -245,9 +246,12 @@ public final class IngestUtils {
           .peek(
               loadFileModel -> {
                 try {
+                  validateBulkLoadFileModel(loadFileModel);
                   cloudFileReader.validateUserCanRead(
                       List.of(loadFileModel.getSourcePath()), userRequest);
-                } catch (BlobAccessNotAuthorizedException ex) {
+                } catch (BlobAccessNotAuthorizedException
+                    | BadRequestException
+                    | IllegalArgumentException ex) {
                   errorCollector.record("Error: %s", ex.getMessage());
                 }
               })
@@ -288,8 +292,17 @@ public final class IngestUtils {
                             return Stream.empty();
                           }
                         })
-                    .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class)))
-        .distinct();
+                    .map(
+                        n -> {
+                          try {
+                            return objectMapper.convertValue(n, BulkLoadFileModel.class);
+                          } catch (IllegalArgumentException ex) {
+                            errorCollector.record("Error: %s", ex.getMessage());
+                          }
+                          return null;
+                        }))
+        .distinct()
+        .filter(Objects::nonNull);
   }
 
   public static List<Column> getDatasetFileRefColumns(
@@ -380,5 +393,21 @@ public final class IngestUtils {
         FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
     String pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class);
     gcsPdao.deleteFileByGspath(pathToIngestFile, bucketResource.projectIdForBucket());
+  }
+
+  public static void validateBulkLoadFileModel(BulkLoadFileModel loadFile) {
+    List<String> itemsNotDefined = new ArrayList<>();
+    if (StringUtils.isEmpty(loadFile.getSourcePath())) {
+      itemsNotDefined.add("sourcePath");
+    }
+    if (StringUtils.isEmpty(loadFile.getTargetPath())) {
+      itemsNotDefined.add("targetPath");
+    }
+    if (itemsNotDefined.size() > 0) {
+      throw new BadRequestException(
+          String.format(
+              "The following required field(s) were not defined: %s",
+              itemsNotDefined.stream().collect(Collectors.joining(", "))));
+    }
   }
 }

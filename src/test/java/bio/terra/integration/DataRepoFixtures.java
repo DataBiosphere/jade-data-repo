@@ -659,6 +659,21 @@ public class DataRepoFixtures {
         user, "/api/repository/v1/datasets/" + datasetId + "/ingest", ingestBody, JobModel.class);
   }
 
+  public ErrorModel ingestJsonDataFailure(
+      TestConfiguration.User user, UUID datasetId, IngestRequestModel request) throws Exception {
+    DataRepoResponse<JobModel> jobResponse = ingestJsonDataLaunch(user, datasetId, request);
+    assertTrue("ingest data launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(
+        "ingest data launch response is present", jobResponse.getResponseObject().isPresent());
+
+    DataRepoResponse<ErrorModel> response =
+        dataRepoClient.waitForResponse(user, jobResponse, ErrorModel.class);
+    assertFalse("ingest data is failure", response.getStatusCode().is2xxSuccessful());
+
+    assertTrue("ingest data error response is present", response.getErrorObject().isPresent());
+    return response.getErrorObject().get();
+  }
+
   public IngestResponseModel ingestJsonData(
       TestConfiguration.User user, UUID datasetId, IngestRequestModel request) throws Exception {
     DataRepoResponse<IngestResponseModel> response = ingestJsonDataRaw(user, datasetId, request);

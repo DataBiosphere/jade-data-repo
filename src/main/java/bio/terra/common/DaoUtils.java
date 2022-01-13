@@ -10,6 +10,7 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -93,7 +94,9 @@ public final class DaoUtils {
     if (jsonArrayRaw != null) {
       return objectMapper.readValue(jsonArrayRaw, new TypeReference<>() {});
     } else {
-      return List.of();
+      // This needs to be an ArrayList because List.of() does not provide an object
+      // with a zero-arg constructor, causing Jackson to complain upon deserialization.
+      return new ArrayList<>();
     }
   }
 

@@ -47,6 +47,8 @@ import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -282,9 +284,11 @@ public class SnapshotService {
    * @param snapshotRequestModel
    * @return Snapshot
    */
-  public Snapshot makeSnapshotFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
+  public Snapshot makeSnapshotFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel)
+      throws JsonProcessingException {
     // Make this early so we can hook up back links to it
     Snapshot snapshot = new Snapshot();
+    Map<String, Object> mode = new HashMap<>();
     List<SnapshotRequestContentsModel> requestContentsList = snapshotRequestModel.getContents();
     // TODO: for MVM we only allow one source list
     if (requestContentsList.size() > 1) {
@@ -294,6 +298,7 @@ public class SnapshotService {
     SnapshotRequestContentsModel requestContents = requestContentsList.get(0);
     Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
     SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(dataset);
+    var objectMapper = new ObjectMapper();
     switch (snapshotRequestModel.getContents().get(0).getMode()) {
       case BYASSET:
         // TODO: When we implement explicit definition of snapshot tables, we will handle that here.
@@ -303,9 +308,12 @@ public class SnapshotService {
         snapshotSource.assetSpecification(assetSpecification);
         conjureSnapshotTablesFromAsset(
             snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
+        mode.put("mode", SnapshotRequestContentsModel.ModeEnum.BYASSET.toString());
+        mode.put("assetSpec", objectMapper.writeValueAsString(requestContents.getAssetSpec()));
         break;
       case BYFULLVIEW:
         conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
+        mode.put("mode", SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW.toString());
         break;
       case BYQUERY:
         SnapshotRequestQueryModel queryModel = requestContents.getQuerySpec();
@@ -330,10 +338,15 @@ public class SnapshotService {
         // TODO this is wrong? why dont we just pass the assetSpecification?
         conjureSnapshotTablesFromAsset(
             snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
+        mode.put("mode", SnapshotRequestContentsModel.ModeEnum.BYQUERY.toString());
+        mode.put("querySpec", objectMapper.writeValueAsString(queryModel));
         break;
       case BYROWID:
         SnapshotRequestRowIdModel requestRowIdModel = requestContents.getRowIdSpec();
         conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
+        putRowIdSpecIntoMode(mode, requestRowIdModel);
+        mode.put("mode", SnapshotRequestContentsModel.ModeEnum.BYROWID.toString());
+        mode.put("rowIdSpec", objectMapper.writeValueAsString(requestRowIdModel));
         break;
       default:
         throw new InvalidSnapshotException("Snapshot does not have required mode information");
@@ -344,7 +357,15 @@ public class SnapshotService {
         .description(snapshotRequestModel.getDescription())
         .snapshotSources(Collections.singletonList(snapshotSource))
         .profileId(snapshotRequestModel.getProfileId())
-        .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource));
+        .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource))
+        .mode(mode);
+  }
+
+  private void putRowIdSpecIntoMode(
+      Map<String, Object> mode, SnapshotRequestRowIdModel requestRowIdModel) {
+    mode.put("mode", SnapshotRequestContentsModel.ModeEnum.BYROWID.toString());
+
+    Map<String, Object> rowIdSpec = new HashMap<>();
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(

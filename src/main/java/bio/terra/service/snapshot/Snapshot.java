@@ -31,6 +31,7 @@ public class Snapshot implements FSContainerInterface {
   private GoogleProjectResource projectResource;
   private AzureStorageAccountResource storageAccountResource;
   private List<Relationship> relationships = Collections.emptyList();
+  private Map<String, Object> mode;
 
   @Override
   public CollectionType getCollectionType() {
@@ -179,5 +180,14 @@ public class Snapshot implements FSContainerInterface {
 
   public boolean isSecureMonitoringEnabled() {
     return getFirstSnapshotSource().getDataset().isSecureMonitoringEnabled();
+  }
+
+  public Map<String, Object> getMode() {
+    return mode;
+  }
+
+  public Snapshot mode(Map<String, Object> mode) {
+    this.mode = mode;
+    return this;
   }
 }

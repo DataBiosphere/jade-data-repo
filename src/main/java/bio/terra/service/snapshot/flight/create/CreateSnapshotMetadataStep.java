@@ -14,6 +14,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,12 +55,13 @@ public class CreateSnapshotMetadataStep implements Step {
 
       FlightUtils.setResponse(context, response, HttpStatus.CREATED);
       return StepResult.getStepResultSuccess();
-    } catch (InvalidSnapshotException isEx) {
+    } catch (InvalidSnapshotException | JsonProcessingException isEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, isEx);
     } catch (SnapshotNotFoundException ex) {
       FlightUtils.setErrorResponse(context, ex.toString(), HttpStatus.BAD_REQUEST);
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
-    } catch (CannotSerializeTransactionException | TransactionSystemException ex) {
+    } catch (CannotSerializeTransactionException
+        | TransactionSystemException ex) {
       logger.error("Could not serialize the transaction. Retrying.", ex);
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }

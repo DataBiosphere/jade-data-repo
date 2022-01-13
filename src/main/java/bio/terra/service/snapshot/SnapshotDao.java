@@ -159,6 +159,14 @@ public class SnapshotDao {
     String sql =
         "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, flightid) "
             + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :flightid) ";
+    var objectMapper = new ObjectMapper();
+    String mode;
+    try {
+      mode = objectMapper.writeValueAsString(snapshot.getMode());
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException(
+          "Invalid JSON in snapshot create mode, we should've caught this already", e);
+    }
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("name", snapshot.getName())
@@ -166,7 +174,8 @@ public class SnapshotDao {
             .addValue("profile_id", snapshot.getProfileId())
             .addValue("project_resource_id", snapshot.getProjectResourceId())
             .addValue("id", snapshot.getId())
-            .addValue("flightid", flightId);
+            .addValue("flightid", flightId)
+            .addValue("mode", mode);
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {

@@ -34,6 +34,7 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -107,11 +108,7 @@ public class SnapshotDaoTest {
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     dataset = datasetDao.retrieve(datasetId);
 
-    snapshotRequest =
-        jsonLoader
-            .loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)
-            .profileId(profileId);
-    snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
+    snapshotRequest = makeSnapshotRequestModel("snapshot-test-snapshot.json");
 
     // Populate the snapshotId with random; delete should quietly not find it.
     snapshotId = UUID.randomUUID();
@@ -138,22 +135,75 @@ public class SnapshotDaoTest {
     snapshot.projectResourceId(projectId);
     snapshotDao.updateSnapshotTableRowCounts(snapshot, Collections.emptyMap());
   }
+  
+  @Test
+  public void testInsertMode() throws IOException {
+    SnapshotRequestModel byAssetRequest =
+        makeSnapshotRequestModel("snapshot-test-snapshot.json");
+    Snapshot byAssetSnapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(byAssetRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    Snapshot byAssetFromDB = insertAndRetrieveSnapshot(byAssetSnapshot, "testInsertMode_flightId");
+    assertThat("snapshot byAsset mode set correctly", byAssetFromDB.getMode(), equalTo(byAssetSnapshot.getMode()));
+
+    SnapshotRequestModel byQueryRequest =
+        makeSnapshotRequestModel("snapshot-query-test-snapshot.json");
+    Snapshot byQuerySnapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(byQueryRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    Snapshot byQueryFromDB = insertAndRetrieveSnapshot(byQuerySnapshot, "testInsertMode_flightId");
+    assertThat("snapshot byQuery mode set correctly", byQueryFromDB.getMode(), equalTo(byQuerySnapshot.getMode()));
+
+    SnapshotRequestModel byRowIdRequest =
+        makeSnapshotRequestModel("snapshot-row-ids-test-snapshot.json");
+    Snapshot byRowIdSnapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(byRowIdRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    Snapshot byRowIdFromDB = insertAndRetrieveSnapshot(byRowIdSnapshot, "testInsertMode_flightId");
+    assertThat("snapshot byRowId mode set correctly", byRowIdFromDB.getMode(), equalTo(byRowIdSnapshot.getMode()));
+
+    SnapshotRequestModel byFullViewRequest =
+        makeSnapshotRequestModel("snapshot-fullviews-test-snapshot.json");
+    Snapshot byFullViewSnapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(byFullViewRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    Snapshot byFullViewFromDB = insertAndRetrieveSnapshot(byFullViewSnapshot, "testInsertMode_flightId");
+    assertThat("snapshot byFullView mode set correctly", byFullViewFromDB.getMode(), equalTo(byFullViewSnapshot.getMode()));
+  }
+
+  private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
+    snapshotDao.createAndLock(snapshot, flightId);
+    snapshotDao.unlock(snapshotId, flightId);
+    return snapshotDao.retrieveSnapshot(snapshotId);
+  }
+
+  private SnapshotRequestModel makeSnapshotRequestModel(String jsonFile) throws IOException {
+    SnapshotRequestModel snapshotRequestModel =
+        jsonLoader
+            .loadObject(jsonFile, SnapshotRequestModel.class)
+            .profileId(profileId);
+    snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
+    return snapshotRequestModel;
+  }
 
   @Test
-  public void happyInOutTest() throws Exception {
+  public void happyInOutTest() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID().toString());
 
-    String flightId = "happyInOutTest_flightId";
     Snapshot snapshot =
         snapshotService
             .makeSnapshotFromSnapshotRequest(snapshotRequest)
             .projectResourceId(projectId)
             .id(snapshotId);
-    snapshotDao.createAndLock(snapshot, flightId);
-
-    snapshotDao.unlock(snapshotId, flightId);
-    Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotId);
-
+    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, "happyInOutTest_flightId");
     assertThat("snapshot name set correctly", fromDB.getName(), equalTo(snapshot.getName()));
 
     assertThat(
@@ -164,6 +214,8 @@ public class SnapshotDaoTest {
     assertThat("correct number of tables created", fromDB.getTables().size(), equalTo(2));
 
     assertThat("correct number of sources created", fromDB.getSnapshotSources().size(), equalTo(1));
+
+    assertThat("snapshot mode set correctly", fromDB.getMode(), equalTo(snapshot.getMode()));
 
     // verify source and map
     SnapshotSource source = fromDB.getFirstSnapshotSource();

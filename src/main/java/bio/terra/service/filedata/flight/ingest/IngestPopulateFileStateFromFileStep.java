@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -67,6 +68,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     String line;
     while ((line = reader.readLine()) != null) {
       final String lineCopy = line;
+      final AtomicBoolean shortCircuit = new AtomicBoolean(false);
       lineCount.incrementAndGet();
 
       // Run batches in parallel
@@ -81,11 +83,15 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
                       List.of(loadFile.getSourcePath()), userRequest);
                   return loadFile;
                 } catch (IOException | BlobAccessNotAuthorizedException | BadRequestException ex) {
-                  errorCollector.record("Error at line %d: %s", lineCount.get(), ex.getMessage());
+                  try {
+                    errorCollector.record("Error at line %d: %s", lineCount.get(), ex.getMessage());
+                  } catch (BadRequestException e) {
+                    // Short circuit throwing.
+                    shortCircuit.set(true);
+                  }
                   return null;
                 }
               }));
-
       // Keep this check and load out of the inner try; it should only catch objectMapper failures
       if (futures.size() > batchSize) {
         List<BulkLoadFileModel> fileList =
@@ -94,6 +100,10 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
                 .collect(Collectors.toList());
         loadService.populateFiles(loadId, fileList);
         futures.clear();
+      }
+
+      if (shortCircuit.get()) {
+        throw errorCollector.getFormattedException();
       }
     }
 

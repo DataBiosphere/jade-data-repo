@@ -20,14 +20,16 @@ public class ErrorCollector {
   }
 
   public void record(String lineErrorMsgFormat, Object... lineErrorMsgArgs) {
-    if (errors.size() < maxErrorsReported) {
-      errors.add(String.format(lineErrorMsgFormat, lineErrorMsgArgs));
-    } else if (errors.size() == maxErrorsReported) {
-      errors.add(
-          "Error details truncated. [MaxBadLoadFileLineErrorsReported = "
-              + maxErrorsReported
-              + "]");
-      throw getFormattedException();
+    synchronized (errors) {
+      if (errors.size() < maxErrorsReported) {
+        errors.add(String.format(lineErrorMsgFormat, lineErrorMsgArgs));
+      } else if (errors.size() == maxErrorsReported) {
+        errors.add(
+            "Error details truncated. [MaxBadLoadFileLineErrorsReported = "
+                + maxErrorsReported
+                + "]");
+        throw getFormattedException();
+      }
     }
   }
 

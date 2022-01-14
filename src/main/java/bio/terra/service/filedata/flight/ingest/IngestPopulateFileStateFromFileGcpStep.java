@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileStateFromFileStep {
@@ -28,8 +29,10 @@ public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileSt
       int batchSize,
       GcsPdao gcsPdao,
       ObjectMapper bulkLoadObjectMapper,
+      ExecutorService executor,
       AuthenticatedUserRequest userRequest) {
-    super(loadService, maxBadLines, batchSize, bulkLoadObjectMapper, gcsPdao, userRequest);
+    super(
+        loadService, maxBadLines, batchSize, bulkLoadObjectMapper, gcsPdao, executor, userRequest);
     this.gcsPdao = gcsPdao;
   }
 

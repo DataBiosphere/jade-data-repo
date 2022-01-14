@@ -37,6 +37,7 @@ import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import org.springframework.context.ApplicationContext;
 
 /*
@@ -72,6 +73,7 @@ public class FileIngestBulkFlight extends Flight {
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
+    ExecutorService executor = appContext.getBean("performanceThreadpool", ExecutorService.class);
     ObjectMapper bulkLoadObjectMapper = appConfig.bulkLoadObjectMapper();
 
     // Common input parameters
@@ -175,6 +177,7 @@ public class FileIngestBulkFlight extends Flight {
                 appConfig.getLoadFilePopulateBatchSize(),
                 gcsPdao,
                 bulkLoadObjectMapper,
+                executor,
                 userReq));
       } else {
         addStep(
@@ -184,6 +187,7 @@ public class FileIngestBulkFlight extends Flight {
                 appConfig.getLoadFilePopulateBatchSize(),
                 azureBlobStorePdao,
                 bulkLoadObjectMapper,
+                executor,
                 userReq));
       }
     }

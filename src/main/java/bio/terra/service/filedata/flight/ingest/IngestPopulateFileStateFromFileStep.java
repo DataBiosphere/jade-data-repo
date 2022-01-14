@@ -97,17 +97,17 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
       }
     }
 
-    // If there are errors in the load file, don't do the load
-    if (errorCollector.anyErrorsCollected()) {
-      throw errorCollector.getFormattedException();
-    }
-
     if (futures.size() > 0) {
       List<BulkLoadFileModel> fileList =
           FutureUtils.waitFor(futures).stream()
               .filter(Objects::nonNull)
               .collect(Collectors.toList());
       loadService.populateFiles(loadId, fileList);
+    }
+
+    // If there are errors in the load file, don't do the load
+    if (errorCollector.anyErrorsCollected()) {
+      throw errorCollector.getFormattedException();
     }
   }
 

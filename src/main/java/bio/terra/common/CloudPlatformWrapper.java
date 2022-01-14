@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.springframework.validation.Errors;
 
 public abstract class CloudPlatformWrapper {
@@ -76,14 +75,6 @@ public abstract class CloudPlatformWrapper {
 
   public abstract List<? extends StorageResource<?, ?>> createStorageResourceValues(
       DatasetRequestModel datasetRequest);
-
-  // This doesn't really do anything for now, but as we move more things into Azure,
-  // It will be helpful to use this to grab just the GCP resources we're still using.
-  public static List<? extends StorageResource<?, ?>> getGoogleResourcesForAzure(
-      DatasetRequestModel datasetRequestModel) {
-    return CloudPlatformWrapper.of(CloudPlatform.GCP)
-        .createStorageResourceValues(datasetRequestModel);
-  }
 
   static class GcpPlatform extends CloudPlatformWrapper {
     static final GcpPlatform INSTANCE = new GcpPlatform();
@@ -149,12 +140,8 @@ public abstract class CloudPlatformWrapper {
     public List<? extends StorageResource<?, ?>> createStorageResourceValues(
         DatasetRequestModel datasetRequest) {
       final AzureRegion region = AzureRegion.fromValueWithDefault(datasetRequest.getRegion());
-      // TODO: once we no longer require GCP resources to back Azure datasets, stop concatenating
-      return Stream.concat(
-              Stream.of(
-                      AzureCloudResource.APPLICATION_DEPLOYMENT, AzureCloudResource.STORAGE_ACCOUNT)
-                  .map(resource -> new AzureStorageResource(null, resource, region)),
-              CloudPlatformWrapper.getGoogleResourcesForAzure(datasetRequest).stream())
+      return Arrays.stream(AzureCloudResource.values())
+          .map(resource -> new AzureStorageResource(null, resource, region))
           .collect(Collectors.toList());
     }
   }

@@ -16,7 +16,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.ParquetUtils;
 import bio.terra.common.SynapseUtils;
@@ -213,30 +212,31 @@ public class DatasetAzureIntegrationTest extends UsersBase {
                                   StorageResourceModel::getCloudResource, Function.identity()));
 
                   AzureRegion omopDatasetRegion = AzureRegion.fromValue(omopDatasetRegionName);
-                  GoogleRegion omopDatasetGoogleRegion =
-                      GoogleRegion.fromValue(omopDatasetGcpRegionName);
                   assertThat(omopDatasetRegion, notNullValue());
-                  assertThat(omopDatasetGoogleRegion, notNullValue());
 
                   assertThat(
                       "Bucket storage matches",
                       storageMap.entrySet().stream()
-                          .filter(e -> e.getKey().equals(GoogleCloudResource.BUCKET.getValue()))
+                          .filter(
+                              e ->
+                                  e.getKey()
+                                      .equals(AzureCloudResource.APPLICATION_DEPLOYMENT.getValue()))
                           .findAny()
                           .map(e -> e.getValue().getRegion())
                           .orElseThrow(() -> new RuntimeException("Key not found")),
-                      equalTo(
-                          omopDatasetGoogleRegion.getRegionOrFallbackBucketRegion().getValue()));
+                      equalTo(omopDatasetRegion.getValue()));
 
                   assertThat(
                       "Firestore storage matches",
                       storageMap.entrySet().stream()
-                          .filter(e -> e.getKey().equals(GoogleCloudResource.FIRESTORE.getValue()))
+                          .filter(
+                              e ->
+                                  e.getKey()
+                                      .equals(AzureCloudResource.SYNAPSE_WORKSPACE.getValue()))
                           .findAny()
                           .map(e -> e.getValue().getRegion())
                           .orElseThrow(() -> new RuntimeException("Key not found")),
-                      equalTo(
-                          omopDatasetGoogleRegion.getRegionOrFallbackFirestoreRegion().getValue()));
+                      equalTo(omopDatasetRegion.getValue()));
 
                   assertThat(
                       "Storage account storage matches",
@@ -247,6 +247,17 @@ public class DatasetAzureIntegrationTest extends UsersBase {
                           .map(e -> e.getValue().getRegion())
                           .orElseThrow(() -> new RuntimeException("Key not found")),
                       equalTo(omopDatasetRegion.getValue()));
+
+                  assertThat(
+                      "No Google storage resources are included",
+                      storageMap.values().stream()
+                          .map(StorageResourceModel::getCloudResource)
+                          .collect(Collectors.toSet()),
+                      equalTo(
+                          Set.of(
+                              AzureCloudResource.STORAGE_ACCOUNT.getValue(),
+                              AzureCloudResource.SYNAPSE_WORKSPACE.getValue(),
+                              AzureCloudResource.APPLICATION_DEPLOYMENT.getValue())));
 
                   found = true;
                   break;

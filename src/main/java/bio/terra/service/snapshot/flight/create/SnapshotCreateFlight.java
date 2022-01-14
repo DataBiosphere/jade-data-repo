@@ -35,8 +35,10 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
+import bio.terra.stairway.RetryRuleExponentialBackoff;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.springframework.context.ApplicationContext;
 
 public class SnapshotCreateFlight extends Flight {
@@ -213,7 +215,11 @@ public class SnapshotCreateFlight extends Flight {
               performanceLogger));
 
       // Calculate checksums and sizes for all directories in the snapshot
-      addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
+      RetryRule pdaoFirestoreDirCalcRetryRule =
+          new RetryRuleExponentialBackoff(2, 30, TimeUnit.MINUTES.toSeconds(30));
+      addStep(
+          new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao),
+          pdaoFirestoreDirCalcRetryRule);
 
       // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes.
       // The max

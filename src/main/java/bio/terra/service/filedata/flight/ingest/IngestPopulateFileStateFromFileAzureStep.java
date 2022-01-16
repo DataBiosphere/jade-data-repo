@@ -16,6 +16,7 @@ import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFileStateFromFileStep {
@@ -28,6 +29,7 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
       int batchSize,
       AzureBlobStorePdao azureBlobStorePdao,
       ObjectMapper bulkLoadObjectMapper,
+      ExecutorService executor,
       AuthenticatedUserRequest userRequest) {
     super(
         loadService,
@@ -35,6 +37,7 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
         batchSize,
         bulkLoadObjectMapper,
         azureBlobStorePdao,
+        executor,
         userRequest);
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.userRequest = userRequest;

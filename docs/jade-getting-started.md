@@ -117,6 +117,9 @@ and **Community** (open-source). We recommend the Ultimate Edition to Broad
 employees for its database navigation capabilities. Alternatively, the Community
 Edition has all the features needed for development, and this version can be
 installed by switching `intellij-idea` with `intellij-idea-ce` in the Brewfile.
+9. [Skaffold](https://github.com/GoogleContainerTools/skaffold) is a command line 
+tool that facilitates continuous development for Kubernetes applications.  It is
+used to test local changes against personal environments.
 
 Unfortunately, some manual configuration is also necessary:
 
@@ -137,17 +140,6 @@ open -a docker
 gcloud auth login
 gcloud auth application-default login
 gcloud auth configure-docker
-```
-
-Also, [Skaffold](https://github.com/GoogleContainerTools/skaffold) cannot be
-automatically installed through Homebrew as newer versions are incompatible with
-our development environment. Skaffold facilitates the continuous development of
-Kubernetes resources. Version 1.3.1 is installed instead.
-
-```
-curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/v1.3.1/skaffold-darwin-amd64 \
-  && chmod +x skaffold \
-  && sudo mv skaffold /usr/local/bin
 ```
 
 ## 6. Create GitHub token

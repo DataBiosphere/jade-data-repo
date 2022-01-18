@@ -3733,6 +3733,8 @@ components:
           $ref: '#/components/schemas/AccessInfoBigQueryModel'
         parquet:
           $ref: '#/components/schemas/AccessInfoParquetModel'
+        mode:
+          $ref: '#/components/schemas/SnapshotRequestContentsModel'
     AccessInfoBigQueryModel:
       description: >
         General information on where snapshot or dataset tabular data lives in BigQuery

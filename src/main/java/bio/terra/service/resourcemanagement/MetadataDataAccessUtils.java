@@ -91,21 +91,24 @@ public final class MetadataDataAccessUtils {
                 .getDataset()
                 .getDatasetSummary()
                 .getStorageCloudPlatform());
-
+    AccessInfoModel accessInfoModel;
     if (cloudPlatformWrapper.isGcp()) {
-      return makeAccessInfoBigQuery(
-          snapshot.getName(),
-          snapshot.getProjectResource().getGoogleProjectId(),
-          snapshot.getTables());
+      accessInfoModel =
+          makeAccessInfoBigQuery(
+              snapshot.getName(),
+              snapshot.getProjectResource().getGoogleProjectId(),
+              snapshot.getTables());
     } else if (cloudPlatformWrapper.isAzure()) {
       BillingProfileModel profileModel =
           profileService.getProfileByIdNoCheck(snapshot.getProfileId());
       AzureStorageAccountResource storageAccountResource = snapshot.getStorageAccountResource();
-      return makeAccessInfoAzure(
-          snapshot, storageAccountResource, snapshot.getTables(), profileModel, userRequest);
+      accessInfoModel =
+          makeAccessInfoAzure(
+              snapshot, storageAccountResource, snapshot.getTables(), profileModel, userRequest);
     } else {
       throw new IllegalArgumentException("Unrecognized cloud platform");
     }
+    return accessInfoModel.mode(snapshot.getMode());
   }
 
   /** Generate an {@link AccessInfoModel} from a Dataset */

@@ -5,6 +5,7 @@ import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
@@ -361,19 +362,26 @@ public class SnapshotDao {
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
   Snapshot retrieveWorker(String sql, MapSqlParameterSource params) {
+    RowMapper<Snapshot> mapper =
+        (rs, rowNum) -> {
+          try {
+            return new Snapshot()
+                .id(rs.getObject("id", UUID.class))
+                .name(rs.getString("name"))
+                .description(rs.getString("description"))
+                .createdDate(rs.getTimestamp("created_date").toInstant())
+                .profileId(rs.getObject("profile_id", UUID.class))
+                .projectResourceId(rs.getObject("project_resource_id", UUID.class))
+                .mode(
+                    objectMapper.readValue(
+                        rs.getString("mode"), SnapshotRequestContentsModel.class));
+          } catch (JsonProcessingException e) {
+            return null;
+          }
+        };
+
     try {
-      Snapshot snapshot =
-          jdbcTemplate.queryForObject(
-              sql,
-              params,
-              (rs, rowNum) ->
-                  new Snapshot()
-                      .id(rs.getObject("id", UUID.class))
-                      .name(rs.getString("name"))
-                      .description(rs.getString("description"))
-                      .createdDate(rs.getTimestamp("created_date").toInstant())
-                      .profileId(rs.getObject("profile_id", UUID.class))
-                      .projectResourceId(rs.getObject("project_resource_id", UUID.class)));
+      Snapshot snapshot = jdbcTemplate.queryForObject(sql, params, mapper);
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
         // retrieve the snapshot tables and relationships

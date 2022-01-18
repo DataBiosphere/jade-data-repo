@@ -59,7 +59,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   private Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
 
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE =
-      "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT";
+      "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT,ACCESS_INFORMATION";
 
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;

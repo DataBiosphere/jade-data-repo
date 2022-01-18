@@ -15,6 +15,7 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestAccessIncludeModel;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
@@ -216,7 +217,11 @@ public class SnapshotServiceTest {
                                                     + SNAPSHOT_NAME
                                                     + "."
                                                     + SNAPSHOT_TABLE_NAME
-                                                    + "` LIMIT 1000")))))));
+                                                    + "` LIMIT 1000"))))
+                        .mode(
+                            new SnapshotRequestContentsModel()
+                                .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
+                                .datasetName(DATASET_NAME)))));
   }
 
   @Test
@@ -269,6 +274,10 @@ public class SnapshotServiceTest {
                                                     GoogleCloudResource.BUCKET,
                                                     GoogleRegion.DEFAULT_GOOGLE_REGION)))))))
                 .snapshotTables(
-                    List.of(new SnapshotTable().name(SNAPSHOT_TABLE_NAME).id(snapshotTableId))));
+                    List.of(new SnapshotTable().name(SNAPSHOT_TABLE_NAME).id(snapshotTableId)))
+                .mode(
+                    new SnapshotRequestContentsModel()
+                        .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
+                        .datasetName(DATASET_NAME)));
   }
 }

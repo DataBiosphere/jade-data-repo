@@ -47,6 +47,8 @@ import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -285,7 +287,6 @@ public class SnapshotService {
   public Snapshot makeSnapshotFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
     // Make this early so we can hook up back links to it
     Snapshot snapshot = new Snapshot();
-    Map<String, Object> mode = new HashMap<>();
     List<SnapshotRequestContentsModel> requestContentsList = snapshotRequestModel.getContents();
     // TODO: for MVM we only allow one source list
     if (requestContentsList.size() > 1) {
@@ -293,11 +294,16 @@ public class SnapshotService {
     }
 
     SnapshotRequestContentsModel requestContents = requestContentsList.get(0);
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      String test = mapper.writeValueAsString(requestContents);
+    } catch (JsonProcessingException e) {
+      e.printStackTrace();
+    }
     Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
     SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(dataset);
     SnapshotRequestContentsModel.ModeEnum modeEnum =
         snapshotRequestModel.getContents().get(0).getMode();
-    mode.put("mode", modeEnum.toString());
     switch (modeEnum) {
       case BYASSET:
         // TODO: When we implement explicit definition of snapshot tables, we will handle that here.
@@ -307,11 +313,9 @@ public class SnapshotService {
         snapshotSource.assetSpecification(assetSpecification);
         conjureSnapshotTablesFromAsset(
             snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
-        mode.put("assetSpec", requestContents.getAssetSpec());
         break;
       case BYFULLVIEW:
         conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
-        mode.put("mode", SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW.toString());
         break;
       case BYQUERY:
         SnapshotRequestQueryModel queryModel = requestContents.getQuerySpec();
@@ -336,12 +340,10 @@ public class SnapshotService {
         // TODO this is wrong? why dont we just pass the assetSpecification?
         conjureSnapshotTablesFromAsset(
             snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
-        mode.put("querySpec", queryModel);
         break;
       case BYROWID:
         SnapshotRequestRowIdModel requestRowIdModel = requestContents.getRowIdSpec();
         conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
-        mode.put("rowIdSpec", requestRowIdModel);
         break;
       default:
         throw new InvalidSnapshotException("Snapshot does not have required mode information");
@@ -353,7 +355,7 @@ public class SnapshotService {
         .snapshotSources(Collections.singletonList(snapshotSource))
         .profileId(snapshotRequestModel.getProfileId())
         .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource))
-        .mode(mode);
+        .mode(requestContents);
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(

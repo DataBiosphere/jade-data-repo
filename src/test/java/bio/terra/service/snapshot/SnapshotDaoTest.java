@@ -135,49 +135,6 @@ public class SnapshotDaoTest {
     snapshot.projectResourceId(projectId);
     snapshotDao.updateSnapshotTableRowCounts(snapshot, Collections.emptyMap());
   }
-  
-  @Test
-  public void testInsertMode() throws IOException {
-    SnapshotRequestModel byAssetRequest =
-        makeSnapshotRequestModel("snapshot-test-snapshot.json");
-    Snapshot byAssetSnapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(byAssetRequest)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-    Snapshot byAssetFromDB = insertAndRetrieveSnapshot(byAssetSnapshot, "testInsertMode_flightId");
-    assertThat("snapshot byAsset mode set correctly", byAssetFromDB.getMode(), equalTo(byAssetSnapshot.getMode()));
-
-    SnapshotRequestModel byQueryRequest =
-        makeSnapshotRequestModel("snapshot-query-test-snapshot.json");
-    Snapshot byQuerySnapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(byQueryRequest)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-    Snapshot byQueryFromDB = insertAndRetrieveSnapshot(byQuerySnapshot, "testInsertMode_flightId");
-    assertThat("snapshot byQuery mode set correctly", byQueryFromDB.getMode(), equalTo(byQuerySnapshot.getMode()));
-
-    SnapshotRequestModel byRowIdRequest =
-        makeSnapshotRequestModel("snapshot-row-ids-test-snapshot.json");
-    Snapshot byRowIdSnapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(byRowIdRequest)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-    Snapshot byRowIdFromDB = insertAndRetrieveSnapshot(byRowIdSnapshot, "testInsertMode_flightId");
-    assertThat("snapshot byRowId mode set correctly", byRowIdFromDB.getMode(), equalTo(byRowIdSnapshot.getMode()));
-
-    SnapshotRequestModel byFullViewRequest =
-        makeSnapshotRequestModel("snapshot-fullviews-test-snapshot.json");
-    Snapshot byFullViewSnapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(byFullViewRequest)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-    Snapshot byFullViewFromDB = insertAndRetrieveSnapshot(byFullViewSnapshot, "testInsertMode_flightId");
-    assertThat("snapshot byFullView mode set correctly", byFullViewFromDB.getMode(), equalTo(byFullViewSnapshot.getMode()));
-  }
 
   private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
     snapshotDao.createAndLock(snapshot, flightId);
@@ -187,9 +144,7 @@ public class SnapshotDaoTest {
 
   private SnapshotRequestModel makeSnapshotRequestModel(String jsonFile) throws IOException {
     SnapshotRequestModel snapshotRequestModel =
-        jsonLoader
-            .loadObject(jsonFile, SnapshotRequestModel.class)
-            .profileId(profileId);
+        jsonLoader.loadObject(jsonFile, SnapshotRequestModel.class).profileId(profileId);
     snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
     return snapshotRequestModel;
   }

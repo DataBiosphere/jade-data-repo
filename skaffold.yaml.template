@@ -1,6 +1,6 @@
 ## Be sure to add the helm repos
 ## helm repo add datarepo-helm https://broadinstitute.github.io/datarepo-helm && helm repo update
-apiVersion: skaffold/v2alpha2
+apiVersion: skaffold/v2beta26
 kind: Config
 build:
   tagPolicy:
@@ -21,38 +21,39 @@ deploy:
     releases:
     # create secrets
     - name: TEMP-jade-create-secret-manager-secret
-      chartPath: datarepo-helm/create-secret-manager-secret
+      remoteChart: datarepo-helm/create-secret-manager-secret
       namespace: TEMP
-      remote: true
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/create-secret-manager-secret.yaml
     # gcp sqlproxy
     - name: TEMP-jade-gcloud-sqlproxy
-      chartPath: datarepo-helm/gcloud-sqlproxy
+      remoteChart: datarepo-helm/gcloud-sqlproxy
       namespace: TEMP
-      remote: true
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/gcloud-sqlproxy.yaml
     # datarepo-api
     - name: TEMP-jade-datarepo-api
-      chartPath: datarepo-helm/datarepo-api
+      # Note: To test with a local chart, use the following config:
+      # chartPath: <path to the datarepo-helm directory>/charts/datarepo-api
+      # instead of the remoteChart specified below
+      remoteChart: datarepo-helm/datarepo-api
+      # Note: this value now defaults to false for remote charts so it needs to be explicitly added and
+      # set to true if other charts are being updated
+      upgradeOnChange: true
       namespace: TEMP
-      remote: true
-      values:
+      artifactOverrides:
         imageName: gcr.io/broad-jade-dev/jade-data-repo
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/datarepo-api.yaml
     # datarepo-ui
     - name: TEMP-jade-datarepo-ui
-      chartPath: datarepo-helm/datarepo-ui
+      remoteChart: datarepo-helm/datarepo-ui
       namespace: TEMP
-      remote: true
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/datarepo-ui.yaml
     # oidc-proxy
     - name: TEMP-jade-oidc-proxy
-      chartPath: datarepo-helm/oidc-proxy
+      remoteChart: datarepo-helm/oidc-proxy
       namespace: TEMP
-      remote: true
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/oidc-proxy.yaml

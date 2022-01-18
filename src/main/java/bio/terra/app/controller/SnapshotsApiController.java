@@ -58,8 +58,9 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   private Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
 
+  // We do not include Access_Information since it can get expensive, and for backwards compat
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE =
-      "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT,ACCESS_INFORMATION";
+      "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT";
 
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;

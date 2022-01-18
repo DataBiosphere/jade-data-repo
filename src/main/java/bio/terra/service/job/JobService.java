@@ -12,7 +12,6 @@ import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.exception.InvalidResultStateException;
-import bio.terra.service.job.exception.JobNotCompleteException;
 import bio.terra.service.job.exception.JobNotFoundException;
 import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.service.job.exception.JobServiceShutdownException;
@@ -320,7 +319,7 @@ public class JobService {
    * There are four cases to handle here:
    *
    * <ol>
-   *   <li>Flight is still running. Throw an JobNotComplete exception
+   *   <li>Flight is still running. Return a 202 (Accepted) response
    *   <li>Successful flight: extract the resultMap RESPONSE as the target class. If a
    *       statusContainer is present, we try to retrieve the STATUS_CODE from the resultMap and
    *       store it in the container. That allows flight steps used in async REST API endpoints to
@@ -369,10 +368,6 @@ public class JobService {
       throws StairwayException, InterruptedException {
 
     FlightState flightState = stairway.getFlightState(jobId);
-    FlightMap resultMap = flightState.getResultMap().orElse(null);
-    if (resultMap == null) {
-      throw new InvalidResultStateException("No result map returned from flight");
-    }
 
     JobModel.JobStatusEnum jobStatus = getJobStatus(flightState);
 
@@ -394,6 +389,10 @@ public class JobService {
           throw new JobResponseException("wrap non-runtime exception", exceptionToThrow);
         }
       case SUCCEEDED:
+        FlightMap resultMap = flightState.getResultMap().orElse(null);
+        if (resultMap == null) {
+          throw new InvalidResultStateException("No result map returned from flight");
+        }
         HttpStatus statusCode =
             resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
         if (statusCode == null) {
@@ -404,9 +403,7 @@ public class JobService {
             .result(resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass));
 
       case RUNNING:
-        throw new JobNotCompleteException(
-            "Attempt to retrieve job result before job is complete; job id: "
-                + flightState.getFlightId());
+        return new JobResultWithStatus<T>().statusCode(HttpStatus.ACCEPTED);
 
       default:
         throw new InvalidResultStateException("Impossible case reached");

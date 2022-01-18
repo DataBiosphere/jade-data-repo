@@ -294,12 +294,6 @@ public class SnapshotService {
     }
 
     SnapshotRequestContentsModel requestContents = requestContentsList.get(0);
-    ObjectMapper mapper = new ObjectMapper();
-    try {
-      String test = mapper.writeValueAsString(requestContents);
-    } catch (JsonProcessingException e) {
-      e.printStackTrace();
-    }
     Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
     SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(dataset);
     SnapshotRequestContentsModel.ModeEnum modeEnum =

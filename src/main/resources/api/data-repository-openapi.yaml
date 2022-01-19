@@ -2152,7 +2152,9 @@ paths:
         202:
           description: The job is currently running
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
   /api/repository/v1/configs/{name}:
     get:
       tags:

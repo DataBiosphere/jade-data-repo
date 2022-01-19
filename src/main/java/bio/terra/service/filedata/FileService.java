@@ -132,7 +132,7 @@ public class FileService {
 
   public String ingestBulkFileArray(
       String datasetId, BulkLoadArrayRequestModel loadArray, AuthenticatedUserRequest userReq) {
-    String loadTag = loadService.computeLoadTag(loadArray.getLoadTag());;
+    String loadTag = loadService.computeLoadTag(loadArray.getLoadTag());
     loadArray.setLoadTag(loadTag);
     String description =
         "Bulk ingest from array of "

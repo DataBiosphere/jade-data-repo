@@ -25,8 +25,8 @@ public class DatasetSummary {
   private List<? extends StorageResource<?, ?>> storage;
   private boolean secureMonitoringEnabled;
   private CloudPlatform cloudPlatform;
-  private List<String> dataProjects;
-  private List<String> storageAccounts;
+  private String dataProject;
+  private String storageAccount;
 
   public UUID getId() {
     return id;
@@ -171,21 +171,21 @@ public class DatasetSummary {
     return this;
   }
 
-  public List<String> getDataProjects() {
-    return dataProjects;
+  public String getDataProject() {
+    return dataProject;
   }
 
-  public DatasetSummary dataProjects(List<String> dataProjects) {
-    this.dataProjects = dataProjects;
+  public DatasetSummary dataProject(String dataProject) {
+    this.dataProject = dataProject;
     return this;
   }
 
-  public List<String> getStorageAccounts() {
-    return storageAccounts;
+  public String getStorageAccount() {
+    return storageAccount;
   }
 
-  public DatasetSummary storageAccounts(List<String> storageAccounts) {
-    this.storageAccounts = storageAccounts;
+  public DatasetSummary storageAccount(String storageAccount) {
+    this.storageAccount = storageAccount;
     return this;
   }
 }

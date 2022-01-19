@@ -609,8 +609,8 @@ public class SnapshotService {
         .storage(storageResourceModelFromSnapshotSummary(snapshotSummary))
         .secureMonitoringEnabled(snapshotSummary.isSecureMonitoringEnabled())
         .cloudPlatform(snapshotSummary.getCloudPlatform())
-        .dataProjects(snapshotSummary.getDataProjects())
-        .storageAccounts(snapshotSummary.getStorageAccounts());
+        .dataProjects(snapshotSummary.getDataProject())
+        .storageAccounts(snapshotSummary.getStorageAccount());
   }
 
   private static List<StorageResourceModel> storageResourceModelFromSnapshotSummary(

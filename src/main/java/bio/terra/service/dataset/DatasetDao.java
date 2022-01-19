@@ -68,14 +68,14 @@ public class DatasetDao {
           + "dataset.application_resource_id, secure_monitoring, created_date, ";
 
   private static final String summaryCloudPlatformQuery =
-      "(SELECT jsonb_agg(pr.google_project_id) "
+      "(SELECT pr.google_project_id "
           + "  FROM project_resource pr "
-          + "  WHERE pr.id = dataset.project_resource_id) as google_project_ids, "
-          + "(SELECT jsonb_agg(sar.name) "
+          + "  WHERE pr.id = dataset.project_resource_id) as google_project_id, "
+          + "(SELECT sar.name "
           + "  FROM dataset_storage_account dsa "
           + "    LEFT JOIN storage_account_resource sar "
           + "      on dsa.storage_account_resource_id = sar.id "
-          + "  WHERE dsa.dataset_id = dataset.id) as storage_account_names, ";
+          + "  WHERE dsa.dataset_id = dataset.id) as storage_account_name, ";
 
   private static final String datasetStorageQuery =
       "(SELECT jsonb_agg(json_build_object( "
@@ -677,20 +677,6 @@ public class DatasetDao {
             String.format("Invalid billing profiles for dataset - id: %s", datasetId), e);
       }
 
-      List<String> googleProjectIds;
-      List<String> storageAccountNames;
-      try {
-        googleProjectIds = DaoUtils.getJsonStringArray(rs, "google_project_ids", objectMapper);
-        storageAccountNames =
-            DaoUtils.getJsonStringArray(rs, "storage_account_names", objectMapper);
-      } catch (JsonProcessingException e) {
-        throw new CorruptMetadataException(
-            String.format(
-                "Invalid google project ids or storage account names for dataset - id: %s",
-                datasetId),
-            e);
-      }
-
       boolean isAzure =
           storageResources.stream().anyMatch(sr -> sr.getCloudPlatform() == CloudPlatform.AZURE);
 
@@ -708,8 +694,8 @@ public class DatasetDao {
           .billingProfiles(billingProfileModels)
           .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"))
           .cloudPlatform(datasetCloudPlatform)
-          .dataProjects(googleProjectIds)
-          .storageAccounts(storageAccountNames);
+          .dataProject(rs.getString("google_project_id"))
+          .storageAccount(rs.getString("storage_account_name"));
     }
   }
 

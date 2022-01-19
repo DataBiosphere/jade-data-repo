@@ -94,8 +94,8 @@ public final class DatasetJsonConversion {
         .storage(storageResourceModelFromDatasetSummary(datasetSummary))
         .secureMonitoringEnabled(datasetSummary.isSecureMonitoringEnabled())
         .cloudPlatform(datasetSummary.getCloudPlatform())
-        .dataProjects(datasetSummary.getDataProjects())
-        .storageAccounts(datasetSummary.getStorageAccounts());
+        .dataProject(datasetSummary.getDataProject())
+        .storageAccount(datasetSummary.getStorageAccount());
   }
 
   public static DatasetModel populateDatasetModelFromDataset(

@@ -65,12 +65,12 @@ public class SnapshotDao {
           + "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage ";
 
   private static final String summaryCloudPlatformQuery =
-      "(SELECT jsonb_agg(pr.google_project_id) "
+      "(SELECT pr.google_project_id "
           + "  FROM project_resource pr "
-          + "  WHERE pr.id = snapshot.project_resource_id) as google_project_ids, "
-          + "(SELECT jsonb_agg(sar.name) "
+          + "  WHERE pr.id = snapshot.project_resource_id) as google_project_id, "
+          + "(SELECT sar.name "
           + "  FROM storage_account_resource sar "
-          + "  WHERE sar.id = snapshot.storage_account_resource_id) as storage_account_names, ";
+          + "  WHERE sar.id = snapshot.storage_account_resource_id) as storage_account_name, ";
 
   @Autowired
   public SnapshotDao(
@@ -663,20 +663,6 @@ public class SnapshotDao {
             String.format("Invalid storage for snapshot - id: %s", snapshotId));
       }
 
-      List<String> googleProjectIds;
-      List<String> storageAccountNames;
-      try {
-        googleProjectIds = DaoUtils.getJsonStringArray(rs, "google_project_ids", objectMapper);
-        storageAccountNames =
-            DaoUtils.getJsonStringArray(rs, "storage_account_names", objectMapper);
-      } catch (JsonProcessingException e) {
-        throw new CorruptMetadataException(
-            String.format(
-                "Invalid google project ids or storage account names for snapshot - id: %s",
-                snapshotId),
-            e);
-      }
-
       boolean isAzure =
           storageResources.stream()
               .anyMatch(sr -> CloudPlatformWrapper.of(sr.getCloudPlatform()).isAzure());
@@ -692,8 +678,8 @@ public class SnapshotDao {
           .storage(storageResources)
           .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"))
           .cloudPlatform(snapshotCloudPlatform)
-          .dataProjects(googleProjectIds)
-          .storageAccounts(storageAccountNames);
+          .dataProject(rs.getString("google_project_id"))
+          .storageAccount(rs.getString("storage_account_name"));
     }
   }
 }

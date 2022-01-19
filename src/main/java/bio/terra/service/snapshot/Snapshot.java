@@ -32,7 +32,7 @@ public class Snapshot implements FSContainerInterface {
   private GoogleProjectResource projectResource;
   private AzureStorageAccountResource storageAccountResource;
   private List<Relationship> relationships = Collections.emptyList();
-  private SnapshotRequestContentsModel mode;
+  private SnapshotRequestContentsModel creationInformation;
 
   @Override
   public CollectionType getCollectionType() {
@@ -183,12 +183,12 @@ public class Snapshot implements FSContainerInterface {
     return getFirstSnapshotSource().getDataset().isSecureMonitoringEnabled();
   }
 
-  public SnapshotRequestContentsModel getMode() {
-    return mode;
+  public SnapshotRequestContentsModel getCreationInformation() {
+    return creationInformation;
   }
 
-  public Snapshot mode(SnapshotRequestContentsModel model) {
-    this.mode = model;
+  public Snapshot creationInformation(SnapshotRequestContentsModel model) {
+    this.creationInformation = model;
     return this;
   }
 }

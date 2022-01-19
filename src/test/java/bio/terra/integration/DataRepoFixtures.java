@@ -47,8 +47,8 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.iam.IamResourceType;
@@ -528,7 +528,7 @@ public class DataRepoFixtures {
   }
 
   public DataRepoResponse<SnapshotModel> getSnapshotRaw(
-      TestConfiguration.User user, UUID snapshotId, List<SnapshotRequestAccessIncludeModel> include)
+      TestConfiguration.User user, UUID snapshotId, List<SnapshotRetrieveIncludeModel> include)
       throws Exception {
     String includeParam;
     if (include != null && !include.isEmpty()) {
@@ -545,7 +545,7 @@ public class DataRepoFixtures {
   }
 
   public SnapshotModel getSnapshot(
-      TestConfiguration.User user, UUID snapshotId, List<SnapshotRequestAccessIncludeModel> include)
+      TestConfiguration.User user, UUID snapshotId, List<SnapshotRetrieveIncludeModel> include)
       throws Exception {
     DataRepoResponse<SnapshotModel> response = getSnapshotRaw(user, snapshotId, include);
     assertThat(

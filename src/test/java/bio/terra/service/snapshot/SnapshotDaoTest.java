@@ -170,7 +170,10 @@ public class SnapshotDaoTest {
 
     assertThat("correct number of sources created", fromDB.getSnapshotSources().size(), equalTo(1));
 
-    assertThat("snapshot mode set correctly", fromDB.getMode(), equalTo(snapshot.getMode()));
+    assertThat(
+        "snapshot mode set correctly",
+        fromDB.getCreationInformation(),
+        equalTo(snapshot.getCreationInformation()));
 
     // verify source and map
     SnapshotSource source = fromDB.getFirstSnapshotSource();

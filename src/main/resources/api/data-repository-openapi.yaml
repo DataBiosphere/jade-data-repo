@@ -605,7 +605,7 @@ paths:
             type: array
             default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
             items:
-              $ref: '#/components/schemas/SnapshotRequestAccessIncludeModel'
+              $ref: '#/components/schemas/SnapshotRetrieveIncludeModel'
       responses:
         200:
           description: Snapshot
@@ -3604,11 +3604,11 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
-    SnapshotRequestAccessIncludeModel:
+    SnapshotRetrieveIncludeModel:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT ]
+      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT, CREATION_INFORMATION ]
     SnapshotSummaryModel:
       type: object
       properties:
@@ -3680,6 +3680,8 @@ components:
           description: Project id of the snapshot data project
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
+        creationInformation:
+          $ref: '#/components/schemas/SnapshotRequestContentsModel'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:
@@ -3733,8 +3735,6 @@ components:
           $ref: '#/components/schemas/AccessInfoBigQueryModel'
         parquet:
           $ref: '#/components/schemas/AccessInfoParquetModel'
-        mode:
-          $ref: '#/components/schemas/SnapshotRequestContentsModel'
     AccessInfoBigQueryModel:
       description: >
         General information on where snapshot or dataset tabular data lives in BigQuery

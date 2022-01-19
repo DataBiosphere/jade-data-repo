@@ -25,7 +25,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessIncludeModel;
+import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.configuration.ConfigEnum;
 import com.google.auth.oauth2.AccessToken;
@@ -177,7 +177,7 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.getSnapshot(
             custodian(),
             snapshotSummaryModel.getId(),
-            List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
+            List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
     BigQuery bigQuery = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
     try {
       BigQueryFixtures.datasetExists(

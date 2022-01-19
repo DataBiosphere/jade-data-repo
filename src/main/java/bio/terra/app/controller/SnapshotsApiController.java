@@ -16,8 +16,8 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -201,7 +201,7 @@ public class SnapshotsApiController implements SnapshotsApi {
               value = "include",
               required = false,
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
-          List<SnapshotRequestAccessIncludeModel> include) {
+          List<SnapshotRetrieveIncludeModel> include) {
     logger.info("Verifying user access");
     AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
     iamService.verifyAuthorization(

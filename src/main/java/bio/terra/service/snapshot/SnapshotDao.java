@@ -158,14 +158,14 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, flightid, mode) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :flightid, :mode::jsonb) ";
-    String mode;
+        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, flightid, creation_information) "
+            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :flightid, :creation_information::jsonb) ";
+    String creationInfo;
     try {
-      mode = objectMapper.writeValueAsString(snapshot.getMode());
+      creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException(
-          "Invalid JSON in snapshot create mode, we should've caught this already", e);
+          "Invalid JSON in snapshot creationInformation, we should've caught this already", e);
     }
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -175,7 +175,7 @@ public class SnapshotDao {
             .addValue("project_resource_id", snapshot.getProjectResourceId())
             .addValue("id", snapshot.getId())
             .addValue("flightid", flightId)
-            .addValue("mode", mode);
+            .addValue("creation_information", creationInfo);
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {
@@ -357,31 +357,35 @@ public class SnapshotDao {
     return snapshot;
   }
 
+  private SnapshotRequestContentsModel stringToSnapshotRequestContentsModel(String json) {
+    try {
+      return objectMapper.readValue(json, SnapshotRequestContentsModel.class);
+    } catch (JsonProcessingException e) {
+      return null;
+    }
+  }
+
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
   Snapshot retrieveWorker(String sql, MapSqlParameterSource params) {
-    RowMapper<Snapshot> mapper =
-        (rs, rowNum) -> {
-          try {
-            return new Snapshot()
-                .id(rs.getObject("id", UUID.class))
-                .name(rs.getString("name"))
-                .description(rs.getString("description"))
-                .createdDate(rs.getTimestamp("created_date").toInstant())
-                .profileId(rs.getObject("profile_id", UUID.class))
-                .projectResourceId(rs.getObject("project_resource_id", UUID.class))
-                .mode(
-                    objectMapper.readValue(
-                        rs.getString("mode"), SnapshotRequestContentsModel.class));
-          } catch (JsonProcessingException e) {
-            return null;
-          }
-        };
-
     try {
-      Snapshot snapshot = jdbcTemplate.queryForObject(sql, params, mapper);
+      Snapshot snapshot =
+          jdbcTemplate.queryForObject(
+              sql,
+              params,
+              (rs, rowNum) ->
+                  new Snapshot()
+                      .id(rs.getObject("id", UUID.class))
+                      .name(rs.getString("name"))
+                      .description(rs.getString("description"))
+                      .createdDate(rs.getTimestamp("created_date").toInstant())
+                      .profileId(rs.getObject("profile_id", UUID.class))
+                      .projectResourceId(rs.getObject("project_resource_id", UUID.class))
+                      .creationInformation(
+                          stringToSnapshotRequestContentsModel(
+                              rs.getString("creation_information"))));
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
         // retrieve the snapshot tables and relationships

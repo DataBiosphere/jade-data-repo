@@ -6,7 +6,7 @@ databaseChangeLog:
         - addColumn:
             tableName: snapshot
             columns:
-              name: mode
+              name: creation_information
               type: jsonb
               defaultValue: "{}"
               constraints:

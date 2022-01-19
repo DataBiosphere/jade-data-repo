@@ -2149,6 +2149,12 @@ paths:
             application/json:
               schema:
                 type: object
+        202:
+          description: The job is currently running
+          content:
+            application/json:
+              schema:
+                type: object
   /api/repository/v1/configs/{name}:
     get:
       tags:

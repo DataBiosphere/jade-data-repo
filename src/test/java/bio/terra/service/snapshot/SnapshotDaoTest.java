@@ -34,7 +34,6 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -108,7 +107,11 @@ public class SnapshotDaoTest {
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     dataset = datasetDao.retrieve(datasetId);
 
-    snapshotRequest = makeSnapshotRequestModel("snapshot-test-snapshot.json");
+    snapshotRequest =
+        jsonLoader
+            .loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)
+            .profileId(profileId);
+    snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
 
     // Populate the snapshotId with random; delete should quietly not find it.
     snapshotId = UUID.randomUUID();
@@ -140,13 +143,6 @@ public class SnapshotDaoTest {
     snapshotDao.createAndLock(snapshot, flightId);
     snapshotDao.unlock(snapshotId, flightId);
     return snapshotDao.retrieveSnapshot(snapshotId);
-  }
-
-  private SnapshotRequestModel makeSnapshotRequestModel(String jsonFile) throws IOException {
-    SnapshotRequestModel snapshotRequestModel =
-        jsonLoader.loadObject(jsonFile, SnapshotRequestModel.class).profileId(profileId);
-    snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
-    return snapshotRequestModel;
   }
 
   @Test

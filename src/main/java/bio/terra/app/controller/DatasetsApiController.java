@@ -28,6 +28,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.AssetModelValidator;
@@ -351,6 +352,31 @@ public class DatasetsApiController implements DatasetsApi {
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
     String jobId = datasetService.openTransaction(id, body, userReq);
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
+  public ResponseEntity<JobModel> closeTransaction(
+      UUID id, UUID xactId, TransactionCloseModel body) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    String jobId;
+    switch (body.getMode()) {
+      case COMMIT:
+        {
+          jobId = datasetService.commitTransaction(id, xactId, userReq);
+          break;
+        }
+      case ROLLBACK:
+        {
+          jobId = datasetService.rollbackTransaction(id, xactId, userReq);
+          break;
+        }
+      default:
+        throw new IllegalArgumentException(
+            String.format("Invalid terminal state %s", body.getMode()));
+    }
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 

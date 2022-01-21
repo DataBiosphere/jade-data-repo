@@ -94,6 +94,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -1237,6 +1238,58 @@ public class BigQueryPdao {
     } else {
       throw new PdaoException(
           String.format("Found duplicate transactions in dataset %s", dataset.toPrintableString()));
+    }
+  }
+
+  private static final String verifyTransactionTemplate =
+      "SELECT COUNT(*) cnt "
+          + "FROM `<project>.<dataset>.<rawDataTable>` AS RT"
+          + "  INNER JOIN `<project>.<dataset>.<targetTable>` AS T "
+          + "    ON <pkColumns:{c|RT.<c.name> = T.<c.name>}; separator=\" AND \"> "
+          + "        AND RT.<transactIdCol>=@transactId"
+          + "  INNER JOIN `<project>.<dataset>.<rawDataTable>` R"
+          + "    ON T.<rowIdColumn>=R.<rowIdColumn> "
+          + "  INNER JOIN `<project>.<dataset>.<transactionTable>` X"
+          + "    ON R.<transactIdCol>=X.<transactIdCol> "
+          + "WHERE x.<transactStatusCol>=@transactStatus"
+          + "  AND x.<transactTerminatedAtCol> >"
+          + "  (SELECT <transactCreatedAtCol>"
+          + "   FROM `<project>.<dataset>.<transactionTable>`"
+          + "   WHERE <transactIdCol>=@transactId)";
+
+  public long verifyTransaction(Dataset dataset, DatasetTable datasetTable, UUID transactId)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(verifyTransactionTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("targetTable", datasetTable.getName());
+    sqlTemplate.add("metadataTable", datasetTable.getRowMetadataTableName());
+    sqlTemplate.add("rawDataTable", datasetTable.getRawTableName());
+    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+
+    sqlTemplate.add("rowIdColumn", PDAO_ROW_ID_COLUMN);
+    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("transactStatusCol", PDAO_XACTION_STATUS_COLUMN);
+    sqlTemplate.add("transactTerminatedAtCol", PDAO_XACTION_TERMINATED_AT_COLUMN);
+    sqlTemplate.add("transactCreatedAtCol", PDAO_XACTION_CREATED_AT_COLUMN);
+    sqlTemplate.add("pkColumns", datasetTable.getPrimaryKey());
+
+    TableResult result =
+        bigQueryProject.query(
+            sqlTemplate.render(),
+            Map.of(
+                "transactId", QueryParameterValue.string(transactId.toString()),
+                "transactStatus",
+                    QueryParameterValue.string(TransactionModel.StatusEnum.COMMITTED.toString())));
+
+    try {
+      return result.getValues().iterator().next().get("cnt").getLongValue();
+    } catch (NoSuchElementException e) {
+      // Note: there will always be a row here unless something goes wrong with BigQuery return.
+      // It's highly unlikely we would ever reach this point
+      throw new PdaoException("Error verifying transaction lock status", e);
     }
   }
 

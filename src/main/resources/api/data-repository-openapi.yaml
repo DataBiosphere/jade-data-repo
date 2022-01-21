@@ -3647,12 +3647,12 @@ components:
           default: false
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
-        dataProjects:
+        dataProject:
           type: string
-          description: The google projects of this dataset
-        storageAccounts:
+          description: The google project of this snapshot
+        storageAccount:
           type: string
-          description: The azure storage accounts of this dataset
+          description: The azure storage accounts of this snapshot
       description: >
         summary of snapshot
     EnumerateSnapshotModel:

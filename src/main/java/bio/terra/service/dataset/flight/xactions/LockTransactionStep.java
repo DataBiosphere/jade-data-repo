@@ -1,0 +1,57 @@
+package bio.terra.service.dataset.flight.xactions;
+
+import bio.terra.model.TransactionModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.exception.TransactionLockException;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.Step;
+import bio.terra.stairway.StepResult;
+import java.util.List;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class LockTransactionStep implements Step {
+  private static final Logger logger = LoggerFactory.getLogger(LockTransactionStep.class);
+  private final DatasetService datasetService;
+  private final BigQueryPdao bigQueryPdao;
+  private final UUID transactionId;
+  private final boolean failIfTerminated;
+
+  public LockTransactionStep(
+      DatasetService datasetService,
+      BigQueryPdao bigQueryPdao,
+      UUID transactionId,
+      boolean failIfTerminated) {
+    this.datasetService = datasetService;
+    this.bigQueryPdao = bigQueryPdao;
+    this.transactionId = transactionId;
+    this.failIfTerminated = failIfTerminated;
+  }
+
+  @Override
+  public StepResult doStep(FlightContext context) throws InterruptedException {
+    Dataset dataset = IngestUtils.getDataset(context, datasetService);
+    TransactionUtils.putTransactionId(context, transactionId);
+    TransactionModel transaction =
+        bigQueryPdao.updateTransactionTableLock(dataset, transactionId, context.getFlightId());
+    if (failIfTerminated && transaction.getStatus() != TransactionModel.StatusEnum.ACTIVE) {
+      throw new TransactionLockException("Transaction is already terminated", List.of());
+    }
+    return StepResult.getStepResultSuccess();
+  }
+
+  @Override
+  public StepResult undoStep(FlightContext context) throws InterruptedException {
+    try {
+      Dataset dataset = IngestUtils.getDataset(context, datasetService);
+      bigQueryPdao.updateTransactionTableLock(dataset, transactionId, null);
+    } catch (Exception e) {
+      logger.info("Unlocking transaction", e);
+    }
+    return StepResult.getStepResultSuccess();
+  }
+}

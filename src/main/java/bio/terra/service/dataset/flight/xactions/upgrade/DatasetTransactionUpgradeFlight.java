@@ -9,9 +9,9 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
 
-public class DatasetXactionUpgradeFlight extends Flight {
+public class DatasetTransactionUpgradeFlight extends Flight {
 
-  public DatasetXactionUpgradeFlight(FlightMap inputParameters, Object applicationContext) {
+  public DatasetTransactionUpgradeFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
 
     // get the required daos to pass into the steps
@@ -23,6 +23,6 @@ public class DatasetXactionUpgradeFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    addStep(new XactionUpgradeStep(iamService, datasetService, bigQueryPdao, userReq));
+    addStep(new TransactionUpgradeStep(iamService, datasetService, bigQueryPdao, userReq));
   }
 }

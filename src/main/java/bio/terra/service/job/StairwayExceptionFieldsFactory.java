@@ -12,17 +12,17 @@ import org.apache.commons.lang3.StringUtils;
 
 public class StairwayExceptionFieldsFactory {
 
-  private static String CONTACT_TEAM_MESSAGE = "Please contact the TDR team for help.";
+  private static final String CONTACT_TEAM_MESSAGE = "Please contact the TDR team for help.";
 
-  public static StairwayExceptionFields fieldsFromException(Exception ex) {
-    Optional<String> stepName = getStepNameFromStairwayException(ex);
+  public static StairwayExceptionFields fromException(Exception ex) {
+    String stepName = getStepNameFromStairwayException(ex);
 
     Optional<String> fieldExceptionClassName = Optional.empty();
     if (ErrorReportException.class.isAssignableFrom(ex.getClass())) {
       fieldExceptionClassName = Optional.of(ex.getClass().getName());
     }
 
-    if (stepName.isEmpty()) {
+    if (stepName == null) {
       return new StairwayExceptionFields()
           .setClassName(fieldExceptionClassName.orElse(JobExecutionException.class.getName()))
           .setDataRepoException(true)
@@ -33,17 +33,16 @@ public class StairwayExceptionFieldsFactory {
     return new StairwayExceptionFields()
         .setClassName(fieldExceptionClassName.orElse(StepExecutionException.class.getName()))
         .setDataRepoException(true)
-        .setMessage(getStepExceptionMessage(stepName.get(), ex))
+        .setMessage(getStepExceptionMessage(stepName, ex))
         .setErrorDetails(getStepExceptionDetails(ex));
   }
 
-  private static Optional<String> getStepNameFromStairwayException(Exception ex) {
+  private static String getStepNameFromStairwayException(Exception ex) {
     String failedStepName = null;
     for (StackTraceElement ste : ex.getStackTrace()) {
       try {
         Class<?> cls = Class.forName(ste.getClassName());
         if (Step.class.isAssignableFrom(cls)) {
-          // Java 17 will make this casting unnecessary
           failedStepName = cls.getSimpleName();
           break;
         }
@@ -52,7 +51,7 @@ public class StairwayExceptionFieldsFactory {
             "All steps in a stacktrace should be able to be found", e);
       }
     }
-    return Optional.ofNullable(failedStepName);
+    return failedStepName;
   }
 
   private static String getJobExceptionMessage(Exception exception) {
@@ -60,19 +59,18 @@ public class StairwayExceptionFieldsFactory {
       return exception.getMessage();
     }
     return String.format(
-        "Encountered a %s while running the job", exception.getClass().getSimpleName());
+        "Encountered %s while running the job", exception.getClass().getSimpleName());
   }
 
   private static List<String> getJobExceptionDetails(Exception exception) {
     if (ErrorReportException.class.isAssignableFrom(exception.getClass())) {
       ErrorReportException errorReportException = (ErrorReportException) exception;
       return errorReportException.getCauses();
-    } else {
-      List<String> details = new ArrayList<>();
-      details.add("The job failed, but not while running a step");
-      details.add(CONTACT_TEAM_MESSAGE);
-      return details;
     }
+    List<String> details = new ArrayList<>();
+    details.add("The job failed, but not while running a step");
+    details.add(CONTACT_TEAM_MESSAGE);
+    return details;
   }
 
   private static String getStepExceptionMessage(String stepName, Exception exception) {
@@ -87,17 +85,10 @@ public class StairwayExceptionFieldsFactory {
     if (ErrorReportException.class.isAssignableFrom(exception.getClass())) {
       ErrorReportException errorReportException = (ErrorReportException) exception;
       return errorReportException.getCauses();
-    } else {
-      List<String> details = new ArrayList<>();
-      if ("IamUnauthorizedException".equals(exception.getClass().getSimpleName())) {
-        details.add(
-            "If this is a long-running job, the user token may have timed out. "
-                + "Consider breaking the job into smaller jobs if possible.");
-        details.add(
-            "There may be a problem with bucket access. "
-                + "Has the user (or PET) account been granted access to all necessary files?");
-      }
-      return details;
     }
+    List<String> details = new ArrayList<>();
+    details.add("The step failed for an unknown reason.");
+    details.add(CONTACT_TEAM_MESSAGE);
+    return details;
   }
 }

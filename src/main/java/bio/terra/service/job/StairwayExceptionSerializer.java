@@ -29,8 +29,7 @@ public class StairwayExceptionSerializer implements ExceptionSerializer {
       exception = new JobResponseException(exception.getMessage(), exception);
     }
 
-    final StairwayExceptionFields fields =
-        StairwayExceptionFieldsFactory.fieldsFromException(exception);
+    final StairwayExceptionFields fields = StairwayExceptionFieldsFactory.fromException(exception);
 
     try {
       return objectMapper.writeValueAsString(fields);

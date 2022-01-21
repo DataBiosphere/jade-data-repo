@@ -1,7 +1,6 @@
 package bio.terra.service.resourcemanagement.exception;
 
 import bio.terra.common.exception.BadRequestException;
-
 import java.util.List;
 
 public class InaccessibleBillingAccountException extends BadRequestException {

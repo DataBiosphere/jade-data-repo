@@ -4,6 +4,7 @@ import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
+import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
@@ -18,7 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 
-public class Dataset implements FSContainerInterface {
+public class Dataset implements FSContainerInterface, LogPrintable {
 
   private final DatasetSummary datasetSummary;
   private List<DatasetTable> tables = Collections.emptyList();
@@ -222,5 +223,10 @@ public class Dataset implements FSContainerInterface {
 
   public boolean isSecureMonitoringEnabled() {
     return datasetSummary.isSecureMonitoringEnabled();
+  }
+
+  @Override
+  public String toPrintableString() {
+    return String.format("%s (%s)", this.getName(), this.getId());
   }
 }

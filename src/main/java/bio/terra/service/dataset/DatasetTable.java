@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
+import bio.terra.common.LogPrintable;
 import bio.terra.common.Table;
 import java.util.Collections;
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.UUID;
  * <p>Includes extra info to capture: 1. Primary keys 2. Names of helper tables used when building
  * "live views" 3. Configuration for partitioning the table in BigQuery
  */
-public class DatasetTable implements Table {
+public class DatasetTable implements Table, LogPrintable {
 
   private UUID id;
   private String name;
@@ -104,5 +105,10 @@ public class DatasetTable implements Table {
   public DatasetTable setRowCount(Long rowCount) {
     this.rowCount = rowCount;
     return this;
+  }
+
+  @Override
+  public String toPrintableString() {
+    return String.format("%s (%s)", this.getName(), this.getId());
   }
 }

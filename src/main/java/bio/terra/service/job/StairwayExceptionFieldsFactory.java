@@ -5,7 +5,6 @@ import bio.terra.service.job.exception.ExceptionSerializerException;
 import bio.terra.service.job.exception.JobExecutionException;
 import bio.terra.service.job.exception.StepExecutionException;
 import bio.terra.stairway.Step;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;

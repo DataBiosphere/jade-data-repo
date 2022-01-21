@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
@@ -14,19 +15,23 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
+import bio.terra.service.dataset.exception.TransactionLockException;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -65,6 +70,13 @@ import org.stringtemplate.v4.ST;
 @Category(Connected.class)
 @EmbeddedDatabaseTest
 public class BigQueryPdaoDatasetConnectedTest {
+
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
 
   @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedTestConfiguration testConfig;
@@ -279,6 +291,88 @@ public class BigQueryPdaoDatasetConnectedTest {
             nullPkBlob.getBlobId());
       }
     }
+  }
+
+  @Test
+  public void transactionTest() throws Exception {
+    Dataset dataset = readDataset("ingest-test-dataset.json");
+    String flightId1 = UUID.randomUUID().toString();
+    String flightId2 = UUID.randomUUID().toString();
+    String description1 = "foo";
+    String description2 = null;
+
+    connectedOperations.addDataset(dataset.getId());
+    bigQueryPdao.createDataset(dataset);
+
+    // Create transactions
+    TransactionModel transaction1 =
+        bigQueryPdao.insertIntoTransactionTable(TEST_USER, dataset, flightId1, description1);
+    TransactionModel transaction2 =
+        bigQueryPdao.insertIntoTransactionTable(TEST_USER, dataset, flightId2, description2);
+
+    assertThat("Transaction 1 has correct lock", transaction1.getLock(), is(flightId1));
+    assertThat("Transaction 2 has correct lock", transaction2.getLock(), is(flightId2));
+
+    assertThat(
+        "Transaction 1 has correct description", transaction1.getDescription(), is(description1));
+    assertThat(
+        "Transaction 2 has correct description", transaction2.getDescription(), is(description2));
+
+    assertThat(
+        "Transaction 1 has correct status",
+        transaction1.getStatus(),
+        is(TransactionModel.StatusEnum.ACTIVE));
+    assertThat(
+        "Transaction 2 has correct status",
+        transaction2.getStatus(),
+        is(TransactionModel.StatusEnum.ACTIVE));
+
+    // Enumerate all transactions
+    List<TransactionModel> enumeratedTransactions =
+        bigQueryPdao.enumerateTransactions(dataset, 0, 10);
+    assertThat(
+        "Enumerating transactions works",
+        enumeratedTransactions,
+        containsInAnyOrder(transaction1, transaction2));
+
+    // Retrieve transactions individually
+    assertThat(
+        "Transaction 1 retrieves correctly",
+        bigQueryPdao.retrieveTransaction(dataset, transaction1.getId()),
+        is(transaction1));
+    assertThat(
+        "Transaction 2 retrieves correctly",
+        bigQueryPdao.retrieveTransaction(dataset, transaction2.getId()),
+        is(transaction2));
+
+    // Lock transaction with same flight
+    bigQueryPdao.updateTransactionTableLock(dataset, transaction1.getId(), transaction1.getLock());
+
+    // Lock transaction with different flight
+    assertThrows(
+        TransactionLockException.class,
+        () -> bigQueryPdao.updateTransactionTableLock(dataset, transaction1.getId(), "FOO"));
+
+    // Commit the transaction
+    bigQueryPdao.updateTransactionTableStatus(
+        TEST_USER, dataset, transaction1.getId(), TransactionModel.StatusEnum.COMMITTED);
+    // Try to reopen transaction
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            bigQueryPdao.updateTransactionTableStatus(
+                TEST_USER, dataset, transaction1.getId(), TransactionModel.StatusEnum.ACTIVE));
+
+    // Delete the transactions
+    bigQueryPdao.deleteFromTransactionTable(dataset, transaction1.getId());
+    // Make sure we can't see the transaction
+    assertThrows(
+        NotFoundException.class,
+        () -> bigQueryPdao.retrieveTransaction(dataset, transaction1.getId()));
+    bigQueryPdao.deleteFromTransactionTable(dataset, transaction2.getId());
+    assertThrows(
+        NotFoundException.class,
+        () -> bigQueryPdao.retrieveTransaction(dataset, transaction2.getId()));
   }
 
   private static final String queryAllRowIdsTemplate =

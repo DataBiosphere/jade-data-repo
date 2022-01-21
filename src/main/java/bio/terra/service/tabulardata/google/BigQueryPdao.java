@@ -11,6 +11,15 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_XACTIONS_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_XACTION_CREATED_AT_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_XACTION_CREATED_BY_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_XACTION_DESCRIPTION_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_XACTION_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_XACTION_LOCK_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_XACTION_STATUS_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_XACTION_TERMINATED_AT_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_XACTION_TERMINATED_BY_COLUMN;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
@@ -19,7 +28,9 @@ import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.Table;
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
@@ -29,6 +40,7 @@ import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.TableDataType;
+import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
@@ -36,6 +48,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.dataset.exception.TransactionLockException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
@@ -57,6 +70,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
@@ -131,6 +145,7 @@ public class BigQueryPdao {
 
       bigQueryProject.createDataset(datasetName, dataset.getDescription(), region);
       bigQueryProject.createTable(datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
+      bigQueryProject.createTable(datasetName, PDAO_XACTIONS_TABLE, buildTransactionsTableSchema());
       for (DatasetTable table : dataset.getTables()) {
         bigQueryProject.createTable(
             datasetName,
@@ -867,7 +882,7 @@ public class BigQueryPdao {
       loadBuilder.setSchema(noRowId);
       loadJob = ingestData(bigQuery, path, loadBuilder.build());
       // Then add the datarepo_row_id column to the schema
-      updateSchema(bigQuery, bqDatasetId, stagingTableName, schemaWithRowId);
+      updateSchema(bigQuery, bqDatasetId, stagingTableName, schemaWithRowId, true);
     } else {
       loadBuilder.setSchema(
           schemaWithRowId); // docs say this is for target, but CLI provides one for the source
@@ -877,15 +892,26 @@ public class BigQueryPdao {
   }
 
   private void updateSchema(
-      BigQuery bigQuery, String bqDatasetId, String stagingTableName, Schema newSchema) {
-    com.google.cloud.bigquery.Table table = bigQuery.getTable(bqDatasetId, stagingTableName);
+      BigQuery bigQuery,
+      String bqDatasetId,
+      String tableToUpdate,
+      Schema newSchema,
+      boolean strict) {
+    com.google.cloud.bigquery.Table table = bigQuery.getTable(bqDatasetId, tableToUpdate);
+    if (table == null) {
+      return;
+    }
     com.google.cloud.bigquery.Table updatedTable =
         table.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
     try {
       updatedTable.update();
     } catch (BigQueryException e) {
-      throw new IngestFailureException(
-          "Failure adding " + PDAO_ROW_ID_COLUMN + " to the staging table schema", e);
+      String message = String.format("Failure updating the table schema for %s", tableToUpdate);
+      if (strict) {
+        throw new PdaoException(message, e);
+      } else {
+        logger.warn(message, e);
+      }
     }
   }
 
@@ -998,6 +1024,251 @@ public class BigQueryPdao {
     sqlTemplate.add("loadTagColumn", PDAO_LOAD_TAG_COLUMN);
 
     bigQueryProject.query(sqlTemplate.render());
+  }
+
+  private static final String insertIntoTransactionTableTemplate =
+      "INSERT INTO `<project>.<dataset>.<transactionTable>` "
+          + "(<transactIdCol>,<transactStatusCol>,<transactLockCol>,<transactDescriptionCol>,"
+          + "<transactCreatedAtCol>,<transactCreatedByCol>)"
+          + " VALUES "
+          + "(@transactId,@transactStatus,@transactLock,@transactDescription,@transactCreatedAt,"
+          + "@transactCreatedBy)";
+
+  public TransactionModel insertIntoTransactionTable(
+      AuthenticatedUserRequest authedUser,
+      Dataset dataset,
+      String flightId,
+      String transactionDescription)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(insertIntoTransactionTableTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+
+    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("transactStatusCol", PDAO_XACTION_STATUS_COLUMN);
+    sqlTemplate.add("transactLockCol", PDAO_XACTION_LOCK_COLUMN);
+    sqlTemplate.add("transactDescriptionCol", PDAO_XACTION_DESCRIPTION_COLUMN);
+    sqlTemplate.add("transactCreatedAtCol", PDAO_XACTION_CREATED_AT_COLUMN);
+    sqlTemplate.add("transactCreatedByCol", PDAO_XACTION_CREATED_BY_COLUMN);
+
+    long createdAt = System.currentTimeMillis();
+    TransactionModel transaction =
+        new TransactionModel()
+            .id(UUID.randomUUID())
+            .lock(flightId)
+            .description(transactionDescription)
+            .status(TransactionModel.StatusEnum.ACTIVE)
+            .createdAt(Instant.ofEpochMilli(createdAt).toString())
+            .createdBy(authedUser.getEmail());
+
+    bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of(
+            "transactId", QueryParameterValue.string(transaction.getId().toString()),
+            "transactLock", QueryParameterValue.string(transaction.getLock()),
+            "transactDescription", QueryParameterValue.string(transaction.getDescription()),
+            "transactStatus", QueryParameterValue.string(transaction.getStatus().toString()),
+            "transactCreatedAt", QueryParameterValue.timestamp(createdAt * 1000),
+            "transactCreatedBy", QueryParameterValue.string(transaction.getCreatedBy())));
+
+    return transaction;
+  }
+
+  private static final String deleteFromTransactionTableTemplate =
+      "DELETE FROM `<project>.<dataset>.<transactionTable>` WHERE <transactIdCol>=@transactId";
+
+  public void deleteFromTransactionTable(Dataset dataset, UUID transactionId)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(deleteFromTransactionTableTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+
+    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
+
+    bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of("transactId", QueryParameterValue.string(transactionId.toString())));
+  }
+
+  // TODO: once GA, add a transaction block around this. Putting into the same job at least reduces
+  // the risk of conflict
+  private static final String updateTransactionTableLockTemplate =
+      "SELECT IF((SELECT COUNT(*)"
+          + " FROM `<project>.<dataset>.<transactionTable>`"
+          + " WHERE <transactIdCol>=@transactId"
+          + " AND <transactLockCol> IS NOT NULL AND <transactLockCol>!=@transactLock) > 0,"
+          + " ERROR('<lockErrorMessage>'), '');"
+          + "UPDATE `<project>.<dataset>.<transactionTable>` SET "
+          + "<transactLockCol>=@transactLock "
+          + "WHERE <transactIdCol>=@transactId;";
+
+  public TransactionModel updateTransactionTableLock(
+      Dataset dataset, UUID transactId, String flightId) throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(updateTransactionTableLockTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+
+    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("transactLockCol", PDAO_XACTION_LOCK_COLUMN);
+    sqlTemplate.add("transactTerminatedAtCol", PDAO_XACTION_TERMINATED_AT_COLUMN);
+
+    String lockErrorMessage = "Transaction already locked";
+    sqlTemplate.add("lockErrorMessage", lockErrorMessage);
+    try {
+      bigQueryProject.query(
+          sqlTemplate.render(),
+          Map.of(
+              "transactId", QueryParameterValue.string(transactId.toString()),
+              "transactLock", QueryParameterValue.string(flightId)));
+    } catch (PdaoException e) {
+      if (e.getCause() != null && e.getMessage().contains(lockErrorMessage)) {
+        throw new TransactionLockException(
+            String.format("Error locking transaction for dataset %s", dataset.toPrintableString()),
+            List.of(lockErrorMessage));
+      }
+      throw new TransactionLockException(
+          String.format("Error locking transaction for dataset %s", dataset.toPrintableString()),
+          e);
+    }
+    return retrieveTransaction(dataset, transactId);
+  }
+
+  private static final String updateTransactionTableStatusTemplate =
+      "UPDATE `<project>.<dataset>.<transactionTable>` SET "
+          + "<transactStatusCol>=@transactStatus,"
+          + "<transactTerminatedAtCol>=@transactTerminatedAt,"
+          + "<transactTerminatedByCol>=@transactTerminatedBy "
+          + "WHERE <transactIdCol>=@transactId";
+
+  public TransactionModel updateTransactionTableStatus(
+      AuthenticatedUserRequest authedUser,
+      Dataset dataset,
+      UUID transactId,
+      TransactionModel.StatusEnum status)
+      throws InterruptedException {
+    if (status == TransactionModel.StatusEnum.ACTIVE) {
+      throw new IllegalArgumentException("Transactions cannot be re-openned");
+    }
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(updateTransactionTableStatusTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+
+    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("transactStatusCol", PDAO_XACTION_STATUS_COLUMN);
+    sqlTemplate.add("transactTerminatedAtCol", PDAO_XACTION_TERMINATED_AT_COLUMN);
+    sqlTemplate.add("transactTerminatedByCol", PDAO_XACTION_TERMINATED_BY_COLUMN);
+
+    long terminatedAt = System.currentTimeMillis();
+
+    bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of(
+            "transactId", QueryParameterValue.string(transactId.toString()),
+            "transactStatus", QueryParameterValue.string(status.toString()),
+            "transactTerminatedAt", QueryParameterValue.timestamp(terminatedAt * 1000),
+            "transactTerminatedBy", QueryParameterValue.string(authedUser.getEmail())));
+
+    return retrieveTransaction(dataset, transactId);
+  }
+
+  private static final String baseTransactionTableTemplate =
+      "SELECT * FROM `<project>.<dataset>.<transactionTable>`";
+
+  private static final String enumerateTransactionsTemplate =
+      baseTransactionTableTemplate
+          + " ORDER BY <transactCreatedAtCol> DESC LIMIT <limit> OFFSET <offset>";
+
+  public List<TransactionModel> enumerateTransactions(Dataset dataset, long offset, long limit)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(enumerateTransactionsTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+
+    sqlTemplate.add("limit", limit);
+    sqlTemplate.add("offset", offset);
+    sqlTemplate.add("transactCreatedAtCol", PDAO_XACTION_CREATED_AT_COLUMN);
+
+    return StreamSupport.stream(
+            bigQueryProject.query(sqlTemplate.render()).getValues().spliterator(), false)
+        .map(this::mapTransactionModel)
+        .collect(Collectors.toList());
+  }
+
+  private static final String retrieveTransactionTemplate =
+      baseTransactionTableTemplate + " WHERE <transactIdCol> = @transactionId ";
+
+  public TransactionModel retrieveTransaction(Dataset dataset, UUID transactionId)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(retrieveTransactionTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+
+    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
+
+    TableResult result =
+        bigQueryProject.query(
+            sqlTemplate.render(),
+            Map.of("transactionId", QueryParameterValue.string(transactionId.toString())));
+    if (result.getTotalRows() == 0) {
+      throw new NotFoundException(
+          String.format(
+              "Transaction %s not found in dataset %s",
+              transactionId, dataset.toPrintableString()));
+    } else if (result.getTotalRows() == 1) {
+      return mapTransactionModel(result.getValues().iterator().next());
+    } else {
+      throw new PdaoException(
+          String.format("Found duplicate transactions in dataset %s", dataset.toPrintableString()));
+    }
+  }
+
+  private TransactionModel mapTransactionModel(FieldValueList values) {
+    return new TransactionModel()
+        .id(UUID.fromString(values.get(PDAO_XACTION_ID_COLUMN).getStringValue()))
+        .status(
+            TransactionModel.StatusEnum.fromValue(
+                values.get(PDAO_XACTION_STATUS_COLUMN).getStringValue()))
+        .lock(
+            values.get(PDAO_XACTION_LOCK_COLUMN).isNull()
+                ? null
+                : values.get(PDAO_XACTION_LOCK_COLUMN).getStringValue())
+        .description(
+            Optional.ofNullable(values.get(PDAO_XACTION_DESCRIPTION_COLUMN).getValue())
+                .map(Object::toString)
+                .orElse(null))
+        .createdAt(
+            Instant.ofEpochMilli(
+                    values.get(PDAO_XACTION_CREATED_AT_COLUMN).getTimestampValue() / 1000)
+                .toString())
+        .createdBy(values.get(PDAO_XACTION_CREATED_BY_COLUMN).getStringValue())
+        .terminatedAt(
+            values.get(PDAO_XACTION_TERMINATED_AT_COLUMN).isNull()
+                ? null
+                : Instant.ofEpochMilli(
+                        values.get(PDAO_XACTION_TERMINATED_AT_COLUMN).getTimestampValue() / 1000)
+                    .toString())
+        .terminatedBy(
+            Optional.ofNullable(values.get(PDAO_XACTION_TERMINATED_BY_COLUMN).getValue())
+                .map(Object::toString)
+                .orElse(null));
   }
 
   private FormatOptions buildFormatOptions(IngestRequestModel ingestRequest) {
@@ -1137,6 +1408,34 @@ public class BigQueryPdao {
   private Schema buildSoftDeletesSchema() {
     return Schema.of(
         Collections.singletonList(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING)));
+  }
+
+  private Schema buildTransactionsTableSchema() {
+    return Schema.of(
+        Field.newBuilder(PDAO_XACTION_ID_COLUMN, LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build(),
+        Field.newBuilder(PDAO_XACTION_STATUS_COLUMN, LegacySQLTypeName.STRING)
+            .setMode(Mode.REQUIRED)
+            .build(),
+        Field.newBuilder(PDAO_XACTION_LOCK_COLUMN, LegacySQLTypeName.STRING)
+            .setMode(Mode.NULLABLE)
+            .build(),
+        Field.newBuilder(PDAO_XACTION_DESCRIPTION_COLUMN, LegacySQLTypeName.STRING)
+            .setMode(Mode.NULLABLE)
+            .build(),
+        Field.newBuilder(PDAO_XACTION_CREATED_AT_COLUMN, LegacySQLTypeName.TIMESTAMP)
+            .setMode(Mode.REQUIRED)
+            .build(),
+        Field.newBuilder(PDAO_XACTION_CREATED_BY_COLUMN, LegacySQLTypeName.STRING)
+            .setMode(Mode.REQUIRED)
+            .build(),
+        Field.newBuilder(PDAO_XACTION_TERMINATED_AT_COLUMN, LegacySQLTypeName.TIMESTAMP)
+            .setMode(Mode.NULLABLE)
+            .build(),
+        Field.newBuilder(PDAO_XACTION_TERMINATED_BY_COLUMN, LegacySQLTypeName.STRING)
+            .setMode(Mode.NULLABLE)
+            .build());
   }
 
   private Schema buildSchema(DatasetTable table, boolean addRowIdColumn) {
@@ -2136,6 +2435,49 @@ public class BigQueryPdao {
     }
 
     return paths;
+  }
+
+  // TODO: rebase to use summary once merged
+  public void migrateSchemasForTransactions(List<Dataset> datasets) {
+    for (Dataset dataset : datasets) {
+      String datasetName = prefixName(dataset.getName());
+      BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+      BigQuery bigQuery = bigQueryProject.getBigQuery();
+      String bqDatasetId = prefixName(dataset.getName());
+      logger.info("Migrating dataset {}", dataset.toPrintableString());
+      for (DatasetTable datasetTable : dataset.getTables()) {
+        try {
+          logger.info("...Migrating dataset table {}", datasetTable.toPrintableString());
+          logger.info("......Raw data table");
+          updateSchema(
+              bigQuery,
+              bqDatasetId,
+              datasetTable.getRawTableName(),
+              buildSchema(datasetTable, true),
+              false);
+          logger.info("......Soft delete table");
+          updateSchema(
+              bigQuery,
+              bqDatasetId,
+              datasetTable.getSoftDeleteTableName(),
+              buildSoftDeletesSchema(),
+              false);
+          logger.info("......Adding Transaction table");
+          if (!bigQueryProject.tableExists(datasetName, PDAO_XACTIONS_TABLE)) {
+            bigQueryProject.createTable(
+                datasetName, PDAO_XACTIONS_TABLE, buildTransactionsTableSchema());
+          }
+          logger.info("......Updating live view");
+          bigQuery.update(buildLiveView(bigQueryProject.getProjectId(), datasetName, datasetTable));
+        } catch (Exception e) {
+          logger.warn(
+              "Error migrating table {} in dataset {}",
+              datasetTable.toPrintableString(),
+              dataset.toPrintableString(),
+              e);
+        }
+      }
+    }
   }
 
   /**

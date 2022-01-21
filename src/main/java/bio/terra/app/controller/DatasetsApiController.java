@@ -28,6 +28,8 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TransactionCreateModel;
+import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DataDeletionRequestValidator;
 import bio.terra.service.dataset.Dataset;
@@ -341,6 +343,31 @@ public class DatasetsApiController implements DatasetsApi {
             getAuthenticatedInfo(), IamResourceType.DATASET, id, policyName, memberEmail);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<JobModel> openTransaction(UUID id, TransactionCreateModel body) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    String jobId = datasetService.openTransaction(id, body, userReq);
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
+  public ResponseEntity<List<TransactionModel>> enumerateTransactions(
+      UUID id, Integer offset, Integer limit) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    return new ResponseEntity<>(
+        datasetService.enumerateTransactions(id, offset, limit), HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<TransactionModel> retrieveTransaction(UUID id, UUID xactId) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    return new ResponseEntity<>(datasetService.retrieveTransaction(id, xactId), HttpStatus.OK);
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

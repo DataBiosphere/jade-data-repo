@@ -18,6 +18,8 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TransactionCreateModel;
+import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
@@ -25,6 +27,7 @@ import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
 import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
 import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
+import bio.terra.service.dataset.flight.xactions.DatasetTransactionOpenFlight;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -279,6 +282,39 @@ public class DatasetService {
       datasetDao.unlockShared(datasetId, flightId);
     } else {
       datasetDao.unlockExclusive(datasetId, flightId);
+    }
+  }
+
+  public String openTransaction(
+      UUID id, TransactionCreateModel transactionRequest, AuthenticatedUserRequest userReq) {
+    String name;
+    if (StringUtils.isEmpty(transactionRequest.getDescription())) {
+      name = UUID.randomUUID().toString();
+    } else {
+      name = transactionRequest.getDescription();
+    }
+    String description = "Create transaction " + name;
+    return jobService
+        .newJob(description, DatasetTransactionOpenFlight.class, transactionRequest, userReq)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+        .submit();
+  }
+
+  public List<TransactionModel> enumerateTransactions(UUID id, long limit, long offset) {
+    Dataset dataset = retrieve(id);
+    try {
+      return bigQueryPdao.enumerateTransactions(dataset, limit, offset);
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Error enumerating transactions", e);
+    }
+  }
+
+  public TransactionModel retrieveTransaction(UUID id, UUID xactId) {
+    Dataset retrieve = retrieve(id);
+    try {
+      return bigQueryPdao.retrieveTransaction(retrieve, xactId);
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Error retrieving transaction", e);
     }
   }
 

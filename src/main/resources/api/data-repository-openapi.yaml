@@ -3652,7 +3652,7 @@ components:
           description: The google project of this snapshot
         storageAccount:
           type: string
-          description: The azure storage accounts of this snapshot
+          description: The azure storage account of this snapshot
       description: >
         summary of snapshot
     EnumerateSnapshotModel:

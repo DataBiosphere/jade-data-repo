@@ -63,14 +63,11 @@ public class StairwayExceptionFieldsFactory {
   }
 
   private static List<String> getJobExceptionDetails(Exception exception) {
-    if (ErrorReportException.class.isAssignableFrom(exception.getClass())) {
-      ErrorReportException errorReportException = (ErrorReportException) exception;
-      return errorReportException.getCauses();
+    List<String> errorReportCauses = getErrorReportExceptionCauses(exception);
+    if (errorReportCauses != null) {
+      return errorReportCauses;
     }
-    List<String> details = new ArrayList<>();
-    details.add("The job failed, but not while running a step");
-    details.add(CONTACT_TEAM_MESSAGE);
-    return details;
+    return List.of("The job failed, but not while running a step", CONTACT_TEAM_MESSAGE);
   }
 
   private static String getStepExceptionMessage(String stepName, Exception exception) {
@@ -82,13 +79,21 @@ public class StairwayExceptionFieldsFactory {
   }
 
   private static List<String> getStepExceptionDetails(Exception exception) {
-    if (ErrorReportException.class.isAssignableFrom(exception.getClass())) {
-      ErrorReportException errorReportException = (ErrorReportException) exception;
-      return errorReportException.getCauses();
+    List<String> errorReportCauses = getErrorReportExceptionCauses(exception);
+    if (errorReportCauses != null) {
+      return errorReportCauses;
     }
-    List<String> details = new ArrayList<>();
-    details.add("The step failed for an unknown reason.");
-    details.add(CONTACT_TEAM_MESSAGE);
-    return details;
+    return List.of("The step failed for an unknown reason.", CONTACT_TEAM_MESSAGE);
+  }
+
+  private static List<String> getErrorReportExceptionCauses(Exception exception) {
+    if (ErrorReportException.class.isAssignableFrom(exception.getClass())) {
+      // Java 17 will make casting unnecessary
+      ErrorReportException errorReportException = (ErrorReportException) exception;
+      if (!errorReportException.getCauses().isEmpty()) {
+        return errorReportException.getCauses();
+      }
+    }
+    return null;
   }
 }

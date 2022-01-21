@@ -6,6 +6,7 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -48,7 +49,8 @@ public class ValidateBucketAccessStep implements Step {
       throw new IllegalArgumentException("Invalid request type");
     }
     gcsPdao.validateUserCanRead(sourcePath, userRequest);
-    return StepResult.getStepResultSuccess();
+    throw new IamUnauthorizedException("This message thrown from the step.");
+    //    return StepResult.getStepResultSuccess();
   }
 
   @Override

@@ -92,7 +92,10 @@ public final class DatasetJsonConversion {
         .createdDate(datasetSummary.getCreatedDate().toString())
         .defaultProfileId(datasetSummary.getDefaultProfileId())
         .storage(storageResourceModelFromDatasetSummary(datasetSummary))
-        .secureMonitoringEnabled(datasetSummary.isSecureMonitoringEnabled());
+        .secureMonitoringEnabled(datasetSummary.isSecureMonitoringEnabled())
+        .cloudPlatform(datasetSummary.getCloudPlatform())
+        .dataProject(datasetSummary.getDataProject())
+        .storageAccount(datasetSummary.getStorageAccount());
   }
 
   public static DatasetModel populateDatasetModelFromDataset(

@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -140,6 +141,15 @@ public class DatasetDaoTest {
         "dataset enumerate returns datasets in the order created",
         datasets.get(0).getCreatedDate().toEpochMilli(),
         Matchers.lessThan(datasets.get(1).getCreatedDate().toEpochMilli()));
+
+    for (var datasetSummary : datasets) {
+      assertThat(
+          "dataset summary has the GCP cloud platform",
+          datasetSummary.getCloudPlatform(),
+          equalTo(CloudPlatform.GCP));
+      assertThat(
+          "dataset summary has a data project", datasetSummary.getDataProject(), notNullValue());
+    }
 
     // this is skipping the first item returned above
     // so compare the id from the previous retrieve

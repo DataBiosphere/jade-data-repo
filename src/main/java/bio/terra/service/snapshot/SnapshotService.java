@@ -600,16 +600,17 @@ public class SnapshotService {
   }
 
   private static SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {
-    SnapshotSummaryModel summaryModel =
-        new SnapshotSummaryModel()
-            .id(snapshotSummary.getId())
-            .name(snapshotSummary.getName())
-            .description(snapshotSummary.getDescription())
-            .createdDate(snapshotSummary.getCreatedDate().toString())
-            .profileId(snapshotSummary.getProfileId())
-            .storage(storageResourceModelFromSnapshotSummary(snapshotSummary))
-            .secureMonitoringEnabled(snapshotSummary.isSecureMonitoringEnabled());
-    return summaryModel;
+    return new SnapshotSummaryModel()
+        .id(snapshotSummary.getId())
+        .name(snapshotSummary.getName())
+        .description(snapshotSummary.getDescription())
+        .createdDate(snapshotSummary.getCreatedDate().toString())
+        .profileId(snapshotSummary.getProfileId())
+        .storage(storageResourceModelFromSnapshotSummary(snapshotSummary))
+        .secureMonitoringEnabled(snapshotSummary.isSecureMonitoringEnabled())
+        .cloudPlatform(snapshotSummary.getCloudPlatform())
+        .dataProjects(snapshotSummary.getDataProject())
+        .storageAccounts(snapshotSummary.getStorageAccount());
   }
 
   private static List<StorageResourceModel> storageResourceModelFromSnapshotSummary(

@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.StorageResource;
 import java.time.Instant;
 import java.util.List;
@@ -13,6 +14,9 @@ public class SnapshotSummary {
   private UUID profileId;
   private List<StorageResource> storage;
   private boolean secureMonitoringEnabled;
+  private CloudPlatform cloudPlatform;
+  private String dataProject;
+  private String storageAccount;
 
   public UUID getId() {
     return id;
@@ -74,6 +78,33 @@ public class SnapshotSummary {
 
   public SnapshotSummary secureMonitoringEnabled(boolean secureMonitoringEnabled) {
     this.secureMonitoringEnabled = secureMonitoringEnabled;
+    return this;
+  }
+
+  public CloudPlatform getCloudPlatform() {
+    return cloudPlatform;
+  }
+
+  public SnapshotSummary cloudPlatform(CloudPlatform cloudPlatform) {
+    this.cloudPlatform = cloudPlatform;
+    return this;
+  }
+
+  public String getDataProject() {
+    return dataProject;
+  }
+
+  public SnapshotSummary dataProject(String dataProject) {
+    this.dataProject = dataProject;
+    return this;
+  }
+
+  public String getStorageAccount() {
+    return storageAccount;
+  }
+
+  public SnapshotSummary storageAccount(String storageAccount) {
+    this.storageAccount = storageAccount;
     return this;
   }
 }

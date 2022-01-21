@@ -24,6 +24,9 @@ public class DatasetSummary {
   private List<BillingProfileModel> billingProfiles;
   private List<? extends StorageResource<?, ?>> storage;
   private boolean secureMonitoringEnabled;
+  private CloudPlatform cloudPlatform;
+  private String dataProject;
+  private String storageAccount;
 
   public UUID getId() {
     return id;
@@ -156,6 +159,33 @@ public class DatasetSummary {
 
   public DatasetSummary secureMonitoringEnabled(boolean secureMonitoringEnabled) {
     this.secureMonitoringEnabled = secureMonitoringEnabled;
+    return this;
+  }
+
+  public CloudPlatform getCloudPlatform() {
+    return cloudPlatform;
+  }
+
+  public DatasetSummary cloudPlatform(CloudPlatform cloudPlatform) {
+    this.cloudPlatform = cloudPlatform;
+    return this;
+  }
+
+  public String getDataProject() {
+    return dataProject;
+  }
+
+  public DatasetSummary dataProject(String dataProject) {
+    this.dataProject = dataProject;
+    return this;
+  }
+
+  public String getStorageAccount() {
+    return storageAccount;
+  }
+
+  public DatasetSummary storageAccount(String storageAccount) {
+    this.storageAccount = storageAccount;
     return this;
   }
 }

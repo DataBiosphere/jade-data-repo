@@ -249,6 +249,16 @@ public class DatasetAzureIntegrationTest extends UsersBase {
                       equalTo(omopDatasetRegion.getValue()));
 
                   assertThat(
+                      "dataset summary has Azure cloud platform",
+                      oneDataset.getCloudPlatform(),
+                      equalTo(CloudPlatform.AZURE));
+
+                  assertThat(
+                      "dataset summary has storage account",
+                      oneDataset.getStorageAccount(),
+                      notNullValue());
+
+                  assertThat(
                       "No Google storage resources are included",
                       storageMap.values().stream()
                           .map(StorageResourceModel::getCloudResource)

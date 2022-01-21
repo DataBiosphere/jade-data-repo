@@ -7,6 +7,7 @@ import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SqlSortDirection;
@@ -63,8 +64,18 @@ public class DatasetDao {
   public static final String TABLE_NAME = "dataset";
 
   private static final String summaryQueryColumns =
-      " dataset.id, name, description, default_profile_id, project_resource_id, "
-          + "application_resource_id, secure_monitoring, created_date, ";
+      " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
+          + "dataset.application_resource_id, secure_monitoring, created_date, ";
+
+  private static final String summaryCloudPlatformQuery =
+      "(SELECT pr.google_project_id "
+          + "  FROM project_resource pr "
+          + "  WHERE pr.id = dataset.project_resource_id) as google_project_id, "
+          + "(SELECT sar.name "
+          + "  FROM dataset_storage_account dsa "
+          + "    LEFT JOIN storage_account_resource sar "
+          + "      on dsa.storage_account_resource_id = sar.id "
+          + "  WHERE dsa.dataset_id = dataset.id) as storage_account_name, ";
 
   private static final String datasetStorageQuery =
       "(SELECT jsonb_agg(json_build_object( "
@@ -537,11 +548,13 @@ public class DatasetDao {
       String sql =
           "SELECT "
               + summaryQueryColumns
+              + summaryCloudPlatformQuery
               + datasetStorageQuery
               + billingProfileQuery
-              + "FROM dataset WHERE dataset.id = :id";
+              + "FROM dataset "
+              + "WHERE dataset.id = :id";
       if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
-        sql += " AND flightid IS NULL";
+        sql += " AND dataset.flightid IS NULL";
       }
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
       return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
@@ -555,9 +568,11 @@ public class DatasetDao {
       String sql =
           "SELECT "
               + summaryQueryColumns
+              + summaryCloudPlatformQuery
               + datasetStorageQuery
               + billingProfileQuery
-              + "FROM dataset WHERE name = :name";
+              + "FROM dataset "
+              + "WHERE dataset.name = :name";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
       return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
     } catch (EmptyResultDataAccessException ex) {
@@ -595,7 +610,7 @@ public class DatasetDao {
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses, TABLE_NAME);
-    whereClauses.add(" flightid IS NULL"); // exclude datasets that are exclusively locked
+    whereClauses.add(" dataset.flightid IS NULL"); // exclude datasets that are exclusively locked
 
     // get total count of objects
     String countSql =
@@ -626,6 +641,7 @@ public class DatasetDao {
     String sql =
         "SELECT "
             + summaryQueryColumns
+            + summaryCloudPlatformQuery
             + datasetStorageQuery
             + billingProfileQuery
             + "FROM dataset "
@@ -660,6 +676,12 @@ public class DatasetDao {
         throw new CorruptMetadataException(
             String.format("Invalid billing profiles for dataset - id: %s", datasetId), e);
       }
+
+      boolean isAzure =
+          storageResources.stream().anyMatch(sr -> sr.getCloudPlatform() == CloudPlatform.AZURE);
+
+      CloudPlatform datasetCloudPlatform = isAzure ? CloudPlatform.AZURE : CloudPlatform.GCP;
+
       return new DatasetSummary()
           .id(datasetId)
           .name(rs.getString("name"))
@@ -670,7 +692,10 @@ public class DatasetDao {
           .createdDate(rs.getTimestamp("created_date").toInstant())
           .storage(storageResources)
           .billingProfiles(billingProfileModels)
-          .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"));
+          .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"))
+          .cloudPlatform(datasetCloudPlatform)
+          .dataProject(rs.getString("google_project_id"))
+          .storageAccount(rs.getString("storage_account_name"));
     }
   }
 
@@ -689,7 +714,7 @@ public class DatasetDao {
     } catch (Exception ex) {
       String errorMsg = "Database status check failed";
       logger.error(errorMsg, ex);
-      return new RepositoryStatusModelSystems().ok(false).message(errorMsg + ": " + ex.toString());
+      return new RepositoryStatusModelSystems().ok(false).message(errorMsg + ": " + ex);
     }
   }
 }

@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.CloudRegion;
@@ -270,6 +271,17 @@ public class SnapshotDaoTest {
 
       snapshotDao.unlock(tempSnapshotId, flightId);
       snapshotIdList.add(tempSnapshotId);
+    }
+    MetadataEnumeration<SnapshotSummary> allSnapshots =
+        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIdList);
+
+    for (var snapshotSummary : allSnapshots.getItems()) {
+      assertThat(
+          "snapshot summary has the GCP cloud platform",
+          snapshotSummary.getCloudPlatform(),
+          equalTo(CloudPlatform.GCP));
+      assertThat(
+          "snapshot summary has a data project", snapshotSummary.getDataProject(), notNullValue());
     }
 
     testOneEnumerateRange(snapshotIdList, snapshotName, 0, 1000);

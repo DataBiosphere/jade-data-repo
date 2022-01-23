@@ -16,6 +16,10 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.dataset.flight.xactions.LockTransactionStep;
+import bio.terra.service.dataset.flight.xactions.TransactionCommitStep;
+import bio.terra.service.dataset.flight.xactions.TransactionCreateStep;
+import bio.terra.service.dataset.flight.xactions.UnlockTransactionStep;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -102,6 +106,20 @@ public class DatasetIngestFlight extends Flight {
     }
 
     addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
+    boolean autoCommit;
+    if (ingestRequestModel.getTransactionId() == null) {
+      // Note: don't unlock transaction so we keep a history of what flight an auto-commit
+      // transaction was created for
+      String transactionDesc = "Autocommit transaction";
+      addStep(
+          new TransactionCreateStep(datasetService, bigQueryPdao, userReq, transactionDesc, false));
+      autoCommit = true;
+    } else {
+      addStep(
+          new LockTransactionStep(
+              datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), true));
+      autoCommit = false;
+    }
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 
@@ -182,6 +200,13 @@ public class DatasetIngestFlight extends Flight {
           new IngestValidateAzureRefsStep(
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
+    }
+    if (!autoCommit) {
+      addStep(
+          new UnlockTransactionStep(
+              datasetService, bigQueryPdao, ingestRequestModel.getTransactionId()));
+    } else {
+      addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq));
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
   }

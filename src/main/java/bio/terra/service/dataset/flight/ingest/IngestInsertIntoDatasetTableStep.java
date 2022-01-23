@@ -14,6 +14,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import java.util.UUID;
 
 public class IngestInsertIntoDatasetTableStep implements Step {
   private final DatasetService datasetService;
@@ -61,7 +62,8 @@ public class IngestInsertIntoDatasetTableStep implements Step {
 
     workingMap.put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 
-    bigQueryPdao.insertIntoDatasetTable(dataset, targetTable, stagingTableName);
+    UUID transactionId = workingMap.get(JobMapKeys.TRANSACTION_ID.getKeyName(), UUID.class);
+    bigQueryPdao.insertIntoDatasetTable(dataset, targetTable, stagingTableName, transactionId);
     bigQueryPdao.insertIntoMetadataTable(
         dataset,
         targetTable.getRowMetadataTableName(),

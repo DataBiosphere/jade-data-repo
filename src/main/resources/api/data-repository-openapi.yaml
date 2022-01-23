@@ -3381,6 +3381,13 @@ components:
           description: >
             When true, the combined ingest will look for files that already exist and substitute their
             fileIds in instead of ingesting duplicate files.
+        transactionId:
+          type: string
+          format: uuid
+          description: >
+            If specified, the ingested data will remain invisible to users and snapshot creation until
+            the transaction in question is committed.  If the transaction is rolled back, then the changes
+            from this ingest and any others using this transaction will be undone
       description: >
         Request to ingest data from a file in GCS into a table in a dataset.
         The ingest source must be readable by the DR manager.

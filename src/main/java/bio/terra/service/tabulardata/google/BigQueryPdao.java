@@ -165,21 +165,66 @@ public class BigQueryPdao {
     }
   }
 
-  private static final String liveViewTemplate =
-      "SELECT <columns:{c|R.<c>}; separator=\",\"> FROM `<project>.<dataset>.<rawTable>` R "
-          + "LEFT OUTER JOIN `<project>.<dataset>.<sdTable>` S USING ("
-          + PDAO_ROW_ID_COLUMN
-          + ") "
-          + "WHERE S."
-          + PDAO_ROW_ID_COLUMN
-          + " IS NULL";
+  // Note: this query includes a string substititution since it gets used in a view, which can not
+  // support parameterized queries
+  private static final String transactionQueryTemplate =
+      "SELECT <transactIdCol> "
+          + "FROM `<project>.<dataset>.<transactionTable>` "
+          + "WHERE <transactStatusCol> = '<transactStatusVal>'";
+
+  /**
+   * Construct the live view sql.
+   *
+   * @param activeTransaction If not null, include values from this transaction. Note, if this has a
+   *     non-null values then you MUST set the transactId query parameter. This means that this
+   *     value can not be non-bull when building a view
+   * @return The live view SQL for a table
+   */
+  private static String liveViewTemplate(UUID activeTransaction) {
+    String activeTransactionFilter = "";
+    if (activeTransaction != null) {
+      activeTransactionFilter = "OR <transactIdCol> = @transactId";
+    }
+    return "SELECT <columns:{c|R.<c>}; separator=\",\">"
+        + " FROM (SELECT * "
+        + "FROM `<project>.<dataset>.<rawTable>` "
+        + "WHERE COALESCE(<transactIdCol>, '') NOT IN ("
+        + transactionQueryTemplate
+        + ") "
+        + activeTransactionFilter
+        + ") R "
+        + "LEFT OUTER JOIN (SELECT * "
+        + "FROM `<project>.<dataset>.<sdTable>` "
+        + "WHERE COALESCE(<transactIdCol>, '') NOT IN ("
+        + transactionQueryTemplate
+        + ")"
+        + activeTransactionFilter
+        + ") S USING ("
+        + PDAO_ROW_ID_COLUMN
+        + ") "
+        + "WHERE S."
+        + PDAO_ROW_ID_COLUMN
+        + " IS NULL";
+  }
 
   private TableInfo buildLiveView(String bigQueryProject, String datasetName, DatasetTable table) {
-    ST liveViewSql = new ST(liveViewTemplate);
+    TableId liveViewId = TableId.of(datasetName, table.getName());
+    return TableInfo.of(
+        liveViewId,
+        ViewDefinition.of(renderLiveViewSql(bigQueryProject, datasetName, table, null)));
+  }
+
+  private String renderLiveViewSql(
+      String bigQueryProject, String datasetName, DatasetTable table, UUID transactionId) {
+    ST liveViewSql = new ST(liveViewTemplate(transactionId));
     liveViewSql.add("project", bigQueryProject);
     liveViewSql.add("dataset", datasetName);
     liveViewSql.add("rawTable", table.getRawTableName());
     liveViewSql.add("sdTable", table.getSoftDeleteTableName());
+    liveViewSql.add("transactionTable", PDAO_XACTIONS_TABLE);
+    liveViewSql.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
+    liveViewSql.add("transactStatusCol", PDAO_XACTION_STATUS_COLUMN);
+    liveViewSql.add("transactStatusVal", TransactionModel.StatusEnum.ACTIVE);
 
     liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
     liveViewSql.add(
@@ -189,8 +234,7 @@ public class BigQueryPdao {
       liveViewSql.add("columns", "_PARTITIONDATE AS " + PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
     }
 
-    TableId liveViewId = TableId.of(datasetName, table.getName());
-    return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
+    return liveViewSql.render();
   }
 
   public void createStagingLoadHistoryTable(Dataset dataset, String tableName_FlightId)
@@ -977,11 +1021,11 @@ public class BigQueryPdao {
   }
 
   private static final String insertIntoDatasetTableTemplate =
-      "INSERT INTO `<project>.<dataset>.<targetTable>` (<columns; separator=\",\">) "
-          + "SELECT <columns; separator=\",\"> FROM `<project>.<dataset>.<stagingTable>`";
+      "INSERT INTO `<project>.<dataset>.<targetTable>` (<transactIdColumn>, <columns; separator=\",\">)"
+          + " SELECT @transactId,<columns; separator=\",\"> FROM `<project>.<dataset>.<stagingTable>`";
 
   public void insertIntoDatasetTable(
-      Dataset dataset, DatasetTable targetTable, String stagingTableName)
+      Dataset dataset, DatasetTable targetTable, String stagingTableName, UUID transactId)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
@@ -990,10 +1034,16 @@ public class BigQueryPdao {
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
     sqlTemplate.add("targetTable", targetTable.getRawTableName());
     sqlTemplate.add("stagingTable", stagingTableName);
+    sqlTemplate.add("transactIdColumn", PDAO_XACTION_ID_COLUMN);
     sqlTemplate.add("columns", PDAO_ROW_ID_COLUMN);
     targetTable.getColumns().forEach(column -> sqlTemplate.add("columns", column.getName()));
 
-    bigQueryProject.query(sqlTemplate.render());
+    bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of(
+            "transactId",
+            QueryParameterValue.string(
+                Optional.ofNullable(transactId).map(UUID::toString).orElse(null))));
   }
 
   private static final String insertIntoMetadataTableTemplate =
@@ -1324,6 +1374,54 @@ public class BigQueryPdao {
                 .orElse(null));
   }
 
+  private static final String rollbackDatasetTableTemplate =
+      "DELETE FROM `<project>.<dataset>.<targetTable>` WHERE <transactIdColumn>=@transactId";
+
+  public void rollbackDatasetTable(Dataset dataset, String targetTableName, UUID transactId)
+      throws InterruptedException {
+    if (transactId == null) {
+      throw new PdaoException("Can not roll back a null transaction");
+    }
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(rollbackDatasetTableTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("targetTable", targetTableName);
+    sqlTemplate.add("transactIdColumn", PDAO_XACTION_ID_COLUMN);
+
+    bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of("transactId", QueryParameterValue.string(transactId.toString())));
+  }
+
+  private static final String rollbackDatasetMetadataTableTemplate =
+      "DELETE FROM `<project>.<dataset>.<metadataTable>` "
+          + "WHERE <datarepoIdCol> IN"
+          + "(SELECT <datarepoIdCol>"
+          + " FROM `<project>.<dataset>.<targetTable>`"
+          + " WHERE <transactIdColumn>=@transactId)";
+
+  public void rollbackDatasetMetadataTable(
+      Dataset dataset, DatasetTable targetTable, UUID transactId) throws InterruptedException {
+    if (transactId == null) {
+      throw new PdaoException("Can not roll back a null transaction");
+    }
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(rollbackDatasetMetadataTableTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("metadataTable", targetTable.getRowMetadataTableName());
+    sqlTemplate.add("targetTable", targetTable.getRawTableName());
+    sqlTemplate.add("transactIdColumn", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("datarepoIdCol", PDAO_ROW_ID_COLUMN);
+
+    bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of("transactId", QueryParameterValue.string(transactId.toString())));
+  }
+
   private FormatOptions buildFormatOptions(IngestRequestModel ingestRequest) {
     FormatOptions options;
     switch (ingestRequest.getFormat()) {
@@ -1499,6 +1597,8 @@ public class BigQueryPdao {
     if (addRowIdColumn) {
       fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
     }
+
+    fieldList.add(Field.of(PDAO_XACTION_ID_COLUMN, LegacySQLTypeName.STRING));
 
     for (Column column : table.getColumns()) {
       Field.Mode mode;

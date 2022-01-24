@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.xactions;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -20,16 +21,19 @@ public class LockTransactionStep implements Step {
   private final BigQueryPdao bigQueryPdao;
   private final UUID transactionId;
   private final boolean failIfTerminated;
+  AuthenticatedUserRequest userRequest;
 
   public LockTransactionStep(
       DatasetService datasetService,
       BigQueryPdao bigQueryPdao,
       UUID transactionId,
-      boolean failIfTerminated) {
+      boolean failIfTerminated,
+      AuthenticatedUserRequest userRequest) {
     this.datasetService = datasetService;
     this.bigQueryPdao = bigQueryPdao;
     this.transactionId = transactionId;
     this.failIfTerminated = failIfTerminated;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -37,8 +41,10 @@ public class LockTransactionStep implements Step {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     TransactionUtils.putTransactionId(context, transactionId);
     TransactionModel transaction =
-        bigQueryPdao.updateTransactionTableLock(dataset, transactionId, context.getFlightId());
+        bigQueryPdao.updateTransactionTableLock(
+            dataset, transactionId, context.getFlightId(), userRequest);
     if (failIfTerminated && transaction.getStatus() != TransactionModel.StatusEnum.ACTIVE) {
+      // This will trigger the undo below so it's ok to have locked the transaction above
       throw new TransactionLockException("Transaction is already terminated", List.of());
     }
     return StepResult.getStepResultSuccess();
@@ -48,7 +54,7 @@ public class LockTransactionStep implements Step {
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     try {
       Dataset dataset = IngestUtils.getDataset(context, datasetService);
-      bigQueryPdao.updateTransactionTableLock(dataset, transactionId, null);
+      bigQueryPdao.updateTransactionTableLock(dataset, transactionId, null, userRequest);
     } catch (Exception e) {
       logger.info("Unlocking transaction", e);
     }

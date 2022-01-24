@@ -33,10 +33,10 @@ public class DatasetTransactionCommitFlight extends Flight {
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     if (cloudPlatform.isGcp()) {
-      addStep(new LockTransactionStep(datasetService, bigQueryPdao, transactionId, false));
+      addStep(new LockTransactionStep(datasetService, bigQueryPdao, transactionId, false, userReq));
       addStep(new TransactionVerifyStep(datasetService, bigQueryPdao, transactionId));
       addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq));
-      addStep(new UnlockTransactionStep(datasetService, bigQueryPdao, transactionId));
+      addStep(new UnlockTransactionStep(datasetService, bigQueryPdao, transactionId, userReq));
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;
     }

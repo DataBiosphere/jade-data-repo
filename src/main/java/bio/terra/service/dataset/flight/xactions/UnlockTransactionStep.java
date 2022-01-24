@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.xactions;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
@@ -16,12 +17,17 @@ public class UnlockTransactionStep implements Step {
   private final DatasetService datasetService;
   private final BigQueryPdao bigQueryPdao;
   private final UUID transactionId;
+  private final AuthenticatedUserRequest userRequest;
 
   public UnlockTransactionStep(
-      DatasetService datasetService, BigQueryPdao bigQueryPdao, UUID transactionId) {
+      DatasetService datasetService,
+      BigQueryPdao bigQueryPdao,
+      UUID transactionId,
+      AuthenticatedUserRequest userRequest) {
     this.datasetService = datasetService;
     this.bigQueryPdao = bigQueryPdao;
     this.transactionId = transactionId;
+    this.userRequest = userRequest;
   }
 
   @Override
@@ -36,7 +42,7 @@ public class UnlockTransactionStep implements Step {
       throw new IllegalArgumentException("No transaction ID specified");
     }
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
-    bigQueryPdao.updateTransactionTableLock(dataset, transactionId, null);
+    bigQueryPdao.updateTransactionTableLock(dataset, transactionId, null, userRequest);
     return StepResult.getStepResultSuccess();
   }
 

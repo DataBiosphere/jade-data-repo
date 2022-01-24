@@ -119,7 +119,11 @@ public class DatasetIngestFlight extends Flight {
       } else {
         addStep(
             new LockTransactionStep(
-                datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), true));
+                datasetService,
+                bigQueryPdao,
+                ingestRequestModel.getTransactionId(),
+                true,
+                userReq));
         autoCommit = false;
       }
     } else {
@@ -214,7 +218,7 @@ public class DatasetIngestFlight extends Flight {
       if (!autoCommit) {
         addStep(
             new UnlockTransactionStep(
-                datasetService, bigQueryPdao, ingestRequestModel.getTransactionId()));
+                datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), userReq));
       } else {
         addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq));
       }

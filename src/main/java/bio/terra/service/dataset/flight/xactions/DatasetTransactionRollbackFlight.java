@@ -33,12 +33,12 @@ public class DatasetTransactionRollbackFlight extends Flight {
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     if (cloudPlatform.isGcp()) {
-      addStep(new LockTransactionStep(datasetService, bigQueryPdao, transactionId, false));
+      addStep(new LockTransactionStep(datasetService, bigQueryPdao, transactionId, false, userReq));
       addStep(new TransactionRollbackMetadataStep(datasetService, bigQueryPdao, transactionId));
       addStep(new TransactionRollbackDataStep(datasetService, bigQueryPdao, transactionId));
       addStep(new TransactionRollbackSoftDeleteStep(datasetService, bigQueryPdao, transactionId));
       addStep(new TransactionRollbackStep(datasetService, bigQueryPdao, transactionId, userReq));
-      addStep(new UnlockTransactionStep(datasetService, bigQueryPdao, transactionId));
+      addStep(new UnlockTransactionStep(datasetService, bigQueryPdao, transactionId, userReq));
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;
     }

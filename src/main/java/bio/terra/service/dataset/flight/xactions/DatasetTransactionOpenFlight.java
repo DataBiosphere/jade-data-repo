@@ -44,6 +44,6 @@ public class DatasetTransactionOpenFlight extends Flight {
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;
     }
-    addStep(new UnlockTransactionStep(datasetService, bigQueryPdao, null));
+    addStep(new UnlockTransactionStep(datasetService, bigQueryPdao, null, userReq));
   }
 }

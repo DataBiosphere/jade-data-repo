@@ -79,7 +79,8 @@ public class DatasetDataDeleteFlight extends Flight {
       autoCommit = true;
     } else {
       addStep(
-          new LockTransactionStep(datasetService, bigQueryPdao, request.getTransactionId(), true));
+          new LockTransactionStep(
+              datasetService, bigQueryPdao, request.getTransactionId(), true, userReq));
       autoCommit = false;
     }
 
@@ -98,7 +99,9 @@ public class DatasetDataDeleteFlight extends Flight {
     addStep(new DataDeletionStep(bigQueryPdao, datasetService, configService, userReq));
 
     if (!autoCommit) {
-      addStep(new UnlockTransactionStep(datasetService, bigQueryPdao, request.getTransactionId()));
+      addStep(
+          new UnlockTransactionStep(
+              datasetService, bigQueryPdao, request.getTransactionId(), userReq));
     } else {
       addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq));
     }

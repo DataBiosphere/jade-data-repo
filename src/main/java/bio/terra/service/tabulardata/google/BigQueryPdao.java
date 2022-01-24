@@ -1155,14 +1155,16 @@ public class BigQueryPdao {
       "SELECT IF((SELECT COUNT(*)"
           + " FROM `<project>.<dataset>.<transactionTable>`"
           + " WHERE <transactIdCol>=@transactId"
-          + " AND <transactLockCol> IS NOT NULL AND <transactLockCol>!=@transactLock) > 0,"
+          + " AND (<createdByCol>!=@createdBy"
+          + " OR (<transactLockCol> IS NOT NULL AND <transactLockCol>!=@transactLock))) > 0,"
           + " ERROR('<lockErrorMessage>'), '');"
           + "UPDATE `<project>.<dataset>.<transactionTable>` SET "
           + "<transactLockCol>=@transactLock "
           + "WHERE <transactIdCol>=@transactId;";
 
   public TransactionModel updateTransactionTableLock(
-      Dataset dataset, UUID transactId, String flightId) throws InterruptedException {
+      Dataset dataset, UUID transactId, String flightId, AuthenticatedUserRequest userRequest)
+      throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
     ST sqlTemplate = new ST(updateTransactionTableLockTemplate);
@@ -1173,17 +1175,19 @@ public class BigQueryPdao {
     sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
     sqlTemplate.add("transactLockCol", PDAO_XACTION_LOCK_COLUMN);
     sqlTemplate.add("transactTerminatedAtCol", PDAO_XACTION_TERMINATED_AT_COLUMN);
+    sqlTemplate.add("createdByCol", PDAO_XACTION_CREATED_BY_COLUMN);
 
-    String lockErrorMessage = "Transaction already locked";
+    String lockErrorMessage = "Transaction already locked or was created by another user";
     sqlTemplate.add("lockErrorMessage", lockErrorMessage);
     try {
       bigQueryProject.query(
           sqlTemplate.render(),
           Map.of(
               "transactId", QueryParameterValue.string(transactId.toString()),
-              "transactLock", QueryParameterValue.string(flightId)));
+              "transactLock", QueryParameterValue.string(flightId),
+              "createdBy", QueryParameterValue.string(userRequest.getEmail())));
     } catch (PdaoException e) {
-      if (e.getCause() != null && e.getMessage().contains(lockErrorMessage)) {
+      if (e.getCause() != null && e.getCause().getMessage().contains(lockErrorMessage)) {
         throw new TransactionLockException(
             String.format("Error locking transaction for dataset %s", dataset.toPrintableString()),
             List.of(lockErrorMessage));

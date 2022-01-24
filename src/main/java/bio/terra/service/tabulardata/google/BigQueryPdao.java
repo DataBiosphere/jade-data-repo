@@ -2464,9 +2464,17 @@ public class BigQueryPdao {
 
   private static final String insertSoftDeleteTemplate =
       "INSERT INTO `<project>.<dataset>.<softDeleteTable>` "
-          + "SELECT DISTINCT E.<rowId> FROM `<project>.<dataset>.<softDeleteExtTable>` E "
-          + "LEFT JOIN `<project>.<dataset>.<softDeleteTable>` S USING (<rowId>) "
-          + "WHERE S.<rowId> IS NULL";
+          + "(<rowIdColumn>,"
+          + "<flightIdColumn>,<transactIdColumn>,<deleteAtColumn>,"
+          + "<deleteByColumn>) "
+          + "SELECT DISTINCT E.<rowIdColumn>,"
+          + "  @flightId AS <flightIdColumn>,"
+          + "  @transactId AS <transactIdColumn>,"
+          + "  CURRENT_TIMESTAMP() AS <deleteAtColumn>,"
+          + "  @deletedBy AS <deleteByColumn> "
+          + "FROM `<project>.<dataset>.<softDeleteExtTable>` E "
+          + "LEFT JOIN `<project>.<dataset>.<softDeleteTable>` S USING (<rowIdColumn>) "
+          + "WHERE S.<rowIdColumn> IS NULL";
 
   /**
    * Insert row ids into the corresponding soft delete table for each table provided.
@@ -2477,7 +2485,13 @@ public class BigQueryPdao {
    * @param suffix a bq-safe version of the flight id to prevent different flights from stepping on
    *     each other
    */
-  public TableResult applySoftDeletes(Dataset dataset, List<String> tableNames, String suffix)
+  public TableResult applySoftDeletes(
+      Dataset dataset,
+      List<String> tableNames,
+      String suffix,
+      String flightId,
+      UUID transactionId,
+      AuthenticatedUserRequest userRequest)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
@@ -2498,12 +2512,22 @@ public class BigQueryPdao {
                         .add("project", bigQueryProject.getProjectId())
                         .add("dataset", prefixName(dataset.getName()))
                         .add("softDeleteTable", softDeleteTableNameLookup.get(tableName))
-                        .add("rowId", PDAO_ROW_ID_COLUMN)
+                        .add("rowIdColumn", PDAO_ROW_ID_COLUMN)
+                        .add("loadTagColumn", PDAO_LOAD_TAG_COLUMN)
+                        .add("flightIdColumn", PDAO_FLIGHT_ID_COLUMN)
+                        .add("transactIdColumn", PDAO_XACTION_ID_COLUMN)
+                        .add("deleteAtColumn", PDAO_DELETED_AT_COLUMN)
+                        .add("deleteByColumn", PDAO_DELETED_BY_COLUMN)
                         .add("softDeleteExtTable", externalTableName(tableName, suffix))
                         .render())
             .collect(Collectors.toList());
 
-    return bigQueryProject.query(String.join(";", sqlStatements));
+    return bigQueryProject.query(
+        String.join(";", sqlStatements),
+        Map.of(
+            "flightId", QueryParameterValue.string(flightId),
+            "transactId", QueryParameterValue.string(transactionId.toString()),
+            "deletedBy", QueryParameterValue.string(userRequest.getEmail())));
   }
 
   private long getSingleLongValue(TableResult result) {

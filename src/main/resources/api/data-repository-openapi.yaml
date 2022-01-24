@@ -3386,8 +3386,8 @@ components:
           format: uuid
           description: >
             If specified, the ingested data will remain invisible to users and snapshot creation until
-            the transaction in question is committed.  If the transaction is rolled back, then the changes
-            from this ingest and any others using this transaction will be undone
+            the transaction in question is committed. If the transaction is rolled back, then the changes
+            from this ingest and any other operations using this transaction will be undone.
         updateStrategy:
           type: string
           enum:
@@ -4249,6 +4249,13 @@ components:
           type: string
           enum:
             - soft
+        transactionId:
+          type: string
+          format: uuid
+          description: >
+            If specified, the deleted data will remain visible to users and snapshot creation until
+            the transaction in question is committed. If the transaction is rolled back, then the changes
+            from this delete and any other operations using this transaction will be undone.
         specType:
           type: string
           enum:

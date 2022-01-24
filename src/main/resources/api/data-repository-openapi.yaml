@@ -3388,6 +3388,17 @@ components:
             If specified, the ingested data will remain invisible to users and snapshot creation until
             the transaction in question is committed.  If the transaction is rolled back, then the changes
             from this ingest and any others using this transaction will be undone
+        updateStrategy:
+          type: string
+          enum:
+            - append
+            - replace
+          description: >
+            Approach for how to treat updates to the target table:
+             * `append` - Default: only ever insert rows, regardless of whether or not the primary key value exists
+             * `replace` - If a primary key is present on the table, treat rows with matching primary keys
+                         as updates. If duplicates IDs are found in your ingest, the ingest job
+                         will fail. Note: the full new record must be specified.
       description: >
         Request to ingest data from a file in GCS into a table in a dataset.
         The ingest source must be readable by the DR manager.

@@ -107,18 +107,23 @@ public class DatasetIngestFlight extends Flight {
 
     addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
     boolean autoCommit;
-    if (ingestRequestModel.getTransactionId() == null) {
-      // Note: don't unlock transaction so we keep a history of what flight an auto-commit
-      // transaction was created for
-      String transactionDesc = "Autocommit transaction";
-      addStep(
-          new TransactionCreateStep(datasetService, bigQueryPdao, userReq, transactionDesc, false));
-      autoCommit = true;
+    if (cloudPlatform.isGcp()) {
+      if (ingestRequestModel.getTransactionId() == null) {
+        // Note: don't unlock transaction so we keep a history of what flight an auto-commit
+        // transaction was created for
+        String transactionDesc = "Autocommit transaction";
+        addStep(
+            new TransactionCreateStep(
+                datasetService, bigQueryPdao, userReq, transactionDesc, false));
+        autoCommit = true;
+      } else {
+        addStep(
+            new LockTransactionStep(
+                datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), true));
+        autoCommit = false;
+      }
     } else {
-      addStep(
-          new LockTransactionStep(
-              datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), true));
-      autoCommit = false;
+      autoCommit = true;
     }
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
@@ -185,6 +190,10 @@ public class DatasetIngestFlight extends Flight {
           new NonCombinedFileIngestOptionalStep(
               new IngestCopyControlFileStep(datasetService, gcsPdao)));
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
+      if (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE) {
+        addStep(new IngestValidateIngestRowsStep(datasetService, bigQueryPdao));
+        addStep(new IngestSoftDeleteExistingRowsStep(datasetService, bigQueryPdao, userReq));
+      }
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
       addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao, userReq));
@@ -201,12 +210,14 @@ public class DatasetIngestFlight extends Flight {
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
     }
-    if (!autoCommit) {
-      addStep(
-          new UnlockTransactionStep(
-              datasetService, bigQueryPdao, ingestRequestModel.getTransactionId()));
-    } else {
-      addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq));
+    if (cloudPlatform.isGcp()) {
+      if (!autoCommit) {
+        addStep(
+            new UnlockTransactionStep(
+                datasetService, bigQueryPdao, ingestRequestModel.getTransactionId()));
+      } else {
+        addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq));
+      }
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
   }

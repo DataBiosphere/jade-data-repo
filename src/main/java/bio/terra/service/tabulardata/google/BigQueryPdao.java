@@ -1,6 +1,9 @@
 package bio.terra.service.tabulardata.google;
 
+import static bio.terra.common.PdaoConstant.PDAO_DELETED_AT_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_DELETED_BY_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_FLIGHT_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_INGESTED_BY_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_INGEST_TIME_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
@@ -90,7 +93,6 @@ import com.google.cloud.bigquery.ViewDefinition;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1422,6 +1424,97 @@ public class BigQueryPdao {
         Map.of("transactId", QueryParameterValue.string(transactId.toString())));
   }
 
+  private static final String selectHasDuplicateStagingIdsTemplate =
+      "SELECT <pkColumns:{c|<c.name>}; separator=\",\">,COUNT(*) "
+          + "FROM `<project>.<dataset>.<stagingTable>` "
+          + "GROUP BY <pkColumns:{c|<c.name>}; separator=\",\"> "
+          + "HAVING COUNT(*) > 1";
+
+  /**
+   * Returns true is any duplicate IDs are present in the staging table TODO: add support for
+   * returning top few instances
+   */
+  public boolean selectHasDuplicateStagingIds(
+      Dataset dataset, List<Column> pkColumns, String stagingTableName)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    ST sqlTemplate = new ST(selectHasDuplicateStagingIdsTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("stagingTable", stagingTableName);
+    sqlTemplate.add("pkColumns", pkColumns);
+
+    TableResult result = bigQueryProject.query(sqlTemplate.render());
+    return result.getTotalRows() > 0;
+  }
+
+  /**
+   * Construct the sql for inserting existing records data into the soft delete dataset table.
+   *
+   * @param liveViewSql The sql to represent what records are active on the target table
+   * @return The SQL for a soft deleting existing records for a table
+   */
+  private static String insertIntoSoftDeleteDatasetTable(String liveViewSql) {
+    return "INSERT INTO `<project>.<dataset>.<softDeleteTable>` "
+        + "(<rowIdColumn>,<loadTagColumn>,<flightIdColumn>,<transactIdColumn>,<deleteAtColumn>,"
+        + "<deleteByColumn>) "
+        + "SELECT"
+        + "  T.<rowIdColumn>,"
+        + "  @loadTag AS <loadTagColumn>,"
+        + "  @flightId AS <flightIdColumn>,"
+        + "  @transactId AS <transactIdColumn>,"
+        + "  CURRENT_TIMESTAMP() AS <deleteAtColumn>,"
+        + "  @deletedBy AS <deleteByColumn> "
+        + "FROM ("
+        + liveViewSql
+        + ") AS T "
+        + " LEFT JOIN `<project>.<dataset>.<stagingTable>` AS S "
+        + "  ON <pkColumns:{c|T.<c.name> = S.<c.name>}; separator=\" AND \"> "
+        + "WHERE <pkColumns:{c|S.<c.name> IS NOT NULL}; separator=\" AND \">";
+  }
+
+  public void insertIntoSoftDeleteDatasetTable(
+      AuthenticatedUserRequest authedUser,
+      Dataset dataset,
+      DatasetTable targetTable,
+      String stagingTableName,
+      String loadTag,
+      String flightId,
+      UUID transactId)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+
+    String liveViewSql =
+        renderLiveViewSql(
+            bigQueryProject.getProjectId(), prefixName(dataset.getName()), targetTable, transactId);
+    ST sqlTemplate = new ST(insertIntoSoftDeleteDatasetTable(liveViewSql));
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("softDeleteTable", targetTable.getSoftDeleteTableName());
+    sqlTemplate.add("targetTable", targetTable.getRawTableName());
+    sqlTemplate.add("targetTableName", targetTable.getName());
+    sqlTemplate.add("stagingTable", stagingTableName);
+    sqlTemplate.add("rowIdColumn", PDAO_ROW_ID_COLUMN);
+    sqlTemplate.add("deleteAtColumn", PDAO_DELETED_AT_COLUMN);
+    sqlTemplate.add("deleteByColumn", PDAO_DELETED_BY_COLUMN);
+    sqlTemplate.add("loadTagColumn", PDAO_LOAD_TAG_COLUMN);
+    sqlTemplate.add("flightIdColumn", PDAO_FLIGHT_ID_COLUMN);
+    sqlTemplate.add("transactIdColumn", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("pkColumns", targetTable.getPrimaryKey());
+
+    bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of(
+            "loadTag", QueryParameterValue.string(loadTag),
+            "flightId", QueryParameterValue.string(flightId),
+            "transactId",
+                QueryParameterValue.string(
+                    Optional.ofNullable(transactId).map(UUID::toString).orElse(null)),
+            // TODO: make the change for the standalone soft delete flight
+            "deletedBy", QueryParameterValue.string(authedUser.getEmail())));
+  }
+
   private FormatOptions buildFormatOptions(IngestRequestModel ingestRequest) {
     FormatOptions options;
     switch (ingestRequest.getFormat()) {
@@ -1558,7 +1651,13 @@ public class BigQueryPdao {
 
   private Schema buildSoftDeletesSchema() {
     return Schema.of(
-        Collections.singletonList(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING)));
+        List.of(
+            Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING),
+            Field.of(PDAO_LOAD_TAG_COLUMN, LegacySQLTypeName.STRING),
+            Field.of(PDAO_FLIGHT_ID_COLUMN, LegacySQLTypeName.STRING),
+            Field.of(PDAO_XACTION_ID_COLUMN, LegacySQLTypeName.STRING),
+            Field.of(PDAO_DELETED_AT_COLUMN, LegacySQLTypeName.TIMESTAMP),
+            Field.of(PDAO_DELETED_BY_COLUMN, LegacySQLTypeName.STRING)));
   }
 
   private Schema buildTransactionsTableSchema() {

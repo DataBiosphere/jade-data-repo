@@ -63,7 +63,8 @@ public class DataDeletionStep implements Step {
 
     bigQueryPdao.applySoftDeletes(dataset, tableNames, suffix);
 
-    // TODO: this can be more informative, something like # rows deleted per table, or mismatched
+    // TODO<DR-2407>: this can be more informative, something like # rows deleted per table, or
+    // mismatched
     // row ids
     DeleteResponseModel deleteResponseModel =
         new DeleteResponseModel().objectState(DeleteResponseModel.ObjectStateEnum.DELETED);

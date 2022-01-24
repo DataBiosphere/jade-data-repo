@@ -51,13 +51,13 @@ public class IngestSoftDeleteExistingRowsStep implements Step {
       logger.info("No primary key defined for table {}. Skipping", targetTable.toPrintableString());
     }
 
-    // TODO: should this add something to ingest statistics?
+    // TODO<DR-2407>: add something to ingest statistics
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    // TODO: we can delete by flight id
+    // TODO: should this be deleted or handled by an explicit rollback?
     return StepResult.getStepResultSuccess();
   }
 }

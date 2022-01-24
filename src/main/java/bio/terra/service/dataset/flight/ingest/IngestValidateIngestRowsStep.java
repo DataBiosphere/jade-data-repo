@@ -39,7 +39,7 @@ public class IngestValidateIngestRowsStep implements Step {
       }
     }
 
-    // TODO: should this add something to ingest statistics?
+    // TODO<DR-2407>: add something to ingest statistics
     return StepResult.getStepResultSuccess();
   }
 

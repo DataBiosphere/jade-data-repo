@@ -78,6 +78,13 @@ public class BigQueryPdaoDatasetConnectedTest {
           .setToken("token")
           .build();
 
+  private static final AuthenticatedUserRequest TEST_USER_2 =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset2@unit.com")
+          .setToken("token2")
+          .build();
+
   @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private BigQueryPdao bigQueryPdao;
@@ -300,6 +307,12 @@ public class BigQueryPdaoDatasetConnectedTest {
     String flightId2 = UUID.randomUUID().toString();
     String description1 = "foo";
     String description2 = null;
+    String bucket = testConfig.getIngestbucket();
+    String targetPath = "scratch/file" + UUID.randomUUID() + "/";
+
+    BlobInfo participantBlob =
+        BlobInfo.newBuilder(bucket, targetPath + "ingest-test-participant.json").build();
+    storage.create(participantBlob, readFile("ingest-test-participant.json"));
 
     connectedOperations.addDataset(dataset.getId());
     bigQueryPdao.createDataset(dataset);
@@ -346,16 +359,72 @@ public class BigQueryPdaoDatasetConnectedTest {
         is(transaction2));
 
     // Lock transaction with same flight
-    bigQueryPdao.updateTransactionTableLock(dataset, transaction1.getId(), transaction1.getLock());
+    bigQueryPdao.updateTransactionTableLock(
+        dataset, transaction1.getId(), transaction1.getLock(), TEST_USER);
 
     // Lock transaction with different flight
     assertThrows(
         TransactionLockException.class,
-        () -> bigQueryPdao.updateTransactionTableLock(dataset, transaction1.getId(), "FOO"));
+        () ->
+            bigQueryPdao.updateTransactionTableLock(
+                dataset, transaction1.getId(), "FOO", TEST_USER));
+
+    // Ingest staged data into the new dataset.
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .transactionId(transaction1.getId());
+
+    UUID datasetId = dataset.getId();
+    // Ingesting on a transaction that is locked already should fail
+    connectedOperations.ingestTableFailure(
+        datasetId,
+        ingestRequest.table("participant").path(BigQueryPdaoTest.gsPath(participantBlob)),
+        TEST_USER);
+
+    // Unlock the first transaction so we can ingest
+    bigQueryPdao.updateTransactionTableLock(dataset, transaction1.getId(), null, TEST_USER);
+
+    // Ingesting on a transaction that was created by another user should fail
+    connectedOperations.ingestTableFailure(
+        datasetId,
+        ingestRequest.table("participant").path(BigQueryPdaoTest.gsPath(participantBlob)),
+        TEST_USER_2);
+
+    // Finally!  An ingest that works
+    connectedOperations.ingestTableSuccess(
+        datasetId,
+        ingestRequest.table("participant").path(BigQueryPdaoTest.gsPath(participantBlob)),
+        TEST_USER);
+
+    assertThat(
+        "no rows are visible before commit",
+        BigQueryProject.from(dataset)
+            .query(
+                String.format(
+                    "SELECT * FROM `%s.%s.%s`",
+                    dataset.getProjectResource().getGoogleProjectId(),
+                    BigQueryPdao.prefixName(dataset.getName()),
+                    "participant"))
+            .getTotalRows(),
+        equalTo(0L));
 
     // Commit the transaction
     bigQueryPdao.updateTransactionTableStatus(
         TEST_USER, dataset, transaction1.getId(), TransactionModel.StatusEnum.COMMITTED);
+
+    assertThat(
+        "rows are visible after commit",
+        BigQueryProject.from(dataset)
+            .query(
+                String.format(
+                    "SELECT * FROM `%s.%s.%s`",
+                    dataset.getProjectResource().getGoogleProjectId(),
+                    BigQueryPdao.prefixName(dataset.getName()),
+                    "participant"))
+            .getTotalRows(),
+        equalTo(5L));
+
     // Try to reopen transaction
     assertThrows(
         IllegalArgumentException.class,
@@ -363,8 +432,32 @@ public class BigQueryPdaoDatasetConnectedTest {
             bigQueryPdao.updateTransactionTableStatus(
                 TEST_USER, dataset, transaction1.getId(), TransactionModel.StatusEnum.ACTIVE));
 
+    // Ingesting on a closed connection (transaction 1) should fail
+    connectedOperations.ingestTableFailure(
+        datasetId,
+        ingestRequest.table("participant").path(BigQueryPdaoTest.gsPath(participantBlob)),
+        TEST_USER);
+
+    // Try to ingest in merge mode with transaction 2.  This should return conflict rows (need to
+    // unlock transaction 2 first)
+    bigQueryPdao.updateTransactionTableLock(dataset, transaction2.getId(), null, TEST_USER);
+    connectedOperations.ingestTableSuccess(
+        datasetId,
+        ingestRequest
+            .transactionId(transaction2.getId())
+            .table("participant")
+            .path(BigQueryPdaoTest.gsPath(participantBlob)),
+        TEST_USER);
+
+    assertThat(
+        "Rows overlap",
+        bigQueryPdao.verifyTransaction(
+            dataset, dataset.getTableByName("participant").orElseThrow(), transaction2.getId()),
+        equalTo(5L));
+
     // Delete the transactions
     bigQueryPdao.deleteFromTransactionTable(dataset, transaction1.getId());
+
     // Make sure we can't see the transaction
     assertThrows(
         NotFoundException.class,

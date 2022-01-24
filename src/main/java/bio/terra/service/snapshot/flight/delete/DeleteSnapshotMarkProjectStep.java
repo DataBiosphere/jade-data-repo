@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -19,22 +20,22 @@ public class DeleteSnapshotMarkProjectStep implements Step {
   private final UUID snapshotId;
   private final SnapshotService snapshotService;
 
-  public DeleteSnapshotMarkProjectStep(
-      ResourceService resourceService, UUID snapshotId, SnapshotService snapshotService) {
+  public DeleteSnapshotMarkProjectStep(ResourceService resourceService, UUID snapshotId, SnapshotService snapshotService) {
     this.resourceService = resourceService;
     this.snapshotId = snapshotId;
     this.snapshotService = snapshotService;
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(DeleteSnapshotMarkProjectStep.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(DeleteSnapshotMarkProjectStep.class);
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
+    Snapshot snapshot = snapshotService.retrieve(snapshotId);
+    List<UUID> projectResourceIds = List.of(snapshot.getProjectResourceId());
+    resourceService.markProjectsForDelete(projectResourceIds);
     FlightMap workingMap = context.getWorkingMap();
-    UUID projectId = workingMap.get(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
-
-    resourceService.markProjectsForDelete(List.of(projectId));
-
+    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID_LIST, projectResourceIds);
     return StepResult.getStepResultSuccess();
   }
 

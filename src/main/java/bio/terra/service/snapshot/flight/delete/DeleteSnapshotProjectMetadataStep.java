@@ -16,18 +16,18 @@ public class DeleteSnapshotProjectMetadataStep implements Step {
 
   private final ResourceService resourceService;
 
-  private static final Logger logger =
-      LoggerFactory.getLogger(DeleteSnapshotProjectMetadataStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(DeleteSnapshotProjectMetadataStep.class);
 
   public DeleteSnapshotProjectMetadataStep(ResourceService resourceService) {
     this.resourceService = resourceService;
   }
 
+
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
-    UUID projectId = workingMap.get(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
-    resourceService.deleteProjectMetadata(List.of(projectId));
+    List<UUID> projectIdList = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID_LIST, List.class);
+    resourceService.deleteProjectMetadata(projectIdList);
 
     return StepResult.getStepResultSuccess();
   }

@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.delete;
 
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -20,20 +21,22 @@ public class DeleteDatasetMarkProjectStep implements Step {
   private final UUID datasetId;
   private final DatasetService datasetService;
 
-  public DeleteDatasetMarkProjectStep(
-      ResourceService resourceService, UUID datasetId, DatasetService datasetService) {
+  public DeleteDatasetMarkProjectStep(ResourceService resourceService, UUID datasetId, DatasetService datasetService) {
     this.resourceService = resourceService;
     this.datasetId = datasetId;
     this.datasetService = datasetService;
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(DeleteSnapshotMarkProjectStep.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(DeleteSnapshotMarkProjectStep.class);
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
+    Dataset dataset = datasetService.retrieve(datasetId);
+    List<UUID> projectResourceIds = List.of(dataset.getProjectResourceId());
+    resourceService.markProjectsForDelete(projectResourceIds);
     FlightMap workingMap = context.getWorkingMap();
-    UUID projectId = workingMap.get(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
-    resourceService.markProjectsForDelete(List.of(projectId));
+    workingMap.put(DatasetWorkingMapKeys.DATASET_PROJECT_ID_LIST, projectResourceIds);
     return StepResult.getStepResultSuccess();
   }
 

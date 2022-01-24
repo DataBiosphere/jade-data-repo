@@ -118,11 +118,14 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(new PerformSnapshotStep(new UnlockSnapshotStep(snapshotDao, snapshotId)));
 
     // delete snapshot project
-    addStep(
-        new PerformGcpStep(
-            new DeleteSnapshotMarkProjectStep(resourceService, snapshotId, snapshotService)));
-    addStep(new PerformGcpStep(new DeleteSnapshotDeleteProjectStep(resourceService)));
-    addStep(new PerformGcpStep(new DeleteSnapshotProjectMetadataStep(resourceService)));
+    addStep(new PerformGcpStep(
+        new DeleteSnapshotMarkProjectStep(resourceService, snapshotId, snapshotService)));
+    addStep(new PerformGcpStep(
+        new DeleteSnapshotDeleteProjectStep(resourceService)
+    ));
+    addStep(new PerformGcpStep(
+        new DeleteSnapshotProjectMetadataStep(resourceService)
+    ));
 
     addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, false)));
   }

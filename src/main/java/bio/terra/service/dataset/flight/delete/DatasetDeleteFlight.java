@@ -114,6 +114,14 @@ public class DatasetDeleteFlight extends Flight {
     }
     addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
     addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
+
+    // delete dataset project
+    if (platform.isGcp()) {
+      addStep(new DeleteDatasetMarkProjectStep(resourceService, datasetId, datasetService));
+      addStep(new DeleteDatasetDeleteProjectStep(resourceService));
+      addStep(new DeleteDatasetProjectMetadataStep(resourceService));
+    }
+
     addStep(new UnlockDatasetStep(datasetService, datasetId, false), lockDatasetRetry);
   }
 }

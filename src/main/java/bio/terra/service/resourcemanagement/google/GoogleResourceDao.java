@@ -196,20 +196,25 @@ public class GoogleResourceDao {
     List<UUID> projectIds =
         projectRefs.stream().map(ProjectRefs::getProjectId).collect(Collectors.toList());
     if (projectIds.size() > 0) {
-      MapSqlParameterSource markParams =
-          new MapSqlParameterSource().addValue("project_ids", projectIds);
-
-      final String sqlMarkProjects =
-          "UPDATE project_resource SET marked_for_delete = true" + " WHERE id IN (:project_ids)";
-      jdbcTemplate.update(sqlMarkProjects, markParams);
-
-      final String sqlMarkBuckets =
-          "UPDATE bucket_resource SET marked_for_delete = true"
-              + " WHERE project_resource_id IN (:project_ids)";
-      jdbcTemplate.update(sqlMarkBuckets, markParams);
+      markProjectsForDelete(projectIds);
     }
 
     return projectIds;
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void markProjectsForDelete(List<UUID> projectIds) {
+    MapSqlParameterSource markParams =
+        new MapSqlParameterSource().addValue("project_ids", projectIds);
+
+    final String sqlMarkProjects =
+        "UPDATE project_resource SET marked_for_delete = true" + " WHERE id IN (:project_ids)";
+    jdbcTemplate.update(sqlMarkProjects, markParams);
+
+    final String sqlMarkBuckets =
+        "UPDATE bucket_resource SET marked_for_delete = true"
+            + " WHERE project_resource_id IN (:project_ids)";
+    jdbcTemplate.update(sqlMarkBuckets, markParams);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

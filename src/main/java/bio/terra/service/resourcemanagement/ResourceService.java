@@ -509,6 +509,10 @@ public class ResourceService {
     return projectService.markUnusedProjectsForDelete(profileId);
   }
 
+  public void markProjectsForDelete(List<UUID> projectIds) {
+    projectService.markProjectsForDelete(projectIds);
+  }
+
   public List<UUID> markUnusedApplicationDeploymentsForDelete(UUID profileId) {
     return applicationDeploymentService.markUnusedApplicationDeploymentsForDelete(profileId);
   }

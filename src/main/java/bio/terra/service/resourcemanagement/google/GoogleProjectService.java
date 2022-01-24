@@ -199,6 +199,10 @@ public class GoogleProjectService {
     return resourceDao.markUnusedProjectsForDelete(profileId);
   }
 
+  public void markProjectsForDelete(List<UUID> projectIds) {
+    resourceDao.markProjectsForDelete(projectIds);
+  }
+
   public void deleteUnusedProjects(List<UUID> projectIdList) {
     for (UUID projectId : projectIdList) {
       deleteGoogleProject(projectId);

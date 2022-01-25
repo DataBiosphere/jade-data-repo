@@ -193,7 +193,7 @@ public class DatasetConnectedTest {
   @Test
   public void testCSVIngestAddsRowIdsByDefault() throws Exception {
     String resourceFileName = "snapshot-test-dataset-data.csv";
-    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID().toString();
+    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID();
     String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
     // ingest the table
     String tableName = "thetable";
@@ -252,7 +252,7 @@ public class DatasetConnectedTest {
   @Test
   public void testMetadataTableUpdate() throws Exception {
     String resourceFileName = "snapshot-test-dataset-data.csv";
-    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID().toString();
+    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID();
     String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
     // ingest the table
     String tableName = "thetable";

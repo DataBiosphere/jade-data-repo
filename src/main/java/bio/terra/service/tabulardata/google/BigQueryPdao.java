@@ -153,7 +153,7 @@ public class BigQueryPdao {
         bigQueryProject.createTable(
             datasetName,
             table.getRawTableName(),
-            buildSchema(table, true),
+            buildSchema(table, true, true),
             table.getBigQueryPartitionConfig());
         bigQueryProject.createTable(
             datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
@@ -922,11 +922,11 @@ public class BigQueryPdao {
     }
     Job loadJob;
 
-    Schema schemaWithRowId = buildSchema(targetTable, true); // Source does not have row_id
+    Schema schemaWithRowId = buildSchema(targetTable, true, false); // Source does not have row_id
     if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV
         && ingestRequest.isCsvGenerateRowIds()) {
       // Ingest without the datarepo_row_id column
-      Schema noRowId = buildSchema(targetTable, false);
+      Schema noRowId = buildSchema(targetTable, false, false);
       loadBuilder.setSchema(noRowId);
       loadJob = ingestData(bigQuery, path, loadBuilder.build());
       // Then add the datarepo_row_id column to the schema
@@ -936,6 +936,7 @@ public class BigQueryPdao {
           schemaWithRowId); // docs say this is for target, but CLI provides one for the source
       loadJob = ingestData(bigQuery, path, loadBuilder.build());
     }
+
     return new PdaoLoadStatistics(loadJob.getStatistics());
   }
 
@@ -1693,7 +1694,8 @@ public class BigQueryPdao {
             .build());
   }
 
-  private Schema buildSchema(DatasetTable table, boolean addRowIdColumn) {
+  private Schema buildSchema(
+      DatasetTable table, boolean addRowIdColumn, boolean addTransactionIdColumn) {
     List<Field> fieldList = new ArrayList<>();
     List<String> primaryKeys =
         table.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList());
@@ -1702,7 +1704,9 @@ public class BigQueryPdao {
       fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
     }
 
-    fieldList.add(Field.of(PDAO_XACTION_ID_COLUMN, LegacySQLTypeName.STRING));
+    if (addTransactionIdColumn) {
+      fieldList.add(Field.of(PDAO_XACTION_ID_COLUMN, LegacySQLTypeName.STRING));
+    }
 
     for (Column column : table.getColumns()) {
       Field.Mode mode;
@@ -2734,7 +2738,7 @@ public class BigQueryPdao {
               bigQuery,
               bqDatasetId,
               datasetTable.getRawTableName(),
-              buildSchema(datasetTable, true),
+              buildSchema(datasetTable, true, true),
               false);
           logger.info("......Soft delete table");
           updateSchema(

@@ -23,6 +23,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
@@ -192,6 +193,10 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> ingestDataset(
       @PathVariable("id") UUID id, @Valid @RequestBody IngestRequestModel ingest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    // Set default strategy to by append
+    if (ingest.getUpdateStrategy() == null) {
+      ingest.updateStrategy(UpdateStrategyEnum.APPEND);
+    }
     validateIngestParams(ingest, id);
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);

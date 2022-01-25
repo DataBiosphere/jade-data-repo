@@ -35,11 +35,12 @@ public class DatasetTransactionOpenFlight extends Flight {
 
     if (cloudPlatform.isGcp()) {
       addStep(
-          new TransactionCreateStep(
+          new TransactionOpenStep(
               datasetService,
               bigQueryPdao,
               userReq,
               transactionRequestModel.getDescription(),
+              true,
               true));
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;

@@ -20,12 +20,18 @@ public class TransactionCommitStep implements Step {
   private final DatasetService datasetService;
   private final BigQueryPdao bigQueryPdao;
   private final AuthenticatedUserRequest userReq;
+  // If true, saves the transaction as the response to the flight
+  private final boolean returnTransaction;
 
   public TransactionCommitStep(
-      DatasetService datasetService, BigQueryPdao bigQueryPdao, AuthenticatedUserRequest userReq) {
+      DatasetService datasetService,
+      BigQueryPdao bigQueryPdao,
+      AuthenticatedUserRequest userReq,
+      boolean returnTransaction) {
     this.datasetService = datasetService;
     this.bigQueryPdao = bigQueryPdao;
     this.userReq = userReq;
+    this.returnTransaction = returnTransaction;
   }
 
   @Override
@@ -35,7 +41,9 @@ public class TransactionCommitStep implements Step {
     TransactionModel transaction =
         bigQueryPdao.updateTransactionTableStatus(
             userReq, dataset, transactionId, StatusEnum.COMMITTED);
-    context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), transaction);
+    if (returnTransaction) {
+      context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), transaction);
+    }
     return StepResult.getStepResultSuccess();
   }
 

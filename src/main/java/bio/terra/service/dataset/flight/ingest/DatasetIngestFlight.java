@@ -18,7 +18,7 @@ import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.dataset.flight.xactions.LockTransactionStep;
 import bio.terra.service.dataset.flight.xactions.TransactionCommitStep;
-import bio.terra.service.dataset.flight.xactions.TransactionCreateStep;
+import bio.terra.service.dataset.flight.xactions.TransactionOpenStep;
 import bio.terra.service.dataset.flight.xactions.UnlockTransactionStep;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -113,8 +113,8 @@ public class DatasetIngestFlight extends Flight {
         // transaction was created for
         String transactionDesc = "Autocommit transaction";
         addStep(
-            new TransactionCreateStep(
-                datasetService, bigQueryPdao, userReq, transactionDesc, false));
+            new TransactionOpenStep(
+                datasetService, bigQueryPdao, userReq, transactionDesc, false, false));
         autoCommit = true;
       } else {
         addStep(
@@ -220,7 +220,7 @@ public class DatasetIngestFlight extends Flight {
             new UnlockTransactionStep(
                 datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), userReq));
       } else {
-        addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq));
+        addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, false));
       }
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);

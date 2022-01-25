@@ -14,26 +14,32 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TransactionCreateStep implements Step {
-  private static final Logger logger = LoggerFactory.getLogger(TransactionCreateStep.class);
+public class TransactionOpenStep implements Step {
+  private static final Logger logger = LoggerFactory.getLogger(TransactionOpenStep.class);
   private final DatasetService datasetService;
   private final BigQueryPdao bigQueryPdao;
   private final AuthenticatedUserRequest userReq;
   private final String transactionDescription;
   // If true, saves the transaction as the response to the flight
   private final boolean returnTransaction;
+  // If true, makes sure to delete the transaction in the undo phase of the flight.
+  // Note: this should be false for flights that use this step to create auto-commit transactions
+  // (e.g. ingest)
+  private final boolean deleteOnUndo;
 
-  public TransactionCreateStep(
+  public TransactionOpenStep(
       DatasetService datasetService,
       BigQueryPdao bigQueryPdao,
       AuthenticatedUserRequest userReq,
       String transactionDescription,
-      boolean returnTransaction) {
+      boolean returnTransaction,
+      boolean deleteOnUndo) {
     this.datasetService = datasetService;
     this.bigQueryPdao = bigQueryPdao;
     this.userReq = userReq;
     this.transactionDescription = transactionDescription;
     this.returnTransaction = returnTransaction;
+    this.deleteOnUndo = deleteOnUndo;
   }
 
   @Override
@@ -53,11 +59,13 @@ public class TransactionCreateStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    // If a transaction was already inserted, delete it
-    UUID transactionId = TransactionUtils.getTransactionId(context);
-    if (transactionId != null) {
-      Dataset dataset = IngestUtils.getDataset(context, datasetService);
-      bigQueryPdao.deleteFromTransactionTable(dataset, transactionId);
+    if (deleteOnUndo) {
+      // If a transaction was already inserted, delete it
+      UUID transactionId = TransactionUtils.getTransactionId(context);
+      if (transactionId != null) {
+        Dataset dataset = IngestUtils.getDataset(context, datasetService);
+        bigQueryPdao.deleteFromTransactionTable(dataset, transactionId);
+      }
     }
     return StepResult.getStepResultSuccess();
   }

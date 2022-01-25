@@ -12,7 +12,7 @@ import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.dataset.flight.xactions.LockTransactionStep;
 import bio.terra.service.dataset.flight.xactions.TransactionCommitStep;
-import bio.terra.service.dataset.flight.xactions.TransactionCreateStep;
+import bio.terra.service.dataset.flight.xactions.TransactionOpenStep;
 import bio.terra.service.dataset.flight.xactions.UnlockTransactionStep;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -75,7 +75,8 @@ public class DatasetDataDeleteFlight extends Flight {
       // transaction was created for
       String transactionDesc = "Autocommit transaction";
       addStep(
-          new TransactionCreateStep(datasetService, bigQueryPdao, userReq, transactionDesc, false));
+          new TransactionOpenStep(
+              datasetService, bigQueryPdao, userReq, transactionDesc, false, false));
       autoCommit = true;
     } else {
       addStep(
@@ -103,7 +104,7 @@ public class DatasetDataDeleteFlight extends Flight {
           new UnlockTransactionStep(
               datasetService, bigQueryPdao, request.getTransactionId(), userReq));
     } else {
-      addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq));
+      addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, false));
     }
 
     // unlock

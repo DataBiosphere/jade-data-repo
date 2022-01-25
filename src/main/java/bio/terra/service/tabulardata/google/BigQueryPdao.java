@@ -5,6 +5,7 @@ import static bio.terra.common.PdaoConstant.PDAO_DELETED_BY_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_FLIGHT_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_INGESTED_BY_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS;
 import static bio.terra.common.PdaoConstant.PDAO_INGEST_TIME_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
@@ -28,7 +29,6 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
-import bio.terra.common.PdaoConstant;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.Table;
 import bio.terra.common.exception.NotFoundException;
@@ -188,7 +188,9 @@ public class BigQueryPdao {
       activeTransactionFilter = "OR <transactIdCol> = @transactId";
     }
     return "SELECT <columns:{c|R.<c>}; separator=\",\">"
-        + " FROM (SELECT * "
+        + "<if(partitionByDate)>,<partitionDateCol><endif>"
+        + " FROM (SELECT  <columns:{c|<c>}; separator=\",\">"
+        + "<if(partitionByDate)>,_PARTITIONDATE AS <partitionDateCol><endif> "
         + "FROM `<project>.<dataset>.<rawTable>` "
         + "WHERE COALESCE(<transactIdCol>, '') NOT IN ("
         + transactionQueryTemplate
@@ -226,16 +228,15 @@ public class BigQueryPdao {
     liveViewSql.add("transactionTable", PDAO_XACTIONS_TABLE);
     liveViewSql.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
     liveViewSql.add("transactStatusCol", PDAO_XACTION_STATUS_COLUMN);
+    liveViewSql.add("partitionDateCol", PDAO_INGEST_DATE_COLUMN_ALIAS);
     liveViewSql.add("transactStatusVal", TransactionModel.StatusEnum.ACTIVE);
 
     liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
     liveViewSql.add(
         "columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
-    if (table.getBigQueryPartitionConfig().getMode()
-        == BigQueryPartitionConfigV1.Mode.INGEST_DATE) {
-      liveViewSql.add("columns", "_PARTITIONDATE AS " + PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
-    }
-
+    liveViewSql.add(
+        "partitionByDate",
+        table.getBigQueryPartitionConfig().getMode() == BigQueryPartitionConfigV1.Mode.INGEST_DATE);
     return liveViewSql.render();
   }
 

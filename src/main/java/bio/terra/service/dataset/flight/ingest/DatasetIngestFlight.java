@@ -20,6 +20,7 @@ import bio.terra.service.dataset.flight.xactions.TransactionCommitStep;
 import bio.terra.service.dataset.flight.xactions.TransactionLockStep;
 import bio.terra.service.dataset.flight.xactions.TransactionOpenStep;
 import bio.terra.service.dataset.flight.xactions.TransactionUnlockStep;
+import bio.terra.service.dataset.flight.xactions.upgrade.TransactionUpgradeSingleDatasetStep;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -96,6 +97,11 @@ public class DatasetIngestFlight extends Flight {
 
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+
+    if (cloudPlatform.isGcp()) {
+      // Migrate the dataset schema if needed
+      addStep(new TransactionUpgradeSingleDatasetStep(datasetService, bigQueryPdao, datasetId));
+    }
 
     if (cloudPlatform.isAzure()) {
       addStep(

@@ -2722,45 +2722,42 @@ public class BigQueryPdao {
     return paths;
   }
 
-  // TODO: rebase to use summary once merged
-  public void migrateSchemasForTransactions(List<Dataset> datasets) {
-    for (Dataset dataset : datasets) {
-      String datasetName = prefixName(dataset.getName());
-      BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
-      BigQuery bigQuery = bigQueryProject.getBigQuery();
-      String bqDatasetId = prefixName(dataset.getName());
-      logger.info("Migrating dataset {}", dataset.toPrintableString());
-      for (DatasetTable datasetTable : dataset.getTables()) {
-        try {
-          logger.info("...Migrating dataset table {}", datasetTable.toPrintableString());
-          logger.info("......Raw data table");
-          updateSchema(
-              bigQuery,
-              bqDatasetId,
-              datasetTable.getRawTableName(),
-              buildSchema(datasetTable, true, true),
-              false);
-          logger.info("......Soft delete table");
-          updateSchema(
-              bigQuery,
-              bqDatasetId,
-              datasetTable.getSoftDeleteTableName(),
-              buildSoftDeletesSchema(),
-              false);
-          logger.info("......Adding Transaction table");
-          if (!bigQueryProject.tableExists(datasetName, PDAO_XACTIONS_TABLE)) {
-            bigQueryProject.createTable(
-                datasetName, PDAO_XACTIONS_TABLE, buildTransactionsTableSchema());
-          }
-          logger.info("......Updating live view");
-          bigQuery.update(buildLiveView(bigQueryProject.getProjectId(), datasetName, datasetTable));
-        } catch (Exception e) {
-          logger.warn(
-              "Error migrating table {} in dataset {}",
-              datasetTable.toPrintableString(),
-              dataset.toPrintableString(),
-              e);
+  public void migrateSchemaForTransactions(Dataset dataset) {
+    String datasetName = prefixName(dataset.getName());
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQuery bigQuery = bigQueryProject.getBigQuery();
+    String bqDatasetId = prefixName(dataset.getName());
+    logger.info("Migrating dataset {}", dataset.toPrintableString());
+    for (DatasetTable datasetTable : dataset.getTables()) {
+      try {
+        logger.info("...Migrating dataset table {}", datasetTable.toPrintableString());
+        logger.info("......Raw data table");
+        updateSchema(
+            bigQuery,
+            bqDatasetId,
+            datasetTable.getRawTableName(),
+            buildSchema(datasetTable, true, true),
+            false);
+        logger.info("......Soft delete table");
+        updateSchema(
+            bigQuery,
+            bqDatasetId,
+            datasetTable.getSoftDeleteTableName(),
+            buildSoftDeletesSchema(),
+            false);
+        logger.info("......Adding Transaction table");
+        if (!bigQueryProject.tableExists(datasetName, PDAO_XACTIONS_TABLE)) {
+          bigQueryProject.createTable(
+              datasetName, PDAO_XACTIONS_TABLE, buildTransactionsTableSchema());
         }
+        logger.info("......Updating live view");
+        bigQuery.update(buildLiveView(bigQueryProject.getProjectId(), datasetName, datasetTable));
+      } catch (Exception e) {
+        logger.warn(
+            "Error migrating table {} in dataset {}",
+            datasetTable.toPrintableString(),
+            dataset.toPrintableString(),
+            e);
       }
     }
   }

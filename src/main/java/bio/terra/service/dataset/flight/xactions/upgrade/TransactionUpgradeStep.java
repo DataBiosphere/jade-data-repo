@@ -62,7 +62,7 @@ public class TransactionUpgradeStep implements Step {
             .map(d -> datasetService.retrieve(d.getId()))
             .collect(Collectors.toList());
 
-    bigQueryPdao.migrateSchemasForTransactions(datasets);
+    datasets.forEach(bigQueryPdao::migrateSchemaForTransactions);
     return StepResult.getStepResultSuccess();
   }
 

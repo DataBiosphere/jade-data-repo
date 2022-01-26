@@ -361,6 +361,7 @@ public class SnapshotDao {
     try {
       return objectMapper.readValue(json, SnapshotRequestContentsModel.class);
     } catch (JsonProcessingException e) {
+      logger.warn("Error parsing creation_information into SnapshotRequestContentsModel", e);
       return null;
     }
   }

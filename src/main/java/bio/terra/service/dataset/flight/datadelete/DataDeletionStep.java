@@ -13,7 +13,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.xactions.TransactionUtils;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -89,17 +88,27 @@ public class DataDeletionStep implements Step {
   public StepResult undoStep(FlightContext context) {
     if (autocommit) {
       Dataset dataset = IngestUtils.getDataset(context, datasetService);
-      DatasetTable table = IngestUtils.getDatasetTable(context, dataset);
       UUID transactionId = TransactionUtils.getTransactionId(context);
-      try {
-        bigQueryPdao.rollbackDatasetTable(dataset, table.getSoftDeleteTableName(), transactionId);
-      } catch (InterruptedException e) {
-        logger.warn(
-            String.format(
-                "Could not rollback soft delete data for table %s in transaction %s",
-                dataset.toPrintableString(), transactionId),
-            e);
-      }
+      DataDeletionRequest dataDeletionRequest = getRequest(context);
+      List<String> tableNames =
+          dataDeletionRequest.getTables().stream()
+              .map(DataDeletionTableModel::getTableName)
+              .collect(Collectors.toList());
+      dataset.getTables().stream()
+          .filter(t -> tableNames.contains(t.getName()))
+          .forEach(
+              t -> {
+                try {
+                  bigQueryPdao.rollbackDatasetTable(
+                      dataset, t.getSoftDeleteTableName(), transactionId);
+                } catch (InterruptedException e) {
+                  logger.warn(
+                      String.format(
+                          "Could not rollback soft delete data for table %s in transaction %s",
+                          dataset.toPrintableString(), transactionId),
+                      e);
+                }
+              });
     }
     return StepResult.getStepResultSuccess();
   }

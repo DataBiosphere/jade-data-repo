@@ -5,13 +5,17 @@ import static org.mockito.Mockito.when;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.PageImpl;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValue.Attribute;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableResult;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.mockito.stubbing.Answer;
 
@@ -61,5 +65,55 @@ public final class BQTestUtils {
                         .collect(Collectors.toList()),
                     schema.getFields()))
         .collect(Collectors.toList());
+  }
+
+  public static List<Map<String, Object>> mapToList(TableResult tableResult, String... fields) {
+    List<Map<String, Object>> returnVal = new ArrayList<>();
+    List<Field> fieldsToProcess =
+        tableResult.getSchema().getFields().stream()
+            .filter(f -> fields.length == 0 || List.of(fields).contains(f.getName()))
+            .collect(Collectors.toList());
+    tableResult
+        .getValues()
+        .forEach(
+            r ->
+                returnVal.add(
+                    fieldsToProcess.stream()
+                        .collect(
+                            Collectors.toMap(
+                                Field::getName, f -> mapFieldValueToPojo(f, r.get(f.getName()))))));
+
+    return returnVal;
+  }
+
+  private static Object mapFieldValueToPojo(Field field, FieldValue fieldValue) {
+    if (fieldValue.isNull()) {
+      return null;
+    }
+    switch (field.getType().getStandardType()) {
+      case BOOL:
+        return extractData(fieldValue, FieldValue::getBooleanValue);
+      case FLOAT64:
+        return extractData(fieldValue, FieldValue::getDoubleValue);
+      case INT64:
+        return extractData(fieldValue, v -> Long.valueOf(v.getLongValue()).intValue());
+      case NUMERIC:
+        return extractData(fieldValue, FieldValue::getNumericValue);
+      case STRING:
+        return extractData(fieldValue, FieldValue::getStringValue);
+      case TIMESTAMP:
+        return extractData(fieldValue, FieldValue::getTimestampValue);
+      default:
+        return extractData(fieldValue, FieldValue::getValue);
+    }
+  }
+
+  private static Object extractData(FieldValue fieldValue, Function<FieldValue, Object> extractor) {
+    if (fieldValue.getAttribute() == Attribute.REPEATED) {
+      return fieldValue.getRepeatedValue().stream()
+          .map(extractor::apply)
+          .collect(Collectors.toList());
+    }
+    return extractor.apply(fieldValue);
   }
 }

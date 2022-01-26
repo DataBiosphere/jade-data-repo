@@ -8,11 +8,13 @@ import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 
 public class TransactionOpenStep implements Step {
   private static final Logger logger = LoggerFactory.getLogger(TransactionOpenStep.class);
@@ -48,8 +50,10 @@ public class TransactionOpenStep implements Step {
     TransactionModel transaction =
         bigQueryPdao.insertIntoTransactionTable(
             userReq, dataset, context.getFlightId(), transactionDescription);
+    FlightMap workingMap = context.getWorkingMap();
     if (returnTransaction) {
-      context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), transaction);
+      workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
+      workingMap.put(JobMapKeys.RESPONSE.getKeyName(), transaction);
     }
 
     // Placing ID explicitly so be used UnlockTransaction step

@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.startsWith;
 
 import bio.terra.common.BQTestUtils;
 import bio.terra.common.category.Integration;
@@ -19,6 +20,10 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.TransactionCloseModel;
+import bio.terra.model.TransactionCloseModel.ModeEnum;
+import bio.terra.model.TransactionCreateModel;
+import bio.terra.model.TransactionModel;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.tabulardata.google.BigQueryProject;
@@ -136,6 +141,75 @@ public class IngestTest extends UsersBase {
             dataUpd.get(1), // ID = participant_5
             dataUpd.get(2) // ID = participant_6
             ));
+  }
+
+  @Test
+  public void ingestAndUpdateParticipantsWithTransaction() throws Exception {
+    TransactionModel transaction =
+        dataRepoFixtures.openTransaction(
+            steward(), datasetId, new TransactionCreateModel().description("foo"));
+    UUID badTransaction = UUID.randomUUID();
+    IngestRequestModel ingestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest("participant", "ingest-test/ingest-test-participant.json")
+            // Bogus transaction should fail
+            .transactionId(badTransaction);
+
+    // Should fail with unrecognized transaction
+    DataRepoResponse<IngestResponseModel> badIngestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, ingestRequest);
+    assertThat(
+        "Could not find transaction",
+        badIngestResponse.getStatusCode(),
+        equalTo(HttpStatus.NOT_FOUND));
+
+    assertThat(
+        "Error message looks reasonable",
+        badIngestResponse.getErrorObject().get().getMessage(),
+        startsWith(String.format("Transaction %s not found in dataset", badTransaction)));
+
+    ingestRequest.transactionId(transaction.getId());
+
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
+
+    IngestRequestModel updateIngestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest("participant", "ingest-test/ingest-test-participant_upd1.json")
+            .updateStrategy(UpdateStrategyEnum.REPLACE)
+            .transactionId(transaction.getId());
+    IngestResponseModel updateIngestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, updateIngestRequest);
+    assertThat(
+        "correct updated participant row count", updateIngestResponse.getRowCount(), equalTo(3L));
+
+    // Two of the rows should have overlapped so we should now see 6 rows
+    // TODO: once the preview API GA and works for datasets, we should use that here
+    DatasetModel dataset =
+        dataRepoFixtures.getDataset(
+            steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
+    BigQueryProject bigQueryProject =
+        BigQueryProject.get(dataset.getAccessInformation().getBigQuery().getProjectId());
+    AccessInfoBigQueryModelTable bqTableInfo =
+        dataset.getAccessInformation().getBigQuery().getTables().stream()
+            .filter(t -> t.getName().equals("participant"))
+            .findFirst()
+            .orElseThrow();
+    // Note: the sample query is just a formatted select * query against the table
+    TableResult bqQueryResult = bigQueryProject.query(bqTableInfo.getSampleQuery());
+
+    assertThat("No commit so rows aren't there", bqQueryResult.getTotalRows(), equalTo(0L));
+
+    // Commit and rows should now be present
+    dataRepoFixtures.closeTransaction(
+        steward(),
+        datasetId,
+        transaction.getId(),
+        new TransactionCloseModel().mode(ModeEnum.COMMIT));
+
+    TableResult bqQueryResultCommitted = bigQueryProject.query(bqTableInfo.getSampleQuery());
+    assertThat("Committed rows are there", bqQueryResultCommitted.getTotalRows(), equalTo(6L));
   }
 
   @Test

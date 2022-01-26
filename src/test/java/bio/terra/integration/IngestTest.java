@@ -144,7 +144,7 @@ public class IngestTest extends UsersBase {
         dataRepoFixtures.buildSimpleIngest("participant", "ingest-test/ingest-test-participant*");
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-    assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(7L));
+    assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(10L));
   }
 
   @Test

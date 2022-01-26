@@ -10,8 +10,8 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.dataset.flight.xactions.TransactionLockStep;
 import bio.terra.service.dataset.flight.xactions.TransactionCommitStep;
+import bio.terra.service.dataset.flight.xactions.TransactionLockStep;
 import bio.terra.service.dataset.flight.xactions.TransactionOpenStep;
 import bio.terra.service.dataset.flight.xactions.TransactionUnlockStep;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
@@ -69,7 +69,7 @@ public class DatasetDataDeleteFlight extends Flight {
         new LockDatasetStep(datasetService, UUID.fromString(datasetId), true), lockDatasetRetry);
 
     // Note: don't worry about Azure until we tackle DR-2252
-    boolean autoCommit;
+    boolean autocommit;
     if (request.getTransactionId() == null) {
       // Note: don't unlock transaction so we keep a history of what flight an auto-commit
       // transaction was created for
@@ -77,12 +77,12 @@ public class DatasetDataDeleteFlight extends Flight {
       addStep(
           new TransactionOpenStep(
               datasetService, bigQueryPdao, userReq, transactionDesc, false, false));
-      autoCommit = true;
+      autocommit = true;
     } else {
       addStep(
           new TransactionLockStep(
               datasetService, bigQueryPdao, request.getTransactionId(), true, userReq));
-      autoCommit = false;
+      autocommit = false;
     }
 
     // If we need to copy, make (or get) the scratch bucket
@@ -97,9 +97,9 @@ public class DatasetDataDeleteFlight extends Flight {
     addStep(new CreateExternalTablesStep(bigQueryPdao, datasetService));
 
     // insert into soft delete table
-    addStep(new DataDeletionStep(bigQueryPdao, datasetService, configService, userReq));
+    addStep(new DataDeletionStep(bigQueryPdao, datasetService, configService, userReq, autocommit));
 
-    if (!autoCommit) {
+    if (!autocommit) {
       addStep(
           new TransactionUnlockStep(
               datasetService, bigQueryPdao, request.getTransactionId(), userReq));

@@ -20,12 +20,17 @@ public class IngestSoftDeleteExistingRowsStep implements Step {
   private final DatasetService datasetService;
   private final BigQueryPdao bigQueryPdao;
   private final AuthenticatedUserRequest userReq;
+  private final boolean autocommit;
 
   public IngestSoftDeleteExistingRowsStep(
-      DatasetService datasetService, BigQueryPdao bigQueryPdao, AuthenticatedUserRequest userReq) {
+      DatasetService datasetService,
+      BigQueryPdao bigQueryPdao,
+      AuthenticatedUserRequest userReq,
+      boolean autocommit) {
     this.datasetService = datasetService;
     this.bigQueryPdao = bigQueryPdao;
     this.userReq = userReq;
+    this.autocommit = autocommit;
   }
 
   @Override
@@ -57,7 +62,20 @@ public class IngestSoftDeleteExistingRowsStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    // TODO: should this be deleted or handled by an explicit rollback?
+    if (autocommit) {
+      Dataset dataset = IngestUtils.getDataset(context, datasetService);
+      DatasetTable table = IngestUtils.getDatasetTable(context, dataset);
+      UUID transactionId = TransactionUtils.getTransactionId(context);
+      try {
+        bigQueryPdao.rollbackDatasetTable(dataset, table.getSoftDeleteTableName(), transactionId);
+      } catch (InterruptedException e) {
+        logger.warn(
+            String.format(
+                "Could not rollback soft delete data for table %s in transaction %s",
+                dataset.toPrintableString(), transactionId),
+            e);
+      }
+    }
     return StepResult.getStepResultSuccess();
   }
 }

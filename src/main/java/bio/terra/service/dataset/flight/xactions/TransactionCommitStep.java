@@ -42,9 +42,10 @@ public class TransactionCommitStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
-    UUID transactionId = this.transactionId == null
-        ? TransactionUtils.getTransactionId(context)
-        : this.transactionId;
+    UUID transactionId =
+        this.transactionId == null
+            ? TransactionUtils.getTransactionId(context)
+            : this.transactionId;
     TransactionModel transaction =
         bigQueryPdao.updateTransactionTableStatus(
             userReq, dataset, transactionId, StatusEnum.COMMITTED);

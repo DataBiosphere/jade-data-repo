@@ -16,8 +16,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.dataset.flight.xactions.TransactionLockStep;
 import bio.terra.service.dataset.flight.xactions.TransactionCommitStep;
+import bio.terra.service.dataset.flight.xactions.TransactionLockStep;
 import bio.terra.service.dataset.flight.xactions.TransactionOpenStep;
 import bio.terra.service.dataset.flight.xactions.TransactionUnlockStep;
 import bio.terra.service.filedata.FileService;
@@ -106,7 +106,7 @@ public class DatasetIngestFlight extends Flight {
     }
 
     addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
-    boolean autoCommit;
+    boolean autocommit;
     if (cloudPlatform.isGcp()) {
       if (ingestRequestModel.getTransactionId() == null) {
         // Note: don't unlock transaction so we keep a history of what flight an auto-commit
@@ -115,7 +115,7 @@ public class DatasetIngestFlight extends Flight {
         addStep(
             new TransactionOpenStep(
                 datasetService, bigQueryPdao, userReq, transactionDesc, false, false));
-        autoCommit = true;
+        autocommit = true;
       } else {
         addStep(
             new TransactionLockStep(
@@ -124,10 +124,10 @@ public class DatasetIngestFlight extends Flight {
                 ingestRequestModel.getTransactionId(),
                 true,
                 userReq));
-        autoCommit = false;
+        autocommit = false;
       }
     } else {
-      autoCommit = true;
+      autocommit = true;
     }
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
@@ -195,12 +195,18 @@ public class DatasetIngestFlight extends Flight {
               new IngestCopyControlFileStep(datasetService, gcsPdao)));
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
       if (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE) {
+        // Ensure that no duplicate IDs are being loaded in
         addStep(new IngestValidateIngestRowsStep(datasetService, bigQueryPdao));
-        addStep(new IngestSoftDeleteExistingRowsStep(datasetService, bigQueryPdao, userReq));
+        // Soft deletes rows from the target table
+        addStep(
+            new IngestSoftDeleteExistingRowsStep(
+                datasetService, bigQueryPdao, userReq, autocommit));
       }
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
-      addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao, userReq));
+      // Loads data into the final target raw data table
+      addStep(
+          new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao, userReq, autocommit));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
       addStep(new IngestScratchFileDeleteGcpStep(gcsPdao));
     } else if (cloudPlatform.isAzure()) {
@@ -215,7 +221,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
     }
     if (cloudPlatform.isGcp()) {
-      if (!autoCommit) {
+      if (!autocommit) {
         addStep(
             new TransactionUnlockStep(
                 datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), userReq));

@@ -13,6 +13,8 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.xactions.TransactionUtils;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
@@ -27,23 +29,25 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 public class DataDeletionStep implements Step {
+  private static Logger logger = LoggerFactory.getLogger(DataDeletionStep.class);
 
   private final BigQueryPdao bigQueryPdao;
   private final DatasetService datasetService;
   private final ConfigurationService configService;
   private final AuthenticatedUserRequest userRequest;
-
-  private static Logger logger = LoggerFactory.getLogger(DataDeletionStep.class);
+  private final boolean autocommit;
 
   public DataDeletionStep(
       BigQueryPdao bigQueryPdao,
       DatasetService datasetService,
       ConfigurationService configService,
-      AuthenticatedUserRequest userRequest) {
+      AuthenticatedUserRequest userRequest,
+      boolean autocommit) {
     this.bigQueryPdao = bigQueryPdao;
     this.datasetService = datasetService;
     this.configService = configService;
     this.userRequest = userRequest;
+    this.autocommit = autocommit;
   }
 
   @Override
@@ -83,7 +87,20 @@ public class DataDeletionStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    // The do step is atomic, either it worked or it didn't. There is no undo.
+    if (autocommit) {
+      Dataset dataset = IngestUtils.getDataset(context, datasetService);
+      DatasetTable table = IngestUtils.getDatasetTable(context, dataset);
+      UUID transactionId = TransactionUtils.getTransactionId(context);
+      try {
+        bigQueryPdao.rollbackDatasetTable(dataset, table.getSoftDeleteTableName(), transactionId);
+      } catch (InterruptedException e) {
+        logger.warn(
+            String.format(
+                "Could not rollback soft delete data for table %s in transaction %s",
+                dataset.toPrintableString(), transactionId),
+            e);
+      }
+    }
     return StepResult.getStepResultSuccess();
   }
 }

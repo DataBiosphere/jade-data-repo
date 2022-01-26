@@ -27,9 +27,9 @@ import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
 import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
 import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
-import bio.terra.service.dataset.flight.xactions.DatasetTransactionCommitFlight;
-import bio.terra.service.dataset.flight.xactions.DatasetTransactionOpenFlight;
-import bio.terra.service.dataset.flight.xactions.DatasetTransactionRollbackFlight;
+import bio.terra.service.dataset.flight.xactions.TransactionCommitFlight;
+import bio.terra.service.dataset.flight.xactions.TransactionOpenFlight;
+import bio.terra.service.dataset.flight.xactions.TransactionRollbackFlight;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -297,7 +297,7 @@ public class DatasetService {
     }
     String description = "Create transaction " + name;
     return jobService
-        .newJob(description, DatasetTransactionOpenFlight.class, transactionRequest, userReq)
+        .newJob(description, TransactionOpenFlight.class, transactionRequest, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .submit();
   }
@@ -323,7 +323,7 @@ public class DatasetService {
   public String commitTransaction(UUID id, UUID transactionId, AuthenticatedUserRequest userReq) {
     String description = "Commit transaction " + transactionId + " in dataset " + id;
     return jobService
-        .newJob(description, DatasetTransactionCommitFlight.class, null, userReq)
+        .newJob(description, TransactionCommitFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(JobMapKeys.TRANSACTION_ID.getKeyName(), transactionId)
         .submit();
@@ -332,7 +332,7 @@ public class DatasetService {
   public String rollbackTransaction(UUID id, UUID transactionId, AuthenticatedUserRequest userReq) {
     String description = "Rollback transaction " + transactionId + " in dataset " + id;
     return jobService
-        .newJob(description, DatasetTransactionRollbackFlight.class, null, userReq)
+        .newJob(description, TransactionRollbackFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(JobMapKeys.TRANSACTION_ID.getKeyName(), transactionId)
         .submit();

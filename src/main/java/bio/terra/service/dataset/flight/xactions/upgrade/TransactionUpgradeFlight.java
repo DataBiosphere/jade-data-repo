@@ -9,9 +9,9 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
 
-public class DatasetTransactionUpgradeFlight extends Flight {
+public class TransactionUpgradeFlight extends Flight {
 
-  public DatasetTransactionUpgradeFlight(FlightMap inputParameters, Object applicationContext) {
+  public TransactionUpgradeFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
 
     // get the required daos to pass into the steps

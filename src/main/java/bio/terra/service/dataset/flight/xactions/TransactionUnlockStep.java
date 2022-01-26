@@ -12,14 +12,14 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnlockTransactionStep implements Step {
-  private static final Logger logger = LoggerFactory.getLogger(UnlockTransactionStep.class);
+public class TransactionUnlockStep implements Step {
+  private static final Logger logger = LoggerFactory.getLogger(TransactionUnlockStep.class);
   private final DatasetService datasetService;
   private final BigQueryPdao bigQueryPdao;
   private final UUID transactionId;
   private final AuthenticatedUserRequest userRequest;
 
-  public UnlockTransactionStep(
+  public TransactionUnlockStep(
       DatasetService datasetService,
       BigQueryPdao bigQueryPdao,
       UUID transactionId,

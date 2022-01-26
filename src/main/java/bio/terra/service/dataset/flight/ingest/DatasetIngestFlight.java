@@ -16,10 +16,10 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.dataset.flight.xactions.LockTransactionStep;
+import bio.terra.service.dataset.flight.xactions.TransactionLockStep;
 import bio.terra.service.dataset.flight.xactions.TransactionCommitStep;
 import bio.terra.service.dataset.flight.xactions.TransactionOpenStep;
-import bio.terra.service.dataset.flight.xactions.UnlockTransactionStep;
+import bio.terra.service.dataset.flight.xactions.TransactionUnlockStep;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -118,7 +118,7 @@ public class DatasetIngestFlight extends Flight {
         autoCommit = true;
       } else {
         addStep(
-            new LockTransactionStep(
+            new TransactionLockStep(
                 datasetService,
                 bigQueryPdao,
                 ingestRequestModel.getTransactionId(),
@@ -217,7 +217,7 @@ public class DatasetIngestFlight extends Flight {
     if (cloudPlatform.isGcp()) {
       if (!autoCommit) {
         addStep(
-            new UnlockTransactionStep(
+            new TransactionUnlockStep(
                 datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), userReq));
       } else {
         addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, false));

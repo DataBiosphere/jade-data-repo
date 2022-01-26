@@ -4,7 +4,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.UpgradeModel;
-import bio.terra.service.dataset.flight.xactions.upgrade.DatasetTransactionUpgradeFlight;
+import bio.terra.service.dataset.flight.xactions.upgrade.TransactionUpgradeFlight;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -19,7 +19,7 @@ public class UpgradeService {
 
   private enum CustomFlight {
     PLACEHOLDER(null),
-    TRANSACTION_SUPPORT(DatasetTransactionUpgradeFlight.class);
+    TRANSACTION_SUPPORT(TransactionUpgradeFlight.class);
 
     private final Class<? extends Flight> flightClass;
 

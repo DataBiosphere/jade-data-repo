@@ -12,9 +12,9 @@ import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
-public class DatasetTransactionCommitFlight extends Flight {
+public class TransactionRollbackFlight extends Flight {
 
-  public DatasetTransactionCommitFlight(FlightMap inputParameters, Object applicationContext) {
+  public TransactionRollbackFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
 
     // get the required daos to pass into the steps
@@ -33,10 +33,12 @@ public class DatasetTransactionCommitFlight extends Flight {
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     if (cloudPlatform.isGcp()) {
-      addStep(new LockTransactionStep(datasetService, bigQueryPdao, transactionId, false, userReq));
-      addStep(new TransactionVerifyStep(datasetService, bigQueryPdao, transactionId));
-      addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, true));
-      addStep(new UnlockTransactionStep(datasetService, bigQueryPdao, transactionId, userReq));
+      addStep(new TransactionLockStep(datasetService, bigQueryPdao, transactionId, false, userReq));
+      addStep(new TransactionRollbackMetadataStep(datasetService, bigQueryPdao, transactionId));
+      addStep(new TransactionRollbackDataStep(datasetService, bigQueryPdao, transactionId));
+      addStep(new TransactionRollbackSoftDeleteStep(datasetService, bigQueryPdao, transactionId));
+      addStep(new TransactionRollbackStep(datasetService, bigQueryPdao, transactionId, userReq));
+      addStep(new TransactionUnlockStep(datasetService, bigQueryPdao, transactionId, userReq));
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;
     }

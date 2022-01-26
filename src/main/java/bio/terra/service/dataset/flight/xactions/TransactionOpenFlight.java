@@ -13,9 +13,9 @@ import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
-public class DatasetTransactionOpenFlight extends Flight {
+public class TransactionOpenFlight extends Flight {
 
-  public DatasetTransactionOpenFlight(FlightMap inputParameters, Object applicationContext) {
+  public TransactionOpenFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
 
     // get the required daos to pass into the steps
@@ -45,6 +45,6 @@ public class DatasetTransactionOpenFlight extends Flight {
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;
     }
-    addStep(new UnlockTransactionStep(datasetService, bigQueryPdao, null, userReq));
+    addStep(new TransactionUnlockStep(datasetService, bigQueryPdao, null, userReq));
   }
 }

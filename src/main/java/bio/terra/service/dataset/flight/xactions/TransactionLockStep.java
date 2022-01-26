@@ -15,15 +15,15 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LockTransactionStep implements Step {
-  private static final Logger logger = LoggerFactory.getLogger(LockTransactionStep.class);
+public class TransactionLockStep implements Step {
+  private static final Logger logger = LoggerFactory.getLogger(TransactionLockStep.class);
   private final DatasetService datasetService;
   private final BigQueryPdao bigQueryPdao;
   private final UUID transactionId;
   private final boolean failIfTerminated;
   AuthenticatedUserRequest userRequest;
 
-  public LockTransactionStep(
+  public TransactionLockStep(
       DatasetService datasetService,
       BigQueryPdao bigQueryPdao,
       UUID transactionId,

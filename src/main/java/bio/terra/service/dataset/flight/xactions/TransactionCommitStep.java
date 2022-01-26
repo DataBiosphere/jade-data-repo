@@ -22,22 +22,29 @@ public class TransactionCommitStep implements Step {
   private final AuthenticatedUserRequest userReq;
   // If true, saves the transaction as the response to the flight
   private final boolean returnTransaction;
+  // Can specify the transaction ID at the flight level or through the flight working map using the
+  // "transactionId" key if this value is null
+  private final UUID transactionId;
 
   public TransactionCommitStep(
       DatasetService datasetService,
       BigQueryPdao bigQueryPdao,
       AuthenticatedUserRequest userReq,
-      boolean returnTransaction) {
+      boolean returnTransaction,
+      UUID transactionId) {
     this.datasetService = datasetService;
     this.bigQueryPdao = bigQueryPdao;
     this.userReq = userReq;
     this.returnTransaction = returnTransaction;
+    this.transactionId = transactionId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
-    UUID transactionId = TransactionUtils.getTransactionId(context);
+    UUID transactionId = this.transactionId == null
+        ? TransactionUtils.getTransactionId(context)
+        : this.transactionId;
     TransactionModel transaction =
         bigQueryPdao.updateTransactionTableStatus(
             userReq, dataset, transactionId, StatusEnum.COMMITTED);

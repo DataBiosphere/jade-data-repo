@@ -35,7 +35,7 @@ public class TransactionCommitFlight extends Flight {
     if (cloudPlatform.isGcp()) {
       addStep(new TransactionLockStep(datasetService, bigQueryPdao, transactionId, false, userReq));
       addStep(new TransactionVerifyStep(datasetService, bigQueryPdao, transactionId));
-      addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, true));
+      addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, true, transactionId));
       addStep(new TransactionUnlockStep(datasetService, bigQueryPdao, transactionId, userReq));
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;

@@ -220,7 +220,7 @@ public class DatasetIngestFlight extends Flight {
             new TransactionUnlockStep(
                 datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), userReq));
       } else {
-        addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, false));
+        addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, false, null));
       }
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);

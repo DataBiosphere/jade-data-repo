@@ -104,7 +104,7 @@ public class DatasetDataDeleteFlight extends Flight {
           new TransactionUnlockStep(
               datasetService, bigQueryPdao, request.getTransactionId(), userReq));
     } else {
-      addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, false));
+      addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, false, null));
     }
 
     // unlock

@@ -63,6 +63,7 @@ public class SnapshotDeleteFlight extends Flight {
     // TODO note that with multi-dataset snapshots this will need to change
     addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
 
+    addStep(new PerformGcpStep(new DeleteSnapshotStoreProjectIdStep(snapshotId, snapshotService)));
     addStep(
         new DeleteSnapshotPopAndLockDatasetStep(
             snapshotId, snapshotService, datasetService, userReq, false));

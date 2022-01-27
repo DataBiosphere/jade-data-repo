@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -31,11 +30,11 @@ public class DeleteSnapshotMarkProjectStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    List<UUID> projectResourceIds = List.of(snapshot.getProjectResourceId());
-    resourceService.markProjectsForDelete(projectResourceIds);
     FlightMap workingMap = context.getWorkingMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID_LIST, projectResourceIds);
+    List<UUID> projectIdList = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID_LIST, List.class);
+
+    resourceService.markProjectsForDelete(projectIdList);
+
     return StepResult.getStepResultSuccess();
   }
 

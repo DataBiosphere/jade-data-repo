@@ -75,6 +75,7 @@ public class DatasetDeleteFlight extends Flight {
     if (platform.isGcp()) {
       addStep(new DeleteDatasetStoreProjectIdStep(datasetId, datasetService));
       // TODO: Do this check for Azure datasets
+      addStep(new DeleteDatasetStoreProjectIdStep(datasetId, datasetService));
       addStep(
           new DeleteDatasetGcpValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
       addStep(

@@ -1,6 +1,5 @@
 package bio.terra.service.dataset.flight.delete;
 
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -32,11 +31,9 @@ public class DeleteDatasetMarkProjectStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    Dataset dataset = datasetService.retrieve(datasetId);
-    List<UUID> projectResourceIds = List.of(dataset.getProjectResourceId());
-    resourceService.markProjectsForDelete(projectResourceIds);
     FlightMap workingMap = context.getWorkingMap();
-    workingMap.put(DatasetWorkingMapKeys.DATASET_PROJECT_ID_LIST, projectResourceIds);
+    List<UUID> projectIdList = workingMap.get(DatasetWorkingMapKeys.DATASET_PROJECT_ID_LIST, List.class);
+    resourceService.markProjectsForDelete(projectIdList);
     return StepResult.getStepResultSuccess();
   }
 

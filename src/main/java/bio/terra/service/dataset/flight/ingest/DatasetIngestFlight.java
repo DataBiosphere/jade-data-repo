@@ -100,7 +100,9 @@ public class DatasetIngestFlight extends Flight {
 
     if (cloudPlatform.isGcp()) {
       // Migrate the dataset schema if needed
+      addStep(new LockDatasetStep(datasetService, datasetId, false), lockDatasetRetry);
       addStep(new TransactionUpgradeSingleDatasetStep(datasetService, bigQueryPdao, datasetId));
+      addStep(new UnlockDatasetStep(datasetService, datasetId, false), lockDatasetRetry);
     }
 
     if (cloudPlatform.isAzure()) {

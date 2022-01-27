@@ -14,7 +14,6 @@ import bio.terra.service.dataset.flight.xactions.TransactionCommitStep;
 import bio.terra.service.dataset.flight.xactions.TransactionLockStep;
 import bio.terra.service.dataset.flight.xactions.TransactionOpenStep;
 import bio.terra.service.dataset.flight.xactions.TransactionUnlockStep;
-import bio.terra.service.dataset.flight.xactions.upgrade.TransactionUpgradeSingleDatasetStep;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.IamAction;
@@ -65,10 +64,6 @@ public class DatasetDataDeleteFlight extends Flight {
       addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
     }
 
-    // Migrate the dataset schema if needed
-    addStep(
-        new TransactionUpgradeSingleDatasetStep(
-            datasetService, bigQueryPdao, UUID.fromString(datasetId)));
     // need to lock, need dataset name and flight id
     addStep(
         new LockDatasetStep(datasetService, UUID.fromString(datasetId), true), lockDatasetRetry);

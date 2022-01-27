@@ -98,7 +98,7 @@ public class IngestTest extends UsersBase {
 
     IngestRequestModel updateIngestRequest =
         dataRepoFixtures
-            .buildSimpleIngest("participant", "ingest-test/ingest-test-participant_upd1.json")
+            .buildSimpleIngest("participant", "ingest-test/ingest-test-update-participant.json")
             .updateStrategy(UpdateStrategyEnum.REPLACE);
     IngestResponseModel updateIngestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, updateIngestRequest);
@@ -128,7 +128,7 @@ public class IngestTest extends UsersBase {
         jsonLoader.loadObjectAsStream("ingest-test-participant.json", new TypeReference<>() {});
     List<Map<String, Object>> dataUpd =
         jsonLoader.loadObjectAsStream(
-            "ingest-test-participant_upd1.json", new TypeReference<>() {});
+            "ingest-test-update-participant.json", new TypeReference<>() {});
     assertThat(
         "Values match",
         results,
@@ -176,7 +176,7 @@ public class IngestTest extends UsersBase {
 
     IngestRequestModel updateIngestRequest =
         dataRepoFixtures
-            .buildSimpleIngest("participant", "ingest-test/ingest-test-participant_upd1.json")
+            .buildSimpleIngest("participant", "ingest-test/ingest-test-update-participant.json")
             .updateStrategy(UpdateStrategyEnum.REPLACE)
             .transactionId(transaction.getId());
     IngestResponseModel updateIngestResponse =
@@ -218,7 +218,7 @@ public class IngestTest extends UsersBase {
         dataRepoFixtures.buildSimpleIngest("participant", "ingest-test/ingest-test-participant*");
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-    assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(10L));
+    assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(7L));
   }
 
   @Test

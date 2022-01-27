@@ -1,6 +1,5 @@
 package bio.terra.service.job;
 
-import bio.terra.common.exception.ErrorReportException;
 import bio.terra.service.job.exception.ExceptionSerializerException;
 import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.stairway.ExceptionSerializer;
@@ -30,18 +29,7 @@ public class StairwayExceptionSerializer implements ExceptionSerializer {
       exception = new JobResponseException(exception.getMessage(), exception);
     }
 
-    StairwayExceptionFields fields =
-        new StairwayExceptionFields()
-            .setClassName(exception.getClass().getName())
-            .setMessage(exception.getMessage());
-
-    if (exception instanceof ErrorReportException) {
-      fields
-          .setDataRepoException(true)
-          .setErrorDetails(((ErrorReportException) exception).getCauses());
-    } else {
-      fields.setDataRepoException(false);
-    }
+    final StairwayExceptionFields fields = StairwayExceptionFieldsFactory.fromException(exception);
 
     try {
       return objectMapper.writeValueAsString(fields);

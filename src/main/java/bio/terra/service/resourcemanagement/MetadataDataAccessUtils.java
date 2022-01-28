@@ -91,7 +91,6 @@ public final class MetadataDataAccessUtils {
                 .getDataset()
                 .getDatasetSummary()
                 .getStorageCloudPlatform());
-
     if (cloudPlatformWrapper.isGcp()) {
       return makeAccessInfoBigQuery(
           snapshot.getName(),

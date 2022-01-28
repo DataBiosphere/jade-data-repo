@@ -140,21 +140,22 @@ public class SnapshotDaoTest {
     snapshotDao.updateSnapshotTableRowCounts(snapshot, Collections.emptyMap());
   }
 
+  private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
+    snapshotDao.createAndLock(snapshot, flightId);
+    snapshotDao.unlock(snapshotId, flightId);
+    return snapshotDao.retrieveSnapshot(snapshotId);
+  }
+
   @Test
-  public void happyInOutTest() throws Exception {
+  public void happyInOutTest() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID().toString());
 
-    String flightId = "happyInOutTest_flightId";
     Snapshot snapshot =
         snapshotService
             .makeSnapshotFromSnapshotRequest(snapshotRequest)
             .projectResourceId(projectId)
             .id(snapshotId);
-    snapshotDao.createAndLock(snapshot, flightId);
-
-    snapshotDao.unlock(snapshotId, flightId);
-    Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotId);
-
+    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, "happyInOutTest_flightId");
     assertThat("snapshot name set correctly", fromDB.getName(), equalTo(snapshot.getName()));
 
     assertThat(
@@ -165,6 +166,11 @@ public class SnapshotDaoTest {
     assertThat("correct number of tables created", fromDB.getTables().size(), equalTo(2));
 
     assertThat("correct number of sources created", fromDB.getSnapshotSources().size(), equalTo(1));
+
+    assertThat(
+        "snapshot creation information set correctly",
+        fromDB.getCreationInformation(),
+        equalTo(snapshot.getCreationInformation()));
 
     // verify source and map
     SnapshotSource source = fromDB.getFirstSnapshotSource();

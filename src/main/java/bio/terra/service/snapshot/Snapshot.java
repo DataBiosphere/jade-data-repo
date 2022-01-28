@@ -4,6 +4,7 @@ import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -31,6 +32,7 @@ public class Snapshot implements FSContainerInterface {
   private GoogleProjectResource projectResource;
   private AzureStorageAccountResource storageAccountResource;
   private List<Relationship> relationships = Collections.emptyList();
+  private SnapshotRequestContentsModel creationInformation;
 
   @Override
   public CollectionType getCollectionType() {
@@ -179,5 +181,14 @@ public class Snapshot implements FSContainerInterface {
 
   public boolean isSecureMonitoringEnabled() {
     return getFirstSnapshotSource().getDataset().isSecureMonitoringEnabled();
+  }
+
+  public SnapshotRequestContentsModel getCreationInformation() {
+    return creationInformation;
+  }
+
+  public Snapshot creationInformation(SnapshotRequestContentsModel model) {
+    this.creationInformation = model;
+    return this;
   }
 }

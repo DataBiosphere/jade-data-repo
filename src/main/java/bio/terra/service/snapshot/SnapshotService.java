@@ -16,13 +16,13 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
-import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
@@ -217,9 +217,7 @@ public class SnapshotService {
    * @return an API output-friendly representation of the Snapshot
    */
   public SnapshotModel retrieveAvailableSnapshotModel(
-      UUID id,
-      List<SnapshotRequestAccessIncludeModel> include,
-      AuthenticatedUserRequest userRequest) {
+      UUID id, List<SnapshotRetrieveIncludeModel> include, AuthenticatedUserRequest userRequest) {
     Snapshot snapshot = retrieveAvailable(id);
     return populateSnapshotModelFromSnapshot(snapshot, include, userRequest);
   }
@@ -344,7 +342,8 @@ public class SnapshotService {
         .description(snapshotRequestModel.getDescription())
         .snapshotSources(Collections.singletonList(snapshotSource))
         .profileId(snapshotRequestModel.getProfileId())
-        .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource));
+        .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource))
+        .creationInformation(requestContents);
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(
@@ -622,7 +621,7 @@ public class SnapshotService {
 
   private SnapshotModel populateSnapshotModelFromSnapshot(
       Snapshot snapshot,
-      List<SnapshotRequestAccessIncludeModel> include,
+      List<SnapshotRetrieveIncludeModel> include,
       AuthenticatedUserRequest userRequest) {
     SnapshotModel snapshotModel =
         new SnapshotModel()
@@ -632,39 +631,42 @@ public class SnapshotService {
             .createdDate(snapshot.getCreatedDate().toString());
 
     // In case NONE is specified, this should supersede any other value being passed in
-    if (include.contains(SnapshotRequestAccessIncludeModel.NONE)) {
+    if (include.contains(SnapshotRetrieveIncludeModel.NONE)) {
       return snapshotModel;
     }
 
-    if (include.contains(SnapshotRequestAccessIncludeModel.SOURCES)) {
+    if (include.contains(SnapshotRetrieveIncludeModel.SOURCES)) {
       snapshotModel.source(
           snapshot.getSnapshotSources().stream()
               .map(this::makeSourceModelFromSource)
               .collect(Collectors.toList()));
     }
-    if (include.contains(SnapshotRequestAccessIncludeModel.TABLES)) {
+    if (include.contains(SnapshotRetrieveIncludeModel.TABLES)) {
       snapshotModel.tables(
           snapshot.getTables().stream()
               .map(this::makeTableModelFromTable)
               .collect(Collectors.toList()));
     }
-    if (include.contains(SnapshotRequestAccessIncludeModel.RELATIONSHIPS)) {
+    if (include.contains(SnapshotRetrieveIncludeModel.RELATIONSHIPS)) {
       snapshotModel.relationships(
           snapshot.getRelationships().stream()
               .map(this::makeRelationshipModelFromRelationship)
               .collect(Collectors.toList()));
     }
-    if (include.contains(SnapshotRequestAccessIncludeModel.PROFILE)) {
+    if (include.contains(SnapshotRetrieveIncludeModel.PROFILE)) {
       snapshotModel.profileId(snapshot.getProfileId());
     }
-    if (include.contains(SnapshotRequestAccessIncludeModel.DATA_PROJECT)) {
+    if (include.contains(SnapshotRetrieveIncludeModel.DATA_PROJECT)) {
       if (snapshot.getProjectResource() != null) {
         snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
       }
     }
-    if (include.contains(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION)) {
+    if (include.contains(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION)) {
       snapshotModel.accessInformation(
           metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest));
+    }
+    if (include.contains(SnapshotRetrieveIncludeModel.CREATION_INFORMATION)) {
+      snapshotModel.creationInformation(snapshot.getCreationInformation());
     }
     return snapshotModel;
   }
@@ -726,10 +728,10 @@ public class SnapshotService {
         .arrayOf(column.isArrayOf());
   }
 
-  private static List<SnapshotRequestAccessIncludeModel> getDefaultIncludes() {
+  private static List<SnapshotRetrieveIncludeModel> getDefaultIncludes() {
     return Arrays.stream(
             StringUtils.split(SnapshotsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
-        .map(SnapshotRequestAccessIncludeModel::fromValue)
+        .map(SnapshotRetrieveIncludeModel::fromValue)
         .collect(Collectors.toList());
   }
 }

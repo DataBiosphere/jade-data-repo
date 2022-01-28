@@ -16,7 +16,7 @@ import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessIncludeModel;
+import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamResourceType;
@@ -137,7 +137,7 @@ public class EncodeFixture {
         dataRepoFixtures.getSnapshot(
             custodian,
             snapshotSummary.getId(),
-            List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
+            List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
     logger.info(
         "Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",
         snapshotModel.getName(),

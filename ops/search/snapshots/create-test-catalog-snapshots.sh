@@ -138,6 +138,8 @@ echo
 read -rp "❓ Need a display name for the dataset: " DATASET_BASE_NAME
 read -rp "❓ Need a display name for the snapshot: " SNAPSHOT_BASE_NAME
 
+datasets=()
+snapshots=()
 for i in $(seq 1 $COUNT); do
   echo "Creating dataset with billing profile $BILLING_PROFILE_NAME"
   DATASET_NAME="${DATASET_BASE_NAME}${i}"
@@ -148,6 +150,7 @@ for i in $(seq 1 $COUNT); do
   tdr_get "repository/v1/jobs/$CURRENT_JOB_ID/result"
   DATASET_ID=$(echo "$CURL_OUTPUT" | jq .id | remove_quotes)
   echo "Dataset created with id $DATASET_ID"
+  datasets+=($DATASET_ID)
   echo
 
   echo "Populating dataset $DATASET_NAME"
@@ -169,6 +172,7 @@ for i in $(seq 1 $COUNT); do
 
   echo "Created public Snapshot $SNAPSHOT_NAME with id:"
   echo "$(tput bold)$SNAPSHOT_ID$(tput sgr0)"
+  snapshots+=($SNAPSHOT_ID)
 
   if (($i % 2 == 0)); then
     POLICY_URL="repository/v1/snapshots/$SNAPSHOT_ID/policies/discoverer/members"
@@ -179,5 +183,12 @@ for i in $(seq 1 $COUNT); do
   # TODO: change to test service accounts
   tdr_post $POLICY_URL "{\"email\": \"voldemort.admin@test.firecloud.org\"}"
 
-  echo "Done!"
 done
+
+echo "Writing dataset ids to datasets.txt"
+printf "%s\n" "${datasets[@]}" > ./datasets.txt
+
+echo "Writing snapshot ids to snapshots.txt"
+printf "%s\n" "${snapshots[@]}" > ./snapshots.txt
+
+echo "Done!"

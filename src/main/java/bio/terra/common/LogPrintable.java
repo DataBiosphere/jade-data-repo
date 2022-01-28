@@ -6,5 +6,5 @@ package bio.terra.common;
  */
 public interface LogPrintable {
 
-  String toPrintableString();
+  String toLogString();
 }

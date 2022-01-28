@@ -108,7 +108,7 @@ public class DatasetTable implements Table, LogPrintable {
   }
 
   @Override
-  public String toPrintableString() {
+  public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());
   }
 }

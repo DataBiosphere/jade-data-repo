@@ -366,22 +366,7 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
-    String jobId;
-    switch (body.getMode()) {
-      case COMMIT:
-        {
-          jobId = datasetService.commitTransaction(id, xactId, userReq);
-          break;
-        }
-      case ROLLBACK:
-        {
-          jobId = datasetService.rollbackTransaction(id, xactId, userReq);
-          break;
-        }
-      default:
-        throw new IllegalArgumentException(
-            String.format("Invalid terminal state %s", body.getMode()));
-    }
+    String jobId = datasetService.closeTransaction(id, xactId, userReq, body.getMode());
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 

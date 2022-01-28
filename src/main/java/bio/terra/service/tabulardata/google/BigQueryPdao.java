@@ -1191,12 +1191,11 @@ public class BigQueryPdao {
     } catch (PdaoException e) {
       if (e.getCause() != null && e.getCause().getMessage().contains(lockErrorMessage)) {
         throw new TransactionLockException(
-            String.format("Error locking transaction for dataset %s", dataset.toPrintableString()),
+            String.format("Error locking transaction for dataset %s", dataset.toLogString()),
             List.of(lockErrorMessage));
       }
       throw new TransactionLockException(
-          String.format("Error locking transaction for dataset %s", dataset.toPrintableString()),
-          e);
+          String.format("Error locking transaction for dataset %s", dataset.toLogString()), e);
     }
     return retrieveTransaction(dataset, transactId);
   }
@@ -1289,13 +1288,12 @@ public class BigQueryPdao {
     if (result.getTotalRows() == 0) {
       throw new NotFoundException(
           String.format(
-              "Transaction %s not found in dataset %s",
-              transactionId, dataset.toPrintableString()));
+              "Transaction %s not found in dataset %s", transactionId, dataset.toLogString()));
     } else if (result.getTotalRows() == 1) {
       return mapTransactionModel(result.getValues().iterator().next());
     } else {
       throw new PdaoException(
-          String.format("Found duplicate transactions in dataset %s", dataset.toPrintableString()));
+          String.format("Found duplicate transactions in dataset %s", dataset.toLogString()));
     }
   }
 
@@ -2727,10 +2725,10 @@ public class BigQueryPdao {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
     BigQuery bigQuery = bigQueryProject.getBigQuery();
     String bqDatasetId = prefixName(dataset.getName());
-    logger.info("Migrating dataset {}", dataset.toPrintableString());
+    logger.info("Migrating dataset {}", dataset.toLogString());
     for (DatasetTable datasetTable : dataset.getTables()) {
       try {
-        logger.info("...Migrating dataset table {}", datasetTable.toPrintableString());
+        logger.info("...Migrating dataset table {}", datasetTable.toLogString());
         logger.info("......Raw data table");
         updateSchema(
             bigQuery,
@@ -2755,8 +2753,8 @@ public class BigQueryPdao {
       } catch (Exception e) {
         logger.warn(
             "Error migrating table {} in dataset {}",
-            datasetTable.toPrintableString(),
-            dataset.toPrintableString(),
+            datasetTable.toLogString(),
+            dataset.toLogString(),
             e);
       }
     }

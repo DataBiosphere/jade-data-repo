@@ -105,7 +105,7 @@ public class DataDeletionStep implements Step {
                   logger.warn(
                       String.format(
                           "Could not rollback soft delete data for table %s in transaction %s",
-                          dataset.toPrintableString(), transactionId),
+                          dataset.toLogString(), transactionId),
                       e);
                 }
               });

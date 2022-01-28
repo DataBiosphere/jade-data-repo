@@ -95,7 +95,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
         logger.warn(
             String.format(
                 "Could not rollback data for table %s in transaction %s",
-                dataset.toPrintableString(), transactionId),
+                dataset.toLogString(), transactionId),
             e);
       }
       try {
@@ -104,7 +104,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
         logger.warn(
             String.format(
                 "Could not rollback metadata for table %s in transaction %s",
-                dataset.toPrintableString(), transactionId),
+                dataset.toLogString(), transactionId),
             e);
       }
     }

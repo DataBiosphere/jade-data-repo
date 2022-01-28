@@ -42,8 +42,7 @@ public class IngestSoftDeleteExistingRowsStep implements Step {
     UUID transactionId = TransactionUtils.getTransactionId(context);
 
     if (targetTable.getPrimaryKey() != null && !targetTable.getPrimaryKey().isEmpty()) {
-      logger.info(
-          "Removing target rows being replaced from table {}", targetTable.toPrintableString());
+      logger.info("Removing target rows being replaced from table {}", targetTable.toLogString());
       bigQueryPdao.insertIntoSoftDeleteDatasetTable(
           userReq,
           dataset,
@@ -53,7 +52,7 @@ public class IngestSoftDeleteExistingRowsStep implements Step {
           context.getFlightId(),
           transactionId);
     } else {
-      logger.info("No primary key defined for table {}. Skipping", targetTable.toPrintableString());
+      logger.info("No primary key defined for table {}. Skipping", targetTable.toLogString());
     }
 
     // TODO<DR-2407>: add something to ingest statistics
@@ -72,7 +71,7 @@ public class IngestSoftDeleteExistingRowsStep implements Step {
         logger.warn(
             String.format(
                 "Could not rollback soft delete data for table %s in transaction %s",
-                dataset.toPrintableString(), transactionId),
+                dataset.toLogString(), transactionId),
             e);
       }
     }

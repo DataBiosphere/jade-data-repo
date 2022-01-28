@@ -18,6 +18,7 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
@@ -320,7 +321,19 @@ public class DatasetService {
     }
   }
 
-  public String commitTransaction(UUID id, UUID transactionId, AuthenticatedUserRequest userReq) {
+  public String closeTransaction(
+      UUID id, UUID transactionId, AuthenticatedUserRequest userReq, ModeEnum mode) {
+    switch (mode) {
+      case COMMIT:
+        return commitTransaction(id, transactionId, userReq);
+      case ROLLBACK:
+        return rollbackTransaction(id, transactionId, userReq);
+      default:
+        throw new IllegalArgumentException(String.format("Invalid terminal state %s", mode));
+    }
+  }
+
+  private String commitTransaction(UUID id, UUID transactionId, AuthenticatedUserRequest userReq) {
     String description = "Commit transaction " + transactionId + " in dataset " + id;
     return jobService
         .newJob(description, TransactionCommitFlight.class, null, userReq)
@@ -329,7 +342,8 @@ public class DatasetService {
         .submit();
   }
 
-  public String rollbackTransaction(UUID id, UUID transactionId, AuthenticatedUserRequest userReq) {
+  private String rollbackTransaction(
+      UUID id, UUID transactionId, AuthenticatedUserRequest userReq) {
     String description = "Rollback transaction " + transactionId + " in dataset " + id;
     return jobService
         .newJob(description, TransactionRollbackFlight.class, null, userReq)

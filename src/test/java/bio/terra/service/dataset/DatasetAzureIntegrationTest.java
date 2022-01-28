@@ -51,11 +51,11 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
-import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
@@ -571,9 +571,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     AccessInfoParquetModel snapshotParquetAccessInfo =
         dataRepoFixtures
             .getSnapshot(
-                steward(),
-                snapshotId,
-                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION))
+                steward(), snapshotId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
             .getParquet();
 
@@ -699,7 +697,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .getSnapshot(
                 steward(),
                 snapshotByRowId,
-                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION))
+                List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
             .getParquet();
 

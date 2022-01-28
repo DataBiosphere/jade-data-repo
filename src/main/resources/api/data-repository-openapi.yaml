@@ -605,7 +605,7 @@ paths:
             type: array
             default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
             items:
-              $ref: '#/components/schemas/SnapshotRequestAccessIncludeModel'
+              $ref: '#/components/schemas/SnapshotRetrieveIncludeModel'
       responses:
         200:
           description: Snapshot
@@ -3883,11 +3883,11 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
-    SnapshotRequestAccessIncludeModel:
+    SnapshotRetrieveIncludeModel:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT ]
+      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT, CREATION_INFORMATION ]
     SnapshotSummaryModel:
       type: object
       properties:
@@ -3912,12 +3912,12 @@ components:
           default: false
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
-        dataProjects:
+        dataProject:
           type: string
-          description: The google projects of this dataset
-        storageAccounts:
+          description: The google project of this snapshot
+        storageAccount:
           type: string
-          description: The azure storage accounts of this dataset
+          description: The azure storage account of this snapshot
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -3967,6 +3967,8 @@ components:
           description: Project id of the snapshot data project
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
+        creationInformation:
+          $ref: '#/components/schemas/SnapshotRequestContentsModel'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:

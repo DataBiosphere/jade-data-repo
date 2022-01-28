@@ -14,7 +14,8 @@ import bio.terra.model.AccessInfoModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessIncludeModel;
+import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
@@ -128,7 +129,7 @@ public class SnapshotServiceTest {
     mockSnapshot();
     assertThat(
         service.retrieveAvailableSnapshotModel(
-            snapshotId, List.of(SnapshotRequestAccessIncludeModel.NONE), TEST_USER),
+            snapshotId, List.of(SnapshotRetrieveIncludeModel.NONE), TEST_USER),
         equalTo(
             new SnapshotModel()
                 .id(snapshotId)
@@ -144,13 +145,31 @@ public class SnapshotServiceTest {
         service.retrieveAvailableSnapshotModel(
             snapshotId,
             List.of(
-                SnapshotRequestAccessIncludeModel.SOURCES,
-                SnapshotRequestAccessIncludeModel.TABLES,
-                SnapshotRequestAccessIncludeModel.RELATIONSHIPS,
-                SnapshotRequestAccessIncludeModel.PROFILE,
-                SnapshotRequestAccessIncludeModel.DATA_PROJECT),
+                SnapshotRetrieveIncludeModel.SOURCES,
+                SnapshotRetrieveIncludeModel.TABLES,
+                SnapshotRetrieveIncludeModel.RELATIONSHIPS,
+                SnapshotRetrieveIncludeModel.PROFILE,
+                SnapshotRetrieveIncludeModel.DATA_PROJECT),
             TEST_USER),
         equalTo(service.retrieveAvailableSnapshotModel(snapshotId, TEST_USER)));
+  }
+
+  @Test
+  public void testRetrieveSnapshotOnlyCreationInfo() {
+    mockSnapshot();
+    assertThat(
+        service.retrieveAvailableSnapshotModel(
+            snapshotId, List.of(SnapshotRetrieveIncludeModel.CREATION_INFORMATION), TEST_USER),
+        equalTo(
+            new SnapshotModel()
+                .id(snapshotId)
+                .name(SNAPSHOT_NAME)
+                .description(SNAPSHOT_DESCRIPTION)
+                .createdDate(createdDate.toString())
+                .creationInformation(
+                    new SnapshotRequestContentsModel()
+                        .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
+                        .datasetName(DATASET_NAME))));
   }
 
   @Test
@@ -158,7 +177,7 @@ public class SnapshotServiceTest {
     mockSnapshot();
     assertThat(
         service.retrieveAvailableSnapshotModel(
-            snapshotId, List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION), TEST_USER),
+            snapshotId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION), TEST_USER),
         equalTo(
             new SnapshotModel()
                 .id(snapshotId)
@@ -226,8 +245,7 @@ public class SnapshotServiceTest {
         service.retrieveAvailableSnapshotModel(
             snapshotId,
             List.of(
-                SnapshotRequestAccessIncludeModel.PROFILE,
-                SnapshotRequestAccessIncludeModel.DATA_PROJECT),
+                SnapshotRetrieveIncludeModel.PROFILE, SnapshotRetrieveIncludeModel.DATA_PROJECT),
             TEST_USER),
         equalTo(
             new SnapshotModel()
@@ -269,6 +287,10 @@ public class SnapshotServiceTest {
                                                     GoogleCloudResource.BUCKET,
                                                     GoogleRegion.DEFAULT_GOOGLE_REGION)))))))
                 .snapshotTables(
-                    List.of(new SnapshotTable().name(SNAPSHOT_TABLE_NAME).id(snapshotTableId))));
+                    List.of(new SnapshotTable().name(SNAPSHOT_TABLE_NAME).id(snapshotTableId)))
+                .creationInformation(
+                    new SnapshotRequestContentsModel()
+                        .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
+                        .datasetName(DATASET_NAME)));
   }
 }

@@ -6,6 +6,7 @@ import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
@@ -166,8 +167,15 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, flightid) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :flightid) ";
+        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, flightid, creation_information) "
+            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :flightid, :creation_information::jsonb) ";
+    String creationInfo;
+    try {
+      creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException(
+          "Invalid JSON in snapshot creationInformation, we should've caught this already", e);
+    }
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("name", snapshot.getName())
@@ -175,7 +183,8 @@ public class SnapshotDao {
             .addValue("profile_id", snapshot.getProfileId())
             .addValue("project_resource_id", snapshot.getProjectResourceId())
             .addValue("id", snapshot.getId())
-            .addValue("flightid", flightId);
+            .addValue("flightid", flightId)
+            .addValue("creation_information", creationInfo);
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {
@@ -357,6 +366,15 @@ public class SnapshotDao {
     return snapshot;
   }
 
+  private SnapshotRequestContentsModel stringToSnapshotRequestContentsModel(String json) {
+    try {
+      return objectMapper.readValue(json, SnapshotRequestContentsModel.class);
+    } catch (JsonProcessingException e) {
+      logger.warn("Error parsing creation_information into SnapshotRequestContentsModel", e);
+      return null;
+    }
+  }
+
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
@@ -374,7 +392,10 @@ public class SnapshotDao {
                       .description(rs.getString("description"))
                       .createdDate(rs.getTimestamp("created_date").toInstant())
                       .profileId(rs.getObject("profile_id", UUID.class))
-                      .projectResourceId(rs.getObject("project_resource_id", UUID.class)));
+                      .projectResourceId(rs.getObject("project_resource_id", UUID.class))
+                      .creationInformation(
+                          stringToSnapshotRequestContentsModel(
+                              rs.getString("creation_information"))));
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
         // retrieve the snapshot tables and relationships

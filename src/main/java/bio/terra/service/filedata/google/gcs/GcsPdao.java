@@ -24,6 +24,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamRole;
+import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
@@ -232,6 +233,13 @@ public class GcsPdao implements CloudFileReader {
                 return iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
               } catch (InterruptedException e) {
                 throw new PdaoException("Error obtaining a pet service account token");
+              } catch (IamUnauthorizedException e) {
+                throw new PdaoException(
+                    "Could not get pet service account token while validating user can read paths",
+                    List.of(
+                        "If this error occurs as part of a very large ingest job, "
+                            + "the user request token may have timed out. "
+                            + "Try splitting very large ingests into multiple, smaller ingests."));
               }
             });
 

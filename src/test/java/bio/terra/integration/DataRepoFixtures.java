@@ -397,6 +397,37 @@ public class DataRepoFixtures {
     addPolicyMember(user, datasetId, role, newMemberEmail, IamResourceType.DATASET);
   }
 
+  // getting a users roles on a resource
+  public DataRepoResponse<List> retrieveUserRolesRaw(
+      TestConfiguration.User user, UUID resourceId, IamResourceType iamResourceType)
+      throws Exception {
+    String pathPrefix;
+    switch (iamResourceType) {
+      case DATASET:
+        pathPrefix = "/api/repository/v1/datasets/";
+        break;
+      case DATASNAPSHOT:
+        pathPrefix = "/api/repository/v1/snapshots/";
+        break;
+      default:
+        throw new IllegalArgumentException(
+            "No path prefix defined for IamResourceType " + iamResourceType);
+    }
+    String path = pathPrefix + resourceId + "/roles/";
+
+    return dataRepoClient.get(user, path, List.class);
+  }
+
+  public List<String> retrieveUserDatasetRoles(TestConfiguration.User user, UUID datasetId)
+      throws Exception {
+    DataRepoResponse<List> response =
+        retrieveUserRolesRaw(user, datasetId, IamResourceType.DATASET);
+    assertThat(
+        "getting dataset roles is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+    assertTrue("dataset roles get response is present", response.getResponseObject().isPresent());
+    return (List<String>) response.getResponseObject().get();
+  }
+
   // adding dataset asset
   public DataRepoResponse<JobModel> addDatasetAssetRaw(
       TestConfiguration.User user, UUID datasetId, AssetModel assetModel) throws Exception {
@@ -423,6 +454,16 @@ public class DataRepoFixtures {
       TestConfiguration.User user, UUID snapshotId, IamRole role, String newMemberEmail)
       throws Exception {
     addPolicyMember(user, snapshotId, role, newMemberEmail, IamResourceType.DATASNAPSHOT);
+  }
+
+  public List<String> retrieveUserSnapshotRoles(TestConfiguration.User user, UUID datasetId)
+      throws Exception {
+    DataRepoResponse<List> response =
+        retrieveUserRolesRaw(user, datasetId, IamResourceType.DATASNAPSHOT);
+    assertThat(
+        "getting snapshot roles is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+    assertTrue("snapshot roles get response is present", response.getResponseObject().isPresent());
+    return (List<String>) response.getResponseObject().get();
   }
 
   public DataRepoResponse<JobModel> createSnapshotRaw(

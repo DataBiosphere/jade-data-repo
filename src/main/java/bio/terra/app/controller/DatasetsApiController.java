@@ -343,6 +343,13 @@ public class DatasetsApiController implements DatasetsApi {
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
+  @Override
+  public ResponseEntity<List<String>> retrieveUserDatasetRoles(UUID id) {
+    List<String> roles =
+        iamService.retrieveUserRoles(getAuthenticatedInfo(), IamResourceType.DATASET, id);
+    return new ResponseEntity<>(roles, HttpStatus.OK);
+  }
+
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {
     Dataset dataset = datasetService.retrieve(datasetId);
     CloudPlatformWrapper platform =

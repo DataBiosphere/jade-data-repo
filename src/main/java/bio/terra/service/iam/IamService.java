@@ -263,6 +263,11 @@ public class IamService {
         });
   }
 
+  public List<String> retrieveUserRoles(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId) {
+    return callProvider(() -> iamProvider.retrieveUserRoles(userReq, iamResourceType, resourceId));
+  }
+
   public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) {
     return iamProvider.getUserInfo(userReq);
   }

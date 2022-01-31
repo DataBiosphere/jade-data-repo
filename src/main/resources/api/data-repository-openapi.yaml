@@ -1007,6 +1007,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/roles:
+    get:
+      tags:
+        - snapshots
+        - repository
+      description: Retrieve the roles the calling user has on the snapshot
+      operationId: retrieveUserSnapshotRoles
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: Policy
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to see policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets:
     get:
       tags:
@@ -1214,7 +1250,7 @@ paths:
       tags:
         - datasets
         - repository
-      description: Retrieve the read and discover policies for the snapshot
+      description: Retrieve the read and discover policies for the dataset
       operationId: retrieveDatasetPolicies
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -1238,7 +1274,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         404:
-          description: Not found - snapshot id does not exist
+          description: Not found - dataset id does not exist
           content:
             application/json:
               schema:
@@ -1341,6 +1377,42 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/roles:
+    get:
+      tags:
+        - datasets
+        - repository
+      description: Retrieve the policies the calling user has on the dataset
+      operationId: retrieveUserDatasetRoles
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        200:
+          description: Policy
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to see policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - dataset id does not exist
           content:
             application/json:
               schema:

@@ -8,7 +8,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import java.util.List;
 import java.util.UUID;
 
 public class DeleteSnapshotStoreProjectIdStep implements Step {
@@ -23,10 +22,10 @@ public class DeleteSnapshotStoreProjectIdStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    List<UUID> projectResourceIds = List.of(snapshot.getProjectResourceId());
+    UUID projectResourceId = snapshot.getProjectResourceId();
 
     FlightMap workingMap = context.getWorkingMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID_LIST, projectResourceIds);
+    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID, projectResourceId);
 
     return StepResult.getStepResultSuccess();
   }

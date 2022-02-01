@@ -19,21 +19,21 @@ public class DeleteSnapshotMarkProjectStep implements Step {
   private final UUID snapshotId;
   private final SnapshotService snapshotService;
 
-  public DeleteSnapshotMarkProjectStep(ResourceService resourceService, UUID snapshotId, SnapshotService snapshotService) {
+  public DeleteSnapshotMarkProjectStep(
+      ResourceService resourceService, UUID snapshotId, SnapshotService snapshotService) {
     this.resourceService = resourceService;
     this.snapshotId = snapshotId;
     this.snapshotService = snapshotService;
   }
 
-  private static final Logger logger =
-      LoggerFactory.getLogger(DeleteSnapshotMarkProjectStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(DeleteSnapshotMarkProjectStep.class);
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
-    List<UUID> projectIdList = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID_LIST, List.class);
+    UUID projectId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID, UUID.class);
 
-    resourceService.markProjectsForDelete(projectIdList);
+    resourceService.markProjectsForDelete(List.of(projectId));
 
     return StepResult.getStepResultSuccess();
   }

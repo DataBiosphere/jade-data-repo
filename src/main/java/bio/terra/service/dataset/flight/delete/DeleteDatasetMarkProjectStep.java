@@ -20,19 +20,20 @@ public class DeleteDatasetMarkProjectStep implements Step {
   private final UUID datasetId;
   private final DatasetService datasetService;
 
-  public DeleteDatasetMarkProjectStep(ResourceService resourceService, UUID datasetId, DatasetService datasetService) {
+  public DeleteDatasetMarkProjectStep(
+      ResourceService resourceService, UUID datasetId, DatasetService datasetService) {
     this.resourceService = resourceService;
     this.datasetId = datasetId;
     this.datasetService = datasetService;
   }
 
-  private static final Logger logger =
-      LoggerFactory.getLogger(DeleteSnapshotMarkProjectStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(DeleteSnapshotMarkProjectStep.class);
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
-    List<UUID> projectIdList = workingMap.get(DatasetWorkingMapKeys.DATASET_PROJECT_ID_LIST, List.class);
+    List<UUID> projectIdList =
+        workingMap.get(DatasetWorkingMapKeys.DATASET_PROJECT_ID_LIST, List.class);
     resourceService.markProjectsForDelete(projectIdList);
     return StepResult.getStepResultSuccess();
   }

@@ -260,6 +260,30 @@ public class GoogleResourceDao {
                 .googleProjectNumber(rs.getString("google_project_number")));
   }
 
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public Integer countSnapshotsUsingProject(UUID googleProjectId) {
+    String sql = "SELECT count(*) from snapshot WHERE project_resource_id = :googleProjectId";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("googleProjectId", googleProjectId);
+
+    return jdbcTemplate.queryForObject(sql, params, Integer.class);
+  }
+
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public Integer countDatasetsUsingProject(UUID googleProjectId) {
+    String sql = "SELECT count(*) from dataset WHERE project_resource_id = :googleProjectId";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("googleProjectId", googleProjectId);
+
+    return jdbcTemplate.queryForObject(sql, params, Integer.class);
+  }
+
   // -- bucket resource methods --
 
   /**

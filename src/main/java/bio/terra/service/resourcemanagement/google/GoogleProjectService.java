@@ -251,7 +251,10 @@ public class GoogleProjectService {
   @VisibleForTesting
   void deleteGoogleProject(UUID resourceId) {
     GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(resourceId);
-    resourceManagerService.deleteProject(projectResource.getGoogleProjectId());
+    Integer datasetsInUse = resourceDao.countDatasetsUsingProject(resourceId);
+    Integer snapshotsInUse = resourceDao.countSnapshotsUsingProject(resourceId);
+    resourceManagerService.deleteProject(
+        projectResource.getGoogleProjectId(), datasetsInUse, snapshotsInUse);
   }
 
   @VisibleForTesting

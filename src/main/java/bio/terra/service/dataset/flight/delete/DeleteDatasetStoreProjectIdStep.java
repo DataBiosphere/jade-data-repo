@@ -8,7 +8,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import java.util.List;
 import java.util.UUID;
 
 public class DeleteDatasetStoreProjectIdStep implements Step {
@@ -23,10 +22,10 @@ public class DeleteDatasetStoreProjectIdStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     Dataset dataset = datasetService.retrieve(datasetId);
-    List<UUID> projectResourceIds = List.of(dataset.getProjectResourceId());
+    UUID projectResourceId = dataset.getProjectResourceId();
 
     FlightMap workingMap = context.getWorkingMap();
-    workingMap.put(DatasetWorkingMapKeys.DATASET_PROJECT_ID_LIST, projectResourceIds);
+    workingMap.put(DatasetWorkingMapKeys.DATASET_PROJECT_ID, projectResourceId);
 
     return StepResult.getStepResultSuccess();
   }

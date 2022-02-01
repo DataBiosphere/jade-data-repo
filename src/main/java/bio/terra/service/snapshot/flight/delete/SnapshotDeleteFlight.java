@@ -62,8 +62,6 @@ public class SnapshotDeleteFlight extends Flight {
     // Skip this step if the snapshot was already deleted
     // TODO note that with multi-dataset snapshots this will need to change
     addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
-
-    addStep(new PerformGcpStep(new DeleteSnapshotStoreProjectIdStep(snapshotId, snapshotService)));
     addStep(
         new DeleteSnapshotPopAndLockDatasetStep(
             snapshotId, snapshotService, datasetService, userReq, false));
@@ -120,14 +118,11 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(new PerformSnapshotStep(new UnlockSnapshotStep(snapshotDao, snapshotId)));
 
     // delete snapshot project
-    addStep(new PerformGcpStep(
-        new DeleteSnapshotMarkProjectStep(resourceService, snapshotId, snapshotService)));
-    addStep(new PerformGcpStep(
-        new DeleteSnapshotDeleteProjectStep(resourceService)
-    ));
-    addStep(new PerformGcpStep(
-        new DeleteSnapshotProjectMetadataStep(resourceService)
-    ));
+    addStep(
+        new PerformGcpStep(
+            new DeleteSnapshotMarkProjectStep(resourceService, snapshotId, snapshotService)));
+    addStep(new PerformGcpStep(new DeleteSnapshotDeleteProjectStep(resourceService)));
+    addStep(new PerformGcpStep(new DeleteSnapshotProjectMetadataStep(resourceService)));
 
     addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, false)));
   }

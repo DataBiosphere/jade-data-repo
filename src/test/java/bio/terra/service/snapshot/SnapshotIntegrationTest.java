@@ -18,6 +18,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamResourceType;
@@ -175,6 +176,26 @@ public class SnapshotIntegrationTest extends UsersBase {
     List<String> stewardRoles =
         dataRepoFixtures.retrieveUserSnapshotRoles(steward(), snapshotSummary.getId());
     assertThat("The Steward was given steward access", stewardRoles, hasItem("steward"));
+  }
+
+  @Test
+  public void snapshotDeleteShouldDeleteProjectTest() throws Exception {
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    String datasetName = dataset.getName();
+    SnapshotRequestModel requestModel =
+        jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
+    // swap in the correct dataset name (with the id at the end)
+    requestModel.getContents().get(0).setDatasetName(datasetName);
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
+    TimeUnit.SECONDS.sleep(10);
+    createdSnapshotIds.add(snapshotSummary.getId());
+    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(),
+        List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
+    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+    assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
+
+    String projectId = snapshot.getAccessInformation().getBigQuery().getProjectId();
   }
 
   @Test

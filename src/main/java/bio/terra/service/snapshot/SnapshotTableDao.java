@@ -21,9 +21,12 @@ public class SnapshotTableDao {
       "INSERT INTO snapshot_column "
           + "(table_id, name, type, array_of) VALUES (:table_id, :name, :type, :array_of)";
   private static final String sqlSelectTable =
-      "SELECT id, name, row_count FROM snapshot_table " + "WHERE parent_id = :parent_id";
+      "SELECT id, name, row_count FROM snapshot_table WHERE parent_id = :parent_id";
   private static final String sqlSelectColumn =
-      "SELECT id, name, type, array_of FROM snapshot_column " + "WHERE table_id = :table_id";
+      "SELECT id, name, type, array_of "
+          + "FROM snapshot_column "
+          + "WHERE table_id = :table_id "
+          + "ORDER BY ordinal";
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
 

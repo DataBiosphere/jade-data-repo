@@ -43,7 +43,10 @@ public class DatasetTableDao {
           + "(bigquery_partition_config->>'version')::bigint AS bigquery_partition_config_version "
           + "FROM dataset_table WHERE dataset_id = :dataset_id";
   private static final String sqlSelectColumn =
-      "SELECT id, name, type, array_of FROM dataset_column " + "WHERE table_id = :table_id";
+      "SELECT id, name, type, array_of "
+          + "FROM dataset_column "
+          + "WHERE table_id = :table_id "
+          + "ORDER BY ordinal";
 
   private final DataSource jdbcDataSource;
   private final NamedParameterJdbcTemplate jdbcTemplate;

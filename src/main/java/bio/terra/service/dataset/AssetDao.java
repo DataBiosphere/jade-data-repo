@@ -156,7 +156,8 @@ public class AssetDao {
         "SELECT asset_column.id, asset_column.dataset_column_id, dataset_column.table_id "
             + "FROM asset_column "
             + "INNER JOIN dataset_column ON asset_column.dataset_column_id = dataset_column.id "
-            + "WHERE asset_id = :assetId";
+            + "WHERE asset_id = :assetId "
+            + "ORDER BY dataset_column.ordinal";
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("assetId", spec.getId());
     List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, params);
     results.forEach(

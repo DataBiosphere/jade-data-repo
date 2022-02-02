@@ -358,6 +358,22 @@ public class SamIam implements IamProviderInterface {
         configurationService, () -> retrievePoliciesInner(userReq, iamResourceType, resourceId));
   }
 
+  @Override
+  public List<String> retrieveUserRoles(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService, () -> retrieveUserRolesInner(userReq, iamResourceType, resourceId));
+  }
+
+  private List<String> retrieveUserRolesInner(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
+      throws ApiException {
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    return samResourceApi.resourceRoles(
+        iamResourceType.getSamResourceName(), resourceId.toString());
+  }
+
   private List<PolicyModel> retrievePoliciesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {

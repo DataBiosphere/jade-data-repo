@@ -1,0 +1,35 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_dataset_and_snapshot_table_column_order
+      author: nm
+      changes:
+        - addColumn:
+            tableName: dataset_column
+            columns:
+              name: ordinal
+              type: integer
+              defaultValue: 0
+        - sql:
+            comment: set the ordinal value to the order in which they were inserted for all existing dataset columns
+            sql: >
+              UPDATE dataset_column
+              SET ordinal = counter.ordinal
+              FROM (SELECT row_number() over (partition by table_id order by ctid) - 1 AS ordinal,
+                    id FROM dataset_column) AS counter
+              WHERE dataset_column.id = counter.id
+                AND dataset_column.ordinal IS NOT NULL
+        - addColumn:
+            tableName: snapshot_column
+            columns:
+              name: ordinal
+              type: integer
+              defaultValue: 0
+        - sql:
+            comment: set the ordinal value to the order in which they were inserted for all existing snapshot columns
+            sql: >
+              UPDATE snapshot_column
+              SET ordinal = counter.ordinal
+              FROM (SELECT row_number() over (partition by table_id order by ctid) - 1 AS ordinal,
+                    id FROM snapshot_column) AS counter
+              WHERE snapshot_column.id = counter.id
+                AND snapshot_column.ordinal IS NOT NULL

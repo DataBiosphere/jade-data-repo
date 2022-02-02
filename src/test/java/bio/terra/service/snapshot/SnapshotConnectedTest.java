@@ -37,12 +37,12 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamRole;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.logging.v2.LifecycleState;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -325,20 +325,23 @@ public class SnapshotConnectedTest {
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
     // retrieve snapshot and store project id
-    Snapshot snapshot = snapshotDao.retrieveSnapshot(summaryModel.getId());
-    UUID googleProjectId = snapshot.getProjectResourceId();
+    SnapshotModel snapshotModel =
+        SnapshotConnectedTestUtils.getTestSnapshot(
+            mvc, objectMapper, summaryModel.getId(), snapshotRequest, datasetSummary);
+    assertNotNull("fetched snapshot successfully after creation", snapshotModel);
+    String googleProjectId = snapshotModel.getDataProject();
 
     // ensure that google project exists
-    Assert.assertNotNull(googleResourceManagerService.getProject(googleProjectId.toString()));
+    Assert.assertNotNull(googleResourceManagerService.getProject(googleProjectId));
 
     // delete snapshot
-    connectedOperations.deleteTestSnapshot(snapshot.getId());
-    connectedOperations.getSnapshotExpectError(snapshot.getId(), HttpStatus.NOT_FOUND);
+    connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+    connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
 
     // check that google project doesn't exist
-    Assert.assertThrows(
-        GoogleResourceException.class,
-        () -> googleResourceManagerService.getProject(googleProjectId.toString()));
+    Assert.assertEquals(
+        LifecycleState.DELETE_REQUESTED.toString(),
+        googleResourceManagerService.getProject(googleProjectId).getLifecycleState());
   }
 
   @Ignore("Remove ignore after DR-1770 is addressed")

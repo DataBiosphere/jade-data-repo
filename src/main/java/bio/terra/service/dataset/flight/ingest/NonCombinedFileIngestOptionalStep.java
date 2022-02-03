@@ -15,7 +15,7 @@ public class NonCombinedFileIngestOptionalStep extends OptionalStep {
   }
 
   @Override
-  public String getReason() {
-    return "there are files to ingest";
+  public String getRunReason(FlightContext context) {
+    return "there are no bulk load files to ingest";
   }
 }

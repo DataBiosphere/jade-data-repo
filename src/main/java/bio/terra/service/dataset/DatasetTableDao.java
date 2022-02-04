@@ -37,13 +37,17 @@ public class DatasetTableDao {
           + "cast(:bigquery_partition_config AS jsonb))";
   private static final String sqlInsertColumn =
       "INSERT INTO dataset_column "
-          + "(table_id, name, type, array_of) VALUES (:table_id, :name, :type, :array_of)";
+          + "(table_id, name, type, array_of, ordinal) "
+          + "VALUES (:table_id, :name, :type, :array_of, :ordinal)";
   private static final String sqlSelectTable =
       "SELECT id, name, raw_table_name, soft_delete_table_name, row_metadata_table_name, primary_key, bigquery_partition_config::text, "
           + "(bigquery_partition_config->>'version')::bigint AS bigquery_partition_config_version "
           + "FROM dataset_table WHERE dataset_id = :dataset_id";
   private static final String sqlSelectColumn =
-      "SELECT id, name, type, array_of FROM dataset_column " + "WHERE table_id = :table_id";
+      "SELECT id, name, type, array_of "
+          + "FROM dataset_column "
+          + "WHERE table_id = :table_id "
+          + "ORDER BY ordinal";
 
   private final DataSource jdbcDataSource;
   private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -96,10 +100,12 @@ public class DatasetTableDao {
     MapSqlParameterSource params = new MapSqlParameterSource();
     params.addValue("table_id", tableId);
     DaoKeyHolder keyHolder = new DaoKeyHolder();
+    int ordinal = 0;
     for (Column column : columns) {
       params.addValue("name", column.getName());
       params.addValue("type", column.getType().toString());
       params.addValue("array_of", column.isArrayOf());
+      params.addValue("ordinal", ordinal++);
       jdbcTemplate.update(sqlInsertColumn, params, keyHolder);
       UUID columnId = keyHolder.getId();
       column.id(columnId);

@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -26,9 +27,13 @@ import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TableDataType;
+import bio.terra.model.TableModel;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.profile.ProfileDao;
@@ -761,5 +766,72 @@ public class DatasetDaoTest {
                     t.getRowMetadataTableName(),
                     containsString("row_metadata")));
     datasetDao.delete(datasetId);
+  }
+
+  @Test
+  public void columnOrderCreationTest() throws Exception {
+    String dsName1 = "ds1";
+    String dsName2 = "ds2";
+    String tableName = "myTable";
+    DatasetRequestModel requestModel1 =
+        new DatasetRequestModel()
+            .name(dsName1)
+            .schema(
+                new DatasetSpecificationModel()
+                    .addTablesItem(
+                        new TableModel()
+                            .name(tableName)
+                            .addColumnsItem(
+                                new ColumnModel().name("c1").datatype(TableDataType.STRING))
+                            .addColumnsItem(
+                                new ColumnModel().name("c2").datatype(TableDataType.STRING))
+                            .addColumnsItem(
+                                new ColumnModel().name("c3").datatype(TableDataType.STRING))));
+    UUID dataset1Id = createDataset(requestModel1, dsName1, null);
+
+    DatasetRequestModel requestModel2 =
+        new DatasetRequestModel()
+            .name(dsName1)
+            .schema(
+                new DatasetSpecificationModel()
+                    .addTablesItem(
+                        new TableModel()
+                            .name(tableName)
+                            // Note the reversed order
+                            .addColumnsItem(
+                                new ColumnModel().name("c3").datatype(TableDataType.STRING))
+                            .addColumnsItem(
+                                new ColumnModel().name("c2").datatype(TableDataType.STRING))
+                            .addColumnsItem(
+                                new ColumnModel().name("c1").datatype(TableDataType.STRING))));
+
+    UUID dataset2Id = createDataset(requestModel2, dsName2, null);
+
+    assertThat(
+        "First dataset columns are in ascending order of name",
+        datasetDao
+            .retrieve(dataset1Id)
+            .getTableByName(tableName)
+            .orElseThrow(AssertionError::new)
+            .getColumns()
+            .stream()
+            .map(Column::getName)
+            .collect(Collectors.toList()),
+        contains("c1", "c2", "c3"));
+
+    assertThat(
+        "Second dataset columns are in descending order of name",
+        datasetDao
+            .retrieve(dataset2Id)
+            .getTableByName(tableName)
+            .orElseThrow(AssertionError::new)
+            .getColumns()
+            .stream()
+            .map(Column::getName)
+            .collect(Collectors.toList()),
+        contains("c3", "c2", "c1"));
+
+    datasetDao.delete(dataset1Id);
+    datasetDao.delete(dataset2Id);
   }
 }

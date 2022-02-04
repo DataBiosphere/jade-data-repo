@@ -2,6 +2,7 @@ package bio.terra.service.snapshot;
 
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
@@ -92,7 +93,8 @@ public class SnapshotDaoTest {
     projectId = resourceDao.createProject(projectResource);
 
     DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject("snapshot-test-dataset.json", DatasetRequestModel.class);
+        jsonLoader.loadObject(
+            "snapshot-test-dataset-with-multi-columns.json", DatasetRequestModel.class);
     datasetRequest
         .name(datasetRequest.getName() + UUID.randomUUID())
         .defaultProfileId(profileId)
@@ -148,7 +150,7 @@ public class SnapshotDaoTest {
 
   @Test
   public void happyInOutTest() {
-    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID().toString());
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
 
     Snapshot snapshot =
         snapshotService
@@ -202,9 +204,14 @@ public class SnapshotDaoTest {
             .filter(t -> t.getName().equals("thetable"))
             .findFirst()
             .orElseThrow(AssertionError::new);
-    Table snapshotTable =
+    Table snapshotTable1 =
         snapshot.getTables().stream()
             .filter(t -> t.getName().equals("thetable"))
+            .findFirst()
+            .orElseThrow(AssertionError::new);
+    Table snapshotTable2 =
+        snapshot.getTables().stream()
+            .filter(t -> t.getName().equals("anothertable"))
             .findFirst()
             .orElseThrow(AssertionError::new);
 
@@ -216,16 +223,15 @@ public class SnapshotDaoTest {
     assertThat(
         "correct map table snapshot table",
         mapTable.getToTable().getId(),
-        equalTo(snapshotTable.getId()));
+        equalTo(snapshotTable1.getId()));
 
     assertThat(
-        "correct number of map columns", mapTable.getSnapshotMapColumns().size(), equalTo(1));
+        "correct number of map columns", mapTable.getSnapshotMapColumns().size(), equalTo(3));
 
     // Verify map columns
     SnapshotMapColumn mapColumn = mapTable.getSnapshotMapColumns().get(0);
-    // Why is dataset columns Collection and not List?
     Column datasetColumn = datasetTable.getColumns().iterator().next();
-    Column snapshotColumn = snapshotTable.getColumns().get(0);
+    Column snapshotColumn = snapshotTable1.getColumns().get(0);
 
     assertThat(
         "correct map column dataset column",
@@ -245,13 +251,24 @@ public class SnapshotDaoTest {
     Table toTable = relationship.getToTable();
     Column toColumn = relationship.getToColumn();
     assertThat("from table name matches", fromTable.getName(), equalTo("thetable"));
-    assertThat("from column name matches", fromColumn.getName(), equalTo("thecolumn"));
+    assertThat("from column name matches", fromColumn.getName(), equalTo("thecolumn1"));
     assertThat("to table name matches", toTable.getName(), equalTo("anothertable"));
-    assertThat("to column name matches", toColumn.getName(), equalTo("anothercolumn"));
+    assertThat("to column name matches", toColumn.getName(), equalTo("anothercolumn1"));
     assertThat(
         "relationship points to the snapshot table",
         fromTable.getId(),
-        equalTo(snapshotTable.getId()));
+        equalTo(snapshotTable1.getId()));
+
+    // Verify snapshot column orders
+    assertThat(
+        "First table columns are in ascending order of name",
+        snapshotTable1.getColumns().stream().map(Column::getName).collect(Collectors.toList()),
+        contains("thecolumn1", "thecolumn2", "thecolumn3"));
+
+    assertThat(
+        "Second table columns are in descending order of name",
+        snapshotTable2.getColumns().stream().map(Column::getName).collect(Collectors.toList()),
+        contains("anothercolumn3", "anothercolumn2", "anothercolumn1"));
   }
 
   @Test

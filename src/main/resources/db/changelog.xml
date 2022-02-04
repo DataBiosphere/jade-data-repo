@@ -49,6 +49,7 @@
     <include file="changesets/20211206_datasetsecurityattributes.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20211209_datasetrequireslogging.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220112_addsnapshotcreatemode.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220202_adddatasetandsnapshottablecolumnorder.yaml" relativeToChangelogFile="true" />
 
 
 </databaseChangeLog>

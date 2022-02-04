@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class GoogleResourceDao {
+
   private static final Logger logger = LoggerFactory.getLogger(GoogleResourceDao.class);
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final GoogleResourceConfiguration googleResourceConfiguration;
@@ -68,6 +69,7 @@ public class GoogleResourceDao {
 
   // Class for collecting results from the above query
   private static class ProjectRefs {
+
     private UUID projectId;
     private long refCount;
 
@@ -208,12 +210,11 @@ public class GoogleResourceDao {
         new MapSqlParameterSource().addValue("project_ids", projectIds);
 
     final String sqlMarkProjects =
-        "UPDATE project_resource SET marked_for_delete = true" + " WHERE id IN (:project_ids)";
+        "UPDATE project_resource SET marked_for_delete = true WHERE id IN (:project_ids)";
     jdbcTemplate.update(sqlMarkProjects, markParams);
 
     final String sqlMarkBuckets =
-        "UPDATE bucket_resource SET marked_for_delete = true"
-            + " WHERE project_resource_id IN (:project_ids)";
+        "UPDATE bucket_resource SET marked_for_delete = true WHERE project_resource_id IN (:project_ids)";
     jdbcTemplate.update(sqlMarkBuckets, markParams);
   }
 
@@ -264,7 +265,7 @@ public class GoogleResourceDao {
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
-  public Integer countSnapshotsUsingProject(UUID googleProjectId) {
+  public int countSnapshotsUsingProject(UUID googleProjectId) {
     String sql = "SELECT count(*) from snapshot WHERE project_resource_id = :googleProjectId";
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("googleProjectId", googleProjectId);
@@ -276,7 +277,7 @@ public class GoogleResourceDao {
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
-  public Integer countDatasetsUsingProject(UUID googleProjectId) {
+  public int countDatasetsUsingProject(UUID googleProjectId) {
     String sql = "SELECT count(*) from dataset WHERE project_resource_id = :googleProjectId";
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("googleProjectId", googleProjectId);

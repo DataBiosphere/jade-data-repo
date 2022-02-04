@@ -1,7 +1,9 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -119,6 +121,9 @@ public class DatasetIntegrationTest extends UsersBase {
     assertThat(summaryModel.getName(), startsWith(omopDatasetName));
     assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
 
+    List<String> stewardRoles = dataRepoFixtures.retrieveUserDatasetRoles(steward(), datasetId);
+    assertThat("The Steward was given steward access", stewardRoles, hasItem("steward"));
+
     DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
 
     assertThat(datasetModel.getName(), startsWith(omopDatasetName));
@@ -200,6 +205,11 @@ public class DatasetIntegrationTest extends UsersBase {
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
+
+    List<String> custodianRoles = dataRepoFixtures.retrieveUserDatasetRoles(custodian(), datasetId);
+    assertThat("The Custodian was given custodian access", custodianRoles, hasItem("custodian"));
+    assertThat(
+        "The Custodian does not have Steward access", custodianRoles, not(hasItem("steward")));
 
     assertThat(
         "Default secure monitoring was applied to summary model",

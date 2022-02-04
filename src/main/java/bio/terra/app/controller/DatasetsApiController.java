@@ -352,6 +352,13 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
+  public ResponseEntity<List<String>> retrieveUserDatasetRoles(UUID id) {
+    List<String> roles =
+        iamService.retrieveUserRoles(getAuthenticatedInfo(), IamResourceType.DATASET, id);
+    return new ResponseEntity<>(roles, HttpStatus.OK);
+  }
+
+  @Override
   public ResponseEntity<JobModel> openTransaction(UUID id, TransactionCreateModel body) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(

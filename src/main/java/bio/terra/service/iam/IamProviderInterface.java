@@ -140,6 +140,10 @@ public interface IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException;
 
+  List<String> retrieveUserRoles(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
+      throws InterruptedException;
+
   Map<IamRole, String> retrievePolicyEmails(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException;

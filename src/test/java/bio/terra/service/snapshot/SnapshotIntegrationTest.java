@@ -2,6 +2,7 @@ package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
@@ -170,6 +171,10 @@ public class SnapshotIntegrationTest extends UsersBase {
         "The secure monitoring is propagated from the dataset",
         snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled(),
         is(false));
+
+    List<String> stewardRoles =
+        dataRepoFixtures.retrieveUserSnapshotRoles(steward(), snapshotSummary.getId());
+    assertThat("The Steward was given steward access", stewardRoles, hasItem("steward"));
   }
 
   @Test

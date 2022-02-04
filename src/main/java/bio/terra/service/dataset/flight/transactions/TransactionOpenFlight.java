@@ -1,8 +1,9 @@
-package bio.terra.service.dataset.flight.xactions;
+package bio.terra.service.dataset.flight.transactions;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.TransactionCreateModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
@@ -12,9 +13,9 @@ import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
-public class TransactionCommitFlight extends Flight {
+public class TransactionOpenFlight extends Flight {
 
-  public TransactionCommitFlight(FlightMap inputParameters, Object applicationContext) {
+  public TransactionOpenFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
 
     // get the required daos to pass into the steps
@@ -24,8 +25,8 @@ public class TransactionCommitFlight extends Flight {
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
-    UUID transactionId =
-        UUID.fromString(inputParameters.get(JobMapKeys.TRANSACTION_ID.getKeyName(), String.class));
+    TransactionCreateModel transactionRequestModel =
+        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), TransactionCreateModel.class);
     Dataset dataset = datasetService.retrieve(datasetId);
     CloudPlatformWrapper cloudPlatform =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
@@ -33,13 +34,17 @@ public class TransactionCommitFlight extends Flight {
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     if (cloudPlatform.isGcp()) {
-      addStep(new TransactionLockStep(datasetService, bigQueryPdao, transactionId, false, userReq));
-      addStep(new TransactionVerifyStep(datasetService, bigQueryPdao, transactionId));
       addStep(
-          new TransactionCommitStep(datasetService, bigQueryPdao, userReq, true, transactionId));
-      addStep(new TransactionUnlockStep(datasetService, bigQueryPdao, transactionId, userReq));
+          new TransactionOpenStep(
+              datasetService,
+              bigQueryPdao,
+              userReq,
+              transactionRequestModel.getDescription(),
+              true,
+              true));
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;
     }
+    addStep(new TransactionUnlockStep(datasetService, bigQueryPdao, null, userReq));
   }
 }

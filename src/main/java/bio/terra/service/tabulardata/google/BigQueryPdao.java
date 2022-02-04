@@ -15,15 +15,15 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
-import static bio.terra.common.PdaoConstant.PDAO_XACTIONS_TABLE;
-import static bio.terra.common.PdaoConstant.PDAO_XACTION_CREATED_AT_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_XACTION_CREATED_BY_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_XACTION_DESCRIPTION_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_XACTION_ID_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_XACTION_LOCK_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_XACTION_STATUS_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_XACTION_TERMINATED_AT_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_XACTION_TERMINATED_BY_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTIONS_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_CREATED_AT_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_CREATED_BY_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_DESCRIPTION_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_LOCK_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_STATUS_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_TERMINATED_AT_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_TERMINATED_BY_COLUMN;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
@@ -148,7 +148,8 @@ public class BigQueryPdao {
 
       bigQueryProject.createDataset(datasetName, dataset.getDescription(), region);
       bigQueryProject.createTable(datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
-      bigQueryProject.createTable(datasetName, PDAO_XACTIONS_TABLE, buildTransactionsTableSchema());
+      bigQueryProject.createTable(
+          datasetName, PDAO_TRANSACTIONS_TABLE, buildTransactionsTableSchema());
       for (DatasetTable table : dataset.getTables()) {
         bigQueryProject.createTable(
             datasetName,
@@ -225,9 +226,9 @@ public class BigQueryPdao {
     liveViewSql.add("dataset", datasetName);
     liveViewSql.add("rawTable", table.getRawTableName());
     liveViewSql.add("sdTable", table.getSoftDeleteTableName());
-    liveViewSql.add("transactionTable", PDAO_XACTIONS_TABLE);
-    liveViewSql.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
-    liveViewSql.add("transactStatusCol", PDAO_XACTION_STATUS_COLUMN);
+    liveViewSql.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
+    liveViewSql.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
+    liveViewSql.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
     liveViewSql.add("partitionDateCol", PDAO_INGEST_DATE_COLUMN_ALIAS);
     liveViewSql.add("transactStatusVal", TransactionModel.StatusEnum.ACTIVE);
 
@@ -1038,7 +1039,7 @@ public class BigQueryPdao {
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
     sqlTemplate.add("targetTable", targetTable.getRawTableName());
     sqlTemplate.add("stagingTable", stagingTableName);
-    sqlTemplate.add("transactIdColumn", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN);
     sqlTemplate.add("columns", PDAO_ROW_ID_COLUMN);
     targetTable.getColumns().forEach(column -> sqlTemplate.add("columns", column.getName()));
 
@@ -1100,14 +1101,14 @@ public class BigQueryPdao {
     ST sqlTemplate = new ST(insertIntoTransactionTableTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
 
-    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
-    sqlTemplate.add("transactStatusCol", PDAO_XACTION_STATUS_COLUMN);
-    sqlTemplate.add("transactLockCol", PDAO_XACTION_LOCK_COLUMN);
-    sqlTemplate.add("transactDescriptionCol", PDAO_XACTION_DESCRIPTION_COLUMN);
-    sqlTemplate.add("transactCreatedAtCol", PDAO_XACTION_CREATED_AT_COLUMN);
-    sqlTemplate.add("transactCreatedByCol", PDAO_XACTION_CREATED_BY_COLUMN);
+    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
+    sqlTemplate.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
+    sqlTemplate.add("transactLockCol", PDAO_TRANSACTION_LOCK_COLUMN);
+    sqlTemplate.add("transactDescriptionCol", PDAO_TRANSACTION_DESCRIPTION_COLUMN);
+    sqlTemplate.add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
+    sqlTemplate.add("transactCreatedByCol", PDAO_TRANSACTION_CREATED_BY_COLUMN);
 
     long createdAt = System.currentTimeMillis();
     TransactionModel transaction =
@@ -1142,9 +1143,9 @@ public class BigQueryPdao {
     ST sqlTemplate = new ST(deleteFromTransactionTableTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
 
-    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
 
     bigQueryProject.query(
         sqlTemplate.render(),
@@ -1172,12 +1173,12 @@ public class BigQueryPdao {
     ST sqlTemplate = new ST(updateTransactionTableLockTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
 
-    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
-    sqlTemplate.add("transactLockCol", PDAO_XACTION_LOCK_COLUMN);
-    sqlTemplate.add("transactTerminatedAtCol", PDAO_XACTION_TERMINATED_AT_COLUMN);
-    sqlTemplate.add("createdByCol", PDAO_XACTION_CREATED_BY_COLUMN);
+    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
+    sqlTemplate.add("transactLockCol", PDAO_TRANSACTION_LOCK_COLUMN);
+    sqlTemplate.add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
+    sqlTemplate.add("createdByCol", PDAO_TRANSACTION_CREATED_BY_COLUMN);
 
     String lockErrorMessage = "Transaction already locked or was created by another user";
     sqlTemplate.add("lockErrorMessage", lockErrorMessage);
@@ -1221,12 +1222,12 @@ public class BigQueryPdao {
     ST sqlTemplate = new ST(updateTransactionTableStatusTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
 
-    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
-    sqlTemplate.add("transactStatusCol", PDAO_XACTION_STATUS_COLUMN);
-    sqlTemplate.add("transactTerminatedAtCol", PDAO_XACTION_TERMINATED_AT_COLUMN);
-    sqlTemplate.add("transactTerminatedByCol", PDAO_XACTION_TERMINATED_BY_COLUMN);
+    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
+    sqlTemplate.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
+    sqlTemplate.add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
+    sqlTemplate.add("transactTerminatedByCol", PDAO_TRANSACTION_TERMINATED_BY_COLUMN);
 
     long terminatedAt = System.currentTimeMillis();
 
@@ -1255,11 +1256,11 @@ public class BigQueryPdao {
     ST sqlTemplate = new ST(enumerateTransactionsTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
 
     sqlTemplate.add("limit", limit);
     sqlTemplate.add("offset", offset);
-    sqlTemplate.add("transactCreatedAtCol", PDAO_XACTION_CREATED_AT_COLUMN);
+    sqlTemplate.add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
 
     return StreamSupport.stream(
             bigQueryProject.query(sqlTemplate.render()).getValues().spliterator(), false)
@@ -1277,9 +1278,9 @@ public class BigQueryPdao {
     ST sqlTemplate = new ST(retrieveTransactionTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
-    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
 
-    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
 
     TableResult result =
         bigQueryProject.query(
@@ -1323,13 +1324,13 @@ public class BigQueryPdao {
     sqlTemplate.add("targetTable", datasetTable.getName());
     sqlTemplate.add("metadataTable", datasetTable.getRowMetadataTableName());
     sqlTemplate.add("rawDataTable", datasetTable.getRawTableName());
-    sqlTemplate.add("transactionTable", PDAO_XACTIONS_TABLE);
+    sqlTemplate.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
 
     sqlTemplate.add("rowIdColumn", PDAO_ROW_ID_COLUMN);
-    sqlTemplate.add("transactIdCol", PDAO_XACTION_ID_COLUMN);
-    sqlTemplate.add("transactStatusCol", PDAO_XACTION_STATUS_COLUMN);
-    sqlTemplate.add("transactTerminatedAtCol", PDAO_XACTION_TERMINATED_AT_COLUMN);
-    sqlTemplate.add("transactCreatedAtCol", PDAO_XACTION_CREATED_AT_COLUMN);
+    sqlTemplate.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
+    sqlTemplate.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
+    sqlTemplate.add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
+    sqlTemplate.add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
     sqlTemplate.add("pkColumns", datasetTable.getPrimaryKey());
 
     TableResult result =
@@ -1351,31 +1352,32 @@ public class BigQueryPdao {
 
   private TransactionModel mapTransactionModel(FieldValueList values) {
     return new TransactionModel()
-        .id(UUID.fromString(values.get(PDAO_XACTION_ID_COLUMN).getStringValue()))
+        .id(UUID.fromString(values.get(PDAO_TRANSACTION_ID_COLUMN).getStringValue()))
         .status(
             TransactionModel.StatusEnum.fromValue(
-                values.get(PDAO_XACTION_STATUS_COLUMN).getStringValue()))
+                values.get(PDAO_TRANSACTION_STATUS_COLUMN).getStringValue()))
         .lock(
-            values.get(PDAO_XACTION_LOCK_COLUMN).isNull()
+            values.get(PDAO_TRANSACTION_LOCK_COLUMN).isNull()
                 ? null
-                : values.get(PDAO_XACTION_LOCK_COLUMN).getStringValue())
+                : values.get(PDAO_TRANSACTION_LOCK_COLUMN).getStringValue())
         .description(
-            Optional.ofNullable(values.get(PDAO_XACTION_DESCRIPTION_COLUMN).getValue())
+            Optional.ofNullable(values.get(PDAO_TRANSACTION_DESCRIPTION_COLUMN).getValue())
                 .map(Object::toString)
                 .orElse(null))
         .createdAt(
             Instant.ofEpochMilli(
-                    values.get(PDAO_XACTION_CREATED_AT_COLUMN).getTimestampValue() / 1000)
+                    values.get(PDAO_TRANSACTION_CREATED_AT_COLUMN).getTimestampValue() / 1000)
                 .toString())
-        .createdBy(values.get(PDAO_XACTION_CREATED_BY_COLUMN).getStringValue())
+        .createdBy(values.get(PDAO_TRANSACTION_CREATED_BY_COLUMN).getStringValue())
         .terminatedAt(
-            values.get(PDAO_XACTION_TERMINATED_AT_COLUMN).isNull()
+            values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).isNull()
                 ? null
                 : Instant.ofEpochMilli(
-                        values.get(PDAO_XACTION_TERMINATED_AT_COLUMN).getTimestampValue() / 1000)
+                        values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).getTimestampValue()
+                            / 1000)
                     .toString())
         .terminatedBy(
-            Optional.ofNullable(values.get(PDAO_XACTION_TERMINATED_BY_COLUMN).getValue())
+            Optional.ofNullable(values.get(PDAO_TRANSACTION_TERMINATED_BY_COLUMN).getValue())
                 .map(Object::toString)
                 .orElse(null));
   }
@@ -1394,7 +1396,7 @@ public class BigQueryPdao {
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
     sqlTemplate.add("targetTable", targetTableName);
-    sqlTemplate.add("transactIdColumn", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN);
 
     bigQueryProject.query(
         sqlTemplate.render(),
@@ -1420,7 +1422,7 @@ public class BigQueryPdao {
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
     sqlTemplate.add("metadataTable", targetTable.getRowMetadataTableName());
     sqlTemplate.add("targetTable", targetTable.getRawTableName());
-    sqlTemplate.add("transactIdColumn", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN);
     sqlTemplate.add("datarepoIdCol", PDAO_ROW_ID_COLUMN);
 
     bigQueryProject.query(
@@ -1504,7 +1506,7 @@ public class BigQueryPdao {
     sqlTemplate.add("deleteByColumn", PDAO_DELETED_BY_COLUMN);
     sqlTemplate.add("loadTagColumn", PDAO_LOAD_TAG_COLUMN);
     sqlTemplate.add("flightIdColumn", PDAO_FLIGHT_ID_COLUMN);
-    sqlTemplate.add("transactIdColumn", PDAO_XACTION_ID_COLUMN);
+    sqlTemplate.add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN);
     sqlTemplate.add("pkColumns", targetTable.getPrimaryKey());
 
     bigQueryProject.query(
@@ -1659,35 +1661,35 @@ public class BigQueryPdao {
             Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING),
             Field.of(PDAO_LOAD_TAG_COLUMN, LegacySQLTypeName.STRING),
             Field.of(PDAO_FLIGHT_ID_COLUMN, LegacySQLTypeName.STRING),
-            Field.of(PDAO_XACTION_ID_COLUMN, LegacySQLTypeName.STRING),
+            Field.of(PDAO_TRANSACTION_ID_COLUMN, LegacySQLTypeName.STRING),
             Field.of(PDAO_DELETED_AT_COLUMN, LegacySQLTypeName.TIMESTAMP),
             Field.of(PDAO_DELETED_BY_COLUMN, LegacySQLTypeName.STRING)));
   }
 
   private Schema buildTransactionsTableSchema() {
     return Schema.of(
-        Field.newBuilder(PDAO_XACTION_ID_COLUMN, LegacySQLTypeName.STRING)
+        Field.newBuilder(PDAO_TRANSACTION_ID_COLUMN, LegacySQLTypeName.STRING)
             .setMode(Field.Mode.REQUIRED)
             .build(),
-        Field.newBuilder(PDAO_XACTION_STATUS_COLUMN, LegacySQLTypeName.STRING)
+        Field.newBuilder(PDAO_TRANSACTION_STATUS_COLUMN, LegacySQLTypeName.STRING)
             .setMode(Mode.REQUIRED)
             .build(),
-        Field.newBuilder(PDAO_XACTION_LOCK_COLUMN, LegacySQLTypeName.STRING)
+        Field.newBuilder(PDAO_TRANSACTION_LOCK_COLUMN, LegacySQLTypeName.STRING)
             .setMode(Mode.NULLABLE)
             .build(),
-        Field.newBuilder(PDAO_XACTION_DESCRIPTION_COLUMN, LegacySQLTypeName.STRING)
+        Field.newBuilder(PDAO_TRANSACTION_DESCRIPTION_COLUMN, LegacySQLTypeName.STRING)
             .setMode(Mode.NULLABLE)
             .build(),
-        Field.newBuilder(PDAO_XACTION_CREATED_AT_COLUMN, LegacySQLTypeName.TIMESTAMP)
+        Field.newBuilder(PDAO_TRANSACTION_CREATED_AT_COLUMN, LegacySQLTypeName.TIMESTAMP)
             .setMode(Mode.REQUIRED)
             .build(),
-        Field.newBuilder(PDAO_XACTION_CREATED_BY_COLUMN, LegacySQLTypeName.STRING)
+        Field.newBuilder(PDAO_TRANSACTION_CREATED_BY_COLUMN, LegacySQLTypeName.STRING)
             .setMode(Mode.REQUIRED)
             .build(),
-        Field.newBuilder(PDAO_XACTION_TERMINATED_AT_COLUMN, LegacySQLTypeName.TIMESTAMP)
+        Field.newBuilder(PDAO_TRANSACTION_TERMINATED_AT_COLUMN, LegacySQLTypeName.TIMESTAMP)
             .setMode(Mode.NULLABLE)
             .build(),
-        Field.newBuilder(PDAO_XACTION_TERMINATED_BY_COLUMN, LegacySQLTypeName.STRING)
+        Field.newBuilder(PDAO_TRANSACTION_TERMINATED_BY_COLUMN, LegacySQLTypeName.STRING)
             .setMode(Mode.NULLABLE)
             .build());
   }
@@ -1703,7 +1705,7 @@ public class BigQueryPdao {
     }
 
     if (addTransactionIdColumn) {
-      fieldList.add(Field.of(PDAO_XACTION_ID_COLUMN, LegacySQLTypeName.STRING));
+      fieldList.add(Field.of(PDAO_TRANSACTION_ID_COLUMN, LegacySQLTypeName.STRING));
     }
 
     for (Column column : table.getColumns()) {
@@ -2522,7 +2524,7 @@ public class BigQueryPdao {
                         .add("rowIdColumn", PDAO_ROW_ID_COLUMN)
                         .add("loadTagColumn", PDAO_LOAD_TAG_COLUMN)
                         .add("flightIdColumn", PDAO_FLIGHT_ID_COLUMN)
-                        .add("transactIdColumn", PDAO_XACTION_ID_COLUMN)
+                        .add("transactIdColumn", PDAO_TRANSACTION_ID_COLUMN)
                         .add("deleteAtColumn", PDAO_DELETED_AT_COLUMN)
                         .add("deleteByColumn", PDAO_DELETED_BY_COLUMN)
                         .add("softDeleteExtTable", externalTableName(tableName, suffix))
@@ -2744,9 +2746,9 @@ public class BigQueryPdao {
             buildSoftDeletesSchema(),
             false);
         logger.info("......Adding Transaction table");
-        if (!bigQueryProject.tableExists(datasetName, PDAO_XACTIONS_TABLE)) {
+        if (!bigQueryProject.tableExists(datasetName, PDAO_TRANSACTIONS_TABLE)) {
           bigQueryProject.createTable(
-              datasetName, PDAO_XACTIONS_TABLE, buildTransactionsTableSchema());
+              datasetName, PDAO_TRANSACTIONS_TABLE, buildTransactionsTableSchema());
         }
         logger.info("......Updating live view");
         bigQuery.update(buildLiveView(bigQueryProject.getProjectId(), datasetName, datasetTable));

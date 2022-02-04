@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight.xactions;
+package bio.terra.service.dataset.flight.transactions;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.TransactionModel;
@@ -15,31 +15,43 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TransactionRollbackStep implements Step {
-  private static final Logger logger = LoggerFactory.getLogger(TransactionRollbackStep.class);
+public class TransactionCommitStep implements Step {
+  private static final Logger logger = LoggerFactory.getLogger(TransactionCommitStep.class);
   private final DatasetService datasetService;
   private final BigQueryPdao bigQueryPdao;
-  private final UUID transactionId;
   private final AuthenticatedUserRequest userReq;
+  // If true, saves the transaction as the response to the flight
+  private final boolean returnTransaction;
+  // Can specify the transaction ID at the flight level or through the flight working map using the
+  // "transactionId" key if this value is null
+  private final UUID transactionId;
 
-  public TransactionRollbackStep(
+  public TransactionCommitStep(
       DatasetService datasetService,
       BigQueryPdao bigQueryPdao,
-      UUID transactionId,
-      AuthenticatedUserRequest userReq) {
+      AuthenticatedUserRequest userReq,
+      boolean returnTransaction,
+      UUID transactionId) {
     this.datasetService = datasetService;
     this.bigQueryPdao = bigQueryPdao;
-    this.transactionId = transactionId;
     this.userReq = userReq;
+    this.returnTransaction = returnTransaction;
+    this.transactionId = transactionId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
+    UUID transactionId =
+        this.transactionId == null
+            ? TransactionUtils.getTransactionId(context)
+            : this.transactionId;
     TransactionModel transaction =
         bigQueryPdao.updateTransactionTableStatus(
-            userReq, dataset, transactionId, StatusEnum.ROLLED_BACK);
-    context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), transaction);
+            userReq, dataset, transactionId, StatusEnum.COMMITTED);
+    if (returnTransaction) {
+      context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), transaction);
+    }
     return StepResult.getStepResultSuccess();
   }
 

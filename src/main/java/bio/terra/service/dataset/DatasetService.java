@@ -28,9 +28,9 @@ import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
 import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
 import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
-import bio.terra.service.dataset.flight.xactions.TransactionCommitFlight;
-import bio.terra.service.dataset.flight.xactions.TransactionOpenFlight;
-import bio.terra.service.dataset.flight.xactions.TransactionRollbackFlight;
+import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
+import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
+import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -312,10 +312,10 @@ public class DatasetService {
     }
   }
 
-  public TransactionModel retrieveTransaction(UUID id, UUID xactId) {
+  public TransactionModel retrieveTransaction(UUID id, UUID transactionId) {
     Dataset retrieve = retrieve(id);
     try {
-      return bigQueryPdao.retrieveTransaction(retrieve, xactId);
+      return bigQueryPdao.retrieveTransaction(retrieve, transactionId);
     } catch (InterruptedException e) {
       throw new RuntimeException("Error retrieving transaction", e);
     }

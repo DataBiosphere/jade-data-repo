@@ -14,7 +14,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.dataset.flight.xactions.TransactionUtils;
+import bio.terra.service.dataset.flight.transactions.TransactionUtils;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;

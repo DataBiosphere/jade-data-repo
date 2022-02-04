@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight.xactions;
+package bio.terra.service.dataset.flight.transactions;
 
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;

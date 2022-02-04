@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight.xactions.upgrade;
+package bio.terra.service.dataset.flight.transactions.upgrade;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.DatasetService;

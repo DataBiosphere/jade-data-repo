@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight.xactions;
+package bio.terra.service.dataset.flight.transactions;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.CommonExceptions;
@@ -12,9 +12,9 @@ import bio.terra.stairway.FlightMap;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
-public class TransactionRollbackFlight extends Flight {
+public class TransactionCommitFlight extends Flight {
 
-  public TransactionRollbackFlight(FlightMap inputParameters, Object applicationContext) {
+  public TransactionCommitFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
 
     // get the required daos to pass into the steps
@@ -34,10 +34,9 @@ public class TransactionRollbackFlight extends Flight {
 
     if (cloudPlatform.isGcp()) {
       addStep(new TransactionLockStep(datasetService, bigQueryPdao, transactionId, false, userReq));
-      addStep(new TransactionRollbackMetadataStep(datasetService, bigQueryPdao, transactionId));
-      addStep(new TransactionRollbackDataStep(datasetService, bigQueryPdao, transactionId));
-      addStep(new TransactionRollbackSoftDeleteStep(datasetService, bigQueryPdao, transactionId));
-      addStep(new TransactionRollbackStep(datasetService, bigQueryPdao, transactionId, userReq));
+      addStep(new TransactionVerifyStep(datasetService, bigQueryPdao, transactionId));
+      addStep(
+          new TransactionCommitStep(datasetService, bigQueryPdao, userReq, true, transactionId));
       addStep(new TransactionUnlockStep(datasetService, bigQueryPdao, transactionId, userReq));
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;

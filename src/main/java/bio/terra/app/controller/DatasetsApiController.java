@@ -369,11 +369,11 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<JobModel> closeTransaction(
-      UUID id, UUID xactId, TransactionCloseModel body) {
+      UUID id, UUID transactionId, TransactionCloseModel body) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
-    String jobId = datasetService.closeTransaction(id, xactId, userReq, body.getMode());
+    String jobId = datasetService.closeTransaction(id, transactionId, userReq, body.getMode());
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
@@ -387,10 +387,11 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<TransactionModel> retrieveTransaction(UUID id, UUID xactId) {
+  public ResponseEntity<TransactionModel> retrieveTransaction(UUID id, UUID transactionId) {
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
-    return new ResponseEntity<>(datasetService.retrieveTransaction(id, xactId), HttpStatus.OK);
+    return new ResponseEntity<>(
+        datasetService.retrieveTransaction(id, transactionId), HttpStatus.OK);
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

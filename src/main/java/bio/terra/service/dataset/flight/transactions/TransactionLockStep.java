@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight.xactions;
+package bio.terra.service.dataset.flight.transactions;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.TransactionModel;

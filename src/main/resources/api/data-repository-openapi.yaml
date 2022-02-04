@@ -1559,7 +1559,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/datasets/{id}/transactions/{xactId}:
+  /api/repository/v1/datasets/{id}/transactions/{transactionId}:
     get:
       tags:
         - datasets
@@ -1568,7 +1568,7 @@ paths:
       operationId: retrieveTransaction
       parameters:
         - $ref: '#/components/parameters/Id'
-        - $ref: '#/components/parameters/XactId'
+        - $ref: '#/components/parameters/TransactionId'
       responses:
         200:
           description: Information on a given transaction
@@ -1603,7 +1603,7 @@ paths:
       operationId: closeTransaction
       parameters:
         - $ref: '#/components/parameters/Id'
-        - $ref: '#/components/parameters/XactId'
+        - $ref: '#/components/parameters/TransactionId'
       requestBody:
         description: Close transaction request
         content:
@@ -4945,8 +4945,8 @@ components:
       required: true
       schema:
         type: string
-    XactId:
-      name: xactId
+    TransactionId:
+      name: transactionId
       in: path
       description: A UUID to used to identify a transaction in a dataset
       required: true

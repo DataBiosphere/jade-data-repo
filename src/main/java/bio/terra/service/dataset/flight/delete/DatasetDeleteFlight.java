@@ -73,8 +73,8 @@ public class DatasetDeleteFlight extends Flight {
       addStep(new LockDatasetStep(datasetService, datasetId, false, true), lockDatasetRetry);
     }
     if (platform.isGcp()) {
-      // TODO: Do this check for Azure datasets
       addStep(new DeleteDatasetStoreProjectIdStep(datasetId, datasetService));
+      // TODO: Do this check for Azure datasets
       addStep(
           new DeleteDatasetGcpValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
       addStep(
@@ -118,7 +118,6 @@ public class DatasetDeleteFlight extends Flight {
 
     // delete dataset project
     if (platform.isGcp()) {
-      addStep(new DeleteDatasetMarkProjectStep(resourceService, datasetId, datasetService));
       addStep(new DeleteDatasetDeleteProjectStep(resourceService));
       addStep(new DeleteDatasetProjectMetadataStep(resourceService));
     }

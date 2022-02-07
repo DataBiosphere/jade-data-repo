@@ -25,7 +25,7 @@ public class DeleteSnapshotStoreProjectIdStep implements Step {
     UUID projectResourceId = snapshot.getProjectResourceId();
 
     FlightMap workingMap = context.getWorkingMap();
-    workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID, projectResourceId);
+    workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
 
     return StepResult.getStepResultSuccess();
   }

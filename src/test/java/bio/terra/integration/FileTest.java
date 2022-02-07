@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
@@ -21,6 +23,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -68,6 +71,7 @@ public class FileTest extends UsersBase {
   @Autowired private DataRepoClient dataRepoClient;
 
   @Autowired private TestConfiguration testConfiguration;
+  @Autowired private JsonLoader jsonLoader;
 
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
@@ -154,6 +158,43 @@ public class FileTest extends UsersBase {
     logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
     logger.info("Failed files   : " + loadSummary.getFailedFiles());
     logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
+
+    //create snapshot & track response rate
+    SnapshotRequestModel requestModel =
+        jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
+    requestModel.setName(Names.randomizeName(requestModel.getName()));
+
+    requestModel.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
+    requestModel.setProfileId(billingProfile.getId());
+    String json = TestUtils.mapToJson(requestModel);
+
+    DataRepoResponse<JobModel> jobResponse =
+        dataRepoClient.post(steward(), "/api/repository/v1/snapshots", json, JobModel.class, false);
+    assertTrue("snapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(
+        "snapshot create launch response is present", jobResponse.getResponseObject().isPresent());
+
+    int sleepSeconds = 1;
+    String location = dataRepoClient.getLocationHeader(jobResponse);
+    try {
+      while (true) {
+
+        DataRepoResponse<JobModel> jobStatus =
+            dataRepoClient.get(steward(), location, JobModel.class);
+        logger.info("Job Status: {}", jobStatus.getResponseObject().get());
+        try {
+          DataRepoResponse<SnapshotSummaryModel> jobResult =
+              dataRepoClient.get(steward(), location + "/result", SnapshotSummaryModel.class);
+          logger.info("Job Result: {}", jobResult.getResponseObject());
+        } catch (Exception ex) {
+          logger.info("No result returned.");
+        }
+      }
+    } catch (InterruptedException ex) {
+      logger.info("interrupted ex: " + ex.getMessage(), ex);
+      throw new IllegalStateException("unexpected interrupt waiting for response", ex);
+    }
+  }
   }
 
   // DR-612 filesystem corruption test; use a non-existent file to make sure everything errors

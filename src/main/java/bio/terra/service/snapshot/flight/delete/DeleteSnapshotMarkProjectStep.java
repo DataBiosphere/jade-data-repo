@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -12,22 +13,27 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeleteSnapshotProjectMetadataStep implements Step {
+public class DeleteSnapshotMarkProjectStep implements Step {
 
   private final ResourceService resourceService;
+  private final UUID snapshotId;
+  private final SnapshotService snapshotService;
 
-  private static final Logger logger =
-      LoggerFactory.getLogger(DeleteSnapshotProjectMetadataStep.class);
-
-  public DeleteSnapshotProjectMetadataStep(ResourceService resourceService) {
+  public DeleteSnapshotMarkProjectStep(
+      ResourceService resourceService, UUID snapshotId, SnapshotService snapshotService) {
     this.resourceService = resourceService;
+    this.snapshotId = snapshotId;
+    this.snapshotService = snapshotService;
   }
+
+  private static final Logger logger = LoggerFactory.getLogger(DeleteSnapshotMarkProjectStep.class);
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
     UUID projectId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID, UUID.class);
-    resourceService.deleteProjectMetadata(List.of(projectId));
+
+    resourceService.markProjectsForDelete(List.of(projectId));
 
     return StepResult.getStepResultSuccess();
   }

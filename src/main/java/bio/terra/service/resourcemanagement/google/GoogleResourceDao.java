@@ -270,7 +270,8 @@ public class GoogleResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("googleProjectId", googleProjectId);
 
-    return jdbcTemplate.queryForObject(sql, params, Integer.class);
+    Integer count = jdbcTemplate.queryForObject(sql, params, Integer.class);
+    return (count != null ? count : 0);
   }
 
   @Transactional(
@@ -282,7 +283,8 @@ public class GoogleResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("googleProjectId", googleProjectId);
 
-    return jdbcTemplate.queryForObject(sql, params, Integer.class);
+    Integer count = jdbcTemplate.queryForObject(sql, params, Integer.class);
+    return (count != null ? count : 0);
   }
 
   // -- bucket resource methods --

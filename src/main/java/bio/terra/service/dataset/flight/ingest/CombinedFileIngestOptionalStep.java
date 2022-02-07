@@ -24,8 +24,7 @@ public class CombinedFileIngestOptionalStep extends OptionalStep {
   public String getRunReason(FlightContext context) {
     long numFiles =
         Objects.requireNonNullElse(
-            context.getWorkingMap().get(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, Long.class),
-            0L);
-    return numFiles + "bulk load files found to ingest";
+            context.getWorkingMap().get(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, Long.class), 0L);
+    return String.format("%s bulk load file(s) found to ingest", numFiles);
   }
 }

@@ -418,7 +418,7 @@ public class FireStoreDao {
    *
    * @param fsItemFirestore The firestore collection that contains the collection with the virtual
    *     file system. This can be a dataset or snapshot project based collection
-   * @param metadataFirestore The firestore collection that contains te collection with the file
+   * @param metadataFirestore The firestore collection that contains the collection with the file
    *     object metadata. This is always a dataset based project collection
    * @param collectionId The ID of the collection in the fsItemFirestore connection that contains
    *     the virtual file system objects

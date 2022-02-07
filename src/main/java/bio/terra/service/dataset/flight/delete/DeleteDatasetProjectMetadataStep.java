@@ -21,7 +21,7 @@ public class DeleteDatasetProjectMetadataStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
-    UUID projectId = workingMap.get(DatasetWorkingMapKeys.DATASET_PROJECT_ID, UUID.class);
+    UUID projectId = workingMap.get(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
     resourceService.deleteProjectMetadata(List.of(projectId));
 
     return StepResult.getStepResultSuccess();

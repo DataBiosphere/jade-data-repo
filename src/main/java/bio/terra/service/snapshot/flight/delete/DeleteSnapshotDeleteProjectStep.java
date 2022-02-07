@@ -21,7 +21,7 @@ public class DeleteSnapshotDeleteProjectStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
-    UUID projectId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_PROJECT_ID, UUID.class);
+    UUID projectId = workingMap.get(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
     resourceService.deleteUnusedProjects(List.of(projectId));
     return StepResult.getStepResultSuccess();
   }

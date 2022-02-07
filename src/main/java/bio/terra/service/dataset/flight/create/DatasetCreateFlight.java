@@ -97,7 +97,8 @@ public class DatasetCreateFlight extends Flight {
     }
 
     // Create dataset metadata objects in postgres and lock the dataset
-    addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest),
+    addStep(
+        new CreateDatasetMetadataStep(datasetDao, datasetRequest),
         getDefaultExponentialBackoffRetryRule());
 
     // For azure backed datasets, add a link co connect the storage account to the dataset

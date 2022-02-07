@@ -191,7 +191,7 @@ public class DataRepoClient {
     }
   }
 
-  private String getLocationHeader(DataRepoResponse<JobModel> jobModelResponse) {
+  public String getLocationHeader(DataRepoResponse<JobModel> jobModelResponse) {
     if (!jobModelResponse.getLocationHeader().isPresent()) {
       throw new IllegalStateException("No location header present!");
     }

@@ -46,6 +46,11 @@ public class DatasetBucketDao {
           + " project_resource pr ON br.project_resource_id = pr.id"
           + " WHERE db.dataset_id = :dataset_id AND pr.profile_id = :profile_id";
 
+  private static final String sqlGetProjectResourceForBucketPerDataset =
+      "SELECT br.project_resource_id FROM dataset_bucket db JOIN"
+          + " bucket_resource br ON db.bucket_resource_id = br.id"
+          + " WHERE db.dataset_id = :dataset_id";
+
   // Note we start from 1, since we are recording an ingest creating the link. If that ingest fails
   // it will decrement to zero.
   private static final String sqlCreateLink =
@@ -85,7 +90,7 @@ public class DatasetBucketDao {
             .addValue("dataset_id", datasetId)
             .addValue("profile_id", billingId);
     List<String> results =
-        jdbcTemplate.query(sqlGetProjectIdForBucket, params, new DatasetBucketMapper());
+        jdbcTemplate.query(sqlGetProjectIdForBucket, params, new DatasetBucketProjectMapper());
     // case where we need to create new google project
     if (results.size() == 0) {
       logger.info(
@@ -101,9 +106,21 @@ public class DatasetBucketDao {
     return results.get(0);
   }
 
-  private static class DatasetBucketMapper implements RowMapper<String> {
+  private static class DatasetBucketProjectMapper implements RowMapper<String> {
     public String mapRow(ResultSet rs, int rowNum) throws SQLException {
       return rs.getObject("google_project_id", String.class);
+    }
+  }
+
+  public List<UUID> getProjectResourceIdsForBucketPerDataset(UUID datasetId) {
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("dataset_id", datasetId);
+    return jdbcTemplate.query(
+        sqlGetProjectResourceForBucketPerDataset, params, new DatasetBucketMapper());
+  }
+
+  private static class DatasetBucketMapper implements RowMapper<UUID> {
+    public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
+      return rs.getObject("project_resource_id", UUID.class);
     }
   }
 

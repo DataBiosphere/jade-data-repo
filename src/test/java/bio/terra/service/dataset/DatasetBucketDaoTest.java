@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.EmbeddedDatabaseTest;
-import bio.terra.common.category.Connected;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
@@ -17,11 +17,9 @@ import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.BucketResourceUtils;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import java.util.ArrayList;
@@ -43,8 +41,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles({"google", "connectedtest"})
-@Category(Connected.class)
+@ActiveProfiles({"google", "unittest"})
+@Category(Unit.class)
 @EmbeddedDatabaseTest
 public class DatasetBucketDaoTest {
   private static final Logger logger = LoggerFactory.getLogger(DatasetBucketDaoTest.class);
@@ -60,10 +58,6 @@ public class DatasetBucketDaoTest {
   @Autowired private GoogleResourceDao resourceDao;
 
   @Autowired private ConfigurationService configurationService;
-
-  @Autowired private GoogleBucketService googleBucketService;
-
-  @Autowired private GcsConfiguration gcsConfiguration;
 
   private final BucketResourceUtils bucketResourceUtils = new BucketResourceUtils();
   private BillingProfileModel billingProfile;
@@ -119,7 +113,7 @@ public class DatasetBucketDaoTest {
   public void TestGetProjectForDatasetProfileCombo() throws Exception {
     UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
-    UUID bucketResourceId = createBucket();
+    UUID bucketResourceId = createBucketDbEntry(projectResource);
     bucketResourceIds.add(bucketResourceId);
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
 
@@ -138,11 +132,31 @@ public class DatasetBucketDaoTest {
         "Should NOT retrieve existing project",
         datasetBucketDao.getProjectResourceForBucket(datasetId, billingProfile2.getId()));
 
+    List<UUID> projectResourceIds =
+        datasetBucketDao.getProjectResourceIdsForBucketPerDataset(datasetId);
+    assertEquals("Just one bucket linked right now", 1, projectResourceIds.size());
+
+    // Actually link dataset to new billing profile via bucket
+    GoogleProjectResource projectResource2 =
+        ResourceFixtures.randomProjectResource(billingProfile2);
+    UUID projectId2 = resourceDao.createProject(projectResource2);
+    projectResource2.id(projectId2);
+    UUID bucketResourceId2 = createBucketDbEntry(projectResource2);
+    bucketResourceIds.add(bucketResourceId2);
+    datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId2);
+
+    List<UUID> projectResourceIds_after =
+        datasetBucketDao.getProjectResourceIdsForBucketPerDataset(datasetId);
+    assertEquals(
+        "Should return both projects for both billing profiles for dataset 1",
+        2,
+        projectResourceIds_after.size());
+
     // Get project given a new dataset
     UUID datasetId2 = createMinimalDataset();
     datasetIds.add(datasetId2);
-    UUID bucketResourceId2 = createBucket();
-    bucketResourceIds.add(bucketResourceId2);
+    UUID bucketResourceId3 = createBucketDbEntry(projectResource);
+    bucketResourceIds.add(bucketResourceId3);
     assertNull(
         "Should NOT retrieve existing project",
         datasetBucketDao.getProjectResourceForBucket(datasetId2, billingProfile.getId()));
@@ -152,7 +166,7 @@ public class DatasetBucketDaoTest {
   public void TestDatasetBucketLink() throws Exception {
     UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
-    UUID bucketResourceId = createBucket();
+    UUID bucketResourceId = createBucketDbEntry(projectResource);
     bucketResourceIds.add(bucketResourceId);
 
     // initial check - link should not yet exist
@@ -174,7 +188,7 @@ public class DatasetBucketDaoTest {
   public void TestMultipleLinks() throws Exception {
     UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
-    UUID bucketResourceId = createBucket();
+    UUID bucketResourceId = createBucketDbEntry(projectResource);
     bucketResourceIds.add(bucketResourceId);
 
     // initial check - link should not yet exist
@@ -206,7 +220,7 @@ public class DatasetBucketDaoTest {
   public void TestDecrementLink() throws Exception {
     UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
-    UUID bucketResourceId = createBucket();
+    UUID bucketResourceId = createBucketDbEntry(projectResource);
     bucketResourceIds.add(bucketResourceId);
 
     // initial check - link should not yet exist
@@ -234,7 +248,7 @@ public class DatasetBucketDaoTest {
     // create dataset to pass to bucket create
     UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
-    UUID bucketResourceId = createBucket();
+    UUID bucketResourceId = createBucketDbEntry(projectResource);
     bucketResourceIds.add(bucketResourceId);
 
     // fake datasetId
@@ -286,16 +300,15 @@ public class DatasetBucketDaoTest {
     return datasetId;
   }
 
-  private UUID createBucket() throws InterruptedException {
+  private UUID createBucketDbEntry(GoogleProjectResource projectResource2) {
     String ingestFileFlightId = UUID.randomUUID().toString();
-    GoogleBucketResource bucketForFile =
-        googleBucketService.getOrCreateBucket(
-            gcsConfiguration.getBucket(),
-            projectResource,
+    GoogleBucketResource googleBucketResource =
+        resourceDao.createAndLockBucket(
+            String.format("testbucket%s", ingestFileFlightId),
+            projectResource2,
             (GoogleRegion)
                 dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
-            ingestFileFlightId,
-            null);
-    return bucketForFile.getResourceId();
+            ingestFileFlightId);
+    return googleBucketResource.getResourceId();
   }
 }

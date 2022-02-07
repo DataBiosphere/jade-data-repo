@@ -8,6 +8,7 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -38,6 +39,7 @@ public class DatasetDeleteFlight extends Flight {
 
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
+    DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
@@ -73,7 +75,7 @@ public class DatasetDeleteFlight extends Flight {
       addStep(new LockDatasetStep(datasetService, datasetId, false, true), lockDatasetRetry);
     }
     if (platform.isGcp()) {
-      addStep(new DeleteDatasetStoreProjectIdStep(datasetId, datasetService));
+      addStep(new DeleteDatasetStoreProjectIdStep(datasetId, datasetService, datasetBucketDao));
       // TODO: Do this check for Azure datasets
       addStep(
           new DeleteDatasetGcpValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));

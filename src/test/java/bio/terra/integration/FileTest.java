@@ -116,7 +116,6 @@ public class FileTest extends UsersBase {
   // The purpose of this test is to have a long-running workload that completes successfully
   // while we delete pods and have them recover.
   // Marked ignore for normal testing.
-  @Ignore
   @Test
   public void longFileLoadTest() throws Exception {
     // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when

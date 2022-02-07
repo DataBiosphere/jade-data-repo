@@ -7,13 +7,19 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
-import bio.terra.common.fixtures.ProfileFixtures;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoClient;
+import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -23,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -39,6 +44,8 @@ public class JobResponseTest extends UsersBase {
   @Autowired private DataRepoClient dataRepoClient;
 
   @Autowired private TestConfiguration testConfiguration;
+  @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private JsonLoader jsonLoader;
 
   @Before
   public void setup() throws Exception {
@@ -47,42 +54,63 @@ public class JobResponseTest extends UsersBase {
 
   @Test
   public void testJobResultResponse() throws Exception {
-    BillingProfileRequestModel billingProfileRequestModel =
-        ProfileFixtures.billingProfileRequest(
-            ProfileFixtures.billingProfileForAccount(
-                testConfiguration.getGoogleBillingAccountId()));
-    String json = TestUtils.mapToJson(billingProfileRequestModel);
+    BillingProfileModel billingProfile = dataRepoFixtures.createBillingProfile(steward());
+
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(
+            steward(), billingProfile.getId(), "ingest-test-dataset.json");
+
+    IngestRequestModel ingestRequest =
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json");
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetSummaryModel.getId(), ingestRequest);
+    assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
+
+    ingestRequest =
+        dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
+    ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetSummaryModel.getId(), ingestRequest);
+    assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+
+    ingestRequest = dataRepoFixtures.buildSimpleIngest("file", "ingest-test/ingest-test-file.json");
+    ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetSummaryModel.getId(), ingestRequest);
+    assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
+
+    SnapshotRequestModel requestModel =
+        jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
+    requestModel.setName(Names.randomizeName(requestModel.getName()));
+
+    requestModel.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
+    requestModel.setProfileId(billingProfile.getId());
+    String json = TestUtils.mapToJson(requestModel);
 
     DataRepoResponse<JobModel> jobResponse =
-        dataRepoClient.post(steward(), "/api/resources/v1/profiles", json, JobModel.class);
-    assertTrue("profile create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        dataRepoClient.post(steward(), "/api/repository/v1/snapshots", json, JobModel.class, false);
+    assertTrue("snapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
-        "profile create launch response is present", jobResponse.getResponseObject().isPresent());
+        "snapshot create launch response is present", jobResponse.getResponseObject().isPresent());
 
-    DataRepoResponse<BillingProfileModel> postResponse =
-        dataRepoClient.waitForResponse(steward(), jobResponse, BillingProfileModel.class);
+    int sleepSeconds = 1;
+    String location = dataRepoClient.getLocationHeader(jobResponse);
+    try {
+      while (true) {
 
-    assertThat(
-        "billing profile model is successfully created",
-        postResponse.getStatusCode(),
-        equalTo(HttpStatus.CREATED));
-
-    //    int sleepSeconds = 1;
-    //    String location = dataRepoClient.getLocationHeader(jobResponse);
-    //    try {
-    //      while (true) {
-    //        TimeUnit.SECONDS.sleep(sleepSeconds);
-    //        DataRepoResponse<JobModel> jobModelResponse =
-    //            dataRepoClient.get(steward(), location, JobModel.class);
-    //        logger.info(
-    //            "Got response. status: "
-    //                + jobModelResponse.getStatusCode()
-    //                + " location: "
-    //                + jobModelResponse.getLocationHeader().orElse("not present"));
-    //      }
-    //    } catch (InterruptedException ex) {
-    //      logger.info("interrupted ex: " + ex.getMessage(), ex);
-    //      throw new IllegalStateException("unexpected interrupt waiting for response", ex);
-    //    }
+        DataRepoResponse<JobModel> jobStatus =
+            dataRepoClient.get(steward(), location, JobModel.class);
+        logger.info("Job Status: {}", jobStatus.getResponseObject().get());
+        try {
+          DataRepoResponse<SnapshotSummaryModel> jobResult =
+              dataRepoClient.get(steward(), location + "/result", SnapshotSummaryModel.class);
+          logger.info("Job Result: {}", jobResult.getResponseObject());
+        } catch (Exception ex) {
+          logger.info("No result returned.");
+        }
+      }
+    } catch (InterruptedException ex) {
+      logger.info("interrupted ex: " + ex.getMessage(), ex);
+      throw new IllegalStateException("unexpected interrupt waiting for response", ex);
+    }
   }
 }

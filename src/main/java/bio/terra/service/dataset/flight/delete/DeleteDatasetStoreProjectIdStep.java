@@ -25,7 +25,7 @@ public class DeleteDatasetStoreProjectIdStep implements Step {
     UUID projectResourceId = dataset.getProjectResourceId();
 
     FlightMap workingMap = context.getWorkingMap();
-    workingMap.put(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
+    workingMap.put(DatasetWorkingMapKeys.DATASET_PROJECT_ID, projectResourceId);
 
     return StepResult.getStepResultSuccess();
   }

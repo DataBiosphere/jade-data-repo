@@ -37,7 +37,8 @@ public class DeleteDatasetStoreProjectIdStep implements Step {
     projectResourceIds.addAll(datasetBucketDao.getProjectResourceIdsForBucketPerDataset(datasetId));
 
     // Store all project resource ids
-    workingMap.put(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID_LIST, projectResourceIds.stream().distinct());
+    workingMap.put(
+        DatasetWorkingMapKeys.PROJECT_RESOURCE_ID_LIST, projectResourceIds.stream().distinct());
 
     return StepResult.getStepResultSuccess();
   }

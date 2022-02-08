@@ -2,6 +2,8 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -51,7 +53,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -323,6 +324,7 @@ public class DatasetConnectedTest {
   @Test
   public void testProjectDeleteAfterDatasetDelete() throws Exception {
     String resourcePath = "snapshot-test-dataset.json";
+    // --- create billing profile and dataset ----
     BillingProfileModel billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
     DatasetRequestModel datasetRequest =
@@ -331,15 +333,21 @@ public class DatasetConnectedTest {
         .name(Names.randomizeName(datasetRequest.getName()))
         .defaultProfileId(billingProfile.getId());
     DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
+    // retrieve dataset and store project id
+    DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
+    assertNotNull("fetched dataset successfully after creation", datasetModel);
+    String datasetGoogleProjectId = datasetModel.getDataProject();
+    assertNotNull(
+        "Dataset google project should now exist",
+        googleResourceManagerService.getProject(datasetGoogleProjectId));
 
-    // Ingest dataset with a different billing profile
-    // First - create a different billing profile
+    // --- Ingest into dataset with a different billing profile ---
+    // create a different billing profile
     BillingProfileModel billingProfile_diff =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
     // ingest a file
     URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt", null, null);
-    String targetFilePath =
-        "/sh/" + Names.randomizeName("testdir") + "/testExcludeLockedFromSnapshotFileLookups.txt";
+    String targetFilePath = "/tdr/" + Names.randomizeName("testdir") + "/testProjectDelete.txt";
     FileLoadModel fileLoadModel =
         new FileLoadModel()
             .sourcePath(sourceUri.toString())
@@ -347,37 +355,35 @@ public class DatasetConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetFilePath)
             .profileId(billingProfile_diff.getId());
-
     FileModel fileModel =
         connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel);
 
-    // Second - check that new project exists
+    // Retrieve list of projects associated with dataset/bucket
+    // only one bucket b/c we didn't ingest anything with the first billing profile
     List<UUID> projectResourceIds =
         datasetBucketDao.getProjectResourceIdsForBucketPerDataset(summaryModel.getId());
-    String ingest_googleProjectId =
+    String ingestGoogleProjectId =
         googleResourceDao.retrieveProjectById(projectResourceIds.get(0)).getGoogleProjectId();
-    // ensure that google project exists
-    Assert.assertNotNull(googleResourceManagerService.getProject(ingest_googleProjectId));
+    assertThat(
+        "The dataset google project is different from ingest bucket google project that used a different billing profile",
+        ingestGoogleProjectId,
+        not(datasetGoogleProjectId));
+    assertNotNull(
+        "Ingest google project should now exist",
+        googleResourceManagerService.getProject(ingestGoogleProjectId));
 
-    // retrieve dataset and store project id
-    DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
-    assertNotNull("fetched dataset successfully after creation", datasetModel);
-    String googleProjectId = datasetModel.getDataProject();
-
-    // ensure that google project exists
-    Assert.assertNotNull(googleResourceManagerService.getProject(googleProjectId));
-
-    // delete dataset
+    // --- delete dataset and confirm both google projects were also deleted ---
     connectedOperations.deleteTestDataset(datasetModel.getId());
     connectedOperations.getDatasetExpectError(datasetModel.getId(), HttpStatus.NOT_FOUND);
 
-    // check that google project doesn't exist
-    Assert.assertEquals(
-        LifecycleState.DELETE_REQUESTED.toString(),
-        googleResourceManagerService.getProject(googleProjectId).getLifecycleState());
-    Assert.assertEquals(
-        LifecycleState.DELETE_REQUESTED.toString(),
-        googleResourceManagerService.getProject(ingest_googleProjectId).getLifecycleState());
+    assertThat(
+        "Dataset google project should be marked for delete",
+        googleResourceManagerService.getProject(datasetGoogleProjectId).getLifecycleState(),
+        equalTo(LifecycleState.DELETE_REQUESTED.toString()));
+    assertThat(
+        "Ingest google project should be marked for delete",
+        googleResourceManagerService.getProject(ingestGoogleProjectId).getLifecycleState(),
+        equalTo(LifecycleState.DELETE_REQUESTED.toString()));
     // We don't need to clean up the file in connected operations cleanup since the project was
     // deleted
     connectedOperations.removeFile(summaryModel.getId(), fileModel.getFileId());

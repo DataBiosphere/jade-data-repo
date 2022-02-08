@@ -10,7 +10,9 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class DeleteDatasetStoreProjectIdStep implements Step {
@@ -29,16 +31,17 @@ public class DeleteDatasetStoreProjectIdStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
     Dataset dataset = datasetService.retrieve(datasetId);
-    List<UUID> projectResourceIds = new ArrayList();
+    Set<UUID> projectResourceIds = new HashSet();
     // main dataset google project
     projectResourceIds.add(dataset.getProjectResourceId());
 
     // google projects from ingests into dataset w/ different billing profile
     projectResourceIds.addAll(datasetBucketDao.getProjectResourceIdsForBucketPerDataset(datasetId));
 
+    List<UUID> projectResourceIdList = new ArrayList<>(projectResourceIds);
+
     // Store all project resource ids
-    workingMap.put(
-        DatasetWorkingMapKeys.PROJECT_RESOURCE_ID_LIST, projectResourceIds.stream().distinct());
+    workingMap.put(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID_LIST, projectResourceIdList);
 
     return StepResult.getStepResultSuccess();
   }

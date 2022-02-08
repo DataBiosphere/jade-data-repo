@@ -16,6 +16,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SqlSortDirection;
@@ -237,6 +238,17 @@ public class SnapshotsApiController implements SnapshotsApi {
     }
     FileModel fileModel = fileService.lookupSnapshotPath(id.toString(), path, depth);
     return new ResponseEntity<>(fileModel, HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
+      UUID id, String table, Integer offset, Integer limit) {
+    logger.info("Verifying user access");
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    logger.info("Retrieving snapshot id {}", id);
+    SnapshotPreviewModel previewModel = snapshotService.retrievePreview(id, table, limit, offset);
+    return new ResponseEntity<>(previewModel, HttpStatus.OK);
   }
 
   // --snapshot policies --

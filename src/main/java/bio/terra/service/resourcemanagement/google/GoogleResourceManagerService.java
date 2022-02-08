@@ -93,8 +93,9 @@ public class GoogleResourceManagerService {
             resourceManager.projects().delete(googleProjectId);
         // the response will be empty if the request is successful in the delete
         request.execute();
-    } catch (IOException | GeneralSecurityException e) {
-      throw new GoogleResourceException("Could not delete project", e);
+      } catch (IOException | GeneralSecurityException e) {
+        throw new GoogleResourceException("Could not delete project", e);
+      }
     }
   }
 

@@ -46,6 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class SnapshotDao {
+
   private final Logger logger = LoggerFactory.getLogger(SnapshotDao.class);
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -673,6 +674,7 @@ public class SnapshotDao {
   }
 
   private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
+
     public SnapshotSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
       String snapshotId = rs.getString("id");
       List<StorageResource> storageResources;

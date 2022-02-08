@@ -86,9 +86,11 @@ public class GoogleResourceManagerService {
     }
   }
 
-  public void deleteProject(String googleProjectId) {
+  public void deleteProject(String googleProjectId, Integer datasetsInUse, Integer snapshotsInUse) {
     // Don't actually delete the project if we are reusing projects!
-    if (resourceConfiguration.getAllowReuseExistingProjects()) {
+    int totalUsingProject = datasetsInUse + snapshotsInUse;
+    logger.info("Total using project: " + totalUsingProject);
+    if (resourceConfiguration.getAllowReuseExistingProjects() || totalUsingProject > 0) {
       logger.info("Reusing projects: skipping delete of {}", googleProjectId);
     } else {
       try {

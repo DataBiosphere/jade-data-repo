@@ -30,11 +30,13 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.logging.v2.LifecycleState;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -45,6 +47,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -80,6 +83,7 @@ public class DatasetConnectedTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private ApplicationConfiguration applicationConfiguration;
   @MockBean private IamProviderInterface samService;
+  @Autowired private GoogleResourceManagerService googleResourceManagerService;
 
   private DatasetRequestModel datasetRequest;
   private DatasetSummaryModel summaryModel;
@@ -308,6 +312,36 @@ public class DatasetConnectedTest {
     assertEquals(ingestTime.size(), 1);
     assertEquals(loadTags.size(), 1);
     assertEquals(loadTags.iterator().next(), loadTag);
+  }
+
+  @Test
+  public void testProjectDeleteAfterDatasetDelete() throws Exception {
+    String resourcePath = "snapshot-test-dataset.json";
+    BillingProfileModel billingProfile =
+        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+    DatasetRequestModel datasetRequest =
+        jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
+    datasetRequest
+        .name(Names.randomizeName(datasetRequest.getName()))
+        .defaultProfileId(billingProfile.getId());
+    DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
+
+    // retrieve snapshot and store project id
+    DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
+    assertNotNull("fetched dataset successfully after creation", datasetModel);
+    String googleProjectId = datasetModel.getDataProject();
+
+    // ensure that google project exists
+    Assert.assertNotNull(googleResourceManagerService.getProject(googleProjectId));
+
+    // delete snapshot
+    connectedOperations.deleteTestDataset(datasetModel.getId());
+    connectedOperations.getDatasetExpectError(datasetModel.getId(), HttpStatus.NOT_FOUND);
+
+    // check that google project doesn't exist
+    Assert.assertEquals(
+        LifecycleState.DELETE_REQUESTED.toString(),
+        googleResourceManagerService.getProject(googleProjectId).getLifecycleState());
   }
 
   private String uploadIngestInputFile(String resourceFileName, String dirInCloud)

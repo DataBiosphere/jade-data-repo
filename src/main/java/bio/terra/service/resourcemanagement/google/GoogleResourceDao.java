@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class GoogleResourceDao {
+
   private static final Logger logger = LoggerFactory.getLogger(GoogleResourceDao.class);
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final GoogleResourceConfiguration googleResourceConfiguration;
@@ -68,6 +69,7 @@ public class GoogleResourceDao {
 
   // Class for collecting results from the above query
   private static class ProjectRefs {
+
     private UUID projectId;
     private long refCount;
 
@@ -196,20 +198,24 @@ public class GoogleResourceDao {
     List<UUID> projectIds =
         projectRefs.stream().map(ProjectRefs::getProjectId).collect(Collectors.toList());
     if (projectIds.size() > 0) {
-      MapSqlParameterSource markParams =
-          new MapSqlParameterSource().addValue("project_ids", projectIds);
-
-      final String sqlMarkProjects =
-          "UPDATE project_resource SET marked_for_delete = true" + " WHERE id IN (:project_ids)";
-      jdbcTemplate.update(sqlMarkProjects, markParams);
-
-      final String sqlMarkBuckets =
-          "UPDATE bucket_resource SET marked_for_delete = true"
-              + " WHERE project_resource_id IN (:project_ids)";
-      jdbcTemplate.update(sqlMarkBuckets, markParams);
+      markProjectsForDelete(projectIds);
     }
 
     return projectIds;
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void markProjectsForDelete(List<UUID> projectIds) {
+    MapSqlParameterSource markParams =
+        new MapSqlParameterSource().addValue("project_ids", projectIds);
+
+    final String sqlMarkProjects =
+        "UPDATE project_resource SET marked_for_delete = true WHERE id IN (:project_ids)";
+    jdbcTemplate.update(sqlMarkProjects, markParams);
+
+    final String sqlMarkBuckets =
+        "UPDATE bucket_resource SET marked_for_delete = true WHERE project_resource_id IN (:project_ids)";
+    jdbcTemplate.update(sqlMarkBuckets, markParams);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
@@ -253,6 +259,32 @@ public class GoogleResourceDao {
                 .profileId(rs.getObject("profile_id", UUID.class))
                 .googleProjectId(rs.getString("google_project_id"))
                 .googleProjectNumber(rs.getString("google_project_number")));
+  }
+
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public int countSnapshotsUsingProject(UUID googleProjectId) {
+    String sql = "SELECT count(*) from snapshot WHERE project_resource_id = :googleProjectId";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("googleProjectId", googleProjectId);
+
+    Integer count = jdbcTemplate.queryForObject(sql, params, Integer.class);
+    return (count != null ? count : 0);
+  }
+
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public int countDatasetsUsingProject(UUID googleProjectId) {
+    String sql = "SELECT count(*) from dataset WHERE project_resource_id = :googleProjectId";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("googleProjectId", googleProjectId);
+
+    Integer count = jdbcTemplate.queryForObject(sql, params, Integer.class);
+    return (count != null ? count : 0);
   }
 
   // -- bucket resource methods --

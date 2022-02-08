@@ -37,10 +37,12 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamRole;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.logging.v2.LifecycleState;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -89,6 +92,7 @@ public class SnapshotConnectedTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private ConfigurationService configService;
   @Autowired private DrsIdService drsIdService;
+  @Autowired private GoogleResourceManagerService googleResourceManagerService;
 
   @MockBean private IamProviderInterface samService;
 
@@ -296,6 +300,48 @@ public class SnapshotConnectedTest {
     // then delete it a final time for cleanup
     connectedOperations.deleteTestSnapshot(summaryModelSequel.getId());
     connectedOperations.getSnapshotExpectError(summaryModelSequel.getId(), HttpStatus.NOT_FOUND);
+  }
+
+  @Test
+  public void testProjectDeleteAfterSnapshotDelete() throws Exception {
+    // create a dataset and load some tabular data
+    DatasetSummaryModel datasetSummary =
+        SnapshotConnectedTestUtils.createTestDataset(
+            connectedOperations, billingProfile, "snapshot-test-dataset.json");
+    SnapshotConnectedTestUtils.loadCsvData(
+        connectedOperations,
+        jsonLoader,
+        storage,
+        testConfig.getIngestbucket(),
+        datasetSummary.getId(),
+        "thetable",
+        "snapshot-test-dataset-data-row-ids.csv");
+
+    // create a snapshot
+    SnapshotRequestModel snapshotRequest =
+        SnapshotConnectedTestUtils.makeSnapshotTestRequest(
+            jsonLoader, datasetSummary, "snapshot-test-snapshot.json");
+    MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
+    SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+    // retrieve snapshot and store project id
+    SnapshotModel snapshotModel =
+        SnapshotConnectedTestUtils.getTestSnapshot(
+            mvc, objectMapper, summaryModel.getId(), snapshotRequest, datasetSummary);
+    assertNotNull("fetched snapshot successfully after creation", snapshotModel);
+    String googleProjectId = snapshotModel.getDataProject();
+
+    // ensure that google project exists
+    Assert.assertNotNull(googleResourceManagerService.getProject(googleProjectId));
+
+    // delete snapshot
+    connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+    connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
+
+    // check that google project doesn't exist
+    Assert.assertEquals(
+        LifecycleState.DELETE_REQUESTED.toString(),
+        googleResourceManagerService.getProject(googleProjectId).getLifecycleState());
   }
 
   @Ignore("Remove ignore after DR-1770 is addressed")

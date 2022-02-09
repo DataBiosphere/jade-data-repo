@@ -17,11 +17,14 @@ import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -62,8 +65,9 @@ public class DatasetBucketDaoTest {
 
   private final List<UUID> billingProfileIds = new ArrayList<>();
   private final List<UUID> datasetIds = new ArrayList<>();
-  private final List<UUID> bucketResourceIds = new ArrayList<>();
+  private final Map<String, String> bucketList = new HashMap<>();
   private final List<UUID> projectIds = new ArrayList<>();
+  private final Map<UUID, UUID> datasetIdsToBucketResourceIds = new HashMap<>();
 
   @Before
   public void setup() throws IOException {
@@ -83,23 +87,34 @@ public class DatasetBucketDaoTest {
   @After
   public void teardown() {
 
+    datasetIdsToBucketResourceIds.forEach(
+        (datasetId, bucketResourceId) -> {
+          try {
+            datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResourceId);
+          } catch (Exception ex) {
+            logger.error(
+                "[CLEANUP] Unable to delete dataset bucket link for dataset {} and bucket resource {}",
+                datasetId,
+                bucketResourceId);
+          }
+        });
     datasetIds.forEach(
         datasetId -> {
-          bucketResourceIds.forEach(
-              bucketResourceId -> {
-                try {
-                  datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResourceId);
-                } catch (Exception ex) {
-                  logger.error(
-                      "[CLEANUP] Unable to delete dataset bucket link for dataset {} and bucket resource {}",
-                      datasetId,
-                      bucketResourceId);
-                }
-              });
           try {
             datasetDao.delete(datasetId);
           } catch (Exception ex) {
             logger.error("[CLEANUP] Unable to delete dataset {}", datasetId);
+          }
+        });
+    bucketList.forEach(
+        (bucketName, flightId) -> {
+          try {
+            resourceDao.deleteBucketMetadata(bucketName, flightId);
+          } catch (Exception ex) {
+            logger.error(
+                "[CLEANUP] Unable to bucket metadata for bucket {} and flight {}",
+                bucketName,
+                flightId);
           }
         });
     projectIds.forEach(
@@ -125,6 +140,7 @@ public class DatasetBucketDaoTest {
   public void TestGetProjectForDatasetProfileCombo() throws Exception {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
+    datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
 
     String newProjectName =
         datasetBucketDao.getProjectResourceForBucket(datasetId, billingProfile.getId());
@@ -152,6 +168,7 @@ public class DatasetBucketDaoTest {
     ingestProjectResource.id(ingestProjectId);
     UUID ingestBucketResourceId = createBucketDbEntry(ingestProjectResource);
     datasetBucketDao.createDatasetBucketLink(datasetId, ingestBucketResourceId);
+    datasetIdsToBucketResourceIds.put(datasetId, ingestBucketResourceId);
 
     List<UUID> projectResourceIds_after =
         datasetBucketDao.getProjectResourceIdsForBucketPerDataset(datasetId);
@@ -179,6 +196,7 @@ public class DatasetBucketDaoTest {
 
     // create link
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
+    datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
     linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
     assertTrue("Link should now exist.", linkExists);
 
@@ -198,6 +216,7 @@ public class DatasetBucketDaoTest {
 
     // create link
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
+    datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
     linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
     assertTrue("Link should now exist.", linkExists);
     int linkCount =
@@ -206,6 +225,7 @@ public class DatasetBucketDaoTest {
 
     // create link
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
+    datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
     linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
     assertTrue("Link should now exist.", linkExists);
     linkCount = datasetBucketDao.datasetBucketSuccessfulIngestCount(datasetId, bucketResourceId);
@@ -220,7 +240,6 @@ public class DatasetBucketDaoTest {
   @Test
   public void TestDecrementLink() {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
-    bucketResourceIds.add(bucketResourceId);
 
     // initial check - link should not yet exist
     boolean linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
@@ -228,6 +247,7 @@ public class DatasetBucketDaoTest {
 
     // create link
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
+    datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
     linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
     assertTrue("Link should now exist.", linkExists);
 
@@ -245,7 +265,6 @@ public class DatasetBucketDaoTest {
   public void DatasetMustExistToLink() {
     // create bucket for dataset
     UUID bucketResourceId = createBucketDbEntry(projectResource);
-    bucketResourceIds.add(bucketResourceId);
 
     // fake datasetId
     UUID randomDatasetId = UUID.randomUUID();
@@ -295,18 +314,14 @@ public class DatasetBucketDaoTest {
 
   private UUID createBucketDbEntry(GoogleProjectResource projectResource2) {
     String ingestFileFlightId = UUID.randomUUID().toString();
-    UUID googleBucketResourceId =
-        resourceDao
-            .createAndLockBucket(
-                String.format("testbucket%s", ingestFileFlightId),
-                projectResource2,
-                (GoogleRegion)
-                    dataset
-                        .getDatasetSummary()
-                        .getStorageResourceRegion(GoogleCloudResource.BUCKET),
-                ingestFileFlightId)
-            .getResourceId();
-    bucketResourceIds.add(googleBucketResourceId);
-    return googleBucketResourceId;
+    GoogleBucketResource bucketResource =
+        resourceDao.createAndLockBucket(
+            String.format("testbucket%s", ingestFileFlightId),
+            projectResource2,
+            (GoogleRegion)
+                dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+            ingestFileFlightId);
+    bucketList.put(bucketResource.getName(), ingestFileFlightId);
+    return bucketResource.getResourceId();
   }
 }

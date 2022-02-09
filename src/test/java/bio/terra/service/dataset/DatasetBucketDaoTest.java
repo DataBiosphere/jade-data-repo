@@ -11,6 +11,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
+import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.profile.ProfileDao;

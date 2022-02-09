@@ -2,6 +2,8 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -24,12 +26,15 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
@@ -38,6 +43,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.logging.v2.LifecycleState;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +53,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -84,6 +89,8 @@ public class DatasetConnectedTest {
   @Autowired private ApplicationConfiguration applicationConfiguration;
   @MockBean private IamProviderInterface samService;
   @Autowired private GoogleResourceManagerService googleResourceManagerService;
+  @Autowired private DatasetBucketDao datasetBucketDao;
+  @Autowired private GoogleResourceDao googleResourceDao;
 
   private DatasetRequestModel datasetRequest;
   private DatasetSummaryModel summaryModel;
@@ -317,6 +324,7 @@ public class DatasetConnectedTest {
   @Test
   public void testProjectDeleteAfterDatasetDelete() throws Exception {
     String resourcePath = "snapshot-test-dataset.json";
+    // --- create billing profile and dataset ----
     BillingProfileModel billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
     DatasetRequestModel datasetRequest =
@@ -325,23 +333,60 @@ public class DatasetConnectedTest {
         .name(Names.randomizeName(datasetRequest.getName()))
         .defaultProfileId(billingProfile.getId());
     DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-
-    // retrieve snapshot and store project id
+    // retrieve dataset and store project id
     DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
     assertNotNull("fetched dataset successfully after creation", datasetModel);
-    String googleProjectId = datasetModel.getDataProject();
+    String datasetGoogleProjectId = datasetModel.getDataProject();
+    assertNotNull(
+        "Dataset google project should now exist",
+        googleResourceManagerService.getProject(datasetGoogleProjectId));
 
-    // ensure that google project exists
-    Assert.assertNotNull(googleResourceManagerService.getProject(googleProjectId));
+    // --- Ingest into dataset with a different billing profile ---
+    // create a different billing profile
+    BillingProfileModel billingProfile_diff =
+        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+    // ingest a file
+    URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt", null, null);
+    String targetFilePath = "/tdr/" + Names.randomizeName("testdir") + "/testProjectDelete.txt";
+    FileLoadModel fileLoadModel =
+        new FileLoadModel()
+            .sourcePath(sourceUri.toString())
+            .description("testExcludeLockedFromSnapshotFileLookups")
+            .mimeType("text/plain")
+            .targetPath(targetFilePath)
+            .profileId(billingProfile_diff.getId());
+    FileModel fileModel =
+        connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel);
 
-    // delete snapshot
+    // Retrieve list of projects associated with dataset/bucket
+    // only one bucket b/c we didn't ingest anything with the first billing profile
+    List<UUID> projectResourceIds =
+        datasetBucketDao.getProjectResourceIdsForBucketPerDataset(summaryModel.getId());
+    String ingestGoogleProjectId =
+        googleResourceDao.retrieveProjectById(projectResourceIds.get(0)).getGoogleProjectId();
+    assertThat(
+        "The dataset google project is different from ingest bucket google project that used a different billing profile",
+        ingestGoogleProjectId,
+        not(datasetGoogleProjectId));
+    assertNotNull(
+        "Ingest google project should now exist",
+        googleResourceManagerService.getProject(ingestGoogleProjectId));
+
+    // --- delete dataset and confirm both google projects were also deleted ---
     connectedOperations.deleteTestDataset(datasetModel.getId());
     connectedOperations.getDatasetExpectError(datasetModel.getId(), HttpStatus.NOT_FOUND);
 
-    // check that google project doesn't exist
-    Assert.assertEquals(
-        LifecycleState.DELETE_REQUESTED.toString(),
-        googleResourceManagerService.getProject(googleProjectId).getLifecycleState());
+    assertThat(
+        "Dataset google project should be marked for delete",
+        googleResourceManagerService.getProject(datasetGoogleProjectId).getLifecycleState(),
+        equalTo(LifecycleState.DELETE_REQUESTED.toString()));
+    assertThat(
+        "Ingest google project should be marked for delete",
+        googleResourceManagerService.getProject(ingestGoogleProjectId).getLifecycleState(),
+        equalTo(LifecycleState.DELETE_REQUESTED.toString()));
+    // We don't need to clean up the file in connected operations cleanup since the project was
+    // deleted
+    connectedOperations.removeFile(summaryModel.getId(), fileModel.getFileId());
   }
 
   private String uploadIngestInputFile(String resourceFileName, String dirInCloud)

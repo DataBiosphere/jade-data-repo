@@ -120,7 +120,7 @@ public class DatasetDeleteFlight extends Flight {
 
     // delete dataset project
     if (platform.isGcp()) {
-      addStep(new DeleteDatasetMarkProjectStep(resourceService, datasetId, datasetService));
+      addStep(new DeleteDatasetMarkProjectStep(resourceService));
       addStep(new DeleteDatasetDeleteProjectStep(resourceService));
       addStep(new DeleteDatasetProjectMetadataStep(resourceService));
     }

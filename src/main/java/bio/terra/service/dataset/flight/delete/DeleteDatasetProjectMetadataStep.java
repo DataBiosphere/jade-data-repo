@@ -22,7 +22,7 @@ public class DeleteDatasetProjectMetadataStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
     List<UUID> projectId =
-        workingMap.get(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID_LIST, List.class);
+        workingMap.get(DatasetWorkingMapKeys.PROJECTS_MARKED_FOR_DELETE, List.class);
     resourceService.deleteProjectMetadata(projectId);
 
     return StepResult.getStepResultSuccess();

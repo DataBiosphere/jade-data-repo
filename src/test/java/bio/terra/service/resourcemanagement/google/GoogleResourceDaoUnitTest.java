@@ -5,16 +5,14 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import java.io.IOException;
@@ -47,6 +45,8 @@ public class GoogleResourceDaoUnitTest {
   @Autowired private GoogleResourceDao googleResourceDao;
 
   @Autowired private JsonLoader jsonLoader;
+
+  @Autowired private DaoOperations daoOperations;
 
   private BillingProfileModel billingProfile;
   private List<GoogleProjectResource> projects;
@@ -121,38 +121,19 @@ public class GoogleResourceDaoUnitTest {
 
   @Test
   public void testMarkForDeleteWhenProjectInUse() throws IOException {
-    GoogleProjectResource project1 = projects.get(0);
-    GoogleProjectResource project2 = projects.get(1);
-    createMinimalDataset(project1);
+    UUID project1Id = projects.get(0).getId();
+    UUID project2Id = projects.get(1).getId();
+    Dataset dataset = daoOperations.createMinimalDataset(billingProfile.getId(), project1Id);
+    datasetIds.add(dataset.getId());
     googleResourceDao.markUnusedProjectsForDelete(projectResourceIds);
 
     // Since project1 is in use by dataset1, we should not mark it for delete
-    confirmNotFoundByDelete(project1.getId());
+    confirmNotFoundByDelete(project1Id);
     // Project 2 is not in use, so we should have still marked it for delete
     assertThat(
         "Should be able to retrieve the project 2 'for delete' since it was marked for delete",
-        googleResourceDao.retrieveProjectByIdForDelete(project2.getId()).getId(),
-        equalTo(project2.getId()));
-  }
-
-  private Dataset createMinimalDataset(GoogleProjectResource projectResource) throws IOException {
-    DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
-    String newName = datasetRequest.getName() + UUID.randomUUID();
-    datasetRequest
-        .name(newName)
-        .defaultProfileId(billingProfile.getId())
-        .cloudPlatform(CloudPlatform.GCP);
-    Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-    dataset.projectResourceId(projectResource.getId());
-    String createFlightId = UUID.randomUUID().toString();
-    UUID datasetId = UUID.randomUUID();
-    datasetIds.add(datasetId);
-    dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId);
-    datasetDao.unlockExclusive(dataset.getId(), createFlightId);
-
-    return dataset;
+        googleResourceDao.retrieveProjectByIdForDelete(project2Id).getId(),
+        equalTo(project2Id));
   }
 
   private void confirmNotFoundByDelete(UUID projectResourceId) {

@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.equalTo;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DaoOperations;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
@@ -43,8 +42,6 @@ public class GoogleResourceDaoUnitTest {
   @Autowired private DatasetDao datasetDao;
 
   @Autowired private GoogleResourceDao googleResourceDao;
-
-  @Autowired private JsonLoader jsonLoader;
 
   @Autowired private DaoOperations daoOperations;
 

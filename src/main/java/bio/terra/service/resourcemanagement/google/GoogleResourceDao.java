@@ -53,21 +53,7 @@ public class GoogleResourceDao {
   private static final String sqlBucketRetrievedById = sqlBucketRetrieve + " AND b.id = :id";
   private static final String sqlBucketRetrievedByName = sqlBucketRetrieve + " AND b.name = :name";
 
-  // Given a profile id, compute the count of all references to projects associated with the profile
-  private static final String sqlProfileProjectRefs =
-      "SELECT pid, dscnt + sncnt + bkcnt AS refcnt FROM "
-          + " (SELECT"
-          + "  project_resource.id AS pid,"
-          + "  (SELECT COUNT(*) FROM dataset WHERE dataset.project_resource_id = project_resource.id) AS dscnt,"
-          + "  (SELECT COUNT(*) FROM snapshot WHERE snapshot.project_resource_id = project_resource.id) AS sncnt,"
-          + "  (SELECT count(*) FROM bucket_resource, dataset_bucket"
-          + "    WHERE bucket_resource.project_resource_id = project_resource.id"
-          + "    AND bucket_resource.id = dataset_bucket.bucket_resource_id"
-          + "    AND dataset_bucket.successful_ingests > 0) AS bkcnt"
-          + " FROM project_resource"
-          + " WHERE project_resource.profile_id = :profile_id) AS X";
-
-  // Given a list of projects, compute the count of all references to project
+  // Check if project is used by any resource
   private static final String sqlProjectRefs =
       "SELECT pid, dscnt + sncnt + bkcnt AS refcnt FROM "
           + " (SELECT"
@@ -78,8 +64,15 @@ public class GoogleResourceDao {
           + "    WHERE bucket_resource.project_resource_id = project_resource.id"
           + "    AND bucket_resource.id = dataset_bucket.bucket_resource_id"
           + "    AND dataset_bucket.successful_ingests > 0) AS bkcnt"
-          + " FROM project_resource"
-          + " WHERE project_resource.id IN (:project_ids)) AS X";
+          + " FROM project_resource";
+
+  // Given a profile id, compute the count of all references to projects associated with the profile
+  private static final String sqlProfileProjectRefs =
+      sqlProjectRefs + " WHERE project_resource.profile_id = :profile_id) AS X";
+
+  // Given a list of projects, compute the count of all references to project
+  private static final String sqlProjectListRefs =
+      sqlProjectRefs + " WHERE project_resource.id IN (:project_ids)) AS X";
 
   // Class for collecting results from the above query
   private static class ProjectRefs {
@@ -177,7 +170,7 @@ public class GoogleResourceDao {
         new MapSqlParameterSource().addValue("project_ids", projectResourceIds);
     List<ProjectRefs> projectRefs =
         jdbcTemplate.query(
-            sqlProjectRefs,
+            sqlProjectListRefs,
             params,
             (rs, rowNum) ->
                 new ProjectRefs()
@@ -245,7 +238,7 @@ public class GoogleResourceDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  private void markProjectsForDelete(List<UUID> projectIds) {
+  void markProjectsForDelete(List<UUID> projectIds) {
     MapSqlParameterSource markParams =
         new MapSqlParameterSource().addValue("project_ids", projectIds);
 

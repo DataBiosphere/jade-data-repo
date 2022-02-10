@@ -238,7 +238,7 @@ public class GoogleResourceDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  void markProjectsForDelete(List<UUID> projectIds) {
+  public void markProjectsForDelete(List<UUID> projectIds) {
     MapSqlParameterSource markParams =
         new MapSqlParameterSource().addValue("project_ids", projectIds);
 

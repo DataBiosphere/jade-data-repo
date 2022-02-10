@@ -170,6 +170,7 @@ public class GoogleResourceDao {
     logger.info("Project resource {} was {}", id, (rowsAffected > 0 ? "deleted" : "not found"));
   }
 
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public List<UUID> markUnusedProjectsForDelete(List<UUID> projectResourceIds) {
     // Check if any of the projects are in use
     MapSqlParameterSource params =

@@ -208,7 +208,7 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<JobModel> removeDatasetAssetSpecifications(
-      @PathVariable("id") UUID id, @PathVariable("assetId") String assetId) {
+      @PathVariable("id") UUID id, @PathVariable("assetid") String assetId) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);

@@ -31,7 +31,11 @@ public class SnapshotExportFlight extends Flight {
     UUID snapshotId =
         UUID.fromString(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
 
+    // todo: move this behind API flag
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
+
+    addStep(new SnapshotExportDumpFirestoreStep(snapshotService, snapshotId, objectMapper));
+
     addStep(
         new SnapshotExportCreateParquetFilesStep(
             bigQueryPdao, gcsPdao, snapshotService, snapshotId));

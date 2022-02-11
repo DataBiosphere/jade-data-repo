@@ -183,7 +183,9 @@ public class GoogleResourceDao {
             .map(projectRef -> projectRef.projectId)
             .collect(Collectors.toList());
     // mark those that are not in use for delete
-    markProjectsForDelete(projectsToDelete);
+    if (!projectsToDelete.isEmpty()) {
+      markProjectsForDelete(projectsToDelete);
+    }
 
     // return only the projects for delete
     return projectsToDelete;
@@ -230,7 +232,7 @@ public class GoogleResourceDao {
     // Common variables for marking projects and buckets for delete.
     List<UUID> projectIds =
         projectRefs.stream().map(ProjectRefs::getProjectId).collect(Collectors.toList());
-    if (projectIds.size() > 0) {
+    if (!projectIds.isEmpty()) {
       markProjectsForDelete(projectIds);
     }
 

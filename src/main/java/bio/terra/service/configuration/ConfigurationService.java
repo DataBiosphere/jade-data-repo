@@ -1,5 +1,6 @@
 package bio.terra.service.configuration;
 
+import static bio.terra.service.configuration.ConfigEnum.ALLOW_REUSE_EXISTING_BUCKETS;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.AZURE_SNAPSHOT_BATCH_SIZE;
@@ -232,6 +233,8 @@ public class ConfigurationService {
     addParameter(DRS_LOOKUP_MAX, appConfiguration.getMaxDrsLookups());
     addParameter(AUTH_CACHE_SIZE, appConfiguration.getAuthCacheSize());
     addParameter(AUTH_CACHE_TIMEOUT_SECONDS, appConfiguration.getAuthCacheTimeoutSeconds());
+    addParameter(
+        ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.getAllowReuseExistingBuckets());
     addParameter(FIRESTORE_RETRIES, googleResourceConfiguration.getFirestoreRetries());
 
     // -- Faults --

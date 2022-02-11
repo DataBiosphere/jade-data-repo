@@ -11,6 +11,8 @@ public class GoogleResourceConfiguration {
   private String applicationName;
   private long projectCreateTimeoutSeconds;
   private int firestoreRetries;
+  private boolean allowReuseExistingProjects;
+  private boolean allowReuseExistingBuckets;
   private String secureFolderResourceId;
 
   public String getApplicationName() {
@@ -27,6 +29,22 @@ public class GoogleResourceConfiguration {
 
   public void setProjectCreateTimeoutSeconds(long projectCreateTimeoutSeconds) {
     this.projectCreateTimeoutSeconds = projectCreateTimeoutSeconds;
+  }
+
+  public boolean getAllowReuseExistingProjects() {
+    return allowReuseExistingProjects;
+  }
+
+  public void setAllowReuseExistingProjects(boolean allowReuseExistingProjects) {
+    this.allowReuseExistingProjects = allowReuseExistingProjects;
+  }
+
+  public boolean getAllowReuseExistingBuckets() {
+    return allowReuseExistingBuckets;
+  }
+
+  public void setAllowReuseExistingBuckets(boolean allowReuseExistingBuckets) {
+    this.allowReuseExistingBuckets = allowReuseExistingBuckets;
   }
 
   public int getFirestoreRetries() {

@@ -11,8 +11,8 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.EmbeddedDatabaseTest;
-import bio.terra.common.GoogleResourceUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
@@ -27,16 +27,19 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.load.LoadDao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.BucketResourceLockTester;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import bio.terra.stairway.ShortUUID;
+import com.google.api.client.util.Lists;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
@@ -67,30 +70,37 @@ public class BucketResourceTest {
   @Autowired private DatasetBucketDao datasetBucketDao;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private GoogleBucketService bucketService;
+  @Autowired private GoogleProjectService projectService;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private GoogleResourceDao resourceDao;
   @Autowired private ProfileService profileService;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private GoogleResourceUtils googleResourceUtils;
+  @Autowired private BufferService bufferService;
 
   @MockBean private IamProviderInterface samService;
 
+  private BucketResourceUtils bucketResourceUtils = new BucketResourceUtils();
+  private BillingProfileModel profile;
   private Storage storage;
   private List<GoogleBucketResource> bucketResources;
+  private boolean allowReuseExistingBuckets;
   private GoogleProjectResource projectResource;
   private UUID datasetId;
 
   @Before
   public void setup() throws Exception {
+    logger.info(
+        "property allowReuseExistingBuckets = {}",
+        bucketResourceUtils.getAllowReuseExistingBuckets(configService));
+
     configService.reset();
-    BillingProfileModel profile =
-        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+    profile = connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
     connectedOperations.stubOutSamCalls(samService);
     storage = StorageOptions.getDefaultInstance().getService();
     bucketResources = new ArrayList<>();
 
-    // get or create project in which to do the bucket work
-    projectResource = googleResourceUtils.buildProjectResource(profile);
+    // get or created project in which to do the bucket work
+    projectResource = buildProjectResource();
 
     String resourcePath = "snapshot-test-dataset.json";
     DatasetRequestModel datasetRequest =
@@ -115,7 +125,7 @@ public class BucketResourceTest {
   @Test
   // create and delete the bucket, checking that the metadata and cloud state match what is expected
   public void createAndDeleteBucketTest() throws Exception {
-    String bucketName = randomizeBucketName("testbucket_createanddeletebuckettest");
+    String bucketName = "testbucket_createanddeletebuckettest";
     String flightId = "createAndDeleteBucketTest";
 
     // create the bucket and metadata
@@ -135,7 +145,7 @@ public class BucketResourceTest {
   // create buckets in different regions and see if they're actually created there.
   public void createBucketsInDifferentRegionsTest() throws Exception {
     for (GoogleRegion region : List.of(GoogleRegion.US_CENTRAL1, GoogleRegion.US_EAST1)) {
-      String bucketName = randomizeBucketName("testbucket_bucketregionstest_" + region);
+      String bucketName = "testbucket_bucketregionstest_" + region;
       String flightId = "bucketRegionsTest_" + region;
 
       // create the bucket and metadata
@@ -158,7 +168,7 @@ public class BucketResourceTest {
   // after it's been created, confirm it succeeds.
   public void twoThreadsCompeteForLockTest() throws Exception {
     String flightIdBase = "twoThreadsCompeteForLockTest";
-    String bucketName = randomizeBucketName("twothreadscompeteforlocktest");
+    String bucketName = "twothreadscompeteforlocktest";
     GoogleRegion bucketRegion = GoogleRegion.DEFAULT_GOOGLE_REGION;
 
     BucketResourceLockTester resourceLockA =
@@ -228,7 +238,11 @@ public class BucketResourceTest {
   // the metadata)
   // bucket cloud resource exists, but the corresponding bucket_resource metadata row does not
   public void bucketExistsBeforeMetadataTest() throws Exception {
-    String bucketName = randomizeBucketName("testbucket_bucketexistsbeforemetadatatest");
+    logger.info(
+        "property allowReuseExistingBuckets = {}",
+        bucketResourceUtils.getAllowReuseExistingBuckets(configService));
+
+    String bucketName = "testbucket_bucketexistsbeforemetadatatest";
     String flightIdA = "bucketExistsBeforeMetadataTestA";
 
     // create the bucket and metadata
@@ -252,6 +266,7 @@ public class BucketResourceTest {
 
     // set application property allowReuseExistingBuckets=false
     // try to create bucket again, check fails with corrupt metadata exception
+    bucketResourceUtils.setAllowReuseExistingBuckets(configService, false);
     String flightIdB = "bucketExistsBeforeMetadataTestB";
     boolean caughtCorruptMetadataException = false;
     try {
@@ -261,6 +276,17 @@ public class BucketResourceTest {
       caughtCorruptMetadataException = true;
     }
     assertTrue("create failed when cloud resource already exists", caughtCorruptMetadataException);
+
+    // set application property allowReuseExistingBuckets=true
+    // try to create bucket again, check succeeds
+    bucketResourceUtils.setAllowReuseExistingBuckets(configService, true);
+    String flightIdC = "bucketExistsBeforeMetadataTestC";
+    bucketResource =
+        createBucket(
+            bucketName, projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION, flightIdC, null);
+
+    // check the bucket and metadata exist
+    checkBucketExists(bucketResource.getResourceId());
 
     // delete the bucket and metadata
     deleteBucket(bucketResource);
@@ -272,7 +298,11 @@ public class BucketResourceTest {
   // the metadata)
   // bucket_resource metadata row exists, but the corresponding bucket cloud resource does not
   public void noBucketButMetadataExistsTest() throws Exception {
-    String bucketName = randomizeBucketName("testbucket_nobucketbutmetadataexiststest");
+    logger.info(
+        "property allowReuseExistingBuckets = {}",
+        bucketResourceUtils.getAllowReuseExistingBuckets(configService));
+
+    String bucketName = "testbucket_nobucketbutmetadataexiststest";
     String flightIdA = "noBucketButMetadataExistsTestA";
 
     // create the bucket and metadata
@@ -314,10 +344,10 @@ public class BucketResourceTest {
 
   @Test
   public void createBucketWithTtlTest() throws Exception {
-    String bucketWithTtlName = randomizeBucketName("testbucket_bucketwithttl");
+    String bucketWithTtlName = "testbucket_bucketwithttl";
     String flightWithTtlId = "bucketwithttltest";
 
-    String bucketWithoutTtlName = randomizeBucketName("testbucket_bucketwithoutttl");
+    String bucketWithoutTtlName = "testbucket_bucketwithoutttl";
     String flightWithoutTtlId = "bucketwithoutttltest";
 
     Integer deleteAge = 1;
@@ -364,10 +394,6 @@ public class BucketResourceTest {
       deleteBucket(bucketResource);
       checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
     }
-  }
-
-  private String randomizeBucketName(String bucketName) {
-    return bucketName + ShortUUID.get().toLowerCase();
   }
 
   private GoogleBucketResource createBucket(
@@ -419,5 +445,24 @@ public class BucketResourceTest {
       exceptionThrown = true;
     }
     assertTrue("bucket metadata row no longer exists", exceptionThrown);
+  }
+
+  private GoogleProjectResource buildProjectResource() throws Exception {
+    String role = "roles/bigquery.jobUser";
+    String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";
+    List<String> stewardsGroupEmailList = Lists.newArrayList();
+    stewardsGroupEmailList.add(stewardsGroupEmail);
+    Map<String, List<String>> roleToStewardMap = new HashMap<>();
+    roleToStewardMap.put(role, stewardsGroupEmailList);
+
+    ResourceInfo resourceInfo = bufferService.handoutResource(false);
+
+    // create project metadata
+    return projectService.initializeGoogleProject(
+        resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),
+        profile,
+        roleToStewardMap,
+        GoogleRegion.DEFAULT_GOOGLE_REGION,
+        Map.of("test-name", "bucket-resource-test"));
   }
 }

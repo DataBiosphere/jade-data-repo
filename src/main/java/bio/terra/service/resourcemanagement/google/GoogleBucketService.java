@@ -140,6 +140,10 @@ public class GoogleBucketService {
       Duration daysToLive)
       throws InterruptedException {
 
+    boolean allowReuseExistingBuckets =
+        configService.getParameterValue(ConfigEnum.ALLOW_REUSE_EXISTING_BUCKETS);
+    logger.info("application property allowReuseExistingBuckets = " + allowReuseExistingBuckets);
+
     // Try to get the bucket record and the bucket object
     GoogleBucketResource googleBucketResource =
         resourceDao.getBucket(bucketName, projectResource.getId());
@@ -150,37 +154,43 @@ public class GoogleBucketService {
       if (googleBucketResource != null) {
         String lockingFlightId = googleBucketResource.getFlightId();
         if (lockingFlightId == null) {
-          // everything exists and is unlocked
+          // CASE 1: everything exists and is unlocked
           return googleBucketResource;
         }
         if (!StringUtils.equals(lockingFlightId, flightId)) {
-          // another flight is creating the bucket
+          // CASE 2: another flight is creating the bucket
           throw bucketLockException(lockingFlightId);
         }
-        // we have the flight locked, but we did all of the creating.
+        // CASE 3: we have the flight locked, but we did all of the creating.
         return createFinish(bucket, flightId, googleBucketResource);
       } else {
-        // bucket exists
-        throw new CorruptMetadataException(
-            "Bucket already exists, metadata out of sync with cloud state: " + bucketName);
+        // bucket exists, but metadata record does not exist.
+        if (allowReuseExistingBuckets) {
+          // CASE 4: go ahead and reuse the bucket and its location
+          return createMetadataRecord(bucketName, projectResource, region, flightId, daysToLive);
+        } else {
+          // CASE 5:
+          throw new CorruptMetadataException(
+              "Bucket already exists, metadata out of sync with cloud state: " + bucketName);
+        }
       }
     } else {
       // bucket does not exist
       if (googleBucketResource != null) {
         String lockingFlightId = googleBucketResource.getFlightId();
         if (lockingFlightId == null) {
-          // no bucket, but the metadata record exists unlocked
+          // CASE 6: no bucket, but the metadata record exists unlocked
           throw new CorruptMetadataException(
               "Bucket does not exist, metadata out of sync with cloud state: " + bucketName);
         }
         if (!StringUtils.equals(lockingFlightId, flightId)) {
-          // another flight is creating the bucket
+          // CASE 7: another flight is creating the bucket
           throw bucketLockException(lockingFlightId);
         }
-        // this flight has the metadata locked, but didn't finish creating the bucket
+        // CASE 8: this flight has the metadata locked, but didn't finish creating the bucket
         return createCloudBucket(googleBucketResource, flightId, daysToLive);
       } else {
-        // no bucket and no record
+        // CASE 9: no bucket and no record
         return createMetadataRecord(bucketName, projectResource, region, flightId, daysToLive);
       }
     }

@@ -53,8 +53,8 @@ public class GoogleResourceDao {
   private static final String sqlBucketRetrievedById = sqlBucketRetrieve + " AND b.id = :id";
   private static final String sqlBucketRetrievedByName = sqlBucketRetrieve + " AND b.name = :name";
 
-  // Given a profile id, compute the count of all references to projects associated with the profile
-  private static final String sqlProfileProjectRefs =
+  // Check if project is used by any resource
+  private static final String sqlProjectRefs =
       "SELECT pid, dscnt + sncnt + bkcnt AS refcnt FROM "
           + " (SELECT"
           + "  project_resource.id AS pid,"
@@ -64,8 +64,15 @@ public class GoogleResourceDao {
           + "    WHERE bucket_resource.project_resource_id = project_resource.id"
           + "    AND bucket_resource.id = dataset_bucket.bucket_resource_id"
           + "    AND dataset_bucket.successful_ingests > 0) AS bkcnt"
-          + " FROM project_resource"
-          + " WHERE project_resource.profile_id = :profile_id) AS X";
+          + " FROM project_resource";
+
+  // Given a profile id, compute the count of all references to projects associated with the profile
+  private static final String sqlProfileProjectRefs =
+      sqlProjectRefs + " WHERE project_resource.profile_id = :profile_id) AS X";
+
+  // Given a list of projects, compute the count of all references to project
+  private static final String sqlProjectListRefs =
+      sqlProjectRefs + " WHERE project_resource.id IN (:project_ids)) AS X";
 
   // Class for collecting results from the above query
   private static class ProjectRefs {
@@ -154,6 +161,32 @@ public class GoogleResourceDao {
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
     int rowsAffected = jdbcTemplate.update(sql, params);
     logger.info("Project resource {} was {}", id, (rowsAffected > 0 ? "deleted" : "not found"));
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public List<UUID> markUnusedProjectsForDelete(List<UUID> projectResourceIds) {
+    // Check if any of the projects are in use
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("project_ids", projectResourceIds);
+    List<ProjectRefs> projectRefs =
+        jdbcTemplate.query(
+            sqlProjectListRefs,
+            params,
+            (rs, rowNum) ->
+                new ProjectRefs()
+                    .projectId(rs.getObject("pid", UUID.class))
+                    .refCount(rs.getLong("refcnt")));
+
+    List<UUID> projectsToDelete =
+        projectRefs.stream()
+            .filter(projectRef -> projectRef.refCount == 0)
+            .map(projectRef -> projectRef.projectId)
+            .collect(Collectors.toList());
+    // mark those that are not in use for delete
+    markProjectsForDelete(projectsToDelete);
+
+    // return only the projects for delete
+    return projectsToDelete;
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
@@ -259,32 +292,6 @@ public class GoogleResourceDao {
                 .profileId(rs.getObject("profile_id", UUID.class))
                 .googleProjectId(rs.getString("google_project_id"))
                 .googleProjectNumber(rs.getString("google_project_number")));
-  }
-
-  @Transactional(
-      propagation = Propagation.REQUIRED,
-      isolation = Isolation.SERIALIZABLE,
-      readOnly = true)
-  public int countSnapshotsUsingProject(UUID googleProjectId) {
-    String sql = "SELECT count(*) from snapshot WHERE project_resource_id = :googleProjectId";
-    MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("googleProjectId", googleProjectId);
-
-    Integer count = jdbcTemplate.queryForObject(sql, params, Integer.class);
-    return (count != null ? count : 0);
-  }
-
-  @Transactional(
-      propagation = Propagation.REQUIRED,
-      isolation = Isolation.SERIALIZABLE,
-      readOnly = true)
-  public int countDatasetsUsingProject(UUID googleProjectId) {
-    String sql = "SELECT count(*) from dataset WHERE project_resource_id = :googleProjectId";
-    MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("googleProjectId", googleProjectId);
-
-    Integer count = jdbcTemplate.queryForObject(sql, params, Integer.class);
-    return (count != null ? count : 0);
   }
 
   // -- bucket resource methods --

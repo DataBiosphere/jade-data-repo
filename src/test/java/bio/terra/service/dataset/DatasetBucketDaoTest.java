@@ -9,13 +9,11 @@ import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -48,8 +46,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class DatasetBucketDaoTest {
   private static final Logger logger = LoggerFactory.getLogger(DatasetBucketDaoTest.class);
 
-  @Autowired private JsonLoader jsonLoader;
-
   @Autowired private DatasetDao datasetDao;
 
   @Autowired private DatasetBucketDao datasetBucketDao;
@@ -57,6 +53,8 @@ public class DatasetBucketDaoTest {
   @Autowired private ProfileDao profileDao;
 
   @Autowired private GoogleResourceDao resourceDao;
+
+  @Autowired private DaoOperations daoOperations;
 
   private BillingProfileModel billingProfile;
   private GoogleProjectResource projectResource;
@@ -80,8 +78,9 @@ public class DatasetBucketDaoTest {
     projectResource.id(projectId);
     projectIds.add(projectId);
 
-    dataset = createMinimalDataset();
+    dataset = daoOperations.createMinimalDataset(billingProfile.getId(), projectId);
     datasetId = dataset.getId();
+    datasetIds.add(datasetId);
   }
 
   @After
@@ -178,7 +177,9 @@ public class DatasetBucketDaoTest {
         projectResourceIds_after.size());
 
     // Get project given a new dataset
-    Dataset dataset_second = createMinimalDataset();
+    Dataset dataset_second =
+        daoOperations.createMinimalDataset(billingProfile2.getId(), ingestProjectId);
+    datasetIds.add(dataset_second.getId());
     createBucketDbEntry(projectResource);
     assertNull(
         "Should NOT retrieve existing project",
@@ -290,26 +291,6 @@ public class DatasetBucketDaoTest {
 
     // this should fail -> no requires real dataset and bucket to link
     datasetBucketDao.createDatasetBucketLink(datasetId, randomBucketResourceId);
-  }
-
-  private Dataset createMinimalDataset() throws IOException {
-    DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
-    String newName = datasetRequest.getName() + UUID.randomUUID();
-    datasetRequest
-        .name(newName)
-        .defaultProfileId(billingProfile.getId())
-        .cloudPlatform(CloudPlatform.GCP);
-    Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-    dataset.projectResourceId(projectResource.getId());
-    String createFlightId = UUID.randomUUID().toString();
-    UUID datasetId = UUID.randomUUID();
-    datasetIds.add(datasetId);
-    dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId);
-    datasetDao.unlockExclusive(dataset.getId(), createFlightId);
-
-    return dataset;
   }
 
   private UUID createBucketDbEntry(GoogleProjectResource projectResource2) {

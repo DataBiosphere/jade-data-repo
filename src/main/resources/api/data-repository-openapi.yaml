@@ -2111,6 +2111,16 @@ paths:
           schema:
             type: integer
             default: 10
+        - name: direction
+          in: query
+          description: The direction to sort based on job creation time (default is descending).
+          schema:
+            $ref: '#/components/schemas/SqlSortDirection'
+        - name: className
+          in: query
+          description: Filter by the flight's class
+          schema:
+            type: string
       responses:
         200:
           description: List of jobs
@@ -3968,6 +3978,9 @@ components:
           type: string
           description: Timestamp when the flight was completed; not present if not
             complete
+        class_name:
+          type: string
+          description: Class name of the flight
       description: >
         Status of job
     ErrorModel:

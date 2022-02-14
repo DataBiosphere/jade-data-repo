@@ -7,6 +7,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.JobsApi;
 import bio.terra.model.JobModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -94,9 +95,14 @@ public class JobsApiController implements JobsApi {
   @Override
   public ResponseEntity<List<JobModel>> enumerateJobs(
       @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-      @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+      @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+      @RequestParam(value = "direction", required = false, defaultValue = "desc")
+          SqlSortDirection direction,
+      @RequestParam(value = "flightClass", required = false, defaultValue = "")
+          String flightClass) {
     validiateOffsetAndLimit(offset, limit);
-    List<JobModel> results = jobService.enumerateJobs(offset, limit, getAuthenticatedInfo());
+    List<JobModel> results =
+        jobService.enumerateJobs(offset, limit, getAuthenticatedInfo(), direction, flightClass);
     return new ResponseEntity<>(results, HttpStatus.OK);
   }
 

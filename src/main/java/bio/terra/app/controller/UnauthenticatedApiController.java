@@ -23,6 +23,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
@@ -122,7 +123,12 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
   /** Home redirection to swagger api documentation */
   @RequestMapping(value = "/")
   public String index() {
-    System.out.println("swagger-ui.html");
     return "redirect:swagger-ui.html";
+  }
+
+  @RequestMapping(value = "/swagger-ui.html")
+  public String getSwagger(Model model) {
+    model.addAttribute("clientId", oauthConfig.getClientId());
+    return "index";
   }
 }

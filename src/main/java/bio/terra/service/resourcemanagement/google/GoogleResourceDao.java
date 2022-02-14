@@ -230,30 +230,30 @@ public class GoogleResourceDao {
     // Common variables for marking projects and buckets for delete.
     List<UUID> projectIds =
         projectRefs.stream().map(ProjectRefs::getProjectId).collect(Collectors.toList());
-    if (projectIds.size() > 0) {
-      markProjectsForDelete(projectIds);
-    }
+    markProjectsForDelete(projectIds);
 
     return projectIds;
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void markProjectsForDelete(List<UUID> projectIds) {
-    MapSqlParameterSource markParams =
-        new MapSqlParameterSource().addValue("project_ids", projectIds);
+    if (!projectIds.isEmpty()) {
+      MapSqlParameterSource markParams =
+          new MapSqlParameterSource().addValue("project_ids", projectIds);
 
-    final String sqlMarkProjects =
-        "UPDATE project_resource SET marked_for_delete = true WHERE id IN (:project_ids)";
-    jdbcTemplate.update(sqlMarkProjects, markParams);
+      final String sqlMarkProjects =
+          "UPDATE project_resource SET marked_for_delete = true WHERE id IN (:project_ids)";
+      jdbcTemplate.update(sqlMarkProjects, markParams);
 
-    final String sqlMarkBuckets =
-        "UPDATE bucket_resource SET marked_for_delete = true WHERE project_resource_id IN (:project_ids)";
-    jdbcTemplate.update(sqlMarkBuckets, markParams);
+      final String sqlMarkBuckets =
+          "UPDATE bucket_resource SET marked_for_delete = true WHERE project_resource_id IN (:project_ids)";
+      jdbcTemplate.update(sqlMarkBuckets, markParams);
+    }
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void deleteProjectMetadata(List<UUID> projectIds) {
-    if (projectIds.size() > 0) {
+    if (!projectIds.isEmpty()) {
       MapSqlParameterSource markParams =
           new MapSqlParameterSource().addValue("project_ids", projectIds);
 

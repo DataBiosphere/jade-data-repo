@@ -18,7 +18,6 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.exception.StairwayException;
 import java.util.ArrayList;
 import java.util.List;
-import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -58,7 +57,6 @@ public class JobServiceTest {
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
     List<JobModel> expectedJobs = new ArrayList<>();
-    List<ResourceAndAccessPolicy> allowedIds = new ArrayList<>();
 
     for (int i = 0; i < 7; i++) {
       String jobId = runFlight(makeDescription(i), makeFlightClass(i));
@@ -69,7 +67,6 @@ public class JobServiceTest {
               .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
               .description(makeDescription(i))
               .className(makeFlightClass(i).getName()));
-      allowedIds.add(new ResourceAndAccessPolicy().resourceId(jobId));
     }
 
     // Test single retrieval

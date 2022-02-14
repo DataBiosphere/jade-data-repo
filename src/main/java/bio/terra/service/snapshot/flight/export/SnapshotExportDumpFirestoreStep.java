@@ -8,6 +8,7 @@ import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,10 +16,12 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -38,15 +41,8 @@ public class SnapshotExportDumpFirestoreStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    // String firestoreProject = snapshot.getProjectResource().getGoogleProjectId();
     String firestoreProject =
-        firestoreProject =
-            snapshot
-                .getSnapshotSources()
-                .get(0)
-                .getDataset()
-                .getProjectResource()
-                .getGoogleProjectId();
+        snapshot.getSnapshotSources().get(0).getDataset().getProjectResource().getGoogleProjectId();
 
     try {
       FirestoreOptions firestoreOptions =
@@ -60,26 +56,23 @@ public class SnapshotExportDumpFirestoreStep implements Step {
       final CollectionReference collection = db.collection(collectionName);
       QuerySnapshot queryResult = collection.get().get();
       GcsChannelWriter writer = makeWriterForDumpFile(context);
-      queryResult
-          .getDocuments()
-          .forEach(
-              d -> {
-                final Map<String, Object> data = d.getData();
-                try {
-                  String serializedData = objectMapper.writeValueAsString(data);
-                  writer.write(serializedData);
-                } catch (JsonProcessingException e) {
-                  // todo: handle this
-                  e.printStackTrace();
-                } catch (IOException e) {
-                  // todo: handle this
-                  e.printStackTrace();
-                }
-              });
+
+      for (QueryDocumentSnapshot d : queryResult.getDocuments()) {
+        Map<String, Object> dumpData = new HashMap<>();
+        dumpData.put("fileId", d.getData().get("fileId"));
+        dumpData.put("gspath", d.getData().get("gspath"));
+        try {
+          writer.write(objectMapper.writeValueAsString(dumpData));
+          writer.write("\n");
+        } catch (JsonProcessingException e) {
+          return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
+        } catch (IOException e) {
+          return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
+        }
+      }
       writer.close();
     } catch (IOException | ExecutionException e) {
-      // todo: log and retry?
-      e.printStackTrace();
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
     return StepResult.getStepResultSuccess();
   }
@@ -90,7 +83,11 @@ public class SnapshotExportDumpFirestoreStep implements Step {
             .getWorkingMap()
             .get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
     String targetPath = getFileName(context);
-    Storage storage = StorageOptions.getDefaultInstance().getService();
+    Storage storage =
+        StorageOptions.newBuilder()
+            .setProjectId(exportBucket.getProjectResource().getGoogleProjectId())
+            .build()
+            .getService();
     return new GcsChannelWriter(storage, exportBucket.getName(), targetPath);
   }
 
@@ -100,6 +97,16 @@ public class SnapshotExportDumpFirestoreStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    return null;
+    GoogleBucketResource exportBucket =
+        context
+            .getWorkingMap()
+            .get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
+    Storage storage =
+        StorageOptions.newBuilder()
+            .setProjectId(exportBucket.getProjectResource().getGoogleProjectId())
+            .build()
+            .getService();
+    storage.delete(exportBucket.getName(), getFileName(context));
+    return StepResult.getStepResultSuccess();
   }
 }

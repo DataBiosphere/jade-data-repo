@@ -408,7 +408,7 @@ jar {
 jib {
     extraDirectories.paths = ['build/gen-expanded']
     from {
-        image = "gcr.io/distroless/java-debian10:11"
+        image = "gcr.io/distroless/java11-debian11"
     }
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())

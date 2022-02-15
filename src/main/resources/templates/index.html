@@ -51,6 +51,18 @@
     .swagger-ui details summary {
       cursor: pointer;
     }
+
+    /* Support classes for header pinning */
+    .swagger-ui .scheme-container {
+      position: relative;
+    }
+    .swagger-ui .scheme-container.pinned {
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: 0;
+      z-index: 100;
+    }
   </style>
 </head>
 
@@ -60,16 +72,30 @@
 <script src="/webjars/swagger-ui-dist/swagger-ui-bundle.js"> </script>
 <script src="/webjars/swagger-ui-dist/swagger-ui-standalone-preset.js"> </script>
 <script th:inline="javascript">
-  const cleanupPlugin = function(system) {
+
+  // Adds support for pinning the auth bar when the user scrolls down far enough to hide the bar
+  const pinLoginPlugin = function(system) {
     return {
-      components: {
-        // we don't need to load different specs here...
-        // Topbar: () => null,
-        // since everything's application/json, the content-type dropdown just takes up space
-        // contentType: ({ value, contentTypes }) => {
-        //   return system.React.createElement('div', null, value || contentTypes.first())
-        // }
-      }
+      afterLoad: function(system) {
+        var offsetY;
+        var authBar;
+        document.addEventListener('scroll', function() {
+          console.log(system);
+          if (offsetY === undefined) {
+            // Note: the auth bar is not a React component so we can't use the standard plugin approach to modify
+            var authBars = document.getElementsByClassName('scheme-container');
+            if (authBars.length > 0) {
+              authBar = authBars[0];
+              offsetY = authBar.offsetTop;
+            }
+          }
+          if (window.scrollY > offsetY) {
+            authBar.classList.add('pinned');
+          } else {
+            authBar.classList.remove('pinned');
+          }
+        });
+      },
     }
   }
 
@@ -85,7 +111,7 @@
       ],
       plugins: [
         SwaggerUIBundle.plugins.DownloadUrl,
-        cleanupPlugin
+        pinLoginPlugin
       ],
       layout: 'StandaloneLayout',
       defaultModelsExpandDepth: -1, // hide the huge list of schemas under the routes

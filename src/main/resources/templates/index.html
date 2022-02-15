@@ -94,8 +94,17 @@
             authBar.classList.remove('pinned');
           }
         });
-      },
+      }
     }
+  }
+
+  // Removes the online validation since some code gen bugs cause us to have some specs that cause the validator to squawk
+  const clearValidator = function(system) {
+    return {
+      components: {
+        onlineValidatorBadge: function() { return null; },
+      }
+    };
   }
 
   window.onload = function() {
@@ -110,7 +119,8 @@
       ],
       plugins: [
         SwaggerUIBundle.plugins.DownloadUrl,
-        pinLoginPlugin
+        pinLoginPlugin,
+        clearValidator
       ],
       layout: 'StandaloneLayout',
       defaultModelsExpandDepth: -1, // hide the huge list of schemas under the routes
@@ -123,7 +133,7 @@
         } else {
           return a < b ? -1 : 1;
         }
-       }
+      }
     })
     // End Swagger UI call region
 

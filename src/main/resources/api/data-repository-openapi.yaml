@@ -3574,9 +3574,9 @@ components:
           type: array
           items:
             type: object
-        description: A preview of a snapshot table
+          description: Preview data of a snapshot table
       description: >
-        The previews of tables in the snapshot
+        A preview of a snapshot table
     FileModel:
       type: object
       properties:

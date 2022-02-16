@@ -29,11 +29,11 @@ public class SnapshotExportWriteMappingTable implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     FlightMap workingMap = context.getWorkingMap();
-    String gsPathMappingFile =
-        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_GSPATHS_FILENAME, String.class);
+    String firestoreDumpPath =
+        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_FIRESTORE_DUMP_PATH, String.class);
     String tableName = BigQueryUtils.firestoreDumpTableName(snapshot);
     String suffix = BigQueryUtils.getSuffix(context);
-    bigQueryPdao.createFirestoreGsPathExternalTable(snapshot, gsPathMappingFile, tableName, suffix);
+    bigQueryPdao.createFirestoreGsPathExternalTable(snapshot, firestoreDumpPath, tableName, suffix);
     return StepResult.getStepResultSuccess();
   }
 

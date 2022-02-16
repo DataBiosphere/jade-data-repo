@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 public class OauthConfiguration {
 
   private String schemeName;
-  private String[] scopes;
   private String loginEndpoint;
   private String clientId;
   private String clientSecret;
@@ -45,13 +44,5 @@ public class OauthConfiguration {
 
   public void setClientSecret(String clientSecret) {
     this.clientSecret = clientSecret;
-  }
-
-  public String[] getScopes() {
-    return scopes.clone();
-  }
-
-  public void setScopes(String[] scopes) {
-    this.scopes = scopes.clone();
   }
 }

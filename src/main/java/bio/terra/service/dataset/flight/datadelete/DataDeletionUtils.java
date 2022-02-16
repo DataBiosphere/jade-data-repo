@@ -18,10 +18,6 @@ public final class DataDeletionUtils {
 
   private DataDeletionUtils() {}
 
-  public static String getSuffix(FlightContext context) {
-    return context.getFlightId().replace('-', '_');
-  }
-
   public static DataDeletionRequest getRequest(FlightContext context) {
     return context
         .getInputParameters()

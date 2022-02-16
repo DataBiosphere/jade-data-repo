@@ -6,6 +6,7 @@ import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
 import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -104,6 +105,13 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
     return snapshotSources.get(0);
   }
 
+  public Dataset getSourceDataset() {
+    if (snapshotSources.isEmpty()) {
+      throw new CorruptMetadataException("Snapshot sources should never be empty!");
+    }
+    return snapshotSources.get(0).getDataset();
+  }
+
   public Optional<SnapshotTable> getTableById(UUID id) {
     for (SnapshotTable tryTable : getTables()) {
       if (tryTable.getId().equals(id)) {
@@ -171,17 +179,16 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   @Override
   public FireStoreProject firestoreConnection() {
-    String datasetProjectId =
-        getFirstSnapshotSource().getDataset().getProjectResource().getGoogleProjectId();
+    String datasetProjectId = getSourceDataset().getProjectResource().getGoogleProjectId();
     return FireStoreProject.get(datasetProjectId);
   }
 
   public AzureRegion getStorageAccountRegion() {
-    return getFirstSnapshotSource().getDataset().getStorageAccountRegion();
+    return getSourceDataset().getStorageAccountRegion();
   }
 
   public boolean isSecureMonitoringEnabled() {
-    return getFirstSnapshotSource().getDataset().isSecureMonitoringEnabled();
+    return getSourceDataset().isSecureMonitoringEnabled();
   }
 
   public SnapshotRequestContentsModel getCreationInformation() {

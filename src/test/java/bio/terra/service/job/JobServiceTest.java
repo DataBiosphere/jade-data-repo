@@ -2,18 +2,23 @@ package bio.terra.service.job;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.samePropertyValuesAs;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
+import bio.terra.model.JobModel.JobStatusEnum;
+import bio.terra.model.SqlSortDirection;
+import bio.terra.stairway.Flight;
 import bio.terra.stairway.exception.StairwayException;
 import java.util.ArrayList;
 import java.util.List;
-import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
-import org.junit.Assert;
-import org.junit.Ignore;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -46,76 +51,77 @@ public class JobServiceTest {
 
   @Autowired private ApplicationConfiguration appConfig;
 
-  // This test is unreliable. See https://broadworkbench.atlassian.net/browse/DR-1248
-  // todo - fix w/ DR-1255
-  @Ignore
   @Test
   public void retrieveTest() throws Exception {
-    // We perform 7 flights and then retrieve and enumerate them.
+    // We perform 7 flights of alternating classes and then retrieve and enumerate them.
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
-    List<String> jobIds = new ArrayList<>();
-    List<ResourceAndAccessPolicy> allowedIds = new ArrayList<>();
+    List<JobModel> expectedJobs = new ArrayList<>();
+
     for (int i = 0; i < 7; i++) {
-      String jobId = runFlight(makeDescription(i));
-      jobIds.add(jobId);
-      allowedIds.add(new ResourceAndAccessPolicy().resourceId(jobId));
+      String jobId = runFlight(makeDescription(i), makeFlightClass(i));
+      expectedJobs.add(
+          new JobModel()
+              .id(jobId)
+              .jobStatus(JobStatusEnum.SUCCEEDED)
+              .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
+              .description(makeDescription(i))
+              .className(makeFlightClass(i).getName()));
     }
 
     // Test single retrieval
-    testSingleRetrieval(jobIds);
+    testSingleRetrieval(expectedJobs.get(2));
 
     // Test result retrieval - the body should be the description string
-    testResultRetrieval(jobIds);
+    testResultRetrieval(expectedJobs.get(2));
 
     // Retrieve everything
-    testEnumRange(jobIds, 0, 100, allowedIds);
+    assertThat(
+        "retrieve everything",
+        jobService.enumerateJobs(0, 100, null, SqlSortDirection.ASC, ""),
+        contains(getJobMatchers(expectedJobs)));
 
     // Retrieve the middle 3; offset means skip 2 rows
-    testEnumRange(jobIds, 2, 3, allowedIds);
+    assertThat(
+        "retrieve the middle three",
+        jobService.enumerateJobs(2, 3, null, SqlSortDirection.ASC, ""),
+        contains(getJobMatchers(expectedJobs.subList(2, 5))));
+
+    // Retrieve in descending order and filtering to the even (JobServiceTestFlight) flights
+    assertThat(
+        "retrieve descending and alternating",
+        jobService.enumerateJobs(
+            0, 4, null, SqlSortDirection.DESC, JobServiceTestFlight.class.getName()),
+        contains(
+            getJobMatcher(expectedJobs.get(6)),
+            getJobMatcher(expectedJobs.get(4)),
+            getJobMatcher(expectedJobs.get(2)),
+            getJobMatcher(expectedJobs.get(0))));
 
     // Retrieve from the end; should only get the last one back
-    testEnumCount(1, 6, 3, allowedIds);
+    assertThat(
+        "retrieve from the end",
+        jobService.enumerateJobs(6, 3, null, SqlSortDirection.ASC, ""),
+        contains(getJobMatcher((expectedJobs.get(6)))));
 
     // Retrieve past the end; should get nothing
-    testEnumCount(0, 22, 3, allowedIds);
+    assertThat(
+        "retrieve from the end",
+        jobService.enumerateJobs(22, 3, null, SqlSortDirection.ASC, ""),
+        is(List.of()));
   }
 
-  private void testSingleRetrieval(List<String> fids) throws InterruptedException {
-    JobModel response = jobService.retrieveJob(fids.get(2), null);
-    Assert.assertNotNull(response);
-    validateJobModel(response, 2, fids);
+  private void testSingleRetrieval(JobModel job) throws InterruptedException {
+    JobModel response = jobService.retrieveJob(job.getId(), null);
+    assertThat(response, notNullValue());
+    assertThat(response, getJobMatcher(job));
   }
 
-  private void testResultRetrieval(List<String> fids) throws InterruptedException {
+  private void testResultRetrieval(JobModel job) throws InterruptedException {
     JobService.JobResultWithStatus<String> resultHolder =
-        jobService.retrieveJobResult(fids.get(2), String.class, null);
-    Assert.assertThat(resultHolder.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
-    Assert.assertThat(resultHolder.getResult(), is(equalTo(makeDescription(2))));
-  }
-
-  // Get some range and compare it with the fids
-  private void testEnumRange(
-      List<String> fids, int offset, int limit, List<ResourceAndAccessPolicy> resourceIds)
-      throws InterruptedException {
-
-    List<JobModel> jobList = jobService.enumerateJobs(offset, limit, null);
-    Assert.assertNotNull(jobList);
-    int index = offset;
-    for (JobModel job : jobList) {
-      validateJobModel(job, index, fids);
-      index++;
-    }
-  }
-
-  // Get some range and make sure we got the number we expected
-  private void testEnumCount(
-      int count, int offset, int length, List<ResourceAndAccessPolicy> resourceIds)
-      throws InterruptedException {
-
-    List<JobModel> jobList = jobService.enumerateJobs(offset, length, null);
-    Assert.assertNotNull(jobList);
-    Assert.assertThat(jobList.size(), is(count));
+        jobService.retrieveJobResult(job.getId(), String.class, null);
+    assertThat(resultHolder.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
+    assertThat(resultHolder.getResult(), is(equalTo(job.getDescription())));
   }
 
   @Test(expected = StairwayException.class)
@@ -128,22 +134,27 @@ public class JobServiceTest {
     jobService.retrieveJobResult("abcdef", Object.class, null);
   }
 
-  private void validateJobModel(JobModel jm, int index, List<String> fids) {
-    Assert.assertThat(jm.getDescription(), is(equalTo(makeDescription(index))));
-    Assert.assertThat(jm.getId(), is(equalTo(fids.get(index))));
-    Assert.assertThat(jm.getJobStatus(), is(JobModel.JobStatusEnum.SUCCEEDED));
-    Assert.assertThat(jm.getStatusCode(), is(HttpStatus.I_AM_A_TEAPOT.value()));
+  private Matcher<JobModel> getJobMatcher(JobModel jobModel) {
+    return samePropertyValuesAs(jobModel, "submitted", "completed");
+  }
+
+  @SuppressWarnings("unchecked")
+  private Matcher<JobModel>[] getJobMatchers(List<JobModel> jobModels) {
+    return jobModels.stream().map(this::getJobMatcher).toArray(Matcher[]::new);
   }
 
   // Submit a flight; wait for it to finish; return the flight id
-  private String runFlight(String description) throws InterruptedException {
-    String jobId =
-        jobService.newJob(description, JobServiceTestFlight.class, null, testUser).submit();
+  private String runFlight(String description, Class<? extends Flight> clazz) {
+    String jobId = jobService.newJob(description, clazz, null, testUser).submit();
     jobService.waitForJob(jobId);
     return jobId;
   }
 
   private String makeDescription(int ii) {
     return String.format("flight%d", ii);
+  }
+
+  private Class<? extends Flight> makeFlightClass(int ii) {
+    return ii % 2 == 0 ? JobServiceTestFlight.class : JobServiceTestFlightAlt.class;
   }
 }

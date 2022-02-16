@@ -21,34 +21,6 @@ info:
     All of the reference items are suffixed with \"Model\".
     Those names are used as the class names in the generated Java code.
     It is helpful to distinguish these model classes from other related classes, like the DAO classes and the operation classes.
-
-    <!--
-    ### Editing and debugging
-    I have found it best to edit this file directly to make changes and then use
-    the swagger-editor to validate.
-    The errors out of swagger-codegen are not that helpful. In the swagger-editor,
-    it gives you nice errors and links to the place in the YAML where the errors are.
-    But... the swagger-editor has been a bit of a pain for me to run.
-    I tried the online website and was not able to load my YAML.
-    Instead, I run it locally in a docker container, like this:
-     ```
-
-     docker pull swaggerapi/swagger-editor
-
-     docker run -p 9090:8080 swaggerapi/swagger-editor
-
-     ```
-
-     Then navigate to localhost:9090 in your browser.
-
-     I have not been able to get the file upload to work. It is a bit of a PITA,
-    but I copy-paste the source code, replacing what is in the editor.
-    Then make any fixes. Then copy-paste the resulting, valid file back into our
-       source code.
-    Not elegant, but easier than playing detective with the swagger-codegen
-       errors.
-    This might be something about my browser or environment,
-    so give it a try yourself and see how it goes. 00>
     </details>
   license:
     name: Apache 2.0

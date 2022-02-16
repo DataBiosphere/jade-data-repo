@@ -19,4 +19,6 @@ public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
   public static final String SNAPSHOT_EXPORT_BUCKET = "snapshotExportBucket";
   public static final String SNAPSHOT_EXPORT_PARQUET_PATHS = "snapshotExportParquetPaths";
   public static final String SNAPSHOT_EXPORT_MANIFEST_PATH = "snapshotExportManifestPath";
+  public static final String SNAPSHOT_EXPORT_FIRESTORE_DUMP_PATH =
+      "snapshotExportFirestoreDumpPath";
 }

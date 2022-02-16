@@ -2,12 +2,12 @@ package bio.terra.service.dataset.flight.datadelete;
 
 import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getDataset;
 import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getSuffix;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -43,7 +43,7 @@ public class DataDeletionStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = getDataset(context, datasetService);
-    String suffix = getSuffix(context);
+    String suffix = BigQueryUtils.getSuffix(context);
     DataDeletionRequest dataDeletionRequest = getRequest(context);
     List<String> tableNames =
         dataDeletionRequest.getTables().stream()

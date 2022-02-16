@@ -36,6 +36,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
@@ -1903,7 +1904,22 @@ public class BigQueryPdao {
     }
   }
 
-  public boolean deleteSoftDeleteExternalTable(Dataset dataset, String tableName, String suffix)
+  public void createFirestoreGsPathExternalTable(
+      Snapshot snapshot, String path, String tableName, String suffix) throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    String extTableName = externalTableName(tableName, suffix);
+    TableId tableId = TableId.of(prefixName(snapshot.getName()), extTableName);
+    Schema schema =
+        Schema.of(
+            Field.of("file_id", LegacySQLTypeName.STRING),
+            Field.of("gs_path", LegacySQLTypeName.STRING));
+    ExternalTableDefinition tableDef =
+        ExternalTableDefinition.of(path, schema, FormatOptions.json());
+    TableInfo tableInfo = TableInfo.of(tableId, tableDef);
+    bigQueryProject.getBigQuery().create(tableInfo);
+  }
+
+  public boolean deleteExternalTable(FSContainerInterface dataset, String tableName, String suffix)
       throws InterruptedException {
 
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);

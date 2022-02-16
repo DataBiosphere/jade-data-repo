@@ -88,9 +88,8 @@ public class GoogleResourceManagerService {
 
   public void deleteProject(String googleProjectId) {
     try {
-      CloudResourceManager resourceManager = cloudResourceManager();
-      CloudResourceManager.Projects.Delete request =
-          resourceManager.projects().delete(googleProjectId);
+      var resourceManager = cloudResourceManager();
+      var request = resourceManager.projects().delete(googleProjectId);
       // the response will be empty if the request is successful in the delete
       request.execute();
     } catch (IOException | GeneralSecurityException e) {

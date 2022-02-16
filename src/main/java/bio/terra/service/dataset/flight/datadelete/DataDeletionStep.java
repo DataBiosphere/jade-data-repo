@@ -5,6 +5,7 @@ import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getR
 import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getSuffix;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DeleteResponseModel;
@@ -12,11 +13,14 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.dataset.flight.transactions.TransactionUtils;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -24,20 +28,25 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 public class DataDeletionStep implements Step {
+  private static Logger logger = LoggerFactory.getLogger(DataDeletionStep.class);
 
   private final BigQueryPdao bigQueryPdao;
   private final DatasetService datasetService;
   private final ConfigurationService configService;
-
-  private static Logger logger = LoggerFactory.getLogger(DataDeletionStep.class);
+  private final AuthenticatedUserRequest userRequest;
+  private final boolean autocommit;
 
   public DataDeletionStep(
       BigQueryPdao bigQueryPdao,
       DatasetService datasetService,
-      ConfigurationService configService) {
+      ConfigurationService configService,
+      AuthenticatedUserRequest userRequest,
+      boolean autocommit) {
     this.bigQueryPdao = bigQueryPdao;
     this.datasetService = datasetService;
     this.configService = configService;
+    this.userRequest = userRequest;
+    this.autocommit = autocommit;
   }
 
   @Override
@@ -49,6 +58,7 @@ public class DataDeletionStep implements Step {
         dataDeletionRequest.getTables().stream()
             .map(DataDeletionTableModel::getTableName)
             .collect(Collectors.toList());
+    UUID transactionId = TransactionUtils.getTransactionId(context);
 
     bigQueryPdao.validateDeleteRequest(dataset, dataDeletionRequest.getTables(), suffix);
 
@@ -61,9 +71,11 @@ public class DataDeletionStep implements Step {
       logger.info("SOFT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
     }
 
-    bigQueryPdao.applySoftDeletes(dataset, tableNames, suffix);
+    bigQueryPdao.applySoftDeletes(
+        dataset, tableNames, suffix, context.getFlightId(), transactionId, userRequest);
 
-    // TODO: this can be more informative, something like # rows deleted per table, or mismatched
+    // TODO<DR-2407>: this can be more informative, something like # rows deleted per table, or
+    // mismatched
     // row ids
     DeleteResponseModel deleteResponseModel =
         new DeleteResponseModel().objectState(DeleteResponseModel.ObjectStateEnum.DELETED);
@@ -74,7 +86,30 @@ public class DataDeletionStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    // The do step is atomic, either it worked or it didn't. There is no undo.
+    if (autocommit) {
+      Dataset dataset = IngestUtils.getDataset(context, datasetService);
+      UUID transactionId = TransactionUtils.getTransactionId(context);
+      DataDeletionRequest dataDeletionRequest = getRequest(context);
+      List<String> tableNames =
+          dataDeletionRequest.getTables().stream()
+              .map(DataDeletionTableModel::getTableName)
+              .collect(Collectors.toList());
+      dataset.getTables().stream()
+          .filter(t -> tableNames.contains(t.getName()))
+          .forEach(
+              t -> {
+                try {
+                  bigQueryPdao.rollbackDatasetTable(
+                      dataset, t.getSoftDeleteTableName(), transactionId);
+                } catch (InterruptedException e) {
+                  logger.warn(
+                      String.format(
+                          "Could not rollback soft delete data for table %s in transaction %s",
+                          dataset.toLogString(), transactionId),
+                      e);
+                }
+              });
+    }
     return StepResult.getStepResultSuccess();
   }
 }

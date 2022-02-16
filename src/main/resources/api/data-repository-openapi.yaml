@@ -1452,6 +1452,206 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: ingest
+  /api/repository/v1/datasets/{id}/transactions:
+    post:
+      tags:
+        - datasets
+        - repository
+      description: Create a transaction to be used for ingesting if you are chaining ingests together
+      operationId: openTransaction
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        description: Open transaction request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionCreateModel'
+        required: true
+      responses:
+        200:
+          description: Redirect for transaction open complete
+          headers:
+            location:
+              description: url for the job result
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        202:
+          description: Job status of transaction open job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        400:
+          description: Bad request - invalid transaction creation request, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to create transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - dataset id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+      x-codegen-request-body-name: transaction
+    get:
+      tags:
+        - datasets
+        - repository
+      description: Lists transactions on the dataset
+      operationId: enumerateTransactions
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: offset
+          in: query
+          description: The number of items to skip before starting to collect the result
+            set.
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          description: The numbers of items to return.
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransactionModel'
+        400:
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to list transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - dataset id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/transactions/{transactionId}:
+    get:
+      tags:
+        - datasets
+        - repository
+      description: Retrieve a given transaction
+      operationId: retrieveTransaction
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/TransactionId'
+      responses:
+        200:
+          description: Information on a given transaction
+            header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionModel'
+        400:
+          description: Bad request - invalid query pameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to read transaction from this datasset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - dataset id or transaction id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+    post:
+      tags:
+        - datasets
+        - repository
+      description: Close a given transaction
+      operationId: closeTransaction
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/TransactionId'
+      requestBody:
+        description: Close transaction request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionCloseModel'
+      responses:
+        200:
+          description: Redirect for transaction terminate complete
+          headers:
+            location:
+              description: url for the job result
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        202:
+          description: Job status of transaction commit job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        400:
+          description: Bad request - invalid transaction terminat request, badly formed or unrecognized state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to terminate the transaction for this datasset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - dataset id or transaction id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets/{id}/assets:
     post:
       tags:
@@ -3239,6 +3439,24 @@ components:
           description: >
             When true, the combined ingest will look for files that already exist and substitute their
             fileIds in instead of ingesting duplicate files.
+        transactionId:
+          type: string
+          format: uuid
+          description: >
+            If specified, the ingested data will remain invisible to users and snapshot creation until
+            the transaction in question is committed. If the transaction is rolled back, then the changes
+            from this ingest and any other operations using this transaction will be undone.
+        updateStrategy:
+          type: string
+          enum:
+            - append
+            - replace
+          description: >
+            Approach for how to treat updates to the target table:
+             * `append` - Default: only ever insert rows, regardless of whether or not the primary key value exists
+             * `replace` - If a primary key is present on the table, treat rows with matching primary keys
+                         as updates. If duplicates IDs are found in your ingest, the ingest job
+                         will fail. Note: the full new record must be specified.
       description: >
         Request to ingest data from a file in GCS into a table in a dataset.
         The ingest source must be readable by the DR manager.
@@ -3272,6 +3490,53 @@ components:
           $ref: '#/components/schemas/BulkLoadArrayResultModel'
       description: >
         Response from performing an ingest.
+    TransactionCreateModel:
+      type: object
+      properties:
+        description:
+          type: string
+          description: optional description to give your transaction
+    TransactionModel:
+      required:
+        - id
+        - created_at
+        - created_by
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        status:
+          type: string
+          enum:
+            - active
+            - committed
+            - rolled_back
+        lock:
+          type: string
+          description: the id of the flight that is locking the transaction or empty if the transaction is not locked
+        description:
+          type: string
+          description: the transaction's description, if one was specified
+        created_at:
+          type: string
+          description: timestamp of transaction creation in RFC3339
+        created_by:
+          type: string
+          description: the creator of the transaction
+        terminated_at:
+          type: string
+          description: timestamp of transaction creation in RFC3339
+        terminated_by:
+          type: string
+          description: the creator of the transaction
+    TransactionCloseModel:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum:
+            - commit
+            - rollback
     FileLoadModel:
       required:
         - source_path
@@ -4047,6 +4312,13 @@ components:
           type: string
           enum:
             - soft
+        transactionId:
+          type: string
+          format: uuid
+          description: >
+            If specified, the deleted data will remain visible to users and snapshot creation until
+            the transaction in question is committed. If the transaction is rolled back, then the changes
+            from this delete and any other operations using this transaction will be undone.
         specType:
           type: string
           enum:
@@ -4686,6 +4958,14 @@ components:
       required: true
       schema:
         type: string
+    TransactionId:
+      name: transactionId
+      in: path
+      description: A UUID to used to identify a transaction in a dataset
+      required: true
+      schema:
+        type: string
+        format: uuid
   securitySchemes:
     googleoauth:
       type: oauth2

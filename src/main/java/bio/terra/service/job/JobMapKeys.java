@@ -15,7 +15,8 @@ public enum JobMapKeys {
   DATASET_ID("datasetId"),
   SNAPSHOT_ID("snapshotId"),
   FILE_ID("fileId"),
-  ASSET_ID("assetId");
+  ASSET_ID("assetId"),
+  TRANSACTION_ID("transactionId");
 
   private String keyName;
 

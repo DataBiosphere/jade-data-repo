@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
+import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -20,7 +21,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class Snapshot implements FSContainerInterface {
+public class Snapshot implements FSContainerInterface, LogPrintable {
   private UUID id;
   private String name;
   private String description;
@@ -190,5 +191,10 @@ public class Snapshot implements FSContainerInterface {
   public Snapshot creationInformation(SnapshotRequestContentsModel model) {
     this.creationInformation = model;
     return this;
+  }
+
+  @Override
+  public String toLogString() {
+    return String.format("%s (%s)", this.getName(), this.getId());
   }
 }

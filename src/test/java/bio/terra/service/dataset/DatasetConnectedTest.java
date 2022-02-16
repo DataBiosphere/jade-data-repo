@@ -204,7 +204,46 @@ public class DatasetConnectedTest {
   @Test
   public void testCSVIngestAddsRowIdsByDefault() throws Exception {
     String resourceFileName = "snapshot-test-dataset-data.csv";
-    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID().toString();
+    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID();
+    String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
+    // ingest the table
+    String tableName = "thetable";
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .table(tableName)
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .csvSkipLeadingRows(1)
+            .path(tableIngestInputFilePath)
+            .csvGenerateRowIds(true);
+    connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+
+    String columns = PdaoConstant.PDAO_ROW_ID_COLUMN + ",thecolumn";
+    TableResult bqQueryResult =
+        TestUtils.selectFromBigQueryDataset(
+            bigQueryPdao,
+            datasetDao,
+            dataLocationService,
+            datasetRequest.getName(),
+            tableName,
+            columns);
+    List<UUID> rowIds = new ArrayList<>();
+    Set<String> expectedNames = Set.of("Andrea", "Dan", "Rori", "Jeremy");
+    Set<String> datasetNames = new HashSet<>();
+    bqQueryResult
+        .iterateAll()
+        .forEach(
+            r -> {
+              rowIds.add(UUID.fromString(r.get(PdaoConstant.PDAO_ROW_ID_COLUMN).getStringValue()));
+              datasetNames.add(r.get("thecolumn").getStringValue());
+            });
+    assertEquals(rowIds.size(), 4);
+    assertEquals(expectedNames, datasetNames);
+  }
+
+  @Test
+  public void testCSVIngestUpdates() throws Exception {
+    String resourceFileName = "snapshot-test-dataset-data.csv";
+    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID();
     String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
     // ingest the table
     String tableName = "thetable";
@@ -263,7 +302,7 @@ public class DatasetConnectedTest {
   @Test
   public void testMetadataTableUpdate() throws Exception {
     String resourceFileName = "snapshot-test-dataset-data.csv";
-    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID().toString();
+    String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID();
     String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
     // ingest the table
     String tableName = "thetable";

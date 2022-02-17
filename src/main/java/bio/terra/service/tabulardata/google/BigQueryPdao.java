@@ -44,8 +44,8 @@ import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.TableDataType;
-import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.model.TransactionModel;
+import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
@@ -53,9 +53,8 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
-import bio.terra.service.filedata.FSContainerInterface;
-import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.dataset.exception.TransactionLockException;
+import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
@@ -2713,7 +2712,7 @@ public class BigQueryPdao {
       "export data OPTIONS( "
           + "uri='<exportPath>/<table>-*.parquet', "
           + "format='PARQUET') "
-          + "AS <exportToParquetQuery>`";
+          + "AS (<exportToParquetQuery>)";
 
   private static final String exportPathTemplate = "gs://<bucket>/<flightId>/<table>";
   private static final String exportToParquetQueryTemplate =
@@ -2736,11 +2735,12 @@ public class BigQueryPdao {
               .add("table", tableName)
               .render();
 
-      String exportToParquetQuery = new ST(exportToParquetQueryTemplate)
-          .add("table", tableName)
-          .add("project", snapshotProject)
-          .add("snapshot", snapshotName)
-          .render();
+      String exportToParquetQuery =
+          new ST(exportToParquetQueryTemplate)
+              .add("table", tableName)
+              .add("project", snapshotProject)
+              .add("snapshot", snapshotName)
+              .render();
 
       String exportStatement =
           new ST(exportToParquetTemplate)
@@ -2756,7 +2756,9 @@ public class BigQueryPdao {
     return paths;
   }
 
-  public List<String> exportTableToParquetWithGsPaths(Snapshot snapshot, GoogleBucketResource bucketResource, String flightId) throws InterruptedException {
+  public List<String> exportTableToParquetWithGsPaths(
+      Snapshot snapshot, GoogleBucketResource bucketResource, String flightId)
+      throws InterruptedException {
     List<String> paths = new ArrayList<>();
     BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
 
@@ -2783,6 +2785,59 @@ public class BigQueryPdao {
     }
 
     return paths;
+  }
+
+  private static final String exportToMappingTableTemplate =
+      "WITH datarepo_gs_path_mapping AS "
+          + "(SELECT file_id, gs_path "
+          + "  FROM `<project>.<snapshotDatasetName>.<gsPathMappingTable>`) "
+          + "SELECT "
+          + "  S.<pdaoRowIdColumn>,"
+          + "  <mappedColumns; separator=\",\"> "
+          + "FROM "
+          + "`<project>.<snapshotDatasetName>.<table>` S";
+
+  private String createExportToParquetWithGsPathQuery(
+      Snapshot snapshot, SnapshotTable table, String flightId) {
+    String gsPathMappingTableName = BigQueryUtils.gsPathMappingTableName(snapshot);
+    String extTableName = externalTableName(gsPathMappingTableName, flightId);
+    List<String> mappedColumns =
+        table.getColumns().stream().map(this::gsPathMappingSelectSql).collect(Collectors.toList());
+
+    return new ST(exportToMappingTableTemplate)
+        .add("project", snapshot.getProjectResource().getGoogleProjectId())
+        .add("snapshotDatasetName", snapshot.getName())
+        .add("gsPathMappingTable", extTableName)
+        .add("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN)
+        .add("mappedColumns", mappedColumns)
+        .add("table", table.getName())
+        .render();
+  }
+
+  private static final String fileRefMappingColumnTemplate =
+      "(SELECT gs_path "
+          + "FROM datarepo_gs_path_mapping "
+          + "WHERE RIGHT(S.<columnName>, 36) = file_id) AS <columnName>";
+
+  private static final String fileRefArrayOfMappingColumnTemplate =
+      "  ARRAY(SELECT gs_path "
+          + "    FROM UNNEST(<columnName>) AS unnested_drs_path, "
+          + "    datarepo_gs_path_mapping "
+          + "    WHERE RIGHT(unnested_drs_path, 36) = file_id) AS <columnName>";
+
+  private String gsPathMappingSelectSql(Column snapshotColumn) {
+    String columnName = snapshotColumn.getName();
+    if (snapshotColumn.isFileOrDirRef()) {
+      final String columnTemplate;
+      if (snapshotColumn.isArrayOf()) {
+        columnTemplate = fileRefArrayOfMappingColumnTemplate;
+      } else {
+        columnTemplate = fileRefMappingColumnTemplate;
+      }
+      return new ST(columnTemplate).add("columnName", columnName).render();
+    } else {
+      return "S." + snapshotColumn.getName();
+    }
   }
 
   public void migrateSchemaForTransactions(Dataset dataset) {
@@ -2824,62 +2879,6 @@ public class BigQueryPdao {
       }
     }
   }
-
-  private static final String exportToMappingTableTemplate =
-      "WITH datarepo_gs_path_mapping AS"
-          + "(SELECT file_id, gs_path"
-          + "  FROM `<project>.<snapshotDatasetName>.<gsPathMappingTable>`)"
-          + "SELECT"
-          + "  S.<pdaoRowIdColumn>,"
-          + "  <mappedColumns; separator=\",\">"
-          + "FROM"
-          + "`<project>.<snapshotDatasetName>.<table>` S";
-
-  private String createExportToParquetWithGsPathQuery(Snapshot snapshot, SnapshotTable table, String flightId) {
-    String gsPathMappingTableName = BigQueryUtils.gsPathMappingTableName(snapshot);
-    String extTableName = externalTableName(gsPathMappingTableName, flightId);
-    List<String> mappedColumns = table.getColumns().stream()
-        .map(this::gsPathMappingSelectSql)
-        .collect(Collectors.toList());
-
-    return new ST(exportToMappingTableTemplate)
-        .add("project", snapshot.getProjectResource().getGoogleProjectId())
-        .add("snapshotDatasetName", snapshot.getName())
-        .add("gsPathMappingTable", extTableName)
-        .add("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN)
-        .add("mappedColumns", mappedColumns)
-        .add("table", table.getName())
-        .render();
-  }
-
-  private static final String fileRefMappingColumnTemplate =
-      "(SELECT gs_path "
-          + "FROM datarepo_gs_path_mapping "
-          + "WHERE RIGHT(S.<columnName>, 36) = file_id) AS <columnName>";
-
-  private static final String fileRefArrayOfMappingColumnTemplate =
-      "  ARRAY(SELECT gs_path "
-          + "    FROM UNNEST(<columnName>) AS unnested_drs_path, "
-          + "    datarepo_gs_path_mapping "
-          + "    WHERE RIGHT(unnested_drs_path, 36) = file_id) AS <columnName>";
-
-  private String gsPathMappingSelectSql(Column snapshotColumn) {
-    String columnName = snapshotColumn.getName();
-    if (snapshotColumn.isFileOrDirRef()) {
-      final String columnTemplate;
-      if (snapshotColumn.isArrayOf()) {
-        columnTemplate = fileRefArrayOfMappingColumnTemplate;
-      } else {
-        columnTemplate = fileRefMappingColumnTemplate;
-      }
-      return new ST(columnTemplate)
-          .add("columnName", columnName)
-          .render();
-    } else {
-      return "S." + snapshotColumn.getName();
-    }
-  }
-
 
   /**
    * Run query up to a predetermined number of times until it's first success if the failed is a

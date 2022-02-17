@@ -1,5 +1,7 @@
 package bio.terra.service.snapshot.flight.export;
 
+import bio.terra.service.common.gcs.GcsUriUtils;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -28,10 +30,17 @@ public class SnapshotExportLoadMappingTableStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     FlightMap workingMap = context.getWorkingMap();
-    String firestoreDumpPath =
-        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_FIRESTORE_DUMP_PATH, String.class);
+    String gsPathMappingFile =
+        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_GSPATHS_FILENAME, String.class);
 
-    bigQueryPdao.createFirestoreGsPathExternalTable(snapshot, firestoreDumpPath, context.getFlightId());
+    GoogleBucketResource bucketResource =
+        workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
+
+    String gsPathMappingFilePath =
+        GcsUriUtils.getGsPathFromComponents(bucketResource.getName(), gsPathMappingFile);
+
+    bigQueryPdao.createFirestoreGsPathExternalTable(
+        snapshot, gsPathMappingFilePath, context.getFlightId());
     return StepResult.getStepResultSuccess();
   }
 

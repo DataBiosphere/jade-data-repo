@@ -86,7 +86,7 @@ public class SnapshotExportDumpFirestoreStep implements Step {
   }
 
   private String getFileName(FlightContext context) {
-    return String.format("%s-firestore-dump.json", context.getFlightId());
+    return String.format("%s_export_gs_path_mapping/gs_path_mapping.json", context.getFlightId());
   }
 
   @Override

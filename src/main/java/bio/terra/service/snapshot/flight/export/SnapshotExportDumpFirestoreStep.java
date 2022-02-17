@@ -1,7 +1,8 @@
 package bio.terra.service.snapshot.flight.export;
 
-import bio.terra.service.dataset.Dataset;
+import bio.terra.common.PdaoConstant;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -47,21 +48,18 @@ public class SnapshotExportDumpFirestoreStep implements Step {
     context.getWorkingMap().put(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_GSPATHS_FILENAME, fileName);
 
     try (GcsChannelWriter writer = makeWriterForDumpFile(context, fileName)) {
-      Dataset sourceDataset = snapshot.getSourceDataset();
-      String collectionName = String.format("%s-files", sourceDataset.getId());
-      QuerySnapshot queryResult =
-          fireStoreDao.retrieveCollectionByName(
-              sourceDataset.getProjectResource().getGoogleProjectId(), collectionName);
+      QuerySnapshot queryResult = fireStoreDao.retrieveFilesCollection(snapshot);
       // note, creates an empty file for empty query result
       for (QueryDocumentSnapshot d : queryResult.getDocuments()) {
         // convert to snake_case here to match column names in BQ
         Map<String, Object> dumpData =
             Map.of(
-                "file_id", d.getData().get("fileId"),
-                "gs_path", d.getData().get("gspath"));
+                PdaoConstant.PDAO_FIRESTORE_DUMP_FILE_ID_KEY,
+                    d.getData().get(FireStoreFile.FILE_ID_FIELD_NAME),
+                PdaoConstant.PDAO_FIRESTORE_DUMP_GSPATH_KEY,
+                    d.getData().get(FireStoreFile.GS_PATH_FIELD_NAME));
         try {
-          writer.write(objectMapper.writeValueAsString(dumpData));
-          writer.write("\n");
+          writer.writeLine(objectMapper.writeValueAsString(dumpData));
         } catch (JsonProcessingException e) {
           return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
         }

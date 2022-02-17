@@ -288,6 +288,20 @@ public class FireStoreDao {
         fileId);
   }
 
+  /**
+   * Given a snapshot, retrieve the -files metadata collection from its source Dataset Firestore
+   *
+   * @param snapshot target snapshot
+   * @return QuerySnapshot representation of the -files collection in source Dataset.
+   */
+  public QuerySnapshot retrieveFilesCollection(Snapshot snapshot)
+      throws ExecutionException, InterruptedException {
+    Dataset sourceDataset = snapshot.getSourceDataset();
+    String collectionName = String.format("%s-files", sourceDataset.getId());
+    return retrieveCollectionByName(
+        sourceDataset.getProjectResource().getGoogleProjectId(), collectionName);
+  }
+
   public QuerySnapshot retrieveCollectionByName(String projectId, String collectionName)
       throws ExecutionException, InterruptedException {
     final Firestore db = FireStoreProject.get(projectId).getFirestore();

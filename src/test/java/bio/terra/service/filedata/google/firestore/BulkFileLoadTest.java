@@ -193,20 +193,20 @@ public class BulkFileLoadTest {
     try (GcsChannelWriter writer =
         new GcsChannelWriter(storage, testConfig.getIngestbucket(), targetPath)) {
       for (int i = 0; i < badLines; i++) {
-        String badLine = "bad line: " + loadTag + "\n";
-        writer.write(badLine);
+        String badLine = "bad line: " + loadTag;
+        writer.writeLine(badLine);
       }
 
       for (int i = 0; i < fileCount; i++) {
         BulkLoadFileModel fileModel =
             FileOperationTest.getFileModel(validPattern[i], startIndex + i, testId);
-        String fileLine = objectMapper.writeValueAsString(fileModel) + "\n";
+        String fileLine = objectMapper.writeValueAsString(fileModel);
         // Inject extra key-value pairs into file lines
         if (addExtraKeys) {
           fileLine = fileLine.replaceFirst("^\\{", "{\"customKey\":\"customValue\",");
           logger.info("Added extra keys: " + fileLine);
         }
-        writer.write(fileLine);
+        writer.writeLine(fileLine);
       }
     } catch (IOException ex) {
       fail(

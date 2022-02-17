@@ -33,7 +33,10 @@ public class DeleteSnapshotMarkProjectStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     UUID projectId = workingMap.get(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
 
-    resourceService.markProjectsForDelete(List.of(projectId));
+    List<UUID> projectsToBeDeleted =
+        resourceService.markUnusedProjectsForDelete(List.of(projectId));
+
+    workingMap.put(SnapshotWorkingMapKeys.PROJECTS_MARKED_FOR_DELETE, projectsToBeDeleted);
 
     return StepResult.getStepResultSuccess();
   }

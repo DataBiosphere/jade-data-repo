@@ -18,6 +18,9 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TransactionCloseModel.ModeEnum;
+import bio.terra.model.TransactionCreateModel;
+import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
@@ -25,6 +28,9 @@ import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
 import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
 import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
+import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
+import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
+import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -280,6 +286,70 @@ public class DatasetService {
     } else {
       datasetDao.unlockExclusive(datasetId, flightId);
     }
+  }
+
+  public String openTransaction(
+      UUID id, TransactionCreateModel transactionRequest, AuthenticatedUserRequest userReq) {
+    String name;
+    if (StringUtils.isEmpty(transactionRequest.getDescription())) {
+      name = UUID.randomUUID().toString();
+    } else {
+      name = transactionRequest.getDescription();
+    }
+    String description = "Create transaction " + name;
+    return jobService
+        .newJob(description, TransactionOpenFlight.class, transactionRequest, userReq)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+        .submit();
+  }
+
+  public List<TransactionModel> enumerateTransactions(UUID id, long limit, long offset) {
+    Dataset dataset = retrieve(id);
+    try {
+      return bigQueryPdao.enumerateTransactions(dataset, limit, offset);
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Error enumerating transactions", e);
+    }
+  }
+
+  public TransactionModel retrieveTransaction(UUID id, UUID transactionId) {
+    Dataset retrieve = retrieve(id);
+    try {
+      return bigQueryPdao.retrieveTransaction(retrieve, transactionId);
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Error retrieving transaction", e);
+    }
+  }
+
+  public String closeTransaction(
+      UUID id, UUID transactionId, AuthenticatedUserRequest userReq, ModeEnum mode) {
+    switch (mode) {
+      case COMMIT:
+        return commitTransaction(id, transactionId, userReq);
+      case ROLLBACK:
+        return rollbackTransaction(id, transactionId, userReq);
+      default:
+        throw new IllegalArgumentException(String.format("Invalid terminal state %s", mode));
+    }
+  }
+
+  private String commitTransaction(UUID id, UUID transactionId, AuthenticatedUserRequest userReq) {
+    String description = "Commit transaction " + transactionId + " in dataset " + id;
+    return jobService
+        .newJob(description, TransactionCommitFlight.class, null, userReq)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.TRANSACTION_ID.getKeyName(), transactionId)
+        .submit();
+  }
+
+  private String rollbackTransaction(
+      UUID id, UUID transactionId, AuthenticatedUserRequest userReq) {
+    String description = "Rollback transaction " + transactionId + " in dataset " + id;
+    return jobService
+        .newJob(description, TransactionRollbackFlight.class, null, userReq)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.TRANSACTION_ID.getKeyName(), transactionId)
+        .submit();
   }
 
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {

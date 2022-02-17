@@ -1,23 +1,39 @@
 package bio.terra.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.startsWith;
 
+import bio.terra.common.BQTestUtils;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.model.AccessInfoBigQueryModelTable;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.TransactionCloseModel;
+import bio.terra.model.TransactionCloseModel.ModeEnum;
+import bio.terra.model.TransactionCreateModel;
+import bio.terra.model.TransactionModel;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
+import bio.terra.service.tabulardata.google.BigQueryProject;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.cloud.bigquery.TableResult;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -38,6 +54,8 @@ public class IngestTest extends UsersBase {
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
   @Autowired private DataRepoClient dataRepoClient;
+
+  @Autowired private JsonLoader jsonLoader;
 
   @Autowired private TestConfiguration testConfig;
 
@@ -69,15 +87,129 @@ public class IngestTest extends UsersBase {
     }
   }
 
-  @Ignore // subset of the snapshot test; not worth running everytime, but useful for debugging
   @Test
-  public void ingestParticipants() throws Exception {
+  public void ingestAndUpdateParticipants() throws Exception {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
+
+    IngestRequestModel updateIngestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest("participant", "ingest-test/ingest-test-update-participant.json")
+            .updateStrategy(UpdateStrategyEnum.REPLACE);
+    IngestResponseModel updateIngestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, updateIngestRequest);
+    assertThat(
+        "correct updated participant row count", updateIngestResponse.getRowCount(), equalTo(3L));
+
+    // Two of the rows should have overlapped so we should now see 6 rows
+    // TODO: once the preview API GA and works for datasets, we should use that here
+    DatasetModel dataset =
+        dataRepoFixtures.getDataset(
+            steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
+    BigQueryProject bigQueryProject =
+        BigQueryProject.get(dataset.getAccessInformation().getBigQuery().getProjectId());
+    AccessInfoBigQueryModelTable bqTableInfo =
+        dataset.getAccessInformation().getBigQuery().getTables().stream()
+            .filter(t -> t.getName().equals("participant"))
+            .findFirst()
+            .orElseThrow();
+    // Note: the sample query is just a formatted select * query against the table
+    TableResult bqQueryResult = bigQueryProject.query(bqTableInfo.getSampleQuery());
+
+    assertThat("Expected number of rows are present", bqQueryResult.getTotalRows(), equalTo(6L));
+    List<Map<String, Object>> results =
+        BQTestUtils.mapToList(bqQueryResult, "id", "age", "children", "donated");
+
+    List<Map<String, Object>> dataOrig =
+        jsonLoader.loadObjectAsStream("ingest-test-participant.json", new TypeReference<>() {});
+    List<Map<String, Object>> dataUpd =
+        jsonLoader.loadObjectAsStream(
+            "ingest-test-update-participant.json", new TypeReference<>() {});
+    assertThat(
+        "Values match",
+        results,
+        containsInAnyOrder(
+            dataOrig.get(0), // ID = participant_1
+            dataOrig.get(1), // ID = participant_2
+            dataOrig.get(2), // ID = participant_3
+            // Updated values
+            dataUpd.get(0), // ID = participant_4
+            dataUpd.get(1), // ID = participant_5
+            dataUpd.get(2) // ID = participant_6
+            ));
+  }
+
+  @Test
+  public void ingestAndUpdateParticipantsWithTransaction() throws Exception {
+    TransactionModel transaction =
+        dataRepoFixtures.openTransaction(
+            steward(), datasetId, new TransactionCreateModel().description("foo"));
+    UUID badTransaction = UUID.randomUUID();
+    IngestRequestModel ingestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest("participant", "ingest-test/ingest-test-participant.json")
+            // Bogus transaction should fail
+            .transactionId(badTransaction);
+
+    // Should fail with unrecognized transaction
+    DataRepoResponse<IngestResponseModel> badIngestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, ingestRequest);
+    assertThat(
+        "Could not find transaction",
+        badIngestResponse.getStatusCode(),
+        equalTo(HttpStatus.NOT_FOUND));
+
+    assertThat(
+        "Error message looks reasonable",
+        badIngestResponse.getErrorObject().get().getMessage(),
+        startsWith(String.format("Transaction %s not found in dataset", badTransaction)));
+
+    ingestRequest.transactionId(transaction.getId());
+
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
+
+    IngestRequestModel updateIngestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest("participant", "ingest-test/ingest-test-update-participant.json")
+            .updateStrategy(UpdateStrategyEnum.REPLACE)
+            .transactionId(transaction.getId());
+    IngestResponseModel updateIngestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, updateIngestRequest);
+    assertThat(
+        "correct updated participant row count", updateIngestResponse.getRowCount(), equalTo(3L));
+
+    // Two of the rows should have overlapped so we should now see 6 rows
+    // TODO: once the preview API GA and works for datasets, we should use that here
+    DatasetModel dataset =
+        dataRepoFixtures.getDataset(
+            steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
+    BigQueryProject bigQueryProject =
+        BigQueryProject.get(dataset.getAccessInformation().getBigQuery().getProjectId());
+    AccessInfoBigQueryModelTable bqTableInfo =
+        dataset.getAccessInformation().getBigQuery().getTables().stream()
+            .filter(t -> t.getName().equals("participant"))
+            .findFirst()
+            .orElseThrow();
+    // Note: the sample query is just a formatted select * query against the table
+    TableResult bqQueryResult = bigQueryProject.query(bqTableInfo.getSampleQuery());
+
+    assertThat("No commit so rows aren't there", bqQueryResult.getTotalRows(), equalTo(0L));
+
+    // Commit and rows should now be present
+    dataRepoFixtures.closeTransaction(
+        steward(),
+        datasetId,
+        transaction.getId(),
+        new TransactionCloseModel().mode(ModeEnum.COMMIT));
+
+    TableResult bqQueryResultCommitted = bigQueryProject.query(bqTableInfo.getSampleQuery());
+    assertThat("Committed rows are there", bqQueryResultCommitted.getTotalRows(), equalTo(6L));
   }
 
   @Test

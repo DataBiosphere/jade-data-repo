@@ -199,8 +199,8 @@ public class GoogleProjectService {
     return resourceDao.markUnusedProjectsForDelete(profileId);
   }
 
-  public void markProjectsForDelete(List<UUID> projectIds) {
-    resourceDao.markProjectsForDelete(projectIds);
+  public List<UUID> markUnusedProjectsForDelete(List<UUID> projectResourceIds) {
+    return resourceDao.markUnusedProjectsForDelete(projectResourceIds);
   }
 
   public void deleteUnusedProjects(List<UUID> projectIdList) {
@@ -251,10 +251,7 @@ public class GoogleProjectService {
   @VisibleForTesting
   void deleteGoogleProject(UUID resourceId) {
     GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(resourceId);
-    Integer datasetsInUse = resourceDao.countDatasetsUsingProject(resourceId);
-    Integer snapshotsInUse = resourceDao.countSnapshotsUsingProject(resourceId);
-    resourceManagerService.deleteProject(
-        projectResource.getGoogleProjectId(), datasetsInUse, snapshotsInUse);
+    resourceManagerService.deleteProject(projectResource.getGoogleProjectId());
   }
 
   @VisibleForTesting

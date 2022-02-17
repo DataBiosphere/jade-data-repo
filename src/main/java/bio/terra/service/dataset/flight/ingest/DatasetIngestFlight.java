@@ -16,6 +16,11 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.dataset.flight.transactions.TransactionCommitStep;
+import bio.terra.service.dataset.flight.transactions.TransactionLockStep;
+import bio.terra.service.dataset.flight.transactions.TransactionOpenStep;
+import bio.terra.service.dataset.flight.transactions.TransactionUnlockStep;
+import bio.terra.service.dataset.flight.transactions.upgrade.TransactionUpgradeSingleDatasetStep;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -93,6 +98,13 @@ public class DatasetIngestFlight extends Flight {
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
+    if (cloudPlatform.isGcp()) {
+      // Migrate the dataset schema if needed
+      addStep(new LockDatasetStep(datasetService, datasetId, false), lockDatasetRetry);
+      addStep(new TransactionUpgradeSingleDatasetStep(datasetService, bigQueryPdao, datasetId));
+      addStep(new UnlockDatasetStep(datasetService, datasetId, false), lockDatasetRetry);
+    }
+
     if (cloudPlatform.isAzure()) {
       addStep(
           new AuthorizeBillingProfileUseStep(
@@ -102,6 +114,29 @@ public class DatasetIngestFlight extends Flight {
     }
 
     addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
+    boolean autocommit;
+    if (cloudPlatform.isGcp()) {
+      if (ingestRequestModel.getTransactionId() == null) {
+        // Note: don't unlock transaction so we keep a history of what flight an auto-commit
+        // transaction was created for
+        String transactionDesc = "Autocommit transaction";
+        addStep(
+            new TransactionOpenStep(
+                datasetService, bigQueryPdao, userReq, transactionDesc, false, false));
+        autocommit = true;
+      } else {
+        addStep(
+            new TransactionLockStep(
+                datasetService,
+                bigQueryPdao,
+                ingestRequestModel.getTransactionId(),
+                true,
+                userReq));
+        autocommit = false;
+      }
+    } else {
+      autocommit = true;
+    }
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 
@@ -167,9 +202,19 @@ public class DatasetIngestFlight extends Flight {
           new NonCombinedFileIngestOptionalStep(
               new IngestCopyControlFileStep(datasetService, gcsPdao)));
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
+      if (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE) {
+        // Ensure that no duplicate IDs are being loaded in
+        addStep(new IngestValidateIngestRowsStep(datasetService, bigQueryPdao));
+        // Soft deletes rows from the target table
+        addStep(
+            new IngestSoftDeleteExistingRowsStep(
+                datasetService, bigQueryPdao, userReq, autocommit));
+      }
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
-      addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao, userReq));
+      // Loads data into the final target raw data table
+      addStep(
+          new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao, userReq, autocommit));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
       addStep(new IngestScratchFileDeleteGcpStep(gcsPdao));
     } else if (cloudPlatform.isAzure()) {
@@ -182,6 +227,15 @@ public class DatasetIngestFlight extends Flight {
           new IngestValidateAzureRefsStep(
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
+    }
+    if (cloudPlatform.isGcp()) {
+      if (!autocommit) {
+        addStep(
+            new TransactionUnlockStep(
+                datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), userReq));
+      } else {
+        addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, false, null));
+      }
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
   }

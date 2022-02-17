@@ -42,7 +42,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.289.0-SNAPSHOT'
+    version '1.297.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -219,7 +219,7 @@ dependencies {
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
         implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
     } else {
-        implementation 'bio.terra:stairway:0.0.66-SNAPSHOT'
+        implementation 'bio.terra:stairway:0.0.69-SNAPSHOT'
     }
 
     // Similar development mode for pointing to terra common library
@@ -408,7 +408,7 @@ jar {
 jib {
     extraDirectories.paths = ['build/gen-expanded']
     from {
-        image = "gcr.io/distroless/java-debian10:11"
+        image = "gcr.io/distroless/java11-debian11"
     }
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())

@@ -50,6 +50,9 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.TransactionCloseModel;
+import bio.terra.model.TransactionCreateModel;
+import bio.terra.model.TransactionModel;
 import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -961,6 +964,68 @@ public class DataRepoFixtures {
         .maxBadRecords(0)
         .table(table)
         .path(gsPath);
+  }
+
+  // Transaction methods
+  public TransactionModel openTransaction(
+      TestConfiguration.User user, UUID datasetId, TransactionCreateModel requestModel)
+      throws Exception {
+    String json = TestUtils.mapToJson(requestModel);
+    DataRepoResponse<JobModel> post =
+        dataRepoClient.post(
+            user,
+            "/api/repository/v1/datasets/" + datasetId + "/transactions",
+            json,
+            JobModel.class);
+    return waitForTransactionCreate(user, post);
+  }
+
+  private TransactionModel waitForTransactionCreate(
+      TestConfiguration.User user, DataRepoResponse<JobModel> jobResponse) throws Exception {
+    assertTrue(
+        "transaction create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(
+        "transaction create launch response is present",
+        jobResponse.getResponseObject().isPresent());
+
+    DataRepoResponse<TransactionModel> response =
+        dataRepoClient.waitForResponseLog(user, jobResponse, TransactionModel.class);
+    logger.info("Response was: {}", response);
+    assertThat(
+        "transaction create is successful", response.getStatusCode(), equalTo(HttpStatus.CREATED));
+    assertTrue("transaction create response is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
+  }
+
+  public TransactionModel closeTransaction(
+      TestConfiguration.User user,
+      UUID datasetId,
+      UUID transactionId,
+      TransactionCloseModel requestModel)
+      throws Exception {
+    String json = TestUtils.mapToJson(requestModel);
+    DataRepoResponse<JobModel> post =
+        dataRepoClient.post(
+            user,
+            "/api/repository/v1/datasets/" + datasetId + "/transactions/" + transactionId,
+            json,
+            JobModel.class);
+    return waitForTransactionClose(user, post);
+  }
+
+  private TransactionModel waitForTransactionClose(
+      TestConfiguration.User user, DataRepoResponse<JobModel> jobResponse) throws Exception {
+    assertTrue("transaction close launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(
+        "transaction close launch response is present",
+        jobResponse.getResponseObject().isPresent());
+
+    DataRepoResponse<TransactionModel> response =
+        dataRepoClient.waitForResponseLog(user, jobResponse, TransactionModel.class);
+    logger.info("Response was: {}", response);
+    assertThat("transaction close is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+    assertTrue("transaction close response is present", response.getResponseObject().isPresent());
+    return response.getResponseObject().get();
   }
 
   // Configuration methods

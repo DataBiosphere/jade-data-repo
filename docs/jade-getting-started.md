@@ -117,7 +117,7 @@ and **Community** (open-source). We recommend the Ultimate Edition to Broad
 employees for its database navigation capabilities. Alternatively, the Community
 Edition has all the features needed for development, and this version can be
 installed by switching `intellij-idea` with `intellij-idea-ce` in the Brewfile.
-9. [Skaffold](https://github.com/GoogleContainerTools/skaffold) is a command line 
+9. [Skaffold](https://github.com/GoogleContainerTools/skaffold) is a command line
 tool that facilitates continuous development for Kubernetes applications.  It is
 used to test local changes against personal environments.
 
@@ -313,7 +313,6 @@ export DB_MIGRATE_DROPALLONSTART=true
 
 # Setting for testing environment (Further explaned in oncall playbook)
 export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
-export GOOGLE_ALLOWREUSEEXISTINGPROJECTS=true
 
 # Setting for credentials to test on Azure
 export AZURE_CREDENTIALS_HOMETENANTID=<value from the top of .github/workflows/int-and-connected-test-run.yml>

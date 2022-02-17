@@ -7,6 +7,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.kubernetes.KubeService;
 import bio.terra.common.stairway.StairwayComponent;
 import bio.terra.model.JobModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
@@ -21,6 +22,7 @@ import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightFilter;
 import bio.terra.stairway.FlightFilterOp;
+import bio.terra.stairway.FlightFilterSortDirection;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -29,11 +31,11 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -247,6 +249,7 @@ public class JobService {
 
     return new JobModel()
         .id(flightState.getFlightId())
+        .className(flightState.getClassName())
         .description(description)
         .jobStatus(jobStatus)
         .statusCode(statusCode.value())
@@ -271,7 +274,12 @@ public class JobService {
     return JobModel.JobStatusEnum.FAILED;
   }
 
-  public List<JobModel> enumerateJobs(int offset, int limit, AuthenticatedUserRequest userReq) {
+  public List<JobModel> enumerateJobs(
+      int offset,
+      int limit,
+      AuthenticatedUserRequest userReq,
+      SqlSortDirection direction,
+      String className) {
 
     boolean canListAnyJob = checkUserCanListAnyJob(userReq);
 
@@ -286,17 +294,30 @@ public class JobService {
             JobMapKeys.SUBJECT_ID.getKeyName(), FlightFilterOp.EQUAL, userReq.getSubjectId());
       }
 
+      // Set the order to use to return values
+      switch (direction) {
+        case ASC:
+          filter.submittedTimeSortDirection(FlightFilterSortDirection.ASC);
+          break;
+        case DESC:
+          filter.submittedTimeSortDirection(FlightFilterSortDirection.DESC);
+          break;
+        default:
+          throw new IllegalArgumentException(String.format("Unrecognized direction %s", direction));
+      }
+      // Filter on FQ class name if specified
+      if (!StringUtils.isEmpty(className)) {
+        filter.addFilterFlightClass(FlightFilterOp.EQUAL, className);
+      }
+
       flightStateList = stairway.getFlights(offset, limit, filter);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
 
-    List<JobModel> jobModelList = new ArrayList<>();
-    for (FlightState flightState : flightStateList) {
-      JobModel jobModel = mapFlightStateToJobModel(flightState);
-      jobModelList.add(jobModel);
-    }
-    return jobModelList;
+    return flightStateList.stream()
+        .map(this::mapFlightStateToJobModel)
+        .collect(Collectors.toList());
   }
 
   public JobModel retrieveJob(String jobId, AuthenticatedUserRequest userReq) {

@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
@@ -79,6 +80,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 // Common code for creating and deleting datasets and snapshots via MockMvc
 // and tracking what is created so it can be deleted.
@@ -506,16 +508,31 @@ public class ConnectedOperations {
 
   public MvcResult ingestTableRaw(UUID datasetId, IngestRequestModel ingestRequestModel)
       throws Exception {
+    return ingestTableRaw(datasetId, ingestRequestModel, null);
+  }
+
+  public MvcResult ingestTableRaw(
+      UUID datasetId, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq)
+      throws Exception {
     String jsonRequest = TestUtils.mapToJson(ingestRequestModel);
     String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
 
-    return mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(jsonRequest))
+    return mvc.perform(
+            performAs(post(url), userReq)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonRequest))
         .andReturn();
   }
 
   public IngestResponseModel ingestTableSuccess(
       UUID datasetId, IngestRequestModel ingestRequestModel) throws Exception {
-    MvcResult result = ingestTableRaw(datasetId, ingestRequestModel);
+    return ingestTableSuccess(datasetId, ingestRequestModel, null);
+  }
+
+  public IngestResponseModel ingestTableSuccess(
+      UUID datasetId, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userRequest)
+      throws Exception {
+    MvcResult result = ingestTableRaw(datasetId, ingestRequestModel, userRequest);
     MockHttpServletResponse response = validateJobModelAndWait(result);
 
     IngestResponseModel ingestResponse = checkIngestTableResponse(response);
@@ -532,7 +549,13 @@ public class ConnectedOperations {
 
   public ErrorModel ingestTableFailure(UUID datasetId, IngestRequestModel ingestRequestModel)
       throws Exception {
-    MvcResult result = ingestTableRaw(datasetId, ingestRequestModel);
+    return ingestTableFailure(datasetId, ingestRequestModel, null);
+  }
+
+  public ErrorModel ingestTableFailure(
+      UUID datasetId, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userRequest)
+      throws Exception {
+    MvcResult result = ingestTableRaw(datasetId, ingestRequestModel, userRequest);
     MockHttpServletResponse response = validateJobModelAndWait(result);
     return handleFailureCase(response);
   }
@@ -930,6 +953,14 @@ public class ConnectedOperations {
     if (fileToRemove != null) {
       createdFileIds.remove(fileToRemove);
     }
+  }
+
+  private MockHttpServletRequestBuilder performAs(
+      MockHttpServletRequestBuilder requestBuilder, AuthenticatedUserRequest userReq) {
+    if (userReq != null) {
+      requestBuilder.header("From", userReq.getEmail());
+    }
+    return requestBuilder;
   }
 
   public void addBucket(String bucketName) {

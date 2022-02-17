@@ -86,22 +86,15 @@ public class GoogleResourceManagerService {
     }
   }
 
-  public void deleteProject(String googleProjectId, Integer datasetsInUse, Integer snapshotsInUse) {
-    // Don't actually delete the project if we are reusing projects!
-    int totalUsingProject = datasetsInUse + snapshotsInUse;
-    logger.info("Total using project: " + totalUsingProject);
-    if (resourceConfiguration.getAllowReuseExistingProjects() || totalUsingProject > 0) {
-      logger.info("Reusing projects: skipping delete of {}", googleProjectId);
-    } else {
-      try {
-        CloudResourceManager resourceManager = cloudResourceManager();
-        CloudResourceManager.Projects.Delete request =
-            resourceManager.projects().delete(googleProjectId);
-        // the response will be empty if the request is successful in the delete
-        request.execute();
-      } catch (IOException | GeneralSecurityException e) {
-        throw new GoogleResourceException("Could not delete project", e);
-      }
+  public void deleteProject(String googleProjectId) {
+    try {
+      CloudResourceManager resourceManager = cloudResourceManager();
+      CloudResourceManager.Projects.Delete request =
+          resourceManager.projects().delete(googleProjectId);
+      // the response will be empty if the request is successful in the delete
+      request.execute();
+    } catch (IOException | GeneralSecurityException e) {
+      throw new GoogleResourceException("Could not delete project", e);
     }
   }
 

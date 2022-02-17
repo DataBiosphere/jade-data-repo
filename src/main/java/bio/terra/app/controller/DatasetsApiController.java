@@ -23,11 +23,15 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TransactionCloseModel;
+import bio.terra.model.TransactionCreateModel;
+import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DataDeletionRequestValidator;
 import bio.terra.service.dataset.Dataset;
@@ -189,6 +193,10 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> ingestDataset(
       @PathVariable("id") UUID id, @Valid @RequestBody IngestRequestModel ingest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    // Set default strategy to by append
+    if (ingest.getUpdateStrategy() == null) {
+      ingest.updateStrategy(UpdateStrategyEnum.APPEND);
+    }
     validateIngestParams(ingest, id);
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
@@ -208,7 +216,7 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<JobModel> removeDatasetAssetSpecifications(
-      @PathVariable("id") UUID id, @PathVariable("assetId") String assetId) {
+      @PathVariable("id") UUID id, @PathVariable("assetid") String assetId) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
@@ -348,6 +356,42 @@ public class DatasetsApiController implements DatasetsApi {
     List<String> roles =
         iamService.retrieveUserRoles(getAuthenticatedInfo(), IamResourceType.DATASET, id);
     return new ResponseEntity<>(roles, HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<JobModel> openTransaction(UUID id, TransactionCreateModel body) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    String jobId = datasetService.openTransaction(id, body, userReq);
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
+  public ResponseEntity<JobModel> closeTransaction(
+      UUID id, UUID transactionId, TransactionCloseModel body) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    String jobId = datasetService.closeTransaction(id, transactionId, userReq, body.getMode());
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
+  public ResponseEntity<List<TransactionModel>> enumerateTransactions(
+      UUID id, Integer offset, Integer limit) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    return new ResponseEntity<>(
+        datasetService.enumerateTransactions(id, offset, limit), HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<TransactionModel> retrieveTransaction(UUID id, UUID transactionId) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    return new ResponseEntity<>(
+        datasetService.retrieveTransaction(id, transactionId), HttpStatus.OK);
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

@@ -14,6 +14,7 @@ import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
@@ -23,6 +24,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
@@ -193,8 +195,14 @@ public final class BigQueryProject {
   }
 
   public TableResult query(String sql) throws InterruptedException {
+    return query(sql, Map.of());
+  }
+
+  public TableResult query(String sql, Map<String, QueryParameterValue> values)
+      throws InterruptedException {
     try {
-      QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+      QueryJobConfiguration queryConfig =
+          QueryJobConfiguration.newBuilder(sql).setNamedParameters(values).build();
       return bigQuery.query(queryConfig);
     } catch (BigQueryException e) {
       throw new PdaoException("Failure executing query...\n" + sql, e);

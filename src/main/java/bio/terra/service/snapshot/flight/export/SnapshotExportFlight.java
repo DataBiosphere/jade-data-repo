@@ -38,7 +38,7 @@ public class SnapshotExportFlight extends Flight {
     addStep(
         new SnapshotExportDumpFirestoreStep(
             snapshotService, fireStoreDao, snapshotId, objectMapper));
-
+    addStep(new SnapshotExportLoadMappingTableStep(snapshotId, snapshotService, bigQueryPdao));
     addStep(
         new SnapshotExportCreateParquetFilesStep(
             bigQueryPdao, gcsPdao, snapshotService, snapshotId));

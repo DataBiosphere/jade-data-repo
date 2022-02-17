@@ -26,6 +26,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Dataset;
@@ -185,7 +186,7 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
     logger.info("Attempting to create the snapshot with the name: {}", requestModel.getName());
 
     DataRepoResponse<ErrorModel> snapshotResponse =
-        dataRepoClient.waitForResponse(steward(), jobResponse, ErrorModel.class);
+        dataRepoClient.waitForResponse(steward(), jobResponse, new TypeReference<>() {});
 
     assertThat("error is present", snapshotResponse.getErrorObject().isPresent(), equalTo(true));
     assertThat(

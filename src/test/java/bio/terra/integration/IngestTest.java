@@ -265,7 +265,7 @@ public class IngestTest extends UsersBase {
     DataRepoResponse<JobModel> ingestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, IngestResponseModel.class);
+        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
     assertThat(
         "failure is explained",
@@ -280,7 +280,7 @@ public class IngestTest extends UsersBase {
     DataRepoResponse<JobModel> ingestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, IngestResponseModel.class);
+        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
     assertThat(
         "failure is explained",
@@ -296,7 +296,7 @@ public class IngestTest extends UsersBase {
     DataRepoResponse<JobModel> ingestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, IngestResponseModel.class);
+        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
     assertThat(
         "failure is explained",
@@ -311,7 +311,7 @@ public class IngestTest extends UsersBase {
     DataRepoResponse<JobModel> ingestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, IngestResponseModel.class);
+        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
     assertThat(
         "failure is explained",

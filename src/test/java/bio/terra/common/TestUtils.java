@@ -248,6 +248,20 @@ public final class TestUtils {
     }
   }
 
+  public static <T> T mapFromJson(String content) throws IOException {
+    try {
+      return objectMapper.readValue(content, new TypeReference<>() {});
+    } catch (IOException ex) {
+      logger.error(
+          "unable to map JSON response to "
+              + (new TypeReference<T>() {}).getType()
+              + " JSON: "
+              + content,
+          ex);
+      throw ex;
+    }
+  }
+
   public static String mapToJson(Object value) {
     try {
       return objectMapper.writeValueAsString(value);

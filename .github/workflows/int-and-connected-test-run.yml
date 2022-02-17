@@ -159,6 +159,12 @@ jobs:
           name: code-coverage-report
           path: build/jacocoHtml
           retention-days: 10
+      - name: "Archive junit test reports"
+        uses: actions/upload-artifact@v2
+        with:
+          name: junit-test-report
+          path: build/reports
+          retention-days: 10
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.61.0

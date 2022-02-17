@@ -9,10 +9,12 @@ import static org.junit.Assert.assertEquals;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -33,6 +35,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -65,6 +68,10 @@ public class SnapshotIntegrationTest extends UsersBase {
   private UUID datasetId;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
   private String stewardToken;
+
+  @Autowired private TestConfiguration testConfig;
+
+  @Rule public TestJobWatcher testWatcher = new TestJobWatcher(testConfig);
 
   @Before
   public void setup() throws Exception {

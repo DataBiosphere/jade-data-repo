@@ -3,6 +3,8 @@ package bio.terra.service.tabulardata.google;
 import static bio.terra.common.PdaoConstant.PDAO_DELETED_AT_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_DELETED_BY_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_FIRESTORE_DUMP_FILE_ID_KEY;
+import static bio.terra.common.PdaoConstant.PDAO_FIRESTORE_DUMP_GSPATH_KEY;
 import static bio.terra.common.PdaoConstant.PDAO_FLIGHT_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_INGESTED_BY_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS;
@@ -2470,8 +2472,8 @@ public class BigQueryPdao {
     TableId tableId = TableId.of(snapshot.getName(), extTableName);
     Schema schema =
         Schema.of(
-            Field.of("file_id", LegacySQLTypeName.STRING),
-            Field.of("gs_path", LegacySQLTypeName.STRING));
+            Field.of(PDAO_FIRESTORE_DUMP_FILE_ID_KEY, LegacySQLTypeName.STRING),
+            Field.of(PDAO_FIRESTORE_DUMP_GSPATH_KEY, LegacySQLTypeName.STRING));
     ExternalTableDefinition tableDef =
         ExternalTableDefinition.of(path, schema, FormatOptions.json());
     TableInfo tableInfo = TableInfo.of(tableId, tableDef);
@@ -2789,7 +2791,7 @@ public class BigQueryPdao {
 
   private static final String exportToMappingTableTemplate =
       "WITH datarepo_gs_path_mapping AS "
-          + "(SELECT file_id, gs_path "
+          + "(SELECT <fileIdKey>, <gsPathKey> "
           + "  FROM `<project>.<snapshotDatasetName>.<gsPathMappingTable>`) "
           + "SELECT "
           + "  S.<pdaoRowIdColumn>,"
@@ -2811,19 +2813,21 @@ public class BigQueryPdao {
         .add("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN)
         .add("mappedColumns", mappedColumns)
         .add("table", table.getName())
+        .add("gsPathKey", PDAO_FIRESTORE_DUMP_GSPATH_KEY)
+        .add("fileIdKey", PDAO_FIRESTORE_DUMP_FILE_ID_KEY)
         .render();
   }
 
   private static final String fileRefMappingColumnTemplate =
-      "(SELECT gs_path "
+      "(SELECT <gsPathKey> "
           + "FROM datarepo_gs_path_mapping "
-          + "WHERE RIGHT(S.<columnName>, 36) = file_id) AS <columnName>";
+          + "WHERE RIGHT(S.<columnName>, 36) = <fileIdKey>) AS <columnName>";
 
   private static final String fileRefArrayOfMappingColumnTemplate =
-      "  ARRAY(SELECT gs_path "
+      "  ARRAY(SELECT <gsPathKey> "
           + "    FROM UNNEST(<columnName>) AS unnested_drs_path, "
           + "    datarepo_gs_path_mapping "
-          + "    WHERE RIGHT(unnested_drs_path, 36) = file_id) AS <columnName>";
+          + "    WHERE RIGHT(unnested_drs_path, 36) = <fileIdKey>) AS <columnName>";
 
   private String gsPathMappingSelectSql(Column snapshotColumn) {
     String columnName = snapshotColumn.getName();
@@ -2834,7 +2838,10 @@ public class BigQueryPdao {
       } else {
         columnTemplate = fileRefMappingColumnTemplate;
       }
-      return new ST(columnTemplate).add("columnName", columnName).render();
+      return new ST(columnTemplate)
+          .add("columnName", columnName)
+          .add("gsPathKey", PDAO_FIRESTORE_DUMP_GSPATH_KEY)
+          .add("fileIdKey", PDAO_FIRESTORE_DUMP_FILE_ID_KEY).render();
     } else {
       return "S." + snapshotColumn.getName();
     }

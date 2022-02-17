@@ -2841,7 +2841,8 @@ public class BigQueryPdao {
       return new ST(columnTemplate)
           .add("columnName", columnName)
           .add("gsPathKey", PDAO_FIRESTORE_DUMP_GSPATH_KEY)
-          .add("fileIdKey", PDAO_FIRESTORE_DUMP_FILE_ID_KEY).render();
+          .add("fileIdKey", PDAO_FIRESTORE_DUMP_FILE_ID_KEY)
+          .render();
     } else {
       return "S." + snapshotColumn.getName();
     }

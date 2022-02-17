@@ -398,16 +398,15 @@ public class SnapshotDaoTest {
       assertThat(
           "dataset project id matches",
           snapshotProject.getFirstSourceDatasetProject().getId(),
-          equalTo(snapshot.getFirstSnapshotSource().getDataset().getId()));
+          equalTo(snapshot.getSourceDataset().getId()));
       assertThat(
           "dataset project name matches",
           snapshotProject.getFirstSourceDatasetProject().getName(),
-          equalTo(snapshot.getFirstSnapshotSource().getDataset().getName()));
+          equalTo(snapshot.getSourceDataset().getName()));
       assertThat(
           "dataset project profile id matches",
           snapshotProject.getFirstSourceDatasetProject().getProfileId(),
-          equalTo(
-              snapshot.getFirstSnapshotSource().getDataset().getProjectResource().getProfileId()));
+          equalTo(snapshot.getSourceDataset().getProjectResource().getProfileId()));
       assertThat(
           "dataset project data project name matches",
           snapshotProject.getFirstSourceDatasetProject().getDataProject(),

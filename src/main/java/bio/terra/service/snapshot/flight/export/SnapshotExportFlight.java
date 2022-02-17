@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -23,6 +24,7 @@ public class SnapshotExportFlight extends Flight {
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    FireStoreDao fireStoreDao = appContext.getBean(FireStoreDao.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ObjectMapper objectMapper = appConfig.objectMapper();
 
@@ -32,6 +34,11 @@ public class SnapshotExportFlight extends Flight {
         UUID.fromString(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
 
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
+    // todo: move this behind API flag
+    addStep(
+        new SnapshotExportDumpFirestoreStep(
+            snapshotService, fireStoreDao, snapshotId, objectMapper));
+
     addStep(
         new SnapshotExportCreateParquetFilesStep(
             bigQueryPdao, gcsPdao, snapshotService, snapshotId));

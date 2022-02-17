@@ -2019,16 +2019,12 @@ public class BigQueryPdao {
       // and thus matches the PDAO_ROW_ID_COLUMN
       AssetTable rootAssetTable = assetSpecification.getRootTable();
       DatasetTable rootTable = rootAssetTable.getTable();
-      String datasetTableName = rootTable.getName();
       String rootTableId = rootTable.getId().toString();
 
       ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
       sqlTemplate.add("snapshotProject", snapshotProjectId);
       sqlTemplate.add("snapshotDatasetName", snapshotName);
       sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
-      //      sqlTemplate.add("datasetProject", datasetProjectId);
-      //      sqlTemplate.add("datasetDatasetName", datasetBqDatasetName);
-      //      sqlTemplate.add("datasetTable", datasetTableName);
       sqlTemplate.add(
           "liveViewSql",
           renderLiveViewSql(datasetProjectId, datasetBqDatasetName, rootTable, null, createdAt));

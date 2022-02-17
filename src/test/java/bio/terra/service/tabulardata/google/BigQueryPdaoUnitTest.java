@@ -2,11 +2,13 @@ package bio.terra.service.tabulardata.google;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
+import static bio.terra.service.tabulardata.google.BigQueryPdao.prefixName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,6 +51,7 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.TableId;
@@ -105,6 +108,8 @@ public class BigQueryPdaoUnitTest {
   private static final String TABLE_2_COL3_NAME = "col3b";
   private static final UUID TABLE_2_COL3_ID = UUID.randomUUID();
   private static final UUID SNAPSHOT_TABLE_2_COL3_ID = UUID.randomUUID();
+
+  private static final Instant CREATED_AT = Instant.parse("2022-01-01T00:00:00.00Z");
 
   @Mock private ApplicationConfiguration applicationConfiguration;
   @Mock private BigQueryConfiguration bigQueryConfiguration;
@@ -163,6 +168,7 @@ public class BigQueryPdaoUnitTest {
   public void testGetSnapshotRefIds() throws InterruptedException {
     String value1 = "value1";
     String value2 = "value2";
+
     BQTestUtils.mockBQQuery(
         bigQueryProjectSnapshot,
         "SELECT "
@@ -205,6 +211,7 @@ public class BigQueryPdaoUnitTest {
 
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
 
     BQTestUtils.mockBQQuery(
         bigQueryProjectDataset,
@@ -214,13 +221,10 @@ public class BigQueryPdaoUnitTest {
             + "','"
             + input2
             + "']) AS input_value) AS V "
-            + "LEFT JOIN `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` AS T "
+            + "LEFT JOIN ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") AS T "
             + "ON V.input_value = CAST(T."
             + TABLE_1_COL1_NAME
             + " AS STRING)",
@@ -232,7 +236,7 @@ public class BigQueryPdaoUnitTest {
             Map.of("datarepo_row_id", drRowId2, "input_value", input2)));
 
     assertThat(
-        dao.mapValuesToRows(snapshot.getFirstSnapshotSource(), List.of(input1, input2)),
+        dao.mapValuesToRows(snapshot.getFirstSnapshotSource(), List.of(input1, input2), CREATED_AT),
         samePropertyValuesAs(
             new RowIdMatch().addMatch(input1, drRowId1).addMatch(input2, drRowId2)));
   }
@@ -245,6 +249,7 @@ public class BigQueryPdaoUnitTest {
 
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
 
     BQTestUtils.mockBQQuery(
         bigQueryProjectDataset,
@@ -256,13 +261,10 @@ public class BigQueryPdaoUnitTest {
             + "','"
             + ipt3
             + "']) AS input_value) AS V "
-            + "LEFT JOIN `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` AS T "
+            + "LEFT JOIN ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") AS T "
             + "ON V.input_value = CAST(T."
             + TABLE_1_COL1_NAME
             + " AS STRING)",
@@ -276,7 +278,8 @@ public class BigQueryPdaoUnitTest {
 
     // Check that mismatches are also identified
     assertThat(
-        dao.mapValuesToRows(snapshot.getFirstSnapshotSource(), List.of(ipt1, ipt2, ipt3)),
+        dao.mapValuesToRows(
+            snapshot.getFirstSnapshotSource(), List.of(ipt1, ipt2, ipt3), CREATED_AT),
         samePropertyValuesAs(
             new RowIdMatch().addMatch(ipt1, drRowId1).addMatch(ipt2, drRowId2).addMismatch(ipt3)));
   }
@@ -285,7 +288,7 @@ public class BigQueryPdaoUnitTest {
   public void testCreateSnapshotEmptyRowIds() throws InterruptedException {
     mockNumRowIds(snapshot, TABLE_1_NAME, 0);
 
-    dao.createSnapshot(snapshot, Collections.emptyList());
+    dao.createSnapshot(snapshot, Collections.emptyList(), CREATED_AT);
 
     verify(bigQueryProjectSnapshot, times(1))
         .createDataset(SNAPSHOT_NAME, SNAPSHOT_DESCRIPTION, GoogleRegion.NORTHAMERICA_NORTHEAST1);
@@ -371,7 +374,7 @@ public class BigQueryPdaoUnitTest {
 
     assertThrows(
         PdaoException.class,
-        () -> dao.createSnapshot(snapshot, List.of(UUID.randomUUID().toString())),
+        () -> dao.createSnapshot(snapshot, List.of(UUID.randomUUID().toString()), CREATED_AT),
         "Invalid row ids supplied");
   }
 
@@ -379,6 +382,8 @@ public class BigQueryPdaoUnitTest {
   public void testCreateSnapshotWithRowIds() throws InterruptedException {
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
+    DatasetTable table2 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(1);
     String rootTblId =
         snapshot
             .getFirstSnapshotSource()
@@ -389,7 +394,7 @@ public class BigQueryPdaoUnitTest {
             .toString();
     mockNumRowIds(snapshot, TABLE_1_NAME, 2);
 
-    dao.createSnapshot(snapshot, List.of(drRowId1, drRowId2));
+    dao.createSnapshot(snapshot, List.of(drRowId1, drRowId2), CREATED_AT);
 
     verify(bigQueryProjectSnapshot, times(1))
         .createDataset(SNAPSHOT_NAME, SNAPSHOT_DESCRIPTION, GoogleRegion.NORTHAMERICA_NORTHEAST1);
@@ -421,20 +426,14 @@ public class BigQueryPdaoUnitTest {
                         + TABLE_2_ID
                         + "' AS datarepo_table_id, "
                         + "T.datarepo_row_id "
-                        + "FROM `"
-                        + DATASET_PROJECT_ID
-                        + ".datarepo_"
-                        + DATASET_NAME
-                        + "."
-                        + TABLE_2_NAME
-                        + "` T, "
-                        + "`"
-                        + DATASET_PROJECT_ID
-                        + ".datarepo_"
-                        + DATASET_NAME
-                        + "."
-                        + TABLE_1_NAME
-                        + "` F, "
+                        + "FROM ("
+                        + BigQueryPdao.renderLiveViewSql(
+                            DATASET_PROJECT_ID, prefixName(DATASET_NAME), table2, null, CREATED_AT)
+                        + ") T, "
+                        + "("
+                        + BigQueryPdao.renderLiveViewSql(
+                            DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+                        + ") F, "
                         + "`"
                         + SNAPSHOT_PROJECT_ID
                         + "."
@@ -458,6 +457,10 @@ public class BigQueryPdaoUnitTest {
                         + ".datarepo_row_ids`)")
                 .setDestinationTable(TableId.of(SNAPSHOT_NAME, "datarepo_row_ids"))
                 .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+                .setNamedParameters(
+                    Map.of(
+                        "transactionTerminatedAt",
+                        QueryParameterValue.timestamp(CREATED_AT.toEpochMilli() * 1000)))
                 .build());
 
     verify(bigQuerySnapshot, times(1))
@@ -536,6 +539,9 @@ public class BigQueryPdaoUnitTest {
 
   @Test
   public void testCreateSnapshotWithLiveViews() throws InterruptedException {
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
+    DatasetTable table2 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(1);
+
     // Make sure that validation is called and returns
     BQTestUtils.mockBQQuery(
         bigQueryProjectSnapshot,
@@ -548,7 +554,8 @@ public class BigQueryPdaoUnitTest {
         Schema.of(Field.of("cnt", LegacySQLTypeName.NUMERIC)),
         List.of(Map.of("cnt", UUID.randomUUID().toString())));
 
-    dao.createSnapshotWithLiveViews(snapshot, snapshot.getFirstSnapshotSource().getDataset());
+    dao.createSnapshotWithLiveViews(
+        snapshot, snapshot.getFirstSnapshotSource().getDataset(), CREATED_AT);
 
     // Make sure that rowId table is created
     verify(bigQueryProjectSnapshot, times(1))
@@ -562,33 +569,32 @@ public class BigQueryPdaoUnitTest {
     // Make sure that rowIds are inserted
     verify(bigQueryProjectSnapshot, times(1))
         .query(
-            "INSERT INTO `"
-                + SNAPSHOT_PROJECT_ID
-                + "."
-                + SNAPSHOT_NAME
-                + ".datarepo_row_ids` "
-                + "(datarepo_table_id, datarepo_row_id) "
-                + "(SELECT '"
-                + TABLE_1_ID
-                + "', datarepo_row_id "
-                + "FROM `"
-                + DATASET_PROJECT_ID
-                + ".datarepo_"
-                + DATASET_NAME
-                + "."
-                + TABLE_1_NAME
-                + "`) "
-                + "UNION ALL "
-                + "(SELECT '"
-                + TABLE_2_ID
-                + "', datarepo_row_id "
-                + "FROM `"
-                + DATASET_PROJECT_ID
-                + ".datarepo_"
-                + DATASET_NAME
-                + "."
-                + TABLE_2_NAME
-                + "`)");
+            eq(
+                "INSERT INTO `"
+                    + SNAPSHOT_PROJECT_ID
+                    + "."
+                    + SNAPSHOT_NAME
+                    + ".datarepo_row_ids` "
+                    + "(datarepo_table_id, datarepo_row_id) "
+                    + "(SELECT '"
+                    + TABLE_1_ID
+                    + "', datarepo_row_id "
+                    + "FROM ("
+                    + BigQueryPdao.renderLiveViewSql(
+                        DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+                    + ") AS L) "
+                    + "UNION ALL "
+                    + "(SELECT '"
+                    + TABLE_2_ID
+                    + "', datarepo_row_id "
+                    + "FROM ("
+                    + BigQueryPdao.renderLiveViewSql(
+                        DATASET_PROJECT_ID, prefixName(DATASET_NAME), table2, null, CREATED_AT)
+                    + ") AS L)"),
+            eq(
+                Map.of(
+                    "transactionTerminatedAt",
+                    QueryParameterValue.timestamp(CREATED_AT.toEpochMilli() * 1000))));
   }
 
   @Test
@@ -609,21 +615,20 @@ public class BigQueryPdaoUnitTest {
         PdaoException.class,
         () ->
             dao.createSnapshotWithLiveViews(
-                snapshot, snapshot.getFirstSnapshotSource().getDataset()),
+                snapshot, snapshot.getFirstSnapshotSource().getDataset(), CREATED_AT),
         "This snapshot is empty");
   }
 
   @Test
   public void testQueryForRowIds() throws InterruptedException {
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
+
     String query =
         "SELECT datarepo_row_id "
-            + "FROM `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` "
+            + "FROM ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") "
             + "WHERE "
             + TABLE_1_COL2_NAME
             + " = 'abc'";
@@ -632,6 +637,10 @@ public class BigQueryPdaoUnitTest {
         QueryJobConfiguration.newBuilder(query)
             .setDestinationTable(TableId.of(SNAPSHOT_NAME, "datarepo_temp"))
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+            .setNamedParameters(
+                Map.of(
+                    "transactionTerminatedAt",
+                    QueryParameterValue.timestamp(CREATED_AT.toEpochMilli() * 1000)))
             .build();
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();
@@ -651,13 +660,10 @@ public class BigQueryPdaoUnitTest {
             + "."
             + SNAPSHOT_NAME
             + ".datarepo_temp` AS T "
-            + "LEFT JOIN `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` AS D "
+            + "LEFT JOIN ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") AS D "
             + "USING ( datarepo_row_id ) "
             + "WHERE D.datarepo_row_id IS NULL",
         Schema.of(Field.of("cnt", LegacySQLTypeName.STRING)),
@@ -666,7 +672,7 @@ public class BigQueryPdaoUnitTest {
     AssetSpecification assetSpecification =
         snapshot.getFirstSnapshotSource().getAssetSpecification();
     AssetTable rootTable = assetSpecification.getRootTable();
-    dao.queryForRowIds(assetSpecification, snapshot, query);
+    dao.queryForRowIds(assetSpecification, snapshot, query, CREATED_AT);
 
     verify(bigQueryProjectSnapshot, times(1))
         .query(
@@ -689,15 +695,14 @@ public class BigQueryPdaoUnitTest {
 
   @Test
   public void testQueryForRowIdsQueryIsEmpty() throws InterruptedException {
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
+
     String query =
         "SELECT datarepo_row_id "
-            + "FROM `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` "
+            + "FROM ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") "
             + "WHERE "
             + TABLE_1_NAME
             + "."
@@ -708,6 +713,10 @@ public class BigQueryPdaoUnitTest {
         QueryJobConfiguration.newBuilder(query)
             .setDestinationTable(TableId.of(SNAPSHOT_NAME, "datarepo_temp"))
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+            .setNamedParameters(
+                Map.of(
+                    "transactionTerminatedAt",
+                    QueryParameterValue.timestamp(CREATED_AT.toEpochMilli() * 1000)))
             .build();
 
     // Mock query that is passed in
@@ -720,21 +729,23 @@ public class BigQueryPdaoUnitTest {
         InvalidQueryException.class,
         () ->
             dao.queryForRowIds(
-                snapshot.getFirstSnapshotSource().getAssetSpecification(), snapshot, query),
+                snapshot.getFirstSnapshotSource().getAssetSpecification(),
+                snapshot,
+                query,
+                CREATED_AT),
         "Query returned 0 results");
   }
 
   @Test
   public void testQueryForRowIdsValidationFails() throws InterruptedException {
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
+
     String query =
         "SELECT datarepo_row_id "
-            + "FROM `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` "
+            + "FROM ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") "
             + "WHERE "
             + TABLE_1_COL2_NAME
             + " = 'abc'";
@@ -743,6 +754,10 @@ public class BigQueryPdaoUnitTest {
         QueryJobConfiguration.newBuilder(query)
             .setDestinationTable(TableId.of(SNAPSHOT_NAME, "datarepo_temp"))
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+            .setNamedParameters(
+                Map.of(
+                    "transactionTerminatedAt",
+                    QueryParameterValue.timestamp(CREATED_AT.toEpochMilli() * 1000)))
             .build();
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();
@@ -762,13 +777,10 @@ public class BigQueryPdaoUnitTest {
             + "."
             + SNAPSHOT_NAME
             + ".datarepo_temp` AS T "
-            + "LEFT JOIN `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` AS D "
+            + "LEFT JOIN ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") AS D "
             + "USING ( datarepo_row_id ) "
             + "WHERE D.datarepo_row_id IS NULL",
         Schema.of(Field.of("cnt", LegacySQLTypeName.STRING)),
@@ -778,7 +790,10 @@ public class BigQueryPdaoUnitTest {
         MismatchedValueException.class,
         () ->
             dao.queryForRowIds(
-                snapshot.getFirstSnapshotSource().getAssetSpecification(), snapshot, query),
+                snapshot.getFirstSnapshotSource().getAssetSpecification(),
+                snapshot,
+                query,
+                CREATED_AT),
         "Query results did not match dataset root row ids");
   }
 
@@ -786,6 +801,7 @@ public class BigQueryPdaoUnitTest {
   public void testMatchRowIds() throws InterruptedException {
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
 
     BQTestUtils.mockBQQuery(
         bigQueryProjectDataset,
@@ -795,13 +811,10 @@ public class BigQueryPdaoUnitTest {
             + "','"
             + drRowId2
             + "']) AS input_value) AS V "
-            + "LEFT JOIN `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` AS T "
+            + "LEFT JOIN ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
         Schema.of(
             Field.of("datarepo_row_id", LegacySQLTypeName.STRING),
@@ -814,7 +827,8 @@ public class BigQueryPdaoUnitTest {
         dao.matchRowIds(
             snapshot.getFirstSnapshotSource(),
             TABLE_1_NAME,
-            List.of(UUID.fromString(drRowId1), UUID.fromString(drRowId2))),
+            List.of(UUID.fromString(drRowId1), UUID.fromString(drRowId2)),
+            CREATED_AT),
         samePropertyValuesAs(
             new RowIdMatch().addMatch(drRowId1, drRowId1).addMatch(drRowId2, drRowId2)));
   }
@@ -824,7 +838,7 @@ public class BigQueryPdaoUnitTest {
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();
     String drRowId3 = UUID.randomUUID().toString();
-
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
     BQTestUtils.mockBQQuery(
         bigQueryProjectDataset,
         "SELECT T.datarepo_row_id, V.input_value FROM ("
@@ -836,13 +850,10 @@ public class BigQueryPdaoUnitTest {
             + drRowId3
             + "']) AS "
             + "input_value) AS V "
-            + "LEFT JOIN `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` AS T "
+            + "LEFT JOIN ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
         Schema.of(
             Field.of("datarepo_row_id", LegacySQLTypeName.STRING),
@@ -857,7 +868,8 @@ public class BigQueryPdaoUnitTest {
             snapshot.getFirstSnapshotSource(),
             TABLE_1_NAME,
             List.of(
-                UUID.fromString(drRowId1), UUID.fromString(drRowId2), UUID.fromString(drRowId3))),
+                UUID.fromString(drRowId1), UUID.fromString(drRowId2), UUID.fromString(drRowId3)),
+            CREATED_AT),
         samePropertyValuesAs(
             new RowIdMatch()
                 .addMatch(drRowId1, drRowId1)
@@ -869,6 +881,7 @@ public class BigQueryPdaoUnitTest {
   public void testCreateSnapshotWithProvidedIds() throws InterruptedException {
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
 
     BQTestUtils.mockBQQuery(
         bigQueryProjectDataset,
@@ -878,13 +891,10 @@ public class BigQueryPdaoUnitTest {
             + "','"
             + drRowId2
             + "']) AS input_value) AS V "
-            + "LEFT JOIN `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` AS T "
+            + "LEFT JOIN ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
         Schema.of(
             Field.of("datarepo_row_id", LegacySQLTypeName.STRING),
@@ -906,7 +916,7 @@ public class BigQueryPdaoUnitTest {
                             .addColumnsItem(TABLE_2_COL1_NAME)
                             .addColumnsItem(TABLE_2_COL2_NAME)
                             .tableName(TABLE_2_NAME)));
-    dao.createSnapshotWithProvidedIds(snapshot, requestModel);
+    dao.createSnapshotWithProvidedIds(snapshot, requestModel, CREATED_AT);
 
     // Verify that the rowIds are properly copied
     verify(bigQueryProjectSnapshot, times(1))
@@ -932,6 +942,7 @@ public class BigQueryPdaoUnitTest {
   public void testCreateSnapshotWithProvidedIdsWithInvalidRowIds() throws InterruptedException {
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();
+    DatasetTable table1 = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
 
     BQTestUtils.mockBQQuery(
         bigQueryProjectDataset,
@@ -941,13 +952,10 @@ public class BigQueryPdaoUnitTest {
             + "','"
             + drRowId2
             + "']) AS input_value) AS V "
-            + "LEFT JOIN `"
-            + DATASET_PROJECT_ID
-            + ".datarepo_"
-            + DATASET_NAME
-            + "."
-            + TABLE_1_NAME
-            + "` AS T "
+            + "LEFT JOIN ("
+            + BigQueryPdao.renderLiveViewSql(
+                DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
+            + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
         Schema.of(
             Field.of("datarepo_row_id", LegacySQLTypeName.STRING),
@@ -971,7 +979,7 @@ public class BigQueryPdaoUnitTest {
                             .tableName(TABLE_2_NAME)));
     assertThrows(
         PdaoException.class,
-        () -> dao.createSnapshotWithProvidedIds(snapshot, requestModel),
+        () -> dao.createSnapshotWithProvidedIds(snapshot, requestModel, CREATED_AT),
         "Invalid row ids supplied");
 
     // Verify that the rowIds are properly copied (make sure that it still actually happens)
@@ -1149,16 +1157,15 @@ public class BigQueryPdaoUnitTest {
     String datasetName = snapshot.getFirstSnapshotSource().getDataset().getName();
     String snapshotProjectId = snapshot.getProjectResource().getGoogleProjectId();
     String snapshotName = snapshot.getName();
+    DatasetTable table =
+        snapshot.getFirstSnapshotSource().getDataset().getTableByName(tableName).orElseThrow();
     BQTestUtils.mockBQQuery(
         bigQueryProjectSnapshot,
         "SELECT COUNT(1) "
-            + "FROM `"
-            + datasetProjectId
-            + ".datarepo_"
-            + datasetName
-            + "."
-            + tableName
-            + "` AS T, "
+            + "FROM ("
+            + BigQueryPdao.renderLiveViewSql(
+                datasetProjectId, prefixName(datasetName), table, null, CREATED_AT)
+            + ") AS T, "
             + "`"
             + snapshotProjectId
             + "."

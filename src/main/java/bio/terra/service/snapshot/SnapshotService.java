@@ -631,7 +631,8 @@ public class SnapshotService {
             .id(snapshot.getId())
             .name(snapshot.getName())
             .description(snapshot.getDescription())
-            .createdDate(snapshot.getCreatedDate().toString());
+            .createdDate(snapshot.getCreatedDate().toString())
+            .consentCode(snapshot.getConsentCode());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRetrieveIncludeModel.NONE)) {

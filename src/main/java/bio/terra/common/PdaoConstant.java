@@ -34,4 +34,6 @@ public final class PdaoConstant {
   public static final String PDAO_FLIGHT_ID_COLUMN = "flight_id";
   public static final String PDAO_DELETED_AT_COLUMN = "deleted_at";
   public static final String PDAO_DELETED_BY_COLUMN = "deleted_by";
+  public static final String PDAO_FIRESTORE_DUMP_FILE_ID_KEY = "file_id";
+  public static final String PDAO_FIRESTORE_DUMP_GSPATH_KEY = "gs_path";
 }

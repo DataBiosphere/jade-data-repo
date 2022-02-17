@@ -150,12 +150,9 @@ public class BigQueryPdaoUnitTest {
         Schema.of(Field.of(TABLE_1_COL1_NAME, LegacySQLTypeName.STRING)),
         List.of(Map.of(TABLE_1_COL1_NAME, value1), Map.of(TABLE_1_COL1_NAME, value2)));
 
-    DatasetTable table = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
+    DatasetTable table = snapshot.getSourceDataset().getTables().get(0);
     assertThat(
-        dao.getRefIds(
-            snapshot.getFirstSnapshotSource().getDataset(),
-            table.getName(),
-            table.getColumns().get(0)),
+        dao.getRefIds(snapshot.getSourceDataset(), table.getName(), table.getColumns().get(0)),
         equalTo(List.of(value1, value2)));
   }
 
@@ -187,10 +184,10 @@ public class BigQueryPdaoUnitTest {
         Schema.of(Field.of(TABLE_1_COL1_NAME, LegacySQLTypeName.STRING)),
         List.of(Map.of(TABLE_1_COL1_NAME, value1), Map.of(TABLE_1_COL1_NAME, value2)));
 
-    DatasetTable table = snapshot.getFirstSnapshotSource().getDataset().getTables().get(0);
+    DatasetTable table = snapshot.getSourceDataset().getTables().get(0);
     assertThat(
         dao.getSnapshotRefIds(
-            snapshot.getFirstSnapshotSource().getDataset(),
+            snapshot.getSourceDataset(),
             snapshot,
             table.getName(),
             table.getId().toString(),
@@ -548,7 +545,7 @@ public class BigQueryPdaoUnitTest {
         Schema.of(Field.of("cnt", LegacySQLTypeName.NUMERIC)),
         List.of(Map.of("cnt", UUID.randomUUID().toString())));
 
-    dao.createSnapshotWithLiveViews(snapshot, snapshot.getFirstSnapshotSource().getDataset());
+    dao.createSnapshotWithLiveViews(snapshot, snapshot.getSourceDataset());
 
     // Make sure that rowId table is created
     verify(bigQueryProjectSnapshot, times(1))
@@ -607,9 +604,7 @@ public class BigQueryPdaoUnitTest {
 
     assertThrows(
         PdaoException.class,
-        () ->
-            dao.createSnapshotWithLiveViews(
-                snapshot, snapshot.getFirstSnapshotSource().getDataset()),
+        () -> dao.createSnapshotWithLiveViews(snapshot, snapshot.getSourceDataset()),
         "This snapshot is empty");
   }
 
@@ -1144,9 +1139,8 @@ public class BigQueryPdaoUnitTest {
   }
 
   private void mockNumRowIds(Snapshot snapshot, String tableName, int numRowIds) {
-    String datasetProjectId =
-        snapshot.getFirstSnapshotSource().getDataset().getProjectResource().getGoogleProjectId();
-    String datasetName = snapshot.getFirstSnapshotSource().getDataset().getName();
+    String datasetProjectId = snapshot.getSourceDataset().getProjectResource().getGoogleProjectId();
+    String datasetName = snapshot.getSourceDataset().getName();
     String snapshotProjectId = snapshot.getProjectResource().getGoogleProjectId();
     String snapshotName = snapshot.getName();
     BQTestUtils.mockBQQuery(

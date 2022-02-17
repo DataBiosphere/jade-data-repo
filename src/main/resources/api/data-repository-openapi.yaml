@@ -3088,6 +3088,9 @@ components:
         secureMonitoringEnabled:
           type: boolean
           default: false
+        phsId:
+          type: string
+          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
       description: >
@@ -3122,6 +3125,9 @@ components:
         storageAccount:
           type: string
           description: The azure storage account of this dataset
+        phsId:
+          type: string
+          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -3147,6 +3153,9 @@ components:
         enableSecureMonitoring:
           type: boolean
           default: false
+        phsId:
+          type: string
+          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     DatasetRequestAccessIncludeModel:

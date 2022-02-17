@@ -50,6 +50,7 @@
     <include file="changesets/20211209_datasetrequireslogging.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220112_addsnapshotcreatemode.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220202_adddatasetandsnapshottablecolumnorder.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220217_addphsidandconsentcodecolumn.yaml" relativeToChangelogFile="true" />
 
 
 </databaseChangeLog>

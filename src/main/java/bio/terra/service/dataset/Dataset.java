@@ -225,6 +225,10 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return datasetSummary.isSecureMonitoringEnabled();
   }
 
+  public String getPhsId() {
+    return datasetSummary.getPhsId();
+  }
+
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());

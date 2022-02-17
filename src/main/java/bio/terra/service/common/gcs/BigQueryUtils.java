@@ -9,7 +9,7 @@ public class BigQueryUtils {
     return context.getFlightId().replace('-', '_');
   }
 
-  public static String firestoreDumpTableName(Snapshot snapshot) {
+  public static String gsPathMappingTableName(Snapshot snapshot) {
     return snapshot.getName() + "_gspath_mapping";
   }
 }

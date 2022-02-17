@@ -87,21 +87,25 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
 
     DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-    datasetId = datasetSummaryModel.getId();
-    dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    UUID datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel request =
-        dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json");
-    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
-    request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path("gs://jade-testdata-useastregion/snapshot-export-array-fileid.json");
+
     dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(
-            steward(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
+            steward(),
+            datasetSummaryModel.getName(),
+            profileId,
+            "dataset-ingest-combined-array-snapshot.json");
 
     snapshotId = snapshotSummary.getId();
   }

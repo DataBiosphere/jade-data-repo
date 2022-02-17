@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.export;
 
-import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -12,13 +11,13 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
 
-public class SnapshotExportWriteMappingTable implements Step {
+public class SnapshotExportLoadMappingTableStep implements Step {
 
   private final UUID snapshotId;
   private final SnapshotService snapshotService;
   private final BigQueryPdao bigQueryPdao;
 
-  public SnapshotExportWriteMappingTable(
+  public SnapshotExportLoadMappingTableStep(
       UUID snapshotId, SnapshotService snapshotService, BigQueryPdao bigQueryPdao) {
     this.snapshotId = snapshotId;
     this.snapshotService = snapshotService;
@@ -31,18 +30,15 @@ public class SnapshotExportWriteMappingTable implements Step {
     FlightMap workingMap = context.getWorkingMap();
     String firestoreDumpPath =
         workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_FIRESTORE_DUMP_PATH, String.class);
-    String tableName = BigQueryUtils.firestoreDumpTableName(snapshot);
-    String suffix = BigQueryUtils.getSuffix(context);
-    bigQueryPdao.createFirestoreGsPathExternalTable(snapshot, firestoreDumpPath, tableName, suffix);
+
+    bigQueryPdao.createFirestoreGsPathExternalTable(snapshot, firestoreDumpPath, context.getFlightId());
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    String tableName = BigQueryUtils.firestoreDumpTableName(snapshot);
-    String suffix = BigQueryUtils.getSuffix(context);
-    bigQueryPdao.deleteExternalTable(snapshot, tableName, suffix);
+    bigQueryPdao.deleteFirestoreGsPathExternalTable(snapshot, context.getFlightId());
     return StepResult.getStepResultSuccess();
   }
 }

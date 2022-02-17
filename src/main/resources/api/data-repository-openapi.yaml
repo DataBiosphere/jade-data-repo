@@ -3821,6 +3821,9 @@ components:
         description:
           type: string
           description: Description of the snapshot
+        consentCode:
+          type: string
+          description: Consent code together with PHS Id that will determine user access
         contents:
           type: array
           items:
@@ -3948,6 +3951,12 @@ components:
         secureMonitoringEnabled:
           type: boolean
           default: false
+        consentCode:
+          type: string
+          description: Consent code together with PHS Id that will determine user access
+        phsId:
+          type: string
+          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
         dataProject:
@@ -3986,6 +3995,9 @@ components:
         createdDate:
           type: string
           description: Date the snapshot was created
+        consentCode:
+          type: string
+          description: Consent code together with PHS Id that will determine user access
         source:
           type: array
           items:

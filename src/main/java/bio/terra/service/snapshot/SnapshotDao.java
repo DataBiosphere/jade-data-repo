@@ -168,8 +168,8 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, flightid, creation_information) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :flightid, :creation_information::jsonb) ";
+        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information) "
+            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb) ";
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
@@ -184,6 +184,7 @@ public class SnapshotDao {
             .addValue("profile_id", snapshot.getProfileId())
             .addValue("project_resource_id", snapshot.getProjectResourceId())
             .addValue("id", snapshot.getId())
+            .addValue("consent_code", snapshot.getConsentCode())
             .addValue("flightid", flightId)
             .addValue("creation_information", creationInfo);
     try {
@@ -396,7 +397,8 @@ public class SnapshotDao {
                       .projectResourceId(rs.getObject("project_resource_id", UUID.class))
                       .creationInformation(
                           stringToSnapshotRequestContentsModel(
-                              rs.getString("creation_information"))));
+                              rs.getString("creation_information")))
+                      .consentCode(rs.getString("consent_code")));
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
         // retrieve the snapshot tables and relationships
@@ -591,7 +593,7 @@ public class SnapshotDao {
 
     String sql =
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-            + "snapshot_source.id, dataset.secure_monitoring, "
+            + "snapshot_source.id, dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, "
             + summaryCloudPlatformQuery
             + snapshotSourceStorageQuery
             + "FROM snapshot "
@@ -617,7 +619,7 @@ public class SnapshotDao {
     logger.debug("retrieve snapshot summary for id: " + id);
     try {
       String sql =
-          "SELECT snapshot.*, dataset.secure_monitoring, "
+          "SELECT snapshot.*, dataset.secure_monitoring, dataset.phs_id, "
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
@@ -639,7 +641,7 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-              + "dataset.secure_monitoring, "
+              + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, "
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
@@ -702,7 +704,9 @@ public class SnapshotDao {
           .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"))
           .cloudPlatform(snapshotCloudPlatform)
           .dataProject(rs.getString("google_project_id"))
-          .storageAccount(rs.getString("storage_account_name"));
+          .storageAccount(rs.getString("storage_account_name"))
+          .consentCode(rs.getString("consent_code"))
+          .phsId(rs.getString("phs_id"));
     }
   }
 }

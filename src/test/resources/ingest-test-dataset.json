@@ -1,6 +1,7 @@
 {
   "name":        "IngestTest",
   "description": "Dataset for testing ingest",
+  "phsId": "phs100321",
   "schema":      {
     "tables":        [
       {

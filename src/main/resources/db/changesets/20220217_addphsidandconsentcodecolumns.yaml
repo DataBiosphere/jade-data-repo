@@ -7,13 +7,13 @@ databaseChangeLog:
             tableName: dataset
             columns:
               name: phs_id
-              type: text
+              type: varchar(100)
               constraints:
                 nullable: true
         - addColumn:
             tableName: snapshot
             columns:
               name: consent_code
-              type: text
+              type: varchar(100)
               constraints:
                 nullable: true

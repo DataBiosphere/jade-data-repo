@@ -18,13 +18,16 @@ import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
+import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QuerySnapshot;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -283,6 +286,28 @@ public class FireStoreDao {
         enumerateDepth,
         fireStoreDirectoryEntry,
         fileId);
+  }
+
+  /**
+   * Given a snapshot, retrieve the -files metadata collection from its source Dataset Firestore
+   *
+   * @param snapshot target snapshot
+   * @return QuerySnapshot representation of the -files collection in source Dataset.
+   */
+  public QuerySnapshot retrieveFilesCollection(Snapshot snapshot)
+      throws ExecutionException, InterruptedException {
+    Dataset sourceDataset = snapshot.getSourceDataset();
+    String collectionName = String.format("%s-files", sourceDataset.getId());
+    return retrieveCollectionByName(
+        sourceDataset.getProjectResource().getGoogleProjectId(), collectionName);
+  }
+
+  public QuerySnapshot retrieveCollectionByName(String projectId, String collectionName)
+      throws ExecutionException, InterruptedException {
+    final Firestore db = FireStoreProject.get(projectId).getFirestore();
+    ;
+    final CollectionReference collection = db.collection(collectionName);
+    return collection.get().get();
   }
 
   public FSItem retrieveBySnapshotAndId(SnapshotProject snapshot, String fileId, int enumerateDepth)

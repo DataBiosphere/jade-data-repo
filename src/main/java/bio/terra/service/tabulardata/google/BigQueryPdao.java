@@ -564,8 +564,7 @@ public class BigQueryPdao {
     String snapshotProjectId = snapshotBigQueryProject.getProjectId();
 
     // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-    BigQueryProject datasetBigQueryProject =
-        BigQueryProject.from(snapshot.getFirstSnapshotSource().getDataset());
+    BigQueryProject datasetBigQueryProject = BigQueryProject.from(snapshot.getSourceDataset());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
 
     String snapshotName = snapshot.getName();
@@ -739,8 +738,7 @@ public class BigQueryPdao {
     String snapshotProjectId = snapshotBigQueryProject.getProjectId();
 
     // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-    BigQueryProject datasetBigQueryProject =
-        BigQueryProject.from(snapshot.getFirstSnapshotSource().getDataset());
+    BigQueryProject datasetBigQueryProject = BigQueryProject.from(snapshot.getSourceDataset());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
 
     String snapshotName = snapshot.getName();
@@ -1928,7 +1926,7 @@ public class BigQueryPdao {
 
     // dataset
     // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-    Dataset dataset = snapshot.getFirstSnapshotSource().getDataset();
+    Dataset dataset = snapshot.getSourceDataset();
     String datasetBqDatasetName = prefixName(dataset.getName());
     BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
     String datasetProjectId = datasetBigQueryProject.getProjectId();
@@ -2232,8 +2230,7 @@ public class BigQueryPdao {
   private void deleteViewAcls(
       String datasetBqDatasetName, Snapshot snapshot, String snapshotProjectId)
       throws InterruptedException {
-    BigQueryProject bigQueryDatasetProject =
-        BigQueryProject.from(snapshot.getFirstSnapshotSource().getDataset());
+    BigQueryProject bigQueryDatasetProject = BigQueryProject.from(snapshot.getSourceDataset());
 
     List<String> viewsToDelete =
         snapshot.getTables().stream()

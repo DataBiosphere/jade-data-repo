@@ -5,6 +5,7 @@ import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.service.common.CommonFlightUtils;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
@@ -16,6 +17,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -44,12 +46,14 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     SnapshotSource source = snapshot.getFirstSnapshotSource();
     SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
+    Instant createdAt = CommonFlightUtils.getCreatedAt(context);
 
     // for each table, make sure all of the row ids match
     for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
       List<UUID> rowIds = table.getRowIds();
       if (!rowIds.isEmpty()) {
-        RowIdMatch rowIdMatch = bigQueryPdao.matchRowIds(source, table.getTableName(), rowIds);
+        RowIdMatch rowIdMatch =
+            bigQueryPdao.matchRowIds(source, table.getTableName(), rowIds, createdAt);
         if (!rowIdMatch.getUnmatchedInputValues().isEmpty()) {
           String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
           String message = String.format("Mismatched row ids: '%s'", unmatchedValues);
@@ -59,7 +63,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
         }
       }
     }
-    bigQueryPdao.createSnapshotWithProvidedIds(snapshot, contentsModel);
+    bigQueryPdao.createSnapshotWithProvidedIds(snapshot, contentsModel, createdAt);
 
     return StepResult.getStepResultSuccess();
   }

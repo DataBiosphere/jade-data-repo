@@ -28,6 +28,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
+import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
@@ -47,6 +48,7 @@ import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -102,6 +104,7 @@ public class SnapshotService {
     String description = "Create snapshot " + snapshotRequestModel.getName();
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
+        .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
         .submit();
   }
 

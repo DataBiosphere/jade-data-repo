@@ -7,6 +7,7 @@ import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
+import bio.terra.service.common.CommonFlightUtils;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -18,6 +19,7 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -96,7 +98,9 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
     // now using the query, get the rowIds
     // insert the rowIds into the snapshot row ids table and then kick off the rest of the
     // relationship walking
-    bigQueryPdao.queryForRowIds(assetSpec, snapshot, sqlQuery);
+    Instant createdAt = CommonFlightUtils.getCreatedAt(context);
+
+    bigQueryPdao.queryForRowIds(assetSpec, snapshot, sqlQuery, createdAt);
     return StepResult.getStepResultSuccess();
   }
 

@@ -91,7 +91,7 @@ public class DataRepoFixtures {
           + "resource.labels.cluster_name=\"integration-master\"\n"
           + "resource.labels.namespace_name=\"integration-<intNumber>\"\n"
           + "labels.k8s-pod/component=\"integration-<intNumber>-jade-datarepo-api\"\n"
-          + "jsonPayload.flightId=\"<flightId>\"";
+          + "<if(hasFlightId)>jsonPayload.flightId=\"<flightId>\"<endif>";
 
   @Autowired private JsonLoader jsonLoader;
 
@@ -1127,7 +1127,7 @@ public class DataRepoFixtures {
               .orElse(null);
 
       String addedLink =
-          (jobId != null && testConfig.getIntegrationServerNumber() != null)
+          (testConfig.getIntegrationServerNumber() != null)
               ? String.format("%nFor more information, see: %s", getStackdriverUrl(jobId))
               : "";
       throw new AssertionError(
@@ -1157,6 +1157,7 @@ public class DataRepoFixtures {
             new ST(QUERY_TEMPLATE)
                 .add("intNumber", testConfig.getIntegrationServerNumber())
                 .add("flightId", jobId)
+                .add("hasFlightId", !StringUtils.isEmpty(jobId))
                 .render(),
             StandardCharsets.UTF_8);
     return "https://console.cloud.google.com/logs/query;"

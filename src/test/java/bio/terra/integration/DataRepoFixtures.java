@@ -1129,7 +1129,7 @@ public class DataRepoFixtures {
       String addedLink =
           (testConfig.getIntegrationServerNumber() != null)
               ? String.format("%nFor more information, see: %s", getStackdriverUrl(jobId))
-              : "";
+              : "no int server number";
       throw new AssertionError(
           String.format("Error validating %s.  Got response: %s%s", action, response, addedLink));
     }

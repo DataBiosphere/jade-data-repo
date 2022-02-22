@@ -2,10 +2,10 @@ package bio.terra.service.dataset.flight.datadelete;
 
 import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getDataset;
 import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getSuffix;
 
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
+import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -30,11 +30,11 @@ public class DropExternalTablesStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = getDataset(context, datasetService);
-    String suffix = getSuffix(context);
+    String suffix = BigQueryUtils.getSuffix(context);
     DataDeletionRequest dataDeletionRequest = getRequest(context);
 
     for (DataDeletionTableModel table : dataDeletionRequest.getTables()) {
-      bigQueryPdao.deleteSoftDeleteExternalTable(dataset, table.getTableName(), suffix);
+      bigQueryPdao.deleteExternalTable(dataset, table.getTableName(), suffix);
     }
 
     return StepResult.getStepResultSuccess();

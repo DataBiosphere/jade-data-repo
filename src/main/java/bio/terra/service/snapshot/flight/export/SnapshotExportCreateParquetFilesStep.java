@@ -37,13 +37,18 @@ public class SnapshotExportCreateParquetFilesStep extends DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
+    String flightId = context.getFlightId();
     FlightMap workingMap = context.getWorkingMap();
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     GoogleBucketResource exportBucket =
         workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
 
-    List<String> paths =
-        bigQueryPdao.exportTableToParquet(snapshot, exportBucket, context.getFlightId());
+    final List<String> paths;
+    if (workingMap.containsKey(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_GSPATHS_FILENAME)) {
+      paths = bigQueryPdao.exportTableToParquetWithGsPaths(snapshot, exportBucket, flightId);
+    } else {
+      paths = bigQueryPdao.exportTableToParquet(snapshot, exportBucket, flightId);
+    }
 
     Map<String, List<String>> tablesToPaths =
         paths.stream()

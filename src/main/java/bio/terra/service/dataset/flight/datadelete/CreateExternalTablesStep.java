@@ -2,10 +2,10 @@ package bio.terra.service.dataset.flight.datadelete;
 
 import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getDataset;
 import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getSuffix;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DataDeletionTableModel;
+import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.TableNotFoundException;
@@ -46,7 +46,7 @@ public class CreateExternalTablesStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = getDataset(context, datasetService);
-    String suffix = getSuffix(context);
+    String suffix = BigQueryUtils.getSuffix(context);
     List<DataDeletionTableModel> tables =
         FlightUtils.getTyped(context.getWorkingMap(), DataDeletionMapKeys.TABLES);
 
@@ -65,11 +65,11 @@ public class CreateExternalTablesStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     Dataset dataset = getDataset(context, datasetService);
-    String suffix = getSuffix(context);
+    String suffix = BigQueryUtils.getSuffix(context);
 
     for (DataDeletionTableModel table : getRequest(context).getTables()) {
       try {
-        bigQueryPdao.deleteSoftDeleteExternalTable(dataset, table.getTableName(), suffix);
+        bigQueryPdao.deleteExternalTable(dataset, table.getTableName(), suffix);
       } catch (Exception ex) {
         // catch any exception and get it into the log, make a
         String msg =

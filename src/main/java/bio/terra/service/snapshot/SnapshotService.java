@@ -130,11 +130,12 @@ public class SnapshotService {
         .submit();
   }
 
-  public String exportSnapshot(UUID id, AuthenticatedUserRequest userReq) {
+  public String exportSnapshot(UUID id, AuthenticatedUserRequest userReq, Boolean exportGsPaths) {
     String description = "Export snapshot " + id;
     return jobService
         .newJob(description, SnapshotExportFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
+        .addParameter(JobMapKeys.EXPORT_GSPATHS.getKeyName(), exportGsPaths)
         .submit();
   }
 

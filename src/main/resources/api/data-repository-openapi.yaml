@@ -705,6 +705,11 @@ paths:
       operationId: exportSnapshot
       parameters:
         - $ref: '#/components/parameters/Id'
+        - in: query
+          name: exportGsPaths
+          schema:
+            type: boolean
+          description: Convert DRS urls to GS paths in the output parquet file. Note, GS paths could change over time.
       responses:
         202:
           description: Job status of snapshot export job & url for polling in the

@@ -96,7 +96,6 @@ public class SnapshotExportIntegrationTest extends UsersBase {
 
   @After
   public void tearDown() throws Exception {
-
     for (UUID snapshotId : createdSnapshotIds) {
       try {
         dataRepoFixtures.deleteSnapshot(steward(), snapshotId);
@@ -138,7 +137,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
@@ -255,7 +254,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, true);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();

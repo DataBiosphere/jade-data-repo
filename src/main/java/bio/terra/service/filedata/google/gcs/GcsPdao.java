@@ -397,6 +397,15 @@ public class GcsPdao implements CloudFileReader {
     return false;
   }
 
+  public boolean deleteFileByName(GoogleBucketResource bucket, String fileName) {
+    Storage storage =
+        StorageOptions.newBuilder()
+            .setProjectId(bucket.getProjectResource().getGoogleProjectId())
+            .build()
+            .getService();
+    return storage.delete(bucket.getName(), fileName);
+  }
+
   // Consumer method for deleting GCS files driven from a scan over the firestore files
   public void deleteFile(FireStoreFile fireStoreFile) {
     if (fireStoreFile != null) {

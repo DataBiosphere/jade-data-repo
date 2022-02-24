@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.UUID;
@@ -30,6 +31,8 @@ public class AzureApplicationDeploymentService {
 
   /** Azure specific keys */
   static final String MANAGED_RESOURCE_GROUP_ID_KEY = "managedResourceGroupId";
+
+  static final String DEFAULT_API_VERSION = "latest";
 
   static final String PARAMETERS_KEY = "parameters";
   static final String PARAMETER_VALUE_KEY = "value";
@@ -115,7 +118,10 @@ public class AzureApplicationDeploymentService {
     logger.info("Looking up application");
     String applicationResourceId =
         MetadataDataAccessUtils.getApplicationDeploymentId(billingProfile);
-    return client.genericResources().getById(applicationResourceId);
+    String apiVersion =
+        Optional.ofNullable(billingProfile.getAzureResourceApiVersion())
+            .orElse(DEFAULT_API_VERSION);
+    return client.genericResources().getById(applicationResourceId, apiVersion);
   }
 
   /**

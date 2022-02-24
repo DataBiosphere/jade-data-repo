@@ -1,3 +1,5 @@
+
+
 openapi: 3.0.1
 info:
   title: Data Repository API
@@ -2995,6 +2997,9 @@ components:
         applicationDeploymentName:
           type: string
           description: an optional name for an application deployment for Azure
+        azureResourceApiVersion:
+          type: string
+          description: an optional api version to specify which azure resource to retrieve
     BillingProfileUpdateModel:
       required:
         - id
@@ -3040,6 +3045,10 @@ components:
         applicationDeploymentName:
           type: string
           description: an optional name for an application deployment for Azure
+        azureResourceApiVersion:
+          type: string
+          description: an optional api version to specify which azure resource to retrieve
+          default: latest
         createdDate:
           type: string
           description: Date the profile was created

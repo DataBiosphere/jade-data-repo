@@ -33,7 +33,7 @@ public class ProfileDao {
   // SQL select string constants
   private static final String SQL_SELECT_LIST =
       "id, name, biller, billing_account_id, description, cloud_platform, "
-          + "tenant_id, subscription_id, resource_group_name, application_deployment_name, created_date, created_by";
+          + "tenant_id, subscription_id, resource_group_name, application_deployment_name, azure_resource_api_version, created_date, created_by";
 
   private static final String SQL_GET =
       "SELECT " + SQL_SELECT_LIST + " FROM billing_profile WHERE id = :id";
@@ -61,9 +61,9 @@ public class ProfileDao {
     String sql =
         "INSERT INTO billing_profile"
             + " (id, name, biller, billing_account_id, description, cloud_platform, "
-            + "     tenant_id, subscription_id, resource_group_name, application_deployment_name, created_by) VALUES "
+            + "     tenant_id, subscription_id, resource_group_name, application_deployment_name, azure_resource_api_version, created_by) VALUES "
             + " (:id, :name, :biller, :billing_account_id, :description, :cloud_platform, "
-            + "     :tenant_id, :subscription_id, :resource_group_name, :application_deployment_name, :created_by)";
+            + "     :tenant_id, :subscription_id, :resource_group_name, :application_deployment_name, :azure_resource_api_version, :created_by)";
 
     String billingAccountId =
         Optional.ofNullable(profileRequest.getBillingAccountId()).orElse(null);
@@ -78,6 +78,8 @@ public class ProfileDao {
         Optional.ofNullable(profileRequest.getResourceGroupName()).orElse(null);
     String applicationDeploymentName =
         Optional.ofNullable(profileRequest.getApplicationDeploymentName()).orElse(null);
+    String apiVersion =
+        Optional.ofNullable(profileRequest.getAzureResourceApiVersion()).orElse(null);
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -91,6 +93,7 @@ public class ProfileDao {
             .addValue("subscription_id", subscriptionId)
             .addValue("resource_group_name", resourceGroupName)
             .addValue("application_deployment_name", applicationDeploymentName)
+            .addValue("azure_resource_api_version", apiVersion)
             .addValue("created_by", creator);
 
     DaoKeyHolder keyHolder = new DaoKeyHolder();
@@ -107,6 +110,7 @@ public class ProfileDao {
         .subscriptionId(keyHolder.getField("subscription_id", UUID.class).orElse(null))
         .resourceGroupName(keyHolder.getString("resource_group_name"))
         .applicationDeploymentName(keyHolder.getString("application_deployment_name"))
+        .azureResourceApiVersion(keyHolder.getString("azure_resource_api_version"))
         .createdBy(keyHolder.getString("created_by"))
         .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
   }
@@ -143,6 +147,7 @@ public class ProfileDao {
         .subscriptionId(keyHolder.getField("subscription_id", UUID.class).orElse(null))
         .resourceGroupName(keyHolder.getString("resource_group_name"))
         .applicationDeploymentName(keyHolder.getString("application_deployment_name"))
+        .azureResourceApiVersion(keyHolder.getString("azure_resource_api_version"))
         .createdBy(keyHolder.getString("created_by"))
         .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
   }
@@ -216,6 +221,7 @@ public class ProfileDao {
           .subscriptionId(rs.getObject("subscription_id", UUID.class))
           .resourceGroupName(rs.getString("resource_group_name"))
           .applicationDeploymentName(rs.getString("application_deployment_name"))
+          .azureResourceApiVersion(rs.getString("azure_resource_api_version"))
           .createdDate(rs.getTimestamp("created_date").toInstant().toString())
           .createdBy(rs.getString("created_by"));
     }

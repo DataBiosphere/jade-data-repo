@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: azureapiversionbillingprofile
+      author: sholden
+      changes:
+        - addColumn:
+            tableName: billing_profile
+            columns:
+              name: azure_resource_api_version
+              type: varchar(100)
+              constraints:
+                nullable: true
+
+

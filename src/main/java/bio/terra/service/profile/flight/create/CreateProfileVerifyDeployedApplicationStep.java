@@ -6,12 +6,15 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import java.util.Optional;
 
 public class CreateProfileVerifyDeployedApplicationStep implements Step {
 
   private final ProfileService profileService;
   private final BillingProfileRequestModel request;
   private final AuthenticatedUserRequest user;
+
+  private static final String DEFAULT_API_VERSION = "latest";
 
   public CreateProfileVerifyDeployedApplicationStep(
       ProfileService profileService,
@@ -28,6 +31,7 @@ public class CreateProfileVerifyDeployedApplicationStep implements Step {
         request.getSubscriptionId(),
         request.getResourceGroupName(),
         request.getApplicationDeploymentName(),
+        Optional.ofNullable(request.getAzureResourceApiVersion()).orElse(DEFAULT_API_VERSION),
         user);
     return StepResult.getStepResultSuccess();
   }

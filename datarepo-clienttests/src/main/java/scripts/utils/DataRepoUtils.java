@@ -377,6 +377,7 @@ public final class DataRepoUtils {
       UUID subscriptionId,
       String resourceGroupName,
       String applicationDeploymentName,
+      String azureResourceApiVersion,
       String profileName,
       String billingAccount,
       boolean randomizeName)
@@ -395,6 +396,7 @@ public final class DataRepoUtils {
             .subscriptionId(subscriptionId)
             .resourceGroupName(resourceGroupName)
             .applicationDeploymentName(applicationDeploymentName)
+            .azureResourceApiVersion(azureResourceApiVersion)
             .profileName(profileName)
             .biller("direct")
             .description("test profile description (Azure)");

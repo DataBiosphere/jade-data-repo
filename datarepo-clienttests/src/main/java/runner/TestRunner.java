@@ -195,6 +195,7 @@ public class TestRunner {
       testScriptInstance.setSubscriptionId(config.subscriptionId);
       testScriptInstance.setResourceGroupName(config.resourceGroupName);
       testScriptInstance.setApplicationDeploymentName(config.applicationDeploymentName);
+      testScriptInstance.setAzureResourceApiVersion(config.azureResourceApiVersion);
 
       // set the server specification for the test script to run against
       testScriptInstance.setServer(config.server);

@@ -35,6 +35,7 @@ public class AzureAuthzServiceTest {
   private static final String RESOURCE_ID =
       "/subscriptions/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/resourceGroups"
           + "/tdr_rg/providers/Microsoft.Solutions/applications/myapp";
+  private static final String API_VERSION = "latest";
 
   @Mock private GenericResource genericResource;
   @Mock private GenericResources genericResources;
@@ -64,7 +65,8 @@ public class AzureAuthzServiceTest {
                 .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
-            APPLICATION_DEPLOYMENT_NAME),
+            APPLICATION_DEPLOYMENT_NAME,
+            API_VERSION),
         equalTo(true));
   }
 
@@ -79,7 +81,8 @@ public class AzureAuthzServiceTest {
                 .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
-            APPLICATION_DEPLOYMENT_NAME),
+            APPLICATION_DEPLOYMENT_NAME,
+            API_VERSION),
         equalTo(false));
   }
 
@@ -96,7 +99,8 @@ public class AzureAuthzServiceTest {
                 .build(),
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
-            APPLICATION_DEPLOYMENT_NAME),
+            APPLICATION_DEPLOYMENT_NAME,
+            API_VERSION),
         equalTo(false));
   }
 }

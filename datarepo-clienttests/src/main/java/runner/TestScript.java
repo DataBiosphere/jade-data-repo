@@ -19,6 +19,7 @@ public abstract class TestScript {
   protected UUID subscriptionId;
   protected String resourceGroupName;
   protected String applicationDeploymentName;
+  protected String azureResourceApiVersion;
   /**
    * Setter for the billing account property of this class. This property will be set by the Test
    * Runner based on the current Test Configuration, and can be accessed by the Test Script methods.
@@ -70,6 +71,10 @@ public abstract class TestScript {
 
   public void setApplicationDeploymentName(String applicationDeploymentName) {
     this.applicationDeploymentName = applicationDeploymentName;
+  }
+
+  public void setAzureResourceApiVersion(String azureResourceApiVersion) {
+    this.azureResourceApiVersion = azureResourceApiVersion;
   }
 
   /**

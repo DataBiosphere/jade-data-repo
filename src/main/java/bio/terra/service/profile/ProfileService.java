@@ -285,9 +285,10 @@ public class ProfileService {
       UUID subscriptionId,
       String resourceGroupName,
       String applicationDeploymentName,
+      String apiVersion,
       AuthenticatedUserRequest user) {
     if (!azureAuthzService.canAccess(
-        user, subscriptionId, resourceGroupName, applicationDeploymentName)) {
+        user, subscriptionId, resourceGroupName, applicationDeploymentName, apiVersion)) {
       throw new InaccessibleApplicationDeploymentException(
           "The user '"
               + user.getEmail()

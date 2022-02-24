@@ -61,6 +61,7 @@ public class SimpleDataset extends runner.TestScript {
                 subscriptionId,
                 resourceGroupName,
                 applicationDeploymentName,
+                azureResourceApiVersion,
                 "azure-profile-simple",
                 billingAccount,
                 true);

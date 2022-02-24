@@ -173,6 +173,20 @@ public class ProfileServiceTest {
         equalTo(3));
   }
 
+  @Test
+  public void testCreateProfileSetApiVersion() throws Exception {
+    BillingProfileRequestModel requestWithoutId =
+        new BillingProfileRequestModel()
+            .biller("direct")
+            .billingAccountId(oldBillingAccountId)
+            .profileName(UUID.randomUUID().toString())
+            .description("profile description")
+            .azureResourceApiVersion("2018-09-07");
+    BillingProfileModel profile = connectedOperations.createProfile(requestWithoutId);
+    profiles.add(profile);
+    assertNotNull(profile.getAzureResourceApiVersion());
+  }
+
   private GoogleProjectResource buildProjectResource() throws Exception {
     String role = "roles/bigquery.jobUser";
     String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";

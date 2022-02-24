@@ -29,14 +29,34 @@ public class AzureAuthzService {
       AuthenticatedUserRequest user,
       UUID subscriptionId,
       String resourceGroupName,
-      String applicationDeploymentName) {
+      String applicationDeploymentName,
+      String apiVersion) {
+    logger.info(
+        "canAccess - subscriptionId: {}, resourceGroupName: {}, applicationDeploymentName: {}",
+        subscriptionId,
+        resourceGroupName,
+        applicationDeploymentName);
     AzureResourceManager client = resourceConfiguration.getClient(subscriptionId);
+    logger.info("Client: {}", client);
+    logger.info("Client generic resources: {}", client.genericResources().list().stream().count());
     String applicationResourceId =
         MetadataDataAccessUtils.getApplicationDeploymentId(
             subscriptionId, resourceGroupName, applicationDeploymentName);
+    logger.info("application resource id: {}", applicationResourceId);
     try {
       GenericResource applicationDeployment =
-          client.genericResources().getById(applicationResourceId);
+          client.genericResources().getById(applicationResourceId, apiVersion);
+      logger.info("application deployment: {}", applicationDeployment);
+      logger.info("application deployment properties: {}", applicationDeployment.properties());
+      logger.info(
+          "application deployment parameters: {}",
+          ((Map<String, Map<String, Map<String, String>>>) applicationDeployment.properties())
+              .get("parameters"));
+      logger.info(
+          "application deployment auth param key: {}",
+          ((Map<String, Map<String, Map<String, String>>>) applicationDeployment.properties())
+              .get("parameters")
+              .get(AUTH_PARAM_KEY));
 
       return ((Map<String, Map<String, Map<String, String>>>) applicationDeployment.properties())
           .get("parameters")

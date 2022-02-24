@@ -20,6 +20,7 @@ public class TestConfiguration implements SpecificationInterface {
   public UUID subscriptionId;
   public String resourceGroupName;
   public String applicationDeploymentName;
+  public String azureResourceApiVersion;
   public String cloudPlatform;
   public boolean isFunctional = false;
   public List<String> testUserFiles;

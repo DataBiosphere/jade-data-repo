@@ -709,6 +709,8 @@ paths:
           name: exportGsPaths
           schema:
             type: boolean
+            default: false
+            required: true
           description: Convert DRS urls to GS paths in the output parquet file. Note, GS paths could change over time.
       responses:
         202:

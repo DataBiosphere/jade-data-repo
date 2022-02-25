@@ -33,15 +33,11 @@ public class SnapshotExportFlight extends Flight {
     UUID snapshotId =
         UUID.fromString(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
 
-    boolean exportGsPaths = false;
-    Boolean gsPathsInput =
-        inputParameters.get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class);
-    if (gsPathsInput != null) {
-      exportGsPaths = gsPathsInput;
-    }
-
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
-    if (exportGsPaths) {
+
+    Boolean exportGsPathsInput =
+        inputParameters.get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class);
+    if (Boolean.TRUE.equals(exportGsPathsInput)) {
       addStep(
           new SnapshotExportDumpFirestoreStep(
               snapshotService, fireStoreDao, gcsPdao, snapshotId, objectMapper));
@@ -54,7 +50,7 @@ public class SnapshotExportFlight extends Flight {
         new SnapshotExportWriteManifestStep(
             snapshotId, snapshotService, gcsPdao, objectMapper, userReq));
     addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
-    if (exportGsPaths) {
+    if (Boolean.TRUE.equals(exportGsPathsInput)) {
       addStep(new cleanUpExportGsPathsStep(bigQueryPdao, gcsPdao, snapshotService, snapshotId));
     }
   }

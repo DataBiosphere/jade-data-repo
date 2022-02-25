@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.export;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.DefaultUndoStep;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -44,7 +45,9 @@ public class SnapshotExportCreateParquetFilesStep extends DefaultUndoStep {
         workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
 
     final List<String> paths;
-    if (workingMap.containsKey(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_GSPATHS_FILENAME)) {
+    Boolean exportGsPathsInput =
+        context.getWorkingMap().get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class);
+    if (Boolean.TRUE.equals(exportGsPathsInput)) {
       paths = bigQueryPdao.exportTableToParquetWithGsPaths(snapshot, exportBucket, flightId);
     } else {
       paths = bigQueryPdao.exportTableToParquet(snapshot, exportBucket, flightId);

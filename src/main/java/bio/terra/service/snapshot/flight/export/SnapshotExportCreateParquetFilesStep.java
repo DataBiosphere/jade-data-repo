@@ -46,7 +46,7 @@ public class SnapshotExportCreateParquetFilesStep extends DefaultUndoStep {
 
     final List<String> paths;
     Boolean exportGsPathsInput =
-        context.getWorkingMap().get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class);
+        context.getInputParameters().get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class);
     if (Boolean.TRUE.equals(exportGsPathsInput)) {
       paths = bigQueryPdao.exportTableToParquetWithGsPaths(snapshot, exportBucket, flightId);
     } else {

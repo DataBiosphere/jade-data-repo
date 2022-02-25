@@ -4,7 +4,7 @@ on:
 jobs:
 # new integration image updater
   integration_helm_tag_update:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -66,7 +66,7 @@ jobs:
           mention: fb,muscles
           mention_if: failure
   datarepo_helm_chart_update:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: 'Checkout develop branch of jade-data-repo'
         uses: actions/checkout@v2

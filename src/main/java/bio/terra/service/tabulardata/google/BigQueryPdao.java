@@ -500,7 +500,12 @@ public class BigQueryPdao {
     RowIdMatch rowIdMatch = new RowIdMatch();
     String sql = sqlTemplate.render();
     logger.debug("mapValuesToRows sql: " + sql);
-    TableResult result = datasetBigQueryProject.query(sql);
+    TableResult result =
+        datasetBigQueryProject.query(
+            sql,
+            Map.of(
+                "transactionTerminatedAt",
+                QueryParameterValue.timestamp(createdAt.toEpochMilli() * 1000)));
     for (FieldValueList row : result.iterateAll()) {
       // Test getting these by name
       FieldValue rowId = row.get(0);

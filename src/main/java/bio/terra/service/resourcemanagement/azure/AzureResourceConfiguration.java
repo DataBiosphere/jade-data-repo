@@ -19,6 +19,7 @@ public class AzureResourceConfiguration {
   private Synapse synapse;
   private int maxRetries;
   private int retryTimeoutSeconds;
+  private String apiVersion;
 
   public Credentials getCredentials() {
     return credentials;
@@ -50,6 +51,14 @@ public class AzureResourceConfiguration {
 
   public void setRetryTimeoutSeconds(int retryTimeoutSeconds) {
     this.retryTimeoutSeconds = retryTimeoutSeconds;
+  }
+
+  public String getApiVersion() {
+    return apiVersion;
+  }
+
+  public void setApiVersion(String apiVersion) {
+    this.apiVersion = apiVersion;
   }
 
   /**

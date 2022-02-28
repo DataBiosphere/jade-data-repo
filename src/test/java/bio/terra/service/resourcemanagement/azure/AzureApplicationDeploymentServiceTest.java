@@ -73,7 +73,8 @@ public class AzureApplicationDeploymentServiceTest {
                 + "/"
                 + billingProfileModel.getResourceGroupName()
                 + "/providers/Microsoft.Solutions/applications/"
-                + billingProfileModel.getApplicationDeploymentName()))
+                + billingProfileModel.getApplicationDeploymentName(),
+            resourceConfiguration.getApiVersion()))
         .thenReturn(genericResource);
     when(client.genericResources()).thenReturn(genericResources);
     when(resourceDao.retrieveApplicationDeploymentByName(

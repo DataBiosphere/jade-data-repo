@@ -51,7 +51,7 @@ public class SnapshotExportFlight extends Flight {
             snapshotId, snapshotService, gcsPdao, objectMapper, userReq));
     addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
     if (Boolean.TRUE.equals(exportGsPathsInput)) {
-      addStep(new cleanUpExportGsPathsStep(bigQueryPdao, gcsPdao, snapshotService, snapshotId));
+      addStep(new CleanUpExportGsPathsStep(bigQueryPdao, gcsPdao, snapshotService, snapshotId));
     }
   }
 }

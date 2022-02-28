@@ -48,7 +48,7 @@ public class SnapshotExportDumpFirestoreStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    String fileName = getFileName(context);
+    String fileName = SnapshotExportUtils.getFileName(context);
     context.getWorkingMap().put(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_GSPATHS_FILENAME, fileName);
 
     try (GcsChannelWriter writer = makeWriterForDumpFile(context, fileName)) {
@@ -87,17 +87,13 @@ public class SnapshotExportDumpFirestoreStep implements Step {
     return new GcsChannelWriter(storage, exportBucket.getName(), fileName);
   }
 
-  public static String getFileName(FlightContext context) {
-    return String.format("%s_export_gs_path_mapping/gs_path_mapping.json", context.getFlightId());
-  }
-
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     GoogleBucketResource exportBucket =
         context
             .getWorkingMap()
             .get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
-    gcsPdao.deleteFileByName(exportBucket, getFileName(context));
+    gcsPdao.deleteFileByName(exportBucket, SnapshotExportUtils.getFileName(context));
     return StepResult.getStepResultSuccess();
   }
 }

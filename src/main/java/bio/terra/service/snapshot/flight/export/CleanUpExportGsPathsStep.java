@@ -12,14 +12,14 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
 
-public class cleanUpExportGsPathsStep implements Step {
+public class CleanUpExportGsPathsStep implements Step {
 
   private final BigQueryPdao bigQueryPdao;
   private final GcsPdao gcsPdao;
   private final SnapshotService snapshotService;
   private final UUID snapshotId;
 
-  public cleanUpExportGsPathsStep(
+  public CleanUpExportGsPathsStep(
       BigQueryPdao bigQueryPdao,
       GcsPdao gcsPdao,
       SnapshotService snapshotService,
@@ -40,7 +40,7 @@ public class cleanUpExportGsPathsStep implements Step {
         context
             .getWorkingMap()
             .get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
-    gcsPdao.deleteFileByName(exportBucket, SnapshotExportDumpFirestoreStep.getFileName(context));
+    gcsPdao.deleteFileByName(exportBucket, SnapshotExportUtils.getFileName(context));
     return StepResult.getStepResultSuccess();
   }
 

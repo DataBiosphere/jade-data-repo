@@ -4,6 +4,7 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -27,16 +28,19 @@ import java.util.concurrent.ExecutionException;
 public class SnapshotExportDumpFirestoreStep implements Step {
   private final SnapshotService snapshotService;
   private final FireStoreDao fireStoreDao;
+  private final GcsPdao gcsPdao;
   private final UUID snapshotId;
   private final ObjectMapper objectMapper;
 
   public SnapshotExportDumpFirestoreStep(
       SnapshotService snapshotService,
       FireStoreDao fireStoreDao,
+      GcsPdao gcsPdao,
       UUID snapshotId,
       ObjectMapper objectMapper) {
     this.snapshotService = snapshotService;
     this.fireStoreDao = fireStoreDao;
+    this.gcsPdao = gcsPdao;
     this.snapshotId = snapshotId;
     this.objectMapper = objectMapper;
   }
@@ -44,7 +48,7 @@ public class SnapshotExportDumpFirestoreStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    String fileName = getFileName(context);
+    String fileName = SnapshotExportUtils.getFileName(context);
     context.getWorkingMap().put(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_GSPATHS_FILENAME, fileName);
 
     try (GcsChannelWriter writer = makeWriterForDumpFile(context, fileName)) {
@@ -83,22 +87,13 @@ public class SnapshotExportDumpFirestoreStep implements Step {
     return new GcsChannelWriter(storage, exportBucket.getName(), fileName);
   }
 
-  private String getFileName(FlightContext context) {
-    return String.format("%s_export_gs_path_mapping/gs_path_mapping.json", context.getFlightId());
-  }
-
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     GoogleBucketResource exportBucket =
         context
             .getWorkingMap()
             .get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
-    Storage storage =
-        StorageOptions.newBuilder()
-            .setProjectId(exportBucket.getProjectResource().getGoogleProjectId())
-            .build()
-            .getService();
-    storage.delete(exportBucket.getName(), getFileName(context));
+    gcsPdao.deleteFileByName(exportBucket, SnapshotExportUtils.getFileName(context));
     return StepResult.getStepResultSuccess();
   }
 }

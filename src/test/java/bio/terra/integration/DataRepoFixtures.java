@@ -1036,7 +1036,7 @@ public class DataRepoFixtures {
 
   public DataRepoResponse<Void> resetConfig(TestConfiguration.User user) throws Exception {
     return dataRepoClient.put(
-        user, "/api/repository/v1/configs/reset", null, new TypeReference<>() {});
+        user, "/api/repository/v1/configs/reset", "{}", new TypeReference<Void>() {});
   }
 
   public DataRepoResponse<ConfigListModel> setConfigListRaw(

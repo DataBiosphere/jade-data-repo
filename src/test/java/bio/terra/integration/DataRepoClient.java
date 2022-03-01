@@ -255,14 +255,14 @@ public class DataRepoClient {
         if (!method.equals(HttpMethod.GET) && responseObject instanceof JobModel) {
           logger.info("started job: {}", ((JobModel) responseObject).getId());
         }
-        drResponse.setResponseObject(Optional.of(responseObject));
+        drResponse.setResponseObject(Optional.ofNullable(responseObject));
       } else {
         drResponse.setResponseObject(Optional.empty());
       }
       drResponse.setErrorModel(Optional.empty());
     } else {
       S errorObject = mapFromJson(response.getBody(), errorClass);
-      drResponse.setErrorModel(Optional.of(errorObject));
+      drResponse.setErrorModel(Optional.ofNullable(errorObject));
       drResponse.setResponseObject(Optional.empty());
     }
 

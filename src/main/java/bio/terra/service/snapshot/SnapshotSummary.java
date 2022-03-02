@@ -17,6 +17,8 @@ public class SnapshotSummary {
   private CloudPlatform cloudPlatform;
   private String dataProject;
   private String storageAccount;
+  private String consentCode;
+  private String phsId;
 
   public UUID getId() {
     return id;
@@ -105,6 +107,24 @@ public class SnapshotSummary {
 
   public SnapshotSummary storageAccount(String storageAccount) {
     this.storageAccount = storageAccount;
+    return this;
+  }
+
+  public String getConsentCode() {
+    return consentCode;
+  }
+
+  public SnapshotSummary consentCode(String consentCode) {
+    this.consentCode = consentCode;
+    return this;
+  }
+
+  public String getPhsId() {
+    return phsId;
+  }
+
+  public SnapshotSummary phsId(String phsId) {
+    this.phsId = phsId;
     return this;
   }
 }

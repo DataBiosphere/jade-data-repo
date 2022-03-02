@@ -77,7 +77,8 @@ public final class DatasetJsonConversion {
                 .description(datasetRequest.getDescription())
                 .storage(storageResources)
                 .defaultProfileId(defaultProfileId)
-                .secureMonitoringEnabled(enableSecureMonitoring))
+                .secureMonitoringEnabled(enableSecureMonitoring)
+                .phsId(datasetRequest.getPhsId()))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
@@ -95,7 +96,8 @@ public final class DatasetJsonConversion {
         .secureMonitoringEnabled(datasetSummary.isSecureMonitoringEnabled())
         .cloudPlatform(datasetSummary.getCloudPlatform())
         .dataProject(datasetSummary.getDataProject())
-        .storageAccount(datasetSummary.getStorageAccount());
+        .storageAccount(datasetSummary.getStorageAccount())
+        .phsId(datasetSummary.getPhsId());
   }
 
   public static DatasetModel populateDatasetModelFromDataset(
@@ -109,7 +111,8 @@ public final class DatasetJsonConversion {
             .name(dataset.getName())
             .description(dataset.getDescription())
             .createdDate(dataset.getCreatedDate().toString())
-            .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled());
+            .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
+            .phsId(dataset.getPhsId());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;

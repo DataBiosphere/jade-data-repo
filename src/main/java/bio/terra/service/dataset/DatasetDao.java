@@ -65,7 +65,7 @@ public class DatasetDao {
 
   private static final String summaryQueryColumns =
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
-          + "dataset.application_resource_id, secure_monitoring, created_date, ";
+          + "dataset.application_resource_id, secure_monitoring, phs_id, created_date, ";
 
   private static final String summaryCloudPlatformQuery =
       "(SELECT pr.google_project_id "
@@ -381,9 +381,9 @@ public class DatasetDao {
     String sql =
         "INSERT INTO dataset "
             + "(name, default_profile_id, id, project_resource_id, application_resource_id, flightid, description, "
-            + "secure_monitoring, sharedlock) "
+            + "secure_monitoring, phs_id, sharedlock) "
             + "VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id, :flightid, "
-            + ":description, :secure_monitoring, ARRAY[]::TEXT[]) ";
+            + ":description, :secure_monitoring, :phs_id, ARRAY[]::TEXT[]) ";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -394,7 +394,8 @@ public class DatasetDao {
             .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
             .addValue("description", dataset.getDescription())
-            .addValue("secure_monitoring", dataset.isSecureMonitoringEnabled());
+            .addValue("secure_monitoring", dataset.isSecureMonitoringEnabled())
+            .addValue("phs_id", dataset.getPhsId());
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
       jdbcTemplate.update(sql, params, keyHolder);
@@ -695,7 +696,8 @@ public class DatasetDao {
           .secureMonitoringEnabled(rs.getBoolean("secure_monitoring"))
           .cloudPlatform(datasetCloudPlatform)
           .dataProject(rs.getString("google_project_id"))
-          .storageAccount(rs.getString("storage_account_name"));
+          .storageAccount(rs.getString("storage_account_name"))
+          .phsId(rs.getString("phs_id"));
     }
   }
 

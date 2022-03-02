@@ -34,6 +34,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private AzureStorageAccountResource storageAccountResource;
   private List<Relationship> relationships = Collections.emptyList();
   private SnapshotRequestContentsModel creationInformation;
+  private String consentCode;
 
   @Override
   public CollectionType getCollectionType() {
@@ -146,6 +147,15 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public Snapshot storageAccountResource(AzureStorageAccountResource storageAccountResource) {
     this.storageAccountResource = storageAccountResource;
+    return this;
+  }
+
+  public String getConsentCode() {
+    return consentCode;
+  }
+
+  public Snapshot consentCode(String consentCode) {
+    this.consentCode = consentCode;
     return this;
   }
 

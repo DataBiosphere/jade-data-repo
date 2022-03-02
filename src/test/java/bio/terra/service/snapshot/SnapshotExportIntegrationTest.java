@@ -2,9 +2,14 @@ package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 
+import bio.terra.common.ParquetUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
@@ -34,7 +39,9 @@ import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -74,8 +81,8 @@ public class SnapshotExportIntegrationTest extends UsersBase {
   private String stewardToken;
   private String readerToken;
   private UUID profileId;
-  private UUID datasetId;
-  private UUID snapshotId;
+  private List<UUID> createdDatasetsIds = new ArrayList<>();
+  private List<UUID> createdSnapshotIds = new ArrayList<>();
 
   @Before
   public void setup() throws Exception {
@@ -85,10 +92,34 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     dataRepoFixtures.addPolicyMember(
         steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+  }
 
+  @After
+  public void tearDown() throws Exception {
+    for (UUID snapshotId : createdSnapshotIds) {
+      try {
+        dataRepoFixtures.deleteSnapshot(steward(), snapshotId);
+      } catch (Exception ex) {
+        logger.warn("cleanup failed when deleting snapshot " + snapshotId);
+        ex.printStackTrace();
+      }
+    }
+
+    for (UUID datasetId : createdDatasetsIds) {
+      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+    }
+
+    if (profileId != null) {
+      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+    }
+  }
+
+  @Test
+  public void snapshotExportTest() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-    datasetId = datasetSummaryModel.getId();
+    UUID datasetId = datasetSummaryModel.getId();
+    createdDatasetsIds.add(datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
         steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
 
@@ -103,34 +134,10 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         dataRepoFixtures.createSnapshot(
             steward(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
 
-    snapshotId = snapshotSummary.getId();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-
-    if (snapshotId != null) {
-      try {
-        dataRepoFixtures.deleteSnapshot(steward(), snapshotId);
-      } catch (Exception ex) {
-        logger.warn("cleanup failed when deleting snapshot " + snapshotId);
-        ex.printStackTrace();
-      }
-    }
-
-    if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
-    }
-
-    if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
-    }
-  }
-
-  @Test
-  public void snapshotExportTest() throws Exception {
+    UUID snapshotId = snapshotSummary.getId();
+    createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
@@ -218,5 +225,67 @@ public class SnapshotExportIntegrationTest extends UsersBase {
       assertThat(
           "Unauthorized user cannot read " + path, notAuthorizedException.getCode(), equalTo(403));
     }
+  }
+
+  @Test
+  public void snapshotGsPathExportTest() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    UUID datasetId = datasetSummaryModel.getId();
+    createdDatasetsIds.add(datasetId);
+
+    IngestRequestModel request =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path("gs://jade-testdata-useastregion/snapshot-export-array-fileid.json");
+
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshot(
+            steward(),
+            datasetSummaryModel.getName(),
+            profileId,
+            "dataset-ingest-combined-array-snapshot.json");
+
+    UUID snapshotId = snapshotSummary.getId();
+    createdSnapshotIds.add(snapshotId);
+    DataRepoResponse<SnapshotExportResponseModel> exportResponse =
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, true);
+
+    SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
+    SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
+    List<String> sampleVcfTablePaths = parquet.getLocation().getTables().get(0).getPaths();
+    List<Map<String, Object>> records = new ArrayList<>();
+    for (String path : sampleVcfTablePaths) {
+      records.addAll(
+          ParquetUtils.readGcsParquetRecords(gcsPdao, path, snapshotSummary.getDataProject()));
+    }
+
+    for (var record : records) {
+      final String vcfFileRef = (String) record.get("vcf_file_ref");
+      final List<String> vcfIndexFileRefs = (List<String>) record.get("vcf_index_file_ref");
+      if (record.get("sample_name").equals("NA12878_exome")) {
+        assertThat(
+            "fileref values with multiple elements are mapped as lists of gs-paths",
+            vcfIndexFileRefs,
+            iterableWithSize(2));
+        isGsPath(vcfFileRef);
+        vcfIndexFileRefs.forEach(SnapshotExportIntegrationTest::isGsPath);
+      } else if (record.get("sample_name").equals("nofile")) {
+        assertThat("Null fileref values stay null", vcfFileRef, nullValue());
+        assertThat("arrayOf fileref values have no elements", vcfIndexFileRefs, emptyIterable());
+      } else {
+        isGsPath(vcfFileRef);
+        isGsPath(vcfIndexFileRefs.get(0));
+      }
+    }
+  }
+
+  private static void isGsPath(String path) {
+    assertThat("Fileref in parquet record is replaced with a gs-path", path, startsWith("gs://"));
   }
 }

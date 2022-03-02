@@ -218,8 +218,8 @@ public class EncodeFixture {
         resultModel = resultMap.get(encodeFileIn.getFile_index_gs_path());
         String bamiFileId = (resultModel == null) ? null : resultModel.getFileId();
         EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);
-        String fileLine = TestUtils.mapToJson(encodeFileOut) + "\n";
-        writer.write(fileLine);
+        String fileLine = TestUtils.mapToJson(encodeFileOut);
+        writer.writeLine(fileLine);
       }
     }
 

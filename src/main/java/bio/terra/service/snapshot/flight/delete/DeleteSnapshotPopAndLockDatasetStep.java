@@ -62,7 +62,7 @@ public class DeleteSnapshotPopAndLockDatasetStep implements Step {
     }
 
     // Now we've confirmed the snapshot exists, let's check on the source dataset
-    UUID datasetId = snapshot.getFirstSnapshotSource().getDataset().getId();
+    UUID datasetId = snapshot.getSourceDataset().getId();
     map.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
     boolean datasetExists = true;
     try {

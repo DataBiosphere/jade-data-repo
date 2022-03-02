@@ -51,7 +51,7 @@ public class SimpleDataset extends runner.TestScript {
       if (cloudPlatform.equals(CloudPlatform.GCP)) {
         billingProfileModel =
             DataRepoUtils.createProfile(
-                resourcesApi, repositoryApi, billingAccount, "profile-simple", true);
+                resourcesApi, repositoryApi, billingAccount, "profile-simple", datasetCreator, true);
       } else if (cloudPlatform.equals(CloudPlatform.AZURE)) {
         billingProfileModel =
             DataRepoUtils.createAzureProfile(
@@ -63,6 +63,7 @@ public class SimpleDataset extends runner.TestScript {
                 applicationDeploymentName,
                 "azure-profile-simple",
                 billingAccount,
+                datasetCreator,
                 true);
       } else {
         throw new RuntimeException("Unsupported cloud platform");
@@ -75,7 +76,7 @@ public class SimpleDataset extends runner.TestScript {
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
         DataRepoUtils.createDataset(
-            repositoryApi, billingProfileModel.getId(), cloudPlatform, "dataset-simple.json", true);
+            repositoryApi, billingProfileModel.getId(), cloudPlatform, "dataset-simple.json", datasetCreator, true);
 
     // save a reference to the dataset summary model so we can delete it in cleanup()
     datasetSummaryModel =
@@ -113,7 +114,7 @@ public class SimpleDataset extends runner.TestScript {
     // make the delete dataset request and wait for the job to finish
     JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
     deleteDatasetJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse, datasetCreator);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
     logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());

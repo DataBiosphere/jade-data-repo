@@ -66,7 +66,7 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
 
     // wait for the job to complete
     bulkLoadArrayJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse, testUser);
     BulkLoadArrayResultModel result =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
@@ -91,7 +91,7 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
         repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse, testUser);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
@@ -118,14 +118,15 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
 
   @Override
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
-    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUsers.get(0), server);
+    TestUserSpecification testUser = testUsers.get(0);
+    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     for (SnapshotSummaryModel snapshotSummaryModel : snapshotSummaryModels) {
       JobModel deleteSnapshotJobResponse =
           repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
       deleteSnapshotJobResponse =
-          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse, testUser);
       DataRepoUtils.expectJobSuccess(
           repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
       logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());

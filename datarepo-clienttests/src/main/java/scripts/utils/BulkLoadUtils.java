@@ -133,9 +133,9 @@ public class BulkLoadUtils {
   }
 
   public static BulkLoadResultModel getAndDisplayResults(
-      RepositoryApi repositoryApi, JobModel bulkLoadArrayJobResponse) throws Exception {
+      RepositoryApi repositoryApi, JobModel bulkLoadArrayJobResponse, TestUserSpecification testUser) throws Exception {
     bulkLoadArrayJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse, testUser);
 
     BulkLoadArrayResultModel result =
         DataRepoUtils.expectJobSuccess(

@@ -77,7 +77,7 @@ public class SoftDeleteDataset extends SimpleDataset {
 
     JobModel ingestFileJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
-    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
+    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse, datasetCreator);
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
@@ -101,7 +101,7 @@ public class SoftDeleteDataset extends SimpleDataset {
         repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse, datasetCreator);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
@@ -172,7 +172,7 @@ public class SoftDeleteDataset extends SimpleDataset {
     // send off the soft delete request
     JobModel softDeleteJobResponse =
         repositoryApi.applyDatasetDataDeletion(datasetSummaryModel.getId(), dataDeletionRequest);
-    softDeleteJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, softDeleteJobResponse);
+    softDeleteJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, softDeleteJobResponse, datasetCreator);
     DeleteResponseModel deleteResponseModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, softDeleteJobResponse, DeleteResponseModel.class);

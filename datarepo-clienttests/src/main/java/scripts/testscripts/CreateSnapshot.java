@@ -137,7 +137,7 @@ public class CreateSnapshot extends SimpleDataset {
         repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse, datasetCreator);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
@@ -200,7 +200,7 @@ public class CreateSnapshot extends SimpleDataset {
     if (snapshotModel != null) {
       JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(snapshotModel.getId());
       deleteSnapshotJobResponse =
-          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse, datasetCreator);
       DataRepoUtils.expectJobSuccess(
           repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
       logger.info("Successfully deleted snapshot: {}", snapshotModel.getName());

@@ -250,6 +250,7 @@ public final class DataRepoUtils {
    * @param profileId the billing profile id
    * @param apipayloadFilename the name of the create dataset payload file in the apipayloads
    *     resources directory
+   * @param testUser - user specification used to refresh credentials on long running job
    * @param randomizeName true to append a random number at the end of the dataset name, false
    *     otherwise
    * @return the completed job model
@@ -259,6 +260,7 @@ public final class DataRepoUtils {
       UUID profileId,
       CloudPlatform cloudPlatform,
       String apipayloadFilename,
+      TestUserSpecification testUser,
       boolean randomizeName)
       throws Exception {
     logger.debug("Creating a dataset");
@@ -277,7 +279,7 @@ public final class DataRepoUtils {
 
     // make the create request and wait for the job to finish
     JobModel createDatasetJobResponse = repositoryApi.createDataset(createDatasetRequest);
-    return DataRepoUtils.waitForJobToFinish(repositoryApi, createDatasetJobResponse);
+    return DataRepoUtils.waitForJobToFinish(repositoryApi, createDatasetJobResponse, testUser);
   }
 
   /**
@@ -337,6 +339,7 @@ public final class DataRepoUtils {
    * @param resourcesApi the api object to use
    * @param billingAccount the Google billing account id
    * @param profileName the name of the new profile
+   * @param testUser a TestUserSpecification to refresh the token for long-running jobs
    * @param randomizeName true to append a random number at the end of the profile name, false
    *     otherwise
    * @return the created billing profile model
@@ -346,6 +349,7 @@ public final class DataRepoUtils {
       RepositoryApi repositoryApi,
       String billingAccount,
       String profileName,
+      TestUserSpecification testUser,
       boolean randomizeName)
       throws Exception {
     logger.debug("Creating a billing profile");
@@ -364,7 +368,7 @@ public final class DataRepoUtils {
 
     // make the create request and wait for the job to finish
     JobModel jobModel = resourcesApi.createProfile(createProfileRequest);
-    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel);
+    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel, testUser);
 
     BillingProfileModel billingProfile =
         DataRepoUtils.expectJobSuccess(repositoryApi, jobModel, BillingProfileModel.class);
@@ -381,6 +385,7 @@ public final class DataRepoUtils {
       String applicationDeploymentName,
       String profileName,
       String billingAccount,
+      TestUserSpecification testUser,
       boolean randomizeName)
       throws Exception {
     logger.debug("Creating a billing profile");
@@ -403,7 +408,7 @@ public final class DataRepoUtils {
 
     // make the create request and wait for the job to finish
     JobModel jobModel = resourcesApi.createProfile(createProfileRequest);
-    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel);
+    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel, testUser);
 
     BillingProfileModel billingProfile =
         DataRepoUtils.expectJobSuccess(repositoryApi, jobModel, BillingProfileModel.class);

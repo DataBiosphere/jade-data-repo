@@ -64,7 +64,7 @@ public class IngestFile extends SimpleDataset {
     JobModel ingestFileJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
 
-    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
+    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse, testUser);
 
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
         DataRepoUtils.expectJobSuccess(

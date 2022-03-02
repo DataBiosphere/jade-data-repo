@@ -51,7 +51,12 @@ public class SimpleDataset extends runner.TestScript {
       if (cloudPlatform.equals(CloudPlatform.GCP)) {
         billingProfileModel =
             DataRepoUtils.createProfile(
-                resourcesApi, repositoryApi, billingAccount, "profile-simple", datasetCreator, true);
+                resourcesApi,
+                repositoryApi,
+                billingAccount,
+                "profile-simple",
+                datasetCreator,
+                true);
       } else if (cloudPlatform.equals(CloudPlatform.AZURE)) {
         billingProfileModel =
             DataRepoUtils.createAzureProfile(
@@ -76,7 +81,12 @@ public class SimpleDataset extends runner.TestScript {
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
         DataRepoUtils.createDataset(
-            repositoryApi, billingProfileModel.getId(), cloudPlatform, "dataset-simple.json", datasetCreator, true);
+            repositoryApi,
+            billingProfileModel.getId(),
+            cloudPlatform,
+            "dataset-simple.json",
+            datasetCreator,
+            true);
 
     // save a reference to the dataset summary model so we can delete it in cleanup()
     datasetSummaryModel =

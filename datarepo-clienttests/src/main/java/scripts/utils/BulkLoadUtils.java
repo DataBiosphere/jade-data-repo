@@ -18,6 +18,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServiceAccountSpecification;
+import runner.config.TestUserSpecification;
 
 public class BulkLoadUtils {
   private static final Logger logger = LoggerFactory.getLogger(BulkLoadUtils.class);
@@ -133,7 +134,10 @@ public class BulkLoadUtils {
   }
 
   public static BulkLoadResultModel getAndDisplayResults(
-      RepositoryApi repositoryApi, JobModel bulkLoadArrayJobResponse, TestUserSpecification testUser) throws Exception {
+      RepositoryApi repositoryApi,
+      JobModel bulkLoadArrayJobResponse,
+      TestUserSpecification testUser)
+      throws Exception {
     bulkLoadArrayJobResponse =
         DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse, testUser);
 

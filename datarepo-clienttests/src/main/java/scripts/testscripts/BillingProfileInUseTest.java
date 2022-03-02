@@ -155,7 +155,8 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
 
     JobModel ingestFileJobResponse =
         repositoryApi.bulkFileLoadArray(dataset.getId(), fileLoadModelArray);
-    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse, userUser);
+    ingestFileJobResponse =
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse, userUser);
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);

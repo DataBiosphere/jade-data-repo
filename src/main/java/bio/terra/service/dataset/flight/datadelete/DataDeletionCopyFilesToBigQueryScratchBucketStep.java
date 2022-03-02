@@ -23,9 +23,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
-
+  private static final Logger logger =
+      LoggerFactory.getLogger(DataDeletionCopyFilesToBigQueryScratchBucketStep.class);
   private final DatasetService datasetService;
   private final GcsPdao gcsPdao;
 
@@ -62,7 +65,15 @@ public class DataDeletionCopyFilesToBigQueryScratchBucketStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    DataDeletionUtils.deleteScratchFiles(context, gcsPdao);
+    FlightMap workingMap = context.getWorkingMap();
+    // DataDeletionMapKeys.TABLES is not populated until the end of this "DO" step
+    // If this step fails part way through, it will be null
+    if (FlightUtils.getTyped(workingMap, DataDeletionMapKeys.TABLES) != null) {
+      DataDeletionUtils.deleteScratchFiles(context, gcsPdao);
+    } else {
+      logger.warn(
+          "Unable to clean up scratch files because DataDeletionMapKeys.TABLES key was not populated.");
+    }
     return StepResult.getStepResultSuccess();
   }
 

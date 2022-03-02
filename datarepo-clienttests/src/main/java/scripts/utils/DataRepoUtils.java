@@ -287,6 +287,7 @@ public final class DataRepoUtils {
    * @param datasetSummaryModel the summary of the dataset used by the snapshot
    * @param apipayloadFilename the name of the create snapshot payload file in the apipayloads
    *     resources directory
+   * @param testUser - user specification used to refresh credentials on long running job
    * @param randomizeName true to append a random number at the end of the snapshot name, false
    *     otherwise
    * @return the completed job model
@@ -295,6 +296,7 @@ public final class DataRepoUtils {
       RepositoryApi repositoryApi,
       DatasetSummaryModel datasetSummaryModel,
       String apipayloadFilename,
+      TestUserSpecification testUser,
       boolean randomizeName)
       throws Exception {
 
@@ -302,7 +304,7 @@ public final class DataRepoUtils {
     JobModel createSnapshotJobResponse =
         createSnapshotWithoutWaiting(
             repositoryApi, datasetSummaryModel, apipayloadFilename, randomizeName);
-    return DataRepoUtils.waitForJobToFinish(repositoryApi, createSnapshotJobResponse);
+    return DataRepoUtils.waitForJobToFinish(repositoryApi, createSnapshotJobResponse, testUser);
   }
 
   public static JobModel createSnapshotWithoutWaiting(

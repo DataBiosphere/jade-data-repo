@@ -105,7 +105,7 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
       for (int i = 0; i < snapshotsToCreate; i++) {
         JobModel createSnapshotJobResponse =
             DataRepoUtils.createSnapshot(
-                repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
+                repositoryApi, datasetSummaryModel, "snapshot-simple.json", testUser, true);
 
         SnapshotSummaryModel snapshotSummaryModel =
             DataRepoUtils.expectJobSuccess(

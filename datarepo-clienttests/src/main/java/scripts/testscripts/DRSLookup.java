@@ -135,7 +135,7 @@ public class DRSLookup extends SimpleDataset {
     // make the create snapshot request and wait for the job to finish
     JobModel createSnapshotJobResponse =
         DataRepoUtils.createSnapshot(
-            repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
+            repositoryApi, datasetSummaryModel, "snapshot-simple.json", datasetCreator, true);
 
     // save a reference to the snapshot summary model so we can delete it in cleanup()
     SnapshotSummaryModel snapshotSummaryModel =

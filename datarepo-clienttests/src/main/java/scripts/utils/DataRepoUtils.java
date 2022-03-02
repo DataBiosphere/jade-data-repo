@@ -114,27 +114,6 @@ public final class DataRepoUtils {
   }
 
   /**
-   * Wait until the job finishes, either successfully or not. Times out after {@link
-   * DataRepoUtils#maximumSecondsToWaitForJob} seconds. Polls in intervals of {@link
-   * DataRepoUtils#secondsIntervalToPollJob} seconds.
-   *
-   * @param repositoryApi the api object to use
-   * @param job the job model to poll
-   */
-  public static JobModel waitForJobToFinish(RepositoryApi repositoryApi, JobModel job)
-      throws Exception {
-    logger.debug("Waiting for Data Repo job to finish");
-    job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob, null);
-
-    if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      throw new RuntimeException(
-          "Timed out waiting for job to finish. (jobid=" + job.getId() + ")");
-    }
-
-    return job;
-  }
-
-  /**
    * Poll for running job. Polls for designated time.
    *
    * @param repositoryApi the api object to use

@@ -2721,11 +2721,12 @@ public class BigQueryPdao {
       "select * from `<project>.<snapshot>.<table>`";
 
   public List<String> exportTableToParquet(
-      Snapshot snapshot, GoogleBucketResource bucketResource, String flightId)
+      Snapshot snapshot,
+      GoogleBucketResource bucketResource,
+      String flightId,
+      boolean exportGsPaths)
       throws InterruptedException {
     List<String> paths = new ArrayList<>();
-    String snapshotProject = snapshot.getProjectResource().getGoogleProjectId();
-    String snapshotName = snapshot.getName();
     BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
 
     for (var table : snapshot.getTables()) {
@@ -2737,12 +2738,12 @@ public class BigQueryPdao {
               .add("table", tableName)
               .render();
 
-      String exportToParquetQuery =
-          new ST(exportToParquetQueryTemplate)
-              .add("table", tableName)
-              .add("project", snapshotProject)
-              .add("snapshot", snapshotName)
-              .render();
+      final String exportToParquetQuery;
+      if (exportGsPaths) {
+        exportToParquetQuery = createExportToParquetWithGsPathQuery(snapshot, table, flightId);
+      } else {
+        exportToParquetQuery = creteExportToParquetQuery(snapshot, table, flightId);
+      }
 
       String exportStatement =
           new ST(exportToParquetTemplate)
@@ -2758,35 +2759,15 @@ public class BigQueryPdao {
     return paths;
   }
 
-  public List<String> exportTableToParquetWithGsPaths(
-      Snapshot snapshot, GoogleBucketResource bucketResource, String flightId)
-      throws InterruptedException {
-    List<String> paths = new ArrayList<>();
-    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
-
-    for (var table : snapshot.getTables()) {
-      String tableName = table.getName();
-      String exportPath =
-          new ST(exportPathTemplate)
-              .add("bucket", bucketResource.getName())
-              .add("flightId", flightId)
-              .add("table", tableName)
-              .render();
-
-      String exportToParquetQuery = createExportToParquetWithGsPathQuery(snapshot, table, flightId);
-
-      String exportStatement =
-          new ST(exportToParquetTemplate)
-              .add("exportPath", exportPath)
-              .add("exportToParquetQuery", exportToParquetQuery)
-              .add("table", tableName)
-              .render();
-
-      bigQueryProject.query(exportStatement);
-      paths.add(exportPath);
-    }
-
-    return paths;
+  private String creteExportToParquetQuery(
+      Snapshot snapshot, SnapshotTable table, String flightId) {
+    String snapshotProject = snapshot.getProjectResource().getGoogleProjectId();
+    String snapshotName = snapshot.getName();
+    return new ST(exportToParquetQueryTemplate)
+        .add("table", table.getName())
+        .add("project", snapshotProject)
+        .add("snapshot", snapshotName)
+        .render();
   }
 
   private static final String exportToMappingTableTemplate =

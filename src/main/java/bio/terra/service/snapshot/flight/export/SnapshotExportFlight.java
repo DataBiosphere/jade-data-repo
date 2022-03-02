@@ -11,6 +11,7 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
@@ -35,9 +36,10 @@ public class SnapshotExportFlight extends Flight {
 
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
 
-    Boolean exportGsPathsInput =
-        inputParameters.get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class);
-    if (Boolean.TRUE.equals(exportGsPathsInput)) {
+    boolean exportGsPaths =
+        Objects.requireNonNullElse(
+            inputParameters.get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class), false);
+    if (exportGsPaths) {
       addStep(
           new SnapshotExportDumpFirestoreStep(
               snapshotService, fireStoreDao, gcsPdao, snapshotId, objectMapper));
@@ -45,12 +47,12 @@ public class SnapshotExportFlight extends Flight {
     }
     addStep(
         new SnapshotExportCreateParquetFilesStep(
-            bigQueryPdao, gcsPdao, snapshotService, snapshotId));
+            bigQueryPdao, gcsPdao, snapshotService, snapshotId, exportGsPaths));
     addStep(
         new SnapshotExportWriteManifestStep(
             snapshotId, snapshotService, gcsPdao, objectMapper, userReq));
     addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
-    if (Boolean.TRUE.equals(exportGsPathsInput)) {
+    if (exportGsPaths) {
       addStep(new CleanUpExportGsPathsStep(bigQueryPdao, gcsPdao, snapshotService, snapshotId));
     }
   }

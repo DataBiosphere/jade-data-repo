@@ -3,7 +3,6 @@ package bio.terra.service.snapshot.flight.export;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.DefaultUndoStep;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -24,16 +23,19 @@ public class SnapshotExportCreateParquetFilesStep extends DefaultUndoStep {
   private final GcsPdao gcsPdao;
   private final SnapshotService snapshotService;
   private final UUID snapshotId;
+  private final boolean exportGsPaths;
 
   public SnapshotExportCreateParquetFilesStep(
       BigQueryPdao bigQueryPdao,
       GcsPdao gcsPdao,
       SnapshotService snapshotService,
-      UUID snapshotId) {
+      UUID snapshotId,
+      boolean exportGsPaths) {
     this.bigQueryPdao = bigQueryPdao;
     this.gcsPdao = gcsPdao;
     this.snapshotService = snapshotService;
     this.snapshotId = snapshotId;
+    this.exportGsPaths = exportGsPaths;
   }
 
   @Override
@@ -44,14 +46,8 @@ public class SnapshotExportCreateParquetFilesStep extends DefaultUndoStep {
     GoogleBucketResource exportBucket =
         workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
 
-    final List<String> paths;
-    Boolean exportGsPathsInput =
-        context.getInputParameters().get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class);
-    if (Boolean.TRUE.equals(exportGsPathsInput)) {
-      paths = bigQueryPdao.exportTableToParquetWithGsPaths(snapshot, exportBucket, flightId);
-    } else {
-      paths = bigQueryPdao.exportTableToParquet(snapshot, exportBucket, flightId);
-    }
+    List<String> paths =
+        bigQueryPdao.exportTableToParquet(snapshot, exportBucket, flightId, exportGsPaths);
 
     Map<String, List<String>> tablesToPaths =
         paths.stream()

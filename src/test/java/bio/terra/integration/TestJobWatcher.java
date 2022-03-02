@@ -9,10 +9,12 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
 
 // This class can be used in a rule for integration test to decorate failures to make it easier to
 // debug
+@Component
 public class TestJobWatcher extends TestWatcher {
   private static final Logger logger = LoggerFactory.getLogger(TestJobWatcher.class);
 

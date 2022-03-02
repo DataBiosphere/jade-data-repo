@@ -9,6 +9,7 @@ import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
@@ -28,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -54,6 +56,7 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
   @Autowired private JsonLoader jsonLoader;
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private UUID datasetId;
   private UUID snapshotId;

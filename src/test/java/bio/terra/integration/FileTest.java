@@ -41,6 +41,7 @@ import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -69,6 +70,8 @@ public class FileTest extends UsersBase {
   @Autowired private DataRepoClient dataRepoClient;
 
   @Autowired private TestConfiguration testConfiguration;
+
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;

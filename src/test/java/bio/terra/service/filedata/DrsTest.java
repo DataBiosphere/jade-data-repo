@@ -19,6 +19,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessMethod.TypeEnum;
@@ -58,6 +59,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -91,6 +93,7 @@ public class DrsTest extends UsersBase {
   @Autowired private AuthService authService;
   @Autowired private IamService iamService;
   @Autowired private ConfigurationService configurationService;
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String custodianToken;
   private DatasetModel datasetModel;

@@ -1,10 +1,10 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
@@ -15,12 +15,11 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.integration.BigQueryFixtures;
-import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
 import bio.terra.model.CloudPlatform;
@@ -55,6 +54,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -80,10 +80,9 @@ public class DatasetIntegrationTest extends UsersBase {
   private static final String omopDatasetRegion = GoogleRegion.US_CENTRAL1.toString();
   private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 
-  @Autowired private DataRepoClient dataRepoClient;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
-  @Autowired private TestConfiguration testConfiguration;
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String stewardToken;
   private UUID datasetId;

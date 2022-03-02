@@ -28,6 +28,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.AccessInfoParquetModelTable;
@@ -83,6 +84,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -117,6 +119,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private SynapseUtils synapseUtils;
   @Autowired private JsonLoader jsonLoader;
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String stewardToken;
   private User steward;

@@ -429,7 +429,9 @@ public class FireStoreDao {
         // We found a file in the directory that is not done being created. We treat this
         // as not found.
         throw new FileNotFoundException(
-            "Found a file, but the directory is not done being created: " + context);
+            String.format(
+                "Found a file (fileId: %s), but the directory is not done being created: %s",
+                fireStoreDirectoryEntry.getFileId(), context));
       }
       return fsFile;
     }

@@ -687,7 +687,7 @@ public class DataRepoFixtures {
     return dataRepoClient.get(
         user,
         String.format("/api/repository/v1/snapshots/%s/export?exportGsPaths=true", snapshotId),
-        JobModel.class);
+        new TypeReference<>() {});
   }
 
   public DataRepoResponse<JobModel> ingestJsonDataLaunch(

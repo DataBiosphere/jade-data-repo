@@ -118,7 +118,7 @@ public class UserMetricsInterceptorTest {
 
   private void runAnWait(HttpServletRequest request, HttpServletResponse response)
       throws Exception {
-    metricsInterceptor.afterCompletion(request, response, null, null);
+    metricsInterceptor.afterCompletion(request, response, new Object(), null);
     // This waits for the threadpool to wrap up so that we can examine the results
     metricsConfig.metricsPerformanceThreadpool().awaitTermination(100, TimeUnit.MILLISECONDS);
   }

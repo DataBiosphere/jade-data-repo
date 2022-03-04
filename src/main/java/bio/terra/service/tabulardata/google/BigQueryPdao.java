@@ -29,6 +29,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
+import bio.terra.common.DateTimeUtils;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.Table;
 import bio.terra.common.exception.NotFoundException;
@@ -505,7 +506,7 @@ public class BigQueryPdao {
             sql,
             Map.of(
                 "transactionTerminatedAt",
-                QueryParameterValue.timestamp(filterBefore.toEpochMilli() * 1000)));
+                QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
     for (FieldValueList row : result.iterateAll()) {
       // Test getting these by name
       FieldValue rowId = row.get(0);
@@ -637,7 +638,7 @@ public class BigQueryPdao {
             sqlTemplate.render(),
             Map.of(
                 "transactionTerminatedAt",
-                QueryParameterValue.timestamp(filterBefore.toEpochMilli() * 1000)));
+                QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
     FieldValueList row = result.iterateAll().iterator().next();
     FieldValue countValue = row.get(0);
     if (countValue.getLongValue() != rowIds.size()) {
@@ -754,7 +755,7 @@ public class BigQueryPdao {
         sqlTemplate.render(),
         Map.of(
             "transactionTerminatedAt",
-            QueryParameterValue.timestamp(filterBefore.toEpochMilli() * 1000)));
+            QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
 
     ST sqlValidateSnapshotTemplate = new ST(validateSnapshotSizeTemplate);
     sqlValidateSnapshotTemplate.add("rowId", PDAO_ROW_ID_COLUMN);
@@ -849,7 +850,7 @@ public class BigQueryPdao {
               sqlTemplate.render(),
               Map.of(
                   "transactionTerminatedAt",
-                  QueryParameterValue.timestamp(filterBefore.toEpochMilli() * 1000)));
+                  QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
       FieldValueList row = result.iterateAll().iterator().next();
       FieldValue countValue = row.get(0);
       if (countValue.getLongValue() != rowIds.size()) {
@@ -1162,14 +1163,14 @@ public class BigQueryPdao {
     sqlTemplate.add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
     sqlTemplate.add("transactCreatedByCol", PDAO_TRANSACTION_CREATED_BY_COLUMN);
 
-    long filterBefore = System.currentTimeMillis();
+    Instant filterBefore = Instant.now();
     TransactionModel transaction =
         new TransactionModel()
             .id(UUID.randomUUID())
             .lock(flightId)
             .description(transactionDescription)
             .status(TransactionModel.StatusEnum.ACTIVE)
-            .createdAt(Instant.ofEpochMilli(filterBefore).toString())
+            .createdAt(filterBefore.toString())
             .createdBy(authedUser.getEmail());
 
     bigQueryProject.query(
@@ -1179,7 +1180,8 @@ public class BigQueryPdao {
             "transactLock", QueryParameterValue.string(transaction.getLock()),
             "transactDescription", QueryParameterValue.string(transaction.getDescription()),
             "transactStatus", QueryParameterValue.string(transaction.getStatus().toString()),
-            "transactCreatedAt", QueryParameterValue.timestamp(filterBefore * 1000),
+            "transactCreatedAt",
+                QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore)),
             "transactCreatedBy", QueryParameterValue.string(transaction.getCreatedBy())));
 
     return transaction;
@@ -1281,14 +1283,15 @@ public class BigQueryPdao {
     sqlTemplate.add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
     sqlTemplate.add("transactTerminatedByCol", PDAO_TRANSACTION_TERMINATED_BY_COLUMN);
 
-    long terminatedAt = System.currentTimeMillis();
+    Instant terminatedAt = Instant.now();
 
     bigQueryProject.query(
         sqlTemplate.render(),
         Map.of(
             "transactId", QueryParameterValue.string(transactId.toString()),
             "transactStatus", QueryParameterValue.string(status.toString()),
-            "transactTerminatedAt", QueryParameterValue.timestamp(terminatedAt * 1000),
+            "transactTerminatedAt",
+                QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(terminatedAt)),
             "transactTerminatedBy", QueryParameterValue.string(authedUser.getEmail())));
 
     return retrieveTransaction(dataset, transactId);
@@ -1417,16 +1420,15 @@ public class BigQueryPdao {
                 .map(Object::toString)
                 .orElse(null))
         .createdAt(
-            Instant.ofEpochMilli(
-                    values.get(PDAO_TRANSACTION_CREATED_AT_COLUMN).getTimestampValue() / 1000)
+            DateTimeUtils.ofEpicMicros(
+                    values.get(PDAO_TRANSACTION_CREATED_AT_COLUMN).getTimestampValue())
                 .toString())
         .createdBy(values.get(PDAO_TRANSACTION_CREATED_BY_COLUMN).getStringValue())
         .terminatedAt(
             values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).isNull()
                 ? null
-                : Instant.ofEpochMilli(
-                        values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).getTimestampValue()
-                            / 1000)
+                : DateTimeUtils.ofEpicMicros(
+                        values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).getTimestampValue())
                     .toString())
         .terminatedBy(
             Optional.ofNullable(values.get(PDAO_TRANSACTION_TERMINATED_BY_COLUMN).getValue())
@@ -2013,7 +2015,7 @@ public class BigQueryPdao {
               .setNamedParameters(
                   Map.of(
                       "transactionTerminatedAt",
-                      QueryParameterValue.timestamp(filterBefore.toEpochMilli() * 1000)))
+                      QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))))
               .build();
 
       final TableResult query = executeQueryWithRetry(snapshotBigQuery, queryConfig);
@@ -2044,7 +2046,7 @@ public class BigQueryPdao {
               sqlTemplate.render(),
               Map.of(
                   "transactionTerminatedAt",
-                  QueryParameterValue.timestamp(filterBefore.toEpochMilli() * 1000)));
+                  QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
       FieldValueList mismatchedCount = result.getValues().iterator().next();
       Long mismatchedCountLong = mismatchedCount.get(0).getLongValue();
       if (mismatchedCountLong > 0) {
@@ -2234,7 +2236,7 @@ public class BigQueryPdao {
             .setNamedParameters(
                 Map.of(
                     "transactionTerminatedAt",
-                    QueryParameterValue.timestamp(filterBefore.toEpochMilli() * 1000)))
+                    QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))))
             .build();
 
     executeQueryWithRetry(bigQuery, queryConfig);
@@ -2447,7 +2449,7 @@ public class BigQueryPdao {
               sql,
               Map.of(
                   "transactionTerminatedAt",
-                  QueryParameterValue.timestamp(filterBefore.toEpochMilli() * 1000)));
+                  QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
       for (FieldValueList row : result.iterateAll()) {
         // Test getting these by name
         FieldValue rowId = row.get(0);

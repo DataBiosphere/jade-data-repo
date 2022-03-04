@@ -17,6 +17,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.BQTestUtils;
+import bio.terra.common.DateTimeUtils;
 import bio.terra.common.Relationship;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoException;
@@ -110,6 +111,7 @@ public class BigQueryPdaoUnitTest {
   private static final UUID SNAPSHOT_TABLE_2_COL3_ID = UUID.randomUUID();
 
   private static final Instant CREATED_AT = Instant.parse("2022-01-01T00:00:00.00Z");
+  private static final long CREATED_AT_MICROS = DateTimeUtils.toEpochMicros(CREATED_AT);
 
   @Mock private ApplicationConfiguration applicationConfiguration;
   @Mock private BigQueryConfiguration bigQueryConfiguration;
@@ -460,7 +462,7 @@ public class BigQueryPdaoUnitTest {
                 .setNamedParameters(
                     Map.of(
                         "transactionTerminatedAt",
-                        QueryParameterValue.timestamp(CREATED_AT.toEpochMilli() * 1000)))
+                        QueryParameterValue.timestamp(CREATED_AT_MICROS)))
                 .build());
 
     verify(bigQuerySnapshot, times(1))
@@ -593,8 +595,7 @@ public class BigQueryPdaoUnitTest {
                     + ") AS L)"),
             eq(
                 Map.of(
-                    "transactionTerminatedAt",
-                    QueryParameterValue.timestamp(CREATED_AT.toEpochMilli() * 1000))));
+                    "transactionTerminatedAt", QueryParameterValue.timestamp(CREATED_AT_MICROS))));
   }
 
   @Test
@@ -638,9 +639,7 @@ public class BigQueryPdaoUnitTest {
             .setDestinationTable(TableId.of(SNAPSHOT_NAME, "datarepo_temp"))
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
             .setNamedParameters(
-                Map.of(
-                    "transactionTerminatedAt",
-                    QueryParameterValue.timestamp(CREATED_AT.toEpochMilli() * 1000)))
+                Map.of("transactionTerminatedAt", QueryParameterValue.timestamp(CREATED_AT_MICROS)))
             .build();
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();
@@ -714,9 +713,7 @@ public class BigQueryPdaoUnitTest {
             .setDestinationTable(TableId.of(SNAPSHOT_NAME, "datarepo_temp"))
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
             .setNamedParameters(
-                Map.of(
-                    "transactionTerminatedAt",
-                    QueryParameterValue.timestamp(CREATED_AT.toEpochMilli() * 1000)))
+                Map.of("transactionTerminatedAt", QueryParameterValue.timestamp(CREATED_AT_MICROS)))
             .build();
 
     // Mock query that is passed in
@@ -755,9 +752,7 @@ public class BigQueryPdaoUnitTest {
             .setDestinationTable(TableId.of(SNAPSHOT_NAME, "datarepo_temp"))
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
             .setNamedParameters(
-                Map.of(
-                    "transactionTerminatedAt",
-                    QueryParameterValue.timestamp(CREATED_AT.toEpochMilli() * 1000)))
+                Map.of("transactionTerminatedAt", QueryParameterValue.timestamp(CREATED_AT_MICROS)))
             .build();
     String drRowId1 = UUID.randomUUID().toString();
     String drRowId2 = UUID.randomUUID().toString();

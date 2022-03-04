@@ -216,9 +216,19 @@ public class DatasetIntegrationTest extends UsersBase {
         is(false));
 
     assertThat(
+        "Provided PHS ID was added to the summary model",
+        summaryModel.getPhsId(),
+        equalTo("phs100321"));
+
+    assertThat(
         "Default security classification was propagated to model",
         datasetModel.isSecureMonitoringEnabled(),
         is(false));
+
+    assertThat(
+        "Provided PHS ID was added to the dataset model",
+        datasetModel.getPhsId(),
+        equalTo("phs100321"));
   }
 
   @Test

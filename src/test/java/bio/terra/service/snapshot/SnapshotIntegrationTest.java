@@ -176,6 +176,21 @@ public class SnapshotIntegrationTest extends UsersBase {
         snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled(),
         is(false));
 
+    assertThat(
+        "The phs ID is propagated from the dataset",
+        snapshot.getSource().get(0).getDataset().getPhsId(),
+        equalTo("phs100321"));
+
+    assertThat(
+        "The phs ID is set in snapshot summary", snapshotSummary.getPhsId(), equalTo("phs100321"));
+
+    assertThat("The consent code is set in the snapshot", snapshot.getConsentCode(), equalTo("c1"));
+
+    assertThat(
+        "The consent code is set in the snapshot summary",
+        snapshotSummary.getConsentCode(),
+        equalTo("c1"));
+
     List<String> stewardRoles =
         dataRepoFixtures.retrieveUserSnapshotRoles(steward(), snapshotSummary.getId());
     assertThat("The Steward was given steward access", stewardRoles, hasItem("steward"));

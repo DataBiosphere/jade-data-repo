@@ -660,8 +660,13 @@ public class DataRepoFixtures {
   }
 
   public DataRepoResponse<SnapshotExportResponseModel> exportSnapshotLog(
-      TestConfiguration.User user, UUID snapshotId) throws Exception {
-    DataRepoResponse<JobModel> jobResponse = exportSnapshot(user, snapshotId);
+      TestConfiguration.User user, UUID snapshotId, boolean resolveGsPaths) throws Exception {
+    DataRepoResponse<JobModel> jobResponse;
+    if (resolveGsPaths) {
+      jobResponse = exportSnapshotResolveGsPaths(user, snapshotId);
+    } else {
+      jobResponse = exportSnapshot(user, snapshotId);
+    }
     assertTrue("snapshot export launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "snapshot export launch response is present", jobResponse.getResponseObject().isPresent());
@@ -673,8 +678,16 @@ public class DataRepoFixtures {
       throws Exception {
     return dataRepoClient.get(
         user,
-        String.format("/api/repository/v1/snapshots/%s/export", snapshotId),
+        String.format("/api/repository/v1/snapshots/%s/export?", snapshotId),
         new TypeReference<>() {});
+  }
+
+  public DataRepoResponse<JobModel> exportSnapshotResolveGsPaths(
+      TestConfiguration.User user, UUID snapshotId) throws Exception {
+    return dataRepoClient.get(
+        user,
+        String.format("/api/repository/v1/snapshots/%s/export?exportGsPaths=true", snapshotId),
+        JobModel.class);
   }
 
   public DataRepoResponse<JobModel> ingestJsonDataLaunch(

@@ -39,6 +39,7 @@ import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -142,6 +143,13 @@ public class GcsPdao implements CloudFileReader {
     var channelReader = Channels.newReader(reader, StandardCharsets.UTF_8);
     var bufferedReader = new BufferedReader(channelReader);
     return bufferedReader.lines();
+  }
+
+  @VisibleForTesting
+  public byte[] getBlobBytes(String url, String projectId) {
+    Storage storage = gcsProjectFactory.getStorage(projectId);
+    return storage.readAllBytes(
+        GcsUriUtils.parseBlobUri(url), Storage.BlobSourceOption.userProject(projectId));
   }
 
   private Stream<Blob> listGcsFiles(String path, String projectId, Storage storage) {
@@ -387,6 +395,15 @@ public class GcsPdao implements CloudFileReader {
       return deleteWorker(blobId, projectId);
     }
     return false;
+  }
+
+  public boolean deleteFileByName(GoogleBucketResource bucket, String fileName) {
+    Storage storage =
+        StorageOptions.newBuilder()
+            .setProjectId(bucket.getProjectResource().getGoogleProjectId())
+            .build()
+            .getService();
+    return storage.delete(bucket.getName(), fileName);
   }
 
   // Consumer method for deleting GCS files driven from a scan over the firestore files

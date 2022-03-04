@@ -1,0 +1,10 @@
+{
+  "contents": [
+    {
+      "datasetName": "DatasetCombined",
+      "mode": "byFullView"
+    }
+  ],
+  "description": "A snapshot with array of filerefs",
+  "name": "DatasetCombinedArrayFileRefSnapshot"
+}

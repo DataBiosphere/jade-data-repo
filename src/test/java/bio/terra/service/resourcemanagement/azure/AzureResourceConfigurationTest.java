@@ -370,7 +370,10 @@ public class AzureResourceConfigurationTest {
 
       Map<String, Map<String, String>> outputs =
           ((Map<String, Map<String, Map<String, String>>>)
-                  client.genericResources().getById(resourceReference.id()).properties())
+                  client
+                      .genericResources()
+                      .getById(resourceReference.id(), azureResourceConfiguration.getApiVersion())
+                      .properties())
               .get("outputs");
 
       String storageEndpoint = outputs.get("storageEndpoint").get("value");

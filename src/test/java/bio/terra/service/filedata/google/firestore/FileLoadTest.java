@@ -151,8 +151,8 @@ public class FileLoadTest {
       for (int r = 0; r < repeats; r++) {
         for (int i = 0; i < goodFileSource.length; i++) {
           BulkLoadFileModel fileModel = getFileModel(i, r, testId);
-          String fileLine = objectMapper.writeValueAsString(fileModel) + "\n";
-          writer.write(fileLine);
+          String fileLine = objectMapper.writeValueAsString(fileModel);
+          writer.writeLine(fileLine);
         }
       }
     } catch (IOException ex) {

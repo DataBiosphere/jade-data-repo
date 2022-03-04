@@ -5,7 +5,7 @@ import bio.terra.common.AclUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
-import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.filedata.FSContainerInterface;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -53,16 +53,12 @@ public final class BigQueryProject {
     PROJECT_CACHE.put(bigQueryProject.getProjectId(), bigQueryProject);
   }
 
-  public static BigQueryProject from(bio.terra.service.dataset.Dataset dataset) {
-    return get(dataset.getProjectResource().getGoogleProjectId());
-  }
-
-  public static BigQueryProject from(Snapshot snapshot) {
-    return get(snapshot.getProjectResource().getGoogleProjectId());
-  }
-
   public static BigQueryProject from(SnapshotModel snapshotModel) {
     return get(snapshotModel.getDataProject());
+  }
+
+  public static BigQueryProject from(FSContainerInterface fsContainerInterface) {
+    return get(fsContainerInterface.getProjectResource().getGoogleProjectId());
   }
 
   public String getProjectId() {

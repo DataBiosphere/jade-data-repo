@@ -27,6 +27,7 @@ public class DatasetSummary {
   private CloudPlatform cloudPlatform;
   private String dataProject;
   private String storageAccount;
+  private String phsId;
 
   public UUID getId() {
     return id;
@@ -186,6 +187,15 @@ public class DatasetSummary {
 
   public DatasetSummary storageAccount(String storageAccount) {
     this.storageAccount = storageAccount;
+    return this;
+  }
+
+  public String getPhsId() {
+    return phsId;
+  }
+
+  public DatasetSummary phsId(String phsId) {
+    this.phsId = phsId;
     return this;
   }
 }

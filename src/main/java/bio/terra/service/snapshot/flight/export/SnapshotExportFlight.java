@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -10,6 +11,7 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
@@ -23,6 +25,7 @@ public class SnapshotExportFlight extends Flight {
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    FireStoreDao fireStoreDao = appContext.getBean(FireStoreDao.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ObjectMapper objectMapper = appConfig.objectMapper();
 
@@ -32,12 +35,25 @@ public class SnapshotExportFlight extends Flight {
         UUID.fromString(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
 
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
+
+    boolean exportGsPaths =
+        Objects.requireNonNullElse(
+            inputParameters.get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class), false);
+    if (exportGsPaths) {
+      addStep(
+          new SnapshotExportDumpFirestoreStep(
+              snapshotService, fireStoreDao, gcsPdao, snapshotId, objectMapper));
+      addStep(new SnapshotExportLoadMappingTableStep(snapshotId, snapshotService, bigQueryPdao));
+    }
     addStep(
         new SnapshotExportCreateParquetFilesStep(
-            bigQueryPdao, gcsPdao, snapshotService, snapshotId));
+            bigQueryPdao, gcsPdao, snapshotService, snapshotId, exportGsPaths));
     addStep(
         new SnapshotExportWriteManifestStep(
             snapshotId, snapshotService, gcsPdao, objectMapper, userReq));
     addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
+    if (exportGsPaths) {
+      addStep(new CleanUpExportGsPathsStep(bigQueryPdao, gcsPdao, snapshotService, snapshotId));
+    }
   }
 }

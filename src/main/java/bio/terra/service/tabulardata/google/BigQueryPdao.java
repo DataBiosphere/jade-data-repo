@@ -3,6 +3,8 @@ package bio.terra.service.tabulardata.google;
 import static bio.terra.common.PdaoConstant.PDAO_DELETED_AT_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_DELETED_BY_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_FIRESTORE_DUMP_FILE_ID_KEY;
+import static bio.terra.common.PdaoConstant.PDAO_FIRESTORE_DUMP_GSPATH_KEY;
 import static bio.terra.common.PdaoConstant.PDAO_FLIGHT_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_INGESTED_BY_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS;
@@ -28,6 +30,7 @@ import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_TERMINATED_BY_COLUM
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.DateTimeUtils;
 import bio.terra.common.PdaoLoadStatistics;
@@ -45,6 +48,7 @@ import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TransactionModel;
+import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
@@ -53,6 +57,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.TransactionLockException;
+import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
@@ -594,8 +599,7 @@ public class BigQueryPdao {
     String snapshotProjectId = snapshotBigQueryProject.getProjectId();
 
     // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-    BigQueryProject datasetBigQueryProject =
-        BigQueryProject.from(snapshot.getFirstSnapshotSource().getDataset());
+    BigQueryProject datasetBigQueryProject = BigQueryProject.from(snapshot.getSourceDataset());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
 
     String snapshotName = snapshot.getName();
@@ -785,8 +789,7 @@ public class BigQueryPdao {
     String snapshotProjectId = snapshotBigQueryProject.getProjectId();
 
     // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-    BigQueryProject datasetBigQueryProject =
-        BigQueryProject.from(snapshot.getFirstSnapshotSource().getDataset());
+    BigQueryProject datasetBigQueryProject = BigQueryProject.from(snapshot.getSourceDataset());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
 
     String snapshotName = snapshot.getName();
@@ -1992,7 +1995,7 @@ public class BigQueryPdao {
 
     // dataset
     // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-    Dataset dataset = snapshot.getFirstSnapshotSource().getDataset();
+    Dataset dataset = snapshot.getSourceDataset();
     String datasetBqDatasetName = prefixName(dataset.getName());
     BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
     String datasetProjectId = datasetBigQueryProject.getProjectId();
@@ -2318,8 +2321,7 @@ public class BigQueryPdao {
   private void deleteViewAcls(
       String datasetBqDatasetName, Snapshot snapshot, String snapshotProjectId)
       throws InterruptedException {
-    BigQueryProject bigQueryDatasetProject =
-        BigQueryProject.from(snapshot.getFirstSnapshotSource().getDataset());
+    BigQueryProject bigQueryDatasetProject = BigQueryProject.from(snapshot.getSourceDataset());
 
     List<String> viewsToDelete =
         snapshot.getTables().stream()
@@ -2371,10 +2373,9 @@ public class BigQueryPdao {
     if (mapColumn == null) {
       return "NULL AS " + targetColumnName;
     } else {
-      TableDataType colType = mapColumn.getFromColumn().getType();
       String mapName = mapColumn.getFromColumn().getName();
 
-      if (colType == TableDataType.FILEREF || colType == TableDataType.DIRREF) {
+      if (mapColumn.getFromColumn().isFileOrDirRef()) {
 
         String drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshotId + "_'";
 
@@ -2562,12 +2563,39 @@ public class BigQueryPdao {
     }
   }
 
-  public boolean deleteSoftDeleteExternalTable(Dataset dataset, String tableName, String suffix)
-      throws InterruptedException {
+  public void createFirestoreGsPathExternalTable(Snapshot snapshot, String path, String flightId) {
+    String gsPathMappingTableName = BigQueryUtils.gsPathMappingTableName(snapshot);
+    String extTableName = externalTableName(gsPathMappingTableName, flightId);
 
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    TableId tableId = TableId.of(snapshot.getName(), extTableName);
+    Schema schema =
+        Schema.of(
+            Field.of(PDAO_FIRESTORE_DUMP_FILE_ID_KEY, LegacySQLTypeName.STRING),
+            Field.of(PDAO_FIRESTORE_DUMP_GSPATH_KEY, LegacySQLTypeName.STRING));
+    ExternalTableDefinition tableDef =
+        ExternalTableDefinition.of(path, schema, FormatOptions.json());
+    TableInfo tableInfo = TableInfo.of(tableId, tableDef);
+    bigQueryProject.getBigQuery().create(tableInfo);
+  }
+
+  public boolean deleteFirestoreGsPathExternalTable(Snapshot snapshot, String flightId) {
+    String gsPathMappingTableName = BigQueryUtils.gsPathMappingTableName(snapshot);
+    return deleteExternalTable(snapshot, gsPathMappingTableName, flightId);
+  }
+
+  public boolean deleteExternalTable(
+      FSContainerInterface container, String tableName, String suffix) {
+
+    BigQueryProject bigQueryProject = BigQueryProject.from(container);
+    final String bqDatasetName;
+    if (container.getCollectionType() == CollectionType.DATASET) {
+      bqDatasetName = prefixName(container.getName());
+    } else {
+      bqDatasetName = container.getName();
+    }
     String extTableName = externalTableName(tableName, suffix);
-    return bigQueryProject.deleteTable(prefixName(dataset.getName()), extTableName);
+    return bigQueryProject.deleteTable(bqDatasetName, extTableName);
   }
 
   private static final String insertSoftDeleteTemplate =
@@ -2785,16 +2813,19 @@ public class BigQueryPdao {
       "export data OPTIONS( "
           + "uri='<exportPath>/<table>-*.parquet', "
           + "format='PARQUET') "
-          + "AS select * from `<project>.<snapshot>.<table>`";
+          + "AS (<exportToParquetQuery>)";
 
   private static final String exportPathTemplate = "gs://<bucket>/<flightId>/<table>";
+  private static final String exportToParquetQueryTemplate =
+      "select * from `<project>.<snapshot>.<table>`";
 
   public List<String> exportTableToParquet(
-      Snapshot snapshot, GoogleBucketResource bucketResource, String flightId)
+      Snapshot snapshot,
+      GoogleBucketResource bucketResource,
+      String flightId,
+      boolean exportGsPaths)
       throws InterruptedException {
     List<String> paths = new ArrayList<>();
-    String snapshotProject = snapshot.getProjectResource().getGoogleProjectId();
-    String snapshotName = snapshot.getName();
     BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
 
     for (var table : snapshot.getTables()) {
@@ -2806,12 +2837,18 @@ public class BigQueryPdao {
               .add("table", tableName)
               .render();
 
+      final String exportToParquetQuery;
+      if (exportGsPaths) {
+        exportToParquetQuery = createExportToParquetWithGsPathQuery(snapshot, table, flightId);
+      } else {
+        exportToParquetQuery = creteExportToParquetQuery(snapshot, table, flightId);
+      }
+
       String exportStatement =
           new ST(exportToParquetTemplate)
               .add("exportPath", exportPath)
+              .add("exportToParquetQuery", exportToParquetQuery)
               .add("table", tableName)
-              .add("project", snapshotProject)
-              .add("snapshot", snapshotName)
               .render();
 
       bigQueryProject.query(exportStatement);
@@ -2819,6 +2856,76 @@ public class BigQueryPdao {
     }
 
     return paths;
+  }
+
+  private String creteExportToParquetQuery(
+      Snapshot snapshot, SnapshotTable table, String flightId) {
+    String snapshotProject = snapshot.getProjectResource().getGoogleProjectId();
+    String snapshotName = snapshot.getName();
+    return new ST(exportToParquetQueryTemplate)
+        .add("table", table.getName())
+        .add("project", snapshotProject)
+        .add("snapshot", snapshotName)
+        .render();
+  }
+
+  private static final String exportToMappingTableTemplate =
+      "WITH datarepo_gs_path_mapping AS "
+          + "(SELECT <fileIdKey>, <gsPathKey> "
+          + "  FROM `<project>.<snapshotDatasetName>.<gsPathMappingTable>`) "
+          + "SELECT "
+          + "  S.<pdaoRowIdColumn>,"
+          + "  <mappedColumns; separator=\",\"> "
+          + "FROM "
+          + "`<project>.<snapshotDatasetName>.<table>` S";
+
+  private String createExportToParquetWithGsPathQuery(
+      Snapshot snapshot, SnapshotTable table, String flightId) {
+    String gsPathMappingTableName = BigQueryUtils.gsPathMappingTableName(snapshot);
+    String extTableName = externalTableName(gsPathMappingTableName, flightId);
+    List<String> mappedColumns =
+        table.getColumns().stream().map(this::gsPathMappingSelectSql).collect(Collectors.toList());
+
+    return new ST(exportToMappingTableTemplate)
+        .add("project", snapshot.getProjectResource().getGoogleProjectId())
+        .add("snapshotDatasetName", snapshot.getName())
+        .add("gsPathMappingTable", extTableName)
+        .add("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN)
+        .add("mappedColumns", mappedColumns)
+        .add("table", table.getName())
+        .add("gsPathKey", PDAO_FIRESTORE_DUMP_GSPATH_KEY)
+        .add("fileIdKey", PDAO_FIRESTORE_DUMP_FILE_ID_KEY)
+        .render();
+  }
+
+  private static final String fileRefMappingColumnTemplate =
+      "(SELECT <gsPathKey> "
+          + "FROM datarepo_gs_path_mapping "
+          + "WHERE RIGHT(S.<columnName>, 36) = <fileIdKey>) AS <columnName>";
+
+  private static final String fileRefArrayOfMappingColumnTemplate =
+      "  ARRAY(SELECT <gsPathKey> "
+          + "    FROM UNNEST(<columnName>) AS unnested_drs_path, "
+          + "    datarepo_gs_path_mapping "
+          + "    WHERE RIGHT(unnested_drs_path, 36) = <fileIdKey>) AS <columnName>";
+
+  private String gsPathMappingSelectSql(Column snapshotColumn) {
+    String columnName = snapshotColumn.getName();
+    if (snapshotColumn.isFileOrDirRef()) {
+      final String columnTemplate;
+      if (snapshotColumn.isArrayOf()) {
+        columnTemplate = fileRefArrayOfMappingColumnTemplate;
+      } else {
+        columnTemplate = fileRefMappingColumnTemplate;
+      }
+      return new ST(columnTemplate)
+          .add("columnName", columnName)
+          .add("gsPathKey", PDAO_FIRESTORE_DUMP_GSPATH_KEY)
+          .add("fileIdKey", PDAO_FIRESTORE_DUMP_FILE_ID_KEY)
+          .render();
+    } else {
+      return "S." + snapshotColumn.getName();
+    }
   }
 
   public void migrateSchemaForTransactions(Dataset dataset) {

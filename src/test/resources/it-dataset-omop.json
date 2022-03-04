@@ -2,6 +2,7 @@
     "name": "it_dataset_omop",
     "description": "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki with extra columns suffixed with _custom",
     "defaultProfileId": "deadbeef-face-cafe-bead-0ddba11deed5",
+    "phsId": "phs100321",
     "schema": {
         "tables": [
             {

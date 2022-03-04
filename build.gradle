@@ -42,7 +42,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.297.0-SNAPSHOT'
+    version '1.303.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -203,8 +203,8 @@ dependencies {
     compile 'org.antlr:ST4:4.3'                          // String templating
     compile group: 'io.kubernetes', name: 'client-java', version: '10.0.0'
 
-    compile 'io.springfox:springfox-swagger-ui:2.10.0'
-    compile 'io.springfox:springfox-swagger2:2.9.2'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'javax.servlet:jstl:1.2'
 
     implementation 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.10.0'
     implementation 'org.elasticsearch:elasticsearch:7.10.0'
@@ -301,7 +301,7 @@ dependencies {
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation group: "org.webjars", name: "webjars-locator-core", version: "0.46"
-    runtimeOnly group: "org.webjars.npm", name: "swagger-ui-dist", version: "3.35.2"
+    runtimeOnly group: "org.webjars.npm", name: "swagger-ui-dist", version: "4.3.0"
     generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"
 
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
@@ -408,7 +408,7 @@ jar {
 jib {
     extraDirectories.paths = ['build/gen-expanded']
     from {
-        image = "gcr.io/distroless/java11-debian11"
+        image = "us.gcr.io/broad-dsp-gcr-public/base/jre:11-debian"
     }
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())

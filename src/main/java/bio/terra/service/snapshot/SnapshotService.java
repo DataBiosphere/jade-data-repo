@@ -133,11 +133,12 @@ public class SnapshotService {
         .submit();
   }
 
-  public String exportSnapshot(UUID id, AuthenticatedUserRequest userReq) {
+  public String exportSnapshot(UUID id, AuthenticatedUserRequest userReq, Boolean exportGsPaths) {
     String description = "Export snapshot " + id;
     return jobService
         .newJob(description, SnapshotExportFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
+        .addParameter(JobMapKeys.EXPORT_GSPATHS.getKeyName(), exportGsPaths)
         .submit();
   }
 
@@ -346,7 +347,8 @@ public class SnapshotService {
         .snapshotSources(Collections.singletonList(snapshotSource))
         .profileId(snapshotRequestModel.getProfileId())
         .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource))
-        .creationInformation(requestContents);
+        .creationInformation(requestContents)
+        .consentCode(snapshotRequestModel.getConsentCode());
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(
@@ -612,7 +614,9 @@ public class SnapshotService {
         .secureMonitoringEnabled(snapshotSummary.isSecureMonitoringEnabled())
         .cloudPlatform(snapshotSummary.getCloudPlatform())
         .dataProject(snapshotSummary.getDataProject())
-        .storageAccount(snapshotSummary.getStorageAccount());
+        .storageAccount(snapshotSummary.getStorageAccount())
+        .consentCode(snapshotSummary.getConsentCode())
+        .phsId(snapshotSummary.getPhsId());
   }
 
   private static List<StorageResourceModel> storageResourceModelFromSnapshotSummary(
@@ -631,7 +635,8 @@ public class SnapshotService {
             .id(snapshot.getId())
             .name(snapshot.getName())
             .description(snapshot.getDescription())
-            .createdDate(snapshot.getCreatedDate().toString());
+            .createdDate(snapshot.getCreatedDate().toString())
+            .consentCode(snapshot.getConsentCode());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRetrieveIncludeModel.NONE)) {
@@ -700,7 +705,8 @@ public class SnapshotService {
                 dataset.getDatasetSummary().getStorage().stream()
                     .map(StorageResource::toModel)
                     .collect(Collectors.toList()))
-            .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled());
+            .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
+            .phsId(dataset.getPhsId());
 
     SnapshotSourceModel sourceModel = new SnapshotSourceModel().dataset(summaryModel);
 

@@ -137,7 +137,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
@@ -254,7 +254,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, true);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, true, false);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();

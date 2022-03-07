@@ -712,6 +712,14 @@ paths:
             default: false
             required: true
           description: Convert DRS urls to GS paths in the output parquet file. Note, GS paths could change over time.
+        - in: query
+          name: validatePrimaryKeyUniqueness
+          schema:
+            type: boolean
+            default: true
+            required: false
+          description: Verify that primary keys are unique in all exported tables.
+            Required for proper Terra workspace integration
       responses:
         202:
           description: Job status of snapshot export job & url for polling in the

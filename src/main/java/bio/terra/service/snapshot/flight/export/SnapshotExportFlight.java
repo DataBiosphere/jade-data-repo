@@ -34,6 +34,16 @@ public class SnapshotExportFlight extends Flight {
     UUID snapshotId =
         UUID.fromString(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
 
+    boolean validatePrimaryKeyUniqueness =
+        Objects.requireNonNullElse(
+            inputParameters.get(
+                JobMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS.getKeyName(), Boolean.class),
+            true);
+
+    if (validatePrimaryKeyUniqueness) {
+      addStep(new SnapshotExportValidateStep(bigQueryPdao, snapshotService, snapshotId));
+    }
+
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
 
     boolean exportGsPaths =

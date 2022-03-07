@@ -136,6 +136,7 @@ public class SnapshotService {
         .newJob(description, SnapshotExportFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
         .addParameter(JobMapKeys.EXPORT_GSPATHS.getKeyName(), exportGsPaths)
+        .addParameter(JobMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS.getKeyName(), false)
         .submit();
   }
 

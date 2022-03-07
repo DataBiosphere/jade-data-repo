@@ -17,7 +17,8 @@ public enum JobMapKeys {
   EXPORT_GSPATHS("exportGsPaths"),
   FILE_ID("fileId"),
   ASSET_ID("assetId"),
-  TRANSACTION_ID("transactionId");
+  TRANSACTION_ID("transactionId"),
+  EXPORT_VALIDATE_PK_UNIQUENESS("exportValidatePkUniqueness");
 
   private String keyName;
 

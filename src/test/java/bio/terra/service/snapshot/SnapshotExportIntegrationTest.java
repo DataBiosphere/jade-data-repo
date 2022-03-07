@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -145,6 +146,12 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
+
+    assertThat(
+        "The export had it's primary keys validated",
+        exportModel.isValidatedPrimaryKeys(),
+        is(true));
+
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
     SnapshotModel snapshot = exportModel.getSnapshot();
 

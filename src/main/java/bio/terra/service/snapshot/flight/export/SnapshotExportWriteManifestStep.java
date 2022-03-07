@@ -35,18 +35,21 @@ public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
   private final GcsPdao gcsPdao;
   private final ObjectMapper objectMapper;
   private final AuthenticatedUserRequest userReq;
+  private final boolean validatePrimaryKeyUniqueness;
 
   public SnapshotExportWriteManifestStep(
       UUID snapshotId,
       SnapshotService snapshotService,
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
-      AuthenticatedUserRequest userReq) {
+      AuthenticatedUserRequest userReq,
+      boolean validatePrimaryKeyUniqueness) {
     this.snapshotId = snapshotId;
     this.snapshotService = snapshotService;
     this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
     this.userReq = userReq;
+    this.validatePrimaryKeyUniqueness = validatePrimaryKeyUniqueness;
   }
 
   @Override
@@ -99,6 +102,7 @@ public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
     }
 
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_MANIFEST_PATH, exportManifestPath);
+    responseModel.validatedPrimaryKeys(validatePrimaryKeyUniqueness);
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), responseModel);
 
     return StepResult.getStepResultSuccess();

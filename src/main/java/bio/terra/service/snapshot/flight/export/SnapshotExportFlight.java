@@ -60,7 +60,12 @@ public class SnapshotExportFlight extends Flight {
             bigQueryPdao, gcsPdao, snapshotService, snapshotId, exportGsPaths));
     addStep(
         new SnapshotExportWriteManifestStep(
-            snapshotId, snapshotService, gcsPdao, objectMapper, userReq));
+            snapshotId,
+            snapshotService,
+            gcsPdao,
+            objectMapper,
+            userReq,
+            validatePrimaryKeyUniqueness));
     addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
     if (exportGsPaths) {
       addStep(new CleanUpExportGsPathsStep(bigQueryPdao, gcsPdao, snapshotService, snapshotId));

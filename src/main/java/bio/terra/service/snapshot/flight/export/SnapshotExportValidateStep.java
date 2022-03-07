@@ -14,6 +14,7 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,6 +38,7 @@ public class SnapshotExportValidateStep implements Step {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     Dataset dataset = snapshot.getFirstSnapshotSource().getDataset();
     List<SnapshotTable> tables = snapshot.getTables();
+    List<String> tablesWithoutPrimaryKeys = new ArrayList<>();
     List<String> tablesWithDuplicates =
         tables.stream()
             .map(
@@ -50,6 +52,11 @@ public class SnapshotExportValidateStep implements Step {
                   }
                   DatasetTable realDatasetTable = datasetTable.get();
                   List<Column> primaryKeyColumns = realDatasetTable.getPrimaryKey();
+                  if (primaryKeyColumns.isEmpty()) {
+                    tablesWithoutPrimaryKeys.add(table.getName());
+                    return null;
+                  }
+
                   boolean hasDuplicates;
                   try {
                     hasDuplicates =
@@ -70,16 +77,29 @@ public class SnapshotExportValidateStep implements Step {
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
-    if (tablesWithDuplicates.isEmpty()) {
+    if (tablesWithDuplicates.isEmpty() && tablesWithoutPrimaryKeys.isEmpty()) {
       return StepResult.getStepResultSuccess();
     } else {
-      String message =
-          String.format(
-              "%d tables had rows with duplicate primary keys [%s]."
-                  + " To export a dataset, please create a new dataset, ensuring there are rows with duplicate primary keys.",
-              tablesWithDuplicates.size(), String.join(", ", tablesWithDuplicates));
+      StringBuilder sb = new StringBuilder();
+      sb.append("Validating snapshot for export failed. ");
+      if (!tablesWithDuplicates.isEmpty()) {
+        int numTables = tablesWithDuplicates.size();
+        String tableNames = String.join(", ", tablesWithDuplicates);
+        sb.append(
+            String.format(
+                "%d table(s) had rows with duplicate primary keys [%s]. ", numTables, tableNames));
+        sb.append(
+            "To export, please create a new snapshot, ensuring there are rows with duplicate primary keys. ");
+      }
+      if (!tablesWithoutPrimaryKeys.isEmpty()) {
+        int numTables = tablesWithoutPrimaryKeys.size();
+        String tableNames = String.join(", ", tablesWithoutPrimaryKeys);
+        sb.append(String.format("%d table(s) had no primary keys [%s]. ", numTables, tableNames));
+        sb.append("To export, please ensure every table being exported has a primary key. ");
+      }
+
       return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL, new UnsupportedOperationException(message));
+          StepStatus.STEP_RESULT_FAILURE_FATAL, new UnsupportedOperationException(sb.toString()));
     }
   }
 

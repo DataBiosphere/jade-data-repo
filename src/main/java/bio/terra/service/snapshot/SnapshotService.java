@@ -130,13 +130,18 @@ public class SnapshotService {
         .submit();
   }
 
-  public String exportSnapshot(UUID id, AuthenticatedUserRequest userReq, Boolean exportGsPaths) {
+  public String exportSnapshot(
+      UUID id,
+      AuthenticatedUserRequest userReq,
+      Boolean exportGsPaths,
+      Boolean validatePrimaryKeyUniqueness) {
     String description = "Export snapshot " + id;
     return jobService
         .newJob(description, SnapshotExportFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
         .addParameter(JobMapKeys.EXPORT_GSPATHS.getKeyName(), exportGsPaths)
-        .addParameter(JobMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS.getKeyName(), false)
+        .addParameter(
+            JobMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS.getKeyName(), validatePrimaryKeyUniqueness)
         .submit();
   }
 

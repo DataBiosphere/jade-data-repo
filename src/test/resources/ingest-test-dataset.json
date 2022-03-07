@@ -93,6 +93,21 @@
           "participant_children",
           "participant_files"
         ]
+      },
+      {
+        "name":   "no_file",
+        "rootTable": "sample",
+        "rootColumn": "id",
+        "tables": [
+          {"name": "sample", "columns": []},
+          {"name": "participant", "columns": []}
+        ],
+        "follow": [
+          "sample_derived_from",
+          "participant_samples",
+          "sample_participants",
+          "participant_children"
+        ]
       }
     ]
   }

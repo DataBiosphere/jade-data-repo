@@ -681,7 +681,11 @@ public class DataRepoFixtures {
   }
 
   public DataRepoResponse<SnapshotExportResponseModel> exportSnapshotLog(
-      TestConfiguration.User user, UUID snapshotId, boolean resolveGsPaths, boolean validatePkUniqueness) throws Exception {
+      TestConfiguration.User user,
+      UUID snapshotId,
+      boolean resolveGsPaths,
+      boolean validatePkUniqueness)
+      throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         exportSnapshot(user, snapshotId, resolveGsPaths, validatePkUniqueness);
     assertTrue("snapshot export launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
@@ -691,10 +695,18 @@ public class DataRepoFixtures {
     return dataRepoClient.waitForResponseLog(user, jobResponse, SnapshotExportResponseModel.class);
   }
 
-  public DataRepoResponse<JobModel> exportSnapshot(TestConfiguration.User user, UUID snapshotId, boolean resolveGsPaths, boolean validatePkUniqueness)
+  public DataRepoResponse<JobModel> exportSnapshot(
+      TestConfiguration.User user,
+      UUID snapshotId,
+      boolean resolveGsPaths,
+      boolean validatePkUniqueness)
       throws Exception {
     return dataRepoClient.get(
-        user, String.format("/api/repository/v1/snapshots/%s/export?exportGsPaths=%s&validatePrimaryKeyUniqueness=%s", snapshotId, resolveGsPaths, validatePkUniqueness), JobModel.class);
+        user,
+        String.format(
+            "/api/repository/v1/snapshots/%s/export?exportGsPaths=%s&validatePrimaryKeyUniqueness=%s",
+            snapshotId, resolveGsPaths, validatePkUniqueness),
+        JobModel.class);
   }
 
   public DataRepoResponse<JobModel> exportSnapshotResolveGsPaths(

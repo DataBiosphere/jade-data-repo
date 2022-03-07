@@ -2,6 +2,7 @@ package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.iterableWithSize;
@@ -18,6 +19,7 @@ import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
@@ -132,12 +134,15 @@ public class SnapshotExportIntegrationTest extends UsersBase {
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(
-            steward(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
+            steward(),
+            datasetSummaryModel.getName(),
+            profileId,
+            "ingest-test-snapshot-no-file.json");
 
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
@@ -151,7 +156,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         parquet.getLocation().getTables().stream()
             .map(SnapshotExportResponseModelFormatParquetLocationTables::getName)
             .collect(Collectors.toList()),
-        containsInAnyOrder("participant", "sample", "file"));
+        containsInAnyOrder("participant", "sample"));
 
     assertThat("Response contains the snapshot", snapshot.getId(), equalTo(snapshotId));
 
@@ -283,6 +288,49 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         isGsPath(vcfIndexFileRefs.get(0));
       }
     }
+  }
+
+  @Test
+  public void snapshotExportValidationTest() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
+    UUID datasetId = datasetSummaryModel.getId();
+    createdDatasetsIds.add(datasetId);
+    dataRepoFixtures.addDatasetPolicyMember(
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+
+    IngestRequestModel request =
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json");
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+    request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+
+    // Ingest sample table twice to trigger non-unique primary keys
+    request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshot(
+            steward(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
+
+    UUID snapshotId = snapshotSummary.getId();
+    createdSnapshotIds.add(snapshotId);
+    DataRepoResponse<SnapshotExportResponseModel> exportResponse =
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
+
+    ErrorModel errorModel = exportResponse.getErrorObject().get();
+
+    String message = errorModel.getMessage();
+    assertThat(
+        "The error message says there are duplicate primary keys",
+        message,
+        containsString("1 table(s) had rows with duplicate primary keys"));
+
+    assertThat(
+        "The error message says there are tables with no primary keys",
+        message,
+        containsString("1 table(s) had no primary keys"));
   }
 
   private static void isGsPath(String path) {

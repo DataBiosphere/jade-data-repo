@@ -36,19 +36,17 @@ public class SnapshotExportFlight extends Flight {
 
     boolean validatePrimaryKeyUniqueness =
         Objects.requireNonNullElse(
-            inputParameters.get(
-                JobMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS.getKeyName(), Boolean.class),
-            true);
+            inputParameters.get(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, Boolean.class), true);
 
     if (validatePrimaryKeyUniqueness) {
-      addStep(new SnapshotExportValidateStep(bigQueryPdao, snapshotService, snapshotId));
+      addStep(new SnapshotExportValidatePrimaryKeysStep(bigQueryPdao, snapshotService, snapshotId));
     }
 
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
 
     boolean exportGsPaths =
         Objects.requireNonNullElse(
-            inputParameters.get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class), false);
+            inputParameters.get(ExportMapKeys.EXPORT_GSPATHS, Boolean.class), false);
     if (exportGsPaths) {
       addStep(
           new SnapshotExportDumpFirestoreStep(

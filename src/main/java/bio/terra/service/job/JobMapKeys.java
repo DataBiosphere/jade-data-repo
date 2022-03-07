@@ -14,11 +14,9 @@ public enum JobMapKeys {
   // parameters for specific flight types
   DATASET_ID("datasetId"),
   SNAPSHOT_ID("snapshotId"),
-  EXPORT_GSPATHS("exportGsPaths"),
   FILE_ID("fileId"),
   ASSET_ID("assetId"),
-  TRANSACTION_ID("transactionId"),
-  EXPORT_VALIDATE_PK_UNIQUENESS("exportValidatePkUniqueness");
+  TRANSACTION_ID("transactionId");
 
   private String keyName;
 

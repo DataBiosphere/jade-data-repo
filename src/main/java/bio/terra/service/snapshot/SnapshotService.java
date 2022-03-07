@@ -45,6 +45,7 @@ import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
+import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.ArrayList;
@@ -139,9 +140,8 @@ public class SnapshotService {
     return jobService
         .newJob(description, SnapshotExportFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
-        .addParameter(JobMapKeys.EXPORT_GSPATHS.getKeyName(), exportGsPaths)
-        .addParameter(
-            JobMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS.getKeyName(), validatePrimaryKeyUniqueness)
+        .addParameter(ExportMapKeys.EXPORT_GSPATHS, exportGsPaths)
+        .addParameter(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, validatePrimaryKeyUniqueness)
         .submit();
   }
 

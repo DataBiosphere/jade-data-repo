@@ -4,9 +4,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.iterableWithSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -328,16 +330,15 @@ public class SnapshotExportIntegrationTest extends UsersBase {
 
     ErrorModel errorModel = exportResponse.getErrorObject().get();
 
-    String message = errorModel.getMessage();
     assertThat(
-        "The error message says there are duplicate primary keys",
-        message,
-        containsString("1 table(s) had rows with duplicate primary keys"));
+        "The error says it the export failed validation",
+        errorModel.getMessage(),
+        not(emptyOrNullString()));
 
     assertThat(
-        "The error message says there are tables with no primary keys",
-        message,
-        containsString("1 table(s) had no primary keys"));
+        "The error detail says there are duplicate primary keys",
+        errorModel.getErrorDetail().get(0),
+        containsString("1 table(s) had rows with duplicate primary keys"));
   }
 
   private static void isGsPath(String path) {

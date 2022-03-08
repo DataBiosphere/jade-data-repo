@@ -19,12 +19,14 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
@@ -34,6 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -171,27 +174,30 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<EnumerateSnapshotModel> enumerateSnapshots(
-      @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-      @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-      @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date")
-          EnumerateSortByParam sort,
-      @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc")
-          SqlSortDirection direction,
-      @Valid @RequestParam(value = "filter", required = false) String filter,
-      @Valid @RequestParam(value = "region", required = false) String region,
-      @Valid @RequestParam(value = "datasetIds", required = false) List<String> datasetIds) {
+      Integer offset,
+      Integer limit,
+      EnumerateSortByParam sort,
+      SqlSortDirection direction,
+      String filter,
+      String region,
+      List<String> datasetIds) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    Set<UUID> resources =
-        iamService
-            .listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
-            .keySet();
+    Map<UUID, Set<IamRole>> idsAndRoles =
+        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
             .map(UUID::fromString)
             .collect(Collectors.toList());
     EnumerateSnapshotModel edm =
         snapshotService.enumerateSnapshots(
-            offset, limit, sort, direction, filter, region, datasetUUIDs, resources);
+            offset, limit, sort, direction, filter, region, datasetUUIDs, idsAndRoles.keySet());
+    for (SnapshotSummaryModel summary : edm.getItems()) {
+      var roles =
+          idsAndRoles.get(summary.getId()).stream()
+              .map(IamRole::toString)
+              .collect(Collectors.toList());
+      summary.setRoles(roles);
+    }
     return new ResponseEntity<>(edm, HttpStatus.OK);
   }
 

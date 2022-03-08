@@ -3972,6 +3972,12 @@ components:
         storageAccount:
           type: string
           description: The azure storage account of this snapshot
+        roles:
+          type: array
+          description: The calling user's roles for this snapshot
+          items:
+            type: string
+
       description: >
         summary of snapshot
     EnumerateSnapshotModel:

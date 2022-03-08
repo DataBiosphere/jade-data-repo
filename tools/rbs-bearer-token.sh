@@ -1,3 +1,6 @@
+#!/bin/sh
+set -eu
+
 # Use this script to get the RBS Bearer token to use to auth w/ RBS swagger page
 # Swagger page allows you to check how many projects are available for the pool
 LOCAL_TOKEN=$(cat ~/.vault-token)
@@ -36,11 +39,11 @@ select ENV in tools dev alpha staging prod; do
   echo "Will get secret from $BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH"
   break
 done
-echo
+printf "\n"
 
 BUFFER_CLIENT_SERVICE_ACCOUNT_OUTPUT_PATH=/tmp/buffer-client-sa-account.json
 
-docker run --rm -e VAULT_TOKEN=$VAULT_TOKEN broadinstitute/dsde-toolbox:latest \
+docker run --rm -e VAULT_TOKEN="${VAULT_TOKEN}" broadinstitute/dsde-toolbox:latest \
     vault read -field=key ${BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH} | \
     base64 -d > ${BUFFER_CLIENT_SERVICE_ACCOUNT_OUTPUT_PATH}
 
@@ -48,8 +51,8 @@ gcloud auth activate-service-account --key-file ${BUFFER_CLIENT_SERVICE_ACCOUNT_
 
 gcloud auth print-access-token
 
-echo
+printf "\n"
 echo "Use the above bearer token here: ${RBS_SWAGGER_URL}"
 echo "With pool Id ${RBS_POOL_ID} (Note: this may be out of date. Get the latest from the RBS repo: https://github.com/DataBiosphere/terra-resource-buffer/tree/master/src/main/resources/config)"
-echo
+printf "\n"
 echo "NOTE: Make sure to log back in with your desired user (i.e. gcloud auth login OR glcoud auth set account <email>)"

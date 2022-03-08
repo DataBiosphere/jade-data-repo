@@ -45,6 +45,7 @@ public class ResourceService {
 
   private static final Logger logger = LoggerFactory.getLogger(ResourceService.class);
   public static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
+  public static final String STORAGE_OBJECT_VIEWER_ROLE = "roles/storage.objectViewer";
 
   private final AzureDataLocationSelector azureDataLocationSelector;
   private final GoogleProjectService projectService;
@@ -483,18 +484,34 @@ public class ResourceService {
 
   public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
       throws InterruptedException {
-    final List<String> emails =
-        policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
-    resourceManagerService.updateIamPermissions(
-        Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject, ENABLE_PERMISSIONS);
+    modifyRoles(dataProject, policyEmails, BQ_JOB_USER_ROLE, ENABLE_PERMISSIONS);
   }
 
   public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
       throws InterruptedException {
+    modifyRoles(dataProject, policyEmails, BQ_JOB_USER_ROLE, REVOKE_PERMISSIONS);
+  }
+
+  public void grantStorageObjectViewer(String dataProject, Collection<String> policyEmails)
+      throws InterruptedException {
+    modifyRoles(dataProject, policyEmails, STORAGE_OBJECT_VIEWER_ROLE, ENABLE_PERMISSIONS);
+  }
+
+  public void revokeStorageObjectViewer(String dataProject, Collection<String> policyEmails)
+      throws InterruptedException {
+    modifyRoles(dataProject, policyEmails, STORAGE_OBJECT_VIEWER_ROLE, REVOKE_PERMISSIONS);
+  }
+
+  private void modifyRoles(
+      String dataProject,
+      Collection<String> policyEmails,
+      String role,
+      GoogleProjectService.PermissionOp op)
+      throws InterruptedException {
     final List<String> emails =
         policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
     resourceManagerService.updateIamPermissions(
-        Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject, REVOKE_PERMISSIONS);
+        Collections.singletonMap(role, emails), dataProject, op);
   }
 
   private Map<String, List<String>> getStewardPolicy() {

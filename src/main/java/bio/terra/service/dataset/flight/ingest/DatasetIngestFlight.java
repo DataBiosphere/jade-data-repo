@@ -39,6 +39,7 @@ import bio.terra.service.filedata.flight.ingest.IngestFileMakeBucketLinkStep;
 import bio.terra.service.filedata.flight.ingest.IngestFilePrimaryDataLocationStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -270,6 +271,7 @@ public class DatasetIngestFlight extends Flight {
 
     GoogleProjectService projectService = appContext.getBean(GoogleProjectService.class);
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
+    IamService iamService = appContext.getBean(IamService.class);
 
     var platform = CloudPlatform.GCP;
 
@@ -305,7 +307,8 @@ public class DatasetIngestFlight extends Flight {
 
     // Create the bucket within the Google project for files to be ingested into.
     addOptionalCombinedIngestStep(
-        new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
+        new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
+        randomBackoffRetry);
 
     // Make a link between the dataset and bucket in the database.
     addOptionalCombinedIngestStep(

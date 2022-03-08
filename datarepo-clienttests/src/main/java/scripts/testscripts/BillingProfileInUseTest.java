@@ -155,7 +155,8 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
 
     JobModel ingestFileJobResponse =
         repositoryApi.bulkFileLoadArray(dataset.getId(), fileLoadModelArray);
-    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
+    ingestFileJobResponse =
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse, userUser);
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
@@ -192,7 +193,7 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
         repositoryApi.ingestDataset(dataset.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse, userUser);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);

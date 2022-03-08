@@ -137,7 +137,8 @@ public class CreateSnapshot extends SimpleDataset {
         repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(
+            repositoryApi, ingestTabularDataJobResponse, datasetCreator);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
@@ -167,7 +168,7 @@ public class CreateSnapshot extends SimpleDataset {
       // make the create snapshot request and wait for the job to finish
       JobModel createSnapshotJobResponse =
           DataRepoUtils.createSnapshot(
-              repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
+              repositoryApi, datasetSummaryModel, "snapshot-simple.json", testUser, true);
 
       logger.info("Snapshot job is done");
       if (createSnapshotJobResponse.getJobStatus() == JobModel.JobStatusEnum.FAILED) {
@@ -200,7 +201,8 @@ public class CreateSnapshot extends SimpleDataset {
     if (snapshotModel != null) {
       JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(snapshotModel.getId());
       deleteSnapshotJobResponse =
-          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+          DataRepoUtils.waitForJobToFinish(
+              repositoryApi, deleteSnapshotJobResponse, datasetCreator);
       DataRepoUtils.expectJobSuccess(
           repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
       logger.info("Successfully deleted snapshot: {}", snapshotModel.getName());

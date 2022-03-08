@@ -103,7 +103,8 @@ public class RetrieveSnapshot extends SimpleDataset {
 
     JobModel ingestFileJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
-    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
+    ingestFileJobResponse =
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse, datasetCreator);
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
@@ -139,7 +140,8 @@ public class RetrieveSnapshot extends SimpleDataset {
         repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(
+            repositoryApi, ingestTabularDataJobResponse, datasetCreator);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
@@ -148,7 +150,7 @@ public class RetrieveSnapshot extends SimpleDataset {
     // make the create snapshot request and wait for the job to finish
     JobModel createSnapshotJobResponse =
         DataRepoUtils.createSnapshot(
-            repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
+            repositoryApi, datasetSummaryModel, "snapshot-simple.json", datasetCreator, true);
 
     // save a reference to the snapshot summary model so we can delete it in cleanup()
     snapshotSummaryModel =
@@ -192,7 +194,7 @@ public class RetrieveSnapshot extends SimpleDataset {
     // make the delete request and wait for the job to finish
     JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
     deleteSnapshotJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse, datasetCreator);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
     logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());

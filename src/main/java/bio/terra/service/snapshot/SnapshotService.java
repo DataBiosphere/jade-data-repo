@@ -134,8 +134,8 @@ public class SnapshotService {
   public String exportSnapshot(
       UUID id,
       AuthenticatedUserRequest userReq,
-      Boolean exportGsPaths,
-      Boolean validatePrimaryKeyUniqueness) {
+      boolean exportGsPaths,
+      boolean validatePrimaryKeyUniqueness) {
     String description = "Export snapshot " + id;
     return jobService
         .newJob(description, SnapshotExportFlight.class, null, userReq)

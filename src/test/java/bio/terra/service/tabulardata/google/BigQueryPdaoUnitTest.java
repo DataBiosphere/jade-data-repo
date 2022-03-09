@@ -221,7 +221,7 @@ public class BigQueryPdaoUnitTest {
             + input2
             + "']) AS input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T."
@@ -261,7 +261,7 @@ public class BigQueryPdaoUnitTest {
             + ipt3
             + "']) AS input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T."
@@ -426,11 +426,11 @@ public class BigQueryPdaoUnitTest {
                         + "' AS datarepo_table_id, "
                         + "T.datarepo_row_id "
                         + "FROM ("
-                        + BigQueryPdao.renderLiveViewSql(
+                        + BigQueryPdao.renderDatasetLiveViewSql(
                             DATASET_PROJECT_ID, prefixName(DATASET_NAME), table2, null, CREATED_AT)
                         + ") T, "
                         + "("
-                        + BigQueryPdao.renderLiveViewSql(
+                        + BigQueryPdao.renderDatasetLiveViewSql(
                             DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
                         + ") F, "
                         + "`"
@@ -578,7 +578,7 @@ public class BigQueryPdaoUnitTest {
                     + TABLE_1_ID
                     + "', datarepo_row_id "
                     + "FROM ("
-                    + BigQueryPdao.renderLiveViewSql(
+                    + BigQueryPdao.renderDatasetLiveViewSql(
                         DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
                     + ") AS L) "
                     + "UNION ALL "
@@ -586,7 +586,7 @@ public class BigQueryPdaoUnitTest {
                     + TABLE_2_ID
                     + "', datarepo_row_id "
                     + "FROM ("
-                    + BigQueryPdao.renderLiveViewSql(
+                    + BigQueryPdao.renderDatasetLiveViewSql(
                         DATASET_PROJECT_ID, prefixName(DATASET_NAME), table2, null, CREATED_AT)
                     + ") AS L)"),
             eq(
@@ -621,7 +621,7 @@ public class BigQueryPdaoUnitTest {
     String query =
         "SELECT datarepo_row_id "
             + "FROM ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") "
             + "WHERE "
@@ -654,7 +654,7 @@ public class BigQueryPdaoUnitTest {
             + SNAPSHOT_NAME
             + ".datarepo_temp` AS T "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS D "
             + "USING ( datarepo_row_id ) "
@@ -693,7 +693,7 @@ public class BigQueryPdaoUnitTest {
     String query =
         "SELECT datarepo_row_id "
             + "FROM ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") "
             + "WHERE "
@@ -734,7 +734,7 @@ public class BigQueryPdaoUnitTest {
     String query =
         "SELECT datarepo_row_id "
             + "FROM ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") "
             + "WHERE "
@@ -767,7 +767,7 @@ public class BigQueryPdaoUnitTest {
             + SNAPSHOT_NAME
             + ".datarepo_temp` AS T "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS D "
             + "USING ( datarepo_row_id ) "
@@ -801,7 +801,7 @@ public class BigQueryPdaoUnitTest {
             + drRowId2
             + "']) AS input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
@@ -840,7 +840,7 @@ public class BigQueryPdaoUnitTest {
             + "']) AS "
             + "input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
@@ -881,7 +881,7 @@ public class BigQueryPdaoUnitTest {
             + drRowId2
             + "']) AS input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
@@ -942,7 +942,7 @@ public class BigQueryPdaoUnitTest {
             + drRowId2
             + "']) AS input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
@@ -1151,7 +1151,7 @@ public class BigQueryPdaoUnitTest {
         bigQueryProjectSnapshot,
         "SELECT COUNT(1) "
             + "FROM ("
-            + BigQueryPdao.renderLiveViewSql(
+            + BigQueryPdao.renderDatasetLiveViewSql(
                 datasetProjectId, prefixName(datasetName), table, null, CREATED_AT)
             + ") AS T, "
             + "`"

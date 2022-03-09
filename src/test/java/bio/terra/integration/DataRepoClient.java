@@ -108,7 +108,6 @@ public class DataRepoClient {
     DataRepoResponse<T> response = waitForResponse(user, jobModelResponse, responseClass);
     // if not successful, log the response
     if (!response.getStatusCode().is2xxSuccessful()) {
-      // TODO: when DR-2309 merges, use the class name from the job model
       logger.error("operation failed - waiting for " + jobModelResponse.getClass().getName());
       if (response.getErrorObject().isPresent()) {
         logger.error("error object: " + response.getErrorObject().get());

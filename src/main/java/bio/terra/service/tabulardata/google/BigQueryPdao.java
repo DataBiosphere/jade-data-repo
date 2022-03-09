@@ -230,37 +230,38 @@ public class BigQueryPdao {
     TableId liveViewId = TableId.of(datasetName, table.getName());
     return TableInfo.of(
         liveViewId,
-        ViewDefinition.of(renderLiveViewSql(bigQueryProject, datasetName, table, null, null)));
+        ViewDefinition.of(
+            renderDatasetLiveViewSql(bigQueryProject, datasetName, table, null, null)));
   }
 
   @VisibleForTesting
-  static String renderLiveViewSql(
+  static String renderDatasetLiveViewSql(
       String bigQueryProject,
       String datasetName,
       DatasetTable table,
       UUID transactionId,
       Instant filterBefore) {
-    ST liveViewSql = new ST(liveViewTemplate(transactionId, filterBefore));
-    liveViewSql.add("project", bigQueryProject);
-    liveViewSql.add("dataset", datasetName);
-    liveViewSql.add("rawTable", table.getRawTableName());
-    liveViewSql.add("sdTable", table.getSoftDeleteTableName());
-    liveViewSql.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
-    liveViewSql.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
-    liveViewSql.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
-    liveViewSql.add("partitionDateCol", PDAO_INGEST_DATE_COLUMN_ALIAS);
-    liveViewSql.add("transactionTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
-    liveViewSql.add("transactStatusVal", TransactionModel.StatusEnum.ACTIVE);
+    ST datasetLiveViewSql = new ST(liveViewTemplate(transactionId, filterBefore));
+    datasetLiveViewSql.add("project", bigQueryProject);
+    datasetLiveViewSql.add("dataset", datasetName);
+    datasetLiveViewSql.add("rawTable", table.getRawTableName());
+    datasetLiveViewSql.add("sdTable", table.getSoftDeleteTableName());
+    datasetLiveViewSql.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
+    datasetLiveViewSql.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
+    datasetLiveViewSql.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
+    datasetLiveViewSql.add("partitionDateCol", PDAO_INGEST_DATE_COLUMN_ALIAS);
+    datasetLiveViewSql.add("transactionTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
+    datasetLiveViewSql.add("transactStatusVal", TransactionModel.StatusEnum.ACTIVE);
 
-    liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
-    liveViewSql.add(
+    datasetLiveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
+    datasetLiveViewSql.add(
         "columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
-    liveViewSql.add(
+    datasetLiveViewSql.add(
         "partitionByDate",
         table.getBigQueryPartitionConfig() != null
             && table.getBigQueryPartitionConfig().getMode()
                 == BigQueryPartitionConfigV1.Mode.INGEST_DATE);
-    return liveViewSql.render();
+    return datasetLiveViewSql.render();
   }
 
   public void createStagingLoadHistoryTable(Dataset dataset, String tableName_FlightId)
@@ -462,7 +463,7 @@ public class BigQueryPdao {
           + PDAO_ROW_ID_COLUMN
           + ", V.input_value FROM ("
           + "SELECT input_value FROM UNNEST([<inputVals:{v|'<v>'}; separator=\",\">]) AS input_value) AS V "
-          + "LEFT JOIN (<liveViewSql>) AS T ON V.input_value = CAST(T.<column> AS STRING)";
+          + "LEFT JOIN (<datasetLiveViewSql>) AS T ON V.input_value = CAST(T.<column> AS STRING)";
 
   // compute the row ids from the input ids and validate all inputs have matches
 
@@ -489,15 +490,15 @@ public class BigQueryPdao {
     Column column = asset.getRootColumn().getDatasetColumn();
     DatasetTable datasetTable = getTable(source, column.getTable().getName());
 
-    String liveViewSql =
-        renderLiveViewSql(
+    String datasetLiveViewSql =
+        renderDatasetLiveViewSql(
             datasetProjectId,
             prefixName(source.getDataset().getName()),
             datasetTable,
             null,
             filterBefore);
     ST sqlTemplate = new ST(mapValuesToRowsTemplate);
-    sqlTemplate.add("liveViewSql", liveViewSql);
+    sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
     sqlTemplate.add("column", column.getName());
     sqlTemplate.add("inputVals", inputValues);
 
@@ -584,7 +585,7 @@ public class BigQueryPdao {
           + ") AS T";
 
   private static final String validateRowIdsForRootTemplate =
-      "SELECT COUNT(1) FROM (<liveViewSql>) AS T, "
+      "SELECT COUNT(1) FROM (<datasetLiveViewSql>) AS T, "
           + "`<snapshotProject>.<snapshot>."
           + PDAO_ROW_ID_TABLE
           + "` AS R "
@@ -630,12 +631,13 @@ public class BigQueryPdao {
       snapshotBigQueryProject.query(sqlTemplate.render());
     }
 
-    String liveViewSql =
-        renderLiveViewSql(datasetProjectId, datasetBqDatasetName, rootTable, null, filterBefore);
+    String datasetLiveViewSql =
+        renderDatasetLiveViewSql(
+            datasetProjectId, datasetBqDatasetName, rootTable, null, filterBefore);
     ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
     sqlTemplate.add("snapshotProject", snapshotProjectId);
     sqlTemplate.add("snapshot", snapshotName);
-    sqlTemplate.add("liveViewSql", liveViewSql);
+    sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
 
     TableResult result =
         snapshotBigQueryProject.query(
@@ -684,7 +686,7 @@ public class BigQueryPdao {
 
   private static final String getLiveViewTableTemplate =
       // TODO pull insert out and loop thru rest w UNION ()
-      "(SELECT '<tableId>', <dataRepoRowId> FROM (<liveViewSql>) AS L)";
+      "(SELECT '<tableId>', <dataRepoRowId> FROM (<datasetLiveViewSql>) AS L)";
 
   private static final String mergeLiveViewTablesTemplate =
       "<selectStatements; separator=\" UNION ALL \">";
@@ -706,8 +708,8 @@ public class BigQueryPdao {
       sqlTableTemplate.add("tableId", table.getId());
       sqlTableTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
       sqlTableTemplate.add(
-          "liveViewSql",
-          renderLiveViewSql(
+          "datasetLiveViewSql",
+          renderDatasetLiveViewSql(
               datasetBigQueryProject.getProjectId(),
               datasetBqDatasetName,
               table,
@@ -840,13 +842,13 @@ public class BigQueryPdao {
           snapshotBigQueryProject.query(sqlTemplate.render());
         }
       }
-      String liveViewSql =
-          renderLiveViewSql(
+      String datasetLiveViewSql =
+          renderDatasetLiveViewSql(
               datasetProjectId, datasetBqDatasetName, datasetTable, null, filterBefore);
       ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
       sqlTemplate.add("snapshotProject", snapshotProjectId);
       sqlTemplate.add("snapshot", snapshotName);
-      sqlTemplate.add("liveViewSql", liveViewSql);
+      sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
 
       TableResult result =
           snapshotBigQueryProject.query(
@@ -1515,10 +1517,10 @@ public class BigQueryPdao {
   /**
    * Construct the sql for inserting existing records data into the soft delete dataset table.
    *
-   * @param liveViewSql The sql to represent what records are active on the target table
+   * @param datasetLiveViewSql The sql to represent what records are active on the target table
    * @return The SQL for a soft deleting existing records for a table
    */
-  private static String insertIntoSoftDeleteDatasetTable(String liveViewSql) {
+  private static String insertIntoSoftDeleteDatasetTable(String datasetLiveViewSql) {
     return "INSERT INTO `<project>.<dataset>.<softDeleteTable>` "
         + "(<rowIdColumn>,<loadTagColumn>,<flightIdColumn>,<transactIdColumn>,<deleteAtColumn>,"
         + "<deleteByColumn>) "
@@ -1530,7 +1532,7 @@ public class BigQueryPdao {
         + "  CURRENT_TIMESTAMP() AS <deleteAtColumn>,"
         + "  @deletedBy AS <deleteByColumn> "
         + "FROM ("
-        + liveViewSql
+        + datasetLiveViewSql
         + ") AS T "
         + " LEFT JOIN `<project>.<dataset>.<stagingTable>` AS S "
         + "  ON <pkColumns:{c|T.<c.name> = S.<c.name>}; separator=\" AND \"> "
@@ -1548,14 +1550,14 @@ public class BigQueryPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    String liveViewSql =
-        renderLiveViewSql(
+    String datasetLiveViewSql =
+        renderDatasetLiveViewSql(
             bigQueryProject.getProjectId(),
             prefixName(dataset.getName()),
             targetTable,
             transactId,
             null);
-    ST sqlTemplate = new ST(insertIntoSoftDeleteDatasetTable(liveViewSql));
+    ST sqlTemplate = new ST(insertIntoSoftDeleteDatasetTable(datasetLiveViewSql));
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
     sqlTemplate.add("softDeleteTable", targetTable.getSoftDeleteTableName());
@@ -2040,8 +2042,9 @@ public class BigQueryPdao {
       sqlTemplate.add("snapshotDatasetName", snapshotName);
       sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
       sqlTemplate.add(
-          "liveViewSql",
-          renderLiveViewSql(datasetProjectId, datasetBqDatasetName, rootTable, null, filterBefore));
+          "datasetLiveViewSql",
+          renderDatasetLiveViewSql(
+              datasetProjectId, datasetBqDatasetName, rootTable, null, filterBefore));
       sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
 
       TableResult result =
@@ -2157,7 +2160,7 @@ public class BigQueryPdao {
 
   private static final String joinTablesToTestForMissingRowIds =
       "SELECT COUNT(*) FROM `<snapshotProject>.<snapshotDatasetName>.<tempTable>` AS T "
-          + "LEFT JOIN (<liveViewSql>) AS D USING ( <commonColumn> ) "
+          + "LEFT JOIN (<datasetLiveViewSql>) AS D USING ( <commonColumn> ) "
           + "WHERE D.<commonColumn> IS NULL";
 
   private static final String loadRootRowIdsFromTempTableTemplate =
@@ -2218,9 +2221,11 @@ public class BigQueryPdao {
     DatasetTable toTable =
         getTable(snapshot.getFirstSnapshotSource(), relationship.getToTableName());
     String liveViewSqlFrom =
-        renderLiveViewSql(datasetProjectId, datasetBqDatasetName, fromTable, null, filterBefore);
+        renderDatasetLiveViewSql(
+            datasetProjectId, datasetBqDatasetName, fromTable, null, filterBefore);
     String liveViewSqlTo =
-        renderLiveViewSql(datasetProjectId, datasetBqDatasetName, toTable, null, filterBefore);
+        renderDatasetLiveViewSql(
+            datasetProjectId, datasetBqDatasetName, toTable, null, filterBefore);
     ST sqlTemplate = new ST(storeRowIdsForRelatedTableTemplate);
     sqlTemplate.add("snapshotProject", snapshotProjectId);
     sqlTemplate.add("datasetProject", datasetProjectId);
@@ -2431,15 +2436,15 @@ public class BigQueryPdao {
     for (List<UUID> rowIdChunk :
         rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
       // To prevent BQ choking on a huge array, split it up into chunks
-      String liveViewSql =
-          renderLiveViewSql(
+      String datasetLiveViewSql =
+          renderDatasetLiveViewSql(
               datasetBigQueryProject.getProjectId(),
               prefixName(source.getDataset().getName()),
               datasetTable,
               null,
               filterBefore);
       ST sqlTemplate = new ST(mapValuesToRowsTemplate); // This query fails w >100k rows
-      sqlTemplate.add("liveViewSql", liveViewSql);
+      sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
       sqlTemplate.add("column", rowIdColumn.getName());
       sqlTemplate.add("inputVals", rowIdChunk);
 

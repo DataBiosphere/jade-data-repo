@@ -74,6 +74,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1023,6 +1024,15 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
   @Test
   public void testDatasetCombinedIngest() throws Exception {
+    testDatasetCombinedIngest(true);
+  }
+
+  @Test
+  public void testDatasetCombinedIngestFromApi() throws Exception {
+    testDatasetCombinedIngest(true);
+  }
+
+  public void testDatasetCombinedIngest(boolean ingestFromFile) throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward, profileId, "dataset-ingest-combined-azure.json", CloudPlatform.AZURE);
@@ -1034,19 +1044,28 @@ public class DatasetAzureIntegrationTest extends UsersBase {
       controlFileContents = new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
     }
 
-    String controlFile =
-        blobIOTestUtility.uploadFileWithContents(
-            "dataset-files-ingest-combined.json", controlFileContents);
-
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
-            .format(IngestRequestModel.FormatEnum.JSON)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
             .table("sample_vcf")
-            .path(controlFile)
             .profileId(profileId)
             .loadTag(Names.randomizeName("azureCombinedIngestTest"));
+
+    if (ingestFromFile) {
+      String controlFile =
+          blobIOTestUtility.uploadFileWithContents(
+              "dataset-files-ingest-combined.json", controlFileContents);
+      ingestRequest.path(controlFile).format(IngestRequestModel.FormatEnum.JSON);
+    } else {
+      List<Map<String, Object>> data =
+          Arrays.stream(controlFileContents.split("\\n"))
+              .map(j -> jsonLoader.loadJson(j, new TypeReference<Map<String, Object>>() {}))
+              .collect(Collectors.toList());
+      ingestRequest
+          .jsonArraySpec(Arrays.asList(data.toArray()))
+          .format(IngestRequestModel.FormatEnum.ARRAY);
+    }
 
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);

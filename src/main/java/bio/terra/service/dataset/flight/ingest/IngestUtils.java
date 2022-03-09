@@ -204,6 +204,12 @@ public final class IngestUtils {
     return numFiles != 0;
   }
 
+  public static boolean isIngestFromPayload(FlightMap inputParameters) {
+    IngestRequestModel ingestRequestModel =
+        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
+    return ingestRequestModel.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY);
+  }
+
   public static Stream<JsonNode> getJsonNodesStreamFromFile(
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
@@ -393,6 +399,16 @@ public final class IngestUtils {
         FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
     String pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class);
     gcsPdao.deleteFileByGspath(pathToIngestFile, bucketResource.projectIdForBucket());
+  }
+
+  public static void deleteLandingFile(FlightContext context, GcsPdao gcsPdao) {
+    FlightMap workingMap = context.getWorkingMap();
+    GoogleBucketResource bucketResource =
+        FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
+    IngestRequestModel ingestRequestModel =
+        context.getInputParameters().get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
+    String pathToLandingFile = ingestRequestModel.getPath();
+    gcsPdao.deleteFileByGspath(pathToLandingFile, bucketResource.projectIdForBucket());
   }
 
   public static void validateBulkLoadFileModel(BulkLoadFileModel loadFile) {

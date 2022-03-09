@@ -69,6 +69,11 @@ public class IngestInsertIntoDatasetTableStep implements Step {
       ingestResponse.rowCount(ingestResponse.getRowCount() + failedRowCount);
     }
 
+    // If loading from a payload, there is no path to report to the user
+    if (IngestUtils.isIngestFromPayload(context.getInputParameters())) {
+      ingestResponse.setPath(null);
+    }
+
     workingMap.put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 
     UUID transactionId = TransactionUtils.getTransactionId(context);

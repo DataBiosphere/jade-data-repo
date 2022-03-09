@@ -82,6 +82,7 @@ public class DatasetIngestFlight extends Flight {
     TableDirectoryDao tableDirectoryDao = appContext.getBean(TableDirectoryDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
+    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
 
@@ -97,6 +98,15 @@ public class DatasetIngestFlight extends Flight {
 
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+
+    // Add these steps to clear out scratch file if the flight has failed
+    if (cloudPlatform.isGcp()) {
+      addStep(new PerformPayloadIngestStep(new IngestLandingFileDeleteGcpStep(true, gcsPdao)));
+    } else if (cloudPlatform.isAzure()) {
+      addStep(
+          new PerformPayloadIngestStep(
+              new IngestLandingFileDeleteAzureStep(true, azureContainerPdao)));
+    }
 
     if (cloudPlatform.isAzure()) {
       addStep(
@@ -133,7 +143,8 @@ public class DatasetIngestFlight extends Flight {
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 
-    if (ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON) {
+    if (ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON
+        || ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.ARRAY) {
       int driverWaitSeconds = configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
       int loadHistoryWaitSeconds =
           configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS);
@@ -210,6 +221,7 @@ public class DatasetIngestFlight extends Flight {
           new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao, userReq, autocommit));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
       addStep(new IngestScratchFileDeleteGcpStep(gcsPdao));
+      addStep(new PerformPayloadIngestStep(new IngestLandingFileDeleteGcpStep(false, gcsPdao)));
     } else if (cloudPlatform.isAzure()) {
       addStep(
           new IngestCreateIngestRequestDataSourceStep(
@@ -220,6 +232,9 @@ public class DatasetIngestFlight extends Flight {
           new IngestValidateAzureRefsStep(
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
+      addStep(
+          new PerformPayloadIngestStep(
+              new IngestLandingFileDeleteAzureStep(false, azureContainerPdao)));
     }
     if (cloudPlatform.isGcp()) {
       if (!autocommit) {

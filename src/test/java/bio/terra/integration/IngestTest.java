@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.TableResult;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -89,16 +90,40 @@ public class IngestTest extends UsersBase {
 
   @Test
   public void ingestAndUpdateParticipants() throws Exception {
-    IngestRequestModel ingestRequest =
-        dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json");
+    ingestAndUpdateParticipants(
+        ingestFile -> {
+          try {
+            return dataRepoFixtures.buildSimpleIngest("participant", "ingest-test/" + ingestFile);
+          } catch (Exception e) {
+            throw new RuntimeException("Error building ingest request", e);
+          }
+        });
+  }
+
+  @Test
+  public void ingestAndUpdateParticipantsViaDirectApi() throws Exception {
+    ingestAndUpdateParticipants(
+        ingestFile -> {
+          try {
+            List<Map<String, Object>> data =
+                jsonLoader.loadObjectAsStream(ingestFile, new TypeReference<>() {});
+            return dataRepoFixtures.buildSimpleIngest("participant", data);
+          } catch (Exception e) {
+            throw new RuntimeException("Error building ingest request", e);
+          }
+        });
+  }
+
+  private void ingestAndUpdateParticipants(Function<String, IngestRequestModel> ingestCreator)
+      throws Exception {
+    IngestRequestModel ingestRequest = ingestCreator.apply("ingest-test-participant.json");
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
     assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
     IngestRequestModel updateIngestRequest =
-        dataRepoFixtures
-            .buildSimpleIngest("participant", "ingest-test/ingest-test-update-participant.json")
+        ingestCreator
+            .apply("ingest-test-update-participant.json")
             .updateStrategy(UpdateStrategyEnum.REPLACE);
     IngestResponseModel updateIngestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, updateIngestRequest);

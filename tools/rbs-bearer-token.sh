@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 # Use this script to get the RBS Bearer token to use to auth w/ RBS swagger page

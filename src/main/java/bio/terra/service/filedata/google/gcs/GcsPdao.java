@@ -169,7 +169,19 @@ public class GcsPdao implements CloudFileReader {
   }
 
   /**
-   * Write String to a GCS file
+   * Write {@link List} of {@link String} objects to a GCS file separated by newlines
+   *
+   * @param path gs path to write the lines to
+   * @param contentsToWrite contents to write to file
+   * @param projectId project for billing
+   */
+  public void writeListToCloudFile(String path, List<String> contentsToWrite, String projectId) {
+    try (Stream<String> stream = contentsToWrite.stream()) {
+      writeStreamToCloudFile(path, stream, projectId);
+    }
+  }
+  /**
+   * Write a {@link Stream} to a GCS file separated by newlines
    *
    * @param path gs path to write the lines to
    * @param contentsToWrite contents to write to file

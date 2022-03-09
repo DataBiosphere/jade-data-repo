@@ -29,7 +29,7 @@ public class IngestValidateIngestRowsStep implements Step {
     String stagingTableName = IngestUtils.getStagingTableName(context);
 
     if (targetTable.getPrimaryKey() != null && !targetTable.getPrimaryKey().isEmpty()) {
-      if (bigQueryPdao.selectHasDuplicateStagingIds(
+      if (bigQueryPdao.hasDuplicatePrimaryKeys(
           dataset, targetTable.getPrimaryKey(), stagingTableName)) {
         throw new InvalidIngestDuplicatesException(
             "Duplicate primary key values identified.",

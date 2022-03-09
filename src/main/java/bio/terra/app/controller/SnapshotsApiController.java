@@ -159,12 +159,13 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<JobModel> exportSnapshot(
-      @PathVariable("id") UUID id, Boolean exportGsPaths) {
+      @PathVariable("id") UUID id, Boolean exportGsPaths, Boolean validatePrimaryKeyUniqueness) {
     logger.info("Verifying user access");
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
-    String jobId = snapshotService.exportSnapshot(id, userReq, exportGsPaths);
+    String jobId =
+        snapshotService.exportSnapshot(id, userReq, exportGsPaths, validatePrimaryKeyUniqueness);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }

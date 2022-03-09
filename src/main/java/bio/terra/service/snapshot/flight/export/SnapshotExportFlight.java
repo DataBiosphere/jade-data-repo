@@ -34,11 +34,19 @@ public class SnapshotExportFlight extends Flight {
     UUID snapshotId =
         UUID.fromString(inputParameters.get(JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
 
+    boolean validatePrimaryKeyUniqueness =
+        Objects.requireNonNullElse(
+            inputParameters.get(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, Boolean.class), true);
+
+    if (validatePrimaryKeyUniqueness) {
+      addStep(new SnapshotExportValidatePrimaryKeysStep(bigQueryPdao, snapshotService, snapshotId));
+    }
+
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
 
     boolean exportGsPaths =
         Objects.requireNonNullElse(
-            inputParameters.get(JobMapKeys.EXPORT_GSPATHS.getKeyName(), Boolean.class), false);
+            inputParameters.get(ExportMapKeys.EXPORT_GSPATHS, Boolean.class), false);
     if (exportGsPaths) {
       addStep(
           new SnapshotExportDumpFirestoreStep(
@@ -50,7 +58,12 @@ public class SnapshotExportFlight extends Flight {
             bigQueryPdao, gcsPdao, snapshotService, snapshotId, exportGsPaths));
     addStep(
         new SnapshotExportWriteManifestStep(
-            snapshotId, snapshotService, gcsPdao, objectMapper, userReq));
+            snapshotId,
+            snapshotService,
+            gcsPdao,
+            objectMapper,
+            userReq,
+            validatePrimaryKeyUniqueness));
     addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
     if (exportGsPaths) {
       addStep(new CleanUpExportGsPathsStep(bigQueryPdao, gcsPdao, snapshotService, snapshotId));

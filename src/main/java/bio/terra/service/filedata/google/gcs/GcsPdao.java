@@ -30,6 +30,8 @@ import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.OAuth2Credentials;
+import com.google.cloud.Binding;
+import com.google.cloud.Policy;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -47,6 +49,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -77,6 +80,8 @@ public class GcsPdao implements CloudFileReader {
   private static final List<String> GCS_VERIFICATION_SCOPES =
       List.of(
           "openid", "email", "profile", "https://www.googleapis.com/auth/devstorage.full_control");
+
+  private static final String STORAGE_OBJECT_VIEWER_ROLE = "roles/storage.objectViewer";
 
   // Cache of pet service account tokens keys on a given user's actual access_token
   private final Map<String, String> petAccountTokens =
@@ -570,13 +575,25 @@ public class GcsPdao implements CloudFileReader {
         "gcsPdao.performAclCommands");
   }
 
-  public void grantBucketReaderAcl(GoogleBucketResource bucketResource, List<String> policies) {
+  public void grantBucketReaderIam(GoogleBucketResource bucketResource, List<String> policies) {
+    String bucketName = bucketResource.getName();
     Storage storage = storageForBucket(bucketResource);
 
+    // Not sure why it needs to be version 3, but that's what the Google documentation says.
+    // https://cloud.google.com/storage/docs/access-control/using-iam-permissions#code-samples
+    Policy originalPolicy =
+        storage.getIamPolicy(bucketName, Storage.BucketSourceOption.requestedPolicyVersion(3));
+    List<Binding> bindings = new ArrayList<>(originalPolicy.getBindingsList());
     for (String policy : policies) {
-      Acl acl = Acl.newBuilder(new Acl.Group(policy), Acl.Role.READER).build();
-      storage.createAcl(bucketResource.getName(), acl);
+      Binding.Builder newMemberBindingBuilder = Binding.newBuilder();
+      newMemberBindingBuilder
+          .setRole(STORAGE_OBJECT_VIEWER_ROLE)
+          .setMembers(List.of(String.format("group:%s", policy)));
+      bindings.add(newMemberBindingBuilder.build());
     }
+    Policy.Builder updatedPolicyBuilder = originalPolicy.toBuilder();
+    updatedPolicyBuilder.setBindings(bindings).setVersion(3);
+    storage.setIamPolicy(bucketName, updatedPolicyBuilder.build());
   }
 
   /** Perform the ACL setting commands on a specific file. */

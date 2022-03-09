@@ -75,7 +75,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
                 .map(Map.Entry::getValue)
                 .collect(Collectors.toList());
 
-        gcsPdao.grantBucketReaderAcl(bucketForFile, readerGroups);
+        gcsPdao.grantBucketReaderIam(bucketForFile, readerGroups);
 
         workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
       } catch (BucketLockException blEx) {

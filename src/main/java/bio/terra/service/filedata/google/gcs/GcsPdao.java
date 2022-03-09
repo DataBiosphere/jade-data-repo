@@ -570,6 +570,15 @@ public class GcsPdao implements CloudFileReader {
         "gcsPdao.performAclCommands");
   }
 
+  public void grantBucketReaderAcl(GoogleBucketResource bucketResource, List<String> policies) {
+    Storage storage = storageForBucket(bucketResource);
+
+    for (String policy : policies) {
+      Acl acl = Acl.newBuilder(new Acl.Group(policy), Acl.Role.READER).build();
+      storage.createAcl(bucketResource.getName(), acl);
+    }
+  }
+
   /** Perform the ACL setting commands on a specific file. */
   private Callable<FSFile> performAclCommand(
       final Map<String, GoogleBucketResource> bucketCache,

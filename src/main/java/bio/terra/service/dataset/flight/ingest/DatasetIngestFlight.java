@@ -307,7 +307,8 @@ public class DatasetIngestFlight extends Flight {
 
     // Create the bucket within the Google project for files to be ingested into.
     addOptionalCombinedIngestStep(
-        new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
+        new IngestFilePrimaryDataLocationStep(
+            userReq, resourceService, dataset, iamService, gcsPdao),
         randomBackoffRetry);
 
     // Make a link between the dataset and bucket in the database.

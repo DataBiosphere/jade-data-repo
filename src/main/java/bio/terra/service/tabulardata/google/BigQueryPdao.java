@@ -1491,23 +1491,25 @@ public class BigQueryPdao {
 
   private static final String selectHasDuplicateStagingIdsTemplate =
       "SELECT <pkColumns:{c|<c.name>}; separator=\",\">,COUNT(*) "
-          + "FROM `<project>.<dataset>.<stagingTable>` "
+          + "FROM `<project>.<dataset>.<tableName>` "
           + "GROUP BY <pkColumns:{c|<c.name>}; separator=\",\"> "
           + "HAVING COUNT(*) > 1";
 
   /**
-   * Returns true is any duplicate IDs are present in the staging table TODO: add support for
+   * Returns true is any duplicate IDs are present in a BigQuery table TODO: add support for
    * returning top few instances
    */
-  public boolean selectHasDuplicateStagingIds(
-      Dataset dataset, List<Column> pkColumns, String stagingTableName)
+  public boolean hasDuplicatePrimaryKeys(
+      FSContainerInterface container, List<Column> pkColumns, String tableName)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject = BigQueryProject.from(container);
+
+    String bqDatasetName = prefixContainerName(container);
 
     ST sqlTemplate = new ST(selectHasDuplicateStagingIdsTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", prefixName(dataset.getName()));
-    sqlTemplate.add("stagingTable", stagingTableName);
+    sqlTemplate.add("dataset", bqDatasetName);
+    sqlTemplate.add("tableName", tableName);
     sqlTemplate.add("pkColumns", pkColumns);
 
     TableResult result = bigQueryProject.query(sqlTemplate.render());
@@ -2593,14 +2595,17 @@ public class BigQueryPdao {
       FSContainerInterface container, String tableName, String suffix) {
 
     BigQueryProject bigQueryProject = BigQueryProject.from(container);
-    final String bqDatasetName;
-    if (container.getCollectionType() == CollectionType.DATASET) {
-      bqDatasetName = prefixName(container.getName());
-    } else {
-      bqDatasetName = container.getName();
-    }
+    String bqDatasetName = prefixContainerName(container);
     String extTableName = externalTableName(tableName, suffix);
     return bigQueryProject.deleteTable(bqDatasetName, extTableName);
+  }
+
+  private String prefixContainerName(FSContainerInterface container) {
+    if (container.getCollectionType() == CollectionType.DATASET) {
+      return prefixName(container.getName());
+    } else {
+      return container.getName();
+    }
   }
 
   private static final String insertSoftDeleteTemplate =

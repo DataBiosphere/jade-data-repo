@@ -2,9 +2,13 @@ package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.iterableWithSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -17,6 +21,7 @@ import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
@@ -131,14 +136,23 @@ public class SnapshotExportIntegrationTest extends UsersBase {
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(
-            steward(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
+            steward(),
+            datasetSummaryModel.getName(),
+            profileId,
+            "ingest-test-snapshot-no-file.json");
 
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
+
+    assertThat(
+        "The export had it's primary keys validated",
+        exportModel.isValidatedPrimaryKeys(),
+        is(true));
+
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
     SnapshotModel snapshot = exportModel.getSnapshot();
 
@@ -150,7 +164,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         parquet.getLocation().getTables().stream()
             .map(SnapshotExportResponseModelFormatParquetLocationTables::getName)
             .collect(Collectors.toList()),
-        containsInAnyOrder("participant", "sample", "file"));
+        containsInAnyOrder("participant", "sample"));
 
     assertThat("Response contains the snapshot", snapshot.getId(), equalTo(snapshotId));
 
@@ -253,7 +267,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, true);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, true, false);
 
     SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
@@ -282,6 +296,48 @@ public class SnapshotExportIntegrationTest extends UsersBase {
         isGsPath(vcfIndexFileRefs.get(0));
       }
     }
+  }
+
+  @Test
+  public void snapshotExportValidationTest() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
+    UUID datasetId = datasetSummaryModel.getId();
+    createdDatasetsIds.add(datasetId);
+    dataRepoFixtures.addDatasetPolicyMember(
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+
+    IngestRequestModel request =
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json");
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+    request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+
+    // Ingest sample table twice to trigger non-unique primary keys
+    request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshot(
+            steward(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
+
+    UUID snapshotId = snapshotSummary.getId();
+    createdSnapshotIds.add(snapshotId);
+    DataRepoResponse<SnapshotExportResponseModel> exportResponse =
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
+
+    ErrorModel errorModel = exportResponse.getErrorObject().get();
+
+    assertThat(
+        "The error says it the export failed validation",
+        errorModel.getMessage(),
+        not(emptyOrNullString()));
+
+    assertThat(
+        "The error detail says there are duplicate primary keys",
+        errorModel.getErrorDetail().get(0),
+        containsString("1 table(s) had rows with duplicate primary keys"));
   }
 
   private static void isGsPath(String path) {

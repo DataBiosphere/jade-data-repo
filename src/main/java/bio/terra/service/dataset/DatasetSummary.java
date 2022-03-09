@@ -7,11 +7,14 @@ import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class DatasetSummary {
   private UUID id;
@@ -197,5 +200,24 @@ public class DatasetSummary {
   public DatasetSummary phsId(String phsId) {
     this.phsId = phsId;
     return this;
+  }
+
+  public DatasetSummaryModel toModel() {
+    return new DatasetSummaryModel()
+        .id(getId())
+        .name(getName())
+        .description(getDescription())
+        .createdDate(getCreatedDate().toString())
+        .defaultProfileId(getDefaultProfileId())
+        .storage(toStorageResourceModel())
+        .secureMonitoringEnabled(isSecureMonitoringEnabled())
+        .cloudPlatform(getCloudPlatform())
+        .dataProject(getDataProject())
+        .storageAccount(getStorageAccount())
+        .phsId(getPhsId());
+  }
+
+  List<StorageResourceModel> toStorageResourceModel() {
+    return getStorage().stream().map(StorageResource::toModel).collect(Collectors.toList());
   }
 }

@@ -18,6 +18,7 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
@@ -37,10 +38,12 @@ import bio.terra.service.dataset.DataDeletionRequestValidator;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
@@ -48,10 +51,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import org.slf4j.Logger;
@@ -171,22 +177,36 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<EnumerateDatasetModel> enumerateDatasets(
-      @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-      @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-      @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date")
-          EnumerateSortByParam sort,
-      @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc")
-          SqlSortDirection direction,
-      @Valid @RequestParam(value = "filter", required = false) String filter,
-      @Valid @RequestParam(value = "region", required = false) String region) {
+      Integer offset,
+      Integer limit,
+      EnumerateSortByParam sort,
+      SqlSortDirection direction,
+      String filter,
+      String region) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    Set<UUID> resources =
-        iamService
-            .listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET)
-            .keySet();
-    EnumerateDatasetModel esm =
-        datasetService.enumerate(offset, limit, sort, direction, filter, region, resources);
-    return new ResponseEntity<>(esm, HttpStatus.OK);
+    Map<UUID, Set<IamRole>> idsAndRoles =
+        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
+    var datasetEnum =
+        datasetService.enumerate(
+            offset, limit, sort, direction, filter, region, idsAndRoles.keySet());
+
+    List<DatasetSummaryModel> summaries =
+        datasetEnum.getItems().stream().map(DatasetSummary::toModel).collect(Collectors.toList());
+    Map<String, List<String>> roleMap = new HashMap<>();
+    for (DatasetSummary summary : datasetEnum.getItems()) {
+      var roles =
+          idsAndRoles.get(summary.getId()).stream()
+              .map(IamRole::toString)
+              .collect(Collectors.toList());
+      roleMap.put(summary.getId().toString(), roles);
+    }
+    var edm =
+        new EnumerateDatasetModel()
+            .items(summaries)
+            .total(datasetEnum.getTotal())
+            .filteredTotal(datasetEnum.getFilteredTotal())
+            .roleMap(roleMap);
+    return ResponseEntity.ok(edm);
   }
 
   @Override

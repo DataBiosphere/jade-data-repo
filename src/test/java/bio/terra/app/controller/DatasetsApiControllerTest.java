@@ -11,11 +11,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.SnapshotSummary;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -37,34 +37,33 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
-public class SnapshotsApiControllerTest {
+public class DatasetsApiControllerTest {
 
   @Autowired private MockMvc mvc;
 
   @MockBean private IamService iamService;
 
-  @MockBean private SnapshotService snapshotService;
+  @MockBean private DatasetService datasetService;
 
   @Test
-  public void enumerateSnapshots() throws Exception {
-    var endpoint = "/api/repository/v1/snapshots";
+  public void enumerateDatasets() throws Exception {
+    var endpoint = "/api/repository/v1/datasets";
     UUID uuid = UUID.randomUUID();
     IamRole role = IamRole.DISCOVERER;
     Set<UUID> uuids = Set.of(uuid);
     Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(uuid, Set.of(role));
-    when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
+    when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASET)))
         .thenReturn(resourcesAndRoles);
-    SnapshotSummary summary =
-        new SnapshotSummary().id(uuid).createdDate(Instant.now()).storage(List.of());
-    MetadataEnumeration<SnapshotSummary> metadataEnumeration = new MetadataEnumeration<>();
+    DatasetSummary summary =
+        new DatasetSummary().id(uuid).createdDate(Instant.now()).storage(List.of());
+    MetadataEnumeration<DatasetSummary> metadataEnumeration = new MetadataEnumeration<>();
     metadataEnumeration.items(List.of(summary));
-    when(snapshotService.enumerateSnapshots(
-            anyInt(), anyInt(), any(), any(), any(), any(), any(), eq(uuids)))
+    when(datasetService.enumerate(anyInt(), anyInt(), any(), any(), any(), any(), eq(uuids)))
         .thenReturn(metadataEnumeration);
     mvc.perform(get(endpoint))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items[0].id").value(uuid.toString()))
         .andExpect(jsonPath("$.roleMap[*][0]").value(role.toString()));
-    verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
+    verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASET));
   }
 }

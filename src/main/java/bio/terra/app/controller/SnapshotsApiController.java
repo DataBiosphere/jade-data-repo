@@ -32,9 +32,11 @@ import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -188,17 +190,27 @@ public class SnapshotsApiController implements SnapshotsApi {
         ListUtils.emptyIfNull(datasetIds).stream()
             .map(UUID::fromString)
             .collect(Collectors.toList());
-    EnumerateSnapshotModel edm =
+    var enumeration =
         snapshotService.enumerateSnapshots(
             offset, limit, sort, direction, filter, region, datasetUUIDs, idsAndRoles.keySet());
-    for (SnapshotSummaryModel summary : edm.getItems()) {
+    List<SnapshotSummaryModel> models =
+        enumeration.getItems().stream().map(SnapshotSummary::toModel).collect(Collectors.toList());
+
+    Map<String, List<String>> roleMap = new HashMap<>();
+    for (SnapshotSummary summary : enumeration.getItems()) {
       var roles =
           idsAndRoles.get(summary.getId()).stream()
               .map(IamRole::toString)
               .collect(Collectors.toList());
-      summary.setRoles(roles);
+      roleMap.put(summary.getId().toString(), roles);
     }
-    return new ResponseEntity<>(edm, HttpStatus.OK);
+    var esm =
+        new EnumerateSnapshotModel()
+            .items(models)
+            .total(enumeration.getTotal())
+            .filteredTotal(enumeration.getFilteredTotal())
+            .roleMap(roleMap);
+    return ResponseEntity.ok(esm);
   }
 
   @Override

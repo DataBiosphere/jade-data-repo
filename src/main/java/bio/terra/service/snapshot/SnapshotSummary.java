@@ -1,10 +1,13 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.service.dataset.StorageResource;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class SnapshotSummary {
   private UUID id;
@@ -126,5 +129,25 @@ public class SnapshotSummary {
   public SnapshotSummary phsId(String phsId) {
     this.phsId = phsId;
     return this;
+  }
+
+  public SnapshotSummaryModel toModel() {
+    return new SnapshotSummaryModel()
+        .id(getId())
+        .name(getName())
+        .description(getDescription())
+        .createdDate(getCreatedDate().toString())
+        .profileId(getProfileId())
+        .storage(toStorageResourceModel())
+        .secureMonitoringEnabled(isSecureMonitoringEnabled())
+        .cloudPlatform(getCloudPlatform())
+        .dataProject(getDataProject())
+        .storageAccount(getStorageAccount())
+        .consentCode(getConsentCode())
+        .phsId(getPhsId());
+  }
+
+  private List<StorageResourceModel> toStorageResourceModel() {
+    return getStorage().stream().map(StorageResource::toModel).collect(Collectors.toList());
   }
 }

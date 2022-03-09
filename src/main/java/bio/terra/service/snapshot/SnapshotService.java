@@ -10,7 +10,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
@@ -26,7 +25,6 @@ import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
@@ -146,7 +144,7 @@ public class SnapshotService {
    * @param limit
    * @return list of summary models of snapshot
    */
-  public EnumerateSnapshotModel enumerateSnapshots(
+  public MetadataEnumeration<SnapshotSummary> enumerateSnapshots(
       int offset,
       int limit,
       EnumerateSortByParam sort,
@@ -156,19 +154,10 @@ public class SnapshotService {
       List<UUID> datasetIds,
       Collection<UUID> resources) {
     if (resources.isEmpty()) {
-      return new EnumerateSnapshotModel().total(0).items(List.of());
+      return new MetadataEnumeration<SnapshotSummary>().items(List.of());
     }
-    MetadataEnumeration<SnapshotSummary> enumeration =
-        snapshotDao.retrieveSnapshots(
-            offset, limit, sort, direction, filter, region, datasetIds, resources);
-    List<SnapshotSummaryModel> models =
-        enumeration.getItems().stream()
-            .map(SnapshotService::makeSummaryModelFromSummary)
-            .collect(Collectors.toList());
-    return new EnumerateSnapshotModel()
-        .items(models)
-        .total(enumeration.getTotal())
-        .filteredTotal(enumeration.getFilteredTotal());
+    return snapshotDao.retrieveSnapshots(
+        offset, limit, sort, direction, filter, region, datasetIds, resources);
   }
 
   /**
@@ -180,7 +169,7 @@ public class SnapshotService {
    */
   public SnapshotSummaryModel retrieveSnapshotSummary(UUID id) {
     SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(id);
-    return makeSummaryModelFromSummary(snapshotSummary);
+    return snapshotSummary.toModel();
   }
 
   /**
@@ -598,29 +587,6 @@ public class SnapshotService {
     // set the snapshot tables and mapping
     snapshot.snapshotTables(tableList);
     snapshotSource.snapshotMapTables(mapTableList);
-  }
-
-  private static SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {
-    return new SnapshotSummaryModel()
-        .id(snapshotSummary.getId())
-        .name(snapshotSummary.getName())
-        .description(snapshotSummary.getDescription())
-        .createdDate(snapshotSummary.getCreatedDate().toString())
-        .profileId(snapshotSummary.getProfileId())
-        .storage(storageResourceModelFromSnapshotSummary(snapshotSummary))
-        .secureMonitoringEnabled(snapshotSummary.isSecureMonitoringEnabled())
-        .cloudPlatform(snapshotSummary.getCloudPlatform())
-        .dataProject(snapshotSummary.getDataProject())
-        .storageAccount(snapshotSummary.getStorageAccount())
-        .consentCode(snapshotSummary.getConsentCode())
-        .phsId(snapshotSummary.getPhsId());
-  }
-
-  private static List<StorageResourceModel> storageResourceModelFromSnapshotSummary(
-      SnapshotSummary snapshotSummary) {
-    return snapshotSummary.getStorage().stream()
-        .map(StorageResource::toModel)
-        .collect(Collectors.toList());
   }
 
   private SnapshotModel populateSnapshotModelFromSnapshot(

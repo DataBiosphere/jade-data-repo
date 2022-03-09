@@ -4,7 +4,6 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -48,9 +47,7 @@ public class CreateDatasetMetadataStep implements Step {
               .id(datasetId);
       datasetDao.createAndLock(newDataset, context.getFlightId());
 
-      DatasetSummaryModel datasetSummary =
-          DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(
-              newDataset.getDatasetSummary());
+      DatasetSummaryModel datasetSummary = newDataset.getDatasetSummary().toModel();
       workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);
       workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
       return StepResult.getStepResultSuccess();

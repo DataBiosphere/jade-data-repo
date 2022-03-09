@@ -28,7 +28,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.exception.TransactionLockException;
@@ -190,9 +189,7 @@ public class BigQueryPdaoDatasetConnectedTest {
             datasetId, ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(nullPkBlob)));
 
         // Create a snapshot!
-        DatasetSummaryModel datasetSummaryModel =
-            DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(
-                dataset.getDatasetSummary());
+        DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();
         SnapshotSummaryModel snapshotSummary =
             connectedOperations.createSnapshot(
                 datasetSummaryModel, "ingest-test-snapshot.json", "");

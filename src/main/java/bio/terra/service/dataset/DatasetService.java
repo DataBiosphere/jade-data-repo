@@ -13,8 +13,6 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
@@ -43,7 +41,6 @@ import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -158,7 +155,7 @@ public class DatasetService {
         dataset, include, metadataDataAccessUtils, userRequest);
   }
 
-  public EnumerateDatasetModel enumerate(
+  public MetadataEnumeration<DatasetSummary> enumerate(
       int offset,
       int limit,
       EnumerateSortByParam sort,
@@ -167,18 +164,9 @@ public class DatasetService {
       String region,
       Collection<UUID> resources) {
     if (resources.isEmpty()) {
-      return new EnumerateDatasetModel().total(0).items(Collections.emptyList());
+      return new MetadataEnumeration<DatasetSummary>().items(List.of());
     }
-    MetadataEnumeration<DatasetSummary> datasetEnum =
-        datasetDao.enumerate(offset, limit, sort, direction, filter, region, resources);
-    List<DatasetSummaryModel> summaries =
-        datasetEnum.getItems().stream()
-            .map(DatasetJsonConversion::datasetSummaryModelFromDatasetSummary)
-            .collect(Collectors.toList());
-    return new EnumerateDatasetModel()
-        .items(summaries)
-        .total(datasetEnum.getTotal())
-        .filteredTotal(datasetEnum.getFilteredTotal());
+    return datasetDao.enumerate(offset, limit, sort, direction, filter, region, resources);
   }
 
   public String delete(String id, AuthenticatedUserRequest userReq) {

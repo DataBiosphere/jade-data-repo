@@ -205,6 +205,31 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
+  public void testInvalidKeyType() throws Exception {
+    DatasetRequestModel req = buildDatasetRequest();
+    TableModel testTable = req.getSchema().getTables().get(0);
+    testTable.setPrimaryKey(List.of("id", "age"));
+
+    ColumnModel badColumnFileRefArray = testTable.getColumns().get(0);
+    badColumnFileRefArray.setArrayOf(true);
+    badColumnFileRefArray.setDatatype(TableDataType.FILEREF);
+
+    ColumnModel badColumnDirref = testTable.getColumns().get(1);
+    badColumnDirref.setDatatype(TableDataType.DIRREF);
+
+    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+    checkValidationErrorModel(
+        errorModel,
+        new String[] {
+          "InvalidPrimaryKey",
+          "InvalidPrimaryKey",
+          "InvalidPrimaryKey",
+          "InvalidForeignKey",
+          "InvalidForeignKey"
+        });
+  }
+
+  @Test
   public void testDuplicateAssetNames() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
     req.getSchema().assets(Arrays.asList(buildAsset(), buildAsset()));
@@ -452,25 +477,6 @@ public class DatasetRequestValidatorTest {
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
         errorModel, new String[] {"MissingPrimaryKeyColumn", "IncompleteSchemaDefinition"});
-  }
-
-  @Test
-  public void testArrayPrimaryKeyColumn() throws Exception {
-    ColumnModel column =
-        new ColumnModel().name("array_column").datatype(TableDataType.STRING).arrayOf(true);
-    TableModel table =
-        new TableModel()
-            .name("table")
-            .columns(Collections.singletonList(column))
-            .primaryKey(Collections.singletonList(column.getName()));
-    DatasetRequestModel req = buildDatasetRequest();
-    req.getSchema()
-        .tables(Collections.singletonList(table))
-        .relationships(Collections.emptyList())
-        .assets(Collections.emptyList());
-
-    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"PrimaryKeyArrayColumn"});
   }
 
   @Test

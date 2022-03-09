@@ -4,6 +4,8 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.validation.constraints.NotNull;
+import liquibase.util.StringUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -30,6 +32,34 @@ public class IngestRequestValidator implements Validator {
     if (target instanceof IngestRequestModel) {
       IngestRequestModel ingestRequest = (IngestRequestModel) target;
       validateTableName(ingestRequest.getTable(), errors);
+
+      if (StringUtils.isEmpty(ingestRequest.getPath())
+          && !ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY)) {
+        errors.rejectValue(
+            "path", "PathIsMissing", "Path is required when ingesting from a cloud object");
+      }
+
+      if (!StringUtils.isEmpty(ingestRequest.getPath())
+          && ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY)) {
+        errors.rejectValue(
+            "path", "PathIsPresent", "Path should not be specified when ingesting from an array");
+      }
+
+      if (ListUtils.emptyIfNull(ingestRequest.getJsonArraySpec()).isEmpty()
+          && ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY)) {
+        errors.rejectValue(
+            "jsonArraySpec",
+            "DataPayloadIsMissing",
+            "JsonArraySpec is required when ingesting as an array");
+      }
+
+      if (!ListUtils.emptyIfNull(ingestRequest.getJsonArraySpec()).isEmpty()
+          && !ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY)) {
+        errors.rejectValue(
+            "jsonArraySpec",
+            "DataPayloadIsPresent",
+            "JsonArraySpec should not be specified when ingesting from a path");
+      }
     } else if (target instanceof FileLoadModel) {
       FileLoadModel fileLoadModel = (FileLoadModel) target;
       if (fileLoadModel.getProfileId() == null) {

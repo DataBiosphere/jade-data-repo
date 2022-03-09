@@ -1,8 +1,15 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
@@ -20,20 +27,32 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Assert;
@@ -41,10 +60,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -69,7 +92,7 @@ public class DatasetServiceTest {
 
   @Autowired private DatasetService datasetService;
 
-  @Autowired private JobService jobService;
+  @SpyBean private JobService jobService;
 
   @MockBean private IamProviderInterface samService;
 
@@ -81,6 +104,14 @@ public class DatasetServiceTest {
 
   @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
 
+  @MockBean private ResourceService resourceService;
+  @MockBean private GcsPdao gcsPdao;
+  @MockBean private AzureContainerPdao azureContainerPdao;
+  @MockBean private AzureBlobStorePdao azureBlobStorePdao;
+
+  @Captor private ArgumentCaptor<List<String>> listCaptor;
+  @Captor private ArgumentCaptor<IngestRequestModel> requestCaptor;
+
   private BillingProfileModel billingProfile;
   private UUID projectId;
   private ArrayList<String> flightIdsList;
@@ -88,12 +119,11 @@ public class DatasetServiceTest {
 
   private UUID createDataset(DatasetRequestModel datasetRequest, String newName)
       throws IOException, SQLException {
-    datasetRequest
-        .name(newName)
-        .defaultProfileId(billingProfile.getId())
-        .cloudPlatform(CloudPlatform.AZURE);
+    datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
     Dataset dataset =
-        DatasetUtils.convertRequestWithGeneratedNames(datasetRequest).projectResourceId(projectId);
+        DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
+            .projectResourceId(projectId)
+            .projectResource(resourceDao.retrieveProjectById(projectId));
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
@@ -104,8 +134,14 @@ public class DatasetServiceTest {
   }
 
   private UUID createDataset(String datasetFile) throws IOException, SQLException {
+    return createDataset(datasetFile, CloudPlatform.AZURE);
+  }
+
+  private UUID createDataset(String datasetFile, CloudPlatform platform)
+      throws IOException, SQLException {
     DatasetRequestModel datasetRequest =
         jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
+    datasetRequest.setCloudPlatform(platform);
     UUID datasetId = createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID());
     datasetIdList.add(datasetId);
     return datasetId;
@@ -496,5 +532,90 @@ public class DatasetServiceTest {
                     DatasetRequestAccessIncludeModel.PROFILE,
                     DatasetRequestAccessIncludeModel.DATA_PROJECT,
                     DatasetRequestAccessIncludeModel.STORAGE))));
+  }
+
+  @Test
+  public void ingestPayloadDataGcp() throws Exception {
+    UUID datasetId = createDataset("dataset-create-test.json", CloudPlatform.GCP);
+    String bucketName = "mybucket";
+    GoogleBucketResource bucket = mock(GoogleBucketResource.class);
+    when(bucket.getName()).thenReturn(bucketName);
+    when(resourceService.getOrCreateBucketForBigQueryScratchFile(any(), any())).thenReturn(bucket);
+
+    IngestRequestModel ingestRequestModel =
+        new IngestRequestModel()
+            .loadTag("lt")
+            .format(FormatEnum.ARRAY)
+            .updateStrategy(UpdateStrategyEnum.APPEND)
+            .table("participant")
+            .addJsonArraySpecItem(Map.of("id", "1", "age", 12, "gender", "F"))
+            .addJsonArraySpecItem(Map.of("id", "2", "age", 24, "gender", "N"))
+            .addJsonArraySpecItem(Map.of("id", "3", "age", 36, "gender", "M"));
+
+    datasetService.ingestDataset(datasetId.toString(), ingestRequestModel, testUser);
+
+    verify(gcsPdao, times(1)).writeListToCloudFile(any(), listCaptor.capture(), any());
+
+    JSONAssert.assertEquals(
+        "correct lines were written",
+        String.join("\n", listCaptor.getValue()),
+        "{\"id\":\"1\",\"age\":12,\"gender\":\"F\"}\n"
+            + "{\"id\":\"2\",\"age\":24,\"gender\":\"N\"}\n"
+            + "{\"id\":\"3\",\"age\":36,\"gender\":\"M\"}",
+        false);
+
+    verify(jobService, times(1)).newJob(any(), any(), requestCaptor.capture(), any());
+    assertThat("payload is stripped out", requestCaptor.getValue().getJsonArraySpec(), empty());
+  }
+
+  @Test
+  public void ingestPayloadDataAzure() throws Exception {
+    UUID datasetId = createDataset("dataset-create-test.json", CloudPlatform.AZURE);
+    String filePath = "foopath";
+    String signedPath = "foopathsigned";
+    AzureStorageAccountResource storageAccountResource = mock(AzureStorageAccountResource.class);
+    //    when(storageAccountResource.getName()).thenReturn(bucketName);
+    BlobClient blobClient = mock(BlobClient.class);
+    when(blobClient.getBlobUrl()).thenReturn(filePath);
+    BlobContainerClient containerClient = mock(BlobContainerClient.class);
+    when(containerClient.getBlobClient(any())).thenReturn(blobClient);
+    when(resourceService.getOrCreateDatasetStorageAccount(any(), any(), any()))
+        .thenReturn(storageAccountResource);
+    when(azureContainerPdao.getOrCreateContainer(
+            any(),
+            eq(storageAccountResource),
+            eq(AzureStorageAccountResource.ContainerType.SCRATCH)))
+        .thenReturn(containerClient);
+    when(azureBlobStorePdao.signFile(
+            any(),
+            eq(storageAccountResource),
+            eq(filePath),
+            eq(AzureStorageAccountResource.ContainerType.SCRATCH),
+            any()))
+        .thenReturn(signedPath);
+    IngestRequestModel ingestRequestModel =
+        new IngestRequestModel()
+            .loadTag("lt")
+            .format(FormatEnum.ARRAY)
+            .updateStrategy(UpdateStrategyEnum.APPEND)
+            .table("participant")
+            .addJsonArraySpecItem(Map.of("id", "1", "age", 12, "gender", "F"))
+            .addJsonArraySpecItem(Map.of("id", "2", "age", 24, "gender", "N"))
+            .addJsonArraySpecItem(Map.of("id", "3", "age", 36, "gender", "M"));
+
+    datasetService.ingestDataset(datasetId.toString(), ingestRequestModel, testUser);
+
+    verify(azureBlobStorePdao, times(1)).writeBlobLines(any(), listCaptor.capture());
+
+    JSONAssert.assertEquals(
+        "correct lines were written",
+        String.join("\n", listCaptor.getValue()),
+        "{\"id\":\"1\",\"age\":12,\"gender\":\"F\"}\n"
+            + "{\"id\":\"2\",\"age\":24,\"gender\":\"N\"}\n"
+            + "{\"id\":\"3\",\"age\":36,\"gender\":\"M\"}",
+        false);
+
+    verify(jobService, times(1)).newJob(any(), any(), requestCaptor.capture(), any());
+    assertThat("payload is stripped out", requestCaptor.getValue().getJsonArraySpec(), empty());
   }
 }

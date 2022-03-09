@@ -1614,6 +1614,7 @@ public class BigQueryPdao {
         break;
 
       case JSON:
+      case ARRAY:
         options = FormatOptions.json();
         break;
 

@@ -1,6 +1,7 @@
 package bio.terra.integration;
 
 import java.util.Optional;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.springframework.http.HttpStatus;
 
 /**
@@ -52,5 +53,15 @@ public class ObjectOrErrorResponse<S, T> {
 
   public void setLocationHeader(Optional<String> locationHeader) {
     this.locationHeader = locationHeader;
+  }
+
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this)
+        .append("statusCode", statusCode)
+        .append("locationHeader", locationHeader)
+        .append("errorObject", errorObject)
+        .append("responseObject", responseObject)
+        .toString();
   }
 }

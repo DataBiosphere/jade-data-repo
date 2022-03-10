@@ -24,6 +24,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -40,6 +41,7 @@ import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -68,6 +70,8 @@ public class FileTest extends UsersBase {
   @Autowired private DataRepoClient dataRepoClient;
 
   @Autowired private TestConfiguration testConfiguration;
+
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
@@ -174,7 +178,7 @@ public class FileTest extends UsersBase {
     int failureCount = 0;
     for (DataRepoResponse<JobModel> resp : responseList) {
       DataRepoResponse<FileModel> response =
-          dataRepoClient.waitForResponse(steward(), resp, FileModel.class);
+          dataRepoClient.waitForResponse(steward(), resp, new TypeReference<>() {});
       if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
         System.out.println("Got expected not found");
       } else {
@@ -341,7 +345,7 @@ public class FileTest extends UsersBase {
             // note: reader's proxy group should not have access to the source bucket
             reader(), datasetId, profileId, gsFilePath, filePath);
     DataRepoResponse<FileModel> error =
-        dataRepoClient.waitForResponse(steward(), ingestJob, FileModel.class);
+        dataRepoClient.waitForResponse(steward(), ingestJob, new TypeReference<>() {});
 
     assertThat(error.getErrorObject().isPresent(), equalTo(true));
     assertThat(

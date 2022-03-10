@@ -230,9 +230,12 @@ public final class TestUtils {
   }
 
   public static <T> T mapFromJson(String content, Class<T> valueType) throws IOException {
+    if (content == null) {
+      return null;
+    }
     try {
       return objectMapper.readValue(content, valueType);
-    } catch (IOException ex) {
+    } catch (Exception ex) {
       logger.error(
           "unable to map JSON response to " + valueType.getName() + "JSON: " + content, ex);
       throw ex;
@@ -240,10 +243,27 @@ public final class TestUtils {
   }
 
   public static <T> T mapFromJson(String content, TypeReference<T> valueType) throws IOException {
+    if (content == null) {
+      return null;
+    }
     try {
       return objectMapper.readValue(content, valueType);
-    } catch (IOException ex) {
+    } catch (Exception ex) {
       logger.error("unable to map JSON response to " + valueType + "JSON: " + content, ex);
+      throw ex;
+    }
+  }
+
+  public static <T> T mapFromJson(String content) throws IOException {
+    try {
+      return objectMapper.readValue(content, new TypeReference<>() {});
+    } catch (Exception ex) {
+      logger.error(
+          "unable to map JSON response to "
+              + (new TypeReference<T>() {}).getType()
+              + " JSON: "
+              + content,
+          ex);
       throw ex;
     }
   }

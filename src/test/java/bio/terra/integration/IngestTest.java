@@ -10,7 +10,6 @@ import static org.hamcrest.Matchers.startsWith;
 
 import bio.terra.common.BQTestUtils;
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.DatasetModel;
@@ -34,6 +33,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -57,7 +57,7 @@ public class IngestTest extends UsersBase {
 
   @Autowired private JsonLoader jsonLoader;
 
-  @Autowired private TestConfiguration testConfig;
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private UUID datasetId;
   private UUID profileId;
@@ -265,7 +265,7 @@ public class IngestTest extends UsersBase {
     DataRepoResponse<JobModel> ingestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, IngestResponseModel.class);
+        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
     assertThat(
         "failure is explained",
@@ -280,7 +280,7 @@ public class IngestTest extends UsersBase {
     DataRepoResponse<JobModel> ingestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, IngestResponseModel.class);
+        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
     assertThat(
         "failure is explained",
@@ -296,7 +296,7 @@ public class IngestTest extends UsersBase {
     DataRepoResponse<JobModel> ingestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, IngestResponseModel.class);
+        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
     assertThat(
         "failure is explained",
@@ -311,7 +311,7 @@ public class IngestTest extends UsersBase {
     DataRepoResponse<JobModel> ingestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
     DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, IngestResponseModel.class);
+        dataRepoClient.waitForResponse(steward(), ingestJobResponse, new TypeReference<>() {});
     assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
     assertThat(
         "failure is explained",

@@ -14,4 +14,6 @@ public final class CommonMapKeys {
 
   public static final String COMPLETION_TO_FAILURE_EXCEPTION =
       PREFIX + "completionToFailureException";
+
+  public static final String CREATED_AT = PREFIX + "createdAt";
 }

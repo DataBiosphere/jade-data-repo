@@ -1,5 +1,7 @@
 package bio.terra.common;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import bio.terra.service.tabulardata.google.BigQueryProject;
@@ -27,7 +29,8 @@ public final class BQTestUtils {
   public static void mockBQQuery(
       BigQueryProject mockBQProject, String sql, Schema schema, List<Map<String, String>> results) {
     try {
-      when(mockBQProject.query(sql)).thenAnswer(mockAnswer(schema, results));
+      when(mockBQProject.query(eq(sql))).thenAnswer(mockAnswer(schema, results));
+      when(mockBQProject.query(eq(sql), any())).thenAnswer(mockAnswer(schema, results));
     } catch (InterruptedException e) {
       throw new RuntimeException("Error mocking query execution");
     }

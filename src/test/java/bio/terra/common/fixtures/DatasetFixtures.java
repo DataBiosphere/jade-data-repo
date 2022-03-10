@@ -113,6 +113,7 @@ public final class DatasetFixtures {
             .id(UUID.randomUUID())
             .name(name)
             .rawTableName(name)
+            .softDeleteTableName(name)
             .columns(columns)
             .primaryKey(columns.subList(0, 0));
     datasetTable.getColumns().forEach(c -> c.table(datasetTable));

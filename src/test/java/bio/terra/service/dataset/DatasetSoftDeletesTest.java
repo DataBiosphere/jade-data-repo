@@ -8,8 +8,8 @@ import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.BigQueryFixtures;
-import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -47,11 +48,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Integration.class)
 public class DatasetSoftDeletesTest extends UsersBase {
 
-  @Autowired private DataRepoClient dataRepoClient;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfiguration;
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String stewardToken;
   private UUID datasetId;

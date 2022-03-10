@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.common.CommonFlightUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
@@ -11,6 +12,7 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import java.time.Instant;
 
 public class CreateSnapshotPrimaryDataFullViewGcpStep implements Step {
 
@@ -38,10 +40,11 @@ public class CreateSnapshotPrimaryDataFullViewGcpStep implements Step {
     /*
      * from the dataset tables, we will need to get the table's live views
      */
+    Instant createdAt = CommonFlightUtils.getCreatedAt(context);
     SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     Dataset dataset = datasetservice.retrieveByName(contentsModel.getDatasetName());
-    bigQueryPdao.createSnapshotWithLiveViews(snapshot, dataset);
+    bigQueryPdao.createSnapshotWithLiveViews(snapshot, dataset, createdAt);
 
     return StepResult.getStepResultSuccess();
   }

@@ -6,11 +6,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -33,6 +35,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class RepositoryApiControllerAccessTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
+
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   @Before
   public void setup() throws Exception {

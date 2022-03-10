@@ -32,6 +32,7 @@ import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
+import bio.terra.common.DateTimeUtils;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.Table;
 import bio.terra.common.exception.NotFoundException;
@@ -66,7 +67,6 @@ import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.SnapshotTable;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.LoadHistoryUtil;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
@@ -95,6 +95,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.ViewDefinition;
+import com.google.common.annotations.VisibleForTesting;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -173,7 +174,7 @@ public class BigQueryPdao {
     }
   }
 
-  // Note: this query includes a string substititution since it gets used in a view, which can not
+  // Note: this query includes a string substitution since it gets used in a view, which can not
   // support parameterized queries
   private static final String transactionQueryTemplate =
       "SELECT <transactIdCol> "
@@ -184,14 +185,22 @@ public class BigQueryPdao {
    * Construct the live view sql.
    *
    * @param activeTransaction If not null, include values from this transaction. Note, if this has a
-   *     non-null values then you MUST set the transactId query parameter. This means that this
-   *     value can not be non-bull when building a view
+   *     non-null value then you MUST set the transactId query parameter. This means that this value
+   *     can not be non-null when building a view
+   * @param filterBefore If not null, only return values from transactions that were committed
+   *     before this time. Note, if this has a non-null value then you MUST set the filterBefore
+   *     query parameter. This means that this value can not be non-null when building a view
    * @return The live view SQL for a table
    */
-  private static String liveViewTemplate(UUID activeTransaction) {
+  private static String liveViewTemplate(UUID activeTransaction, Instant filterBefore) {
     String activeTransactionFilter = "";
+    String committedInTimeFilter = "";
     if (activeTransaction != null) {
       activeTransactionFilter = "OR <transactIdCol> = @transactId";
+    }
+    if (filterBefore != null) {
+      // This will cause ignoring transactions that were committed after the passed in cutoff time
+      committedInTimeFilter = " OR <transactionTerminatedAtCol> > @transactionTerminatedAt";
     }
     return "SELECT <columns:{c|R.<c>}; separator=\",\">"
         + "<if(partitionByDate)>,<partitionDateCol><endif>"
@@ -199,14 +208,14 @@ public class BigQueryPdao {
         + "<if(partitionByDate)>,_PARTITIONDATE AS <partitionDateCol><endif> "
         + "FROM `<project>.<dataset>.<rawTable>` "
         + "WHERE COALESCE(<transactIdCol>, '') NOT IN ("
-        + transactionQueryTemplate
+        + (transactionQueryTemplate + committedInTimeFilter)
         + ") "
         + activeTransactionFilter
         + ") R "
         + "LEFT OUTER JOIN (SELECT * "
         + "FROM `<project>.<dataset>.<sdTable>` "
         + "WHERE COALESCE(<transactIdCol>, '') NOT IN ("
-        + transactionQueryTemplate
+        + (transactionQueryTemplate + committedInTimeFilter)
         + ")"
         + activeTransactionFilter
         + ") S USING ("
@@ -221,29 +230,38 @@ public class BigQueryPdao {
     TableId liveViewId = TableId.of(datasetName, table.getName());
     return TableInfo.of(
         liveViewId,
-        ViewDefinition.of(renderLiveViewSql(bigQueryProject, datasetName, table, null)));
+        ViewDefinition.of(
+            renderDatasetLiveViewSql(bigQueryProject, datasetName, table, null, null)));
   }
 
-  private String renderLiveViewSql(
-      String bigQueryProject, String datasetName, DatasetTable table, UUID transactionId) {
-    ST liveViewSql = new ST(liveViewTemplate(transactionId));
-    liveViewSql.add("project", bigQueryProject);
-    liveViewSql.add("dataset", datasetName);
-    liveViewSql.add("rawTable", table.getRawTableName());
-    liveViewSql.add("sdTable", table.getSoftDeleteTableName());
-    liveViewSql.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
-    liveViewSql.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
-    liveViewSql.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
-    liveViewSql.add("partitionDateCol", PDAO_INGEST_DATE_COLUMN_ALIAS);
-    liveViewSql.add("transactStatusVal", TransactionModel.StatusEnum.ACTIVE);
+  @VisibleForTesting
+  static String renderDatasetLiveViewSql(
+      String bigQueryProject,
+      String datasetName,
+      DatasetTable table,
+      UUID transactionId,
+      Instant filterBefore) {
+    ST datasetLiveViewSql = new ST(liveViewTemplate(transactionId, filterBefore));
+    datasetLiveViewSql.add("project", bigQueryProject);
+    datasetLiveViewSql.add("dataset", datasetName);
+    datasetLiveViewSql.add("rawTable", table.getRawTableName());
+    datasetLiveViewSql.add("sdTable", table.getSoftDeleteTableName());
+    datasetLiveViewSql.add("transactionTable", PDAO_TRANSACTIONS_TABLE);
+    datasetLiveViewSql.add("transactIdCol", PDAO_TRANSACTION_ID_COLUMN);
+    datasetLiveViewSql.add("transactStatusCol", PDAO_TRANSACTION_STATUS_COLUMN);
+    datasetLiveViewSql.add("partitionDateCol", PDAO_INGEST_DATE_COLUMN_ALIAS);
+    datasetLiveViewSql.add("transactionTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
+    datasetLiveViewSql.add("transactStatusVal", TransactionModel.StatusEnum.ACTIVE);
 
-    liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
-    liveViewSql.add(
+    datasetLiveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
+    datasetLiveViewSql.add(
         "columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
-    liveViewSql.add(
+    datasetLiveViewSql.add(
         "partitionByDate",
-        table.getBigQueryPartitionConfig().getMode() == BigQueryPartitionConfigV1.Mode.INGEST_DATE);
-    return liveViewSql.render();
+        table.getBigQueryPartitionConfig() != null
+            && table.getBigQueryPartitionConfig().getMode()
+                == BigQueryPartitionConfigV1.Mode.INGEST_DATE);
+    return datasetLiveViewSql.render();
   }
 
   public void createStagingLoadHistoryTable(Dataset dataset, String tableName_FlightId)
@@ -445,7 +463,7 @@ public class BigQueryPdao {
           + PDAO_ROW_ID_COLUMN
           + ", V.input_value FROM ("
           + "SELECT input_value FROM UNNEST([<inputVals:{v|'<v>'}; separator=\",\">]) AS input_value) AS V "
-          + "LEFT JOIN `<datasetProject>.<dataset>.<table>` AS T ON V.input_value = CAST(T.<column> AS STRING)";
+          + "LEFT JOIN (<datasetLiveViewSql>) AS T ON V.input_value = CAST(T.<column> AS STRING)";
 
   // compute the row ids from the input ids and validate all inputs have matches
 
@@ -462,18 +480,25 @@ public class BigQueryPdao {
   // - do the query
   // - truncate (even tidier...)
   // So if we need to make this work in the long term, we can take that approach.
-  public RowIdMatch mapValuesToRows(SnapshotSource source, List<String> inputValues)
+  public RowIdMatch mapValuesToRows(
+      SnapshotSource source, List<String> inputValues, Instant filterBefore)
       throws InterruptedException {
     // One source: grab it and navigate to the relevant parts
     BigQueryProject datasetBigQueryProject = BigQueryProject.from(source.getDataset());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
     AssetSpecification asset = source.getAssetSpecification();
     Column column = asset.getRootColumn().getDatasetColumn();
+    DatasetTable datasetTable = getTable(source, column.getTable().getName());
 
+    String datasetLiveViewSql =
+        renderDatasetLiveViewSql(
+            datasetProjectId,
+            prefixName(source.getDataset().getName()),
+            datasetTable,
+            null,
+            filterBefore);
     ST sqlTemplate = new ST(mapValuesToRowsTemplate);
-    sqlTemplate.add("datasetProject", datasetProjectId);
-    sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
-    sqlTemplate.add("table", column.getTable().getName());
+    sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
     sqlTemplate.add("column", column.getName());
     sqlTemplate.add("inputVals", inputValues);
 
@@ -482,7 +507,12 @@ public class BigQueryPdao {
     RowIdMatch rowIdMatch = new RowIdMatch();
     String sql = sqlTemplate.render();
     logger.debug("mapValuesToRows sql: " + sql);
-    TableResult result = datasetBigQueryProject.query(sql);
+    TableResult result =
+        datasetBigQueryProject.query(
+            sql,
+            Map.of(
+                "transactionTerminatedAt",
+                QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
     for (FieldValueList row : result.iterateAll()) {
       // Test getting these by name
       FieldValue rowId = row.get(0);
@@ -555,7 +585,7 @@ public class BigQueryPdao {
           + ") AS T";
 
   private static final String validateRowIdsForRootTemplate =
-      "SELECT COUNT(1) FROM `<datasetProject>.<dataset>.<table>` AS T, "
+      "SELECT COUNT(1) FROM (<datasetLiveViewSql>) AS T, "
           + "`<snapshotProject>.<snapshot>."
           + PDAO_ROW_ID_TABLE
           + "` AS R "
@@ -564,7 +594,8 @@ public class BigQueryPdao {
           + " = T."
           + PDAO_ROW_ID_COLUMN;
 
-  public void createSnapshot(Snapshot snapshot, List<String> rowIds) throws InterruptedException {
+  public void createSnapshot(Snapshot snapshot, List<String> rowIds, Instant filterBefore)
+      throws InterruptedException {
     BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
     String snapshotProjectId = snapshotBigQueryProject.getProjectId();
 
@@ -587,7 +618,7 @@ public class BigQueryPdao {
     String datasetBqDatasetName = prefixName(source.getDataset().getName());
 
     AssetSpecification asset = source.getAssetSpecification();
-    Table rootTable = asset.getRootTable().getTable();
+    DatasetTable rootTable = asset.getRootTable().getTable();
     String rootTableId = rootTable.getId().toString();
 
     if (rowIds.size() > 0) {
@@ -600,14 +631,20 @@ public class BigQueryPdao {
       snapshotBigQueryProject.query(sqlTemplate.render());
     }
 
+    String datasetLiveViewSql =
+        renderDatasetLiveViewSql(
+            datasetProjectId, datasetBqDatasetName, rootTable, null, filterBefore);
     ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
     sqlTemplate.add("snapshotProject", snapshotProjectId);
     sqlTemplate.add("snapshot", snapshotName);
-    sqlTemplate.add("datasetProject", datasetProjectId);
-    sqlTemplate.add("dataset", datasetBqDatasetName);
-    sqlTemplate.add("table", rootTable.getName());
+    sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
 
-    TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
+    TableResult result =
+        snapshotBigQueryProject.query(
+            sqlTemplate.render(),
+            Map.of(
+                "transactionTerminatedAt",
+                QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
     FieldValueList row = result.iterateAll().iterator().next();
     FieldValue countValue = row.get(0);
     if (countValue.getLongValue() != rowIds.size()) {
@@ -628,10 +665,11 @@ public class BigQueryPdao {
         datasetProjectId,
         datasetBqDatasetName,
         snapshotProjectId,
-        snapshotName,
+        snapshot,
         walkRelationships,
         rootTableId,
-        snapshotBigQuery);
+        snapshotBigQuery,
+        filterBefore);
 
     snapshotViewCreation(
         datasetBigQueryProject,
@@ -648,7 +686,7 @@ public class BigQueryPdao {
 
   private static final String getLiveViewTableTemplate =
       // TODO pull insert out and loop thru rest w UNION ()
-      "(SELECT '<tableId>', <dataRepoRowId> FROM `<datasetProject>.<dataset>.<liveView>`)";
+      "(SELECT '<tableId>', <dataRepoRowId> FROM (<datasetLiveViewSql>) AS L)";
 
   private static final String mergeLiveViewTablesTemplate =
       "<selectStatements; separator=\" UNION ALL \">";
@@ -659,21 +697,25 @@ public class BigQueryPdao {
   public String createSnapshotTableFromLiveViews(
       BigQueryProject datasetBigQueryProject,
       List<DatasetTable> tables,
-      String datasetBqDatasetName) {
+      String datasetBqDatasetName,
+      Instant creationStart) {
 
     List<String> selectStatements = new ArrayList<>();
 
     for (DatasetTable table : tables) {
 
-      TableId liveViewId = TableId.of(datasetBqDatasetName, table.getName());
-      String liveViewTableName = liveViewId.getTable();
-
       ST sqlTableTemplate = new ST(getLiveViewTableTemplate);
       sqlTableTemplate.add("tableId", table.getId());
       sqlTableTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
-      sqlTableTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
-      sqlTableTemplate.add("dataset", datasetBqDatasetName);
-      sqlTableTemplate.add("liveView", liveViewTableName);
+      sqlTableTemplate.add(
+          "datasetLiveViewSql",
+          renderDatasetLiveViewSql(
+              datasetBigQueryProject.getProjectId(),
+              datasetBqDatasetName,
+              table,
+              null,
+              creationStart));
+
       selectStatements.add(sqlTableTemplate.render());
     }
     ST sqlMergeTablesTemplate = new ST(mergeLiveViewTablesTemplate);
@@ -681,7 +723,7 @@ public class BigQueryPdao {
     return sqlMergeTablesTemplate.render();
   }
 
-  public void createSnapshotWithLiveViews(Snapshot snapshot, Dataset dataset)
+  public void createSnapshotWithLiveViews(Snapshot snapshot, Dataset dataset, Instant filterBefore)
       throws InterruptedException {
 
     BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
@@ -704,7 +746,8 @@ public class BigQueryPdao {
 
     // create a snapshot table based on the live view data row ids
     String liveViewTables =
-        createSnapshotTableFromLiveViews(datasetBigQueryProject, tables, datasetBqDatasetName);
+        createSnapshotTableFromLiveViews(
+            datasetBigQueryProject, tables, datasetBqDatasetName, filterBefore);
 
     ST sqlTemplate = new ST(insertAllLiveViewDataTemplate);
     sqlTemplate.add("snapshotProject", snapshotProjectId);
@@ -714,7 +757,11 @@ public class BigQueryPdao {
     sqlTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
     sqlTemplate.add("liveViewTables", liveViewTables);
 
-    snapshotBigQueryProject.query(sqlTemplate.render());
+    snapshotBigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of(
+            "transactionTerminatedAt",
+            QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
 
     ST sqlValidateSnapshotTemplate = new ST(validateSnapshotSizeTemplate);
     sqlValidateSnapshotTemplate.add("rowId", PDAO_ROW_ID_COLUMN);
@@ -737,7 +784,8 @@ public class BigQueryPdao {
   }
 
   public void createSnapshotWithProvidedIds(
-      Snapshot snapshot, SnapshotRequestContentsModel contentsModel) throws InterruptedException {
+      Snapshot snapshot, SnapshotRequestContentsModel contentsModel, Instant filterBefore)
+      throws InterruptedException {
 
     BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
     String snapshotProjectId = snapshotBigQueryProject.getProjectId();
@@ -767,8 +815,9 @@ public class BigQueryPdao {
           source
               .reverseTableLookup(tableName)
               .orElseThrow(
-                  () ->
-                      new CorruptMetadataException("cannot find destination table: " + tableName));
+                  () -> new NotFoundException("cannot find destination table: " + tableName));
+
+      DatasetTable datasetTable = getTable(source, tableName);
 
       List<UUID> rowIds = table.getRowIds();
 
@@ -793,14 +842,20 @@ public class BigQueryPdao {
           snapshotBigQueryProject.query(sqlTemplate.render());
         }
       }
+      String datasetLiveViewSql =
+          renderDatasetLiveViewSql(
+              datasetProjectId, datasetBqDatasetName, datasetTable, null, filterBefore);
       ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
       sqlTemplate.add("snapshotProject", snapshotProjectId);
       sqlTemplate.add("snapshot", snapshotName);
-      sqlTemplate.add("datasetProject", datasetProjectId);
-      sqlTemplate.add("dataset", datasetBqDatasetName);
-      sqlTemplate.add("table", sourceTable.getName());
+      sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
 
-      TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
+      TableResult result =
+          snapshotBigQueryProject.query(
+              sqlTemplate.render(),
+              Map.of(
+                  "transactionTerminatedAt",
+                  QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
       FieldValueList row = result.iterateAll().iterator().next();
       FieldValue countValue = row.get(0);
       if (countValue.getLongValue() != rowIds.size()) {
@@ -1113,14 +1168,14 @@ public class BigQueryPdao {
     sqlTemplate.add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
     sqlTemplate.add("transactCreatedByCol", PDAO_TRANSACTION_CREATED_BY_COLUMN);
 
-    long createdAt = System.currentTimeMillis();
+    Instant filterBefore = Instant.now();
     TransactionModel transaction =
         new TransactionModel()
             .id(UUID.randomUUID())
             .lock(flightId)
             .description(transactionDescription)
             .status(TransactionModel.StatusEnum.ACTIVE)
-            .createdAt(Instant.ofEpochMilli(createdAt).toString())
+            .createdAt(filterBefore.toString())
             .createdBy(authedUser.getEmail());
 
     bigQueryProject.query(
@@ -1130,7 +1185,8 @@ public class BigQueryPdao {
             "transactLock", QueryParameterValue.string(transaction.getLock()),
             "transactDescription", QueryParameterValue.string(transaction.getDescription()),
             "transactStatus", QueryParameterValue.string(transaction.getStatus().toString()),
-            "transactCreatedAt", QueryParameterValue.timestamp(createdAt * 1000),
+            "transactCreatedAt",
+                QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore)),
             "transactCreatedBy", QueryParameterValue.string(transaction.getCreatedBy())));
 
     return transaction;
@@ -1232,14 +1288,15 @@ public class BigQueryPdao {
     sqlTemplate.add("transactTerminatedAtCol", PDAO_TRANSACTION_TERMINATED_AT_COLUMN);
     sqlTemplate.add("transactTerminatedByCol", PDAO_TRANSACTION_TERMINATED_BY_COLUMN);
 
-    long terminatedAt = System.currentTimeMillis();
+    Instant terminatedAt = Instant.now();
 
     bigQueryProject.query(
         sqlTemplate.render(),
         Map.of(
             "transactId", QueryParameterValue.string(transactId.toString()),
             "transactStatus", QueryParameterValue.string(status.toString()),
-            "transactTerminatedAt", QueryParameterValue.timestamp(terminatedAt * 1000),
+            "transactTerminatedAt",
+                QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(terminatedAt)),
             "transactTerminatedBy", QueryParameterValue.string(authedUser.getEmail())));
 
     return retrieveTransaction(dataset, transactId);
@@ -1368,16 +1425,15 @@ public class BigQueryPdao {
                 .map(Object::toString)
                 .orElse(null))
         .createdAt(
-            Instant.ofEpochMilli(
-                    values.get(PDAO_TRANSACTION_CREATED_AT_COLUMN).getTimestampValue() / 1000)
+            DateTimeUtils.ofEpicMicros(
+                    values.get(PDAO_TRANSACTION_CREATED_AT_COLUMN).getTimestampValue())
                 .toString())
         .createdBy(values.get(PDAO_TRANSACTION_CREATED_BY_COLUMN).getStringValue())
         .terminatedAt(
             values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).isNull()
                 ? null
-                : Instant.ofEpochMilli(
-                        values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).getTimestampValue()
-                            / 1000)
+                : DateTimeUtils.ofEpicMicros(
+                        values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).getTimestampValue())
                     .toString())
         .terminatedBy(
             Optional.ofNullable(values.get(PDAO_TRANSACTION_TERMINATED_BY_COLUMN).getValue())
@@ -1463,10 +1519,10 @@ public class BigQueryPdao {
   /**
    * Construct the sql for inserting existing records data into the soft delete dataset table.
    *
-   * @param liveViewSql The sql to represent what records are active on the target table
+   * @param datasetLiveViewSql The sql to represent what records are active on the target table
    * @return The SQL for a soft deleting existing records for a table
    */
-  private static String insertIntoSoftDeleteDatasetTable(String liveViewSql) {
+  private static String insertIntoSoftDeleteDatasetTable(String datasetLiveViewSql) {
     return "INSERT INTO `<project>.<dataset>.<softDeleteTable>` "
         + "(<rowIdColumn>,<loadTagColumn>,<flightIdColumn>,<transactIdColumn>,<deleteAtColumn>,"
         + "<deleteByColumn>) "
@@ -1478,7 +1534,7 @@ public class BigQueryPdao {
         + "  CURRENT_TIMESTAMP() AS <deleteAtColumn>,"
         + "  @deletedBy AS <deleteByColumn> "
         + "FROM ("
-        + liveViewSql
+        + datasetLiveViewSql
         + ") AS T "
         + " LEFT JOIN `<project>.<dataset>.<stagingTable>` AS S "
         + "  ON <pkColumns:{c|T.<c.name> = S.<c.name>}; separator=\" AND \"> "
@@ -1496,10 +1552,14 @@ public class BigQueryPdao {
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    String liveViewSql =
-        renderLiveViewSql(
-            bigQueryProject.getProjectId(), prefixName(dataset.getName()), targetTable, transactId);
-    ST sqlTemplate = new ST(insertIntoSoftDeleteDatasetTable(liveViewSql));
+    String datasetLiveViewSql =
+        renderDatasetLiveViewSql(
+            bigQueryProject.getProjectId(),
+            prefixName(dataset.getName()),
+            targetTable,
+            transactId,
+            null);
+    ST sqlTemplate = new ST(insertIntoSoftDeleteDatasetTable(datasetLiveViewSql));
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", prefixName(dataset.getName()));
     sqlTemplate.add("softDeleteTable", targetTable.getSoftDeleteTableName());
@@ -1864,7 +1924,7 @@ public class BigQueryPdao {
    * <p>TODO: REVIEWERS: should this code detect circular references?
    *
    * @param datasetBqDatasetName
-   * @param snapshotName
+   * @param snapshot
    * @param walkRelationships - list of relationships to consider walking
    * @param startTableId
    */
@@ -1872,10 +1932,11 @@ public class BigQueryPdao {
       String datasetProjectId,
       String datasetBqDatasetName,
       String snapshotProjectId,
-      String snapshotName,
+      Snapshot snapshot,
       List<WalkRelationship> walkRelationships,
       String startTableId,
-      BigQuery snapshotBigQuery)
+      BigQuery snapshotBigQuery,
+      Instant filterBefore)
       throws InterruptedException {
     for (WalkRelationship relationship : walkRelationships) {
       if (relationship.isVisited()) {
@@ -1905,17 +1966,19 @@ public class BigQueryPdao {
           datasetProjectId,
           datasetBqDatasetName,
           snapshotProjectId,
-          snapshotName,
+          snapshot,
           relationship,
-          snapshotBigQuery);
+          snapshotBigQuery,
+          filterBefore);
       walkRelationships(
           datasetProjectId,
           datasetBqDatasetName,
           snapshotProjectId,
-          snapshotName,
+          snapshot,
           walkRelationships,
           relationship.getToTableId(),
-          snapshotBigQuery);
+          snapshotBigQuery,
+          filterBefore);
     }
   }
 
@@ -1923,7 +1986,10 @@ public class BigQueryPdao {
   // relationship walking
   // once we have the row ids in addition to the asset spec, this should look familiar to wAsset
   public void queryForRowIds(
-      AssetSpecification assetSpecification, Snapshot snapshot, String sqlQuery)
+      AssetSpecification assetSpecification,
+      Snapshot snapshot,
+      String sqlQuery,
+      Instant filterBefore)
       throws InterruptedException {
     // snapshot
     BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
@@ -1953,6 +2019,10 @@ public class BigQueryPdao {
           QueryJobConfiguration.newBuilder(sqlQuery)
               .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
               .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+              .setNamedParameters(
+                  Map.of(
+                      "transactionTerminatedAt",
+                      QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))))
               .build();
 
       final TableResult query = executeQueryWithRetry(snapshotBigQuery, queryConfig);
@@ -1966,20 +2036,25 @@ public class BigQueryPdao {
       // join on the root table to validate that the dataset's rootTable.rowid is never null
       // and thus matches the PDAO_ROW_ID_COLUMN
       AssetTable rootAssetTable = assetSpecification.getRootTable();
-      Table rootTable = rootAssetTable.getTable();
-      String datasetTableName = rootTable.getName();
+      DatasetTable rootTable = rootAssetTable.getTable();
       String rootTableId = rootTable.getId().toString();
 
       ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
       sqlTemplate.add("snapshotProject", snapshotProjectId);
       sqlTemplate.add("snapshotDatasetName", snapshotName);
       sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
-      sqlTemplate.add("datasetProject", datasetProjectId);
-      sqlTemplate.add("datasetDatasetName", datasetBqDatasetName);
-      sqlTemplate.add("datasetTable", datasetTableName);
+      sqlTemplate.add(
+          "datasetLiveViewSql",
+          renderDatasetLiveViewSql(
+              datasetProjectId, datasetBqDatasetName, rootTable, null, filterBefore));
       sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
 
-      TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
+      TableResult result =
+          snapshotBigQueryProject.query(
+              sqlTemplate.render(),
+              Map.of(
+                  "transactionTerminatedAt",
+                  QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
       FieldValueList mismatchedCount = result.getValues().iterator().next();
       Long mismatchedCountLong = mismatchedCount.get(0).getLongValue();
       if (mismatchedCountLong > 0) {
@@ -2016,10 +2091,11 @@ public class BigQueryPdao {
           datasetProjectId,
           datasetBqDatasetName,
           snapshotProjectId,
-          snapshotName,
+          snapshot,
           walkRelationships,
           rootTableId,
-          snapshotBigQuery);
+          snapshotBigQuery,
+          filterBefore);
 
       // populate root row ids. Must happen before the relationship walk.
       // NOTE: when we have multiple sources, we can put this into a loop
@@ -2046,8 +2122,8 @@ public class BigQueryPdao {
           + ", "
           + "T."
           + PDAO_ROW_ID_COLUMN
-          + " FROM `<datasetProject>.<dataset>.<toTableName>` T, "
-          + "`<datasetProject>.<dataset>.<fromTableName>` F, `<snapshotProject>.<snapshot>."
+          + " FROM (<liveViewSqlTo>) T, "
+          + "(<liveViewSqlFrom>) F, `<snapshotProject>.<snapshot>."
           + PDAO_ROW_ID_TABLE
           + "` R "
           + "WHERE R."
@@ -2086,7 +2162,7 @@ public class BigQueryPdao {
 
   private static final String joinTablesToTestForMissingRowIds =
       "SELECT COUNT(*) FROM `<snapshotProject>.<snapshotDatasetName>.<tempTable>` AS T "
-          + "LEFT JOIN `<datasetProject>.<datasetDatasetName>.<datasetTable>` AS D USING ( <commonColumn> ) "
+          + "LEFT JOIN (<datasetLiveViewSql>) AS D USING ( <commonColumn> ) "
           + "WHERE D.<commonColumn> IS NULL";
 
   private static final String loadRootRowIdsFromTempTableTemplate =
@@ -2112,7 +2188,7 @@ public class BigQueryPdao {
    * to the from table.
    *
    * @param datasetBqDatasetName - name of the dataset BigQuery dataset
-   * @param snapshotName - name of the new snapshot's BigQuery dataset
+   * @param snapshot - the snapshot a BigQuery dataset is being created for
    * @param relationship - relationship we are walking with its direction set. The class returns the
    *     appropriate from and to based on that direction.
    * @param datasetProjectId - the project id that this bigquery dataset exists in
@@ -2123,9 +2199,10 @@ public class BigQueryPdao {
       String datasetProjectId,
       String datasetBqDatasetName,
       String snapshotProjectId,
-      String snapshotName,
+      Snapshot snapshot,
       WalkRelationship relationship,
-      BigQuery bigQuery)
+      BigQuery bigQuery,
+      Instant filterBefore)
       throws InterruptedException {
 
     ST joinClauseTemplate;
@@ -2141,21 +2218,35 @@ public class BigQueryPdao {
     joinClauseTemplate.add("fromColumn", relationship.getFromColumnName());
     joinClauseTemplate.add("toColumn", relationship.getToColumnName());
 
+    DatasetTable fromTable =
+        getTable(snapshot.getFirstSnapshotSource(), relationship.getFromTableName());
+    DatasetTable toTable =
+        getTable(snapshot.getFirstSnapshotSource(), relationship.getToTableName());
+    String liveViewSqlFrom =
+        renderDatasetLiveViewSql(
+            datasetProjectId, datasetBqDatasetName, fromTable, null, filterBefore);
+    String liveViewSqlTo =
+        renderDatasetLiveViewSql(
+            datasetProjectId, datasetBqDatasetName, toTable, null, filterBefore);
     ST sqlTemplate = new ST(storeRowIdsForRelatedTableTemplate);
     sqlTemplate.add("snapshotProject", snapshotProjectId);
     sqlTemplate.add("datasetProject", datasetProjectId);
     sqlTemplate.add("dataset", datasetBqDatasetName);
-    sqlTemplate.add("snapshot", snapshotName);
+    sqlTemplate.add("snapshot", snapshot.getName());
     sqlTemplate.add("fromTableId", relationship.getFromTableId());
-    sqlTemplate.add("fromTableName", relationship.getFromTableName());
+    sqlTemplate.add("liveViewSqlFrom", liveViewSqlFrom);
     sqlTemplate.add("toTableId", relationship.getToTableId());
-    sqlTemplate.add("toTableName", relationship.getToTableName());
+    sqlTemplate.add("liveViewSqlTo", liveViewSqlTo);
     sqlTemplate.add("joinClause", joinClauseTemplate.render());
 
     QueryJobConfiguration queryConfig =
         QueryJobConfiguration.newBuilder(sqlTemplate.render())
-            .setDestinationTable(TableId.of(snapshotName, PDAO_ROW_ID_TABLE))
+            .setDestinationTable(TableId.of(snapshot.getName(), PDAO_ROW_ID_TABLE))
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+            .setNamedParameters(
+                Map.of(
+                    "transactionTerminatedAt",
+                    QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))))
             .build();
 
     executeQueryWithRetry(bigQuery, queryConfig);
@@ -2315,7 +2406,8 @@ public class BigQueryPdao {
   }
 
   // for each table in a dataset (source), collect row id matches ON the row id
-  public RowIdMatch matchRowIds(SnapshotSource source, String tableName, List<UUID> rowIds)
+  public RowIdMatch matchRowIds(
+      SnapshotSource source, String tableName, List<UUID> rowIds, Instant filterBefore)
       throws InterruptedException {
 
     // One source: grab it and navigate to the relevant parts
@@ -2341,19 +2433,31 @@ public class BigQueryPdao {
     // -- an outer list containing two inner lists of three and two elements, all in the original
     // order.
 
+    DatasetTable datasetTable = getTable(source, tableName);
+
     for (List<UUID> rowIdChunk :
         rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
       // To prevent BQ choking on a huge array, split it up into chunks
+      String datasetLiveViewSql =
+          renderDatasetLiveViewSql(
+              datasetBigQueryProject.getProjectId(),
+              prefixName(source.getDataset().getName()),
+              datasetTable,
+              null,
+              filterBefore);
       ST sqlTemplate = new ST(mapValuesToRowsTemplate); // This query fails w >100k rows
-      sqlTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
-      sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
-      sqlTemplate.add("table", tableName);
+      sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
       sqlTemplate.add("column", rowIdColumn.getName());
       sqlTemplate.add("inputVals", rowIdChunk);
 
       String sql = sqlTemplate.render();
       logger.debug("mapValuesToRows sql: " + sql);
-      TableResult result = datasetBigQueryProject.query(sql);
+      TableResult result =
+          datasetBigQueryProject.query(
+              sql,
+              Map.of(
+                  "transactionTerminatedAt",
+                  QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
       for (FieldValueList row : result.iterateAll()) {
         // Test getting these by name
         FieldValue rowId = row.get(0);
@@ -2885,8 +2989,8 @@ public class BigQueryPdao {
   }
 
   /**
-   * Run query up to a predetermined number of times until it's first success if the failed is a
-   * rate limit exception.
+   * Run query up to a predetermined number of times until its first success if the failed is a rate
+   * limit exception.
    */
   private TableResult executeQueryWithRetry(
       final BigQuery bigQuery, final QueryJobConfiguration queryConfig, final int retryNum)
@@ -2915,5 +3019,17 @@ public class BigQueryPdao {
       }
       throw new PdaoException("BigQuery query failed the maximum number of times", qe);
     }
+  }
+
+  private DatasetTable getTable(SnapshotSource snapshotSource, String tableName) {
+    return snapshotSource
+        .getDataset()
+        .getTableByName(tableName)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    String.format(
+                        "Table %s was not found in dataset %s",
+                        tableName, snapshotSource.getDataset().toLogString())));
   }
 }

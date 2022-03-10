@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import bio.terra.model.ErrorModel;
 import java.util.Optional;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.springframework.http.HttpStatus;
 
 /** Specialization of ObjectOrErrorResponse for ErrorModel */
@@ -26,5 +27,10 @@ public class DataRepoResponse<T> {
 
   public Optional<String> getLocationHeader() {
     return response.getLocationHeader();
+  }
+
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this).append("response", response).toString();
   }
 }

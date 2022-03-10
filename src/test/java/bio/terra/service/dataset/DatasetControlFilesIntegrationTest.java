@@ -12,6 +12,7 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -45,6 +47,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private TestConfiguration testConfiguration;
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String stewardToken;
   private UUID profileId;

@@ -55,11 +55,8 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
       // Don't track unauthenticated requests
       return;
     }
-    // Don't log metrics if bard isn't configured, the path is part of the ignore list or the
-    // request is unauthorized
-    if (StringUtils.isEmpty(metricsConfig.getBardBasePath())
-        || ignoreEventForPath(path)
-        || StringUtils.isEmpty(userRequest.getToken())) {
+    // Don't log metrics if bard isn't configured or the path is part of the ignore-list
+    if (StringUtils.isEmpty(metricsConfig.getBardBasePath()) || ignoreEventForPath(path)) {
       return;
     }
 

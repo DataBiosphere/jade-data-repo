@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -11,7 +12,9 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.UserMetricsConfiguration;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -36,6 +40,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class UserMetricsInterceptorTest {
+  @SpyBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @MockBean private BardClient bardClient;
   @Autowired private UserMetricsConfiguration metricsConfig;
   @Captor private ArgumentCaptor<AuthenticatedUserRequest> authCaptor;
@@ -77,6 +82,9 @@ public class UserMetricsInterceptorTest {
     HttpServletResponse response = mock(HttpServletResponse.class);
     when(request.getMethod()).thenReturn("post");
     when(request.getRequestURI()).thenReturn("/foo/bar");
+    doThrow(new UnauthorizedException("Building AuthenticatedUserRequest failed"))
+        .when(authenticatedUserRequestFactory)
+        .from(any());
 
     runAnWait(request, response);
 

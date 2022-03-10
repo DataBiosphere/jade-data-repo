@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
@@ -263,27 +264,20 @@ public class DatasetRequestValidator implements Validator {
 
   // Primary Keys and Foreign Keys cannot be arrays or filerefs or dirrefs
   private void validateColumnType(Errors errors, ColumnModel columnModel, String keyType) {
+    Set<TableDataType> invalidTypes = Set.of(TableDataType.DIRREF, TableDataType.FILEREF);
     if (columnModel.isArrayOf()) {
-      errors.rejectValue(
-          "schema",
-          String.format("Invalid%s", keyType),
-          String.format(
-              "%s %s cannot be a column with array type", keyType, columnModel.getName()));
+      rejectKey(errors, keyType, columnModel.getName(), "array");
     }
-    if (columnModel.getDatatype() == TableDataType.DIRREF) {
-      errors.rejectValue(
-          "schema",
-          String.format("Invalid%s", keyType),
-          String.format(
-              "%s %s cannot be a column with dirref type", keyType, columnModel.getName()));
+    if (invalidTypes.contains(columnModel.getDatatype())) {
+      rejectKey(errors, keyType, columnModel.getName(), columnModel.getDatatype().toString());
     }
-    if (columnModel.getDatatype() == TableDataType.FILEREF) {
-      errors.rejectValue(
-          "schema",
-          String.format("Invalid%s", keyType),
-          String.format(
-              "%s %s cannot be a column with fileref type", keyType, columnModel.getName()));
-    }
+  }
+
+  private void rejectKey(Errors errors, String keyType, String columnName, String type) {
+    errors.rejectValue(
+        "schema",
+        String.format("Invalid%s", keyType),
+        String.format("%s %s cannot be a column with %s type", keyType, columnName, type));
   }
 
   private void validateDataTypes(List<ColumnModel> columns, Errors errors) {

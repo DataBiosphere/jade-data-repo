@@ -137,8 +137,7 @@ public class FileIngestFlight extends Flight {
       addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
       addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
       addStep(
-          new IngestFilePrimaryDataLocationStep(
-              userReq, resourceService, dataset, iamService, gcsPdao),
+          new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
           randomBackoffRetry);
       addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));

@@ -158,8 +158,7 @@ public class FileIngestBulkFlight extends Flight {
       addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
 
       addStep(
-          new IngestFilePrimaryDataLocationStep(
-              userReq, resourceService, dataset, iamService, gcsPdao),
+          new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
           randomBackoffRetry);
       addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {

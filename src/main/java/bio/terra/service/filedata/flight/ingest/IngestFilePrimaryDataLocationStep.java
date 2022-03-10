@@ -4,7 +4,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
@@ -39,19 +38,16 @@ public class IngestFilePrimaryDataLocationStep implements Step {
   private final ResourceService resourceService;
   private final Dataset dataset;
   private final IamService iamService;
-  private final GcsPdao gcsPdao;
 
   public IngestFilePrimaryDataLocationStep(
       AuthenticatedUserRequest userReq,
       ResourceService resourceService,
       Dataset dataset,
-      IamService iamService,
-      GcsPdao gcsPdao) {
+      IamService iamService) {
     this.userReq = userReq;
     this.resourceService = resourceService;
     this.dataset = dataset;
     this.iamService = iamService;
-    this.gcsPdao = gcsPdao;
   }
 
   @Override

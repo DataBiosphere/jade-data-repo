@@ -117,7 +117,10 @@ public class ResourceService {
    *     </ul>
    */
   public GoogleBucketResource getOrCreateBucketForFile(
-      Dataset dataset, GoogleProjectResource projectResource, String flightId)
+      Dataset dataset,
+      GoogleProjectResource projectResource,
+      String flightId,
+      List<String> policies)
       throws InterruptedException, GoogleResourceNamingException {
     return bucketService.getOrCreateBucket(
         projectService.bucketForFile(projectResource.getGoogleProjectId()),
@@ -125,7 +128,8 @@ public class ResourceService {
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
         flightId,
-        null);
+        null,
+        policies);
   }
 
   /**
@@ -149,6 +153,7 @@ public class ResourceService {
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId,
+        null,
         null);
   }
 
@@ -177,7 +182,8 @@ public class ResourceService {
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId,
-        Duration.ofDays(1));
+        Duration.ofDays(1),
+        null);
   }
 
   /**

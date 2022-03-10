@@ -19,6 +19,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +30,9 @@ import org.slf4j.LoggerFactory;
 public class IngestFilePrimaryDataLocationStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
-  private static final Set<IamRole> bucketReaderRoles =
+
+  @VisibleForTesting
+  public static final Set<IamRole> BUCKET_READER_ROLES =
       Set.of(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.SNAPSHOT_CREATOR);
 
   private final AuthenticatedUserRequest userReq;
@@ -61,21 +64,19 @@ public class IngestFilePrimaryDataLocationStep implements Step {
       GoogleProjectResource googleProjectResource =
           workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
 
+      List<String> readerGroups =
+          iamService
+              .retrievePolicyEmails(userReq, IamResourceType.DATASET, dataset.getId())
+              .entrySet()
+              .stream()
+              .filter(entry -> BUCKET_READER_ROLES.contains(entry.getKey()))
+              .map(Map.Entry::getValue)
+              .collect(Collectors.toList());
+
       try {
         GoogleBucketResource bucketForFile =
             resourceService.getOrCreateBucketForFile(
-                dataset, googleProjectResource, context.getFlightId());
-
-        List<String> readerGroups =
-            iamService
-                .retrievePolicyEmails(userReq, IamResourceType.DATASET, dataset.getId())
-                .entrySet()
-                .stream()
-                .filter(entry -> bucketReaderRoles.contains(entry.getKey()))
-                .map(Map.Entry::getValue)
-                .collect(Collectors.toList());
-
-        gcsPdao.grantBucketReaderIam(bucketForFile, readerGroups);
+                dataset, googleProjectResource, context.getFlightId(), readerGroups);
 
         workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
       } catch (BucketLockException blEx) {

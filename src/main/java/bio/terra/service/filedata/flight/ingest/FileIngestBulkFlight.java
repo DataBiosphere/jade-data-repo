@@ -17,6 +17,7 @@ import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -66,6 +67,7 @@ public class FileIngestBulkFlight extends Flight {
     JobService jobService = appContext.getBean(JobService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
+    IamService iamService = appContext.getBean(IamService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     DatasetStorageAccountDao datasetStorageAccountDao =
         appContext.getBean(DatasetStorageAccountDao.class);
@@ -155,7 +157,9 @@ public class FileIngestBulkFlight extends Flight {
       addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
       addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
 
-      addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
+      addStep(
+          new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
+          randomBackoffRetry);
       addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {
       addStep(

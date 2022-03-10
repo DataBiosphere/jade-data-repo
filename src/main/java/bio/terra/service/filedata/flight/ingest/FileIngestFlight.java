@@ -19,6 +19,7 @@ import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadLockStep;
@@ -60,6 +61,7 @@ public class FileIngestFlight extends Flight {
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     DatasetStorageAccountDao datasetStorageAccountDao =
         appContext.getBean(DatasetStorageAccountDao.class);
+    IamService iamService = appContext.getBean(IamService.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -134,7 +136,9 @@ public class FileIngestFlight extends Flight {
       addStep(new IngestFileDirectoryStep(fileDao, dataset), randomBackoffRetry);
       addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
       addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
-      addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
+      addStep(
+          new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
+          randomBackoffRetry);
       addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);

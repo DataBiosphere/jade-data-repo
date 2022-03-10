@@ -1,8 +1,12 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamRole;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
@@ -14,18 +18,37 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.google.common.annotations.VisibleForTesting;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IngestFilePrimaryDataLocationStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
+
+  @VisibleForTesting
+  public static final Set<IamRole> BUCKET_READER_ROLES =
+      Set.of(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.SNAPSHOT_CREATOR);
+
+  private final AuthenticatedUserRequest userReq;
   private final ResourceService resourceService;
   private final Dataset dataset;
+  private final IamService iamService;
 
-  public IngestFilePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {
+  public IngestFilePrimaryDataLocationStep(
+      AuthenticatedUserRequest userReq,
+      ResourceService resourceService,
+      Dataset dataset,
+      IamService iamService) {
+    this.userReq = userReq;
     this.resourceService = resourceService;
     this.dataset = dataset;
+    this.iamService = iamService;
   }
 
   @Override
@@ -38,10 +61,21 @@ public class IngestFilePrimaryDataLocationStep implements Step {
       GoogleProjectResource googleProjectResource =
           workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
 
+      Callable<List<String>> getReaderGroups =
+          () ->
+              iamService
+                  .retrievePolicyEmails(userReq, IamResourceType.DATASET, dataset.getId())
+                  .entrySet()
+                  .stream()
+                  .filter(entry -> BUCKET_READER_ROLES.contains(entry.getKey()))
+                  .map(Map.Entry::getValue)
+                  .collect(Collectors.toList());
+
       try {
         GoogleBucketResource bucketForFile =
             resourceService.getOrCreateBucketForFile(
-                dataset, googleProjectResource, context.getFlightId());
+                dataset, googleProjectResource, context.getFlightId(), getReaderGroups);
+
         workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
       } catch (BucketLockException blEx) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);

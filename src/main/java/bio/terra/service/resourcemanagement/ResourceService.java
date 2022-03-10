@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ public class ResourceService {
 
   private static final Logger logger = LoggerFactory.getLogger(ResourceService.class);
   public static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
+  public static final String STORAGE_OBJECT_VIEWER_ROLE = "roles/storage.objectViewer";
 
   private final AzureDataLocationSelector azureDataLocationSelector;
   private final GoogleProjectService projectService;
@@ -116,7 +118,10 @@ public class ResourceService {
    *     </ul>
    */
   public GoogleBucketResource getOrCreateBucketForFile(
-      Dataset dataset, GoogleProjectResource projectResource, String flightId)
+      Dataset dataset,
+      GoogleProjectResource projectResource,
+      String flightId,
+      Callable<List<String>> getReaderGroups)
       throws InterruptedException, GoogleResourceNamingException {
     return bucketService.getOrCreateBucket(
         projectService.bucketForFile(projectResource.getGoogleProjectId()),
@@ -124,7 +129,8 @@ public class ResourceService {
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
         flightId,
-        null);
+        null,
+        getReaderGroups);
   }
 
   /**
@@ -148,6 +154,7 @@ public class ResourceService {
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId,
+        null,
         null);
   }
 
@@ -176,7 +183,8 @@ public class ResourceService {
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId,
-        Duration.ofDays(1));
+        Duration.ofDays(1),
+        null);
   }
 
   /**
@@ -483,18 +491,21 @@ public class ResourceService {
 
   public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
       throws InterruptedException {
-    final List<String> emails =
-        policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
-    resourceManagerService.updateIamPermissions(
-        Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject, ENABLE_PERMISSIONS);
+    modifyBqJobUserRole(dataProject, policyEmails, ENABLE_PERMISSIONS);
   }
 
   public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
       throws InterruptedException {
+    modifyBqJobUserRole(dataProject, policyEmails, REVOKE_PERMISSIONS);
+  }
+
+  private void modifyBqJobUserRole(
+      String dataProject, Collection<String> policyEmails, GoogleProjectService.PermissionOp op)
+      throws InterruptedException {
     final List<String> emails =
         policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
     resourceManagerService.updateIamPermissions(
-        Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject, REVOKE_PERMISSIONS);
+        Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject, op);
   }
 
   private Map<String, List<String>> getStewardPolicy() {

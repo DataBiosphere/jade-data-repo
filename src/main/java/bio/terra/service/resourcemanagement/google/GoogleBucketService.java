@@ -5,6 +5,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
+import bio.terra.service.iam.exception.IamUnavailableException;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.BucketLockFailureException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -144,7 +146,7 @@ public class GoogleBucketService {
       GoogleRegion region,
       String flightId,
       Duration daysToLive,
-      List<String> policies)
+      Callable<List<String>> getReaderGroups)
       throws InterruptedException {
 
     boolean allowReuseExistingBuckets =
@@ -175,7 +177,7 @@ public class GoogleBucketService {
         if (allowReuseExistingBuckets) {
           // CASE 4: go ahead and reuse the bucket and its location
           return createMetadataRecord(
-              bucketName, projectResource, region, flightId, daysToLive, policies);
+              bucketName, projectResource, region, flightId, daysToLive, getReaderGroups);
         } else {
           // CASE 5:
           throw new CorruptMetadataException(
@@ -196,11 +198,11 @@ public class GoogleBucketService {
           throw bucketLockException(lockingFlightId);
         }
         // CASE 8: this flight has the metadata locked, but didn't finish creating the bucket
-        return createCloudBucket(googleBucketResource, flightId, daysToLive, policies);
+        return createCloudBucket(googleBucketResource, flightId, daysToLive, getReaderGroups);
       } else {
         // CASE 9: no bucket and no record
         return createMetadataRecord(
-            bucketName, projectResource, region, flightId, daysToLive, policies);
+            bucketName, projectResource, region, flightId, daysToLive, getReaderGroups);
       }
     }
   }
@@ -216,7 +218,7 @@ public class GoogleBucketService {
       GoogleRegion region,
       String flightId,
       Duration daysToLive,
-      List<String> policies)
+      Callable<List<String>> getReaderGroups)
       throws InterruptedException {
 
     // insert a new bucket_resource row and lock it
@@ -246,7 +248,7 @@ public class GoogleBucketService {
       logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
     }
 
-    return createCloudBucket(googleBucketResource, flightId, daysToLive, policies);
+    return createCloudBucket(googleBucketResource, flightId, daysToLive, getReaderGroups);
   }
 
   // Step 2 of creating a new bucket
@@ -254,11 +256,11 @@ public class GoogleBucketService {
       GoogleBucketResource bucketResource,
       String flightId,
       Duration daysToLive,
-      List<String> policies) {
+      Callable<List<String>> getReaderGroups) {
     // If the bucket doesn't exist, create it
     Bucket bucket = getCloudBucket(bucketResource.getName());
     if (bucket == null) {
-      bucket = newCloudBucket(bucketResource, daysToLive, policies);
+      bucket = newCloudBucket(bucketResource, daysToLive, getReaderGroups);
     }
     return createFinish(bucket, flightId, bucketResource);
   }
@@ -299,10 +301,26 @@ public class GoogleBucketService {
    * the bucket_resource table.
    *
    * @param bucketResource description of the bucket resource to be created
+   * @param daysToLive An optional amount of days to live for items in the bucket
+   * @param getReaderGroups A Callable to get reader groups that should be added to the bucket. This
+   *     is a Callable so that we don't make extraneous calls to SAM every time we get a bucket and
+   *     only call SAM when we actually create the bucket.
    * @return a reference to the bucket as a GCS Bucket object
    */
   private Bucket newCloudBucket(
-      GoogleBucketResource bucketResource, Duration daysToLive, List<String> policies) {
+      GoogleBucketResource bucketResource,
+      Duration daysToLive,
+      Callable<List<String>> getReaderGroups) {
+    final List<String> readerGroups;
+    try {
+      if (getReaderGroups != null) {
+        readerGroups = getReaderGroups.call();
+      } else {
+        readerGroups = null;
+      }
+    } catch (Exception e) {
+      throw new IamUnavailableException("Could not get policy groups from SAM", e);
+    }
     boolean doVersioning =
         Arrays.stream(env.getActiveProfiles()).noneMatch(env -> env.contains("test"));
     String bucketName = bucketResource.getName();
@@ -336,12 +354,14 @@ public class GoogleBucketService {
     logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);
     Storage storage = gcsProject.getStorage();
     Bucket createdBucket = storage.create(bucketInfo);
-    grantBucketReaderIam(createdBucket, storage, policies);
+
+    grantBucketReaderIam(createdBucket, storage, readerGroups);
+
     return createdBucket;
   }
 
-  public void grantBucketReaderIam(Bucket bucket, Storage storage, List<String> policies) {
-    if (policies != null && !policies.isEmpty()) {
+  public void grantBucketReaderIam(Bucket bucket, Storage storage, List<String> readerGroups) {
+    if (readerGroups != null && !readerGroups.isEmpty()) {
       String bucketName = bucket.getName();
 
       // Not sure why it needs to be version 3, but that's what the Google documentation says.
@@ -349,7 +369,7 @@ public class GoogleBucketService {
       Policy originalPolicy =
           storage.getIamPolicy(bucketName, Storage.BucketSourceOption.requestedPolicyVersion(3));
       List<Binding> bindings = new ArrayList<>(originalPolicy.getBindingsList());
-      for (String policy : policies) {
+      for (String policy : readerGroups) {
         Binding.Builder newMemberBindingBuilder = Binding.newBuilder();
         newMemberBindingBuilder
             .setRole(STORAGE_OBJECT_VIEWER_ROLE)

@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,7 +121,7 @@ public class ResourceService {
       Dataset dataset,
       GoogleProjectResource projectResource,
       String flightId,
-      List<String> policies)
+      Callable<List<String>> getReaderGroups)
       throws InterruptedException, GoogleResourceNamingException {
     return bucketService.getOrCreateBucket(
         projectService.bucketForFile(projectResource.getGoogleProjectId()),
@@ -129,7 +130,7 @@ public class ResourceService {
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
         flightId,
         null,
-        policies);
+        getReaderGroups);
   }
 
   /**

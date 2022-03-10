@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
@@ -417,7 +418,7 @@ public class BucketResourceTest {
             GoogleRegion.DEFAULT_GOOGLE_REGION,
             flightId,
             null,
-            readerGroups);
+            () -> readerGroups);
 
     Policy iamPolicy =
         storage.getIamPolicy(
@@ -439,12 +440,12 @@ public class BucketResourceTest {
       GoogleRegion bucketRegion,
       String flightId,
       Duration ttl,
-      List<String> policies)
+      Callable<List<String>> getReaderGroups)
       throws InterruptedException {
 
     GoogleBucketResource bucketResource =
         bucketService.getOrCreateBucket(
-            bucketName, projectResource, bucketRegion, flightId, ttl, policies);
+            bucketName, projectResource, bucketRegion, flightId, ttl, getReaderGroups);
 
     bucketResources.add(bucketResource);
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResource.getResourceId());

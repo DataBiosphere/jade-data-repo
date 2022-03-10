@@ -575,25 +575,31 @@ public class GcsPdao implements CloudFileReader {
         "gcsPdao.performAclCommands");
   }
 
-  public void grantBucketReaderIam(GoogleBucketResource bucketResource, List<String> policies) {
+  public void grantBucketReaderIam(GoogleBucketResource bucketResource, List<String> policies)
+      throws InterruptedException {
     String bucketName = bucketResource.getName();
     Storage storage = storageForBucket(bucketResource);
 
-    // Not sure why it needs to be version 3, but that's what the Google documentation says.
-    // https://cloud.google.com/storage/docs/access-control/using-iam-permissions#code-samples
-    Policy originalPolicy =
-        storage.getIamPolicy(bucketName, Storage.BucketSourceOption.requestedPolicyVersion(3));
-    List<Binding> bindings = new ArrayList<>(originalPolicy.getBindingsList());
-    for (String policy : policies) {
-      Binding.Builder newMemberBindingBuilder = Binding.newBuilder();
-      newMemberBindingBuilder
-          .setRole(STORAGE_OBJECT_VIEWER_ROLE)
-          .setMembers(List.of(String.format("group:%s", policy)));
-      bindings.add(newMemberBindingBuilder.build());
-    }
-    Policy.Builder updatedPolicyBuilder = originalPolicy.toBuilder();
-    updatedPolicyBuilder.setBindings(bindings).setVersion(3);
-    storage.setIamPolicy(bucketName, updatedPolicyBuilder.build());
+    Callable<Policy> iamUpdate =
+        () -> {
+          // Not sure why it needs to be version 3, but that's what the Google documentation says.
+          // https://cloud.google.com/storage/docs/access-control/using-iam-permissions#code-samples
+          Policy originalPolicy =
+              storage.getIamPolicy(
+                  bucketName, Storage.BucketSourceOption.requestedPolicyVersion(3));
+          List<Binding> bindings = new ArrayList<>(originalPolicy.getBindingsList());
+          for (String policy : policies) {
+            Binding.Builder newMemberBindingBuilder = Binding.newBuilder();
+            newMemberBindingBuilder
+                .setRole(STORAGE_OBJECT_VIEWER_ROLE)
+                .setMembers(List.of(String.format("group:%s", policy)));
+            bindings.add(newMemberBindingBuilder.build());
+          }
+          Policy.Builder updatedPolicyBuilder = originalPolicy.toBuilder();
+          updatedPolicyBuilder.setBindings(bindings).setVersion(3);
+          return storage.setIamPolicy(bucketName, updatedPolicyBuilder.build());
+        };
+    AclUtils.aclUpdateRetry(iamUpdate);
   }
 
   /** Perform the ACL setting commands on a specific file. */

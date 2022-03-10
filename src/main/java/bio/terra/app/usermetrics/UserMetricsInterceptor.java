@@ -2,6 +2,7 @@ package bio.terra.app.usermetrics;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.UserMetricsConfiguration;
+import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import java.util.Map;
@@ -47,14 +48,18 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
       throws Exception {
     String method = request.getMethod().toUpperCase();
     String path = request.getRequestURI();
-    AuthenticatedUserRequest userRequest = authenticatedUserRequestFactory.from(request);
-    System.err.println("Start client " + bardClient);
+    AuthenticatedUserRequest userRequest;
+    try {
+      userRequest = authenticatedUserRequestFactory.from(request);
+    } catch (UnauthorizedException e) {
+      // Don't track unauthenticated requests
+      return;
+    }
     // Don't log metrics if bard isn't configured, the path is part of the ignore list or the
     // request is unauthorized
     if (StringUtils.isEmpty(metricsConfig.getBardBasePath())
         || ignoreEventForPath(path)
         || StringUtils.isEmpty(userRequest.getToken())) {
-      System.err.println("exit");
       return;
     }
 

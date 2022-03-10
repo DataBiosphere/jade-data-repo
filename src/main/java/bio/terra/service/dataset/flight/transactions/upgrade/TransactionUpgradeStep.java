@@ -14,7 +14,9 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -40,11 +42,10 @@ public class TransactionUpgradeStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    List<UUID> datasetIds =
+    Map<UUID, Set<IamRole>> idsAndRoles =
         iamService.listAuthorizedResources(userReq, IamResourceType.DATASET).entrySet().stream()
             .filter(e -> e.getValue().contains(IamRole.ADMIN))
-            .map(Entry::getKey)
-            .collect(Collectors.toList());
+            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
     List<Dataset> datasets =
         datasetService
@@ -55,7 +56,7 @@ public class TransactionUpgradeStep implements Step {
                 SqlSortDirection.ASC,
                 null,
                 null,
-                datasetIds)
+                idsAndRoles)
             .getItems()
             .stream()
             .filter(d -> d.getCloudPlatform() == CloudPlatform.GCP)

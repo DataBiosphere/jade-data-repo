@@ -18,7 +18,6 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
@@ -38,12 +37,10 @@ import bio.terra.service.dataset.DataDeletionRequestValidator;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
@@ -51,13 +48,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import org.slf4j.Logger;
@@ -184,28 +177,9 @@ public class DatasetsApiController implements DatasetsApi {
       String filter,
       String region) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    Map<UUID, Set<IamRole>> idsAndRoles =
+    var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
-    var datasetEnum =
-        datasetService.enumerate(
-            offset, limit, sort, direction, filter, region, idsAndRoles.keySet());
-
-    List<DatasetSummaryModel> summaries =
-        datasetEnum.getItems().stream().map(DatasetSummary::toModel).collect(Collectors.toList());
-    Map<String, List<String>> roleMap = new HashMap<>();
-    for (DatasetSummary summary : datasetEnum.getItems()) {
-      var roles =
-          idsAndRoles.get(summary.getId()).stream()
-              .map(IamRole::toString)
-              .collect(Collectors.toList());
-      roleMap.put(summary.getId().toString(), roles);
-    }
-    var edm =
-        new EnumerateDatasetModel()
-            .items(summaries)
-            .total(datasetEnum.getTotal())
-            .filteredTotal(datasetEnum.getFilteredTotal())
-            .roleMap(roleMap);
+    var edm = datasetService.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles);
     return ResponseEntity.ok(edm);
   }
 

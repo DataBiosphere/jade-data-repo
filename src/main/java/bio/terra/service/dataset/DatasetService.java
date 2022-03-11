@@ -168,7 +168,7 @@ public class DatasetService {
       String region,
       Map<UUID, Set<IamRole>> idsAndRoles) {
     if (idsAndRoles.isEmpty()) {
-      return new EnumerateDatasetModel().items(List.of());
+      return new EnumerateDatasetModel().total(0).items(List.of());
     }
     var datasetEnum =
         datasetDao.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles.keySet());

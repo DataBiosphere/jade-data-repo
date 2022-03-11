@@ -3,13 +3,13 @@ package bio.terra.service.snapshot;
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.Column;
-import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
@@ -35,6 +35,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
@@ -47,7 +48,6 @@ import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -144,7 +144,7 @@ public class SnapshotService {
    * @param limit
    * @return list of summary models of snapshot
    */
-  public MetadataEnumeration<SnapshotSummary> enumerateSnapshots(
+  public EnumerateSnapshotModel enumerateSnapshots(
       int offset,
       int limit,
       EnumerateSortByParam sort,
@@ -152,12 +152,29 @@ public class SnapshotService {
       String filter,
       String region,
       List<UUID> datasetIds,
-      Collection<UUID> resources) {
-    if (resources.isEmpty()) {
-      return new MetadataEnumeration<SnapshotSummary>().items(List.of());
+      Map<UUID, Set<IamRole>> idsAndRoles) {
+    if (idsAndRoles.isEmpty()) {
+      return new EnumerateSnapshotModel().total(0).items(List.of());
     }
-    return snapshotDao.retrieveSnapshots(
-        offset, limit, sort, direction, filter, region, datasetIds, resources);
+    var enumeration =
+        snapshotDao.retrieveSnapshots(
+            offset, limit, sort, direction, filter, region, datasetIds, idsAndRoles.keySet());
+    List<SnapshotSummaryModel> models =
+        enumeration.getItems().stream().map(SnapshotSummary::toModel).collect(Collectors.toList());
+
+    Map<String, List<String>> roleMap = new HashMap<>();
+    for (SnapshotSummary summary : enumeration.getItems()) {
+      var roles =
+          idsAndRoles.get(summary.getId()).stream()
+              .map(IamRole::toString)
+              .collect(Collectors.toList());
+      roleMap.put(summary.getId().toString(), roles);
+    }
+    return new EnumerateSnapshotModel()
+        .items(models)
+        .total(enumeration.getTotal())
+        .filteredTotal(enumeration.getFilteredTotal())
+        .roleMap(roleMap);
   }
 
   /**

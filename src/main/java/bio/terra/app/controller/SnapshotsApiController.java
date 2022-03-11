@@ -19,7 +19,6 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
-import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -32,11 +31,9 @@ import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.SnapshotSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -190,26 +187,9 @@ public class SnapshotsApiController implements SnapshotsApi {
         ListUtils.emptyIfNull(datasetIds).stream()
             .map(UUID::fromString)
             .collect(Collectors.toList());
-    var enumeration =
-        snapshotService.enumerateSnapshots(
-            offset, limit, sort, direction, filter, region, datasetUUIDs, idsAndRoles.keySet());
-    List<SnapshotSummaryModel> models =
-        enumeration.getItems().stream().map(SnapshotSummary::toModel).collect(Collectors.toList());
-
-    Map<String, List<String>> roleMap = new HashMap<>();
-    for (SnapshotSummary summary : enumeration.getItems()) {
-      var roles =
-          idsAndRoles.get(summary.getId()).stream()
-              .map(IamRole::toString)
-              .collect(Collectors.toList());
-      roleMap.put(summary.getId().toString(), roles);
-    }
     var esm =
-        new EnumerateSnapshotModel()
-            .items(models)
-            .total(enumeration.getTotal())
-            .filteredTotal(enumeration.getFilteredTotal())
-            .roleMap(roleMap);
+        snapshotService.enumerateSnapshots(
+            offset, limit, sort, direction, filter, region, datasetUUIDs, idsAndRoles);
     return ResponseEntity.ok(esm);
   }
 

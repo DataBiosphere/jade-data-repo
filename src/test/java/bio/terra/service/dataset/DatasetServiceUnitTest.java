@@ -10,13 +10,18 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +52,11 @@ public class DatasetServiceUnitTest {
   @MockBean private StorageTableService storageTableService;
   @MockBean private BigQueryPdao bigQueryPdao;
   @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;
+  @MockBean private ResourceService resourceService;
+  @MockBean private GcsPdao gcsPdao;
+  @MockBean private ObjectMapper objectMapper;
+  @MockBean private AzureBlobStorePdao azureBlobStorePdao;
+  @MockBean private ProfileService profileService;
 
   @Test
   public void enumerate() {

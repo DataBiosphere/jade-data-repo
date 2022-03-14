@@ -13,6 +13,7 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobUrlParts;
 
 public class IngestLandingFileDeleteAzureStep implements Step {
 
@@ -58,7 +59,8 @@ public class IngestLandingFileDeleteAzureStep implements Step {
         azureContainerPdao.getOrCreateContainer(
             profile, storageAccount, AzureStorageAccountResource.ContainerType.SCRATCH);
 
-    containerClient.getBlobClient(pathToLandingFile).delete();
+    String blobName = BlobUrlParts.parse(pathToLandingFile).getBlobName();
+    containerClient.getBlobClient(blobName).delete();
 
     return StepResult.getStepResultSuccess();
   }

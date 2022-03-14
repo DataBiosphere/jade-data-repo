@@ -33,12 +33,15 @@ import bio.terra.model.IngestRequestModel.UpdateStrategyEnum;
 import bio.terra.model.JobModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
+import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
+import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
@@ -564,7 +567,10 @@ public class DatasetServiceTest {
             + "{\"id\":\"3\",\"age\":36,\"gender\":\"M\"}",
         false);
 
-    verify(jobService, times(1)).newJob(any(), any(), requestCaptor.capture(), any());
+    verify(jobService, times(1))
+        .newJob(any(), eq(DatasetScratchFilePrepareFlight.class), any(), any());
+    verify(jobService, times(1))
+        .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
     assertThat("payload is stripped out", requestCaptor.getValue().getJsonArraySpec(), empty());
   }
 
@@ -574,17 +580,18 @@ public class DatasetServiceTest {
     String filePath = "foopath";
     String signedPath = "foopathsigned";
     AzureStorageAccountResource storageAccountResource = mock(AzureStorageAccountResource.class);
-    //    when(storageAccountResource.getName()).thenReturn(bucketName);
+    AzureApplicationDeploymentResource applicationResource =
+        mock(AzureApplicationDeploymentResource.class);
+    when(applicationResource.getAzureResourceGroupName()).thenReturn("mrg");
     BlobClient blobClient = mock(BlobClient.class);
     when(blobClient.getBlobUrl()).thenReturn(filePath);
     BlobContainerClient containerClient = mock(BlobContainerClient.class);
     when(containerClient.getBlobClient(any())).thenReturn(blobClient);
+    when(storageAccountResource.getApplicationResource()).thenReturn(applicationResource);
     when(resourceService.getOrCreateDatasetStorageAccount(any(), any(), any()))
         .thenReturn(storageAccountResource);
     when(azureContainerPdao.getOrCreateContainer(
-            any(),
-            eq(storageAccountResource),
-            eq(AzureStorageAccountResource.ContainerType.SCRATCH)))
+            any(), any(), eq(AzureStorageAccountResource.ContainerType.SCRATCH)))
         .thenReturn(containerClient);
     when(azureBlobStorePdao.signFile(
             any(),
@@ -615,7 +622,10 @@ public class DatasetServiceTest {
             + "{\"id\":\"3\",\"age\":36,\"gender\":\"M\"}",
         false);
 
-    verify(jobService, times(1)).newJob(any(), any(), requestCaptor.capture(), any());
+    verify(jobService, times(1))
+        .newJob(any(), eq(DatasetScratchFilePrepareFlight.class), any(), any());
+    verify(jobService, times(1))
+        .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
     assertThat("payload is stripped out", requestCaptor.getValue().getJsonArraySpec(), empty());
   }
 }

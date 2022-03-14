@@ -1029,7 +1029,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
   @Test
   public void testDatasetCombinedIngestFromApi() throws Exception {
-    testDatasetCombinedIngest(true);
+    testDatasetCombinedIngest(false);
   }
 
   public void testDatasetCombinedIngest(boolean ingestFromFile) throws Exception {

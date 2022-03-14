@@ -10,8 +10,6 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -55,7 +53,6 @@ public class DatasetServiceUnitTest {
     UUID uuid = UUID.randomUUID();
     IamRole role = IamRole.DISCOVERER;
     Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(uuid, Set.of(role));
-    var edm = new EnumerateDatasetModel().items(List.of(new DatasetSummaryModel().id(uuid)));
     MetadataEnumeration<DatasetSummary> metadataEnumeration = new MetadataEnumeration<>();
     DatasetSummary summary =
         new DatasetSummary().id(uuid).createdDate(Instant.now()).storage(List.of());

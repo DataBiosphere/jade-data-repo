@@ -779,9 +779,9 @@ public class DatasetRequestValidatorTest {
         pathIsPresentError,
         containsString("Path should not be specified when ingesting from an array"));
     assertThat(
-        "Validator catches invalid 'format' and 'json_array_spec' combo",
+        "Validator catches invalid 'format' and 'records' combo",
         payloadIsMissingError,
-        containsString("JsonArraySpec is required when ingesting as an array"));
+        containsString("Records is required when ingesting as an array"));
   }
 
   @Test
@@ -790,7 +790,7 @@ public class DatasetRequestValidatorTest {
         new IngestRequestModel()
             .table("myTable")
             .format(IngestRequestModel.FormatEnum.JSON)
-            .addJsonArraySpecItem(Map.of("foo", "bar"));
+            .addRecordsItem(Map.of("foo", "bar"));
 
     var invalidResult =
         mvc.perform(
@@ -815,9 +815,9 @@ public class DatasetRequestValidatorTest {
         pathIsMissingError,
         containsString("Path is required when ingesting from a cloud object"));
     assertThat(
-        "Validator catches invalid 'json_array_spec' and 'format' combo",
+        "Validator catches invalid 'records' and 'format' combo",
         payloadIsPresentError,
-        containsString("JsonArraySpec should not be specified when ingesting from a path"));
+        containsString("Records should not be specified when ingesting from a path"));
   }
 
   private void checkValidationErrorModel(ErrorModel errorModel, String[] messageCodes) {

@@ -45,20 +45,18 @@ public class IngestRequestValidator implements Validator {
             "path", "PathIsPresent", "Path should not be specified when ingesting from an array");
       }
 
-      if (ListUtils.emptyIfNull(ingestRequest.getJsonArraySpec()).isEmpty()
+      if (ListUtils.emptyIfNull(ingestRequest.getRecords()).isEmpty()
           && ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY)) {
         errors.rejectValue(
-            "jsonArraySpec",
-            "DataPayloadIsMissing",
-            "JsonArraySpec is required when ingesting as an array");
+            "records", "DataPayloadIsMissing", "Records is required when ingesting as an array");
       }
 
-      if (!ListUtils.emptyIfNull(ingestRequest.getJsonArraySpec()).isEmpty()
+      if (!ListUtils.emptyIfNull(ingestRequest.getRecords()).isEmpty()
           && !ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY)) {
         errors.rejectValue(
-            "jsonArraySpec",
+            "records",
             "DataPayloadIsPresent",
-            "JsonArraySpec should not be specified when ingesting from a path");
+            "Records should not be specified when ingesting from a path");
       }
     } else if (target instanceof FileLoadModel) {
       FileLoadModel fileLoadModel = (FileLoadModel) target;

@@ -1063,7 +1063,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
               .map(j -> jsonLoader.loadJson(j, new TypeReference<Map<String, Object>>() {}))
               .collect(Collectors.toList());
       ingestRequest
-          .jsonArraySpec(Arrays.asList(data.toArray()))
+          .records(Arrays.asList(data.toArray()))
           .format(IngestRequestModel.FormatEnum.ARRAY);
     }
 

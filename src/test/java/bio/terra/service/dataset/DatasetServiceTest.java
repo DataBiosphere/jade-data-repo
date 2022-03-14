@@ -551,9 +551,9 @@ public class DatasetServiceTest {
             .format(FormatEnum.ARRAY)
             .updateStrategy(UpdateStrategyEnum.APPEND)
             .table("participant")
-            .addJsonArraySpecItem(Map.of("id", "1", "age", 12, "gender", "F"))
-            .addJsonArraySpecItem(Map.of("id", "2", "age", 24, "gender", "N"))
-            .addJsonArraySpecItem(Map.of("id", "3", "age", 36, "gender", "M"));
+            .addRecordsItem(Map.of("id", "1", "age", 12, "gender", "F"))
+            .addRecordsItem(Map.of("id", "2", "age", 24, "gender", "N"))
+            .addRecordsItem(Map.of("id", "3", "age", 36, "gender", "M"));
 
     datasetService.ingestDataset(datasetId.toString(), ingestRequestModel, testUser);
 
@@ -571,7 +571,7 @@ public class DatasetServiceTest {
         .newJob(any(), eq(DatasetScratchFilePrepareFlight.class), any(), any());
     verify(jobService, times(1))
         .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
-    assertThat("payload is stripped out", requestCaptor.getValue().getJsonArraySpec(), empty());
+    assertThat("payload is stripped out", requestCaptor.getValue().getRecords(), empty());
   }
 
   @Test
@@ -606,9 +606,9 @@ public class DatasetServiceTest {
             .format(FormatEnum.ARRAY)
             .updateStrategy(UpdateStrategyEnum.APPEND)
             .table("participant")
-            .addJsonArraySpecItem(Map.of("id", "1", "age", 12, "gender", "F"))
-            .addJsonArraySpecItem(Map.of("id", "2", "age", 24, "gender", "N"))
-            .addJsonArraySpecItem(Map.of("id", "3", "age", 36, "gender", "M"));
+            .addRecordsItem(Map.of("id", "1", "age", 12, "gender", "F"))
+            .addRecordsItem(Map.of("id", "2", "age", 24, "gender", "N"))
+            .addRecordsItem(Map.of("id", "3", "age", 36, "gender", "M"));
 
     datasetService.ingestDataset(datasetId.toString(), ingestRequestModel, testUser);
 
@@ -626,6 +626,6 @@ public class DatasetServiceTest {
         .newJob(any(), eq(DatasetScratchFilePrepareFlight.class), any(), any());
     verify(jobService, times(1))
         .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
-    assertThat("payload is stripped out", requestCaptor.getValue().getJsonArraySpec(), empty());
+    assertThat("payload is stripped out", requestCaptor.getValue().getRecords(), empty());
   }
 }

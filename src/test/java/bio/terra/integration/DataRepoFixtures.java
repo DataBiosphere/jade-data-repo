@@ -989,7 +989,7 @@ public class DataRepoFixtures {
         .ignoreUnknownValues(false)
         .maxBadRecords(0)
         .table(table)
-        .jsonArraySpec(Arrays.asList(data.toArray()));
+        .records(Arrays.asList(data.toArray()));
   }
 
   // Transaction methods

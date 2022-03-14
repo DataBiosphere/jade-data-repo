@@ -272,8 +272,7 @@ public class DatasetService {
       String pathToUse;
       if (cloudPlatform.isGcp()) {
         pathToUse =
-            writeIngestRowsToGcpBucket(
-                dataset, tempFilePath, ingestRequestModel.getJsonArraySpec());
+            writeIngestRowsToGcpBucket(dataset, tempFilePath, ingestRequestModel.getRecords());
       } else if (cloudPlatform.isAzure()) {
         pathToUse =
             writeIngestRowsToAzureStorageAccount(
@@ -281,13 +280,13 @@ public class DatasetService {
                 ingestRequestModel.getProfileId(),
                 dataset,
                 tempFilePath,
-                ingestRequestModel.getJsonArraySpec());
+                ingestRequestModel.getRecords());
       } else {
         throw new IllegalArgumentException("Cloud not recognized");
       }
       ingestRequestModel.setPath(pathToUse);
       // Clear the json object so that it doesn't get written to the flight db
-      ingestRequestModel.getJsonArraySpec().clear();
+      ingestRequestModel.getRecords().clear();
       description = "Ingest tabular data to " + ingestRequestModel.getTable() + " in dataset " + id;
     } else {
       description =

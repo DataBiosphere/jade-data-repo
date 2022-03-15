@@ -3191,6 +3191,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DatasetSummaryModel'
+        roleMap:
+          type: object
+          description: >
+            Map of datasets to the calling user's roles.
+            The key is the dataset ID and the value is a list of role names.
+          additionalProperties:
+            type: array
+            items:
+             type: string
       description: >
         The total number of datasets available that match the filter criteria and a page of summaries
     ColumnModel:
@@ -3995,6 +4004,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotSummaryModel'
+        roleMap:
+          type: object
+          description: >
+            Map of snapshots to the calling user's roles.
+            The key is the snapshot ID and the value is a list of role names.
+          additionalProperties:
+            type: array
+            items:
+              type: string
       description: >
         The total number of snapshots available that match the criteria and a page of summaries
     SnapshotModel:

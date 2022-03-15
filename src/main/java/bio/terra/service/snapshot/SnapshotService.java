@@ -3,7 +3,6 @@ package bio.terra.service.snapshot;
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.Column;
-import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -26,7 +25,6 @@ import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.AssetColumn;
@@ -38,6 +36,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
@@ -52,7 +51,6 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -163,21 +161,29 @@ public class SnapshotService {
       String filter,
       String region,
       List<UUID> datasetIds,
-      Collection<UUID> resources) {
-    if (resources.isEmpty()) {
+      Map<UUID, Set<IamRole>> idsAndRoles) {
+    if (idsAndRoles.isEmpty()) {
       return new EnumerateSnapshotModel().total(0).items(List.of());
     }
-    MetadataEnumeration<SnapshotSummary> enumeration =
+    var enumeration =
         snapshotDao.retrieveSnapshots(
-            offset, limit, sort, direction, filter, region, datasetIds, resources);
+            offset, limit, sort, direction, filter, region, datasetIds, idsAndRoles.keySet());
     List<SnapshotSummaryModel> models =
-        enumeration.getItems().stream()
-            .map(SnapshotService::makeSummaryModelFromSummary)
-            .collect(Collectors.toList());
+        enumeration.getItems().stream().map(SnapshotSummary::toModel).collect(Collectors.toList());
+
+    Map<String, List<String>> roleMap = new HashMap<>();
+    for (SnapshotSummary summary : enumeration.getItems()) {
+      var roles =
+          idsAndRoles.get(summary.getId()).stream()
+              .map(IamRole::toString)
+              .collect(Collectors.toList());
+      roleMap.put(summary.getId().toString(), roles);
+    }
     return new EnumerateSnapshotModel()
         .items(models)
         .total(enumeration.getTotal())
-        .filteredTotal(enumeration.getFilteredTotal());
+        .filteredTotal(enumeration.getFilteredTotal())
+        .roleMap(roleMap);
   }
 
   /**
@@ -189,7 +195,7 @@ public class SnapshotService {
    */
   public SnapshotSummaryModel retrieveSnapshotSummary(UUID id) {
     SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(id);
-    return makeSummaryModelFromSummary(snapshotSummary);
+    return snapshotSummary.toModel();
   }
 
   /**
@@ -607,29 +613,6 @@ public class SnapshotService {
     // set the snapshot tables and mapping
     snapshot.snapshotTables(tableList);
     snapshotSource.snapshotMapTables(mapTableList);
-  }
-
-  private static SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {
-    return new SnapshotSummaryModel()
-        .id(snapshotSummary.getId())
-        .name(snapshotSummary.getName())
-        .description(snapshotSummary.getDescription())
-        .createdDate(snapshotSummary.getCreatedDate().toString())
-        .profileId(snapshotSummary.getProfileId())
-        .storage(storageResourceModelFromSnapshotSummary(snapshotSummary))
-        .secureMonitoringEnabled(snapshotSummary.isSecureMonitoringEnabled())
-        .cloudPlatform(snapshotSummary.getCloudPlatform())
-        .dataProject(snapshotSummary.getDataProject())
-        .storageAccount(snapshotSummary.getStorageAccount())
-        .consentCode(snapshotSummary.getConsentCode())
-        .phsId(snapshotSummary.getPhsId());
-  }
-
-  private static List<StorageResourceModel> storageResourceModelFromSnapshotSummary(
-      SnapshotSummary snapshotSummary) {
-    return snapshotSummary.getStorage().stream()
-        .map(StorageResource::toModel)
-        .collect(Collectors.toList());
   }
 
   private SnapshotModel populateSnapshotModelFromSnapshot(

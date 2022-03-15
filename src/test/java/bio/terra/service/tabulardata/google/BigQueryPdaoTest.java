@@ -27,7 +27,6 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
@@ -199,8 +198,7 @@ public class BigQueryPdaoTest {
           datasetId, ingestRequest.table("file").path(gsPath(fileBlob)));
 
       // Create a snapshot!
-      DatasetSummaryModel datasetSummaryModel =
-          DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
+      DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();
       SnapshotSummaryModel snapshotSummary =
           connectedOperations.createSnapshot(
               datasetSummaryModel, "ingest-test-snapshot-by-date.json", "");
@@ -307,8 +305,7 @@ public class BigQueryPdaoTest {
           datasetId, ingestRequest.table("file").path(gsPath(fileBlob)));
 
       // Create a full-view snapshot!
-      DatasetSummaryModel datasetSummary =
-          DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
+      DatasetSummaryModel datasetSummary = dataset.getDatasetSummary().toModel();
       SnapshotSummaryModel snapshotSummary =
           connectedOperations.createSnapshot(
               datasetSummary, "snapshot-fullviews-test-snapshot.json", "");

@@ -13,12 +13,10 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DatePartitionOptionsModel;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
-import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import java.util.ArrayList;
@@ -84,22 +82,6 @@ public final class DatasetJsonConversion {
         .assetSpecifications(assetSpecifications);
   }
 
-  public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(
-      DatasetSummary datasetSummary) {
-    return new DatasetSummaryModel()
-        .id(datasetSummary.getId())
-        .name(datasetSummary.getName())
-        .description(datasetSummary.getDescription())
-        .createdDate(datasetSummary.getCreatedDate().toString())
-        .defaultProfileId(datasetSummary.getDefaultProfileId())
-        .storage(storageResourceModelFromDatasetSummary(datasetSummary))
-        .secureMonitoringEnabled(datasetSummary.isSecureMonitoringEnabled())
-        .cloudPlatform(datasetSummary.getCloudPlatform())
-        .dataProject(datasetSummary.getDataProject())
-        .storageAccount(datasetSummary.getStorageAccount())
-        .phsId(datasetSummary.getPhsId());
-  }
-
   public static DatasetModel populateDatasetModelFromDataset(
       Dataset dataset,
       List<DatasetRequestAccessIncludeModel> include,
@@ -132,7 +114,7 @@ public final class DatasetJsonConversion {
     }
 
     if (include.contains(DatasetRequestAccessIncludeModel.STORAGE)) {
-      datasetModel.storage(storageResourceModelFromDatasetSummary(dataset.getDatasetSummary()));
+      datasetModel.storage(dataset.getDatasetSummary().toStorageResourceModel());
     }
 
     if (include.contains(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION)) {
@@ -140,13 +122,6 @@ public final class DatasetJsonConversion {
           metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest));
     }
     return datasetModel;
-  }
-
-  private static List<StorageResourceModel> storageResourceModelFromDatasetSummary(
-      DatasetSummary datasetSummary) {
-    return datasetSummary.getStorage().stream()
-        .map(StorageResource::toModel)
-        .collect(Collectors.toList());
   }
 
   public static DatasetSpecificationModel datasetSpecificationModelFromDatasetSchema(

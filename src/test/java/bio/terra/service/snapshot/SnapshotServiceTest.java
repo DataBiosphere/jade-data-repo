@@ -2,10 +2,15 @@ package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoBigQueryModel;
@@ -23,22 +28,32 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.GoogleStorageResource;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.job.JobService;
+import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
 
+@RunWith(SpringRunner.class)
+@ContextConfiguration(classes = {SnapshotService.class, MetadataDataAccessUtils.class})
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class SnapshotServiceTest {
@@ -55,41 +70,23 @@ public class SnapshotServiceTest {
   private static final String SNAPSHOT_DATA_PROJECT = "tdrdataproject";
   private static final String SNAPSHOT_TABLE_NAME = "tableA";
 
-  @Mock private JobService jobService;
-  @Mock private DatasetService datasetService;
-  @Mock private FireStoreDependencyDao dependencyDao;
-  @Mock private BigQueryPdao bigQueryPdao;
-  @Mock private SnapshotDao snapshotDao;
+  @MockBean private JobService jobService;
+  @MockBean private DatasetService datasetService;
+  @MockBean private FireStoreDependencyDao dependencyDao;
+  @MockBean private BigQueryPdao bigQueryPdao;
+  @Autowired private MetadataDataAccessUtils metadataDataAccessUtils;
+  @MockBean private ResourceService resourceService;
+  @MockBean private AzureBlobStorePdao azureBlobStorePdao;
+  @MockBean private ProfileService profileService;
+  @MockBean private SnapshotDao snapshotDao;
 
-  private MetadataDataAccessUtils metadataDataAccessUtils;
+  private final UUID snapshotId = UUID.randomUUID();
+  private final UUID datasetId = UUID.randomUUID();
+  private final UUID snapshotTableId = UUID.randomUUID();
+  private final UUID profileId = UUID.randomUUID();
+  private final Instant createdDate = Instant.now();
 
-  private UUID snapshotId;
-  private UUID datasetId;
-  private UUID snapshotTableId;
-  private UUID profileId;
-  private Instant createdDate;
-
-  private SnapshotService service;
-
-  @Before
-  public void setUp() throws Exception {
-    MockitoAnnotations.initMocks(this);
-    metadataDataAccessUtils = new MetadataDataAccessUtils(null, null, null);
-    service =
-        new SnapshotService(
-            jobService,
-            datasetService,
-            dependencyDao,
-            bigQueryPdao,
-            snapshotDao,
-            metadataDataAccessUtils);
-
-    snapshotId = UUID.randomUUID();
-    datasetId = UUID.randomUUID();
-    snapshotTableId = UUID.randomUUID();
-    profileId = UUID.randomUUID();
-    createdDate = Instant.now();
-  }
+  @Autowired private SnapshotService service;
 
   @Test
   public void testRetrieveSnapshot() {
@@ -292,5 +289,22 @@ public class SnapshotServiceTest {
                     new SnapshotRequestContentsModel()
                         .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
                         .datasetName(DATASET_NAME)));
+  }
+
+  @Test
+  public void enumerateSnapshots() {
+    IamRole role = IamRole.DISCOVERER;
+    Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(snapshotId, Set.of(role));
+    SnapshotSummary summary =
+        new SnapshotSummary().id(snapshotId).createdDate(Instant.now()).storage(List.of());
+    MetadataEnumeration<SnapshotSummary> metadataEnumeration = new MetadataEnumeration<>();
+    metadataEnumeration.items(List.of(summary));
+    when(snapshotDao.retrieveSnapshots(
+            anyInt(), anyInt(), any(), any(), any(), any(), any(), eq(resourcesAndRoles.keySet())))
+        .thenReturn(metadataEnumeration);
+    var snapshots =
+        service.enumerateSnapshots(0, 10, null, null, null, null, List.of(), resourcesAndRoles);
+    assertThat(snapshots.getItems().get(0).getId(), equalTo(snapshotId));
+    assertThat(snapshots.getRoleMap(), hasEntry(snapshotId.toString(), List.of(role.toString())));
   }
 }

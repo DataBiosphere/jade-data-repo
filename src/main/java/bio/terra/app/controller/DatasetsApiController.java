@@ -50,7 +50,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -171,22 +170,17 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<EnumerateDatasetModel> enumerateDatasets(
-      @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-      @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-      @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date")
-          EnumerateSortByParam sort,
-      @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc")
-          SqlSortDirection direction,
-      @Valid @RequestParam(value = "filter", required = false) String filter,
-      @Valid @RequestParam(value = "region", required = false) String region) {
+      Integer offset,
+      Integer limit,
+      EnumerateSortByParam sort,
+      SqlSortDirection direction,
+      String filter,
+      String region) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    Set<UUID> resources =
-        iamService
-            .listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET)
-            .keySet();
-    EnumerateDatasetModel esm =
-        datasetService.enumerate(offset, limit, sort, direction, filter, region, resources);
-    return new ResponseEntity<>(esm, HttpStatus.OK);
+    var idsAndRoles =
+        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
+    var edm = datasetService.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles);
+    return ResponseEntity.ok(edm);
   }
 
   @Override

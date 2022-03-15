@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AssetModel;
@@ -31,6 +30,7 @@ import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -42,9 +42,10 @@ import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -165,20 +166,29 @@ public class DatasetService {
       SqlSortDirection direction,
       String filter,
       String region,
-      Collection<UUID> resources) {
-    if (resources.isEmpty()) {
-      return new EnumerateDatasetModel().total(0).items(Collections.emptyList());
+      Map<UUID, Set<IamRole>> idsAndRoles) {
+    if (idsAndRoles.isEmpty()) {
+      return new EnumerateDatasetModel().total(0).items(List.of());
     }
-    MetadataEnumeration<DatasetSummary> datasetEnum =
-        datasetDao.enumerate(offset, limit, sort, direction, filter, region, resources);
+    var datasetEnum =
+        datasetDao.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles.keySet());
+
     List<DatasetSummaryModel> summaries =
-        datasetEnum.getItems().stream()
-            .map(DatasetJsonConversion::datasetSummaryModelFromDatasetSummary)
-            .collect(Collectors.toList());
+        datasetEnum.getItems().stream().map(DatasetSummary::toModel).collect(Collectors.toList());
+    // Map of dataset id to list of roles.
+    Map<String, List<String>> roleMap = new HashMap<>();
+    for (DatasetSummary summary : datasetEnum.getItems()) {
+      var roles =
+          idsAndRoles.get(summary.getId()).stream()
+              .map(IamRole::toString)
+              .collect(Collectors.toList());
+      roleMap.put(summary.getId().toString(), roles);
+    }
     return new EnumerateDatasetModel()
         .items(summaries)
         .total(datasetEnum.getTotal())
-        .filteredTotal(datasetEnum.getFilteredTotal());
+        .filteredTotal(datasetEnum.getFilteredTotal())
+        .roleMap(roleMap);
   }
 
   public String delete(String id, AuthenticatedUserRequest userReq) {

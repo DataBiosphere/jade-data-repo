@@ -157,7 +157,7 @@ public class DatasetRequestValidatorTest {
     String responseBody = response.getContentAsString();
     assertTrue(
         "We return the proper message when DataType is invalid",
-        responseBody.contains("InvalidDatatype"));
+        responseBody.contains("DataTypes must be lowercase"));
   }
 
   @Test

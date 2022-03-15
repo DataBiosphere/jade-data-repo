@@ -138,6 +138,29 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
+  public void testInvalidDataType() throws Exception {
+    String invalidSchemaCapitalDataType =
+        "{\"name\":\"no_response\","
+            + "\"description\":\"Invalid dataset schema leads to no response body\","
+            + "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\","
+            + "\"schema\":{\"tables\":[{\"name\":\"table\",\"columns\":"
+            + "[{\"name\":\"column\",\"datatype\":\"FILEREF\",\"array_of\":true}]}]}}";
+    MvcResult result =
+        mvc.perform(
+                post("/api/repository/v1/datasets")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(invalidSchemaCapitalDataType))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+    MockHttpServletResponse response = result.getResponse();
+    String responseBody = response.getContentAsString();
+    assertTrue(
+        "We return the proper message when DataType is invalid",
+        responseBody.contains("InvalidDatatype"));
+  }
+
+  @Test
   public void testJsonParsingErrors() throws Exception {
     String invalidSchema =
         "{\"name\":\"no_response\","

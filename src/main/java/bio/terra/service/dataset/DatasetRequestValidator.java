@@ -275,7 +275,7 @@ public class DatasetRequestValidator implements Validator {
           "InvalidDatatype",
           "invalid datatype in table column(s): "
               + invalidColumns.stream().map(ColumnModel::getName).collect(Collectors.joining(", "))
-              + ", valid DataTypes are "
+              + ", DataTypes must be lowercase, valid DataTypes are "
               + Arrays.toString(TableDataType.values()));
     }
   }

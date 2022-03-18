@@ -350,7 +350,7 @@ public class DatasetRequestValidatorTest {
             + "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\","
             + "\"schema\":{\"tables\":[{\"name\":\"table\",\"columns\":"
             + "[{\"name\":\"bad_column1\",\"datatype\":\"bad_datatype\"}, "
-            + "{\"name\":\"bad_column2\",\"datatype\":\"bad_datatype\"}]}]}}";
+            + "{\"name\":\"bad_column2\",\"datatype\":\"FILEREF\"}]}]}}";
     MvcResult result =
         mvc.perform(
                 post("/api/repository/v1/datasets")
@@ -365,8 +365,8 @@ public class DatasetRequestValidatorTest {
         "Invalid DataTypes are logged and returned",
         responseBody.contains(
             "invalid datatype in table column(s): bad_column1, bad_column2, "
-                + "valid DataTypes are [boolean, bytes, date, datetime, dirref, fileref, "
-                + "float, float64, integer, int64, numeric, record, string, text, time, timestamp]"));
+                + "DataTypes must be lowercase, valid DataTypes are [string, boolean, bytes, date, datetime, dirref, fileref, "
+                + "float, float64, integer, int64, numeric, record, text, time, timestamp]"));
   }
 
   @Test

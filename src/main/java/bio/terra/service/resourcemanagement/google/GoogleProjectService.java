@@ -188,7 +188,7 @@ public class GoogleProjectService {
     if (project == null) {
       throw new GoogleResourceException("Could not get project after handout");
     }
-    return initializeProject(project, billingProfile, roleIdentityMapping, false, region, labels);
+    return initializeProject(project, billingProfile, roleIdentityMapping, region, labels);
   }
 
   public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -219,7 +219,6 @@ public class GoogleProjectService {
       Project project,
       BillingProfileModel billingProfile,
       Map<String, List<String>> roleIdentityMapping,
-      boolean setBilling,
       GoogleRegion region,
       Map<String, String> labels)
       throws InterruptedException {
@@ -234,10 +233,9 @@ public class GoogleProjectService {
             .googleProjectId(googleProjectId)
             .googleProjectNumber(googleProjectNumber);
 
-    if (setBilling) {
-      // The billing profile has already been authorized so we do no further checking here
-      billingService.assignProjectBilling(billingProfile, googleProjectResource);
-    }
+    // The billing profile has already been authorized so we do no further checking here
+    billingService.assignProjectBilling(billingProfile, googleProjectResource);
+
     enableServices(googleProjectResource, region);
     resourceManagerService.updateIamPermissions(
         roleIdentityMapping, googleProjectId, PermissionOp.ENABLE_PERMISSIONS);

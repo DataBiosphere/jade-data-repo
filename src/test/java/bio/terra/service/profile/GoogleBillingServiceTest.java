@@ -2,6 +2,7 @@ package bio.terra.service.profile;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
@@ -101,6 +102,10 @@ public class GoogleBillingServiceTest {
           + "new project, test changing the billing account, and then delete the project")
   @Test
   public void assignProjectBilling() {
+    assertThat(
+        "Testing against two different billing profiles",
+        oldBillingAccountId,
+        not(newBillingAccountId));
     // Check state before Assigning new billing account Id
     ProjectBillingInfo billingAccount =
         googleBillingService.getProjectBilling(projectResource.getGoogleProjectId());

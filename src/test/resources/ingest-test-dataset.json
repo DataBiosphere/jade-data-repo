@@ -9,8 +9,8 @@
         "columns": [
           {"name": "id", "datatype": "string"},
           {"name": "age", "datatype": "integer"},
-          {"name": "children", "datatype": "string", "array_of": true},
-          {"name": "donated", "datatype": "string", "array_of": true}
+          {"name": "children", "datatype": "string", "array_of": false},
+          {"name": "donated", "datatype": "string", "array_of": false}
         ],
         "primaryKey": ["id"]
       },
@@ -18,7 +18,7 @@
         "name":    "sample",
         "columns": [
           {"name": "id", "datatype": "string"},
-          {"name": "participant_ids", "datatype": "string", "array_of": true},
+          {"name": "participant_ids", "datatype": "string", "array_of": false},
           {"name": "date_collected", "datatype": "date"},
           {"name": "derived_from", "datatype": "string"}
         ],
@@ -28,7 +28,7 @@
         "name": "file",
         "columns": [
           {"name": "id", "datatype": "string"},
-          {"name": "derived_from", "datatype": "string", "array_of": true}
+          {"name": "derived_from", "datatype": "string", "array_of": false}
         ]
       }
     ],

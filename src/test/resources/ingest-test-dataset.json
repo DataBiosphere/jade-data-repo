@@ -50,11 +50,7 @@
           {"name": "file", "columns": []}
         ],
         "follow": [
-          "sample_derived_from",
-          "participant_samples",
-          "sample_participants",
-          "participant_children",
-          "participant_files"
+          "sample_derived_from"
         ]
       },
       {

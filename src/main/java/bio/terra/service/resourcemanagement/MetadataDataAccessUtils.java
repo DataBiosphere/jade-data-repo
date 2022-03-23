@@ -103,7 +103,7 @@ public final class MetadataDataAccessUtils {
       return makeAccessInfoAzure(
           snapshot, storageAccountResource, snapshot.getTables(), profileModel, userRequest);
     } else {
-      throw new IllegalArgumentException();
+      throw new InvalidCloudPlatformException();
     }
   }
 

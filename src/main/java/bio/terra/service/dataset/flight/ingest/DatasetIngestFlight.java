@@ -143,8 +143,7 @@ public class DatasetIngestFlight extends Flight {
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 
-    if (ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON
-        || ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.ARRAY) {
+    if (IngestUtils.isJsonTypeIngest(inputParameters)) {
       int driverWaitSeconds = configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
       int loadHistoryWaitSeconds =
           configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS);

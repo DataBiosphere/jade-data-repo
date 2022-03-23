@@ -32,27 +32,24 @@ public class IngestRequestValidator implements Validator {
     if (target instanceof IngestRequestModel) {
       IngestRequestModel ingestRequest = (IngestRequestModel) target;
       validateTableName(ingestRequest.getTable(), errors);
-
-      if (StringUtils.isEmpty(ingestRequest.getPath())
-          && !ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY)) {
+      boolean isPayloadIngest =
+          ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY);
+      if (StringUtils.isEmpty(ingestRequest.getPath()) && !isPayloadIngest) {
         errors.rejectValue(
             "path", "PathIsMissing", "Path is required when ingesting from a cloud object");
       }
 
-      if (!StringUtils.isEmpty(ingestRequest.getPath())
-          && ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY)) {
+      if (!StringUtils.isEmpty(ingestRequest.getPath()) && isPayloadIngest) {
         errors.rejectValue(
             "path", "PathIsPresent", "Path should not be specified when ingesting from an array");
       }
 
-      if (ListUtils.emptyIfNull(ingestRequest.getRecords()).isEmpty()
-          && ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY)) {
+      if (ListUtils.emptyIfNull(ingestRequest.getRecords()).isEmpty() && isPayloadIngest) {
         errors.rejectValue(
             "records", "DataPayloadIsMissing", "Records is required when ingesting as an array");
       }
 
-      if (!ListUtils.emptyIfNull(ingestRequest.getRecords()).isEmpty()
-          && !ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY)) {
+      if (!ListUtils.emptyIfNull(ingestRequest.getRecords()).isEmpty() && !isPayloadIngest) {
         errors.rejectValue(
             "records",
             "DataPayloadIsPresent",

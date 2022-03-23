@@ -210,6 +210,13 @@ public final class IngestUtils {
     return ingestRequestModel.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY);
   }
 
+  public static boolean isJsonTypeIngest(FlightMap inputParameters) {
+    IngestRequestModel ingestRequestModel =
+        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
+    return ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON
+        || ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.ARRAY;
+  }
+
   public static Stream<JsonNode> getJsonNodesStreamFromFile(
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,

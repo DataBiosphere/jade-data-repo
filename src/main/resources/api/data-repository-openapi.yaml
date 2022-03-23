@@ -3394,8 +3394,9 @@ components:
         path:
           type: string
           description: >
-            cloud path path to a file in a bucket accessible to data repo (e.g. gs path for GCP
-            datasets or https path for Azure datasets).  Required if the format is csv or json
+            cloud path to a file in a bucket accessible to data repo (e.g. gs path for GCP
+            datasets or https path for Azure datasets).  Required if the format is `csv` or `json`.
+            Do not specify if the ingest format is `array`
         records:
           type: array
           items:

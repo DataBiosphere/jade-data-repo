@@ -257,7 +257,7 @@ public class DatasetService {
       ingestRequestModel.setProfileId(
           Optional.ofNullable(ingestRequestModel.getProfileId())
               .orElse(dataset.getDefaultProfileId()));
-      // Create staging area if needed and get the path where the temo file will live
+      // Create staging area if needed and get the path where the temp file will live
       String tempFilePath =
           jobService
               .newJob(
@@ -287,15 +287,14 @@ public class DatasetService {
       ingestRequestModel.setPath(pathToUse);
       // Clear the json object so that it doesn't get written to the flight db
       ingestRequestModel.getRecords().clear();
-      description = "Ingest tabular data to " + ingestRequestModel.getTable() + " in dataset " + id;
+      description =
+          String.format(
+              "Ingest tabular data to %s in dataset id %s", ingestRequestModel.getTable(), id);
     } else {
       description =
-          "Ingest from "
-              + ingestRequestModel.getPath()
-              + " to "
-              + ingestRequestModel.getTable()
-              + " in dataset id "
-              + id;
+          String.format(
+              "Ingest from %s to %s in dataset id %s",
+              ingestRequestModel.getPath(), ingestRequestModel.getTable(), id);
     }
 
     return jobService
@@ -492,7 +491,7 @@ public class DatasetService {
         .map(
             r -> {
               try {
-                // We could eventually do more up front validation but at this point but for
+                // We could eventually do more up front validation at this point but for
                 // now depend on the ingest-into-temp-table step to fail
                 return objectMapper.writeValueAsString(r);
               } catch (JsonProcessingException e) {

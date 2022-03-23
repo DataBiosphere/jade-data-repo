@@ -23,7 +23,8 @@ public class CreateScratchFileForGCPStep extends DefaultUndoStep {
     GoogleBucketResource bucket =
         workingMap.get(CommonFlightKeys.SCRATCH_BUCKET_INFO, GoogleBucketResource.class);
     BlobId scratchFilePath =
-        GcsUriUtils.getBlobForFlight(bucket.getName(), tableName, context.getFlightId());
+        GcsUriUtils.getBlobForFlight(
+            bucket.getName(), "ingest-scratch/" + tableName, context.getFlightId());
 
     String path = GcsUriUtils.getGsPathFromBlob(scratchFilePath);
 

@@ -12,6 +12,8 @@ public interface Table {
 
   Long getRowCount();
 
+  List<Column> getPrimaryKey();
+
   default Optional<Column> getColumnById(UUID id) {
     for (Column tryColumn : getColumns()) {
       if (tryColumn.getId().equals(id)) {

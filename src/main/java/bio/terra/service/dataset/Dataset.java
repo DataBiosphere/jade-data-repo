@@ -229,6 +229,10 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return datasetSummary.getPhsId();
   }
 
+  public boolean isSelfHosted() {
+    return datasetSummary.isSelfHosted();
+  }
+
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());

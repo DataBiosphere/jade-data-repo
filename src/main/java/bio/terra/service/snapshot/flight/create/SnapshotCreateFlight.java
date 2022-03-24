@@ -232,10 +232,12 @@ public class SnapshotCreateFlight extends Flight {
           pdaoAclRetryRule);
 
       // Apply the IAM readers to the GCS files
-      addStep(
-          new SnapshotAuthzFileAclStep(
-              dependencyDao, snapshotService, gcsPdao, datasetService, configService),
-          pdaoAclRetryRule);
+      if (!sourceDataset.isSelfHosted()) {
+        addStep(
+            new SnapshotAuthzFileAclStep(
+                dependencyDao, snapshotService, gcsPdao, datasetService, configService),
+            pdaoAclRetryRule);
+      }
 
       addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
     } else if (platform.isAzure()) {

@@ -593,7 +593,7 @@ public class SnapshotDao {
 
     String sql =
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-            + "snapshot_source.id, dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, "
+            + "snapshot_source.id, dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
             + summaryCloudPlatformQuery
             + snapshotSourceStorageQuery
             + "FROM snapshot "
@@ -619,7 +619,7 @@ public class SnapshotDao {
     logger.debug("retrieve snapshot summary for id: " + id);
     try {
       String sql =
-          "SELECT snapshot.*, dataset.secure_monitoring, dataset.phs_id, "
+          "SELECT snapshot.*, dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted,"
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
@@ -641,7 +641,7 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-              + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, "
+              + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
@@ -706,7 +706,8 @@ public class SnapshotDao {
           .dataProject(rs.getString("google_project_id"))
           .storageAccount(rs.getString("storage_account_name"))
           .consentCode(rs.getString("consent_code"))
-          .phsId(rs.getString("phs_id"));
+          .phsId(rs.getString("phs_id"))
+          .selfHosted(rs.getBoolean("self_hosted"));
     }
   }
 }

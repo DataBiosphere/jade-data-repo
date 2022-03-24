@@ -31,6 +31,7 @@ public class DatasetSummary {
   private String dataProject;
   private String storageAccount;
   private String phsId;
+  private boolean selfHosted;
 
   public UUID getId() {
     return id;
@@ -202,6 +203,15 @@ public class DatasetSummary {
     return this;
   }
 
+  public boolean isSelfHosted() {
+    return selfHosted;
+  }
+
+  public DatasetSummary selfHosted(boolean selfHosted) {
+    this.selfHosted = selfHosted;
+    return this;
+  }
+
   public DatasetSummaryModel toModel() {
     return new DatasetSummaryModel()
         .id(getId())
@@ -214,7 +224,8 @@ public class DatasetSummary {
         .cloudPlatform(getCloudPlatform())
         .dataProject(getDataProject())
         .storageAccount(getStorageAccount())
-        .phsId(getPhsId());
+        .phsId(getPhsId())
+        .selfHosted(isSelfHosted());
   }
 
   List<StorageResourceModel> toStorageResourceModel() {

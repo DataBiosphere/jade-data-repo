@@ -79,7 +79,7 @@ public class FileDeleteFlight extends Flight {
           new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao, configService),
           fileSystemRetry);
       addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset), fileSystemRetry);
-      addStep(new DeleteFilePrimaryDataStep(gcsPdao, resourceService));
+      addStep(new DeleteFilePrimaryDataStep(gcsPdao));
       addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
       addStep(

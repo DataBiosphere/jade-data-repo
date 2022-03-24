@@ -154,13 +154,14 @@ public class FileIngestBulkFlight extends Flight {
     addStep(new LoadLockStep(loadService));
     if (platform.isGcp()) {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));
-      addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
-      addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
-
-      addStep(
-          new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
-          randomBackoffRetry);
-      addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+      if (!dataset.isSelfHosted()) {
+        addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
+        addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
+        addStep(
+            new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
+            randomBackoffRetry);
+        addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+      }
     } else if (platform.isAzure()) {
       addStep(
           new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);

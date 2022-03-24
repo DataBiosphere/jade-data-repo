@@ -3145,6 +3145,7 @@ components:
           description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
         selfHosted:
           type: boolean
+          default: false
           description: denotes whether data files in the dataset are self-hosted or not
       description: >
         Summary of a dataset.

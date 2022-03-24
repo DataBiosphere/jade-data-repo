@@ -105,6 +105,15 @@ public class DrsServiceTest {
     SnapshotProject snapshotProject = new SnapshotProject();
     when(snapshotService.retrieveAvailableSnapshotProject(snapshotId)).thenReturn(snapshotProject);
 
+    when(snapshotService.retrieve(snapshotId))
+        .thenReturn(
+            new Snapshot()
+                .id(snapshotId)
+                .snapshotSources(
+                    List.of(
+                        new SnapshotSource()
+                            .dataset(new Dataset(new DatasetSummary().selfHosted(false))))));
+
     String bucketResourceId = UUID.randomUUID().toString();
     String storageAccountResourceId = UUID.randomUUID().toString();
     UUID googleFileId = UUID.randomUUID();

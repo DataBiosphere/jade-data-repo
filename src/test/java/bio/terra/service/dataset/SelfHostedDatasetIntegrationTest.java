@@ -5,6 +5,7 @@ import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
+import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -18,8 +19,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.UUID;
-
 // TODO move me to integration dir
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -29,13 +28,9 @@ import java.util.UUID;
 public class SelfHostedDatasetIntegrationTest extends UsersBase {
   private static Logger logger = LoggerFactory.getLogger(SelfHostedDatasetIntegrationTest.class);
 
-  @Autowired
-  private DataRepoFixtures dataRepoFixtures;
-  @Autowired
-  private AuthService authService;
-  @Rule
-  @Autowired
-  public TestJobWatcher testWatcher;
+  @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private AuthService authService;
+  @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String stewardToken;
   private UUID datasetId;

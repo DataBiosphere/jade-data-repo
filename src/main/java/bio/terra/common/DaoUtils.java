@@ -27,10 +27,18 @@ public final class DaoUtils {
 
   public static String orderByClause(
       EnumerateSortByParam sort, SqlSortDirection direction, String table) {
+    EnumerateSortByParam sortToUse;
+    SqlSortDirection directionToUse;
+
     if (sort == null || direction == null) {
-      return "";
+      sortToUse = EnumerateSortByParam.CREATED_DATE;
+      directionToUse = SqlSortDirection.DESC;
+    } else {
+      sortToUse = sort;
+      directionToUse = direction;
     }
-    return String.format(" ORDER BY %s.%s %s ", table, sort, direction);
+
+    return String.format(" ORDER BY %s.%s %s ", table, sortToUse, directionToUse);
   }
 
   public static void addFilterClause(

@@ -65,7 +65,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -978,6 +980,16 @@ public class DataRepoFixtures {
         .maxBadRecords(0)
         .table(table)
         .path(gsPath);
+  }
+
+  public IngestRequestModel buildSimpleIngest(String table, List<Map<String, Object>> data)
+      throws Exception {
+    return new IngestRequestModel()
+        .format(IngestRequestModel.FormatEnum.ARRAY)
+        .ignoreUnknownValues(false)
+        .maxBadRecords(0)
+        .table(table)
+        .records(Arrays.asList(data.toArray()));
   }
 
   // Transaction methods

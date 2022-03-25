@@ -187,7 +187,7 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> ingestDataset(
       @PathVariable("id") UUID id, @Valid @RequestBody IngestRequestModel ingest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    // Set default strategy to by append
+    // Set default strategy to append
     if (ingest.getUpdateStrategy() == null) {
       ingest.updateStrategy(UpdateStrategyEnum.APPEND);
     }

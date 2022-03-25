@@ -16,35 +16,51 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
 import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
 import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
+import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
+import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.stairway.ShortUUID;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -62,6 +78,11 @@ public class DatasetService {
   private final StorageTableService storageTableService;
   private final BigQueryPdao bigQueryPdao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
+  private final ResourceService resourceService;
+  private final GcsPdao gcsPdao;
+  private final ObjectMapper objectMapper;
+  private final AzureBlobStorePdao azureBlobStorePdao;
+  private final ProfileService profileService;
 
   @Autowired
   public DatasetService(
@@ -71,7 +92,12 @@ public class DatasetService {
       ProfileDao profileDao,
       StorageTableService storageTableService,
       BigQueryPdao bigQueryPdao,
-      MetadataDataAccessUtils metadataDataAccessUtils) {
+      MetadataDataAccessUtils metadataDataAccessUtils,
+      ResourceService resourceService,
+      GcsPdao gcsPdao,
+      ObjectMapper objectMapper,
+      AzureBlobStorePdao azureBlobStorePdao,
+      ProfileService profileService) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
@@ -79,6 +105,11 @@ public class DatasetService {
     this.storageTableService = storageTableService;
     this.bigQueryPdao = bigQueryPdao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
+    this.resourceService = resourceService;
+    this.gcsPdao = gcsPdao;
+    this.objectMapper = objectMapper;
+    this.azureBlobStorePdao = azureBlobStorePdao;
+    this.profileService = profileService;
   }
 
   public String createDataset(
@@ -216,13 +247,56 @@ public class DatasetService {
     // Fill in a default load id if the caller did not provide one in the ingest request.
     String loadTag = loadService.computeLoadTag(ingestRequestModel.getLoadTag());
     ingestRequestModel.setLoadTag(loadTag);
-    String description =
-        "Ingest from "
-            + ingestRequestModel.getPath()
-            + " to "
-            + ingestRequestModel.getTable()
-            + " in dataset id "
-            + id;
+
+    String description;
+    // Note: we are writing ingested to a bucket if specified before the flight starts so that the
+    // data does not get materialized in the flight DB. This means that we also need to edit the
+    // request to remove data that shouldn't get stored
+    if (ingestRequestModel.getFormat().equals(FormatEnum.ARRAY)) {
+      Dataset dataset = datasetDao.retrieve(UUID.fromString(id));
+      ingestRequestModel.setProfileId(
+          Optional.ofNullable(ingestRequestModel.getProfileId())
+              .orElse(dataset.getDefaultProfileId()));
+      // Create staging area if needed and get the path where the temp file will live
+      String tempFilePath =
+          jobService
+              .newJob(
+                  "Create file staging area", DatasetScratchFilePrepareFlight.class, null, userReq)
+              .addParameter(JobMapKeys.BILLING_ID.getKeyName(), ingestRequestModel.getProfileId())
+              .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+              .addParameter(IngestMapKeys.TABLE_NAME, ingestRequestModel.getTable())
+              .submitAndWait(String.class);
+
+      CloudPlatformWrapper cloudPlatform =
+          CloudPlatformWrapper.of(dataset.getDatasetSummary().getCloudPlatform());
+      String pathToUse;
+      if (cloudPlatform.isGcp()) {
+        pathToUse =
+            writeIngestRowsToGcpBucket(dataset, tempFilePath, ingestRequestModel.getRecords());
+      } else if (cloudPlatform.isAzure()) {
+        pathToUse =
+            writeIngestRowsToAzureStorageAccount(
+                userReq,
+                ingestRequestModel.getProfileId(),
+                dataset,
+                tempFilePath,
+                ingestRequestModel.getRecords());
+      } else {
+        throw new IllegalArgumentException("Cloud not recognized");
+      }
+      ingestRequestModel.setPath(pathToUse);
+      // Clear the json object so that it doesn't get written to the flight db
+      ingestRequestModel.getRecords().clear();
+      description =
+          String.format(
+              "Ingest tabular data to %s in dataset id %s", ingestRequestModel.getTable(), id);
+    } else {
+      description =
+          String.format(
+              "Ingest from %s to %s in dataset id %s",
+              ingestRequestModel.getPath(), ingestRequestModel.getTable(), id);
+    }
+
     return jobService
         .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
@@ -366,6 +440,64 @@ public class DatasetService {
     return Arrays.stream(
             StringUtils.split(DatasetsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
         .map(DatasetRequestAccessIncludeModel::fromValue)
+        .collect(Collectors.toList());
+  }
+
+  private String writeIngestRowsToGcpBucket(
+      Dataset dataset, String tempFilePath, List<Object> data) {
+    try {
+      String projectId = dataset.getDatasetSummary().getDataProject();
+
+      gcsPdao.createGcsFile(tempFilePath, projectId);
+      gcsPdao.writeListToCloudFile(tempFilePath, mapLines(data), projectId);
+      return tempFilePath;
+    } catch (IllegalArgumentException e) {
+      throw new IngestFailureException("Error initializing ingest process", e);
+    }
+  }
+
+  private String writeIngestRowsToAzureStorageAccount(
+      AuthenticatedUserRequest userRequest,
+      UUID profileId,
+      Dataset dataset,
+      String tempFilePath,
+      List<Object> data) {
+    try {
+      String randomIdForFile = ShortUUID.get();
+      BillingProfileModel profile = profileService.authorizeLinking(profileId, userRequest);
+
+      AzureStorageAccountResource storageAccount =
+          resourceService.getOrCreateDatasetStorageAccount(dataset, profile, randomIdForFile);
+
+      String signedPath =
+          azureBlobStorePdao.signFile(
+              profile,
+              storageAccount,
+              tempFilePath,
+              AzureStorageAccountResource.ContainerType.SCRATCH,
+              new BlobSasTokenOptions(
+                  Duration.ofHours(1),
+                  new BlobSasPermission().setReadPermission(true).setWritePermission(true),
+                  userRequest.getEmail()));
+      azureBlobStorePdao.writeBlobLines(signedPath, mapLines(data));
+      return signedPath;
+    } catch (InterruptedException e) {
+      throw new IngestFailureException("Error initializing ingest process", e);
+    }
+  }
+
+  private List<String> mapLines(List<Object> data) {
+    return data.stream()
+        .map(
+            r -> {
+              try {
+                // We could eventually do more up front validation at this point but for
+                // now depend on the ingest-into-temp-table step to fail
+                return objectMapper.writeValueAsString(r);
+              } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException("Invalid record being ingested", e);
+              }
+            })
         .collect(Collectors.toList());
   }
 }

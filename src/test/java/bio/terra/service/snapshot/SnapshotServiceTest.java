@@ -115,7 +115,7 @@ public class SnapshotServiceTest {
                                                 .cloudResource(
                                                     GoogleCloudResource.BUCKET.toString())
                                                 .cloudPlatform(CloudPlatform.GCP))))))
-                .tables(List.of(new TableModel().name(SNAPSHOT_TABLE_NAME)))
+                .tables(List.of(new TableModel().name(SNAPSHOT_TABLE_NAME).primaryKey(List.of())))
                 .relationships(Collections.emptyList())
                 .profileId(profileId)
                 .dataProject(SNAPSHOT_DATA_PROJECT)));

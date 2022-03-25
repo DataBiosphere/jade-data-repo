@@ -12,6 +12,7 @@ public enum JobMapKeys {
   CLOUD_PLATFORM("cloudPlatform"),
 
   // parameters for specific flight types
+  BILLING_ID("billingId"),
   DATASET_ID("datasetId"),
   SNAPSHOT_ID("snapshotId"),
   FILE_ID("fileId"),

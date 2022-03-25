@@ -44,6 +44,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.logging.v2.LifecycleState;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -173,6 +174,10 @@ public class SnapshotConnectedTest {
       SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
       snapshotList.add(summaryModel);
     }
+
+    // Reverse the order of the array since the order we return the snapshots in by default is
+    // descending order of creation
+    Collections.reverse(snapshotList);
 
     Map<UUID, Set<IamRole>> snapshotIds =
         snapshotList.stream()

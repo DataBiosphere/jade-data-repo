@@ -85,6 +85,11 @@ public class IngestCreateParquetFilesStep implements Step {
       ingestResponse.loadResult(fileLoadResults);
     }
 
+    // If loading from a payload, there is no path to report to the user
+    if (IngestUtils.isIngestFromPayload(context.getInputParameters())) {
+      ingestResponse.setPath(null);
+    }
+
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 
     return StepResult.getStepResultSuccess();

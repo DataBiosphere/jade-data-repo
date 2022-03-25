@@ -5,6 +5,7 @@ import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -36,7 +37,12 @@ public class ValidateBucketAccessStep implements Step {
       sourcePath = List.of(((BulkLoadRequestModel) loadModel).getLoadControlFile());
     } else if (loadModel instanceof IngestRequestModel) {
       // Metadata ingests
-      sourcePath = List.of(((IngestRequestModel) loadModel).getPath());
+      // Don't validate if we are ingesting as a payload object
+      if (((IngestRequestModel) loadModel).getFormat().equals(FormatEnum.ARRAY)) {
+        sourcePath = List.of();
+      } else {
+        sourcePath = List.of(((IngestRequestModel) loadModel).getPath());
+      }
     } else if (loadModel instanceof DataDeletionRequest) {
       // Soft deletes
       sourcePath =

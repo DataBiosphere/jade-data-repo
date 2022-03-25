@@ -3399,7 +3399,6 @@ components:
     IngestRequestModel:
       required:
         - format
-        - path
         - table
       type: object
       properties:
@@ -3407,12 +3406,24 @@ components:
           $ref: '#/components/schemas/ObjectNameProperty'
         path:
           type: string
-          description: gs path to a file in a bucket accessible to data repo
+          description: >
+            cloud path to a file in a bucket accessible to data repo (e.g. gs path for GCP
+            datasets or https path for Azure datasets).  Required if the format is `csv` or `json`.
+            Do not specify if the ingest format is `array`
+        records:
+          type: array
+          items:
+            type: object
+            description: >
+              a representation of a record to ingest in the form of `{"sColumn":"string value", "nColumn":123, "lValue":["a","b"]...}`
+          description: >
+            an array of json metadata records to ingest
         format:
           type: string
           enum:
             - csv
             - json
+            - array
         load_tag:
           $ref: '#/components/schemas/LoadTagModel'
         profile_id:
@@ -3420,14 +3431,14 @@ components:
         max_bad_records:
           type: integer
           default: 0
-          description: max number of bad records to skip; applies to JSON and CSV
+          description: max number of bad records to skip; applies to all ingest formats
         max_failed_file_loads:
           type: integer
           default: 0
           description: max number of failed file loads before stopping; if -1, allow any number of errors
         ignore_unknown_values:
           type: boolean
-          description: skip extra data; applies to JSON and CSV
+          description: skip extra data; applies to all ingest formats
           default: true
         csv_field_delimiter:
           type: string

@@ -159,6 +159,12 @@ public class AzureBlobStorePdao implements CloudFileReader {
     // between gcp and azure [See CloudFileReader]
   }
 
+  public void writeBlobLines(String signedPath, List<String> lines) {
+    try (Stream<String> stream = lines.stream()) {
+      writeBlobLines(signedPath, stream);
+    }
+  }
+
   public void writeBlobLines(String signedPath, Stream<String> lines) {
     var newLine = "\n";
     try (AzureBlobStoreBufferedWriter writer = new AzureBlobStoreBufferedWriter(signedPath)) {

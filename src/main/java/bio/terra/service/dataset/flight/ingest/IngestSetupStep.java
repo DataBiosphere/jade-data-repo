@@ -75,7 +75,10 @@ public class IngestSetupStep implements Step {
       String sgName = DatasetUtils.generateAuxTableName(targetTable, "st");
       IngestUtils.putStagingTableName(context, sgName);
     } else if (cloudPlatform.isAzure()) {
-      IngestUtils.validateBlobAzureBlobFileURL(ingestRequestModel.getPath());
+      // Don't validate if we are ingesting as a payload object
+      if (!IngestUtils.isIngestFromPayload(context.getInputParameters())) {
+        IngestUtils.validateBlobAzureBlobFileURL(ingestRequestModel.getPath());
+      }
       workingMap.put(
           IngestMapKeys.PARQUET_FILE_PATH,
           IngestUtils.getParquetFilePath(targetTable.getName(), context.getFlightId()));

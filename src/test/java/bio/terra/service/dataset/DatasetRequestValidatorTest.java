@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -745,6 +746,78 @@ public class DatasetRequestValidatorTest {
         "Validator catches invalid 'csvQuote'",
         csvQuoteError,
         containsString("'csvQuote' must be a single character, was 'toolong'."));
+  }
+
+  @Test
+  public void testInvalidIngestByArray() throws Exception {
+    var invalidIngest =
+        new IngestRequestModel()
+            .path("foo/bar")
+            .table("myTable")
+            .format(IngestRequestModel.FormatEnum.ARRAY);
+
+    var invalidResult =
+        mvc.perform(
+                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(invalidIngest)))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
+    String invalidResponseBody = invalidResponse.getContentAsString();
+    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    assertThat(
+        "Validation catches all invalid parameters",
+        invalidErrorModel.getErrorDetail(),
+        hasSize(2));
+    var pathIsPresentError = invalidErrorModel.getErrorDetail().get(0);
+    var payloadIsMissingError = invalidErrorModel.getErrorDetail().get(1);
+
+    assertThat(
+        "Validator catches invalid 'path' and 'format' combo",
+        pathIsPresentError,
+        containsString("Path should not be specified when ingesting from an array"));
+    assertThat(
+        "Validator catches invalid 'format' and 'records' combo",
+        payloadIsMissingError,
+        containsString("Records is required when ingesting as an array"));
+  }
+
+  @Test
+  public void testInvalidIngestByPath() throws Exception {
+    var invalidIngest =
+        new IngestRequestModel()
+            .table("myTable")
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .addRecordsItem(Map.of("foo", "bar"));
+
+    var invalidResult =
+        mvc.perform(
+                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(invalidIngest)))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
+    String invalidResponseBody = invalidResponse.getContentAsString();
+    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    assertThat(
+        "Validation catches all invalid parameters",
+        invalidErrorModel.getErrorDetail(),
+        hasSize(2));
+    var pathIsMissingError = invalidErrorModel.getErrorDetail().get(0);
+    var payloadIsPresentError = invalidErrorModel.getErrorDetail().get(1);
+
+    assertThat(
+        "Validator catches invalid 'path' and 'format' combo",
+        pathIsMissingError,
+        containsString("Path is required when ingesting from a cloud object"));
+    assertThat(
+        "Validator catches invalid 'records' and 'format' combo",
+        payloadIsPresentError,
+        containsString("Records should not be specified when ingesting from a path"));
   }
 
   private void checkValidationErrorModel(ErrorModel errorModel, String[] messageCodes) {

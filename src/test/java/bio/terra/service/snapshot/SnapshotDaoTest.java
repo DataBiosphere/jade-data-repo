@@ -420,7 +420,14 @@ public class SnapshotDaoTest {
 
     MetadataEnumeration<SnapshotSummary> summaryEnum =
         snapshotDao.retrieveSnapshots(
-            0, 2, null, null, "==foo==", null, datasetIds, snapshotIdList);
+            0,
+            2,
+            EnumerateSortByParam.CREATED_DATE,
+            SqlSortDirection.ASC,
+            "==foo==",
+            null,
+            datasetIds,
+            snapshotIdList);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     assertThat("filtered and retrieved 2 snapshots", summaryList.size(), equalTo(2));
     assertThat("filtered total 3", summaryEnum.getFilteredTotal(), equalTo(3));

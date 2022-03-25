@@ -458,7 +458,10 @@ public class SnapshotService {
             new SnapshotMapColumn().fromColumn(assetColumn.getDatasetColumn()).toColumn(column));
       }
 
-      table.name(assetTable.getTable().getName()).columns(columnList);
+      table
+          .name(assetTable.getTable().getName())
+          .primaryKey(assetTable.getTable().getPrimaryKey())
+          .columns(columnList);
       tableList.add(table);
       mapTableList.add(
           new SnapshotMapTable()
@@ -549,7 +552,10 @@ public class SnapshotService {
       }
       List<Column> columnList = new ArrayList<>();
       SnapshotTable snapshotTable =
-          new SnapshotTable().name(datasetTable.getName()).columns(columnList);
+          new SnapshotTable()
+              .name(datasetTable.getName())
+              .primaryKey(datasetTable.getPrimaryKey())
+              .columns(columnList);
       tableList.add(snapshotTable);
       List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
       mapTableList.add(
@@ -601,7 +607,10 @@ public class SnapshotService {
 
       // create snapshot tables & mapping with the proper dataset name and columns
       SnapshotTable snapshotTable =
-          new SnapshotTable().name(datasetTable.getName()).columns(columnList);
+          new SnapshotTable()
+              .name(datasetTable.getName())
+              .primaryKey(datasetTable.getPrimaryKey())
+              .columns(columnList);
       tableList.add(snapshotTable);
 
       mapTableList.add(
@@ -713,6 +722,8 @@ public class SnapshotService {
     return new TableModel()
         .name(table.getName())
         .rowCount(rowCount != null ? rowCount.intValue() : null)
+        .primaryKey(
+            table.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()))
         .columns(
             table.getColumns().stream()
                 .map(this::makeColumnModelFromColumn)

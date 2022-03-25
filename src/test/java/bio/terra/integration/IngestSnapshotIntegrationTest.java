@@ -1,18 +1,25 @@
 package bio.terra.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Integration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.TableModel;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -90,6 +97,20 @@ public class IngestSnapshotIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(
             custodian(), datasetSummaryModel.getName(), profileId, "ingest-test-snapshot.json");
+
+    SnapshotModel snapshot =
+        dataRepoFixtures.getSnapshot(custodian(), snapshotSummary.getId(), List.of());
+
+    Map<String, TableModel> tableMap =
+        snapshot.getTables().stream()
+            .collect(Collectors.toMap(TableModel::getName, Function.identity()));
+    assertThat(
+        "primary key information makes it through in participant table",
+        tableMap.get("participant").getPrimaryKey(),
+        contains("id"));
+    assertThat(
+        "there is no primary key in the file table", tableMap.get("file").getPrimaryKey(), empty());
+
     createdSnapshotIds.add(snapshotSummary.getId());
   }
 }

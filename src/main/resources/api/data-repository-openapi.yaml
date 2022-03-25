@@ -3108,6 +3108,10 @@ components:
           description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
+        selfHosted:
+          type: boolean
+          default: false
+          description: denotes whether data files in the dataset are self-hosted or not
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:

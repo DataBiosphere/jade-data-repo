@@ -169,7 +169,8 @@ public class DataRepoFixtures {
       UUID profileId,
       String filename,
       CloudPlatform cloudPlatform,
-      boolean usePetAccount)
+      boolean usePetAccount,
+      boolean selfHosted)
       throws Exception {
     DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
     requestModel.setDefaultProfileId(profileId);
@@ -177,6 +178,7 @@ public class DataRepoFixtures {
     if (cloudPlatform != null && requestModel.getCloudPlatform() == null) {
       requestModel.setCloudPlatform(cloudPlatform);
     }
+    requestModel.selfHosted(selfHosted);
     String json = TestUtils.mapToJson(requestModel);
 
     return dataRepoClient.post(
@@ -204,6 +206,13 @@ public class DataRepoFixtures {
     return waitForDatasetCreate(user, post);
   }
 
+  public DatasetSummaryModel createSelfHostedDataset(
+      TestConfiguration.User user, UUID profileId, String fileName) throws Exception {
+    DataRepoResponse<JobModel> jobResponse =
+        createDatasetRaw(user, profileId, fileName, CloudPlatform.GCP, false, true);
+    return waitForDatasetCreate(user, jobResponse);
+  }
+
   public DatasetSummaryModel createDataset(
       TestConfiguration.User user,
       UUID profileId,
@@ -212,7 +221,7 @@ public class DataRepoFixtures {
       boolean usePetAccount)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, filename, cloudPlatform, usePetAccount);
+        createDatasetRaw(user, profileId, filename, cloudPlatform, usePetAccount, false);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -241,7 +250,7 @@ public class DataRepoFixtures {
       CloudPlatform cloudPlatform)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, filename, cloudPlatform, false);
+        createDatasetRaw(user, profileId, filename, cloudPlatform, false, false);
     assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "dataset create launch response is present", jobResponse.getResponseObject().isPresent());

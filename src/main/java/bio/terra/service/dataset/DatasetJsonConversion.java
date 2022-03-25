@@ -95,7 +95,8 @@ public final class DatasetJsonConversion {
             .description(dataset.getDescription())
             .createdDate(dataset.getCreatedDate().toString())
             .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
-            .phsId(dataset.getPhsId());
+            .phsId(dataset.getPhsId())
+            .selfHosted(dataset.isSelfHosted());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;

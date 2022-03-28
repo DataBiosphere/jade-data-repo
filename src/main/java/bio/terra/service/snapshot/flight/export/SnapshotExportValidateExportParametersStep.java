@@ -31,7 +31,7 @@ public class SnapshotExportValidateExportParametersStep implements Step {
           new UnsupportedOperationException(
               "A self-hosted snapshot cannot be exported while also resolving DRS URIs to gs-paths"));
     }
-    return null;
+    return StepResult.getStepResultSuccess();
   }
 
   @Override

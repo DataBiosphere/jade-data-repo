@@ -35,6 +35,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -275,7 +276,12 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     }
 
     // validate that snapshot export works correctly
-    dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
+    DataRepoResponse<SnapshotExportResponseModel> exportResponse =
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false);
+    assertThat(
+        "self-hosted snapshots can be exported with DRS URIs",
+        exportResponse.getResponseObject().isPresent(),
+        is(true));
 
     DataRepoResponse<JobModel> exportSnapshotExpectFailure =
         dataRepoFixtures.exportSnapshot(steward(), snapshotId, true, false);

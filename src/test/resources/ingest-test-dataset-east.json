@@ -36,26 +36,6 @@
         "name": "sample_derived_from",
         "from": {"table": "sample", "column": "derived_from"},
         "to":   {"table": "sample", "column": "id"}
-      },
-      {
-        "name": "participant_samples",
-        "from": {"table": "participant", "column": "donated"},
-        "to":   {"table": "sample", "column": "id"}
-      },
-      {
-        "name": "sample_participants",
-        "from": {"table": "sample", "column": "participant_ids"},
-        "to":   {"table": "participant", "column": "id"}
-      },
-      {
-        "name": "participant_children",
-        "from": {"table": "participant", "column": "children"},
-        "to":   {"table": "participant", "column": "id"}
-      },
-      {
-        "name": "participant_files",
-        "from": {"table": "participant", "column": "donated"},
-        "to":   {"table": "file", "column": "derived_from"}
       }
     ],
     "assets":        [
@@ -69,11 +49,7 @@
           {"name": "file", "columns": []}
         ],
         "follow": [
-          "sample_derived_from",
-          "participant_samples",
-          "sample_participants",
-          "participant_children",
-          "participant_files"
+          "sample_derived_from"
         ]
       },
       {
@@ -86,11 +62,7 @@
           {"name": "file", "columns": []}
         ],
         "follow": [
-          "sample_derived_from",
-          "participant_samples",
-          "sample_participants",
-          "participant_children",
-          "participant_files"
+          "sample_derived_from"
         ]
       }
     ]

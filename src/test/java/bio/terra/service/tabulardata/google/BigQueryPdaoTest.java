@@ -190,12 +190,12 @@ public class BigQueryPdaoTest {
           new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
 
       UUID datasetId = dataset.getId();
-      connectedOperations.ingestTableSuccess(
-          datasetId, ingestRequest.table("participant").path(gsPath(participantBlob)));
+      // connectedOperations.ingestTableSuccess(
+      //    datasetId, ingestRequest.table("participant").path(gsPath(participantBlob)));
       connectedOperations.ingestTableSuccess(
           datasetId, ingestRequest.table("sample").path(gsPath(sampleBlob)));
-      connectedOperations.ingestTableSuccess(
-          datasetId, ingestRequest.table("file").path(gsPath(fileBlob)));
+      // connectedOperations.ingestTableSuccess(
+      //    datasetId, ingestRequest.table("file").path(gsPath(fileBlob)));
 
       // Create a snapshot!
       DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();
@@ -208,17 +208,9 @@ public class BigQueryPdaoTest {
           TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
 
       assertThat(snapshot.getTables().size(), is(equalTo(3)));
-      List<String> participantIds =
-          queryForIds(snapshot.getName(), "participant", bigQuerySnapshotProject);
       List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
-      List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQuerySnapshotProject);
 
-      assertThat(
-          participantIds,
-          containsInAnyOrder(
-              "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
-      assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
-      assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+      assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample7"));
     } finally {
       storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
     }

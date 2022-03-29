@@ -1,4 +1,4 @@
-{"id":"sample1","participant_ids":["participant_1"],"date_collected":"2019-02-27","derived_from":null}
+{"id":"sample1","participant_ids":["participant_1"],"date_collected":"2019-02-27","derived_from":"sample7"}
 {"id":"sample2","participant_ids":["participant_2"],"date_collected":"2020-02-29","derived_from":null}
 {"id":"sample3","participant_ids":["participant_3"],"date_collected":"2019-02-28","derived_from":null}
 {"id":"sample4","participant_ids":["participant_3"],"date_collected":"2019-03-01","derived_from":null}

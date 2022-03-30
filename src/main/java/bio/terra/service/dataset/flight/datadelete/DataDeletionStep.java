@@ -16,7 +16,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.transactions.TransactionUtils;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -31,7 +31,7 @@ import org.springframework.http.HttpStatus;
 public class DataDeletionStep implements Step {
   private static Logger logger = LoggerFactory.getLogger(DataDeletionStep.class);
 
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryTransactionPdao bigQueryTransactionPdao;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final DatasetService datasetService;
   private final ConfigurationService configService;
@@ -39,13 +39,13 @@ public class DataDeletionStep implements Step {
   private final boolean autocommit;
 
   public DataDeletionStep(
-      BigQueryPdao bigQueryPdao,
+      BigQueryTransactionPdao bigQueryTransactionPdao,
       BigQueryDatasetPdao bigQueryDatasetPdao,
       DatasetService datasetService,
       ConfigurationService configService,
       AuthenticatedUserRequest userRequest,
       boolean autocommit) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryTransactionPdao = bigQueryTransactionPdao;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.datasetService = datasetService;
     this.configService = configService;
@@ -103,7 +103,7 @@ public class DataDeletionStep implements Step {
           .forEach(
               t -> {
                 try {
-                  bigQueryPdao.rollbackDatasetTable(
+                  bigQueryTransactionPdao.rollbackDatasetTable(
                       dataset, t.getSoftDeleteTableName(), transactionId);
                 } catch (InterruptedException e) {
                   logger.warn(

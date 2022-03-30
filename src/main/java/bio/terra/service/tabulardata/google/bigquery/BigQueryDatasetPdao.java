@@ -101,7 +101,9 @@ public class BigQueryDatasetPdao {
       bigQueryProject.createDataset(datasetName, dataset.getDescription(), region);
       bigQueryProject.createTable(datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
       bigQueryProject.createTable(
-          datasetName, PDAO_TRANSACTIONS_TABLE, BigQueryPdao.buildTransactionsTableSchema());
+          datasetName,
+          PDAO_TRANSACTIONS_TABLE,
+          BigQueryTransactionPdao.buildTransactionsTableSchema());
       for (DatasetTable table : dataset.getTables()) {
         bigQueryProject.createTable(
             datasetName,
@@ -1010,7 +1012,9 @@ public class BigQueryDatasetPdao {
         logger.info("......Adding Transaction table");
         if (!bigQueryProject.tableExists(datasetName, PDAO_TRANSACTIONS_TABLE)) {
           bigQueryProject.createTable(
-              datasetName, PDAO_TRANSACTIONS_TABLE, BigQueryPdao.buildTransactionsTableSchema());
+              datasetName,
+              PDAO_TRANSACTIONS_TABLE,
+              BigQueryTransactionPdao.buildTransactionsTableSchema());
         }
         logger.info("......Updating live view");
         bigQuery.update(buildLiveView(bigQueryProject.getProjectId(), datasetName, datasetTable));

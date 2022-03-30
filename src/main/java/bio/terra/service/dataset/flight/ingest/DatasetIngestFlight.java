@@ -56,6 +56,7 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -74,6 +75,8 @@ public class DatasetIngestFlight extends Flight {
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryTransactionPdao bigQueryTransactionPdao =
+        appContext.getBean(BigQueryTransactionPdao.class);
     BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
@@ -127,13 +130,13 @@ public class DatasetIngestFlight extends Flight {
         String transactionDesc = "Autocommit transaction";
         addStep(
             new TransactionOpenStep(
-                datasetService, bigQueryPdao, userReq, transactionDesc, false, false));
+                datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false));
         autocommit = true;
       } else {
         addStep(
             new TransactionLockStep(
                 datasetService,
-                bigQueryPdao,
+                bigQueryTransactionPdao,
                 ingestRequestModel.getTransactionId(),
                 true,
                 userReq));
@@ -213,14 +216,14 @@ public class DatasetIngestFlight extends Flight {
         // Soft deletes rows from the target table
         addStep(
             new IngestSoftDeleteExistingRowsStep(
-                datasetService, bigQueryDatasetPdao, bigQueryPdao, userReq, autocommit));
+                datasetService, bigQueryTransactionPdao, bigQueryDatasetPdao, userReq, autocommit));
       }
       addStep(new IngestRowIdsStep(datasetService, bigQueryDatasetPdao));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryDatasetPdao, fileDao));
       // Loads data into the final target raw data table
       addStep(
           new IngestInsertIntoDatasetTableStep(
-              datasetService, bigQueryPdao, bigQueryDatasetPdao, userReq, autocommit));
+              datasetService, bigQueryTransactionPdao, bigQueryDatasetPdao, userReq, autocommit));
       addStep(new IngestCleanupStep(datasetService, bigQueryDatasetPdao));
       addStep(new IngestScratchFileDeleteGcpStep(gcsPdao));
       addStep(new PerformPayloadIngestStep(new IngestLandingFileDeleteGcpStep(false, gcsPdao)));
@@ -242,9 +245,14 @@ public class DatasetIngestFlight extends Flight {
       if (!autocommit) {
         addStep(
             new TransactionUnlockStep(
-                datasetService, bigQueryPdao, ingestRequestModel.getTransactionId(), userReq));
+                datasetService,
+                bigQueryTransactionPdao,
+                ingestRequestModel.getTransactionId(),
+                userReq));
       } else {
-        addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, false, null));
+        addStep(
+            new TransactionCommitStep(
+                datasetService, bigQueryTransactionPdao, userReq, false, null));
       }
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);

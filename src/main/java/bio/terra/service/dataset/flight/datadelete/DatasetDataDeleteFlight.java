@@ -24,6 +24,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -39,6 +40,8 @@ public class DatasetDataDeleteFlight extends Flight {
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryTransactionPdao bigQueryTransactionPdao =
+        appContext.getBean(BigQueryTransactionPdao.class);
     BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
     IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
@@ -78,12 +81,12 @@ public class DatasetDataDeleteFlight extends Flight {
       String transactionDesc = "Autocommit transaction";
       addStep(
           new TransactionOpenStep(
-              datasetService, bigQueryPdao, userReq, transactionDesc, false, false));
+              datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false));
       autocommit = true;
     } else {
       addStep(
           new TransactionLockStep(
-              datasetService, bigQueryPdao, request.getTransactionId(), true, userReq));
+              datasetService, bigQueryTransactionPdao, request.getTransactionId(), true, userReq));
       autocommit = false;
     }
 
@@ -101,14 +104,20 @@ public class DatasetDataDeleteFlight extends Flight {
     // insert into soft delete table
     addStep(
         new DataDeletionStep(
-            bigQueryPdao, bigQueryDatasetPdao, datasetService, configService, userReq, autocommit));
+            bigQueryTransactionPdao,
+            bigQueryDatasetPdao,
+            datasetService,
+            configService,
+            userReq,
+            autocommit));
 
     if (!autocommit) {
       addStep(
           new TransactionUnlockStep(
-              datasetService, bigQueryPdao, request.getTransactionId(), userReq));
+              datasetService, bigQueryTransactionPdao, request.getTransactionId(), userReq));
     } else {
-      addStep(new TransactionCommitStep(datasetService, bigQueryPdao, userReq, false, null));
+      addStep(
+          new TransactionCommitStep(datasetService, bigQueryTransactionPdao, userReq, false, null));
     }
 
     // unlock

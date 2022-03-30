@@ -4,8 +4,6 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
-import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.getSingleLongValue;
-import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.prefixName;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
@@ -133,7 +131,7 @@ public class BigQuerySnapshotPdao {
     // populate root row ids. Must happen before the relationship walk.
     // NOTE: when we have multiple sources, we can put this into a loop
     SnapshotSource source = snapshot.getFirstSnapshotSource();
-    String datasetBqDatasetName = prefixName(source.getDataset().getName());
+    String datasetBqDatasetName = BigQueryPdao.prefixName(source.getDataset().getName());
 
     AssetSpecification asset = source.getAssetSpecification();
     DatasetTable rootTable = asset.getRootTable().getTable();
@@ -287,7 +285,7 @@ public class BigQuerySnapshotPdao {
     String snapshotName = snapshot.getName();
     BigQuery snapshotBigQuery = snapshotBigQueryProject.getBigQuery();
 
-    String datasetBqDatasetName = prefixName(dataset.getName());
+    String datasetBqDatasetName = BigQueryPdao.prefixName(dataset.getName());
     BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
     String datasetProjectId = datasetBigQueryProject.getProjectId();
 
@@ -363,7 +361,7 @@ public class BigQuerySnapshotPdao {
     // populate root row ids. Must happen before the relationship walk.
     // NOTE: when we have multiple sources, we can put this into a loop
     SnapshotSource source = snapshot.getFirstSnapshotSource();
-    String datasetBqDatasetName = prefixName(source.getDataset().getName());
+    String datasetBqDatasetName = BigQueryPdao.prefixName(source.getDataset().getName());
 
     for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
       String tableName = table.getTableName();
@@ -480,7 +478,7 @@ public class BigQuerySnapshotPdao {
     String datasetLiveViewSql =
         BigQueryDatasetPdao.renderDatasetLiveViewSql(
             datasetProjectId,
-            prefixName(source.getDataset().getName()),
+            BigQueryPdao.prefixName(source.getDataset().getName()),
             datasetTable,
             null,
             filterBefore);
@@ -540,7 +538,7 @@ public class BigQuerySnapshotPdao {
     ST sqlTemplate = new ST(getSnapshotRefIdsTemplate);
     sqlTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
     sqlTemplate.add("snapshotProject", snapshotBigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", prefixName(dataset.getName()));
+    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
     sqlTemplate.add("snapshot", snapshot.getName());
     sqlTemplate.add("table", tableName);
     sqlTemplate.add("tableId", tableId);
@@ -577,7 +575,7 @@ public class BigQuerySnapshotPdao {
     // dataset
     // TODO: When we support multiple datasets per snapshot, this will need to be reworked
     Dataset dataset = snapshot.getSourceDataset();
-    String datasetBqDatasetName = prefixName(dataset.getName());
+    String datasetBqDatasetName = BigQueryPdao.prefixName(dataset.getName());
     BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
     String datasetProjectId = datasetBigQueryProject.getProjectId();
 
@@ -727,7 +725,7 @@ public class BigQuerySnapshotPdao {
       String datasetLiveViewSql =
           BigQueryDatasetPdao.renderDatasetLiveViewSql(
               datasetBigQueryProject.getProjectId(),
-              prefixName(source.getDataset().getName()),
+              BigQueryPdao.prefixName(source.getDataset().getName()),
               datasetTable,
               null,
               filterBefore);
@@ -768,7 +766,7 @@ public class BigQuerySnapshotPdao {
     List<SnapshotSource> sources = snapshot.getSnapshotSources();
     if (sources.size() > 0) {
       String datasetName = sources.get(0).getDataset().getName();
-      String datasetBqDatasetName = prefixName(datasetName);
+      String datasetBqDatasetName = BigQueryPdao.prefixName(datasetName);
       deleteViewAcls(datasetBqDatasetName, snapshot, snapshotProjectId);
     } else {
       logger.warn("Snapshot is missing sources: " + snapshot.getName());
@@ -871,7 +869,7 @@ public class BigQuerySnapshotPdao {
               .add("table", tableName)
               .render();
       TableResult result = bigQueryProject.query(sql);
-      rowCounts.put(tableName, getSingleLongValue(result));
+      rowCounts.put(tableName, BigQueryPdao.getSingleLongValue(result));
     }
     return rowCounts;
   }

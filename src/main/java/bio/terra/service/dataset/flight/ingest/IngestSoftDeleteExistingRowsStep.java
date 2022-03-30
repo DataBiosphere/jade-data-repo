@@ -7,7 +7,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.transactions.TransactionUtils;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -19,20 +19,20 @@ public class IngestSoftDeleteExistingRowsStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(IngestSoftDeleteExistingRowsStep.class);
   private final DatasetService datasetService;
+  private final BigQueryTransactionPdao bigQueryTransactionPdao;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
-  private final BigQueryPdao bigQueryPdao;
   private final AuthenticatedUserRequest userReq;
   private final boolean autocommit;
 
   public IngestSoftDeleteExistingRowsStep(
       DatasetService datasetService,
+      BigQueryTransactionPdao bigQueryTransactionPdao,
       BigQueryDatasetPdao bigQueryDatasetPdao,
-      BigQueryPdao bigQueryPdao,
       AuthenticatedUserRequest userReq,
       boolean autocommit) {
     this.datasetService = datasetService;
+    this.bigQueryTransactionPdao = bigQueryTransactionPdao;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
-    this.bigQueryPdao = bigQueryPdao;
     this.userReq = userReq;
     this.autocommit = autocommit;
   }
@@ -70,7 +70,8 @@ public class IngestSoftDeleteExistingRowsStep implements Step {
       DatasetTable table = IngestUtils.getDatasetTable(context, dataset);
       UUID transactionId = TransactionUtils.getTransactionId(context);
       try {
-        bigQueryPdao.rollbackDatasetTable(dataset, table.getSoftDeleteTableName(), transactionId);
+        bigQueryTransactionPdao.rollbackDatasetTable(
+            dataset, table.getSoftDeleteTableName(), transactionId);
       } catch (InterruptedException e) {
         logger.warn(
             String.format(

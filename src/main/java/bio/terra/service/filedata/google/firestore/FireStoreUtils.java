@@ -211,7 +211,8 @@ public class FireStoreUtils {
                   "[batchOperation] Retry-able error in firestore future get - input: "
                       + inputs.get(i)
                       + " message: "
-                      + ex.getMessage());
+                      + ex.getMessage(),
+                  ex);
             } else {
               throw new FileSystemExecutionException(
                   "[batchOperation] Parent exception caught but neither parent nor nested "

@@ -9,6 +9,7 @@ import bio.terra.common.AclUtils;
 import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
+import bio.terra.common.exception.PdaoFileLinkException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.FileLoadModel;
@@ -388,7 +389,7 @@ public class GcsPdao implements CloudFileReader {
     }
   }
 
-  public FSFileInfo copySelfHostedFile(
+  public FSFileInfo linkSelfHostedFile(
       FileLoadModel fileLoadModel, String fileId, String projectId) {
 
     try {
@@ -426,7 +427,7 @@ public class GcsPdao implements CloudFileReader {
       // derives from BadRequestException). I think there are several cases here. We might need to
       // retry
       // for flaky google case or we might need to bail out if access is denied.
-      throw new PdaoFileCopyException("File ingest failed", ex);
+      throw new PdaoFileLinkException("File ingest failed", ex);
     }
   }
 

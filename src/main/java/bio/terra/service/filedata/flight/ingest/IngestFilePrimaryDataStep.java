@@ -42,7 +42,7 @@ public class IngestFilePrimaryDataStep implements Step {
       FSFileInfo fsFileInfo;
       if (dataset.isSelfHosted()) {
         fsFileInfo =
-            gcsPdao.copySelfHostedFile(
+            gcsPdao.linkSelfHostedFile(
                 fileLoadModel, fileId, dataset.getProjectResource().getGoogleProjectId());
       } else {
         GoogleBucketResource bucketResource =

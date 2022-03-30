@@ -491,7 +491,6 @@ task testConnected(type: Test) {
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
-/*
     retry {
         if (isCiServer) {
             maxRetries = 3
@@ -500,7 +499,6 @@ task testConnected(type: Test) {
             maxRetries = 2
         }
     }
- */
     maxParallelForks = 2
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"

@@ -100,7 +100,6 @@ public class SnapshotExportIntegrationTest extends UsersBase {
 
   @After
   public void tearDown() throws Exception {
-    /*
     for (UUID snapshotId : createdSnapshotIds) {
       try {
         dataRepoFixtures.deleteSnapshot(steward(), snapshotId);
@@ -117,8 +116,6 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     if (profileId != null) {
       dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
-
-     */
   }
 
   @Test

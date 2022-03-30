@@ -6,7 +6,8 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.transactions.TransactionUtils;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -18,16 +19,19 @@ public class IngestSoftDeleteExistingRowsStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(IngestSoftDeleteExistingRowsStep.class);
   private final DatasetService datasetService;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final BigQueryPdao bigQueryPdao;
   private final AuthenticatedUserRequest userReq;
   private final boolean autocommit;
 
   public IngestSoftDeleteExistingRowsStep(
       DatasetService datasetService,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
       BigQueryPdao bigQueryPdao,
       AuthenticatedUserRequest userReq,
       boolean autocommit) {
     this.datasetService = datasetService;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.bigQueryPdao = bigQueryPdao;
     this.userReq = userReq;
     this.autocommit = autocommit;
@@ -43,7 +47,7 @@ public class IngestSoftDeleteExistingRowsStep implements Step {
 
     if (targetTable.getPrimaryKey() != null && !targetTable.getPrimaryKey().isEmpty()) {
       logger.info("Removing target rows being replaced from table {}", targetTable.toLogString());
-      bigQueryPdao.insertIntoSoftDeleteDatasetTable(
+      bigQueryDatasetPdao.insertIntoSoftDeleteDatasetTable(
           userReq,
           dataset,
           targetTable,

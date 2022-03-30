@@ -36,6 +36,8 @@ import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
@@ -87,6 +89,7 @@ public class BigQueryPdaoDatasetConnectedTest {
   @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private BigQueryPdao bigQueryPdao;
+  @Autowired private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
   @Autowired private ConnectedOperations connectedOperations;
@@ -158,7 +161,7 @@ public class BigQueryPdaoDatasetConnectedTest {
           BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-null-id.json").build();
 
       try {
-        bigQueryPdao.createDataset(dataset);
+        bigQueryDatasetPdao.createDataset(dataset);
 
         com.google.cloud.bigquery.Dataset bqDataset = bigQueryDataset(dataset);
         assertThat(regionMessage, bqDataset.getLocation(), equalTo(region));
@@ -312,7 +315,7 @@ public class BigQueryPdaoDatasetConnectedTest {
     storage.create(participantBlob, readFile("ingest-test-participant.json"));
 
     connectedOperations.addDataset(dataset.getId());
-    bigQueryPdao.createDataset(dataset);
+    bigQueryDatasetPdao.createDataset(dataset);
 
     // Create transactions
     TransactionModel transaction1 =

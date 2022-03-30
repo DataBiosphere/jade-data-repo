@@ -50,7 +50,8 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -77,6 +78,7 @@ public class DatasetService {
   private final ProfileDao profileDao;
   private final StorageTableService storageTableService;
   private final BigQueryPdao bigQueryPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
   private final ResourceService resourceService;
   private final GcsPdao gcsPdao;
@@ -92,6 +94,7 @@ public class DatasetService {
       ProfileDao profileDao,
       StorageTableService storageTableService,
       BigQueryPdao bigQueryPdao,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
       MetadataDataAccessUtils metadataDataAccessUtils,
       ResourceService resourceService,
       GcsPdao gcsPdao,
@@ -104,6 +107,7 @@ public class DatasetService {
     this.profileDao = profileDao;
     this.storageTableService = storageTableService;
     this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
     this.resourceService = resourceService;
     this.gcsPdao = gcsPdao;
@@ -350,7 +354,7 @@ public class DatasetService {
     if (platformWrapper.isAzure()) {
       return storageTableService.getLoadHistory(dataset, loadTag, offset, limit);
     } else if (platformWrapper.isGcp()) {
-      return bigQueryPdao.getLoadHistory(dataset, loadTag, offset, limit);
+      return bigQueryDatasetPdao.getLoadHistory(dataset, loadTag, offset, limit);
     } else {
       throw new InvalidCloudPlatformException();
     }

@@ -5,7 +5,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -13,11 +13,12 @@ import bio.terra.stairway.StepResult;
 
 public class IngestLoadTableStep implements Step {
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
-  public IngestLoadTableStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
+  public IngestLoadTableStep(
+      DatasetService datasetService, BigQueryDatasetPdao bigQueryDatasetPdao) {
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
   }
 
   @Override
@@ -32,7 +33,7 @@ public class IngestLoadTableStep implements Step {
     String pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class);
 
     PdaoLoadStatistics ingestStatistics =
-        bigQueryPdao.loadToStagingTable(
+        bigQueryDatasetPdao.loadToStagingTable(
             dataset, targetTable, stagingTableName, ingestRequest, pathToIngestFile);
 
     // Save away the stats in the working map. We will use some of them later
@@ -46,7 +47,7 @@ public class IngestLoadTableStep implements Step {
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     String stagingTableName = IngestUtils.getStagingTableName(context);
-    bigQueryPdao.deleteDatasetTable(dataset, stagingTableName);
+    bigQueryDatasetPdao.deleteDatasetTable(dataset, stagingTableName);
     return StepResult.getStepResultSuccess();
   }
 }

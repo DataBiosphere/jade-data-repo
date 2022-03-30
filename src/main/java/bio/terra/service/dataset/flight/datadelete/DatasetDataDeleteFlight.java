@@ -22,7 +22,8 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.flight.VerifyAuthorizationStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -38,6 +39,7 @@ public class DatasetDataDeleteFlight extends Flight {
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
     IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
@@ -94,10 +96,12 @@ public class DatasetDataDeleteFlight extends Flight {
     addStep(new DataDeletionCopyFilesToBigQueryScratchBucketStep(datasetService, gcsPdao));
 
     // validate tables exist, check access to files, and create external temp tables
-    addStep(new CreateExternalTablesStep(bigQueryPdao, datasetService));
+    addStep(new CreateExternalTablesStep(bigQueryPdao, bigQueryDatasetPdao, datasetService));
 
     // insert into soft delete table
-    addStep(new DataDeletionStep(bigQueryPdao, datasetService, configService, userReq, autocommit));
+    addStep(
+        new DataDeletionStep(
+            bigQueryPdao, bigQueryDatasetPdao, datasetService, configService, userReq, autocommit));
 
     if (!autocommit) {
       addStep(

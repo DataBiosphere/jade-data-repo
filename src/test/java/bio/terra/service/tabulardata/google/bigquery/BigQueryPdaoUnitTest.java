@@ -1,8 +1,8 @@
-package bio.terra.service.tabulardata.google;
+package bio.terra.service.tabulardata.google.bigquery;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
-import static bio.terra.service.tabulardata.google.BigQueryPdao.prefixName;
+import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.prefixName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
@@ -43,6 +43,7 @@ import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
@@ -121,7 +122,8 @@ public class BigQueryPdaoUnitTest {
   @Mock private BigQuery bigQueryDataset;
 
   private Snapshot snapshot;
-  private BigQueryPdao dao;
+  private BigQueryPdao bigQueryPdao;
+  private BigQueryDatasetPdao bigQueryDatasetPdao;
 
   @Before
   public void setUp() throws Exception {
@@ -134,7 +136,8 @@ public class BigQueryPdaoUnitTest {
     when(bigQueryProjectDataset.getBigQuery()).thenReturn(bigQueryDataset);
     BigQueryProject.put(bigQueryProjectDataset);
 
-    dao = new BigQueryPdao(applicationConfiguration, bigQueryConfiguration);
+    bigQueryPdao = new BigQueryPdao(applicationConfiguration, bigQueryConfiguration);
+    bigQueryDatasetPdao = new BigQueryDatasetPdao();
     snapshot = mockSnapshot();
   }
 
@@ -159,7 +162,8 @@ public class BigQueryPdaoUnitTest {
 
     DatasetTable table = snapshot.getSourceDataset().getTables().get(0);
     assertThat(
-        dao.getRefIds(snapshot.getSourceDataset(), table.getName(), table.getColumns().get(0)),
+        bigQueryDatasetPdao.getRefIds(
+            snapshot.getSourceDataset(), table.getName(), table.getColumns().get(0)),
         equalTo(List.of(value1, value2)));
   }
 
@@ -194,7 +198,7 @@ public class BigQueryPdaoUnitTest {
 
     DatasetTable table = snapshot.getSourceDataset().getTables().get(0);
     assertThat(
-        dao.getSnapshotRefIds(
+        bigQueryPdao.getSnapshotRefIds(
             snapshot.getSourceDataset(),
             snapshot,
             table.getName(),
@@ -221,7 +225,7 @@ public class BigQueryPdaoUnitTest {
             + input2
             + "']) AS input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T."
@@ -235,7 +239,8 @@ public class BigQueryPdaoUnitTest {
             Map.of("datarepo_row_id", drRowId2, "input_value", input2)));
 
     assertThat(
-        dao.mapValuesToRows(snapshot.getFirstSnapshotSource(), List.of(input1, input2), CREATED_AT),
+        bigQueryPdao.mapValuesToRows(
+            snapshot.getFirstSnapshotSource(), List.of(input1, input2), CREATED_AT),
         samePropertyValuesAs(
             new RowIdMatch().addMatch(input1, drRowId1).addMatch(input2, drRowId2)));
   }
@@ -261,7 +266,7 @@ public class BigQueryPdaoUnitTest {
             + ipt3
             + "']) AS input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T."
@@ -277,7 +282,7 @@ public class BigQueryPdaoUnitTest {
 
     // Check that mismatches are also identified
     assertThat(
-        dao.mapValuesToRows(
+        bigQueryPdao.mapValuesToRows(
             snapshot.getFirstSnapshotSource(), List.of(ipt1, ipt2, ipt3), CREATED_AT),
         samePropertyValuesAs(
             new RowIdMatch().addMatch(ipt1, drRowId1).addMatch(ipt2, drRowId2).addMismatch(ipt3)));
@@ -287,7 +292,7 @@ public class BigQueryPdaoUnitTest {
   public void testCreateSnapshotEmptyRowIds() throws InterruptedException {
     mockNumRowIds(snapshot, TABLE_1_NAME, 0);
 
-    dao.createSnapshot(snapshot, Collections.emptyList(), CREATED_AT);
+    bigQueryPdao.createSnapshot(snapshot, Collections.emptyList(), CREATED_AT);
 
     verify(bigQueryProjectSnapshot, times(1))
         .createDataset(SNAPSHOT_NAME, SNAPSHOT_DESCRIPTION, GoogleRegion.NORTHAMERICA_NORTHEAST1);
@@ -373,7 +378,9 @@ public class BigQueryPdaoUnitTest {
 
     assertThrows(
         PdaoException.class,
-        () -> dao.createSnapshot(snapshot, List.of(UUID.randomUUID().toString()), CREATED_AT),
+        () ->
+            bigQueryPdao.createSnapshot(
+                snapshot, List.of(UUID.randomUUID().toString()), CREATED_AT),
         "Invalid row ids supplied");
   }
 
@@ -393,7 +400,7 @@ public class BigQueryPdaoUnitTest {
             .toString();
     mockNumRowIds(snapshot, TABLE_1_NAME, 2);
 
-    dao.createSnapshot(snapshot, List.of(drRowId1, drRowId2), CREATED_AT);
+    bigQueryPdao.createSnapshot(snapshot, List.of(drRowId1, drRowId2), CREATED_AT);
 
     verify(bigQueryProjectSnapshot, times(1))
         .createDataset(SNAPSHOT_NAME, SNAPSHOT_DESCRIPTION, GoogleRegion.NORTHAMERICA_NORTHEAST1);
@@ -426,11 +433,11 @@ public class BigQueryPdaoUnitTest {
                         + "' AS datarepo_table_id, "
                         + "T.datarepo_row_id "
                         + "FROM ("
-                        + BigQueryPdao.renderDatasetLiveViewSql(
+                        + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                             DATASET_PROJECT_ID, prefixName(DATASET_NAME), table2, null, CREATED_AT)
                         + ") T, "
                         + "("
-                        + BigQueryPdao.renderDatasetLiveViewSql(
+                        + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                             DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
                         + ") F, "
                         + "`"
@@ -553,7 +560,7 @@ public class BigQueryPdaoUnitTest {
         Schema.of(Field.of("cnt", LegacySQLTypeName.NUMERIC)),
         List.of(Map.of("cnt", UUID.randomUUID().toString())));
 
-    dao.createSnapshotWithLiveViews(snapshot, snapshot.getSourceDataset(), CREATED_AT);
+    bigQueryPdao.createSnapshotWithLiveViews(snapshot, snapshot.getSourceDataset(), CREATED_AT);
 
     // Make sure that rowId table is created
     verify(bigQueryProjectSnapshot, times(1))
@@ -578,7 +585,7 @@ public class BigQueryPdaoUnitTest {
                     + TABLE_1_ID
                     + "', datarepo_row_id "
                     + "FROM ("
-                    + BigQueryPdao.renderDatasetLiveViewSql(
+                    + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                         DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
                     + ") AS L) "
                     + "UNION ALL "
@@ -586,7 +593,7 @@ public class BigQueryPdaoUnitTest {
                     + TABLE_2_ID
                     + "', datarepo_row_id "
                     + "FROM ("
-                    + BigQueryPdao.renderDatasetLiveViewSql(
+                    + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                         DATASET_PROJECT_ID, prefixName(DATASET_NAME), table2, null, CREATED_AT)
                     + ") AS L)"),
             eq(
@@ -610,7 +617,9 @@ public class BigQueryPdaoUnitTest {
 
     assertThrows(
         PdaoException.class,
-        () -> dao.createSnapshotWithLiveViews(snapshot, snapshot.getSourceDataset(), CREATED_AT),
+        () ->
+            bigQueryPdao.createSnapshotWithLiveViews(
+                snapshot, snapshot.getSourceDataset(), CREATED_AT),
         "This snapshot is empty");
   }
 
@@ -621,7 +630,7 @@ public class BigQueryPdaoUnitTest {
     String query =
         "SELECT datarepo_row_id "
             + "FROM ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") "
             + "WHERE "
@@ -654,7 +663,7 @@ public class BigQueryPdaoUnitTest {
             + SNAPSHOT_NAME
             + ".datarepo_temp` AS T "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS D "
             + "USING ( datarepo_row_id ) "
@@ -665,7 +674,7 @@ public class BigQueryPdaoUnitTest {
     AssetSpecification assetSpecification =
         snapshot.getFirstSnapshotSource().getAssetSpecification();
     AssetTable rootTable = assetSpecification.getRootTable();
-    dao.queryForRowIds(assetSpecification, snapshot, query, CREATED_AT);
+    bigQueryPdao.queryForRowIds(assetSpecification, snapshot, query, CREATED_AT);
 
     verify(bigQueryProjectSnapshot, times(1))
         .query(
@@ -693,7 +702,7 @@ public class BigQueryPdaoUnitTest {
     String query =
         "SELECT datarepo_row_id "
             + "FROM ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") "
             + "WHERE "
@@ -719,7 +728,7 @@ public class BigQueryPdaoUnitTest {
     assertThrows(
         InvalidQueryException.class,
         () ->
-            dao.queryForRowIds(
+            bigQueryPdao.queryForRowIds(
                 snapshot.getFirstSnapshotSource().getAssetSpecification(),
                 snapshot,
                 query,
@@ -734,7 +743,7 @@ public class BigQueryPdaoUnitTest {
     String query =
         "SELECT datarepo_row_id "
             + "FROM ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") "
             + "WHERE "
@@ -767,7 +776,7 @@ public class BigQueryPdaoUnitTest {
             + SNAPSHOT_NAME
             + ".datarepo_temp` AS T "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS D "
             + "USING ( datarepo_row_id ) "
@@ -778,7 +787,7 @@ public class BigQueryPdaoUnitTest {
     assertThrows(
         MismatchedValueException.class,
         () ->
-            dao.queryForRowIds(
+            bigQueryPdao.queryForRowIds(
                 snapshot.getFirstSnapshotSource().getAssetSpecification(),
                 snapshot,
                 query,
@@ -801,7 +810,7 @@ public class BigQueryPdaoUnitTest {
             + drRowId2
             + "']) AS input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
@@ -813,7 +822,7 @@ public class BigQueryPdaoUnitTest {
             Map.of("datarepo_row_id", drRowId2, "input_value", drRowId2)));
 
     assertThat(
-        dao.matchRowIds(
+        bigQueryPdao.matchRowIds(
             snapshot.getFirstSnapshotSource(),
             TABLE_1_NAME,
             List.of(UUID.fromString(drRowId1), UUID.fromString(drRowId2)),
@@ -840,7 +849,7 @@ public class BigQueryPdaoUnitTest {
             + "']) AS "
             + "input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
@@ -853,7 +862,7 @@ public class BigQueryPdaoUnitTest {
             Map.of("input_value", drRowId3)));
 
     assertThat(
-        dao.matchRowIds(
+        bigQueryPdao.matchRowIds(
             snapshot.getFirstSnapshotSource(),
             TABLE_1_NAME,
             List.of(
@@ -881,7 +890,7 @@ public class BigQueryPdaoUnitTest {
             + drRowId2
             + "']) AS input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
@@ -905,7 +914,7 @@ public class BigQueryPdaoUnitTest {
                             .addColumnsItem(TABLE_2_COL1_NAME)
                             .addColumnsItem(TABLE_2_COL2_NAME)
                             .tableName(TABLE_2_NAME)));
-    dao.createSnapshotWithProvidedIds(snapshot, requestModel, CREATED_AT);
+    bigQueryPdao.createSnapshotWithProvidedIds(snapshot, requestModel, CREATED_AT);
 
     // Verify that the rowIds are properly copied
     verify(bigQueryProjectSnapshot, times(1))
@@ -942,7 +951,7 @@ public class BigQueryPdaoUnitTest {
             + drRowId2
             + "']) AS input_value) AS V "
             + "LEFT JOIN ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
             + ") AS T "
             + "ON V.input_value = CAST(T.datarepo_row_id AS STRING)",
@@ -968,7 +977,7 @@ public class BigQueryPdaoUnitTest {
                             .tableName(TABLE_2_NAME)));
     assertThrows(
         PdaoException.class,
-        () -> dao.createSnapshotWithProvidedIds(snapshot, requestModel, CREATED_AT),
+        () -> bigQueryPdao.createSnapshotWithProvidedIds(snapshot, requestModel, CREATED_AT),
         "Invalid row ids supplied");
 
     // Verify that the rowIds are properly copied (make sure that it still actually happens)
@@ -1151,7 +1160,7 @@ public class BigQueryPdaoUnitTest {
         bigQueryProjectSnapshot,
         "SELECT COUNT(1) "
             + "FROM ("
-            + BigQueryPdao.renderDatasetLiveViewSql(
+            + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                 datasetProjectId, prefixName(datasetName), table, null, CREATED_AT)
             + ") AS T, "
             + "`"

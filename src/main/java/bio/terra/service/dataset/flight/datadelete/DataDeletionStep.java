@@ -15,7 +15,8 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.transactions.TransactionUtils;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -31,6 +32,7 @@ public class DataDeletionStep implements Step {
   private static Logger logger = LoggerFactory.getLogger(DataDeletionStep.class);
 
   private final BigQueryPdao bigQueryPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final DatasetService datasetService;
   private final ConfigurationService configService;
   private final AuthenticatedUserRequest userRequest;
@@ -38,11 +40,13 @@ public class DataDeletionStep implements Step {
 
   public DataDeletionStep(
       BigQueryPdao bigQueryPdao,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
       DatasetService datasetService,
       ConfigurationService configService,
       AuthenticatedUserRequest userRequest,
       boolean autocommit) {
     this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.datasetService = datasetService;
     this.configService = configService;
     this.userRequest = userRequest;
@@ -60,7 +64,7 @@ public class DataDeletionStep implements Step {
             .collect(Collectors.toList());
     UUID transactionId = TransactionUtils.getTransactionId(context);
 
-    bigQueryPdao.validateDeleteRequest(dataset, dataDeletionRequest.getTables(), suffix);
+    bigQueryDatasetPdao.validateDeleteRequest(dataset, dataDeletionRequest.getTables(), suffix);
 
     if (configService.testInsertFault(ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
       logger.info("SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT");
@@ -71,7 +75,7 @@ public class DataDeletionStep implements Step {
       logger.info("SOFT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
     }
 
-    bigQueryPdao.applySoftDeletes(
+    bigQueryDatasetPdao.applySoftDeletes(
         dataset, tableNames, suffix, context.getFlightId(), transactionId, userRequest);
 
     // TODO<DR-2407>: this can be more informative, something like # rows deleted per table, or

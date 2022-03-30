@@ -9,7 +9,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.iam.IamRole;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -29,15 +29,15 @@ public class CreateDatasetAuthzPrimaryDataStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(CreateDatasetAuthzPrimaryDataStep.class);
 
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final DatasetService datasetService;
   private final ConfigurationService configService;
 
   public CreateDatasetAuthzPrimaryDataStep(
-      BigQueryPdao bigQueryPdao,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
       DatasetService datasetService,
       ConfigurationService configService) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.datasetService = datasetService;
     this.configService = configService;
   }
@@ -62,7 +62,7 @@ public class CreateDatasetAuthzPrimaryDataStep implements Step {
       emails.add(policyEmails.get(IamRole.STEWARD));
       emails.add(policyEmails.get(IamRole.CUSTODIAN));
       emails.add(policyEmails.get(IamRole.SNAPSHOT_CREATOR));
-      bigQueryPdao.grantReadAccessToDataset(dataset, emails);
+      bigQueryDatasetPdao.grantReadAccessToDataset(dataset, emails);
 
     } catch (BigQueryException ex) {
       if (FlightUtils.isBigQueryIamPropagationError(ex)) {

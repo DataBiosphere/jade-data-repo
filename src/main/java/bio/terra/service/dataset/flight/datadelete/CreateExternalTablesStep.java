@@ -9,7 +9,8 @@ import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.TableNotFoundException;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -21,12 +22,17 @@ import org.slf4j.LoggerFactory;
 public class CreateExternalTablesStep implements Step {
 
   private final BigQueryPdao bigQueryPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final DatasetService datasetService;
 
   private static Logger logger = LoggerFactory.getLogger(CreateExternalTablesStep.class);
 
-  public CreateExternalTablesStep(BigQueryPdao bigQueryPdao, DatasetService datasetService) {
+  public CreateExternalTablesStep(
+      BigQueryPdao bigQueryPdao,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
+      DatasetService datasetService) {
     this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.datasetService = datasetService;
   }
 
@@ -56,7 +62,8 @@ public class CreateExternalTablesStep implements Step {
     for (DataDeletionTableModel table : tables) {
       String path = table.getGcsFileSpec().getPath();
       // let any exception here trigger an undo, no use trying to continue
-      bigQueryPdao.createSoftDeleteExternalTable(dataset, path, table.getTableName(), suffix);
+      bigQueryDatasetPdao.createSoftDeleteExternalTable(
+          dataset, path, table.getTableName(), suffix);
     }
 
     return StepResult.getStepResultSuccess();

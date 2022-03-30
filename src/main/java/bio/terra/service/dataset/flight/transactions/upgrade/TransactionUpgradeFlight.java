@@ -4,7 +4,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -18,11 +18,11 @@ public class TransactionUpgradeFlight extends Flight {
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     IamService iamService = appContext.getBean(IamService.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    addStep(new TransactionUpgradeStep(iamService, datasetService, bigQueryPdao, userReq));
+    addStep(new TransactionUpgradeStep(iamService, datasetService, bigQueryDatasetPdao, userReq));
   }
 }

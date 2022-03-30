@@ -54,7 +54,8 @@ import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -73,6 +74,7 @@ public class DatasetIngestFlight extends Flight {
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
@@ -163,7 +165,7 @@ public class DatasetIngestFlight extends Flight {
             appConfig,
             datasetService,
             gcsPdao,
-            bigQueryPdao,
+            bigQueryDatasetPdao,
             configService,
             fileService,
             ingestRequestModel,
@@ -204,21 +206,22 @@ public class DatasetIngestFlight extends Flight {
       addStep(
           new NonCombinedFileIngestOptionalStep(
               new IngestCopyControlFileStep(datasetService, gcsPdao)));
-      addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
+      addStep(new IngestLoadTableStep(datasetService, bigQueryDatasetPdao));
       if (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE) {
         // Ensure that no duplicate IDs are being loaded in
         addStep(new IngestValidateIngestRowsStep(datasetService, bigQueryPdao));
         // Soft deletes rows from the target table
         addStep(
             new IngestSoftDeleteExistingRowsStep(
-                datasetService, bigQueryPdao, userReq, autocommit));
+                datasetService, bigQueryDatasetPdao, bigQueryPdao, userReq, autocommit));
       }
-      addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
-      addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
+      addStep(new IngestRowIdsStep(datasetService, bigQueryDatasetPdao));
+      addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryDatasetPdao, fileDao));
       // Loads data into the final target raw data table
       addStep(
-          new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao, userReq, autocommit));
-      addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
+          new IngestInsertIntoDatasetTableStep(
+              datasetService, bigQueryPdao, bigQueryDatasetPdao, userReq, autocommit));
+      addStep(new IngestCleanupStep(datasetService, bigQueryDatasetPdao));
       addStep(new IngestScratchFileDeleteGcpStep(gcsPdao));
       addStep(new PerformPayloadIngestStep(new IngestLandingFileDeleteGcpStep(false, gcsPdao)));
     } else if (cloudPlatform.isAzure()) {
@@ -264,7 +267,7 @@ public class DatasetIngestFlight extends Flight {
       ApplicationConfiguration appConfig,
       DatasetService datasetService,
       GcsPdao gcsPdao,
-      BigQueryPdao bigQueryPdao,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
       ConfigurationService configService,
       FileService fileService,
       IngestRequestModel ingestRequest,
@@ -376,7 +379,7 @@ public class DatasetIngestFlight extends Flight {
     // Copy the load history into BigQuery.
     addOptionalCombinedIngestStep(
         new IngestCopyLoadHistoryToBQStep(
-            bigQueryPdao,
+            bigQueryDatasetPdao,
             loadService,
             datasetService,
             dataset.getId(),

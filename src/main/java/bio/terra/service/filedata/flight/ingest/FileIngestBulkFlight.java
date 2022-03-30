@@ -31,7 +31,7 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -61,7 +61,7 @@ public class FileIngestBulkFlight extends Flight {
     LoadService loadService = appContext.getBean(LoadService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ConfigurationService configurationService = appContext.getBean(ConfigurationService.class);
     JobService jobService = appContext.getBean(JobService.class);
@@ -218,7 +218,7 @@ public class FileIngestBulkFlight extends Flight {
     if (platform.isGcp()) {
       addStep(
           new IngestCopyLoadHistoryToBQStep(
-              bigQueryPdao,
+              bigQueryDatasetPdao,
               loadService,
               datasetService,
               datasetUuid,

@@ -15,7 +15,7 @@ import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;

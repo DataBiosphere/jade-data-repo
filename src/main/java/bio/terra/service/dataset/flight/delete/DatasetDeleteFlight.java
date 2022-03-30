@@ -25,7 +25,7 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -42,7 +42,7 @@ public class DatasetDeleteFlight extends Flight {
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
@@ -81,7 +81,7 @@ public class DatasetDeleteFlight extends Flight {
           new DeleteDatasetGcpValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
       addStep(
           new DeleteDatasetPrimaryDataStep(
-              bigQueryPdao, gcsPdao, fileDao, datasetService, datasetId, configService),
+              bigQueryDatasetPdao, gcsPdao, fileDao, datasetService, datasetId, configService),
           primaryDataDeleteRetry);
       // Delete access control on objects that were explicitly added by data repo operations.
       // Do this before delete resource from SAM to ensure we can get the metadata needed to

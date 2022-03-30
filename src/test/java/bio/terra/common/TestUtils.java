@@ -196,7 +196,6 @@ public final class TestUtils {
   /**
    * Execute a SELECT query on BigQuery dataset.
    *
-   * @param bigQueryPdao pass in from the calling test class
    * @param datasetDao pass in from the calling test class
    * @param dataLocationService pass in from the calling test class
    * @param datasetName the name of the Data Repo dataset
@@ -205,7 +204,6 @@ public final class TestUtils {
    * @return the BigQuery TableResult
    */
   public static TableResult selectFromBigQueryDataset(
-      BigQueryPdao bigQueryPdao,
       DatasetDao datasetDao,
       ResourceService dataLocationService,
       String datasetName,
@@ -213,7 +211,7 @@ public final class TestUtils {
       String columns)
       throws Exception {
 
-    String bqDatasetName = bigQueryPdao.prefixName(datasetName);
+    String bqDatasetName = BigQueryPdao.prefixName(datasetName);
     BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetDao, datasetName);
     String bigQueryProjectId = bigQueryProject.getProjectId();
     BigQuery bigQuery = bigQueryProject.getBigQuery();

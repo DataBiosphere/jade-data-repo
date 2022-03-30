@@ -21,17 +21,13 @@ import org.slf4j.LoggerFactory;
 
 public class CreateExternalTablesStep implements Step {
 
-  private final BigQueryPdao bigQueryPdao;
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final DatasetService datasetService;
 
   private static Logger logger = LoggerFactory.getLogger(CreateExternalTablesStep.class);
 
   public CreateExternalTablesStep(
-      BigQueryPdao bigQueryPdao,
-      BigQueryDatasetPdao bigQueryDatasetPdao,
-      DatasetService datasetService) {
-    this.bigQueryPdao = bigQueryPdao;
+      BigQueryDatasetPdao bigQueryDatasetPdao, DatasetService datasetService) {
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.datasetService = datasetService;
   }
@@ -76,7 +72,7 @@ public class CreateExternalTablesStep implements Step {
 
     for (DataDeletionTableModel table : getRequest(context).getTables()) {
       try {
-        bigQueryPdao.deleteExternalTable(dataset, table.getTableName(), suffix);
+        BigQueryPdao.deleteExternalTable(dataset, table.getTableName(), suffix);
       } catch (Exception ex) {
         // catch any exception and get it into the log, make a
         String msg =

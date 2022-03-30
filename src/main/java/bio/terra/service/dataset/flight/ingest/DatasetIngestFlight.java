@@ -55,7 +55,6 @@ import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -74,7 +73,6 @@ public class DatasetIngestFlight extends Flight {
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     BigQueryTransactionPdao bigQueryTransactionPdao =
         appContext.getBean(BigQueryTransactionPdao.class);
     BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
@@ -212,7 +210,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestLoadTableStep(datasetService, bigQueryDatasetPdao));
       if (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE) {
         // Ensure that no duplicate IDs are being loaded in
-        addStep(new IngestValidateIngestRowsStep(datasetService, bigQueryPdao));
+        addStep(new IngestValidateIngestRowsStep(datasetService));
         // Soft deletes rows from the target table
         addStep(
             new IngestSoftDeleteExistingRowsStep(

@@ -20,7 +20,7 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
@@ -50,7 +50,7 @@ public class DatasetServiceUnitTest {
   @MockBean private LoadService loadService;
   @MockBean private ProfileDao profileDao;
   @MockBean private StorageTableService storageTableService;
-  @MockBean private BigQueryPdao bigQueryPdao;
+  @MockBean private BigQueryDatasetPdao bigQueryDatasetPdao;
   @MockBean private MetadataDataAccessUtils metadataDataAccessUtils;
   @MockBean private ResourceService resourceService;
   @MockBean private GcsPdao gcsPdao;

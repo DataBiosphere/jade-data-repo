@@ -28,8 +28,7 @@ public class SnapshotExportValidateExportParametersStep implements Step {
     if (snapshot.isSelfHosted() && exportGsPaths) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,
-          new UnsupportedOperationException(
-              "A self-hosted snapshot cannot be exported while also resolving DRS URIs to gs-paths"));
+          new UnsupportedOperationException("Cannot export GS Paths for self-hosted snapshots"));
     }
     return StepResult.getStepResultSuccess();
   }

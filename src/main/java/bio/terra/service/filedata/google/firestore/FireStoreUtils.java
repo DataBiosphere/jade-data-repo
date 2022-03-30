@@ -9,7 +9,6 @@ import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
 import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.api.gax.rpc.InternalException;
-import com.google.api.gax.rpc.ResourceExhaustedException;
 import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
@@ -212,7 +211,8 @@ public class FireStoreUtils {
                   "[batchOperation] Retry-able error in firestore future get - input: "
                       + inputs.get(i)
                       + " message: "
-                      + ex.getMessage(), ex);
+                      + ex.getMessage(),
+                  ex);
             } else {
               throw new FileSystemExecutionException(
                   "[batchOperation] Parent exception caught but neither parent nor nested "
@@ -252,7 +252,7 @@ public class FireStoreUtils {
 
   // For batch operations, we want to also include the AbortedException as retryable
   public static boolean shouldRetry(Throwable throwable, boolean isBatch) {
-    if (throwable == null || throwable instanceof ResourceExhaustedException) {
+    if (throwable == null) {
       return false; // Did not find a retry-able exception
     }
     if (throwable instanceof DeadlineExceededException

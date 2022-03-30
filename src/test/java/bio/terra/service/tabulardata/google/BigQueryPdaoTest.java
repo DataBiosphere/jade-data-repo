@@ -181,21 +181,15 @@ public class BigQueryPdaoTest {
     try {
       bigQueryPdao.createDataset(dataset);
 
-      storage.create(participantBlob, readFile("ingest-test-participant.json"));
       storage.create(sampleBlob, readFile("ingest-test-sample.json"));
-      storage.create(fileBlob, readFile("ingest-test-file.json"));
 
       // Ingest staged data into the new dataset.
       IngestRequestModel ingestRequest =
           new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
 
       UUID datasetId = dataset.getId();
-      // connectedOperations.ingestTableSuccess(
-      //    datasetId, ingestRequest.table("participant").path(gsPath(participantBlob)));
       connectedOperations.ingestTableSuccess(
           datasetId, ingestRequest.table("sample").path(gsPath(sampleBlob)));
-      // connectedOperations.ingestTableSuccess(
-      //    datasetId, ingestRequest.table("file").path(gsPath(fileBlob)));
 
       // Create a snapshot!
       DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();

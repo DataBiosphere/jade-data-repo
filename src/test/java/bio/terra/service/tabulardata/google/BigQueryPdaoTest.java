@@ -39,6 +39,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
@@ -82,7 +83,7 @@ public class BigQueryPdaoTest {
 
   @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private BigQueryPdao bigQueryPdao;
+  @Autowired private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Autowired private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
@@ -374,7 +375,7 @@ public class BigQueryPdaoTest {
                 new GoogleProjectResource().profileId(profileId).googleProjectId(dataProjectId));
     List<Map<String, Object>> expected = getExampleSnapshotTableData();
     List<Map<String, Object>> actual =
-        bigQueryPdao.getSnapshotTableUnsafe(snapshot, snapshotTableDataSqlExample);
+        bigQuerySnapshotPdao.getSnapshotTableUnsafe(snapshot, snapshotTableDataSqlExample);
     assertEquals(expected, actual);
   }
 

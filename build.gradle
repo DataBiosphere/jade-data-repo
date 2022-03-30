@@ -469,8 +469,12 @@ spotless {
 // The default 'test' task runs all of the unit tests.
 // There are separate tasks for running just the unit tests and just the connected tests.
 // connected tests and running all of the tests.
-test {
+
+tasks.withType(Test).configureEach {
     systemProperty 'spring.profiles.include', 'human-readable-logging'
+}
+
+test {
     useJUnit {
         includeCategories 'bio.terra.common.category.Unit'
     }
@@ -484,7 +488,6 @@ test {
 }
 
 task testConnected(type: Test) {
-    systemProperty 'spring.profiles.include', 'human-readable-logging'
     useJUnit {
         includeCategories 'bio.terra.common.category.Connected'
     }
@@ -506,7 +509,6 @@ task testConnected(type: Test) {
 }
 
 task testIntegration(type: Test) {
-    systemProperty 'spring.profiles.include', 'human-readable-logging'
     useJUnit {
         includeCategories 'bio.terra.common.category.Integration'
     }
@@ -527,7 +529,6 @@ task testIntegration(type: Test) {
 }
 
 task testUnit(type: Test) {
-    systemProperty 'spring.profiles.include', 'human-readable-logging'
     useJUnit {
         includeCategories 'bio.terra.common.category.Unit'
     }
@@ -541,7 +542,6 @@ task testUnit(type: Test) {
 }
 
 task testOnDemand(type: Test) {
-    systemProperty 'spring.profiles.include', 'human-readable-logging'
     useJUnit {
         includeCategories 'bio.terra.common.category.OnDemand'
     }
@@ -552,7 +552,6 @@ task testOnDemand(type: Test) {
 }
 
 task testAll(type: Test) {
-    systemProperty 'spring.profiles.include', 'human-readable-logging'
     useJUnit {
         // Note: explicitly not including OnDemand tests
         includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'

@@ -211,7 +211,7 @@ public class FireStoreUtils {
               logger.warn(
                   "[batchOperation] Retry-able error in firestore future get - input: "
                       + inputs.get(i)
-                      + " Exception: "
+                      + " message: "
                       + ex.getMessage(), ex);
             } else {
               throw new FileSystemExecutionException(

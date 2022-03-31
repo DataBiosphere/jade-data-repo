@@ -292,8 +292,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     assertThat(
         "self-hosted snapshots cannot be exported while resolving DRS URIs to gs-paths",
         errorResponse.getErrorObject().orElseThrow().getMessage(),
-        containsString(
-            "A self-hosted snapshot cannot be exported while also resolving DRS URIs to gs-paths"));
+        containsString("Cannot export GS Paths for self-hosted snapshots"));
 
     dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
     snapshotId = null;

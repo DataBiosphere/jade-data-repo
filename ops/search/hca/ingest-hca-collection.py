@@ -4,7 +4,7 @@ import json, os
 from urllib.request import Request, urlopen
 from tqdm import tqdm
 
-upsert_url = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/search/{id}/metadata"
+upsert_url = "https://catalog.dsde-dev.broadinstitute.org/api/v1/datasets"
 policy_url = "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/snapshots/{id}/policies/steward/members"
 
 
@@ -38,7 +38,12 @@ def policy(snapshot):
 
 
 def upsert(snapshot):
-    api_request(snapshot["dct:identifier"], upsert_url, snapshot, "PUT")
+    body = {
+      "storageSystem": "tdr",
+      "storageSourceId": snapshot["dct:identifier"],
+      "catalogEntry": json.dumps(snapshot),
+    }
+    api_request(snapshot["dct:identifier"], upsert_url, body, "POST")
 
 
 with open("hca-collection.json", "r") as f:

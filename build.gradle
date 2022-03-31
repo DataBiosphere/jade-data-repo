@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat
 
 buildscript {
     ext {
-        springBootVersion = '2.4.6'
+        springBootVersion = '2.5.12'
     }
     repositories {
         mavenCentral()
@@ -26,13 +26,13 @@ buildscript {
 }
 
 plugins {
-    id "com.google.cloud.tools.jib" version "1.6.1"
+    id "com.google.cloud.tools.jib" version "2.7.1"
     id 'org.liquibase.gradle' version '2.0.1'
     id "org.gradle.test-retry" version "1.2.0"
     id 'antlr'
     id 'com.github.spotbugs' version '4.7.1'
     id "org.hidetake.swagger.generator" version "2.18.2"
-    id "org.springframework.boot" version "2.4.6"
+    id "org.springframework.boot" version "2.5.12"
     id "idea"
     id "java"
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
@@ -186,8 +186,9 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
     compile 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
-    compile 'org.postgresql:postgresql:42.2.18'           // Postgres jdbc driver
+    compile 'org.postgresql:postgresql:42.2.18'          // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
+    compile 'org.codehaus.janino:janino:3.1.6'           // Provides if/else xml parsing for logback config
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation group: "javax.validation", name: "validation-api"
     // Fix to this version
@@ -217,7 +218,7 @@ dependencies {
     if (project.hasProperty("stairwayjar")) {
         implementation files(project.ext.get("stairwayjar"))
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
+        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.2'
     } else {
         implementation 'bio.terra:stairway:0.0.69-SNAPSHOT'
     }
@@ -226,7 +227,7 @@ dependencies {
     if (project.hasProperty("commonlibjar")) {
         implementation files(project.ext.get("commonlibjar"))
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
+        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.2'
     } else {
         implementation 'bio.terra:terra-common-lib:0.0.51-SNAPSHOT'
     }
@@ -237,7 +238,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
 
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.4'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.13.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2'
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.2.5'

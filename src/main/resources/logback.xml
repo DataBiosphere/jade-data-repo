@@ -1,13 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--We need this file to override the terra-commons-lib configuration for human-readable logging-->
-<configuration>
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <variable name="LOG_PATH" value="logs"/>
+
+    <if condition='!isDefined("TDR_LOG_APPENDER")'>
+        <then>
+            <variable name="TDR_LOG_APPENDER" value="Console-Stackdriver" />
+        </then>
+    </if>
+
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <Pattern>%date %-5level [%thread] %logger{36}: %message%n</Pattern>
         </encoder>
     </appender>
 
+    <appender name="Console-Standard" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>%date %-5level [%thread] %logger{36}: %message%n</Pattern>
+        </encoder>
+    </appender>
+
+    <appender name="Console-Stackdriver" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="org.springframework.cloud.gcp.logging.StackdriverJsonLayout">
+                <includeTraceId>true</includeTraceId>
+                <includeSpanId>true</includeSpanId>
+            </layout>
+        </encoder>
+    </appender>
+
+    <logger name="org.springframework" level="warn" />
+    <logger name="liquibase.executor" level="warn" />
+    <logger name="io.swagger.models.parameters.AbstractSerializableParameter" level="error" />
+    <logger name="bio.terra.common.logging.RequestLoggingFilter" level="off" />
+
+    <!--    <logger name="bio.terra.service.dataset.flight.create.CreateDatasetAuthzIamStep" level="debug" />-->
+    <!--    <logger name="bio.terra.service.dataset.flight.create.CreateDatasetAuthzPrimaryDataStep" level="debug" />-->
+    <!--    <logger name="bio.terra.service.iam.sam.SamIam" level="debug" />-->
+    <!--    <logger name="bio.terra.service.tabulardata.google.BigQueryProject" level="debug" />-->
+
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="${TDR_LOG_APPENDER}"/>
     </root>
 </configuration>

@@ -5,7 +5,7 @@ from urllib.request import urlopen
 from urllib.error import HTTPError
 
 # todo: refactor to use request library
-url = "https://service.azul.data.humancellatlas.org/index/projects?catalog=dcp10&size=1000&sort=projectTitle&order=desc"
+url = "https://service.azul.data.humancellatlas.org/index/projects?catalog=dcp14&size=1000&sort=projectTitle&order=desc"
 
 projects = []
 

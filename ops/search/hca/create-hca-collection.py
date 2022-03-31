@@ -37,7 +37,7 @@ def get_files(hit):
     for file in hit["fileTypeSummaries"]:
         files.append(
             {
-                "dcat:mediaType": file["fileType"],
+                "dcat:mediaType": file["format"],
                 "dcat:byteSize": file["totalSize"],
                 "count": file["count"],
             }
@@ -73,6 +73,10 @@ def get_modalities(hit):
         "10x v2 sequencing": ["TerraCoreValueSets:Transcriptomic"],
         "10X v2 sequencing": ["TerraCoreValueSets:Transcriptomic"],
         "10x v3 sequencing": ["TerraCoreValueSets:Transcriptomic"],
+        "CITE 10x 3' v2": [
+            "TerraCoreValueSets:Transcriptomic",
+            "TerraCoreValueSets:Proteomic",
+        ],
         "CITE-seq": [
             "TerraCoreValueSets:Transcriptomic",
             "TerraCoreValueSets:Proteomic",
@@ -161,6 +165,7 @@ for hit in projects[0]["hits"]:
         continue
 
     project = hit["projects"][0]
+    dates = hit["dates"][0]
     snapshot = snapshots[project["projectId"]]
 
     get_sample_ids(hit)
@@ -172,8 +177,8 @@ for hit in projects[0]["hits"]:
         "dct:title": project["projectTitle"],
         "dct:description": project["projectDescription"],
         "dct:creator": hca_creator(),
-        "dct:issued": project["submissionDate"],
-        "dct:modified": project["updateDate"],
+        "dct:issued": dates["submissionDate"],
+        "dct:modified": dates["updateDate"],
         "dcat:accessURL": access_url(snapshot),
         "TerraDCAT_ap:hasDataUsePermission": ["TerraCore:NoRestriction"],
         "TerraDCAT_ap:hasOriginalPublication": get_publications(project),

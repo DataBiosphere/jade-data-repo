@@ -26,7 +26,7 @@ buildscript {
 }
 
 plugins {
-    id "com.google.cloud.tools.jib" version "1.6.1"
+    id "com.google.cloud.tools.jib" version "2.7.1"
     id 'org.liquibase.gradle' version '2.0.1'
     id "org.gradle.test-retry" version "1.2.0"
     id 'antlr'
@@ -186,9 +186,9 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
     compile 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
-    compile 'org.postgresql:postgresql:42.2.18'           // Postgres jdbc driver
+    compile 'org.postgresql:postgresql:42.2.18'          // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
-    compile 'org.codehaus.janino:janino:3.1.6'
+    compile 'org.codehaus.janino:janino:3.1.6'           // Provides if/else xml parsing for logback config
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation group: "javax.validation", name: "validation-api"
     // Fix to this version

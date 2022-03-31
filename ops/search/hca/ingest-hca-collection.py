@@ -34,7 +34,7 @@ def api_request(id, url, obj, method):
     req = Request(url, data=data, headers=headers, method=method)
     res = urlopen(req)
 
-    return res.urlcode()
+    return res.getcode()
 
 
 def policy(snapshot):

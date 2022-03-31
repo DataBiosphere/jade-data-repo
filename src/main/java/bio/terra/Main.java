@@ -71,11 +71,12 @@ public class Main implements CommandLineRunner {
             @Nullable Object target, String name, NativeWebRequest request) throws Exception {
 
           ServletRequestDataBinder binder = super.createBinderInstance(target, name, request);
+          List<String> fieldList = new ArrayList<>(List.of("class.*", "Class.*", "*.class.*", "*.Class.*"));
           String[] fields = binder.getDisallowedFields();
-          List<String> fieldList =
-              new ArrayList<>(fields != null ? Arrays.asList(fields) : Collections.emptyList());
-          fieldList.addAll(Arrays.asList("class.*", "Class.*", "*.class.*", "*.Class.*"));
-          binder.setDisallowedFields(fieldList.toArray(new String[] {}));
+          if (fields != null) {
+            fieldList.addAll(List.of(fields));
+          }
+          binder.setDisallowedFields(fieldList.toArray());
           return binder;
         }
       };

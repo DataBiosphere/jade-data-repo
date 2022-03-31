@@ -20,7 +20,10 @@ def api_request(id, url, obj, method):
     auth, token = auth_token()
 
     url = url.format(id=id)
-    data = json.dumps(obj).encode("utf-8")
+
+    data = None
+    if obj:
+        data = json.dumps(obj).encode("utf-8")
 
     headers = {
         "Accept": "application/json",
@@ -31,6 +34,8 @@ def api_request(id, url, obj, method):
     req = Request(url, data=data, headers=headers, method=method)
     res = urlopen(req)
 
+    return res.urlcode()
+
 
 def policy(snapshot):
     email = {"email": user_email()}
@@ -39,10 +44,15 @@ def policy(snapshot):
 
 def upsert(snapshot):
     body = {
-      "storageSystem": "tdr",
-      "storageSourceId": snapshot["dct:identifier"],
-      "catalogEntry": json.dumps(snapshot),
+        "storageSystem": "tdr",
+        "storageSourceId": snapshot["dct:identifier"],
+        "catalogEntry": json.dumps(snapshot),
     }
+
+    # don't add anything if there's already an entry
+    if api_request(snapshot["dct:identifier"], upsert_url, None, "GET") == 200:
+        return
+
     api_request(snapshot["dct:identifier"], upsert_url, body, "POST")
 
 

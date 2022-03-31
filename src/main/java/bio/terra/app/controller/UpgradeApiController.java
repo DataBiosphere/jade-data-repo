@@ -58,6 +58,9 @@ public class UpgradeApiController implements UpgradeApi {
 
   @InitBinder
   protected void initBinder(final WebDataBinder binder) {
+    String[] abd = new String[] {"class.*", "Class.*", "*.class.*", "*.Class.*"};
+    binder.setDisallowedFields(abd);
+
     binder.addValidators(policyMemberValidator);
     binder.addValidators(assetModelValidator);
   }

@@ -113,6 +113,9 @@ public class DatasetsApiController implements DatasetsApi {
 
   @InitBinder
   protected void initBinder(final WebDataBinder binder) {
+    String[] abd = new String[] {"class.*", "Class.*", "*.class.*", "*.Class.*"};
+    binder.setDisallowedFields(abd);
+
     binder.addValidators(ingestRequestValidator);
     binder.addValidators(datasetRequestValidator);
     binder.addValidators(assetModelValidator);

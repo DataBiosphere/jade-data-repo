@@ -79,6 +79,9 @@ public class ProfileApiController implements ProfilesApi {
 
   @InitBinder
   protected void initBinder(final WebDataBinder binder) {
+    String[] abd = new String[] {"class.*", "Class.*", "*.class.*", "*.Class.*"};
+    binder.setDisallowedFields(abd);
+
     binder.addValidators(profileUpdateRequestValidator);
     binder.addValidators(billingProfileRequestValidator);
     binder.addValidators(policyMemberValidator);

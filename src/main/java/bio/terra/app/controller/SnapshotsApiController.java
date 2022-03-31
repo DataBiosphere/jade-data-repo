@@ -102,6 +102,9 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @InitBinder
   protected void initBinder(final WebDataBinder binder) {
+    String[] abd = new String[] {"class.*", "Class.*", "*.class.*", "*.Class.*"};
+    binder.setDisallowedFields(abd);
+
     binder.addValidators(snapshotRequestValidator);
     binder.addValidators(ingestRequestValidator);
     binder.addValidators(assetModelValidator);

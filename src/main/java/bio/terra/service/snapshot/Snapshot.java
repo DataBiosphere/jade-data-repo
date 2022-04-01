@@ -210,6 +210,10 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
     return this;
   }
 
+  public boolean isSelfHosted() {
+    return getSourceDataset().isSelfHosted();
+  }
+
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());

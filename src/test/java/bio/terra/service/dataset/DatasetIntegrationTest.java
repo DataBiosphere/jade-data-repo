@@ -37,6 +37,10 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -44,8 +48,10 @@ import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -420,5 +426,32 @@ public class DatasetIntegrationTest extends UsersBase {
     TableResult result = BigQueryFixtures.queryWithRetry(sql, bigQuery);
     assertThat(
         "count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
+  }
+
+  static List<Map<String, List<String>>> transformStringResults(
+      BigQuery bigQuery, DatasetModel dataset, String tableName) throws InterruptedException {
+    String sql = "SELECT * FROM " + BigQueryFixtures.makeTableRef(dataset, tableName);
+    TableResult tableResult = BigQueryFixtures.queryWithRetry(sql, bigQuery);
+    List<Map<String, List<String>>> result = new ArrayList<>();
+    FieldList fields = tableResult.getSchema().getFields();
+    for (FieldValueList valueList : tableResult.getValues()) {
+      Map<String, List<String>> transformed = new HashMap<>();
+      for (Field field : fields) {
+        String name = field.getName();
+        FieldValue value = valueList.get(name);
+        final List<String> values;
+        if (field.getMode().equals(Field.Mode.REPEATED)) {
+          values =
+              value.getRepeatedValue().stream()
+                  .map(FieldValue::getStringValue)
+                  .collect(Collectors.toList());
+        } else {
+          values = List.of(value.getStringValue());
+        }
+        transformed.put(name, values);
+      }
+      result.add(transformed);
+    }
+    return result;
   }
 }

@@ -42,6 +42,8 @@ public class SnapshotExportFlight extends Flight {
       addStep(new SnapshotExportValidatePrimaryKeysStep(snapshotService, snapshotId));
     }
 
+    addStep(new SnapshotExportValidateExportParametersStep(snapshotService, snapshotId));
+
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
 
     boolean exportGsPaths =

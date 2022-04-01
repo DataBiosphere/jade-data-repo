@@ -24,6 +24,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -60,6 +61,7 @@ public class DrsServiceTest {
   @Mock private JobService jobService;
   @Mock private PerformanceLogger performanceLogger;
   @Mock private AzureBlobStorePdao azureBlobStorePdao;
+  @Mock private GcsProjectFactory gcsProjectFactory;
 
   private final DrsIdService drsIdService = new DrsIdService(new ApplicationConfiguration());
 
@@ -94,13 +96,23 @@ public class DrsServiceTest {
             configurationService,
             jobService,
             performanceLogger,
-            azureBlobStorePdao);
+            azureBlobStorePdao,
+            gcsProjectFactory);
     when(jobService.getActivePodCount()).thenReturn(1);
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
 
     snapshotId = UUID.randomUUID();
     SnapshotProject snapshotProject = new SnapshotProject();
     when(snapshotService.retrieveAvailableSnapshotProject(snapshotId)).thenReturn(snapshotProject);
+
+    when(snapshotService.retrieve(snapshotId))
+        .thenReturn(
+            new Snapshot()
+                .id(snapshotId)
+                .snapshotSources(
+                    List.of(
+                        new SnapshotSource()
+                            .dataset(new Dataset(new DatasetSummary().selfHosted(false))))));
 
     String bucketResourceId = UUID.randomUUID().toString();
     String storageAccountResourceId = UUID.randomUUID().toString();

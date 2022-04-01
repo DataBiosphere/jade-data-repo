@@ -22,6 +22,7 @@ public class SnapshotSummary {
   private String storageAccount;
   private String consentCode;
   private String phsId;
+  private boolean selfHosted;
 
   public UUID getId() {
     return id;
@@ -131,6 +132,15 @@ public class SnapshotSummary {
     return this;
   }
 
+  public boolean isSelfHosted() {
+    return selfHosted;
+  }
+
+  public SnapshotSummary selfHosted(boolean selfHosted) {
+    this.selfHosted = selfHosted;
+    return this;
+  }
+
   public SnapshotSummaryModel toModel() {
     return new SnapshotSummaryModel()
         .id(getId())
@@ -144,7 +154,8 @@ public class SnapshotSummary {
         .dataProject(getDataProject())
         .storageAccount(getStorageAccount())
         .consentCode(getConsentCode())
-        .phsId(getPhsId());
+        .phsId(getPhsId())
+        .selfHosted(isSelfHosted());
   }
 
   private List<StorageResourceModel> toStorageResourceModel() {

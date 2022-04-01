@@ -3108,6 +3108,10 @@ components:
           description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
+        selfHosted:
+          type: boolean
+          default: false
+          description: denotes whether data files in the dataset are self-hosted or not
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -3143,6 +3147,10 @@ components:
         phsId:
           type: string
           description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+        selfHosted:
+          type: boolean
+          default: false
+          description: denotes whether data files in the dataset are self-hosted or not
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -3171,6 +3179,11 @@ components:
         phsId:
           type: string
           description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+        experimentalSelfHosted:
+          type: boolean
+          default: false
+          description: Create the dataset in self-hosted mode, where TDR does not ingest files, but rather points to
+            files in their original location.
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     DatasetRequestAccessIncludeModel:
@@ -4000,6 +4013,9 @@ components:
         storageAccount:
           type: string
           description: The azure storage account of this snapshot
+        selfHosted:
+          type: boolean
+          description: Denotes whether the data files in this snapshot are self hosted or not
       description: >
         summary of snapshot
     EnumerateSnapshotModel:

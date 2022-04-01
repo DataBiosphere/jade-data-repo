@@ -23,6 +23,7 @@ import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -39,6 +40,7 @@ import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.net.URL;
@@ -80,6 +82,7 @@ public class DrsService {
   private final JobService jobService;
   private final PerformanceLogger performanceLogger;
   private final AzureBlobStorePdao azureBlobStorePdao;
+  private final GcsProjectFactory gcsProjectFactory;
 
   @Autowired
   public DrsService(
@@ -91,7 +94,8 @@ public class DrsService {
       ConfigurationService configurationService,
       JobService jobService,
       PerformanceLogger performanceLogger,
-      AzureBlobStorePdao azureBlobStorePdao) {
+      AzureBlobStorePdao azureBlobStorePdao,
+      GcsProjectFactory gcsProjectFactory) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -101,6 +105,7 @@ public class DrsService {
     this.jobService = jobService;
     this.performanceLogger = performanceLogger;
     this.azureBlobStorePdao = azureBlobStorePdao;
+    this.gcsProjectFactory = gcsProjectFactory;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -298,7 +303,7 @@ public class DrsService {
     List<DRSAccessMethod> accessMethods;
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(fsFile.getCloudPlatform());
     if (platform.isGcp()) {
-      accessMethods = getDrsAccessMethodsOnGcp(fsFile, authUser);
+      accessMethods = getDrsAccessMethodsOnGcp(snapshotId, fsFile, authUser);
     } else if (platform.isAzure()) {
       accessMethods = getDrsAccessMethodsOnAzure(fsFile);
     } else {
@@ -315,20 +320,30 @@ public class DrsService {
   }
 
   private List<DRSAccessMethod> getDrsAccessMethodsOnGcp(
-      FSFile fsFile, AuthenticatedUserRequest authUser) {
+      String snapshotId, FSFile fsFile, AuthenticatedUserRequest authUser) {
     DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getCloudPath());
 
-    GoogleBucketResource bucketResource =
-        resourceService.lookupBucketMetadata(fsFile.getBucketResourceId());
+    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
 
-    GoogleRegion region = bucketResource.getRegion();
+    final GoogleRegion region;
+    if (snapshot.isSelfHosted()) {
+      Storage storage =
+          gcsProjectFactory.getStorage(snapshot.getProjectResource().getGoogleProjectId());
+      Bucket bucket = storage.get(GcsUriUtils.parseBlobUri(fsFile.getCloudPath()).getBucket());
+      region = GoogleRegion.fromValue(bucket.getLocation());
+    } else {
+      GoogleBucketResource bucketResource =
+          resourceService.lookupBucketMetadata(fsFile.getBucketResourceId());
+      region = bucketResource.getRegion();
+    }
+
     String accessId = "gcp-" + region.getValue();
     DRSAccessMethod gsAccessMethod =
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
             .accessUrl(gsAccessURL)
             .accessId(accessId)
-            .region(bucketResource.getRegion().toString());
+            .region(region.toString());
 
     DRSAccessURL httpsAccessURL =
         new DRSAccessURL()
@@ -339,7 +354,7 @@ public class DrsService {
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessUrl(httpsAccessURL)
-            .region(bucketResource.getRegion().toString());
+            .region(region.toString());
 
     return List.of(gsAccessMethod, httpsAccessMethod);
   }

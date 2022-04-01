@@ -9,6 +9,7 @@ import bio.terra.common.AclUtils;
 import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
+import bio.terra.common.exception.PdaoFileLinkException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.FileLoadModel;
@@ -388,6 +389,48 @@ public class GcsPdao implements CloudFileReader {
     }
   }
 
+  public FSFileInfo linkSelfHostedFile(
+      FileLoadModel fileLoadModel, String fileId, String projectId) {
+
+    try {
+      Storage storage = gcsProjectFactory.getStorage(projectId);
+      Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), projectId);
+
+      // MD5 is computed per-component. So if there are multiple components, the MD5 here is
+      // not useful for validating the contents of the file on access. Therefore, we only
+      // return the MD5 if there is only a single component. For more details,
+      // see https://cloud.google.com/storage/docs/hashes-etags
+      Integer componentCount = sourceBlob.getComponentCount();
+      String checksumMd5 = null;
+      if (componentCount == null || componentCount == 1) {
+        checksumMd5 = sourceBlob.getMd5ToHexString();
+      }
+
+      // Grumble! It is not documented what the meaning of the Long is.
+      // From poking around I think it is a standard POSIX milliseconds since Jan 1, 1970.
+      Instant createTime = Instant.ofEpochMilli(sourceBlob.getCreateTime());
+
+      String gspath = String.format("gs://%s/%s", sourceBlob.getBucket(), sourceBlob.getName());
+
+      return new FSFileInfo()
+          .fileId(fileId)
+          .createdDate(createTime.toString())
+          .cloudPath(gspath)
+          .checksumCrc32c(sourceBlob.getCrc32cToHexString())
+          .checksumMd5(checksumMd5)
+          .size(sourceBlob.getSize())
+          .bucketResourceId(null);
+
+    } catch (StorageException ex) {
+      // For now, we assume that the storage exception is caused by bad input (the file copy
+      // exception
+      // derives from BadRequestException). I think there are several cases here. We might need to
+      // retry
+      // for flaky google case or we might need to bail out if access is denied.
+      throw new PdaoFileLinkException("File ingest failed", ex);
+    }
+  }
+
   // Three flavors of deleteFileMetadata
   // 1. for undo file ingest - it gets the bucket path from the dataset and file id
   // 2. for delete file flight - it gets bucket path from the gspath
@@ -420,7 +463,8 @@ public class GcsPdao implements CloudFileReader {
 
   // Consumer method for deleting GCS files driven from a scan over the firestore files
   public void deleteFile(FireStoreFile fireStoreFile) {
-    if (fireStoreFile != null) {
+    // The bucket resource id is null for self-hosted files
+    if (fireStoreFile != null && fireStoreFile.getBucketResourceId() != null) {
       GoogleBucketResource bucketResource =
           resourceService.lookupBucket(fireStoreFile.getBucketResourceId());
       deleteFileByGspath(fireStoreFile.getGspath(), bucketResource.projectIdForBucket());

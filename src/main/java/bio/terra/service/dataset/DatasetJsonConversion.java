@@ -76,7 +76,8 @@ public final class DatasetJsonConversion {
                 .storage(storageResources)
                 .defaultProfileId(defaultProfileId)
                 .secureMonitoringEnabled(enableSecureMonitoring)
-                .phsId(datasetRequest.getPhsId()))
+                .phsId(datasetRequest.getPhsId())
+                .selfHosted(datasetRequest.isExperimentalSelfHosted()))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
@@ -94,7 +95,8 @@ public final class DatasetJsonConversion {
             .description(dataset.getDescription())
             .createdDate(dataset.getCreatedDate().toString())
             .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
-            .phsId(dataset.getPhsId());
+            .phsId(dataset.getPhsId())
+            .selfHosted(dataset.isSelfHosted());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;

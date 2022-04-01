@@ -134,12 +134,14 @@ public class FileIngestFlight extends Flight {
       addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
       addStep(new IngestFileDirectoryStep(fileDao, dataset), randomBackoffRetry);
-      addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
-      addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
-      addStep(
-          new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
-          randomBackoffRetry);
-      addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+      if (!dataset.isSelfHosted()) {
+        addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
+        addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
+        addStep(
+            new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
+            randomBackoffRetry);
+        addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+      }
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {

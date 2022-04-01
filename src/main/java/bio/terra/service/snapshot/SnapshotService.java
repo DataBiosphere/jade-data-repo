@@ -704,7 +704,8 @@ public class SnapshotService {
                     .map(StorageResource::toModel)
                     .collect(Collectors.toList()))
             .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
-            .phsId(dataset.getPhsId());
+            .phsId(dataset.getPhsId())
+            .selfHosted(dataset.isSelfHosted());
 
     SnapshotSourceModel sourceModel = new SnapshotSourceModel().dataset(summaryModel);
 

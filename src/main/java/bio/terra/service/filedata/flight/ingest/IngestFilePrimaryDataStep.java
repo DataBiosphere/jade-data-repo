@@ -39,13 +39,21 @@ public class IngestFilePrimaryDataStep implements Step {
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
-      GoogleBucketResource bucketResource =
-          FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
       FSFileInfo fsFileInfo;
-      if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
-        fsFileInfo = FSFileInfo.getTestInstance(fileId, bucketResource.getResourceId().toString());
+      if (dataset.isSelfHosted()) {
+        fsFileInfo =
+            gcsPdao.linkSelfHostedFile(
+                fileLoadModel, fileId, dataset.getProjectResource().getGoogleProjectId());
       } else {
-        fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
+        GoogleBucketResource bucketResource =
+            FlightUtils.getContextValue(
+                context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+        if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
+          fsFileInfo =
+              FSFileInfo.getTestInstance(fileId, bucketResource.getResourceId().toString());
+        } else {
+          fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
+        }
       }
       workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
     }

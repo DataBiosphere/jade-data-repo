@@ -52,6 +52,6 @@
     <include file="changesets/20220202_adddatasetandsnapshottablecolumnorder.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220217_addphsidandconsentcodecolumns.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220324_addsnapshottablepkfield.yaml" relativeToChangelogFile="true" />
-
+    <include file="changesets/20220325_selfhosteddatasets.yaml" relativeToChangelogFile="true" />
 
 </databaseChangeLog>

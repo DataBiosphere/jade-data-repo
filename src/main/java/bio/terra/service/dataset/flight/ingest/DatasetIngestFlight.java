@@ -321,21 +321,23 @@ public class DatasetIngestFlight extends Flight {
     // Lock the load.
     addOptionalCombinedIngestStep(new LoadLockStep(loadService));
 
-    // Get or create a Google project for files to be ingested into.
-    addOptionalCombinedIngestStep(new IngestFileGetProjectStep(dataset, projectService));
+    if (!dataset.isSelfHosted()) {
+      // Get or create a Google project for files to be ingested into.
+      addOptionalCombinedIngestStep(new IngestFileGetProjectStep(dataset, projectService));
 
-    // Initialize the Google project for ingest use.
-    addOptionalCombinedIngestStep(
-        new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
+      // Initialize the Google project for ingest use.
+      addOptionalCombinedIngestStep(
+          new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
 
-    // Create the bucket within the Google project for files to be ingested into.
-    addOptionalCombinedIngestStep(
-        new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
-        randomBackoffRetry);
+      // Create the bucket within the Google project for files to be ingested into.
+      addOptionalCombinedIngestStep(
+          new IngestFilePrimaryDataLocationStep(userReq, resourceService, dataset, iamService),
+          randomBackoffRetry);
 
-    // Make a link between the dataset and bucket in the database.
-    addOptionalCombinedIngestStep(
-        new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+      // Make a link between the dataset and bucket in the database.
+      addOptionalCombinedIngestStep(
+          new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+    }
 
     // Populate the load table in our database with files to be loaded.
     addOptionalCombinedIngestStep(

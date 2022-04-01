@@ -6,7 +6,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.TransactionLockException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -18,19 +18,19 @@ import org.slf4j.LoggerFactory;
 public class TransactionLockStep implements Step {
   private static final Logger logger = LoggerFactory.getLogger(TransactionLockStep.class);
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryTransactionPdao bigQueryTransactionPdao;
   private final UUID transactionId;
   private final boolean failIfTerminated;
   AuthenticatedUserRequest userRequest;
 
   public TransactionLockStep(
       DatasetService datasetService,
-      BigQueryPdao bigQueryPdao,
+      BigQueryTransactionPdao bigQueryTransactionPdao,
       UUID transactionId,
       boolean failIfTerminated,
       AuthenticatedUserRequest userRequest) {
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryTransactionPdao = bigQueryTransactionPdao;
     this.transactionId = transactionId;
     this.failIfTerminated = failIfTerminated;
     this.userRequest = userRequest;
@@ -41,7 +41,7 @@ public class TransactionLockStep implements Step {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     TransactionUtils.putTransactionId(context, transactionId);
     TransactionModel transaction =
-        bigQueryPdao.updateTransactionTableLock(
+        bigQueryTransactionPdao.updateTransactionTableLock(
             dataset, transactionId, context.getFlightId(), userRequest);
     if (failIfTerminated && transaction.getStatus() != TransactionModel.StatusEnum.ACTIVE) {
       // This will trigger the undo below so it's ok to have locked the transaction above
@@ -54,7 +54,7 @@ public class TransactionLockStep implements Step {
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     try {
       Dataset dataset = IngestUtils.getDataset(context, datasetService);
-      bigQueryPdao.updateTransactionTableLock(dataset, transactionId, null, userRequest);
+      bigQueryTransactionPdao.updateTransactionTableLock(dataset, transactionId, null, userRequest);
     } catch (Exception e) {
       logger.info("Unlocking transaction", e);
     }

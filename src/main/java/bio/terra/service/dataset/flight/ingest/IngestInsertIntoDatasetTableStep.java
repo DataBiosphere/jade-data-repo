@@ -10,7 +10,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.transactions.TransactionUtils;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -24,17 +25,20 @@ public class IngestInsertIntoDatasetTableStep implements Step {
       LoggerFactory.getLogger(IngestInsertIntoDatasetTableStep.class);
 
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryTransactionPdao bigQueryTransactionPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final AuthenticatedUserRequest userRequest;
   private final boolean autocommit;
 
   public IngestInsertIntoDatasetTableStep(
       DatasetService datasetService,
-      BigQueryPdao bigQueryPdao,
+      BigQueryTransactionPdao bigQueryTransactionPdao,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
       AuthenticatedUserRequest userRequest,
       boolean autocommit) {
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryTransactionPdao = bigQueryTransactionPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.userRequest = userRequest;
     this.autocommit = autocommit;
   }
@@ -77,8 +81,9 @@ public class IngestInsertIntoDatasetTableStep implements Step {
     workingMap.put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 
     UUID transactionId = TransactionUtils.getTransactionId(context);
-    bigQueryPdao.insertIntoDatasetTable(dataset, targetTable, stagingTableName, transactionId);
-    bigQueryPdao.insertIntoMetadataTable(
+    bigQueryDatasetPdao.insertIntoDatasetTable(
+        dataset, targetTable, stagingTableName, transactionId);
+    bigQueryDatasetPdao.insertIntoMetadataTable(
         dataset,
         targetTable.getRowMetadataTableName(),
         stagingTableName,
@@ -95,7 +100,8 @@ public class IngestInsertIntoDatasetTableStep implements Step {
       DatasetTable table = IngestUtils.getDatasetTable(context, dataset);
       UUID transactionId = TransactionUtils.getTransactionId(context);
       try {
-        bigQueryPdao.rollbackDatasetTable(dataset, table.getRawTableName(), transactionId);
+        bigQueryTransactionPdao.rollbackDatasetTable(
+            dataset, table.getRawTableName(), transactionId);
       } catch (InterruptedException e) {
         logger.warn(
             String.format(
@@ -104,7 +110,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
             e);
       }
       try {
-        bigQueryPdao.rollbackDatasetMetadataTable(dataset, table, transactionId);
+        bigQueryTransactionPdao.rollbackDatasetMetadataTable(dataset, table, transactionId);
       } catch (InterruptedException e) {
         logger.warn(
             String.format(

@@ -25,7 +25,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -69,7 +68,6 @@ public class DatasetSoftDeleteConnectedTest {
   @Autowired private DatasetDao datasetDao;
   @Autowired private ConfigurationService configService;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private BigQueryPdao bigQueryPdao;
   @Autowired private ResourceService dataLocationService;
 
   @MockBean private IamProviderInterface samService;
@@ -381,7 +379,7 @@ public class DatasetSoftDeleteConnectedTest {
     String rowIdColumn = PdaoConstant.PDAO_ROW_ID_COLUMN;
     TableResult bqQueryResult =
         TestUtils.selectFromBigQueryDataset(
-            bigQueryPdao, datasetDao, dataLocationService, datasetName, tableName, rowIdColumn);
+            datasetDao, dataLocationService, datasetName, tableName, rowIdColumn);
     List<String> rowIds = new ArrayList<>();
     bqQueryResult.iterateAll().forEach(r -> rowIds.add(r.get(rowIdColumn).getStringValue()));
     return rowIds;

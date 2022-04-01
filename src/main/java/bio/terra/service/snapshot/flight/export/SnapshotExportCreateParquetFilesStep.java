@@ -7,7 +7,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryExportPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -19,19 +19,19 @@ import java.util.stream.Collectors;
 
 public class SnapshotExportCreateParquetFilesStep extends DefaultUndoStep {
 
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryExportPdao bigQueryExportPdao;
   private final GcsPdao gcsPdao;
   private final SnapshotService snapshotService;
   private final UUID snapshotId;
   private final boolean exportGsPaths;
 
   public SnapshotExportCreateParquetFilesStep(
-      BigQueryPdao bigQueryPdao,
+      BigQueryExportPdao bigQueryExportPdao,
       GcsPdao gcsPdao,
       SnapshotService snapshotService,
       UUID snapshotId,
       boolean exportGsPaths) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryExportPdao = bigQueryExportPdao;
     this.gcsPdao = gcsPdao;
     this.snapshotService = snapshotService;
     this.snapshotId = snapshotId;
@@ -47,7 +47,7 @@ public class SnapshotExportCreateParquetFilesStep extends DefaultUndoStep {
         workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_BUCKET, GoogleBucketResource.class);
 
     List<String> paths =
-        bigQueryPdao.exportTableToParquet(snapshot, exportBucket, flightId, exportGsPaths);
+        bigQueryExportPdao.exportTableToParquet(snapshot, exportBucket, flightId, exportGsPaths);
 
     Map<String, List<String>> tablesToPaths =
         paths.stream()

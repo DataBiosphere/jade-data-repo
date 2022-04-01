@@ -3,7 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.load.LoadService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -16,7 +16,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
 
   private static final Logger logger = LoggerFactory.getLogger(IngestCopyLoadHistoryToBQStep.class);
 
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final LoadService loadService;
   private final DatasetService datasetService;
 
@@ -26,14 +26,14 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
   private final int loadHistoryChunkSize;
 
   public IngestCopyLoadHistoryToBQStep(
-      BigQueryPdao bigQueryPdao,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
       LoadService loadService,
       DatasetService datasetService,
       UUID datasetId,
       String loadTag,
       int waitSeconds,
       int loadHistoryChunkSize) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.loadService = loadService;
     this.datasetService = datasetService;
     this.datasetId = datasetId;
@@ -48,12 +48,12 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
         getResources(context, loadService, datasetService, datasetId, loadHistoryChunkSize);
     String tableNameFlightId = context.getFlightId().replaceAll("[^a-zA-Z0-9]", "_");
     try {
-      bigQueryPdao.createStagingLoadHistoryTable(resources.dataset, tableNameFlightId);
+      bigQueryDatasetPdao.createStagingLoadHistoryTable(resources.dataset, tableNameFlightId);
       TimeUnit.SECONDS.sleep(waitSeconds);
       while (resources.loadHistoryIterator.hasNext()) {
         var array = resources.loadHistoryIterator.next();
         // send list plus load_tag, load_time to BQ to be put in a staging table
-        bigQueryPdao.loadHistoryToStagingTable(
+        bigQueryDatasetPdao.loadHistoryToStagingTable(
             resources.dataset, tableNameFlightId, loadTag, resources.loadTime, array);
 
         // Sleep to avoid BQ rate limit error
@@ -62,8 +62,8 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
       }
 
       // copy from staging to actual BQ table
-      bigQueryPdao.mergeStagingLoadHistoryTable(resources.dataset, tableNameFlightId);
-      bigQueryPdao.deleteStagingLoadHistoryTable(resources.dataset, tableNameFlightId);
+      bigQueryDatasetPdao.mergeStagingLoadHistoryTable(resources.dataset, tableNameFlightId);
+      bigQueryDatasetPdao.deleteStagingLoadHistoryTable(resources.dataset, tableNameFlightId);
 
       return StepResult.getStepResultSuccess();
     } catch (InterruptedException ex) {
@@ -76,7 +76,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
     String flightId = context.getFlightId();
     try {
       Dataset dataset = datasetService.retrieve(datasetId);
-      bigQueryPdao.deleteStagingLoadHistoryTable(dataset, flightId);
+      bigQueryDatasetPdao.deleteStagingLoadHistoryTable(dataset, flightId);
     } catch (Exception ex) {
       logger.error("Failure deleting load history staging table for flight: " + flightId, ex);
     }

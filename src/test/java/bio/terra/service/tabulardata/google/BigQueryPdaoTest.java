@@ -37,6 +37,9 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
@@ -80,7 +83,8 @@ public class BigQueryPdaoTest {
 
   @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private BigQueryPdao bigQueryPdao;
+  @Autowired private BigQuerySnapshotPdao bigQuerySnapshotPdao;
+  @Autowired private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
   @Autowired private ConnectedOperations connectedOperations;
@@ -129,7 +133,7 @@ public class BigQueryPdaoTest {
             + "Source file not found: 'gs://broad-dsp-storage/blahblah.fastq.gz'");
     loadHistoryArray.add(loadHistoryModel);
 
-    ST sqlTemplate = new ST(bigQueryPdao.insertLoadHistoryToStagingTableTemplate);
+    ST sqlTemplate = new ST(bigQueryDatasetPdao.insertLoadHistoryToStagingTableTemplate);
     sqlTemplate.add("project", "broad-jade-dev");
     sqlTemplate.add("dataset", "datarepo_hca_ebi");
     sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + "x");
@@ -147,15 +151,15 @@ public class BigQueryPdaoTest {
     try {
       assertThatDatasetAndTablesShouldExist(dataset, false);
 
-      bigQueryPdao.createDataset(dataset);
+      bigQueryDatasetPdao.createDataset(dataset);
       assertThatDatasetAndTablesShouldExist(dataset, true);
 
       // Perform the redo, which should delete and re-create
-      bigQueryPdao.createDataset(dataset);
+      bigQueryDatasetPdao.createDataset(dataset);
       assertThatDatasetAndTablesShouldExist(dataset, true);
 
       // Now delete it and test that it is gone
-      bigQueryPdao.deleteDataset(dataset);
+      bigQueryDatasetPdao.deleteDataset(dataset);
       assertThatDatasetAndTablesShouldExist(dataset, false);
     } finally {
       datasetDao.delete(dataset.getId());
@@ -179,7 +183,7 @@ public class BigQueryPdaoTest {
     BlobInfo fileBlob = BlobInfo.newBuilder(bucket, targetPath + "ingest-test-file.json").build();
 
     try {
-      bigQueryPdao.createDataset(dataset);
+      bigQueryDatasetPdao.createDataset(dataset);
 
       storage.create(participantBlob, readFile("ingest-test-participant.json"));
       storage.create(sampleBlob, readFile("ingest-test-sample.json"));
@@ -227,10 +231,10 @@ public class BigQueryPdaoTest {
   @Test
   public void partitionTest() throws Exception {
     Dataset dataset = readDataset("ingest-test-partitioned-dataset.json");
-    String bqDatasetName = bigQueryPdao.prefixName(dataset.getName());
+    String bqDatasetName = BigQueryPdao.prefixName(dataset.getName());
 
     try {
-      bigQueryPdao.createDataset(dataset);
+      bigQueryDatasetPdao.createDataset(dataset);
       BigQueryProject bigQueryProject =
           TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
 
@@ -262,7 +266,7 @@ public class BigQueryPdaoTest {
       // If the column isn't exposed, this will go boom.
       bigQueryProject.getBigQuery().query(queryConfig);
     } finally {
-      bigQueryPdao.deleteDataset(dataset);
+      bigQueryDatasetPdao.deleteDataset(dataset);
       // Need to manually clean up the DAO because `readDataset` bypasses the
       // `connectedOperations` object, so we can't rely on its auto-teardown logic.
       datasetDao.delete(dataset.getId());
@@ -286,7 +290,7 @@ public class BigQueryPdaoTest {
     BlobInfo fileBlob = BlobInfo.newBuilder(bucket, targetPath + "ingest-test-file.json").build();
 
     try {
-      bigQueryPdao.createDataset(dataset);
+      bigQueryDatasetPdao.createDataset(dataset);
 
       storage.create(participantBlob, readFile("ingest-test-participant.json"));
       storage.create(sampleBlob, readFile("ingest-test-sample.json"));
@@ -342,11 +346,11 @@ public class BigQueryPdaoTest {
         String.format("gs://%s/not/a/real/path/to/*files", testConfig.getIngestbucket());
 
     try {
-      bigQueryPdao.createDataset(dataset);
+      bigQueryDatasetPdao.createDataset(dataset);
       exceptionGrabber.expect(BadExternalFileException.class);
-      bigQueryPdao.createSoftDeleteExternalTable(dataset, badGsUri, "participant", suffix);
+      bigQueryDatasetPdao.createSoftDeleteExternalTable(dataset, badGsUri, "participant", suffix);
     } finally {
-      bigQueryPdao.deleteDataset(dataset);
+      bigQueryDatasetPdao.deleteDataset(dataset);
       // Need to manually clean up the DAO because `readDataset` bypasses the
       // `connectedOperations` object, so we can't rely on its auto-teardown logic.
       datasetDao.delete(dataset.getId());
@@ -371,7 +375,7 @@ public class BigQueryPdaoTest {
                 new GoogleProjectResource().profileId(profileId).googleProjectId(dataProjectId));
     List<Map<String, Object>> expected = getExampleSnapshotTableData();
     List<Map<String, Object>> actual =
-        bigQueryPdao.getSnapshotTableUnsafe(snapshot, snapshotTableDataSqlExample);
+        bigQuerySnapshotPdao.getSnapshotTableUnsafe(snapshot, snapshotTableDataSqlExample);
     assertEquals(expected, actual);
   }
 
@@ -484,13 +488,13 @@ public class BigQueryPdaoTest {
   private void assertThatDatasetAndTablesShouldExist(Dataset dataset, boolean shouldExist)
       throws InterruptedException {
 
-    boolean datasetExists = bigQueryPdao.tableExists(dataset, "participant");
+    boolean datasetExists = bigQueryDatasetPdao.tableExists(dataset, "participant");
     assertThat(
         String.format("Dataset: %s, exists", dataset.getName()),
         datasetExists,
         equalTo(shouldExist));
 
-    boolean loadTableExists = bigQueryPdao.tableExists(dataset, PDAO_LOAD_HISTORY_TABLE);
+    boolean loadTableExists = bigQueryDatasetPdao.tableExists(dataset, PDAO_LOAD_HISTORY_TABLE);
     assertThat(
         String.format("Load Table: %s, exists", PDAO_LOAD_HISTORY_TABLE),
         loadTableExists,
@@ -502,7 +506,7 @@ public class BigQueryPdaoTest {
           Arrays.asList(table.getName(), table.getRawTableName(), table.getSoftDeleteTableName())) {
         assertThat(
             "Table: " + dataset.getName() + "." + t + ", exists",
-            bigQueryPdao.tableExists(dataset, t),
+            bigQueryDatasetPdao.tableExists(dataset, t),
             equalTo(shouldExist));
       }
     }

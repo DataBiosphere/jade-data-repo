@@ -20,7 +20,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -38,7 +38,7 @@ public class SnapshotDeleteFlight extends Flight {
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQuerySnapshotPdao bigQuerySnapshotPdao = appContext.getBean(BigQuerySnapshotPdao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     IamService iamClient = appContext.getBean(IamService.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
@@ -89,12 +89,12 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(
         new PerformGCPDatasetDependencyStep(
             new DeleteSnapshotSourceDatasetDataGcpStep(
-                dependencyDao, bigQueryPdao, snapshotId, datasetService, snapshotService)),
+                dependencyDao, bigQuerySnapshotPdao, snapshotId, datasetService, snapshotService)),
         randomBackoffRetry);
     addStep(
         new PerformGcpStep(
             new DeleteSnapshotPrimaryDataGcpStep(
-                bigQueryPdao, snapshotService, fileDao, snapshotId, configService)),
+                bigQuerySnapshotPdao, snapshotService, fileDao, snapshotId, configService)),
         randomBackoffRetry);
     // --- Azure --
     addStep(

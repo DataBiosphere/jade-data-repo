@@ -7,7 +7,7 @@ import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryExportPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +23,7 @@ public class SnapshotExportFlight extends Flight {
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryExportPdao bigQueryExportPdao = appContext.getBean(BigQueryExportPdao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     FireStoreDao fireStoreDao = appContext.getBean(FireStoreDao.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
@@ -39,7 +39,7 @@ public class SnapshotExportFlight extends Flight {
             inputParameters.get(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, Boolean.class), true);
 
     if (validatePrimaryKeyUniqueness) {
-      addStep(new SnapshotExportValidatePrimaryKeysStep(bigQueryPdao, snapshotService, snapshotId));
+      addStep(new SnapshotExportValidatePrimaryKeysStep(snapshotService, snapshotId));
     }
 
     addStep(new SnapshotExportCreateBucketStep(resourceService, snapshotService, snapshotId));
@@ -51,11 +51,12 @@ public class SnapshotExportFlight extends Flight {
       addStep(
           new SnapshotExportDumpFirestoreStep(
               snapshotService, fireStoreDao, gcsPdao, snapshotId, objectMapper));
-      addStep(new SnapshotExportLoadMappingTableStep(snapshotId, snapshotService, bigQueryPdao));
+      addStep(
+          new SnapshotExportLoadMappingTableStep(snapshotId, snapshotService, bigQueryExportPdao));
     }
     addStep(
         new SnapshotExportCreateParquetFilesStep(
-            bigQueryPdao, gcsPdao, snapshotService, snapshotId, exportGsPaths));
+            bigQueryExportPdao, gcsPdao, snapshotService, snapshotId, exportGsPaths));
     addStep(
         new SnapshotExportWriteManifestStep(
             snapshotId,
@@ -66,7 +67,8 @@ public class SnapshotExportFlight extends Flight {
             validatePrimaryKeyUniqueness));
     addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
     if (exportGsPaths) {
-      addStep(new CleanUpExportGsPathsStep(bigQueryPdao, gcsPdao, snapshotService, snapshotId));
+      addStep(
+          new CleanUpExportGsPathsStep(bigQueryExportPdao, gcsPdao, snapshotService, snapshotId));
     }
   }
 }

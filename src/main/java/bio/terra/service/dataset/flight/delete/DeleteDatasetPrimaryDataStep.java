@@ -7,7 +7,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -22,7 +22,7 @@ public class DeleteDatasetPrimaryDataStep implements Step {
 
   private static Logger logger = LoggerFactory.getLogger(DeleteDatasetPrimaryDataStep.class);
 
-  private BigQueryPdao bigQueryPdao;
+  private BigQueryDatasetPdao bigQueryDatasetPdao;
   private GcsPdao gcsPdao;
   private FireStoreDao fileDao;
   private DatasetService datasetService;
@@ -30,13 +30,13 @@ public class DeleteDatasetPrimaryDataStep implements Step {
   private ConfigurationService configService;
 
   public DeleteDatasetPrimaryDataStep(
-      BigQueryPdao bigQueryPdao,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
       GcsPdao gcsPdao,
       FireStoreDao fileDao,
       DatasetService datasetService,
       UUID datasetId,
       ConfigurationService configService) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.gcsPdao = gcsPdao;
     this.fileDao = fileDao;
     this.datasetService = datasetService;
@@ -47,7 +47,7 @@ public class DeleteDatasetPrimaryDataStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = datasetService.retrieve(datasetId);
-    bigQueryPdao.deleteDataset(dataset);
+    bigQueryDatasetPdao.deleteDataset(dataset);
     fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> gcsPdao.deleteFile(fireStoreFile));
 
     // this fault is used by the DatasetConnectedTest > testOverlappingDeletes

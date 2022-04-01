@@ -3,7 +3,7 @@ package bio.terra.service.dataset.flight.create;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -11,11 +11,12 @@ import bio.terra.stairway.StepResult;
 import java.util.UUID;
 
 public class CreateDatasetPrimaryDataStep implements Step {
-  private final BigQueryPdao pdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final DatasetDao datasetDao;
 
-  public CreateDatasetPrimaryDataStep(BigQueryPdao pdao, DatasetDao datasetDao) {
-    this.pdao = pdao;
+  public CreateDatasetPrimaryDataStep(
+      BigQueryDatasetPdao bigQueryDatasetPdao, DatasetDao datasetDao) {
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.datasetDao = datasetDao;
   }
 
@@ -28,14 +29,14 @@ public class CreateDatasetPrimaryDataStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = getDataset(context);
-    pdao.createDataset(dataset);
+    bigQueryDatasetPdao.createDataset(dataset);
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     Dataset dataset = getDataset(context);
-    pdao.deleteDataset(dataset);
+    bigQueryDatasetPdao.deleteDataset(dataset);
 
     return StepResult.getStepResultSuccess();
   }

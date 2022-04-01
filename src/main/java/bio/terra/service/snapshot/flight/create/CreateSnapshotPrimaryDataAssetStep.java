@@ -11,7 +11,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -21,17 +21,17 @@ import org.springframework.http.HttpStatus;
 
 public class CreateSnapshotPrimaryDataAssetStep implements Step {
 
-  private BigQueryPdao bigQueryPdao;
+  private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private SnapshotDao snapshotDao;
   private SnapshotService snapshotService;
   private SnapshotRequestModel snapshotReq;
 
   public CreateSnapshotPrimaryDataAssetStep(
-      BigQueryPdao bigQueryPdao,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotReq) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
@@ -51,7 +51,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     SnapshotSource source = snapshot.getFirstSnapshotSource();
     RowIdMatch rowIdMatch =
-        bigQueryPdao.mapValuesToRows(source, assetSpec.getRootValues(), createdAt);
+        bigQuerySnapshotPdao.mapValuesToRows(source, assetSpec.getRootValues(), createdAt);
     if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
       String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
       String message = String.format("Mismatched input values: '%s'", unmatchedValues);
@@ -60,7 +60,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
           StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
     }
 
-    bigQueryPdao.createSnapshot(snapshot, rowIdMatch.getMatchingRowIds(), createdAt);
+    bigQuerySnapshotPdao.createSnapshot(snapshot, rowIdMatch.getMatchingRowIds(), createdAt);
 
     // REVIEWERS: There used to be a block of code here for updating FireStore with dependency info.
     // I *think*

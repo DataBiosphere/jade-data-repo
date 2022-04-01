@@ -7,7 +7,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -18,17 +18,17 @@ import org.slf4j.LoggerFactory;
 public class TransactionRollbackStep implements Step {
   private static final Logger logger = LoggerFactory.getLogger(TransactionRollbackStep.class);
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryTransactionPdao bigQueryTransactionPdao;
   private final UUID transactionId;
   private final AuthenticatedUserRequest userReq;
 
   public TransactionRollbackStep(
       DatasetService datasetService,
-      BigQueryPdao bigQueryPdao,
+      BigQueryTransactionPdao bigQueryTransactionPdao,
       UUID transactionId,
       AuthenticatedUserRequest userReq) {
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryTransactionPdao = bigQueryTransactionPdao;
     this.transactionId = transactionId;
     this.userReq = userReq;
   }
@@ -37,7 +37,7 @@ public class TransactionRollbackStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     TransactionModel transaction =
-        bigQueryPdao.updateTransactionTableStatus(
+        bigQueryTransactionPdao.updateTransactionTableStatus(
             userReq, dataset, transactionId, StatusEnum.ROLLED_BACK);
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), transaction);
     return StepResult.getStepResultSuccess();

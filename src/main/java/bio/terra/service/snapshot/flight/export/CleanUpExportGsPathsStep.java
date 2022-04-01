@@ -5,7 +5,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryExportPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -14,18 +14,18 @@ import java.util.UUID;
 
 public class CleanUpExportGsPathsStep implements Step {
 
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryExportPdao bigQueryExportPdao;
   private final GcsPdao gcsPdao;
   private final SnapshotService snapshotService;
   private final UUID snapshotId;
 
   public CleanUpExportGsPathsStep(
-      BigQueryPdao bigQueryPdao,
+      BigQueryExportPdao bigQueryExportPdao,
       GcsPdao gcsPdao,
       SnapshotService snapshotService,
       UUID snapshotId) {
 
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryExportPdao = bigQueryExportPdao;
     this.gcsPdao = gcsPdao;
     this.snapshotService = snapshotService;
     this.snapshotId = snapshotId;
@@ -34,7 +34,7 @@ public class CleanUpExportGsPathsStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    bigQueryPdao.deleteFirestoreGsPathExternalTable(snapshot, context.getFlightId());
+    bigQueryExportPdao.deleteFirestoreGsPathExternalTable(snapshot, context.getFlightId());
 
     GoogleBucketResource exportBucket =
         context

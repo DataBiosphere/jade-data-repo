@@ -2,25 +2,25 @@ package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
 public class IngestRowIdsStep implements Step {
   private DatasetService datasetService;
-  private BigQueryPdao bigQueryPdao;
+  private BigQueryDatasetPdao bigQueryDatasetPdao;
 
-  public IngestRowIdsStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
+  public IngestRowIdsStep(DatasetService datasetService, BigQueryDatasetPdao bigQueryDatasetPdao) {
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     String stagingTableName = IngestUtils.getStagingTableName(context);
-    bigQueryPdao.addRowIdsToStagingTable(dataset, stagingTableName);
+    bigQueryDatasetPdao.addRowIdsToStagingTable(dataset, stagingTableName);
     return StepResult.getStepResultSuccess();
   }
 

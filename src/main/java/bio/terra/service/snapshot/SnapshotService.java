@@ -47,7 +47,7 @@ import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,7 +71,7 @@ public class SnapshotService {
   private final JobService jobService;
   private final DatasetService datasetService;
   private final FireStoreDependencyDao dependencyDao;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotDao snapshotDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
 
@@ -80,13 +80,13 @@ public class SnapshotService {
       JobService jobService,
       DatasetService datasetService,
       FireStoreDependencyDao dependencyDao,
-      BigQueryPdao bigQueryPdao,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
       MetadataDataAccessUtils metadataDataAccessUtils) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotDao = snapshotDao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
@@ -115,7 +115,7 @@ public class SnapshotService {
       dependencyDao.deleteSnapshotFileDependencies(dataset, snapshot.getId().toString());
     }
 
-    bigQueryPdao.deleteSnapshot(snapshot);
+    bigQuerySnapshotPdao.deleteSnapshot(snapshot);
   }
 
   /**
@@ -400,7 +400,7 @@ public class SnapshotService {
 
     try {
       List<Map<String, Object>> values =
-          bigQueryPdao.getSnapshotTable(snapshot, tableName, limit, offset);
+          bigQuerySnapshotPdao.getSnapshotTable(snapshot, tableName, limit, offset);
 
       return new SnapshotPreviewModel().result(List.copyOf(values));
     } catch (InterruptedException e) {

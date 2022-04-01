@@ -28,7 +28,6 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
 import java.util.ArrayList;
@@ -68,7 +67,6 @@ public class ArrayMultiFileLoadTest {
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private DatasetDao datasetDao;
   @Autowired private ResourceService dataLocationService;
-  @Autowired private BigQueryPdao bigQueryPdao;
   @Autowired private ConnectedTestConfiguration testConfig;
 
   @MockBean private IamProviderInterface samService;
@@ -192,7 +190,6 @@ public class ArrayMultiFileLoadTest {
   // Get the count of rows in a table or view
   private TableResult queryLoadHistoryTable(String columns) throws Exception {
     return TestUtils.selectFromBigQueryDataset(
-        bigQueryPdao,
         datasetDao,
         dataLocationService,
         datasetSummary.getName(),

@@ -7,7 +7,7 @@ import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.search.exception.SearchException;
 import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,15 +45,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class SearchService {
 
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final RestHighLevelClient client;
 
   @Value("${elasticsearch.numShards}")
   private int NUM_SHARDS;
 
   @Autowired
-  public SearchService(BigQueryPdao bigQueryPdao, RestHighLevelClient client) {
-    this.bigQueryPdao = bigQueryPdao;
+  public SearchService(BigQuerySnapshotPdao bigQuerySnapshotPdao, RestHighLevelClient client) {
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.client = client;
   }
 
@@ -131,7 +131,7 @@ public class SearchService {
       throws InterruptedException {
 
     String sql = TimUtils.encodeSqlColumns(searchIndexRequest.getSql());
-    List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableUnsafe(snapshot, sql);
+    List<Map<String, Object>> values = bigQuerySnapshotPdao.getSnapshotTableUnsafe(snapshot, sql);
     validateSnapshotDataNotEmpty(values);
     String indexName = createEmptyIndex(snapshot);
     createIndexMapping(indexName, values);

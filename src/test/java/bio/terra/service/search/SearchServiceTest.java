@@ -15,7 +15,7 @@ import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,7 +62,7 @@ public class SearchServiceTest {
 
   private static final String indexName = "idx-mock";
 
-  @Mock private BigQueryPdao bigQueryPdao;
+  @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
 
   @Mock private SnapshotSearchMetadataDao snapshotSearchMetadataDao;
 
@@ -78,7 +78,7 @@ public class SearchServiceTest {
 
   @Before
   public void setup() throws Exception {
-    service = new SearchService(bigQueryPdao, client);
+    service = new SearchService(bigQuerySnapshotPdao, client);
 
     searchIndexRequest = getSearchIndexRequest();
     snapshot = getSnapshot();
@@ -109,7 +109,7 @@ public class SearchServiceTest {
   @Test
   public void indexSnapshotTest() throws Exception {
     // Mock snapshot table data
-    when(bigQueryPdao.getSnapshotTableUnsafe(any(Snapshot.class), any(String.class)))
+    when(bigQuerySnapshotPdao.getSnapshotTableUnsafe(any(Snapshot.class), any(String.class)))
         .thenReturn(values);
 
     // Mock index request

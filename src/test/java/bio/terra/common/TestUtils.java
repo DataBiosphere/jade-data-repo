@@ -21,8 +21,8 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -196,7 +196,6 @@ public final class TestUtils {
   /**
    * Execute a SELECT query on BigQuery dataset.
    *
-   * @param bigQueryPdao pass in from the calling test class
    * @param datasetDao pass in from the calling test class
    * @param dataLocationService pass in from the calling test class
    * @param datasetName the name of the Data Repo dataset
@@ -205,7 +204,6 @@ public final class TestUtils {
    * @return the BigQuery TableResult
    */
   public static TableResult selectFromBigQueryDataset(
-      BigQueryPdao bigQueryPdao,
       DatasetDao datasetDao,
       ResourceService dataLocationService,
       String datasetName,
@@ -213,7 +211,7 @@ public final class TestUtils {
       String columns)
       throws Exception {
 
-    String bqDatasetName = bigQueryPdao.prefixName(datasetName);
+    String bqDatasetName = BigQueryPdao.prefixName(datasetName);
     BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetDao, datasetName);
     String bigQueryProjectId = bigQueryProject.getProjectId();
     BigQuery bigQuery = bigQueryProject.getBigQuery();

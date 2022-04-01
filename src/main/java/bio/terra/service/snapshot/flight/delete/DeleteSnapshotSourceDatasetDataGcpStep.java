@@ -8,7 +8,7 @@ import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -19,19 +19,19 @@ import java.util.UUID;
 
 public class DeleteSnapshotSourceDatasetDataGcpStep implements Step {
   private final FireStoreDependencyDao dependencyDao;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final UUID snapshotId;
   private final DatasetService datasetService;
   private final SnapshotService snapshotService;
 
   public DeleteSnapshotSourceDatasetDataGcpStep(
       FireStoreDependencyDao dependencyDao,
-      BigQueryPdao bigQueryPdao,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       UUID snapshotId,
       DatasetService datasetService,
       SnapshotService snapshotService) {
     this.dependencyDao = dependencyDao;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotId = snapshotId;
     this.datasetService = datasetService;
     this.snapshotService = snapshotService;
@@ -49,7 +49,7 @@ public class DeleteSnapshotSourceDatasetDataGcpStep implements Step {
 
     // Delete View ACLs from Source Dataset's Big Query Tables
     try {
-      bigQueryPdao.deleteSourceDatasetViewACLs(snapshot);
+      bigQuerySnapshotPdao.deleteSourceDatasetViewACLs(snapshot);
     } catch (BigQueryException ex) {
       if (FlightUtils.isBigQueryIamPropagationError(ex)) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);

@@ -9,7 +9,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.SnapshotExportException;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -21,13 +21,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class SnapshotExportValidatePrimaryKeysStep implements Step {
-  private final BigQueryPdao bigQueryPdao;
   private final SnapshotService snapshotService;
   private final UUID snapshotId;
 
-  public SnapshotExportValidatePrimaryKeysStep(
-      BigQueryPdao bigQueryPdao, SnapshotService snapshotService, UUID snapshotId) {
-    this.bigQueryPdao = bigQueryPdao;
+  public SnapshotExportValidatePrimaryKeysStep(SnapshotService snapshotService, UUID snapshotId) {
     this.snapshotService = snapshotService;
     this.snapshotId = snapshotId;
   }
@@ -59,7 +56,7 @@ public class SnapshotExportValidatePrimaryKeysStep implements Step {
                   boolean hasDuplicates;
                   try {
                     hasDuplicates =
-                        bigQueryPdao.hasDuplicatePrimaryKeys(
+                        BigQueryPdao.hasDuplicatePrimaryKeys(
                             snapshot, primaryKeyColumns, tableName);
                   } catch (InterruptedException e) {
                     throw new GoogleResourceException(

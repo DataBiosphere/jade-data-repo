@@ -4,7 +4,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -15,17 +15,17 @@ import org.slf4j.LoggerFactory;
 public class TransactionUnlockStep implements Step {
   private static final Logger logger = LoggerFactory.getLogger(TransactionUnlockStep.class);
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryTransactionPdao bigQueryTransactionPdao;
   private final UUID transactionId;
   private final AuthenticatedUserRequest userRequest;
 
   public TransactionUnlockStep(
       DatasetService datasetService,
-      BigQueryPdao bigQueryPdao,
+      BigQueryTransactionPdao bigQueryTransactionPdao,
       UUID transactionId,
       AuthenticatedUserRequest userRequest) {
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryTransactionPdao = bigQueryTransactionPdao;
     this.transactionId = transactionId;
     this.userRequest = userRequest;
   }
@@ -42,7 +42,7 @@ public class TransactionUnlockStep implements Step {
       throw new IllegalArgumentException("No transaction ID specified");
     }
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
-    bigQueryPdao.updateTransactionTableLock(dataset, transactionId, null, userRequest);
+    bigQueryTransactionPdao.updateTransactionTableLock(dataset, transactionId, null, userRequest);
     return StepResult.getStepResultSuccess();
   }
 

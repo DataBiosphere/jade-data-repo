@@ -19,7 +19,7 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import java.time.Duration;
 import java.util.List;

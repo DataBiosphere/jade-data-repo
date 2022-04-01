@@ -36,6 +36,9 @@ import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
@@ -86,7 +89,8 @@ public class BigQueryPdaoDatasetConnectedTest {
 
   @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private BigQueryPdao bigQueryPdao;
+  @Autowired private BigQueryTransactionPdao bigQueryTransactionPdao;
+  @Autowired private BigQueryDatasetPdao bigQueryDatasetPdao;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
   @Autowired private ConnectedOperations connectedOperations;
@@ -158,7 +162,7 @@ public class BigQueryPdaoDatasetConnectedTest {
           BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-null-id.json").build();
 
       try {
-        bigQueryPdao.createDataset(dataset);
+        bigQueryDatasetPdao.createDataset(dataset);
 
         com.google.cloud.bigquery.Dataset bqDataset = bigQueryDataset(dataset);
         assertThat(regionMessage, bqDataset.getLocation(), equalTo(region));
@@ -233,17 +237,17 @@ public class BigQueryPdaoDatasetConnectedTest {
         // TODO: Replace this with a call to the soft-delete API once it exists?
         softDeleteRows(
             bigQueryProject,
-            bigQueryPdao.prefixName(dataset.getName()),
+            BigQueryPdao.prefixName(dataset.getName()),
             BigQueryPdaoTest.getTable(dataset, "participant"),
             Arrays.asList("participant_3", "participant_4"));
         softDeleteRows(
             bigQueryProject,
-            bigQueryPdao.prefixName(dataset.getName()),
+            BigQueryPdao.prefixName(dataset.getName()),
             BigQueryPdaoTest.getTable(dataset, "sample"),
             Collections.singletonList("sample5"));
         softDeleteRows(
             bigQueryProject,
-            bigQueryPdao.prefixName(dataset.getName()),
+            BigQueryPdao.prefixName(dataset.getName()),
             BigQueryPdaoTest.getTable(dataset, "file"),
             Collections.singletonList("file1"));
 
@@ -312,13 +316,15 @@ public class BigQueryPdaoDatasetConnectedTest {
     storage.create(participantBlob, readFile("ingest-test-participant.json"));
 
     connectedOperations.addDataset(dataset.getId());
-    bigQueryPdao.createDataset(dataset);
+    bigQueryDatasetPdao.createDataset(dataset);
 
     // Create transactions
     TransactionModel transaction1 =
-        bigQueryPdao.insertIntoTransactionTable(TEST_USER, dataset, flightId1, description1);
+        bigQueryTransactionPdao.insertIntoTransactionTable(
+            TEST_USER, dataset, flightId1, description1);
     TransactionModel transaction2 =
-        bigQueryPdao.insertIntoTransactionTable(TEST_USER, dataset, flightId2, description2);
+        bigQueryTransactionPdao.insertIntoTransactionTable(
+            TEST_USER, dataset, flightId2, description2);
 
     assertThat("Transaction 1 has correct lock", transaction1.getLock(), is(flightId1));
     assertThat("Transaction 2 has correct lock", transaction2.getLock(), is(flightId2));
@@ -339,7 +345,7 @@ public class BigQueryPdaoDatasetConnectedTest {
 
     // Enumerate all transactions
     List<TransactionModel> enumeratedTransactions =
-        bigQueryPdao.enumerateTransactions(dataset, 0, 10);
+        bigQueryTransactionPdao.enumerateTransactions(dataset, 0, 10);
     assertThat(
         "Enumerating transactions works",
         enumeratedTransactions,
@@ -348,22 +354,22 @@ public class BigQueryPdaoDatasetConnectedTest {
     // Retrieve transactions individually
     assertThat(
         "Transaction 1 retrieves correctly",
-        bigQueryPdao.retrieveTransaction(dataset, transaction1.getId()),
+        bigQueryTransactionPdao.retrieveTransaction(dataset, transaction1.getId()),
         is(transaction1));
     assertThat(
         "Transaction 2 retrieves correctly",
-        bigQueryPdao.retrieveTransaction(dataset, transaction2.getId()),
+        bigQueryTransactionPdao.retrieveTransaction(dataset, transaction2.getId()),
         is(transaction2));
 
     // Lock transaction with same flight
-    bigQueryPdao.updateTransactionTableLock(
+    bigQueryTransactionPdao.updateTransactionTableLock(
         dataset, transaction1.getId(), transaction1.getLock(), TEST_USER);
 
     // Lock transaction with different flight
     assertThrows(
         TransactionLockException.class,
         () ->
-            bigQueryPdao.updateTransactionTableLock(
+            bigQueryTransactionPdao.updateTransactionTableLock(
                 dataset, transaction1.getId(), "FOO", TEST_USER));
 
     // Ingest staged data into the new dataset.
@@ -380,7 +386,8 @@ public class BigQueryPdaoDatasetConnectedTest {
         TEST_USER);
 
     // Unlock the first transaction so we can ingest
-    bigQueryPdao.updateTransactionTableLock(dataset, transaction1.getId(), null, TEST_USER);
+    bigQueryTransactionPdao.updateTransactionTableLock(
+        dataset, transaction1.getId(), null, TEST_USER);
 
     // Ingesting on a transaction that was created by another user should fail
     connectedOperations.ingestTableFailure(
@@ -407,7 +414,7 @@ public class BigQueryPdaoDatasetConnectedTest {
         equalTo(0L));
 
     // Commit the transaction
-    bigQueryPdao.updateTransactionTableStatus(
+    bigQueryTransactionPdao.updateTransactionTableStatus(
         TEST_USER, dataset, transaction1.getId(), TransactionModel.StatusEnum.COMMITTED);
 
     assertThat(
@@ -426,7 +433,7 @@ public class BigQueryPdaoDatasetConnectedTest {
     assertThrows(
         IllegalArgumentException.class,
         () ->
-            bigQueryPdao.updateTransactionTableStatus(
+            bigQueryTransactionPdao.updateTransactionTableStatus(
                 TEST_USER, dataset, transaction1.getId(), TransactionModel.StatusEnum.ACTIVE));
 
     // Ingesting on a closed connection (transaction 1) should fail
@@ -437,7 +444,8 @@ public class BigQueryPdaoDatasetConnectedTest {
 
     // Try to ingest in merge mode with transaction 2.  This should return conflict rows (need to
     // unlock transaction 2 first)
-    bigQueryPdao.updateTransactionTableLock(dataset, transaction2.getId(), null, TEST_USER);
+    bigQueryTransactionPdao.updateTransactionTableLock(
+        dataset, transaction2.getId(), null, TEST_USER);
     connectedOperations.ingestTableSuccess(
         datasetId,
         ingestRequest
@@ -448,21 +456,21 @@ public class BigQueryPdaoDatasetConnectedTest {
 
     assertThat(
         "Rows overlap",
-        bigQueryPdao.verifyTransaction(
+        bigQueryTransactionPdao.verifyTransaction(
             dataset, dataset.getTableByName("participant").orElseThrow(), transaction2.getId()),
         equalTo(5L));
 
     // Delete the transactions
-    bigQueryPdao.deleteFromTransactionTable(dataset, transaction1.getId());
+    bigQueryTransactionPdao.deleteFromTransactionTable(dataset, transaction1.getId());
 
     // Make sure we can't see the transaction
     assertThrows(
         NotFoundException.class,
-        () -> bigQueryPdao.retrieveTransaction(dataset, transaction1.getId()));
-    bigQueryPdao.deleteFromTransactionTable(dataset, transaction2.getId());
+        () -> bigQueryTransactionPdao.retrieveTransaction(dataset, transaction1.getId()));
+    bigQueryTransactionPdao.deleteFromTransactionTable(dataset, transaction2.getId());
     assertThrows(
         NotFoundException.class,
-        () -> bigQueryPdao.retrieveTransaction(dataset, transaction2.getId()));
+        () -> bigQueryTransactionPdao.retrieveTransaction(dataset, transaction2.getId()));
   }
 
   private static final String queryAllRowIdsTemplate =
@@ -497,7 +505,7 @@ public class BigQueryPdaoDatasetConnectedTest {
   private com.google.cloud.bigquery.Dataset bigQueryDataset(Dataset dataset) {
     return BigQueryProject.from(dataset)
         .getBigQuery()
-        .getDataset(bigQueryPdao.prefixName(dataset.getName()));
+        .getDataset(BigQueryPdao.prefixName(dataset.getName()));
   }
 
   // NOTE: This method bypasses the `connectedOperations` object, and creates a dataset

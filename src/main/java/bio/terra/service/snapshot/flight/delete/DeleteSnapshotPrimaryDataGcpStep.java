@@ -5,7 +5,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -20,19 +20,19 @@ public class DeleteSnapshotPrimaryDataGcpStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(DeleteSnapshotPrimaryDataGcpStep.class);
 
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final FireStoreDao fileDao;
   private final UUID snapshotId;
   private final ConfigurationService configService;
 
   public DeleteSnapshotPrimaryDataGcpStep(
-      BigQueryPdao bigQueryPdao,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
       FireStoreDao fileDao,
       UUID snapshotId,
       ConfigurationService configService) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.fileDao = fileDao;
     this.snapshotId = snapshotId;
@@ -54,7 +54,7 @@ public class DeleteSnapshotPrimaryDataGcpStep implements Step {
 
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
     // Delete Snapshot BigQuery Dataset
-    bigQueryPdao.deleteSnapshot(snapshot);
+    bigQuerySnapshotPdao.deleteSnapshot(snapshot);
 
     // Delete Snapshot entries from Firestore
     fileDao.deleteFilesFromSnapshot(snapshot);

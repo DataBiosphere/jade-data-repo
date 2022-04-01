@@ -36,7 +36,6 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -81,7 +80,6 @@ public class DatasetConnectedTest {
   @Autowired private MockMvc mvc;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedOperations connectedOperations;
-  @Autowired private BigQueryPdao bigQueryPdao;
   @Autowired private ResourceService dataLocationService;
   @Autowired private DatasetDao datasetDao;
   @Autowired private ConfigurationService configService;
@@ -220,12 +218,7 @@ public class DatasetConnectedTest {
     String columns = PdaoConstant.PDAO_ROW_ID_COLUMN + ",thecolumn";
     TableResult bqQueryResult =
         TestUtils.selectFromBigQueryDataset(
-            bigQueryPdao,
-            datasetDao,
-            dataLocationService,
-            datasetRequest.getName(),
-            tableName,
-            columns);
+            datasetDao, dataLocationService, datasetRequest.getName(), tableName, columns);
     List<UUID> rowIds = new ArrayList<>();
     Set<String> expectedNames = Set.of("Andrea", "Dan", "Rori", "Jeremy");
     Set<String> datasetNames = new HashSet<>();
@@ -259,12 +252,7 @@ public class DatasetConnectedTest {
     String columns = PdaoConstant.PDAO_ROW_ID_COLUMN + ",thecolumn";
     TableResult bqQueryResult =
         TestUtils.selectFromBigQueryDataset(
-            bigQueryPdao,
-            datasetDao,
-            dataLocationService,
-            datasetRequest.getName(),
-            tableName,
-            columns);
+            datasetDao, dataLocationService, datasetRequest.getName(), tableName, columns);
     List<UUID> rowIds = new ArrayList<>();
     Set<String> expectedNames = Set.of("Andrea", "Dan", "Rori", "Jeremy");
     Set<String> datasetNames = new HashSet<>();
@@ -333,7 +321,6 @@ public class DatasetConnectedTest {
             PdaoConstant.PDAO_LOAD_TAG_COLUMN);
     TableResult bqQueryResult =
         TestUtils.selectFromBigQueryDataset(
-            bigQueryPdao,
             datasetDao,
             dataLocationService,
             datasetRequest.getName(),

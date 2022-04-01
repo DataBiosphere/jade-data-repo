@@ -36,7 +36,7 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -73,7 +73,7 @@ public class SnapshotServiceTest {
   @MockBean private JobService jobService;
   @MockBean private DatasetService datasetService;
   @MockBean private FireStoreDependencyDao dependencyDao;
-  @MockBean private BigQueryPdao bigQueryPdao;
+  @MockBean private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   @Autowired private MetadataDataAccessUtils metadataDataAccessUtils;
   @MockBean private ResourceService resourceService;
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;

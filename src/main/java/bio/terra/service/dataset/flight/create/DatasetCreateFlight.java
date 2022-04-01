@@ -22,7 +22,7 @@ import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -39,7 +39,7 @@ public class DatasetCreateFlight extends Flight {
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
     IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
@@ -111,14 +111,14 @@ public class DatasetCreateFlight extends Flight {
     addStep(new CreateDatasetAuthzIamStep(iamClient, userReq));
 
     if (platform.isGcp()) {
-      addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao));
+      addStep(new CreateDatasetPrimaryDataStep(bigQueryDatasetPdao, datasetDao));
 
       // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes.
       // The max
       // operation timeout is generous.
       RetryRule pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
       addStep(
-          new CreateDatasetAuthzPrimaryDataStep(bigQueryPdao, datasetService, configService),
+          new CreateDatasetAuthzPrimaryDataStep(bigQueryDatasetPdao, datasetService, configService),
           pdaoAclRetryRule);
 
       // The underlying service provides retries so we do not need to retry for BQ Job User step at

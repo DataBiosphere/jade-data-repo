@@ -2,7 +2,7 @@ package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -13,11 +13,11 @@ public class IngestCleanupStep implements Step {
   private Logger logger = LoggerFactory.getLogger(IngestCleanupStep.class);
 
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
-  public IngestCleanupStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
+  public IngestCleanupStep(DatasetService datasetService, BigQueryDatasetPdao bigQueryDatasetPdao) {
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
   }
 
   @Override
@@ -30,7 +30,7 @@ public class IngestCleanupStep implements Step {
       Dataset dataset = IngestUtils.getDataset(context, datasetService);
 
       stagingTableName = IngestUtils.getStagingTableName(context);
-      bigQueryPdao.deleteDatasetTable(dataset, stagingTableName);
+      bigQueryDatasetPdao.deleteDatasetTable(dataset, stagingTableName);
     } catch (Exception ex) {
       logger.error("Failure deleting ingest staging table: " + stagingTableName, ex);
     }

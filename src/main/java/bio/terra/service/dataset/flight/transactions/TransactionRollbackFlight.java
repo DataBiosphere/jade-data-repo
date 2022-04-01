@@ -6,7 +6,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -20,7 +20,8 @@ public class TransactionRollbackFlight extends Flight {
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryTransactionPdao bigQueryTransactionPdao =
+        appContext.getBean(BigQueryTransactionPdao.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -33,12 +34,23 @@ public class TransactionRollbackFlight extends Flight {
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     if (cloudPlatform.isGcp()) {
-      addStep(new TransactionLockStep(datasetService, bigQueryPdao, transactionId, false, userReq));
-      addStep(new TransactionRollbackMetadataStep(datasetService, bigQueryPdao, transactionId));
-      addStep(new TransactionRollbackDataStep(datasetService, bigQueryPdao, transactionId));
-      addStep(new TransactionRollbackSoftDeleteStep(datasetService, bigQueryPdao, transactionId));
-      addStep(new TransactionRollbackStep(datasetService, bigQueryPdao, transactionId, userReq));
-      addStep(new TransactionUnlockStep(datasetService, bigQueryPdao, transactionId, userReq));
+      addStep(
+          new TransactionLockStep(
+              datasetService, bigQueryTransactionPdao, transactionId, false, userReq));
+      addStep(
+          new TransactionRollbackMetadataStep(
+              datasetService, bigQueryTransactionPdao, transactionId));
+      addStep(
+          new TransactionRollbackDataStep(datasetService, bigQueryTransactionPdao, transactionId));
+      addStep(
+          new TransactionRollbackSoftDeleteStep(
+              datasetService, bigQueryTransactionPdao, transactionId));
+      addStep(
+          new TransactionRollbackStep(
+              datasetService, bigQueryTransactionPdao, transactionId, userReq));
+      addStep(
+          new TransactionUnlockStep(
+              datasetService, bigQueryTransactionPdao, transactionId, userReq));
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;
     }

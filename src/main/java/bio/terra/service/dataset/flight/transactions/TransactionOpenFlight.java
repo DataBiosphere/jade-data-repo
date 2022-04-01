@@ -7,7 +7,7 @@ import bio.terra.model.TransactionCreateModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -21,7 +21,8 @@ public class TransactionOpenFlight extends Flight {
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryTransactionPdao bigQueryTransactionPdao =
+        appContext.getBean(BigQueryTransactionPdao.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -37,7 +38,7 @@ public class TransactionOpenFlight extends Flight {
       addStep(
           new TransactionOpenStep(
               datasetService,
-              bigQueryPdao,
+              bigQueryTransactionPdao,
               userReq,
               transactionRequestModel.getDescription(),
               true,
@@ -45,6 +46,6 @@ public class TransactionOpenFlight extends Flight {
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;
     }
-    addStep(new TransactionUnlockStep(datasetService, bigQueryPdao, null, userReq));
+    addStep(new TransactionUnlockStep(datasetService, bigQueryTransactionPdao, null, userReq));
   }
 }

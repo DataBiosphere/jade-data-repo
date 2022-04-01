@@ -15,7 +15,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -27,7 +27,7 @@ import java.util.Optional;
 
 public class CreateSnapshotPrimaryDataQueryStep implements Step {
 
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final DatasetService datasetService;
   private final SnapshotService snapshotService;
   private final SnapshotDao snapshotDao;
@@ -35,13 +35,13 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
   private final AuthenticatedUserRequest userRequest;
 
   public CreateSnapshotPrimaryDataQueryStep(
-      BigQueryPdao bigQueryPdao,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       DatasetService datasetService,
       SnapshotService snapshotService,
       SnapshotDao snapshotDao,
       SnapshotRequestModel snapshotReq,
       AuthenticatedUserRequest userRequest) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.datasetService = datasetService;
     this.snapshotService = snapshotService;
     this.snapshotDao = snapshotDao;
@@ -100,7 +100,7 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
     // relationship walking
     Instant createdAt = CommonFlightUtils.getCreatedAt(context);
 
-    bigQueryPdao.queryForRowIds(assetSpec, snapshot, sqlQuery, createdAt);
+    bigQuerySnapshotPdao.queryForRowIds(assetSpec, snapshot, sqlQuery, createdAt);
     return StepResult.getStepResultSuccess();
   }
 

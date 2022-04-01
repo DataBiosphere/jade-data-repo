@@ -9,7 +9,7 @@ import bio.terra.service.iam.IamRole;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -22,20 +22,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SnapshotAuthzTabularAclStep implements Step {
-  private final BigQueryPdao bigQueryPdao;
+
+  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final ConfigurationService configService;
-  private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzTabularAclStep.class);
 
   public SnapshotAuthzTabularAclStep(
-      BigQueryPdao bigQueryPdao,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotService snapshotService,
       ConfigurationService configService) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.configService = configService;
   }
@@ -60,7 +58,7 @@ public class SnapshotAuthzTabularAclStep implements Step {
             "IAM setPolicy fake failure",
             new BigQueryError("invalid", "fake", "IAM setPolicy fake failure"));
       }
-      bigQueryPdao.grantReadAccessToSnapshot(snapshot, emails);
+      bigQuerySnapshotPdao.grantReadAccessToSnapshot(snapshot, emails);
     } catch (BigQueryException ex) {
       if (FlightUtils.isBigQueryIamPropagationError(ex)) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);

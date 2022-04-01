@@ -12,7 +12,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -24,17 +24,17 @@ import org.springframework.http.HttpStatus;
 
 public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
-  private BigQueryPdao bigQueryPdao;
+  private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private SnapshotDao snapshotDao;
   private SnapshotService snapshotService;
   private SnapshotRequestModel snapshotReq;
 
   public CreateSnapshotPrimaryDataRowIdsStep(
-      BigQueryPdao bigQueryPdao,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotReq) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
@@ -53,7 +53,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
       List<UUID> rowIds = table.getRowIds();
       if (!rowIds.isEmpty()) {
         RowIdMatch rowIdMatch =
-            bigQueryPdao.matchRowIds(source, table.getTableName(), rowIds, createdAt);
+            bigQuerySnapshotPdao.matchRowIds(source, table.getTableName(), rowIds, createdAt);
         if (!rowIdMatch.getUnmatchedInputValues().isEmpty()) {
           String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
           String message = String.format("Mismatched row ids: '%s'", unmatchedValues);
@@ -63,7 +63,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
         }
       }
     }
-    bigQueryPdao.createSnapshotWithProvidedIds(snapshot, contentsModel, createdAt);
+    bigQuerySnapshotPdao.createSnapshotWithProvidedIds(snapshot, contentsModel, createdAt);
 
     return StepResult.getStepResultSuccess();
   }

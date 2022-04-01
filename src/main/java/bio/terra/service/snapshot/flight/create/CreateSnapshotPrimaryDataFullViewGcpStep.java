@@ -8,7 +8,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -16,19 +16,19 @@ import java.time.Instant;
 
 public class CreateSnapshotPrimaryDataFullViewGcpStep implements Step {
 
-  private BigQueryPdao bigQueryPdao;
+  private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private DatasetService datasetservice;
   private SnapshotDao snapshotDao;
   private SnapshotService snapshotService;
   private SnapshotRequestModel snapshotReq;
 
   public CreateSnapshotPrimaryDataFullViewGcpStep(
-      BigQueryPdao bigQueryPdao,
+      BigQuerySnapshotPdao bigQuerySnapshotPdao,
       DatasetService datasetservice,
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotReq) {
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.datasetservice = datasetservice;
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
@@ -44,7 +44,7 @@ public class CreateSnapshotPrimaryDataFullViewGcpStep implements Step {
     SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     Dataset dataset = datasetservice.retrieveByName(contentsModel.getDatasetName());
-    bigQueryPdao.createSnapshotWithLiveViews(snapshot, dataset, createdAt);
+    bigQuerySnapshotPdao.createSnapshotWithLiveViews(snapshot, dataset, createdAt);
 
     return StepResult.getStepResultSuccess();
   }

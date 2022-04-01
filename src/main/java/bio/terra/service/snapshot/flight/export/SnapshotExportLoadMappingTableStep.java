@@ -5,7 +5,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryExportPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -17,13 +17,13 @@ public class SnapshotExportLoadMappingTableStep implements Step {
 
   private final UUID snapshotId;
   private final SnapshotService snapshotService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryExportPdao bigQueryExportPdao;
 
   public SnapshotExportLoadMappingTableStep(
-      UUID snapshotId, SnapshotService snapshotService, BigQueryPdao bigQueryPdao) {
+      UUID snapshotId, SnapshotService snapshotService, BigQueryExportPdao bigQueryExportPdao) {
     this.snapshotId = snapshotId;
     this.snapshotService = snapshotService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryExportPdao = bigQueryExportPdao;
   }
 
   @Override
@@ -39,7 +39,7 @@ public class SnapshotExportLoadMappingTableStep implements Step {
     String gsPathMappingFilePath =
         GcsUriUtils.getGsPathFromComponents(bucketResource.getName(), gsPathMappingFile);
 
-    bigQueryPdao.createFirestoreGsPathExternalTable(
+    bigQueryExportPdao.createFirestoreGsPathExternalTable(
         snapshot, gsPathMappingFilePath, context.getFlightId());
     return StepResult.getStepResultSuccess();
   }
@@ -47,7 +47,7 @@ public class SnapshotExportLoadMappingTableStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    bigQueryPdao.deleteFirestoreGsPathExternalTable(snapshot, context.getFlightId());
+    bigQueryExportPdao.deleteFirestoreGsPathExternalTable(snapshot, context.getFlightId());
     return StepResult.getStepResultSuccess();
   }
 }

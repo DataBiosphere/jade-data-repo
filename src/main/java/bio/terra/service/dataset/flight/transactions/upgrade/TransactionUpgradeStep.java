@@ -9,7 +9,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -26,17 +26,17 @@ public class TransactionUpgradeStep implements Step {
   private static final Logger logger = LoggerFactory.getLogger(TransactionUpgradeStep.class);
   private final IamService iamService;
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final AuthenticatedUserRequest userReq;
 
   public TransactionUpgradeStep(
       IamService iamService,
       DatasetService datasetService,
-      BigQueryPdao bigQueryPdao,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
       AuthenticatedUserRequest userReq) {
     this.iamService = iamService;
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.userReq = userReq;
   }
 
@@ -63,7 +63,7 @@ public class TransactionUpgradeStep implements Step {
             .map(d -> datasetService.retrieve(d.getId()))
             .collect(Collectors.toList());
 
-    datasets.forEach(bigQueryPdao::migrateSchemaForTransactions);
+    datasets.forEach(bigQueryDatasetPdao::migrateSchemaForTransactions);
     return StepResult.getStepResultSuccess();
   }
 

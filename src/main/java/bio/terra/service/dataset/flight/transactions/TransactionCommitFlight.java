@@ -6,7 +6,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -20,7 +20,8 @@ public class TransactionCommitFlight extends Flight {
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQueryTransactionPdao bigQueryTransactionPdao =
+        appContext.getBean(BigQueryTransactionPdao.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -33,11 +34,16 @@ public class TransactionCommitFlight extends Flight {
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     if (cloudPlatform.isGcp()) {
-      addStep(new TransactionLockStep(datasetService, bigQueryPdao, transactionId, false, userReq));
-      addStep(new TransactionVerifyStep(datasetService, bigQueryPdao, transactionId));
       addStep(
-          new TransactionCommitStep(datasetService, bigQueryPdao, userReq, true, transactionId));
-      addStep(new TransactionUnlockStep(datasetService, bigQueryPdao, transactionId, userReq));
+          new TransactionLockStep(
+              datasetService, bigQueryTransactionPdao, transactionId, false, userReq));
+      addStep(new TransactionVerifyStep(datasetService, bigQueryTransactionPdao, transactionId));
+      addStep(
+          new TransactionCommitStep(
+              datasetService, bigQueryTransactionPdao, userReq, true, transactionId));
+      addStep(
+          new TransactionUnlockStep(
+              datasetService, bigQueryTransactionPdao, transactionId, userReq));
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;
     }

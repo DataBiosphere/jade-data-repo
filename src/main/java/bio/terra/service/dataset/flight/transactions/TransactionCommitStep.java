@@ -7,7 +7,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 public class TransactionCommitStep implements Step {
   private static final Logger logger = LoggerFactory.getLogger(TransactionCommitStep.class);
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryTransactionPdao bigQueryTransactionPdao;
   private final AuthenticatedUserRequest userReq;
   // If true, saves the transaction as the response to the flight
   private final boolean returnTransaction;
@@ -28,12 +28,12 @@ public class TransactionCommitStep implements Step {
 
   public TransactionCommitStep(
       DatasetService datasetService,
-      BigQueryPdao bigQueryPdao,
+      BigQueryTransactionPdao bigQueryTransactionPdao,
       AuthenticatedUserRequest userReq,
       boolean returnTransaction,
       UUID transactionId) {
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryTransactionPdao = bigQueryTransactionPdao;
     this.userReq = userReq;
     this.returnTransaction = returnTransaction;
     this.transactionId = transactionId;
@@ -47,7 +47,7 @@ public class TransactionCommitStep implements Step {
             ? TransactionUtils.getTransactionId(context)
             : this.transactionId;
     TransactionModel transaction =
-        bigQueryPdao.updateTransactionTableStatus(
+        bigQueryTransactionPdao.updateTransactionTableStatus(
             userReq, dataset, transactionId, StatusEnum.COMMITTED);
     if (returnTransaction) {
       context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), transaction);

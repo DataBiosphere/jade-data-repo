@@ -85,8 +85,8 @@ public class SnapshotExportIntegrationTest extends UsersBase {
   private String stewardToken;
   private String readerToken;
   private UUID profileId;
-  private List<UUID> createdDatasetsIds = new ArrayList<>();
-  private List<UUID> createdSnapshotIds = new ArrayList<>();
+  private final List<UUID> createdDatasetsIds = new ArrayList<>();
+  private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
   @Before
   public void setup() throws Exception {
@@ -146,7 +146,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
         dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
 
-    SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
+    SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().orElseThrow();
 
     assertThat(
         "The export had it's primary keys validated",
@@ -269,7 +269,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
         dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, true, false);
 
-    SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().get();
+    SnapshotExportResponseModel exportModel = exportResponse.getResponseObject().orElseThrow();
     SnapshotExportResponseModelFormatParquet parquet = exportModel.getFormat().getParquet();
     List<String> sampleVcfTablePaths = parquet.getLocation().getTables().get(0).getPaths();
     List<Map<String, Object>> records = new ArrayList<>();
@@ -327,7 +327,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
         dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
 
-    ErrorModel errorModel = exportResponse.getErrorObject().get();
+    ErrorModel errorModel = exportResponse.getErrorObject().orElseThrow();
 
     assertThat(
         "The error says it the export failed validation",

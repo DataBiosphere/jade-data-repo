@@ -6,7 +6,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -19,7 +19,7 @@ import org.springframework.http.HttpStatus;
 public class TransactionOpenStep implements Step {
   private static final Logger logger = LoggerFactory.getLogger(TransactionOpenStep.class);
   private final DatasetService datasetService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryTransactionPdao bigQueryTransactionPdao;
   private final AuthenticatedUserRequest userReq;
   private final String transactionDescription;
   // If true, saves the transaction as the response to the flight
@@ -31,13 +31,13 @@ public class TransactionOpenStep implements Step {
 
   public TransactionOpenStep(
       DatasetService datasetService,
-      BigQueryPdao bigQueryPdao,
+      BigQueryTransactionPdao bigQueryTransactionPdao,
       AuthenticatedUserRequest userReq,
       String transactionDescription,
       boolean returnTransaction,
       boolean deleteOnUndo) {
     this.datasetService = datasetService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryTransactionPdao = bigQueryTransactionPdao;
     this.userReq = userReq;
     this.transactionDescription = transactionDescription;
     this.returnTransaction = returnTransaction;
@@ -48,7 +48,7 @@ public class TransactionOpenStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     TransactionModel transaction =
-        bigQueryPdao.insertIntoTransactionTable(
+        bigQueryTransactionPdao.insertIntoTransactionTable(
             userReq, dataset, context.getFlightId(), transactionDescription);
     FlightMap workingMap = context.getWorkingMap();
     if (returnTransaction) {
@@ -68,7 +68,7 @@ public class TransactionOpenStep implements Step {
       UUID transactionId = TransactionUtils.getTransactionId(context);
       if (transactionId != null) {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
-        bigQueryPdao.deleteFromTransactionTable(dataset, transactionId);
+        bigQueryTransactionPdao.deleteFromTransactionTable(dataset, transactionId);
       }
     }
     return StepResult.getStepResultSuccess();

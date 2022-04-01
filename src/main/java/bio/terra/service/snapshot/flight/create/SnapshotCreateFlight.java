@@ -31,7 +31,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -51,7 +51,7 @@ public class SnapshotCreateFlight extends Flight {
     BufferService bufferService = appContext.getBean(BufferService.class);
     SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    BigQuerySnapshotPdao bigQuerySnapshotPdao = appContext.getBean(BigQuerySnapshotPdao.class);
     FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     IamService iamClient = appContext.getBean(IamService.class);
@@ -127,7 +127,7 @@ public class SnapshotCreateFlight extends Flight {
               new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
           addStep(
               new CreateSnapshotPrimaryDataAssetStep(
-                  bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
+                  bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq));
           break;
         } else {
           throw new FeatureNotImplementedException(
@@ -137,7 +137,7 @@ public class SnapshotCreateFlight extends Flight {
         if (platform.isGcp()) {
           addStep(
               new CreateSnapshotPrimaryDataFullViewGcpStep(
-                  bigQueryPdao, datasetService, snapshotDao, snapshotService, snapshotReq));
+                  bigQuerySnapshotPdao, datasetService, snapshotDao, snapshotService, snapshotReq));
         } else if (platform.isAzure()) {
           addStep(
               new CreateSnapshotSourceDatasetDataSourceAzureStep(
@@ -156,7 +156,7 @@ public class SnapshotCreateFlight extends Flight {
           addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
           addStep(
               new CreateSnapshotPrimaryDataQueryStep(
-                  bigQueryPdao,
+                  bigQuerySnapshotPdao,
                   datasetService,
                   snapshotService,
                   snapshotDao,
@@ -172,7 +172,7 @@ public class SnapshotCreateFlight extends Flight {
         if (platform.isGcp()) {
           addStep(
               new CreateSnapshotPrimaryDataRowIdsStep(
-                  bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
+                  bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq));
           break;
         } else if (platform.isAzure()) {
           addStep(
@@ -195,7 +195,7 @@ public class SnapshotCreateFlight extends Flight {
 
     if (platform.isGcp()) {
       // compute the row counts for each of the snapshot tables and store in metadata
-      addStep(new CountSnapshotTableRowsStep(bigQueryPdao, snapshotDao, snapshotReq));
+      addStep(new CountSnapshotTableRowsStep(bigQuerySnapshotPdao, snapshotDao, snapshotReq));
     }
 
     // Create the IAM resource and readers for the snapshot
@@ -206,7 +206,7 @@ public class SnapshotCreateFlight extends Flight {
       // Make the firestore file system for the snapshot
       addStep(
           new CreateSnapshotFireStoreDataStep(
-              bigQueryPdao,
+              bigQuerySnapshotPdao,
               snapshotService,
               dependencyDao,
               datasetService,
@@ -228,7 +228,7 @@ public class SnapshotCreateFlight extends Flight {
 
       // Apply the IAM readers to the BQ dataset
       addStep(
-          new SnapshotAuthzTabularAclStep(bigQueryPdao, snapshotService, configService),
+          new SnapshotAuthzTabularAclStep(bigQuerySnapshotPdao, snapshotService, configService),
           pdaoAclRetryRule);
 
       // Apply the IAM readers to the GCS files

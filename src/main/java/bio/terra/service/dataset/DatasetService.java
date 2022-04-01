@@ -50,7 +50,8 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -76,7 +77,8 @@ public class DatasetService {
   private final LoadService loadService;
   private final ProfileDao profileDao;
   private final StorageTableService storageTableService;
-  private final BigQueryPdao bigQueryPdao;
+  private final BigQueryTransactionPdao bigQueryTransactionPdao;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
   private final ResourceService resourceService;
   private final GcsPdao gcsPdao;
@@ -91,7 +93,8 @@ public class DatasetService {
       LoadService loadService,
       ProfileDao profileDao,
       StorageTableService storageTableService,
-      BigQueryPdao bigQueryPdao,
+      BigQueryTransactionPdao bigQueryTransactionPdao,
+      BigQueryDatasetPdao bigQueryDatasetPdao,
       MetadataDataAccessUtils metadataDataAccessUtils,
       ResourceService resourceService,
       GcsPdao gcsPdao,
@@ -103,7 +106,8 @@ public class DatasetService {
     this.loadService = loadService;
     this.profileDao = profileDao;
     this.storageTableService = storageTableService;
-    this.bigQueryPdao = bigQueryPdao;
+    this.bigQueryTransactionPdao = bigQueryTransactionPdao;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
     this.resourceService = resourceService;
     this.gcsPdao = gcsPdao;
@@ -350,7 +354,7 @@ public class DatasetService {
     if (platformWrapper.isAzure()) {
       return storageTableService.getLoadHistory(dataset, loadTag, offset, limit);
     } else if (platformWrapper.isGcp()) {
-      return bigQueryPdao.getLoadHistory(dataset, loadTag, offset, limit);
+      return bigQueryDatasetPdao.getLoadHistory(dataset, loadTag, offset, limit);
     } else {
       throw new InvalidCloudPlatformException();
     }
@@ -390,7 +394,7 @@ public class DatasetService {
   public List<TransactionModel> enumerateTransactions(UUID id, long limit, long offset) {
     Dataset dataset = retrieve(id);
     try {
-      return bigQueryPdao.enumerateTransactions(dataset, limit, offset);
+      return bigQueryTransactionPdao.enumerateTransactions(dataset, limit, offset);
     } catch (InterruptedException e) {
       throw new RuntimeException("Error enumerating transactions", e);
     }
@@ -399,7 +403,7 @@ public class DatasetService {
   public TransactionModel retrieveTransaction(UUID id, UUID transactionId) {
     Dataset retrieve = retrieve(id);
     try {
-      return bigQueryPdao.retrieveTransaction(retrieve, transactionId);
+      return bigQueryTransactionPdao.retrieveTransaction(retrieve, transactionId);
     } catch (InterruptedException e) {
       throw new RuntimeException("Error retrieving transaction", e);
     }

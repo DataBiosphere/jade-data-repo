@@ -180,7 +180,7 @@ public class DataRepoFixtures {
     if (cloudPlatform != null && requestModel.getCloudPlatform() == null) {
       requestModel.setCloudPlatform(cloudPlatform);
     }
-    requestModel.selfHosted(selfHosted);
+    requestModel.experimentalSelfHosted(selfHosted);
     String json = TestUtils.mapToJson(requestModel);
 
     return dataRepoClient.post(

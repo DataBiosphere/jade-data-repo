@@ -77,7 +77,7 @@ public final class DatasetJsonConversion {
                 .defaultProfileId(defaultProfileId)
                 .secureMonitoringEnabled(enableSecureMonitoring)
                 .phsId(datasetRequest.getPhsId())
-                .selfHosted(datasetRequest.isSelfHosted()))
+                .selfHosted(datasetRequest.isExperimentalSelfHosted()))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);

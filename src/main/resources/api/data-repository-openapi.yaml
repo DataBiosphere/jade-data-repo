@@ -3179,7 +3179,7 @@ components:
         phsId:
           type: string
           description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
-        selfHosted:
+        experimentalSelfHosted:
           type: boolean
           default: false
           description: Create the dataset in self-hosted mode, where TDR does not ingest files, but rather points to

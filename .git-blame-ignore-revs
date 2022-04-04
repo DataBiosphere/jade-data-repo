@@ -1,0 +1,5 @@
+# To configure git to use this file when using `git blame`:
+# $ git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# DR-1850: Replace checkstyle with spotless
+c6a70ff75f408fcb8dc36cda777e91b7a27be535

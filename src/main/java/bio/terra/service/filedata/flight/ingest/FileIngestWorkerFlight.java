@@ -58,6 +58,7 @@ public class FileIngestWorkerFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     // The flight plan:
+    // 0. Validate the file load model.
     // 1. Generate the new file id and store it in the working map. We need to allocate the file id
     //   before any other operation so that it is persisted in the working map. In particular,
     //   IngestFileDirectoryStep undo needs to know the file id in order to clean up.
@@ -73,6 +74,9 @@ public class FileIngestWorkerFlight extends Flight {
     //   REST API (and DRS) lookups matches what users will see when they examine the GCS object.
     //   When the file entry is (atomically) created in the file firestore collection,
     //   the file becomes visible for REST API lookups.
+
+    addStep(new ValidateIngestFileLoadModelStep());
+
     addStep(new IngestFileIdStep(configService));
 
     if (platform.isGcp()) {

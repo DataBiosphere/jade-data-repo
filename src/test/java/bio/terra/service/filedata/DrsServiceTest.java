@@ -21,16 +21,17 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
+import bio.terra.service.auth.ras.ECMService;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -82,6 +83,8 @@ public class DrsServiceTest {
 
   private UUID snapshotId;
 
+  private ECMService ecmService;
+
   private final AuthenticatedUserRequest authUser =
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
@@ -103,7 +106,8 @@ public class DrsServiceTest {
             jobService,
             performanceLogger,
             azureBlobStorePdao,
-            gcsProjectFactory);
+            gcsProjectFactory,
+            ecmService);
     when(jobService.getActivePodCount()).thenReturn(1);
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
 
@@ -213,7 +217,9 @@ public class DrsServiceTest {
                             .cloudPlatform(CloudPlatform.AZURE)))
                 .defaultProfileId(defaultProfileModelId));
     Snapshot snapshot =
-        new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
+        new Snapshot()
+            .id(snapshotId)
+            .snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
     DrsId drsId = drsIdService.fromObjectId(azureDrsObjectId);
     when(snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()))).thenReturn(snapshot);
     AzureStorageAccountResource storageAccountResource =

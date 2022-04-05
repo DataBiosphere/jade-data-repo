@@ -10,9 +10,9 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.IamRole;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.ProfileDao;

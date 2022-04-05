@@ -1,11 +1,11 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
-import bio.terra.service.iam.exception.IamUnavailableException;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.BucketLockFailureException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;

@@ -2,7 +2,7 @@ package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

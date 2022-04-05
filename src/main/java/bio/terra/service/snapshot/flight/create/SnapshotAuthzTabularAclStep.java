@@ -4,8 +4,8 @@ import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_F
 
 import bio.terra.common.FlightUtils;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.IamRole;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;

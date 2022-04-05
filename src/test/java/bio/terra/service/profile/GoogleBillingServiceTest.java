@@ -13,7 +13,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;

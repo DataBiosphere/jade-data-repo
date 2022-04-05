@@ -8,7 +8,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
-import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;

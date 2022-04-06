@@ -194,14 +194,186 @@ environment.  You'll actually spin up this instance on broad-jade-dev in next st
 pair on with another Jade team member. There is a video of us walking through
 these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing).
 
+Does each substep block the ones that follow?
+
+At which point should we be able to see my `ok` namespaces in GCP?
+After Step 9 (GCP set-up) or sooner?
+
 1. Follow the [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
 to add your initials to the terraform templates and generate the static resources needed
 to deploy your personal development environment. Apply the changes and create a pull request
 to merge your additions to `terraform-jade`.
+
+Should we be working in `~/terraform-jade/old` (implied by the link to instructions)
+or `~/terraform-jade/datarepo`?
+I know all of the terraform changes happen in the old directory,
+but there are environment and terraform scripts in both places.
+
+Running `~/terraform-jade/old/terraform.sh plan` shows changes unrelated to my additions:
+
+```shell
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+  ~ update in-place
+Terraform will perform the following actions:
+  # google_bigquery_table.performance_logs will be created
+  + resource "google_bigquery_table" "performance_logs" {
+      + creation_time       = (known after apply)
+      + dataset_id          = "broad_jade_dev_datarepo_jade_audit_7999882"
+      + etag                = (known after apply)
+      + expiration_time     = (known after apply)
+      + id                  = (known after apply)
+      + labels              = {
+          + "env" = "broad-jade-dev"
+        }
+      + last_modified_time  = (known after apply)
+      + location            = (known after apply)
+      + num_bytes           = (known after apply)
+      + num_long_term_bytes = (known after apply)
+      + num_rows            = (known after apply)
+      + project             = (known after apply)
+      + schema              = (known after apply)
+      + self_link           = (known after apply)
+      + table_id            = "performance_logs"
+      + type                = (known after apply)
+      + view {
+          + query          = <<~EOT
+                SELECT timestamp,
+                  REGEXP_EXTRACT(textPayload, r"TimestampUTC: ([^,]+)") AS TimestampUTC,
+                  REGEXP_EXTRACT(textPayload, r"JobId: ([^,]+)") AS JobId,
+                  REGEXP_EXTRACT(textPayload, r"Class: ([^,]+)") AS Class,
+                  REGEXP_EXTRACT(textPayload, r"Operation: ([^,]+)") AS Operation,
+                  REGEXP_EXTRACT(textPayload, r"ElapsedTime: ([^,]+)") AS ElapsedTime,
+                  REGEXP_EXTRACT(textPayload, r"IntegerCount: ([^,]+)") AS IntegerCount,
+                  REGEXP_EXTRACT(textPayload, r"AdditionalInfo: ([^,]+)") AS AdditionalInfo
+                FROM `broad-jade-dev.broad_jade_dev_datarepo_jade_audit_7999882.stdout_*`;
+            EOT
+          + use_legacy_sql = false
+        }
+    }
+  # google_folder_iam_member.app_folder_roles[0] will be created
+  + resource "google_folder_iam_member" "app_folder_roles" {
+      + etag   = (known after apply)
+      + folder = "270278425081"
+      + id     = (known after apply)
+      + member = "serviceAccount:jade-api-sa@broad-jade-dev.iam.gserviceaccount.com"
+      + role   = "roles/resourcemanager.folderAdmin"
+    }
+  # google_folder_iam_member.app_folder_roles[1] will be created
+  + resource "google_folder_iam_member" "app_folder_roles" {
+      + etag   = (known after apply)
+      + folder = "270278425081"
+      + id     = (known after apply)
+      + member = "serviceAccount:jade-api-sa@broad-jade-dev.iam.gserviceaccount.com"
+      + role   = "roles/resourcemanager.projectCreator"
+    }
+  # google_folder_iam_member.app_folder_roles[2] will be created
+  + resource "google_folder_iam_member" "app_folder_roles" {
+      + etag   = (known after apply)
+      + folder = "270278425081"
+      + id     = (known after apply)
+      + member = "serviceAccount:jade-api-sa@broad-jade-dev.iam.gserviceaccount.com"
+      + role   = "roles/resourcemanager.projectDeleter"
+    }
+  # google_folder_iam_member.app_folder_roles[3] will be created
+  + resource "google_folder_iam_member" "app_folder_roles" {
+      + etag   = (known after apply)
+      + folder = "270278425081"
+      + id     = (known after apply)
+      + member = "serviceAccount:jade-api-sa@broad-jade-dev.iam.gserviceaccount.com"
+      + role   = "roles/owner"
+    }
+  # google_project_iam_member.jade-api-sa-roles["roles/bigquery.admin"] will be created
+  + resource "google_project_iam_member" "jade-api-sa-roles" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = "serviceAccount:jade-api-sa@broad-jade-dev.iam.gserviceaccount.com"
+      + project = "broad-jade-dev"
+      + role    = "roles/bigquery.admin"
+    }
+  # google_project_iam_member.jadeteam-roles["roles/bigquery.admin"] will be created
+  + resource "google_project_iam_member" "jadeteam-roles" {
+      + etag    = (known after apply)
+      + id      = (known after apply)
+      + member  = "group:jadeteam@broadinstitute.org"
+      + project = "broad-jade-dev"
+      + role    = "roles/bigquery.admin"
+    }
+  # module.performance-log-sinks.google_bigquery_dataset_access.access will be created
+  + resource "google_bigquery_dataset_access" "access" {
+      + api_updated_member = (known after apply)
+      + dataset_id         = "broad_jade_dev_datarepo_jade_audit_7999882"
+      + id                 = (known after apply)
+      + project            = (known after apply)
+      + role               = "OWNER"
+      + special_group      = "allAuthenticatedUsers"
+    }
+  # module.performance-log-sinks.google_project_iam_binding.bigquery-admin[0] will be updated in-place
+  ~ resource "google_project_iam_binding" "bigquery-admin" {
+        etag    = "BwXb2hBkNWQ="
+        id      = "broad-jade-dev/roles/bigquery.admin"
+      ~ members = [
+          + "serviceAccount:p970791974390-177577@gcp-sa-logging.iam.gserviceaccount.com",
+          - "serviceAccount:p970791974390-502312@gcp-sa-logging.iam.gserviceaccount.com",
+        ]
+        project = "broad-jade-dev"
+        role    = "roles/bigquery.admin"
+    }
+  # module.performance-log-sinks.google_project_iam_binding.bigquery-data[0] will be updated in-place
+  ~ resource "google_project_iam_binding" "bigquery-data" {
+        etag    = "BwXb2hBkNWQ="
+        id      = "broad-jade-dev/roles/bigquery.dataOwner"
+      ~ members = [
+          + "serviceAccount:p970791974390-177577@gcp-sa-logging.iam.gserviceaccount.com",
+          - "serviceAccount:p970791974390-502312@gcp-sa-logging.iam.gserviceaccount.com",
+        ]
+        project = "broad-jade-dev"
+        role    = "roles/bigquery.dataOwner"
+    }
+  # module.performance-log-sinks.google_project_iam_binding.bigquery-log-writer-permisson[0] will be updated in-place
+  ~ resource "google_project_iam_binding" "bigquery-log-writer-permisson" {
+        etag    = "BwXb2hBkNWQ="
+        id      = "broad-jade-dev/roles/logging.configWriter"
+      ~ members = [
+          + "serviceAccount:p970791974390-177577@gcp-sa-logging.iam.gserviceaccount.com",
+          - "serviceAccount:p970791974390-502312@gcp-sa-logging.iam.gserviceaccount.com",
+        ]
+        project = "broad-jade-dev"
+        role    = "roles/logging.configWriter"
+    }
+  # module.performance-log-sinks.google_project_iam_binding.pubsub-publisher-permisson[0] will be updated in-place
+  ~ resource "google_project_iam_binding" "pubsub-publisher-permisson" {
+        etag    = "BwXb2hBkNWQ="
+        id      = "broad-jade-dev/roles/pubsub.publisher"
+      ~ members = [
+          + "serviceAccount:p970791974390-177577@gcp-sa-logging.iam.gserviceaccount.com",
+          - "serviceAccount:p970791974390-502312@gcp-sa-logging.iam.gserviceaccount.com",
+        ]
+        project = "broad-jade-dev"
+        role    = "roles/pubsub.publisher"
+    }
+  # module.user-activity-sinks.google_bigquery_dataset_access.access will be created
+  + resource "google_bigquery_dataset_access" "access" {
+      + api_updated_member = (known after apply)
+      + dataset_id         = "broad_jade_dev_datarepo_jade_audit_10001967"
+      + id                 = (known after apply)
+      + project            = (known after apply)
+      + role               = "OWNER"
+      + special_group      = "allAuthenticatedUsers"
+    }
+Plan: 9 to add, 4 to change, 0 to destroy.
+```
+
+Running a `~/terraform-jade/old/terraform.sh apply` fails on a few of those unrelated changes.
+
 2. Create your datarepo helm definition:
   -  In `datarepo-helm-definitions/dev` directory, copy an existing developer
 definition and change all initials to your own.
   -  Create a pull request with these changes in [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions)
+
+Is there a way to verify that these changes work, or does that come later?
+
 3. Connect to your new dev postgres database instance (replace `ZZ` with your initials):
 Note that this is separate instance than the local one you will configure in step 9.
 The following command connects to the database via a proxy.
@@ -209,6 +381,17 @@ The following command connects to the database via a proxy.
 ```
 cd jade-data-repo/ops
 DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
+```
+
+Should initials match those used in terraform-jade, i.e. lowercase?
+
+This did not work for me, but I'm unsure if I'm blocked by not yet merging
+my PRs from the first 2 steps.
+Or maybe some later instructions need to come earlier.
+
+```shell
+wm111-e35:ops okotsopo$ DB=datarepo SUFFIX=ok ENVIRONMENT=dev ./db-connect.sh
+Error from server (NotFound): namespaces "ok" not found
 ```
 
 4. Now that you're connected to your dev database, run the following command

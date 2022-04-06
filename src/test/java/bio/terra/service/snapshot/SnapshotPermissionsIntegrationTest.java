@@ -233,7 +233,7 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-    assertEquals("There should be 5 snapshot relationships", snapshot.getRelationships().size(), 5);
+    assertEquals("There should be 1 snapshot relationship", 1, snapshot.getRelationships().size());
 
     // fetch Acls
     logger.info("---- Dataset Acls after snapshot create-----");

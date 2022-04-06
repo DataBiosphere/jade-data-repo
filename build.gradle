@@ -496,7 +496,6 @@ task testConnected(type: Test) {
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
-
     retry {
         if (isCiServer) {
             maxRetries = 3

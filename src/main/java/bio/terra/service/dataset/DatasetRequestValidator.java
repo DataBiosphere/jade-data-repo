@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
@@ -37,6 +38,9 @@ import org.springframework.validation.Validator;
  */
 @Component
 public class DatasetRequestValidator implements Validator {
+
+  private static String PRIMARY_KEY = "PrimaryKey";
+  private static String FOREIGN_KEY = "ForeignKey";
 
   @Override
   public boolean supports(Class<?> clazz) {
@@ -212,12 +216,9 @@ public class DatasetRequestValidator implements Validator {
               String.format("Expected column(s): %s", String.join(", ", missingKeys)));
         }
 
-        for (ColumnModel column : columns) {
-          if (primaryKeyList.contains(column.getName()) && column.isArrayOf()) {
-            errors.rejectValue(
-                "schema",
-                "PrimaryKeyArrayColumn",
-                String.format("Primary Key column: %s", column.getName()));
+        for (ColumnModel columnModel : table.getColumns()) {
+          if (primaryKeyList.contains(columnModel.getName())) {
+            validateColumnType(errors, columnModel, PRIMARY_KEY);
           }
         }
       }
@@ -261,6 +262,25 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
+  // Primary Keys and Foreign Keys cannot be arrays or filerefs or dirrefs
+  private void validateColumnType(Errors errors, ColumnModel columnModel, String keyType) {
+    if (columnModel.isArrayOf()) {
+      rejectKey(errors, keyType, columnModel.getName(), "array");
+    }
+
+    Set<TableDataType> invalidTypes = Set.of(TableDataType.DIRREF, TableDataType.FILEREF);
+    if (invalidTypes.contains(columnModel.getDatatype())) {
+      rejectKey(errors, keyType, columnModel.getName(), columnModel.getDatatype().toString());
+    }
+  }
+
+  private void rejectKey(Errors errors, String keyType, String columnName, String type) {
+    errors.rejectValue(
+        "schema",
+        String.format("Invalid%s", keyType),
+        String.format("%s %s cannot be a column with %s type", keyType, columnName, type));
+  }
+
   private void validateDataTypes(List<ColumnModel> columns, Errors errors) {
     List<ColumnModel> invalidColumns = new ArrayList<>();
     for (ColumnModel column : columns) {
@@ -281,29 +301,44 @@ public class DatasetRequestValidator implements Validator {
   }
 
   private void validateRelationshipTerm(
-      RelationshipTermModel term, Errors errors, SchemaValidationContext context) {
-    String table = term.getTable();
+      RelationshipTermModel term,
+      List<TableModel> tables,
+      Errors errors,
+      SchemaValidationContext context) {
+    String tableName = term.getTable();
     String column = term.getColumn();
-    if (table != null && column != null) {
-      if (!context.isValidTableColumn(table, column)) {
+    if (tableName != null && column != null) {
+      if (!context.isValidTableColumn(tableName, column)) {
         errors.rejectValue(
             "schema",
             "InvalidRelationshipTermTableColumn",
-            "invalid table '" + table + "." + column + "'");
+            "invalid table '" + tableName + "." + column + "'");
+      }
+    }
+    for (TableModel tableModel : tables) {
+      if (term.getTable().equals(tableModel.getName())) {
+        for (ColumnModel columnModel : tableModel.getColumns()) {
+          if (term.getColumn().equals(columnModel.getName())) {
+            validateColumnType(errors, columnModel, FOREIGN_KEY);
+          }
+        }
       }
     }
   }
 
   private void validateRelationship(
-      RelationshipModel relationship, Errors errors, SchemaValidationContext context) {
+      RelationshipModel relationship,
+      List<TableModel> tables,
+      Errors errors,
+      SchemaValidationContext context) {
     RelationshipTermModel fromTerm = relationship.getFrom();
     if (fromTerm != null) {
-      validateRelationshipTerm(fromTerm, errors, context);
+      validateRelationshipTerm(fromTerm, tables, errors, context);
     }
 
     RelationshipTermModel toTerm = relationship.getTo();
     if (toTerm != null) {
-      validateRelationshipTerm(toTerm, errors, context);
+      validateRelationshipTerm(toTerm, tables, errors, context);
     }
 
     String relationshipName = relationship.getName();
@@ -405,7 +440,8 @@ public class DatasetRequestValidator implements Validator {
       if (ValidationUtils.hasDuplicates(relationshipNames)) {
         errors.rejectValue("schema", "DuplicateRelationshipNames");
       }
-      relationships.forEach((relationship) -> validateRelationship(relationship, errors, context));
+      relationships.forEach(
+          (relationship) -> validateRelationship(relationship, tables, errors, context));
     }
 
     List<AssetModel> assets = schema.getAssets();

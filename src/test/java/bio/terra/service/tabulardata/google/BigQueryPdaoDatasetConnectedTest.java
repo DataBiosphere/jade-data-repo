@@ -3,7 +3,6 @@ package bio.terra.service.tabulardata.google;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -150,11 +149,8 @@ public class BigQueryPdaoDatasetConnectedTest {
       connectedOperations.addDataset(dataset.getId());
 
       // Stage tabular data for ingest.
-      BlobInfo participantBlob =
-          BlobInfo.newBuilder(bucket, targetPath + "ingest-test-participant.json").build();
       BlobInfo sampleBlob =
           BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample.json").build();
-      BlobInfo fileBlob = BlobInfo.newBuilder(bucket, targetPath + "ingest-test-file.json").build();
 
       BlobInfo missingPkBlob =
           BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-no-id.json").build();
@@ -167,9 +163,7 @@ public class BigQueryPdaoDatasetConnectedTest {
         com.google.cloud.bigquery.Dataset bqDataset = bigQueryDataset(dataset);
         assertThat(regionMessage, bqDataset.getLocation(), equalTo(region));
 
-        storage.create(participantBlob, readFile("ingest-test-participant.json"));
         storage.create(sampleBlob, readFile("ingest-test-sample.json"));
-        storage.create(fileBlob, readFile("ingest-test-file.json"));
         storage.create(missingPkBlob, readFile("ingest-test-sample-no-id.json"));
         storage.create(nullPkBlob, readFile("ingest-test-sample-null-id.json"));
 
@@ -179,12 +173,7 @@ public class BigQueryPdaoDatasetConnectedTest {
 
         UUID datasetId = dataset.getId();
         connectedOperations.ingestTableSuccess(
-            datasetId,
-            ingestRequest.table("participant").path(BigQueryPdaoTest.gsPath(participantBlob)));
-        connectedOperations.ingestTableSuccess(
             datasetId, ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(sampleBlob)));
-        connectedOperations.ingestTableSuccess(
-            datasetId, ingestRequest.table("file").path(BigQueryPdaoTest.gsPath(fileBlob)));
 
         // Check primary key non-nullability is enforced.
         connectedOperations.ingestTableFailure(
@@ -214,24 +203,10 @@ public class BigQueryPdaoDatasetConnectedTest {
         BigQueryProject bigQuerySnapshotProject =
             TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
         assertThat(snapshot.getTables().size(), is(equalTo(3)));
-        List<String> participantIds =
-            BigQueryPdaoTest.queryForIds(
-                snapshot.getName(), "participant", bigQuerySnapshotProject);
         List<String> sampleIds =
             BigQueryPdaoTest.queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
-        List<String> fileIds =
-            BigQueryPdaoTest.queryForIds(snapshot.getName(), "file", bigQuerySnapshotProject);
 
-        assertThat(
-            participantIds,
-            containsInAnyOrder(
-                "participant_1",
-                "participant_2",
-                "participant_3",
-                "participant_4",
-                "participant_5"));
-        assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
-        assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+        assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample7"));
 
         // Simulate soft-deleting some rows.
         // TODO: Replace this with a call to the soft-delete API once it exists?
@@ -261,42 +236,16 @@ public class BigQueryPdaoDatasetConnectedTest {
         BigQueryProject bigQuerySnapshotProject2 =
             TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot2.getName());
 
-        participantIds =
-            BigQueryPdaoTest.queryForIds(
-                snapshot2.getName(), "participant", bigQuerySnapshotProject2);
         sampleIds =
             BigQueryPdaoTest.queryForIds(snapshot2.getName(), "sample", bigQuerySnapshotProject2);
-        fileIds =
-            BigQueryPdaoTest.queryForIds(snapshot2.getName(), "file", bigQuerySnapshotProject2);
-        assertThat(
-            participantIds, containsInAnyOrder("participant_1", "participant_2", "participant_5"));
-        assertThat(sampleIds, containsInAnyOrder("sample1", "sample2"));
-        assertThat(fileIds, is(empty()));
+        assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample7"));
 
         // Make sure the old snapshot wasn't changed.
-        participantIds =
-            BigQueryPdaoTest.queryForIds(
-                snapshot.getName(), "participant", bigQuerySnapshotProject);
         sampleIds =
             BigQueryPdaoTest.queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
-        fileIds = BigQueryPdaoTest.queryForIds(snapshot.getName(), "file", bigQuerySnapshotProject);
-        assertThat(
-            participantIds,
-            containsInAnyOrder(
-                "participant_1",
-                "participant_2",
-                "participant_3",
-                "participant_4",
-                "participant_5"));
-        assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
-        assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+        assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample7"));
       } finally {
-        storage.delete(
-            participantBlob.getBlobId(),
-            sampleBlob.getBlobId(),
-            fileBlob.getBlobId(),
-            missingPkBlob.getBlobId(),
-            nullPkBlob.getBlobId());
+        storage.delete(sampleBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());
       }
     }
   }

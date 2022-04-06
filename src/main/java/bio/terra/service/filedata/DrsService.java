@@ -32,7 +32,6 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -48,11 +47,14 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +85,13 @@ public class DrsService {
   private final PerformanceLogger performanceLogger;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
+
+  private final Map<UUID, SnapshotProject> snapshotProjects =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
+  private final Map<UUID, SnapshotCacheResult> snapshotCache =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
+  private final Map<String, String> samAuthorizations =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(1, TimeUnit.MINUTES));
 
   @Autowired
   public DrsService(
@@ -153,7 +162,7 @@ public class DrsService {
         // We only look up DRS ids for unlocked snapshots.
         String retrieveTimer = performanceLogger.timerStart();
 
-        snapshotProject = snapshotService.retrieveAvailableSnapshotProject(snapshotId);
+        snapshotProject = getSnapshotProject(snapshotId);
 
         performanceLogger.timerEndAndLog(
             retrieveTimer,
@@ -170,8 +179,7 @@ public class DrsService {
       // Make sure requester is a READER on the snapshot
       String samTimer = performanceLogger.timerStart();
 
-      samService.verifyAuthorization(
-          authUser, IamResourceType.DATASNAPSHOT, drsId.getSnapshotId(), IamAction.READ_DATA);
+      verifyAuthorization(drsId.getSnapshotId(), authUser);
 
       performanceLogger.timerEndAndLog(
           samTimer,
@@ -211,14 +219,10 @@ public class DrsService {
     DRSObject drsObject = lookupObjectByDrsId(authUser, objectId, false);
 
     DrsId drsId = drsIdService.fromObjectId(objectId);
-    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()));
+    UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
+    SnapshotCacheResult cachedSnapshot = getSnapshot(snapshotId);
 
-    BillingProfileModel billingProfileModel =
-        snapshot
-            .getFirstSnapshotSource()
-            .getDataset()
-            .getDatasetSummary()
-            .getDefaultBillingProfile();
+    BillingProfileModel billingProfileModel = cachedSnapshot.billingProfileModel;
 
     Supplier<IllegalArgumentException> illegalArgumentExceptionSupplier =
         () -> new IllegalArgumentException("No matching access ID was found for object");
@@ -228,14 +232,14 @@ public class DrsService {
       DRSAccessMethod matchingAccessMethod =
           getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.GS)
               .orElseThrow(illegalArgumentExceptionSupplier);
-      return signGoogleUrl(snapshot, matchingAccessMethod);
+      return signGoogleUrl(cachedSnapshot.googleProjectId, matchingAccessMethod);
     } else if (platform.isAzure()) {
       getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.HTTPS)
           .orElseThrow(illegalArgumentExceptionSupplier);
       try {
         FSItem fsItem =
             fileService.lookupSnapshotFSItem(
-                snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
+                getSnapshotProject(snapshotId),
                 drsId.getFsObjectId(),
                 1);
         return signAzureUrl(billingProfileModel, fsItem, authUser);
@@ -274,11 +278,10 @@ public class DrsService {
                     authUser.getEmail())));
   }
 
-  private DRSAccessURL signGoogleUrl(Snapshot snapshot, DRSAccessMethod accessMethod) {
-    GoogleProjectResource projectResource = snapshot.getProjectResource();
+  private DRSAccessURL signGoogleUrl(String googleProjectId, DRSAccessMethod accessMethod) {
     Storage storage =
         StorageOptions.newBuilder()
-            .setProjectId(projectResource.getGoogleProjectId())
+            .setProjectId(googleProjectId)
             .build()
             .getService();
     String gsPath = accessMethod.getAccessUrl().getUrl();
@@ -323,12 +326,12 @@ public class DrsService {
       String snapshotId, FSFile fsFile, AuthenticatedUserRequest authUser) {
     DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getCloudPath());
 
-    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+    SnapshotCacheResult cachedSnapshot = getSnapshot(UUID.fromString(snapshotId));
 
     final GoogleRegion region;
-    if (snapshot.isSelfHosted()) {
+    if (cachedSnapshot.isSelfHosted) {
       Storage storage =
-          gcsProjectFactory.getStorage(snapshot.getProjectResource().getGoogleProjectId());
+          gcsProjectFactory.getStorage(cachedSnapshot.googleProjectId);
       Bucket bucket = storage.get(GcsUriUtils.parseBlobUri(fsFile.getCloudPath()).getBucket());
       region = GoogleRegion.fromValue(bucket.getLocation());
     } else {
@@ -452,4 +455,34 @@ public class DrsService {
     String[] pathParts = StringUtils.split(path, '/');
     return pathParts[pathParts.length - 1];
   }
+
+  private void verifyAuthorization(String snapshotId, AuthenticatedUserRequest authUser) {
+    samAuthorizations.computeIfAbsent(snapshotId, id -> {
+      samService.verifyAuthorization(authUser, IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
+      return id;
+    });
+  }
+
+  private SnapshotProject getSnapshotProject(UUID snapshotId) {
+    return snapshotProjects.computeIfAbsent(snapshotId, snapshotService::retrieveAvailableSnapshotProject);
+  }
+
+  private SnapshotCacheResult getSnapshot(UUID snapshotId) {
+    return snapshotCache.computeIfAbsent(snapshotId, id -> new SnapshotCacheResult(snapshotService.retrieve(id)));
+  }
+
+  private static class SnapshotCacheResult {
+    private final String googleProjectId;
+    private final Boolean isSelfHosted;
+    private final BillingProfileModel billingProfileModel;
+
+    public SnapshotCacheResult(Snapshot snapshot) {
+      this.googleProjectId = snapshot.getProjectResource().getGoogleProjectId();
+      this.isSelfHosted = snapshot.isSelfHosted();
+      this.billingProfileModel = snapshot.getFirstSnapshotSource().getDataset().getDatasetSummary().getDefaultBillingProfile();
+    }
+  }
+
+
+
 }

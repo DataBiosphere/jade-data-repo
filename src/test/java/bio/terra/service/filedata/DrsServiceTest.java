@@ -33,6 +33,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -86,6 +87,7 @@ public class DrsServiceTest {
 
   @Before
   public void before() throws Exception {
+    UUID defaultProfileModelId = UUID.randomUUID();
     drsService =
         new DrsService(
             snapshotService,
@@ -109,10 +111,20 @@ public class DrsServiceTest {
         .thenReturn(
             new Snapshot()
                 .id(snapshotId)
+                .projectResource(new GoogleProjectResource().googleProjectId("google-project"))
                 .snapshotSources(
                     List.of(
                         new SnapshotSource()
-                            .dataset(new Dataset(new DatasetSummary().selfHosted(false))))));
+                            .dataset(
+                                new Dataset(
+                                    new DatasetSummary()
+                                        .selfHosted(false)
+                                        .defaultProfileId(defaultProfileModelId)
+                                        .billingProfiles(
+                                            List.of(
+                                                new BillingProfileModel()
+                                                    .id(defaultProfileModelId)
+                                                    .cloudPlatform(CloudPlatform.GCP))))))));
 
     String bucketResourceId = UUID.randomUUID().toString();
     String storageAccountResourceId = UUID.randomUUID().toString();

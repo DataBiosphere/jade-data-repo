@@ -108,7 +108,6 @@ public class DrsServiceTest {
 
   @Before
   public void before() throws Exception {
-    UUID defaultProfileModelId = UUID.randomUUID();
     drsService =
         new DrsService(
             snapshotService,
@@ -220,7 +219,9 @@ public class DrsServiceTest {
 
   @Test
   public void testLookupSnapshot() {
-    drsService.lookupSnapshotForDRSObject(googleDrsObjectId);
+    DrsService.SnapshotCacheResult cacheResult =
+        drsService.lookupSnapshotForDRSObject(googleDrsObjectId);
+    assertThat("retrieves correct snapshot", cacheResult.getId(), equalTo(snapshotId));
   }
 
   @Test

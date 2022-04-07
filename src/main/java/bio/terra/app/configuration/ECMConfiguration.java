@@ -9,13 +9,13 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "ecm")
 public class ECMConfiguration {
 
-  private String instanceUrl;
+  private String basePath;
 
-  public String getInstanceUrl() {
-    return instanceUrl;
+  public String getBasePath() {
+    return basePath;
   }
 
-  public void setInstanceUrl(String instanceUrl) {
-    this.instanceUrl = instanceUrl;
+  public void setBasePath(String basePath) {
+    this.basePath = basePath;
   }
 }

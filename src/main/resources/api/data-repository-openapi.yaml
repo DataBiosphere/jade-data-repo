@@ -2874,8 +2874,6 @@ paths:
           required: true
           schema:
             type: string
-      security:
-        - PassportAuth: [ ]
       requestBody:
         content:
           application/json:
@@ -3014,8 +3012,6 @@ paths:
 
         Method is a POST to accomodate a JWT GA4GH Passport sent in the formData in order to authorize access.
       operationId: PostAccessURL
-      security:
-        - PassportAuth: [ ]
       parameters:
         - name: object_id
           in: path
@@ -5207,3 +5203,4 @@ components:
             email: email authorization
             profile: profile authorization
             https://www.googleapis.com/auth/cloud-billing.readonly: cloud billing authorization
+

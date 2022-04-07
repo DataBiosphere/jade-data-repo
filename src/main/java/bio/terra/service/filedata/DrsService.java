@@ -49,12 +49,14 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -75,6 +77,11 @@ public class DrsService {
 
   private final Logger logger = LoggerFactory.getLogger(DrsService.class);
 
+  private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
+  private static final String ACCESS_ID_PREFIX_AZURE = "azure-";
+  private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
+  private static final String RAS_ISSUER = "https://stsstg.nih.gov";
+  private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
   private static final String DRS_OBJECT_VERSION = "0";
   private static final Duration URL_TTL = Duration.ofMinutes(15);
   // atomic counter that we incr on request arrival and decr on request response
@@ -95,6 +102,8 @@ public class DrsService {
   private final Map<UUID, SnapshotProject> snapshotProjects =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
   private final Map<UUID, SnapshotCacheResult> snapshotCache =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
+  private final Map<UUID, SnapshotSummaryModel> snapshotSummaries =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
 
   @Autowired
@@ -146,9 +155,6 @@ public class DrsService {
     }
   }
 
-  /*
-  Get/Post DRS Object
-   */
   /**
    * Look up the DRS object for a DRS object ID.
    *
@@ -164,8 +170,8 @@ public class DrsService {
   public DRSObject lookupObjectByDrsIdPassport(
       String drsObjectId, DRSPassportRequestModel drsPassportRequestModel) {
     try (DrsRequestResource r = new DrsRequestResource()) {
-      Snapshot snapshot = lookupSnapshotForDRSObject(drsObjectId);
-      verifyPassportAuth(snapshot.getId(), drsPassportRequestModel);
+      SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
+      verifyPassportAuth(snapshot.id, drsPassportRequestModel);
 
       return lookupDRSObjectAfterAuth(
           drsPassportRequestModel.isExpand(), snapshot, drsObjectId, null, true);
@@ -187,47 +193,51 @@ public class DrsService {
   public DRSObject lookupObjectByDrsId(
       AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
     try (DrsRequestResource r = new DrsRequestResource()) {
-      Snapshot snapshot = lookupSnapshotForDRSObject(drsObjectId);
+      SnapshotCacheResult cachedSnapshot = lookupSnapshotForDRSObject(drsObjectId);
 
       String samTimer = performanceLogger.timerStart();
       samService.verifyAuthorization(
-          authUser, IamResourceType.DATASNAPSHOT, snapshot.getId().toString(), IamAction.READ_DATA);
+          authUser,
+          IamResourceType.DATASNAPSHOT,
+          cachedSnapshot.id.toString(),
+          IamAction.READ_DATA);
       performanceLogger.timerEndAndLog(
           samTimer,
           drsObjectId, // not a flight, so no job id
           this.getClass().getName(),
           "samService.verifyAuthorization");
 
-      return lookupDRSObjectAfterAuth(expand, snapshot, drsObjectId, authUser, false);
+      return lookupDRSObjectAfterAuth(expand, cachedSnapshot, drsObjectId, authUser, false);
     }
   }
 
   @VisibleForTesting
-  Snapshot lookupSnapshotForDRSObject(String drsObjectId) {
-      DrsId drsId = drsIdService.fromObjectId(drsObjectId);
-      SnapshotProject snapshotProject;
-      try {
-        UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
-        // We only look up DRS ids for unlocked snapshots.
-        String retrieveTimer = performanceLogger.timerStart();
+  SnapshotCacheResult lookupSnapshotForDRSObject(String drsObjectId) {
+    DrsId drsId = drsIdService.fromObjectId(drsObjectId);
+    SnapshotCacheResult snapshot;
+    try {
+      UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
+      // We only look up DRS ids for unlocked snapshots.
+      String retrieveTimer = performanceLogger.timerStart();
 
-        snapshotProject = getSnapshotProject(snapshotId);
+      snapshot = getSnapshot(snapshotId);
 
-        performanceLogger.timerEndAndLog(
-            retrieveTimer,
-            drsObjectId, // not a flight, so no job id
-            this.getClass().getName(),
-            "snapshotService.retrieveAvailable");
-      } catch (IllegalArgumentException ex) {
-        throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
-      } catch (SnapshotNotFoundException ex) {
-        throw new DrsObjectNotFoundException(
-            "No snapshot found for DRS object id '" + drsObjectId + "'", ex);
-      }
+      performanceLogger.timerEndAndLog(
+          retrieveTimer,
+          drsObjectId, // not a flight, so no job id
+          this.getClass().getName(),
+          "snapshotService.retrieveAvailable");
+      return snapshot;
+    } catch (IllegalArgumentException ex) {
+      throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
+    } catch (SnapshotNotFoundException ex) {
+      throw new DrsObjectNotFoundException(
+          "No snapshot found for DRS object id '" + drsObjectId + "'", ex);
+    }
   }
 
   void verifyPassportAuth(UUID snapshotId, DRSPassportRequestModel drsPassportRequestModel) {
-    SnapshotSummaryModel snapshotSummary = snapshotService.retrieveSnapshotSummary(snapshotId);
+    SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshotId);
     String phsId = snapshotSummary.getPhsId();
     String consentCode = snapshotSummary.getConsentCode();
     if (phsId == null || consentCode == null) {
@@ -235,15 +245,21 @@ public class DrsService {
     }
     // Pass the passport + phs id + consent code to ECM
     var criteria = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
-    criteria.issuer("https://stsstg.nih.gov").type("RASv1Dot1VisaCriterion");
+    criteria.issuer(RAS_ISSUER).type(RAS_CRITERIA_TYPE);
     var request =
         new ValidatePassportRequest()
             .passports(drsPassportRequestModel.getPassports())
             .criteria(List.of(criteria));
     var result = ecmService.validatePassport(request);
 
-    // log audit info
-    logger.info(result.getAuditInfo().toString());
+    var df = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss z");
+    df.setTimeZone(TimeZone.getTimeZone("EST"));
+    logger.info(
+        "[Validate Passport Audit]: Data Repository accessed: {}, Study/Data set accessed: {}, Date/Time of access: {}, ECM Audit Info: {}",
+        "TDR",
+        phsId,
+        df.format(new Date(System.currentTimeMillis())),
+        result.getAuditInfo());
 
     if (!result.isValid()) {
       throw new UnauthorizedException("User is not authorized to see drs object.");
@@ -252,13 +268,12 @@ public class DrsService {
 
   private DRSObject lookupDRSObjectAfterAuth(
       boolean expand,
-      Snapshot snapshot,
+      SnapshotCacheResult snapshot,
       String drsObjectId,
       AuthenticatedUserRequest authUser,
       boolean passportAuth) {
     DrsId drsId = drsIdService.fromObjectId(drsObjectId);
-    SnapshotProject snapshotProject =
-        snapshotService.retrieveAvailableSnapshotProject(snapshot.getId());
+    SnapshotProject snapshotProject = getSnapshotProject(snapshot.id);
     int depth = (expand ? -1 : 1);
 
     FSItem fsObject;
@@ -284,10 +299,6 @@ public class DrsService {
 
     throw new IllegalArgumentException("Invalid object type");
   }
-
-  /*
-  Get/Post Access URL
-   */
 
   public DRSAccessURL postAccessUrlForObjectId(
       String objectId, String accessId, DRSPassportRequestModel passportRequestModel) {
@@ -317,7 +328,7 @@ public class DrsService {
       fsFile =
           (FSFile)
               fileService.lookupSnapshotFSItem(
-                  snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
+                  snapshotService.retrieveAvailableSnapshotProject(cachedSnapshot.id),
                   drsId.getFsObjectId(),
                   1);
     } catch (InterruptedException e) {
@@ -325,17 +336,13 @@ public class DrsService {
     }
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(billingProfileModel.getCloudPlatform());
     if (platform.isGcp()) {
-      return signGoogleUrl(snapshot, fsFile.getCloudPath());
+      return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath());
     } else if (platform.isAzure()) {
       return signAzureUrl(billingProfileModel, fsFile, authUser);
     } else {
       throw new FeatureNotImplementedException("Cloud platform not implemented");
     }
   }
-
-  /*
-  Helper methods
-   */
 
   private DRSAccessMethod assertAccessMethodMatchingAccessId(String accessId, DRSObject object) {
     Supplier<IllegalArgumentException> illegalArgumentExceptionSupplier =
@@ -364,11 +371,10 @@ public class DrsService {
                     authUser.getEmail())));
   }
 
-  private DRSAccessURL signGoogleUrl(Snapshot snapshot, String gsPath) {
-    GoogleProjectResource projectResource = snapshot.getProjectResource();
+  private DRSAccessURL signGoogleUrl(SnapshotCacheResult cachedSnapshot, String gsPath) {
     Storage storage =
         StorageOptions.newBuilder()
-            .setProjectId(projectResource.getGoogleProjectId())
+            .setProjectId(cachedSnapshot.googleProjectId)
             .build()
             .getService();
     BlobId locator = GcsUriUtils.parseBlobUri(gsPath);
@@ -386,24 +392,31 @@ public class DrsService {
   }
 
   private DRSObject drsObjectFromFSFile(
-      FSFile fsFile, Snapshot snapshot, AuthenticatedUserRequest authUser, boolean passportAuth) {
-    DRSObject fileObject = makeCommonDrsObject(fsFile, snapshot.getId().toString());
+      FSFile fsFile,
+      SnapshotCacheResult cachedSnapshot,
+      AuthenticatedUserRequest authUser,
+      boolean passportAuth) {
+    DRSObject fileObject = makeCommonDrsObject(fsFile, cachedSnapshot.id.toString());
 
     List<DRSAccessMethod> accessMethods;
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(fsFile.getCloudPlatform());
     if (platform.isGcp()) {
-      String gcpRegion = retrieveGCPSnapshotRegion(snapshot, fsFile);
+      String gcpRegion = retrieveGCPSnapshotRegion(cachedSnapshot, fsFile);
       if (passportAuth) {
-        accessMethods = getDrsSignedURLAccessMethods("gcp-passport-", gcpRegion);
+        accessMethods =
+            getDrsSignedURLAccessMethods(
+                ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT, gcpRegion);
       } else {
         accessMethods = getDrsAccessMethodsOnGcp(fsFile, authUser, gcpRegion);
       }
     } else if (platform.isAzure()) {
       String azureRegion = retrieveAzureSnapshotRegion(fsFile);
       if (passportAuth) {
-        accessMethods = getDrsSignedURLAccessMethods("az-passport-", azureRegion);
+        accessMethods =
+            getDrsSignedURLAccessMethods(
+                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT, azureRegion);
       } else {
-        accessMethods = getDrsSignedURLAccessMethods("az-", azureRegion);
+        accessMethods = getDrsSignedURLAccessMethods(ACCESS_ID_PREFIX_AZURE, azureRegion);
       }
     } else {
       throw new InvalidCloudPlatformException();
@@ -412,13 +425,13 @@ public class DrsService {
     fileObject
         .mimeType(fsFile.getMimeType())
         .checksums(fileService.makeChecksums(fsFile))
-        .selfUri(drsIdService.makeDrsId(fsFile, snapshot.getId().toString()).toDrsUri())
+        .selfUri(drsIdService.makeDrsId(fsFile, cachedSnapshot.id.toString()).toDrsUri())
         .accessMethods(accessMethods);
 
     return fileObject;
   }
 
-  private String retrieveGCPSnapshotRegion(Snapshot snapshot, FSFile fsFile) {
+  private String retrieveGCPSnapshotRegion(SnapshotCacheResult cachedSnapshot, FSFile fsFile) {
     final GoogleRegion region;
     if (cachedSnapshot.isSelfHosted) {
       Storage storage = gcsProjectFactory.getStorage(cachedSnapshot.googleProjectId);
@@ -444,7 +457,7 @@ public class DrsService {
       FSFile fsFile, AuthenticatedUserRequest authUser, String region) {
     DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getCloudPath());
 
-    String accessId = "gcp-" + region;
+    String accessId = ACCESS_ID_PREFIX_GCP + region;
     DRSAccessMethod gsAccessMethod =
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
@@ -563,12 +576,19 @@ public class DrsService {
         snapshotId, id -> new SnapshotCacheResult(snapshotService.retrieve(id)));
   }
 
-  private static class SnapshotCacheResult {
+  private SnapshotSummaryModel getSnapshotSummary(UUID snapshotId) {
+    return snapshotSummaries.computeIfAbsent(snapshotId, snapshotService::retrieveSnapshotSummary);
+  }
+
+  @VisibleForTesting
+  static class SnapshotCacheResult {
+    private final UUID id;
     private final Boolean isSelfHosted;
     private final BillingProfileModel billingProfileModel;
     private final String googleProjectId;
 
     public SnapshotCacheResult(Snapshot snapshot) {
+      this.id = snapshot.getId();
       this.isSelfHosted = snapshot.isSelfHosted();
       this.billingProfileModel =
           snapshot.getSourceDataset().getDatasetSummary().getDefaultBillingProfile();
@@ -578,6 +598,10 @@ public class DrsService {
       } else {
         this.googleProjectId = null;
       }
+    }
+
+    public UUID getId() {
+      return this.id;
     }
   }
 }

@@ -7,6 +7,8 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -41,6 +43,8 @@ import bio.terra.service.snapshot.SnapshotSource;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -222,5 +226,44 @@ public class DrsServiceTest {
     DRSAccessURL result =
         drsService.getAccessUrlForObjectId(authUser, azureDrsObjectId, "az-centralus");
     assertEquals(urlString, result.getUrl());
+  }
+
+  @Test
+  public void testSnapshotCache() throws Exception {
+    List<String> googleDrsObjectIds =
+        IntStream.range(0, 5)
+            .mapToObj(
+                i -> {
+                  UUID googleFileId = UUID.randomUUID();
+                  DrsId googleDrsId =
+                      new DrsId("", "v1", snapshotId.toString(), googleFileId.toString());
+                  return googleDrsId.toDrsObjectId();
+                })
+            .collect(Collectors.toList());
+
+    when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(googleFsFile);
+    for (var drsId : googleDrsObjectIds) {
+      drsService.lookupObjectByDrsId(authUser, drsId, false);
+    }
+    verify(snapshotService, times(1)).retrieve(any());
+    verify(snapshotService, times(1)).retrieveAvailableSnapshotProject(any());
+
+    List<String> azureDrsObjectIds =
+        IntStream.range(0, 5)
+            .mapToObj(
+                i -> {
+                  UUID azureFileId = UUID.randomUUID();
+                  DrsId azureDrsId =
+                      new DrsId("", "v1", snapshotId.toString(), azureFileId.toString());
+                  return azureDrsId.toDrsObjectId();
+                })
+            .collect(Collectors.toList());
+
+    when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(azureFsFile);
+    for (var drsId : azureDrsObjectIds) {
+      drsService.lookupObjectByDrsId(authUser, drsId, false);
+    }
+    verify(snapshotService, times(1)).retrieve(any());
+    verify(snapshotService, times(1)).retrieveAvailableSnapshotProject(any());
   }
 }

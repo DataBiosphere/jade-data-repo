@@ -89,8 +89,6 @@ public class DrsService {
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
   private final Map<UUID, SnapshotCacheResult> snapshotCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
-  private final Map<String, String> samAuthorizations =
-      Collections.synchronizedMap(new PassiveExpiringMap<>(1, TimeUnit.MINUTES));
 
   @Autowired
   public DrsService(
@@ -178,7 +176,8 @@ public class DrsService {
       // Make sure requester is a READER on the snapshot
       String samTimer = performanceLogger.timerStart();
 
-      verifyAuthorization(drsId.getSnapshotId(), authUser);
+      samService.verifyAuthorization(
+          authUser, IamResourceType.DATASNAPSHOT, drsId.getSnapshotId(), IamAction.READ_DATA);
 
       performanceLogger.timerEndAndLog(
           samTimer,
@@ -447,16 +446,6 @@ public class DrsService {
   public static String getLastNameFromPath(String path) {
     String[] pathParts = StringUtils.split(path, '/');
     return pathParts[pathParts.length - 1];
-  }
-
-  private void verifyAuthorization(String snapshotId, AuthenticatedUserRequest authUser) {
-    samAuthorizations.computeIfAbsent(
-        snapshotId,
-        id -> {
-          samService.verifyAuthorization(
-              authUser, IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
-          return id;
-        });
   }
 
   private SnapshotProject getSnapshotProject(UUID snapshotId) {

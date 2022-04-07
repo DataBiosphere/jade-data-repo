@@ -161,6 +161,7 @@ jobs:
           retention-days: 10
       - name: "Archive junit test reports"
         uses: actions/upload-artifact@v2
+        if: always()
         with:
           name: junit-test-report
           path: build/reports

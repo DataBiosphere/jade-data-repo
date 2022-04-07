@@ -472,21 +472,17 @@ public class DrsService {
   private static class SnapshotCacheResult {
     private final Boolean isSelfHosted;
     private final BillingProfileModel billingProfileModel;
-    private String googleProjectId;
+    private final String googleProjectId;
 
     public SnapshotCacheResult(Snapshot snapshot) {
       this.isSelfHosted = snapshot.isSelfHosted();
       this.billingProfileModel =
-          snapshot
-              .getFirstSnapshotSource()
-              .getDataset()
-              .getDatasetSummary()
-              .getDefaultBillingProfile();
-
-      CloudPlatformWrapper platform =
-          CloudPlatformWrapper.of(billingProfileModel.getCloudPlatform());
-      if (platform.isGcp()) {
-        this.googleProjectId = snapshot.getProjectResource().getGoogleProjectId();
+          snapshot.getSourceDataset().getDatasetSummary().getDefaultBillingProfile();
+      var projectResource = snapshot.getProjectResource();
+      if (projectResource != null) {
+        this.googleProjectId = projectResource.getGoogleProjectId();
+      } else {
+        this.googleProjectId = null;
       }
     }
   }

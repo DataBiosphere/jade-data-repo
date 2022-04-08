@@ -76,6 +76,13 @@ jobs:
           test_to_run: 'testConnected'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
+      - name: "Archive connected junit test reports"
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: junit-test-report-connected
+          path: build/reports
+          retention-days: 10
   deploy_test_integration:
     timeout-minutes: 180
     strategy:
@@ -127,7 +134,7 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.324
+          helm_datarepo_api_chart_version: 0.0.328
           helm_datarepo_ui_chart_version: 0.0.142
           helm_gcloud_sqlproxy_chart_version: 0.19.7
           helm_oidc_proxy_chart_version: 0.0.31
@@ -161,6 +168,7 @@ jobs:
           retention-days: 10
       - name: "Archive junit test reports"
         uses: actions/upload-artifact@v2
+        if: always()
         with:
           name: junit-test-report
           path: build/reports

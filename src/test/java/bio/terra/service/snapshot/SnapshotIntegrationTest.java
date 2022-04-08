@@ -163,12 +163,6 @@ public class SnapshotIntegrationTest extends UsersBase {
         requestModel.getContents().get(0).getRowIdSpec().getTables().size(),
         snapshot.getTables().size());
     // TODO: get the snapshot and make sure the number of rows matches with the row ids input
-    assertThat("one relationship comes through", snapshot.getRelationships().size(), equalTo(1));
-    assertThat(
-        "the right relationship comes through",
-        snapshot.getRelationships().get(0).getName(),
-        equalTo("sample_participants"));
-
     assertThat(
         "The secure monitoring is propagated from the dataset",
         snapshot.getSource().get(0).getDataset().isSecureMonitoringEnabled(),
@@ -236,7 +230,7 @@ public class SnapshotIntegrationTest extends UsersBase {
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-    assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
+    assertEquals("the relationship comes through", 1, snapshot.getRelationships().size());
   }
 
   @Test
@@ -254,6 +248,6 @@ public class SnapshotIntegrationTest extends UsersBase {
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-    assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
+    assertEquals("the relationship comes through", 1, snapshot.getRelationships().size());
   }
 }

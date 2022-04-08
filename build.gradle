@@ -42,7 +42,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.322.0-SNAPSHOT'
+    version '1.325.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -229,7 +229,7 @@ dependencies {
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
         implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.2'
     } else {
-        implementation 'bio.terra:terra-common-lib:0.0.51-SNAPSHOT'
+        implementation 'bio.terra:terra-common-lib:0.0.55-SNAPSHOT'
     }
 
     implementation group: "bio.terra", name: "terra-resource-buffer-client", version: "0.4.3-SNAPSHOT"
@@ -496,7 +496,6 @@ task testConnected(type: Test) {
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
-
     retry {
         if (isCiServer) {
             maxRetries = 3

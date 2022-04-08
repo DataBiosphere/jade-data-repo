@@ -22,6 +22,9 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.http.HttpTransportOptions;
+import com.google.cloud.storage.StorageOptions;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +40,23 @@ public final class BigQueryProject {
       new ConcurrentHashMap<>();
   private final String projectId;
   private final BigQuery bigQuery;
+  private final int TIMEOUT_SECONDS = 40;
 
   private BigQueryProject(String projectId) {
     logger.info("Retrieving Bigquery project for project id: {}", projectId);
     this.projectId = projectId;
-    bigQuery = BigQueryOptions.newBuilder().setProjectId(projectId).build().getService();
+    HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
+    transportOptions =
+        transportOptions.toBuilder()
+            .setConnectTimeout(TIMEOUT_SECONDS * 1000)
+            .setReadTimeout(TIMEOUT_SECONDS * 1000)
+            .build();
+    bigQuery =
+        BigQueryOptions.newBuilder()
+            .setTransportOptions(transportOptions)
+            .setProjectId(projectId)
+            .build()
+            .getService();
   }
 
   public static BigQueryProject get(String projectId) {
@@ -157,11 +172,14 @@ public final class BigQueryProject {
         });
   }
 
-  private void bigQueryAclUpdateShouldRetry(RuntimeException ex) {
+  private void bigQueryAclUpdateShouldRetry(BigQueryException ex) {
     String message = ex.getMessage();
     if (message.startsWith("IAM setPolicy") && message.endsWith("does not exist.")) {
       throw new AclUtils.AclRetryException(
           "Policy does not exist. Retrying to wait for propagation", ex, "propagation");
+    }
+    if (message.startsWith("Read timed out") || ex.getCause() instanceof SocketTimeoutException) {
+      throw new AclUtils.AclRetryException("Timeout.", ex, "Timeout");
     }
     throw ex;
   }

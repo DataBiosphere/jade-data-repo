@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import com.google.cloud.http.HttpTransportOptions;
+import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +43,14 @@ public final class BigQueryProject {
   private BigQueryProject(String projectId) {
     logger.info("Retrieving Bigquery project for project id: {}", projectId);
     this.projectId = projectId;
-    bigQuery = BigQueryOptions.newBuilder().setProjectId(projectId).build().getService();
+    HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
+    transportOptions =
+        transportOptions.toBuilder()
+            .setConnectTimeout(40 * 1000)
+            .setReadTimeout(40 * 1000)
+            .build();
+    bigQuery = BigQueryOptions.newBuilder().setTransportOptions(transportOptions)
+        .setProjectId(projectId).build().getService();
   }
 
   public static BigQueryProject get(String projectId) {

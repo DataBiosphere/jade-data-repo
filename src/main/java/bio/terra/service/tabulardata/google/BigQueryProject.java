@@ -22,14 +22,14 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.http.HttpTransportOptions;
+import com.google.cloud.storage.StorageOptions;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import com.google.cloud.http.HttpTransportOptions;
-import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,12 +46,13 @@ public final class BigQueryProject {
     this.projectId = projectId;
     HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
     transportOptions =
-        transportOptions.toBuilder()
-            .setConnectTimeout(40 * 1000)
-            .setReadTimeout(40 * 1000)
-            .build();
-    bigQuery = BigQueryOptions.newBuilder().setTransportOptions(transportOptions)
-        .setProjectId(projectId).build().getService();
+        transportOptions.toBuilder().setConnectTimeout(40 * 1000).setReadTimeout(40 * 1000).build();
+    bigQuery =
+        BigQueryOptions.newBuilder()
+            .setTransportOptions(transportOptions)
+            .setProjectId(projectId)
+            .build()
+            .getService();
   }
 
   public static BigQueryProject get(String projectId) {

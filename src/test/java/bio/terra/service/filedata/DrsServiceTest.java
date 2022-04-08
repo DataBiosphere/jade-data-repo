@@ -7,6 +7,8 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -33,6 +35,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -40,6 +43,8 @@ import bio.terra.service.snapshot.SnapshotSource;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -86,6 +91,7 @@ public class DrsServiceTest {
 
   @Before
   public void before() throws Exception {
+    UUID defaultProfileModelId = UUID.randomUUID();
     drsService =
         new DrsService(
             snapshotService,
@@ -109,10 +115,20 @@ public class DrsServiceTest {
         .thenReturn(
             new Snapshot()
                 .id(snapshotId)
+                .projectResource(new GoogleProjectResource().googleProjectId("google-project"))
                 .snapshotSources(
                     List.of(
                         new SnapshotSource()
-                            .dataset(new Dataset(new DatasetSummary().selfHosted(false))))));
+                            .dataset(
+                                new Dataset(
+                                    new DatasetSummary()
+                                        .selfHosted(false)
+                                        .defaultProfileId(defaultProfileModelId)
+                                        .billingProfiles(
+                                            List.of(
+                                                new BillingProfileModel()
+                                                    .id(defaultProfileModelId)
+                                                    .cloudPlatform(CloudPlatform.GCP))))))));
 
     String bucketResourceId = UUID.randomUUID().toString();
     String storageAccountResourceId = UUID.randomUUID().toString();
@@ -210,5 +226,44 @@ public class DrsServiceTest {
     DRSAccessURL result =
         drsService.getAccessUrlForObjectId(authUser, azureDrsObjectId, "az-centralus");
     assertEquals(urlString, result.getUrl());
+  }
+
+  @Test
+  public void testSnapshotCache() throws Exception {
+    List<String> googleDrsObjectIds =
+        IntStream.range(0, 5)
+            .mapToObj(
+                i -> {
+                  UUID googleFileId = UUID.randomUUID();
+                  DrsId googleDrsId =
+                      new DrsId("", "v1", snapshotId.toString(), googleFileId.toString());
+                  return googleDrsId.toDrsObjectId();
+                })
+            .collect(Collectors.toList());
+
+    when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(googleFsFile);
+    for (var drsId : googleDrsObjectIds) {
+      drsService.lookupObjectByDrsId(authUser, drsId, false);
+    }
+    verify(snapshotService, times(1)).retrieve(any());
+    verify(snapshotService, times(1)).retrieveAvailableSnapshotProject(any());
+
+    List<String> azureDrsObjectIds =
+        IntStream.range(0, 5)
+            .mapToObj(
+                i -> {
+                  UUID azureFileId = UUID.randomUUID();
+                  DrsId azureDrsId =
+                      new DrsId("", "v1", snapshotId.toString(), azureFileId.toString());
+                  return azureDrsId.toDrsObjectId();
+                })
+            .collect(Collectors.toList());
+
+    when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(azureFsFile);
+    for (var drsId : azureDrsObjectIds) {
+      drsService.lookupObjectByDrsId(authUser, drsId, false);
+    }
+    verify(snapshotService, times(1)).retrieve(any());
+    verify(snapshotService, times(1)).retrieveAvailableSnapshotProject(any());
   }
 }

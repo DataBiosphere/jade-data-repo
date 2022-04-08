@@ -32,7 +32,6 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -48,11 +47,13 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +84,11 @@ public class DrsService {
   private final PerformanceLogger performanceLogger;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
+
+  private final Map<UUID, SnapshotProject> snapshotProjects =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
+  private final Map<UUID, SnapshotCacheResult> snapshotCache =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
 
   @Autowired
   public DrsService(
@@ -153,7 +159,7 @@ public class DrsService {
         // We only look up DRS ids for unlocked snapshots.
         String retrieveTimer = performanceLogger.timerStart();
 
-        snapshotProject = snapshotService.retrieveAvailableSnapshotProject(snapshotId);
+        snapshotProject = getSnapshotProject(snapshotId);
 
         performanceLogger.timerEndAndLog(
             retrieveTimer,
@@ -211,14 +217,10 @@ public class DrsService {
     DRSObject drsObject = lookupObjectByDrsId(authUser, objectId, false);
 
     DrsId drsId = drsIdService.fromObjectId(objectId);
-    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()));
+    UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
+    SnapshotCacheResult cachedSnapshot = getSnapshot(snapshotId);
 
-    BillingProfileModel billingProfileModel =
-        snapshot
-            .getFirstSnapshotSource()
-            .getDataset()
-            .getDatasetSummary()
-            .getDefaultBillingProfile();
+    BillingProfileModel billingProfileModel = cachedSnapshot.billingProfileModel;
 
     Supplier<IllegalArgumentException> illegalArgumentExceptionSupplier =
         () -> new IllegalArgumentException("No matching access ID was found for object");
@@ -228,16 +230,14 @@ public class DrsService {
       DRSAccessMethod matchingAccessMethod =
           getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.GS)
               .orElseThrow(illegalArgumentExceptionSupplier);
-      return signGoogleUrl(snapshot, matchingAccessMethod);
+      return signGoogleUrl(cachedSnapshot.googleProjectId, matchingAccessMethod);
     } else if (platform.isAzure()) {
       getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.HTTPS)
           .orElseThrow(illegalArgumentExceptionSupplier);
       try {
         FSItem fsItem =
             fileService.lookupSnapshotFSItem(
-                snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
-                drsId.getFsObjectId(),
-                1);
+                getSnapshotProject(snapshotId), drsId.getFsObjectId(), 1);
         return signAzureUrl(billingProfileModel, fsItem, authUser);
       } catch (InterruptedException e) {
         throw new IllegalArgumentException(e);
@@ -274,13 +274,9 @@ public class DrsService {
                     authUser.getEmail())));
   }
 
-  private DRSAccessURL signGoogleUrl(Snapshot snapshot, DRSAccessMethod accessMethod) {
-    GoogleProjectResource projectResource = snapshot.getProjectResource();
+  private DRSAccessURL signGoogleUrl(String googleProjectId, DRSAccessMethod accessMethod) {
     Storage storage =
-        StorageOptions.newBuilder()
-            .setProjectId(projectResource.getGoogleProjectId())
-            .build()
-            .getService();
+        StorageOptions.newBuilder().setProjectId(googleProjectId).build().getService();
     String gsPath = accessMethod.getAccessUrl().getUrl();
     BlobId locator = GcsUriUtils.parseBlobUri(gsPath);
 
@@ -323,12 +319,11 @@ public class DrsService {
       String snapshotId, FSFile fsFile, AuthenticatedUserRequest authUser) {
     DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getCloudPath());
 
-    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+    SnapshotCacheResult cachedSnapshot = getSnapshot(UUID.fromString(snapshotId));
 
     final GoogleRegion region;
-    if (snapshot.isSelfHosted()) {
-      Storage storage =
-          gcsProjectFactory.getStorage(snapshot.getProjectResource().getGoogleProjectId());
+    if (cachedSnapshot.isSelfHosted) {
+      Storage storage = gcsProjectFactory.getStorage(cachedSnapshot.googleProjectId);
       Bucket bucket = storage.get(GcsUriUtils.parseBlobUri(fsFile.getCloudPath()).getBucket());
       region = GoogleRegion.fromValue(bucket.getLocation());
     } else {
@@ -451,5 +446,33 @@ public class DrsService {
   public static String getLastNameFromPath(String path) {
     String[] pathParts = StringUtils.split(path, '/');
     return pathParts[pathParts.length - 1];
+  }
+
+  private SnapshotProject getSnapshotProject(UUID snapshotId) {
+    return snapshotProjects.computeIfAbsent(
+        snapshotId, snapshotService::retrieveAvailableSnapshotProject);
+  }
+
+  private SnapshotCacheResult getSnapshot(UUID snapshotId) {
+    return snapshotCache.computeIfAbsent(
+        snapshotId, id -> new SnapshotCacheResult(snapshotService.retrieve(id)));
+  }
+
+  private static class SnapshotCacheResult {
+    private final Boolean isSelfHosted;
+    private final BillingProfileModel billingProfileModel;
+    private final String googleProjectId;
+
+    public SnapshotCacheResult(Snapshot snapshot) {
+      this.isSelfHosted = snapshot.isSelfHosted();
+      this.billingProfileModel =
+          snapshot.getSourceDataset().getDatasetSummary().getDefaultBillingProfile();
+      var projectResource = snapshot.getProjectResource();
+      if (projectResource != null) {
+        this.googleProjectId = projectResource.getGoogleProjectId();
+      } else {
+        this.googleProjectId = null;
+      }
+    }
   }
 }

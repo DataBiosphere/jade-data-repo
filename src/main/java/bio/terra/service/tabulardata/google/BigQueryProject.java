@@ -9,7 +9,6 @@ import bio.terra.service.filedata.FSContainerInterface;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
@@ -22,8 +21,6 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
-import com.google.cloud.http.HttpTransportOptions;
-import com.google.cloud.storage.StorageOptions;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,27 +37,14 @@ public final class BigQueryProject {
       new ConcurrentHashMap<>();
   private final String projectId;
   private final BigQuery bigQuery;
-  private final int TIMEOUT_SECONDS = 40;
 
-  private BigQueryProject(String projectId) {
-    logger.info("Retrieving Bigquery project for project id: {}", projectId);
+  public BigQueryProject(String projectId, BigQuery bigQuery) {
     this.projectId = projectId;
-    HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
-    transportOptions =
-        transportOptions.toBuilder()
-            .setConnectTimeout(TIMEOUT_SECONDS * 1000)
-            .setReadTimeout(TIMEOUT_SECONDS * 1000)
-            .build();
-    bigQuery =
-        BigQueryOptions.newBuilder()
-            .setTransportOptions(transportOptions)
-            .setProjectId(projectId)
-            .build()
-            .getService();
+    this.bigQuery = bigQuery;
   }
 
   public static BigQueryProject get(String projectId) {
-    PROJECT_CACHE.computeIfAbsent(projectId, BigQueryProject::new);
+    PROJECT_CACHE.computeIfAbsent(projectId, BigQueryProjectFactory::buildBQProject);
     return PROJECT_CACHE.get(projectId);
   }
 

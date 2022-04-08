@@ -40,13 +40,17 @@ public final class BigQueryProject {
       new ConcurrentHashMap<>();
   private final String projectId;
   private final BigQuery bigQuery;
+  private final int TIMEOUT_SECONDS = 40;
 
   private BigQueryProject(String projectId) {
     logger.info("Retrieving Bigquery project for project id: {}", projectId);
     this.projectId = projectId;
     HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
     transportOptions =
-        transportOptions.toBuilder().setConnectTimeout(40 * 1000).setReadTimeout(40 * 1000).build();
+        transportOptions.toBuilder()
+            .setConnectTimeout(TIMEOUT_SECONDS * 1000)
+            .setReadTimeout(TIMEOUT_SECONDS * 1000)
+            .build();
     bigQuery =
         BigQueryOptions.newBuilder()
             .setTransportOptions(transportOptions)

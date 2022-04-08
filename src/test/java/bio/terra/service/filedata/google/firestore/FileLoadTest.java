@@ -138,7 +138,7 @@ public class FileLoadTest {
   private BulkLoadRequestModel makeBulkFileLoad(String tagBase, int fileCount) {
     String testId = Names.randomizeName("test");
     String loadTag = tagBase + testId;
-    String targetPath = "scratch/loadtest" + UUID.randomUUID() + ".json";
+    String targetPath = "/scratch/loadtest" + UUID.randomUUID() + ".json";
     connectedOperations.addScratchFile(targetPath); // track the file so it gets cleaned up
 
     String gspath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;

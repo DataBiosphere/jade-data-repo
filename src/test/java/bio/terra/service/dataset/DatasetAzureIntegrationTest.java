@@ -389,12 +389,12 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
-            .targetPath(String.format("%s/%s", flightId, "target.txt")));
+            .targetPath(String.format("/%s/%s", flightId, "target.txt")));
     bulkLoadFileModelList.add(
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
-            .targetPath(String.format("%s/%s", flightId, "target2.txt")));
+            .targetPath(String.format("/%s/%s", flightId, "target2.txt")));
 
     String controlFileUrl =
         blobIOTestUtility.uploadFileWithContents(

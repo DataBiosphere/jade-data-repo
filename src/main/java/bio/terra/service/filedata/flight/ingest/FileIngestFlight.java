@@ -80,26 +80,27 @@ public class FileIngestFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     // The flight plan:
-    // 0. Make sure this user is allowed to use the billing profile and that the underlying
+    // 0. Validate the file load model.
+    // 1. Make sure this user is allowed to use the billing profile and that the underlying
     //    billing information remains valid.
-    // 0a. Check to see if this is an Azure billing profile and fail until it's implemented.
-    // 1. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted
+    // 1a. Check to see if this is an Azure billing profile and fail until it's implemented.
+    // 2. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted
     // while this
     //    flight is running.
-    // 2. Lock the load tag - only one flight operating on a load tag at a time
-    // 3. Generate the new file id and store it in the working map. We need to allocate the file id
+    // 3. Lock the load tag - only one flight operating on a load tag at a time
+    // 4. Generate the new file id and store it in the working map. We need to allocate the file id
     // before any
     //    other operation so that it is persisted in the working map. In particular,
     // IngestFileDirectoryStep undo
     //    needs to know the file id in order to clean up.
-    // 4. Create the directory entry for the file. The state where there is a directory entry for a
+    // 5. Create the directory entry for the file. The state where there is a directory entry for a
     // file, but
     //    no entry in the file collection, indicates that the file is being ingested (or deleted)
     // and so REST API
     //    lookups will not reveal that it exists. We make the directory entry first, because that
     // atomic operation
     //    prevents a second ingest with the same path from getting created.
-    // 5. Locate the bucket where this file should go and store it in the working map. We need to
+    // 6. Locate the bucket where this file should go and store it in the working map. We need to
     // make the
     //    decision about where we will put the file and remember it persistently in the working map
     // before
@@ -108,18 +109,21 @@ public class FileIngestFlight extends Flight {
     //    We also check to see if the dataset is already linked to the bucket and remember that in
     // the working map.
     //    That allows the next step to properly insert or remove link.
-    // 6. If the dataset is not already linked to the bucket, link it
-    // 7. Copy the file into the bucket. Return the gspath, checksum, size, and create time in the
+    // 7. If the dataset is not already linked to the bucket, link it
+    // 8. Copy the file into the bucket. Return the gspath, checksum, size, and create time in the
     // working map.
-    // 8. Create the file entry in the filesystem. The file object takes the gspath, checksum, size,
+    // 9. Create the file entry in the filesystem. The file object takes the gspath, checksum, size,
     // and create
     //    time of the actual file in GCS. That ensures that the file info we return on REST API (and
     // DRS) lookups
     //    matches what users will see when they examine the GCS object. When the file entry is
     // (atomically)
     //    created in the file firestore collection, the file becomes visible for REST API lookups.
-    // 9. Unlock the load tag
-    // 10. Unlock the dataset
+    // 10. Unlock the load tag
+    // 11. Unlock the dataset
+
+    addStep(new ValidateIngestFileLoadModelStep());
+
     addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
     if (platform.isAzure()) {
       addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));

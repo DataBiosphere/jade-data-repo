@@ -180,7 +180,7 @@ public class FileLoadTest {
     model
         .description("bulk load file " + index)
         .sourcePath(infile)
-        .targetPath(testId + fileTarget[index] + repeat);
+        .targetPath("/" + testId + fileTarget[index] + repeat);
     return model;
   }
   // We have a static array of good paths and bad paths with their associated

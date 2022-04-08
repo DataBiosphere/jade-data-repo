@@ -167,7 +167,7 @@ public class FileTest extends UsersBase {
   public void fileParallelFailedLoadTest() throws Exception {
     List<DataRepoResponse<JobModel>> responseList = new ArrayList<>();
     String gsPath = "gs://" + testConfiguration.getIngestbucket() + "/nonexistentfile";
-    String filePath = "/foo" + UUID.randomUUID().toString() + "/bar";
+    String filePath = "/foo" + UUID.randomUUID() + "/bar";
 
     for (int i = 0; i < 20; i++) {
       DataRepoResponse<JobModel> launchResp =
@@ -357,5 +357,24 @@ public class FileTest extends UsersBase {
     dataRepoFixtures.ingestFile(
         // note: steward's proxy group should have access to the source bucket
         steward(), datasetId, profileId, gsFilePath, filePath);
+  }
+
+  @Test
+  public void fileIngestBadTargetPathTest() throws Exception {
+    String gsPath = "gs://" + testConfiguration.getIngestbucket();
+    String filePath = "foo/bar";
+
+    DataRepoResponse<JobModel> job =
+        dataRepoFixtures.ingestFileLaunch(
+            steward(), datasetId, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
+
+    DataRepoResponse<FileModel> result =
+        dataRepoClient.waitForResponse(steward(), job, new TypeReference<>() {});
+
+    // The weird URL encoding of errors means we can't match on the '/'.
+    assertThat(
+        "an target path without leading '/' fails to load",
+        result.getErrorObject().orElseThrow().getMessage(),
+        containsString("A target path must start with"));
   }
 }

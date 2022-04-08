@@ -376,7 +376,7 @@ public class FileOperationTest {
     model
         .description("bulk load file " + index)
         .sourcePath(infile)
-        .targetPath(testId + fileTarget[index]);
+        .targetPath("/" + testId + fileTarget[index]);
     return model;
   }
 

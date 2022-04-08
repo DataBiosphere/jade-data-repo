@@ -8,6 +8,7 @@ import bio.terra.model.DataDeletionTableModel;
 import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -18,11 +19,13 @@ import org.slf4j.LoggerFactory;
 public class DropExternalTablesStep implements Step {
 
   private final DatasetService datasetService;
+  private final GcsConfiguration gcsConfiguration;
 
   private static Logger logger = LoggerFactory.getLogger(DropExternalTablesStep.class);
 
-  public DropExternalTablesStep(DatasetService datasetService) {
+  public DropExternalTablesStep(DatasetService datasetService, GcsConfiguration gcsConfiguration) {
     this.datasetService = datasetService;
+    this.gcsConfiguration = gcsConfiguration;
   }
 
   @Override
@@ -32,7 +35,12 @@ public class DropExternalTablesStep implements Step {
     DataDeletionRequest dataDeletionRequest = getRequest(context);
 
     for (DataDeletionTableModel table : dataDeletionRequest.getTables()) {
-      BigQueryPdao.deleteExternalTable(dataset, table.getTableName(), suffix);
+      BigQueryPdao.deleteExternalTable(
+          dataset,
+          table.getTableName(),
+          suffix,
+          gcsConfiguration.getConnectTimeoutSeconds(),
+          gcsConfiguration.getReadTimeoutSeconds());
     }
 
     return StepResult.getStepResultSuccess();

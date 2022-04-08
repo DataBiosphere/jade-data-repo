@@ -32,6 +32,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.tabulardata.LoadHistoryUtil;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
@@ -70,6 +71,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
@@ -79,9 +81,19 @@ import org.stringtemplate.v4.ST;
 public class BigQueryDatasetPdao {
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryDatasetPdao.class);
+  private GcsConfiguration gcsConfiguration;
+
+  @Autowired
+  public BigQueryDatasetPdao(GcsConfiguration gcsConfiguration) {
+    this.gcsConfiguration = gcsConfiguration;
+  }
 
   public void createDataset(Dataset dataset) throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     BigQuery bigQuery = bigQueryProject.getBigQuery();
 
     // Keep the dataset name from colliding with a snapshot name by prefixing it.
@@ -123,7 +135,11 @@ public class BigQueryDatasetPdao {
   }
 
   public boolean deleteDataset(Dataset dataset) throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     return bigQueryProject.deleteDataset(BigQueryPdao.prefixName(dataset.getName()));
   }
 
@@ -138,7 +154,11 @@ public class BigQueryDatasetPdao {
       String path)
       throws InterruptedException {
 
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     BigQuery bigQuery = bigQueryProject.getBigQuery();
     String bqDatasetId = BigQueryPdao.prefixName(dataset.getName());
     TableId tableId = TableId.of(bqDatasetId, stagingTableName);
@@ -264,7 +284,11 @@ public class BigQueryDatasetPdao {
 
   public void createStagingLoadHistoryTable(Dataset dataset, String tableName_FlightId)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     try {
       String datasetName = BigQueryPdao.prefixName(dataset.getName());
 
@@ -307,7 +331,11 @@ public class BigQueryDatasetPdao {
       Instant loadTime,
       List<BulkLoadHistoryModel> loadHistoryArray)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     ST sqlTemplate = new ST(insertLoadHistoryToStagingTableTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -334,7 +362,11 @@ public class BigQueryDatasetPdao {
 
   public void mergeStagingLoadHistoryTable(Dataset dataset, String flightId)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     String datasetName = BigQueryPdao.prefixName(dataset.getName());
 
@@ -362,7 +394,11 @@ public class BigQueryDatasetPdao {
 
   public List<BulkLoadHistoryModel> getLoadHistory(
       Dataset dataset, String loadTag, int offset, int limit) {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String datasetName = BigQueryPdao.prefixName(dataset.getName());
     var sqlTemplate = new ST(getLoadHistoryTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -410,7 +446,11 @@ public class BigQueryDatasetPdao {
 
   public void addRowIdsToStagingTable(Dataset dataset, String stagingTableName)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     ST sqlTemplate = new ST(addRowIdsToStagingTableTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -426,7 +466,11 @@ public class BigQueryDatasetPdao {
 
   public List<String> getRefIds(Dataset dataset, String tableName, Column refColumn)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     ST sqlTemplate = new ST(getRefIdsTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -454,7 +498,11 @@ public class BigQueryDatasetPdao {
   public void insertIntoDatasetTable(
       Dataset dataset, DatasetTable targetTable, String stagingTableName, UUID transactId)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     ST sqlTemplate = new ST(insertIntoDatasetTableTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -487,7 +535,11 @@ public class BigQueryDatasetPdao {
       String email,
       String loadTag)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     ST sqlTemplate = new ST(insertIntoMetadataTableTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -540,7 +592,11 @@ public class BigQueryDatasetPdao {
       String flightId,
       UUID transactId)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     String datasetLiveViewSql =
         renderDatasetLiveViewSql(
@@ -585,7 +641,11 @@ public class BigQueryDatasetPdao {
   public void createSoftDeleteExternalTable(
       Dataset dataset, String path, String tableName, String suffix) throws InterruptedException {
 
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String extTableName = BigQueryPdao.externalTableName(tableName, suffix);
     TableId tableId = TableId.of(BigQueryPdao.prefixName(dataset.getName()), extTableName);
     Schema schema = Schema.of(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
@@ -644,7 +704,11 @@ public class BigQueryDatasetPdao {
       UUID transactionId,
       AuthenticatedUserRequest userRequest)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     // we want this soft delete operation to be one parent job with one child-job per query, we we
     // will combine
@@ -707,7 +771,11 @@ public class BigQueryDatasetPdao {
       Dataset dataset, List<DataDeletionTableModel> tables, String suffix)
       throws InterruptedException {
 
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     for (DataDeletionTableModel table : tables) {
       String tableName = table.getTableName();
       String rawTableName = dataset.getTableByName(tableName).get().getRawTableName();
@@ -735,26 +803,43 @@ public class BigQueryDatasetPdao {
   public void grantReadAccessToDataset(Dataset dataset, Collection<String> policies)
       throws InterruptedException {
     BigQueryPdao.grantReadAccessWorker(
-        BigQueryProject.from(dataset), BigQueryPdao.prefixName(dataset.getName()), policies);
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds()),
+        BigQueryPdao.prefixName(dataset.getName()),
+        policies);
   }
 
   // UTILITY METHODS
 
   public boolean datasetExists(Dataset dataset) throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String datasetName = BigQueryPdao.prefixName(dataset.getName());
     // bigQueryProject.datasetExists checks whether the BigQuery dataset by the provided name exists
     return bigQueryProject.datasetExists(datasetName);
   }
 
   public boolean tableExists(Dataset dataset, String tableName) throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String datasetName = BigQueryPdao.prefixName(dataset.getName());
     return bigQueryProject.tableExists(datasetName, tableName);
   }
 
   public boolean deleteDatasetTable(Dataset dataset, String tableName) throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     return bigQueryProject.deleteTable(BigQueryPdao.prefixName(dataset.getName()), tableName);
   }
 
@@ -988,7 +1073,11 @@ public class BigQueryDatasetPdao {
   // MIGRATIONS
   public void migrateSchemaForTransactions(Dataset dataset) {
     String datasetName = BigQueryPdao.prefixName(dataset.getName());
-    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     BigQuery bigQuery = bigQueryProject.getBigQuery();
     String bqDatasetId = BigQueryPdao.prefixName(dataset.getName());
     logger.info("Migrating dataset {}", dataset.toLogString());

@@ -41,7 +41,7 @@ public final class BigQueryProject {
   private final String projectId;
   private final BigQuery bigQuery;
 
-  private BigQueryProject(String projectId) {
+  private BigQueryProject(String projectId, int timeout, int read) {
     logger.info("Retrieving Bigquery project for project id: {}", projectId);
     this.projectId = projectId;
     HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
@@ -55,8 +55,8 @@ public final class BigQueryProject {
             .getService();
   }
 
-  public static BigQueryProject get(String projectId) {
-    PROJECT_CACHE.computeIfAbsent(projectId, BigQueryProject::new);
+  public static BigQueryProject get(String projectId, int read, int query) {
+    PROJECT_CACHE.computeIfAbsent(projectId, t -> new BigQueryProject(projectId, read, query));
     return PROJECT_CACHE.get(projectId);
   }
 
@@ -64,12 +64,13 @@ public final class BigQueryProject {
     PROJECT_CACHE.put(bigQueryProject.getProjectId(), bigQueryProject);
   }
 
-  public static BigQueryProject from(SnapshotModel snapshotModel) {
-    return get(snapshotModel.getDataProject());
+  public static BigQueryProject from(SnapshotModel snapshotModel, int read, int query) {
+    return get(snapshotModel.getDataProject(), read, query);
   }
 
-  public static BigQueryProject from(FSContainerInterface fsContainerInterface) {
-    return get(fsContainerInterface.getProjectResource().getGoogleProjectId());
+  public static BigQueryProject from(
+      FSContainerInterface fsContainerInterface, int read, int query) {
+    return get(fsContainerInterface.getProjectResource().getGoogleProjectId(), read, query);
   }
 
   public String getProjectId() {

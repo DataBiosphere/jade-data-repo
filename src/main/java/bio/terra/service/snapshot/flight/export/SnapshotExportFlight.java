@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.export;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -28,6 +29,7 @@ public class SnapshotExportFlight extends Flight {
     FireStoreDao fireStoreDao = appContext.getBean(FireStoreDao.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ObjectMapper objectMapper = appConfig.objectMapper();
+    GcsConfiguration gcsConfiguration = appContext.getBean(GcsConfiguration.class);
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
@@ -39,7 +41,8 @@ public class SnapshotExportFlight extends Flight {
             inputParameters.get(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, Boolean.class), true);
 
     if (validatePrimaryKeyUniqueness) {
-      addStep(new SnapshotExportValidatePrimaryKeysStep(snapshotService, snapshotId));
+      addStep(
+          new SnapshotExportValidatePrimaryKeysStep(snapshotService, snapshotId, gcsConfiguration));
     }
 
     addStep(new SnapshotExportValidateExportParametersStep(snapshotService, snapshotId));
@@ -54,7 +57,8 @@ public class SnapshotExportFlight extends Flight {
           new SnapshotExportDumpFirestoreStep(
               snapshotService, fireStoreDao, gcsPdao, snapshotId, objectMapper));
       addStep(
-          new SnapshotExportLoadMappingTableStep(snapshotId, snapshotService, bigQueryExportPdao));
+          new SnapshotExportLoadMappingTableStep(
+              snapshotId, snapshotService, bigQueryExportPdao, gcsConfiguration));
     }
     addStep(
         new SnapshotExportCreateParquetFilesStep(
@@ -70,7 +74,8 @@ public class SnapshotExportFlight extends Flight {
     addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
     if (exportGsPaths) {
       addStep(
-          new CleanUpExportGsPathsStep(bigQueryExportPdao, gcsPdao, snapshotService, snapshotId));
+          new CleanUpExportGsPathsStep(
+              bigQueryExportPdao, gcsPdao, snapshotService, snapshotId, gcsConfiguration));
     }
   }
 }

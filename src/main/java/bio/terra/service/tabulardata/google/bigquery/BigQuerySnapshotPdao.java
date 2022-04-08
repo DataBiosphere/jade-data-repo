@@ -22,6 +22,7 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
+import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotMapColumn;
@@ -74,13 +75,16 @@ public class BigQuerySnapshotPdao {
 
   private final String datarepoDnsName;
   private final BigQueryConfiguration bigQueryConfiguration;
+  private final GcsConfiguration gcsConfiguration;
 
   @Autowired
   public BigQuerySnapshotPdao(
       ApplicationConfiguration applicationConfiguration,
-      BigQueryConfiguration bigQueryConfiguration) {
+      BigQueryConfiguration bigQueryConfiguration,
+      GcsConfiguration gcsConfiguration) {
     this.datarepoDnsName = applicationConfiguration.getDnsName();
     this.bigQueryConfiguration = bigQueryConfiguration;
+    this.gcsConfiguration = gcsConfiguration;
   }
 
   private static final String loadRootRowIdsTemplate =
@@ -112,11 +116,19 @@ public class BigQuerySnapshotPdao {
 
   public void createSnapshot(Snapshot snapshot, List<String> rowIds, Instant filterBefore)
       throws InterruptedException {
-    BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject snapshotBigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String snapshotProjectId = snapshotBigQueryProject.getProjectId();
 
     // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-    BigQueryProject datasetBigQueryProject = BigQueryProject.from(snapshot.getSourceDataset());
+    BigQueryProject datasetBigQueryProject =
+        BigQueryProject.from(
+            snapshot.getSourceDataset(),
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
 
     String snapshotName = snapshot.getName();
@@ -280,13 +292,21 @@ public class BigQuerySnapshotPdao {
   public void createSnapshotWithLiveViews(Snapshot snapshot, Dataset dataset, Instant filterBefore)
       throws InterruptedException {
 
-    BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject snapshotBigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String snapshotProjectId = snapshotBigQueryProject.getProjectId();
     String snapshotName = snapshot.getName();
     BigQuery snapshotBigQuery = snapshotBigQueryProject.getBigQuery();
 
     String datasetBqDatasetName = BigQueryPdao.prefixName(dataset.getName());
-    BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject datasetBigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
 
     // create snapshot BQ dataset
@@ -341,11 +361,19 @@ public class BigQuerySnapshotPdao {
       Snapshot snapshot, SnapshotRequestContentsModel contentsModel, Instant filterBefore)
       throws InterruptedException {
 
-    BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject snapshotBigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String snapshotProjectId = snapshotBigQueryProject.getProjectId();
 
     // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-    BigQueryProject datasetBigQueryProject = BigQueryProject.from(snapshot.getSourceDataset());
+    BigQueryProject datasetBigQueryProject =
+        BigQueryProject.from(
+            snapshot.getSourceDataset(),
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
 
     String snapshotName = snapshot.getName();
@@ -435,7 +463,11 @@ public class BigQuerySnapshotPdao {
   }
 
   public void deleteSnapshot(Snapshot snapshot) {
-    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     boolean snapshotTableDeleted = bigQueryProject.deleteDataset(snapshot.getName());
     logger.info("Snapshot BQ Dataset successful delete: {}", snapshotTableDeleted);
   }
@@ -469,7 +501,11 @@ public class BigQuerySnapshotPdao {
       SnapshotSource source, List<String> inputValues, Instant filterBefore)
       throws InterruptedException {
     // One source: grab it and navigate to the relevant parts
-    BigQueryProject datasetBigQueryProject = BigQueryProject.from(source.getDataset());
+    BigQueryProject datasetBigQueryProject =
+        BigQueryProject.from(
+            source.getDataset(),
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
     AssetSpecification asset = source.getAssetSpecification();
     Column column = asset.getRootColumn().getDatasetColumn();
@@ -532,8 +568,16 @@ public class BigQuerySnapshotPdao {
   public List<String> getSnapshotRefIds(
       Dataset dataset, Snapshot snapshot, String tableName, String tableId, Column refColumn)
       throws InterruptedException {
-    BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
-    BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject datasetBigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
+    BigQueryProject snapshotBigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     ST sqlTemplate = new ST(getSnapshotRefIdsTemplate);
     sqlTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
@@ -567,7 +611,11 @@ public class BigQuerySnapshotPdao {
       Instant filterBefore)
       throws InterruptedException {
     // snapshot
-    BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject snapshotBigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     BigQuery snapshotBigQuery = snapshotBigQueryProject.getBigQuery();
     String snapshotProjectId = snapshotBigQueryProject.getProjectId();
     String snapshotName = snapshot.getName();
@@ -576,7 +624,11 @@ public class BigQuerySnapshotPdao {
     // TODO: When we support multiple datasets per snapshot, this will need to be reworked
     Dataset dataset = snapshot.getSourceDataset();
     String datasetBqDatasetName = BigQueryPdao.prefixName(dataset.getName());
-    BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
+    BigQueryProject datasetBigQueryProject =
+        BigQueryProject.from(
+            dataset,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
 
     // TODO add additional validation that the col is the root col
@@ -695,7 +747,11 @@ public class BigQuerySnapshotPdao {
       throws InterruptedException {
 
     // One source: grab it and navigate to the relevant parts
-    BigQueryProject datasetBigQueryProject = BigQueryProject.from(source.getDataset());
+    BigQueryProject datasetBigQueryProject =
+        BigQueryProject.from(
+            source.getDataset(),
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     Optional<SnapshotMapTable> optTable =
         source.getSnapshotMapTables().stream()
@@ -761,7 +817,11 @@ public class BigQuerySnapshotPdao {
   }
 
   public void deleteSourceDatasetViewACLs(Snapshot snapshot) throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     String snapshotProjectId = bigQueryProject.getProjectId();
     List<SnapshotSource> sources = snapshot.getSnapshotSources();
     if (sources.size() > 0) {
@@ -774,14 +834,23 @@ public class BigQuerySnapshotPdao {
   }
 
   public boolean snapshotExists(Snapshot snapshot) throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     return bigQueryProject.datasetExists(snapshot.getName());
   }
 
   public void grantReadAccessToSnapshot(Snapshot snapshot, Collection<String> policies)
       throws InterruptedException {
     BigQueryPdao.grantReadAccessWorker(
-        BigQueryProject.from(snapshot), snapshot.getName(), policies);
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds()),
+        snapshot.getName(),
+        policies);
   }
 
   public static List<Map<String, Object>> aggregateSnapshotTable(TableResult result) {
@@ -822,7 +891,11 @@ public class BigQuerySnapshotPdao {
    */
   public List<Map<String, Object>> getSnapshotTable(
       Snapshot snapshot, String tableName, int limit, int offset) throws InterruptedException {
-    final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    final BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     final String snapshotProjectId = bigQueryProject.getProjectId();
     final String sql =
         new ST(SNAPSHOT_DATA_TEMPLATE)
@@ -843,7 +916,11 @@ public class BigQuerySnapshotPdao {
    */
   public List<Map<String, Object>> getSnapshotTableUnsafe(Snapshot snapshot, String sql)
       throws InterruptedException {
-    final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    final BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     final TableResult result = bigQueryProject.query(sql);
 
     return aggregateSnapshotTable(result);
@@ -856,7 +933,11 @@ public class BigQuerySnapshotPdao {
 
   public Map<String, Long> getSnapshotTableRowCounts(Snapshot snapshot)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     Map<String, Long> rowCounts = new HashMap<>();
     for (SnapshotTable snapshotTable : snapshot.getTables()) {
@@ -1352,7 +1433,11 @@ public class BigQuerySnapshotPdao {
   private void deleteViewAcls(
       String datasetBqDatasetName, Snapshot snapshot, String snapshotProjectId)
       throws InterruptedException {
-    BigQueryProject bigQueryDatasetProject = BigQueryProject.from(snapshot.getSourceDataset());
+    BigQueryProject bigQueryDatasetProject =
+        BigQueryProject.from(
+            snapshot.getSourceDataset(),
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     List<String> viewsToDelete =
         snapshot.getTables().stream()

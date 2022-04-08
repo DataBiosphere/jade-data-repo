@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.export;
 import bio.terra.common.Column;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -23,10 +24,13 @@ import java.util.stream.Collectors;
 public class SnapshotExportValidatePrimaryKeysStep implements Step {
   private final SnapshotService snapshotService;
   private final UUID snapshotId;
+  private final GcsConfiguration gcsConfiguration;
 
-  public SnapshotExportValidatePrimaryKeysStep(SnapshotService snapshotService, UUID snapshotId) {
+  public SnapshotExportValidatePrimaryKeysStep(
+      SnapshotService snapshotService, UUID snapshotId, GcsConfiguration gcsConfiguration) {
     this.snapshotService = snapshotService;
     this.snapshotId = snapshotId;
+    this.gcsConfiguration = gcsConfiguration;
   }
 
   @Override
@@ -57,7 +61,11 @@ public class SnapshotExportValidatePrimaryKeysStep implements Step {
                   try {
                     hasDuplicates =
                         BigQueryPdao.hasDuplicatePrimaryKeys(
-                            snapshot, primaryKeyColumns, tableName);
+                            snapshot,
+                            primaryKeyColumns,
+                            tableName,
+                            gcsConfiguration.getConnectTimeoutSeconds(),
+                            gcsConfiguration.getReadTimeoutSeconds());
                   } catch (InterruptedException e) {
                     throw new GoogleResourceException(
                         String.format(

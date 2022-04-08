@@ -9,6 +9,7 @@ import bio.terra.service.common.gcs.BigQueryUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.TableNotFoundException;
+import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
@@ -23,13 +24,17 @@ public class CreateExternalTablesStep implements Step {
 
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
   private final DatasetService datasetService;
+  private final GcsConfiguration gcsConfiguration;
 
   private static Logger logger = LoggerFactory.getLogger(CreateExternalTablesStep.class);
 
   public CreateExternalTablesStep(
-      BigQueryDatasetPdao bigQueryDatasetPdao, DatasetService datasetService) {
+      BigQueryDatasetPdao bigQueryDatasetPdao,
+      DatasetService datasetService,
+      GcsConfiguration gcsConfiguration) {
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
     this.datasetService = datasetService;
+    this.gcsConfiguration = gcsConfiguration;
   }
 
   private void validateTablesExistInDataset(List<DataDeletionTableModel> tables, Dataset dataset) {
@@ -72,7 +77,12 @@ public class CreateExternalTablesStep implements Step {
 
     for (DataDeletionTableModel table : getRequest(context).getTables()) {
       try {
-        BigQueryPdao.deleteExternalTable(dataset, table.getTableName(), suffix);
+        BigQueryPdao.deleteExternalTable(
+            dataset,
+            table.getTableName(),
+            suffix,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
       } catch (Exception ex) {
         // catch any exception and get it into the log, make a
         String msg =

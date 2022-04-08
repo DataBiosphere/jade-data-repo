@@ -6,6 +6,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 
 import bio.terra.common.Column;
 import bio.terra.service.common.gcs.BigQueryUtils;
+import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
@@ -20,6 +21,7 @@ import com.google.cloud.bigquery.TableInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
@@ -38,6 +40,13 @@ public class BigQueryExportPdao {
   private static final String exportToParquetQueryTemplate =
       "select * from `<project>.<snapshot>.<table>`";
 
+  private GcsConfiguration gcsConfiguration;
+
+  @Autowired
+  public BigQueryExportPdao(GcsConfiguration gcsConfiguration) {
+    this.gcsConfiguration = gcsConfiguration;
+  }
+
   public List<String> exportTableToParquet(
       Snapshot snapshot,
       GoogleBucketResource bucketResource,
@@ -45,7 +54,11 @@ public class BigQueryExportPdao {
       boolean exportGsPaths)
       throws InterruptedException {
     List<String> paths = new ArrayList<>();
-    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
 
     for (var table : snapshot.getTables()) {
       String tableName = table.getName();
@@ -151,7 +164,11 @@ public class BigQueryExportPdao {
     String gsPathMappingTableName = BigQueryUtils.gsPathMappingTableName(snapshot);
     String extTableName = BigQueryPdao.externalTableName(gsPathMappingTableName, flightId);
 
-    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(
+            snapshot,
+            gcsConfiguration.getConnectTimeoutSeconds(),
+            gcsConfiguration.getReadTimeoutSeconds());
     TableId tableId = TableId.of(snapshot.getName(), extTableName);
     Schema schema =
         Schema.of(
@@ -163,8 +180,10 @@ public class BigQueryExportPdao {
     bigQueryProject.getBigQuery().create(tableInfo);
   }
 
-  public static boolean deleteFirestoreGsPathExternalTable(Snapshot snapshot, String flightId) {
+  public static boolean deleteFirestoreGsPathExternalTable(
+      Snapshot snapshot, String flightId, int connectTimeoutSeconds, int readTimeoutSeconds) {
     String gsPathMappingTableName = BigQueryUtils.gsPathMappingTableName(snapshot);
-    return BigQueryPdao.deleteExternalTable(snapshot, gsPathMappingTableName, flightId);
+    return BigQueryPdao.deleteExternalTable(
+        snapshot, gsPathMappingTableName, flightId, connectTimeoutSeconds, readTimeoutSeconds);
   }
 }

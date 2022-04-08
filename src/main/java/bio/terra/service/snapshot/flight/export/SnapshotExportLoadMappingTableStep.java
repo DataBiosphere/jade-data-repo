@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.service.common.gcs.GcsUriUtils;
+import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -18,12 +19,17 @@ public class SnapshotExportLoadMappingTableStep implements Step {
   private final UUID snapshotId;
   private final SnapshotService snapshotService;
   private final BigQueryExportPdao bigQueryExportPdao;
+  private final GcsConfiguration gcsConfiguration;
 
   public SnapshotExportLoadMappingTableStep(
-      UUID snapshotId, SnapshotService snapshotService, BigQueryExportPdao bigQueryExportPdao) {
+      UUID snapshotId,
+      SnapshotService snapshotService,
+      BigQueryExportPdao bigQueryExportPdao,
+      GcsConfiguration gcsConfiguration) {
     this.snapshotId = snapshotId;
     this.snapshotService = snapshotService;
     this.bigQueryExportPdao = bigQueryExportPdao;
+    this.gcsConfiguration = gcsConfiguration;
   }
 
   @Override
@@ -47,7 +53,11 @@ public class SnapshotExportLoadMappingTableStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    bigQueryExportPdao.deleteFirestoreGsPathExternalTable(snapshot, context.getFlightId());
+    bigQueryExportPdao.deleteFirestoreGsPathExternalTable(
+        snapshot,
+        context.getFlightId(),
+        gcsConfiguration.getConnectTimeoutSeconds(),
+        gcsConfiguration.getReadTimeoutSeconds());
     return StepResult.getStepResultSuccess();
   }
 }

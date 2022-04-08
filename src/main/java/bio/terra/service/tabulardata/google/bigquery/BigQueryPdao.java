@@ -38,9 +38,14 @@ public abstract class BigQueryPdao {
    * returning top few instances
    */
   public static boolean hasDuplicatePrimaryKeys(
-      FSContainerInterface container, List<Column> pkColumns, String tableName)
+      FSContainerInterface container,
+      List<Column> pkColumns,
+      String tableName,
+      int connectTimeoutSeconds,
+      int readTimeoutSeconds)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(container);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(container, connectTimeoutSeconds, readTimeoutSeconds);
 
     String bqDatasetName = prefixContainerName(container);
 
@@ -63,9 +68,14 @@ public abstract class BigQueryPdao {
   }
 
   public static boolean deleteExternalTable(
-      FSContainerInterface container, String tableName, String suffix) {
+      FSContainerInterface container,
+      String tableName,
+      String suffix,
+      int connectTimeoutSeconds,
+      int readTimeoutSeconds) {
 
-    BigQueryProject bigQueryProject = BigQueryProject.from(container);
+    BigQueryProject bigQueryProject =
+        BigQueryProject.from(container, connectTimeoutSeconds, readTimeoutSeconds);
     String bqDatasetName = prefixContainerName(container);
     String extTableName = externalTableName(tableName, suffix);
     return bigQueryProject.deleteTable(bqDatasetName, extTableName);

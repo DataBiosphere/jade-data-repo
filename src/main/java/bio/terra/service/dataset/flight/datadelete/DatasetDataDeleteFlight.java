@@ -15,7 +15,6 @@ import bio.terra.service.dataset.flight.transactions.TransactionLockStep;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenStep;
 import bio.terra.service.dataset.flight.transactions.TransactionUnlockStep;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
@@ -47,7 +46,6 @@ public class DatasetDataDeleteFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
-    GcsConfiguration gcsConfiguration = appContext.getBean(GcsConfiguration.class);
 
     // get data from inputs that steps need
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -99,7 +97,7 @@ public class DatasetDataDeleteFlight extends Flight {
     addStep(new DataDeletionCopyFilesToBigQueryScratchBucketStep(datasetService, gcsPdao));
 
     // validate tables exist, check access to files, and create external temp tables
-    addStep(new CreateExternalTablesStep(bigQueryDatasetPdao, datasetService, gcsConfiguration));
+    addStep(new CreateExternalTablesStep(bigQueryDatasetPdao, datasetService));
 
     // insert into soft delete table
     addStep(
@@ -125,7 +123,7 @@ public class DatasetDataDeleteFlight extends Flight {
         new UnlockDatasetStep(datasetService, UUID.fromString(datasetId), true), lockDatasetRetry);
 
     // cleanup
-    addStep(new DropExternalTablesStep(datasetService, gcsConfiguration));
+    addStep(new DropExternalTablesStep(datasetService));
     addStep(new DataDeletionDeleteScratchFilesGcsStep(gcsPdao));
   }
 }

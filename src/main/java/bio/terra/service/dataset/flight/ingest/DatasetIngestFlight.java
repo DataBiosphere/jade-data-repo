@@ -38,7 +38,6 @@ import bio.terra.service.filedata.flight.ingest.IngestFileInitializeProjectStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileMakeBucketLinkStep;
 import bio.terra.service.filedata.flight.ingest.IngestFilePrimaryDataLocationStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
@@ -89,7 +88,6 @@ public class DatasetIngestFlight extends Flight {
     AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
-    GcsConfiguration gcsConfiguration = appContext.getBean(GcsConfiguration.class);
 
     IngestRequestModel ingestRequestModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
@@ -212,7 +210,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestLoadTableStep(datasetService, bigQueryDatasetPdao));
       if (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE) {
         // Ensure that no duplicate IDs are being loaded in
-        addStep(new IngestValidateIngestRowsStep(datasetService, gcsConfiguration));
+        addStep(new IngestValidateIngestRowsStep(datasetService));
         // Soft deletes rows from the target table
         addStep(
             new IngestSoftDeleteExistingRowsStep(

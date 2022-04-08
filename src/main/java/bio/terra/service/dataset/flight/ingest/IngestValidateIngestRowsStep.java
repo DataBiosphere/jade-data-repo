@@ -4,7 +4,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidIngestDuplicatesException;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -16,12 +15,9 @@ import org.slf4j.LoggerFactory;
 public class IngestValidateIngestRowsStep implements Step {
   private static final Logger logger = LoggerFactory.getLogger(IngestValidateIngestRowsStep.class);
   private final DatasetService datasetService;
-  private final GcsConfiguration gcsConfiguration;
 
-  public IngestValidateIngestRowsStep(
-      DatasetService datasetService, GcsConfiguration gcsConfiguration) {
+  public IngestValidateIngestRowsStep(DatasetService datasetService) {
     this.datasetService = datasetService;
-    this.gcsConfiguration = gcsConfiguration;
   }
 
   @Override
@@ -32,11 +28,7 @@ public class IngestValidateIngestRowsStep implements Step {
 
     if (targetTable.getPrimaryKey() != null && !targetTable.getPrimaryKey().isEmpty()) {
       if (BigQueryPdao.hasDuplicatePrimaryKeys(
-          dataset,
-          targetTable.getPrimaryKey(),
-          stagingTableName,
-          gcsConfiguration.getConnectTimeoutSeconds(),
-          gcsConfiguration.getReadTimeoutSeconds())) {
+          dataset, targetTable.getPrimaryKey(), stagingTableName)) {
         throw new InvalidIngestDuplicatesException(
             "Duplicate primary key values identified.",
             List.of(

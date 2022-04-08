@@ -19,7 +19,6 @@ import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.TransactionLockException;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValueList;
@@ -37,7 +36,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
@@ -55,24 +53,13 @@ public class BigQueryTransactionPdao {
           + "(@transactId,@transactStatus,@transactLock,@transactDescription,@transactCreatedAt,"
           + "@transactCreatedBy)";
 
-  private GcsConfiguration gcsConfiguration;
-
-  @Autowired
-  public BigQueryTransactionPdao(GcsConfiguration gcsConfiguration) {
-    this.gcsConfiguration = gcsConfiguration;
-  }
-
   public TransactionModel insertIntoTransactionTable(
       AuthenticatedUserRequest authedUser,
       Dataset dataset,
       String flightId,
       String transactionDescription)
       throws InterruptedException {
-    BigQueryProject bigQueryProject =
-        BigQueryProject.from(
-            dataset,
-            gcsConfiguration.getConnectTimeoutSeconds(),
-            gcsConfiguration.getReadTimeoutSeconds());
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
     ST sqlTemplate = new ST(insertIntoTransactionTableTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -120,11 +107,7 @@ public class BigQueryTransactionPdao {
 
   public void deleteFromTransactionTable(Dataset dataset, UUID transactionId)
       throws InterruptedException {
-    BigQueryProject bigQueryProject =
-        BigQueryProject.from(
-            dataset,
-            gcsConfiguration.getConnectTimeoutSeconds(),
-            gcsConfiguration.getReadTimeoutSeconds());
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
     ST sqlTemplate = new ST(deleteFromTransactionTableTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -154,11 +137,7 @@ public class BigQueryTransactionPdao {
   public TransactionModel updateTransactionTableLock(
       Dataset dataset, UUID transactId, String flightId, AuthenticatedUserRequest userRequest)
       throws InterruptedException {
-    BigQueryProject bigQueryProject =
-        BigQueryProject.from(
-            dataset,
-            gcsConfiguration.getConnectTimeoutSeconds(),
-            gcsConfiguration.getReadTimeoutSeconds());
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
     ST sqlTemplate = new ST(updateTransactionTableLockTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -207,11 +186,7 @@ public class BigQueryTransactionPdao {
     if (status == TransactionModel.StatusEnum.ACTIVE) {
       throw new IllegalArgumentException("Transactions cannot be re-openned");
     }
-    BigQueryProject bigQueryProject =
-        BigQueryProject.from(
-            dataset,
-            gcsConfiguration.getConnectTimeoutSeconds(),
-            gcsConfiguration.getReadTimeoutSeconds());
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
     ST sqlTemplate = new ST(updateTransactionTableStatusTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -249,11 +224,7 @@ public class BigQueryTransactionPdao {
 
   public List<TransactionModel> enumerateTransactions(Dataset dataset, long offset, long limit)
       throws InterruptedException {
-    BigQueryProject bigQueryProject =
-        BigQueryProject.from(
-            dataset,
-            gcsConfiguration.getConnectTimeoutSeconds(),
-            gcsConfiguration.getReadTimeoutSeconds());
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
     ST sqlTemplate = new ST(enumerateTransactionsTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -275,11 +246,7 @@ public class BigQueryTransactionPdao {
 
   public TransactionModel retrieveTransaction(Dataset dataset, UUID transactionId)
       throws InterruptedException {
-    BigQueryProject bigQueryProject =
-        BigQueryProject.from(
-            dataset,
-            gcsConfiguration.getConnectTimeoutSeconds(),
-            gcsConfiguration.getReadTimeoutSeconds());
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
     ST sqlTemplate = new ST(retrieveTransactionTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -322,11 +289,7 @@ public class BigQueryTransactionPdao {
 
   public long verifyTransaction(Dataset dataset, DatasetTable datasetTable, UUID transactId)
       throws InterruptedException {
-    BigQueryProject bigQueryProject =
-        BigQueryProject.from(
-            dataset,
-            gcsConfiguration.getConnectTimeoutSeconds(),
-            gcsConfiguration.getReadTimeoutSeconds());
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
     ST sqlTemplate = new ST(verifyTransactionTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -369,11 +332,7 @@ public class BigQueryTransactionPdao {
     if (transactId == null) {
       throw new PdaoException("Can not roll back a null transaction");
     }
-    BigQueryProject bigQueryProject =
-        BigQueryProject.from(
-            dataset,
-            gcsConfiguration.getConnectTimeoutSeconds(),
-            gcsConfiguration.getReadTimeoutSeconds());
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
     ST sqlTemplate = new ST(rollbackDatasetTableTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -398,11 +357,7 @@ public class BigQueryTransactionPdao {
     if (transactId == null) {
       throw new PdaoException("Can not roll back a null transaction");
     }
-    BigQueryProject bigQueryProject =
-        BigQueryProject.from(
-            dataset,
-            gcsConfiguration.getConnectTimeoutSeconds(),
-            gcsConfiguration.getReadTimeoutSeconds());
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
     ST sqlTemplate = new ST(rollbackDatasetMetadataTableTemplate);
     sqlTemplate.add("project", bigQueryProject.getProjectId());

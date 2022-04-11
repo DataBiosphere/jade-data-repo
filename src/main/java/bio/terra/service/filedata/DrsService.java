@@ -78,7 +78,7 @@ public class DrsService {
   private final Logger logger = LoggerFactory.getLogger(DrsService.class);
 
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
-  private static final String ACCESS_ID_PREFIX_AZURE = "azure-";
+  private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
   private static final String RAS_ISSUER = "https://stsstg.nih.gov";
   private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";

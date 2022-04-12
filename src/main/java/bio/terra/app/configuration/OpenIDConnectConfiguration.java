@@ -63,21 +63,22 @@ public class OpenIDConnectConfiguration {
                 "Error reading OIDC configuration endpoint: %s",
                 metadataConfig.getStatusCode().getReasonPhrase()));
       }
-      if (metadataConfig.getBody() == null) {
+      OpenIDProviderMetadata response = metadataConfig.getBody();
+      if (response == null) {
         throw new ServiceInitializationException(
             "Error reading OIDC configuration." + " An empty response was returned");
       }
-      if (metadataConfig.getBody().getAuthorizationEndpoint() == null) {
+      if (response.getAuthorizationEndpoint() == null) {
         throw new ServiceInitializationException(
             "Authorization endpoint needs to be provided by provider metadata endpoint");
       }
-      authorizationEndpoint = metadataConfig.getBody().getAuthorizationEndpoint();
+      authorizationEndpoint = response.getAuthorizationEndpoint();
 
-      if (metadataConfig.getBody().getTokenEndpoint() == null) {
+      if (response.getTokenEndpoint() == null) {
         throw new ServiceInitializationException(
             "Token endpoint needs to be provided by provider metadata endpoint");
       }
-      tokenEndpoint = metadataConfig.getBody().getTokenEndpoint();
+      tokenEndpoint = response.getTokenEndpoint();
     }
   }
 

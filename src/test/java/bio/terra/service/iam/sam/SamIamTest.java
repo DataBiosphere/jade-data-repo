@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
@@ -23,6 +25,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
+import bio.terra.service.iam.exception.IamInternalServerErrorException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -393,5 +396,14 @@ public class SamIamTest {
     Map<UUID, Set<IamRole>> uuidSetMap =
         samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT);
     assertThat(uuidSetMap, is((Map.of(id, Set.of(IamRole.OWNER, IamRole.READER)))));
+  }
+
+  @Test
+  public void listAuthorizedResourcesTest401Error() throws Exception {
+    when(samResourceApi.listResourcesAndPolicies(IamResourceType.DATASNAPSHOT.getSamResourceName()))
+        .thenThrow(UnauthorizedException.class);
+    assertThrows(
+        IamInternalServerErrorException.class,
+        () -> samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT));
   }
 }

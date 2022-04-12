@@ -19,7 +19,6 @@ import bio.terra.service.iam.exception.IamConflictException;
 import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.iam.exception.IamNotFoundException;
-import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
@@ -667,10 +666,6 @@ public class SamIam implements IamProviderInterface {
         {
           return new IamBadRequestException(message, samEx);
         }
-      case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED:
-        {
-          return new IamUnauthorizedException(message, samEx);
-        }
       case HttpStatusCodes.STATUS_CODE_FORBIDDEN:
         {
           return new IamForbiddenException(message, samEx);
@@ -683,12 +678,8 @@ public class SamIam implements IamProviderInterface {
         {
           return new IamConflictException(message, samEx);
         }
-      case HttpStatusCodes.STATUS_CODE_SERVER_ERROR:
-        {
-          return new IamInternalServerErrorException(message, samEx);
-        }
-        // note that SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped
-        // here
+        // SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
+        // A 401 error will only occur when OpenDJ is down and should be raised as a 500 error
       default:
         {
           return new IamInternalServerErrorException(message, samEx);

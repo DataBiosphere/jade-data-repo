@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: self_hosted_datasets
+      id: required_columns
       author: tlangs
       changes:
         - addColumn:

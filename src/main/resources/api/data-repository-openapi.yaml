@@ -3231,8 +3231,7 @@ components:
           default: false
         required:
           type: boolean
-          description: if false, mark this column as non-nullable
-          default: false
+          description: if true, mark this column as required
       description: one column of a table
     TableModel:
       required:

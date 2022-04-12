@@ -272,6 +272,12 @@ public class DatasetRequestValidator implements Validator {
     if (invalidTypes.contains(columnModel.getDatatype())) {
       rejectKey(errors, keyType, columnModel.getName(), columnModel.getDatatype().toString());
     }
+    if (PRIMARY_KEY.equals(keyType) && Boolean.FALSE.equals(columnModel.isRequired())) {
+      errors.rejectValue(
+          "schema",
+          "OptionalPrimaryKeyColumn",
+          String.format("A %s column cannot be marked as not required", PRIMARY_KEY));
+    }
   }
 
   private void rejectKey(Errors errors, String keyType, String columnName, String type) {

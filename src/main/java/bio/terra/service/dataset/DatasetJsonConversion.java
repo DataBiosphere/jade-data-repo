@@ -149,7 +149,8 @@ public final class DatasetJsonConversion {
     DatasetTable datasetTable = new DatasetTable().name(tableModel.getName());
 
     for (ColumnModel columnModel : tableModel.getColumns()) {
-      Column column = columnModelToDatasetColumn(columnModel).table(datasetTable);
+      Column column =
+          columnModelToDatasetColumn(columnModel, tableModel.getPrimaryKey()).table(datasetTable);
       columnMap.put(column.getName(), column);
       columns.add(column);
     }
@@ -226,12 +227,16 @@ public final class DatasetJsonConversion {
                 .collect(Collectors.toList()));
   }
 
-  public static Column columnModelToDatasetColumn(ColumnModel columnModel) {
+  public static Column columnModelToDatasetColumn(
+      ColumnModel columnModel, List<String> primaryKeys) {
+    boolean required =
+        primaryKeys.contains(columnModel.getName())
+            || Boolean.TRUE.equals(columnModel.isRequired());
     return new Column()
         .name(columnModel.getName())
         .type(columnModel.getDatatype())
         .arrayOf(columnModel.isArrayOf())
-        .required(columnModel.isRequired());
+        .required(required);
   }
 
   public static Relationship relationshipModelToDatasetRelationship(

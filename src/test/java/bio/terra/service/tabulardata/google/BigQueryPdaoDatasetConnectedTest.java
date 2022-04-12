@@ -156,9 +156,9 @@ public class BigQueryPdaoDatasetConnectedTest {
           BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-no-id.json").build();
       BlobInfo nullPkBlob =
           BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-null-id.json").build();
-      BlobInfo nulledNonNullBlob =
+      BlobInfo nulledRequiredFieldBlob =
           BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-null-column.json").build();
-      BlobInfo missingNonNullBlob =
+      BlobInfo missingRequiredFieldBlob =
           BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-missing-column.json")
               .build();
 
@@ -171,8 +171,9 @@ public class BigQueryPdaoDatasetConnectedTest {
         storage.create(sampleBlob, readFile("ingest-test-sample.json"));
         storage.create(missingPkBlob, readFile("ingest-test-sample-no-id.json"));
         storage.create(nullPkBlob, readFile("ingest-test-sample-null-id.json"));
-        storage.create(nulledNonNullBlob, readFile("ingest-test-sample-null-column.json"));
-        storage.create(missingNonNullBlob, readFile("ingest-test-sample-missing-column.json"));
+        storage.create(nulledRequiredFieldBlob, readFile("ingest-test-sample-null-column.json"));
+        storage.create(
+            missingRequiredFieldBlob, readFile("ingest-test-sample-missing-column.json"));
 
         // Ingest staged data into the new dataset.
         IngestRequestModel ingestRequest =
@@ -188,13 +189,13 @@ public class BigQueryPdaoDatasetConnectedTest {
         connectedOperations.ingestTableFailure(
             datasetId, ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(nullPkBlob)));
 
-        // Check non-nullable columns are enforced.
+        // Check required columns are enforced.
         connectedOperations.ingestTableFailure(
             datasetId,
-            ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(nulledNonNullBlob)));
+            ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(nulledRequiredFieldBlob)));
         connectedOperations.ingestTableFailure(
             datasetId,
-            ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(missingNonNullBlob)));
+            ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(missingRequiredFieldBlob)));
 
         // Create a snapshot!
         DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();

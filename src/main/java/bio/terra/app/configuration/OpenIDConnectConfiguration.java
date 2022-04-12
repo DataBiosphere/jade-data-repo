@@ -129,7 +129,7 @@ public class OpenIDConnectConfiguration {
     return addClientIdToScope;
   }
 
-  public void setAddClientIdToScope(boolean addClientIdToScope) {
+  public void setAddClientIdToScope(Boolean addClientIdToScope) {
     this.addClientIdToScope = addClientIdToScope;
   }
 

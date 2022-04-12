@@ -894,7 +894,7 @@ public class BigQueryDatasetPdao {
 
     for (Column column : table.getColumns()) {
       Field.Mode mode;
-      if (primaryKeys.contains(column.getName())) {
+      if (primaryKeys.contains(column.getName()) || column.isRequired()) {
         mode = Field.Mode.REQUIRED;
       } else if (column.isArrayOf()) {
         mode = Field.Mode.REPEATED;

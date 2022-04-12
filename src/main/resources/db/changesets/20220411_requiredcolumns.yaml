@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: self_hosted_datasets
+      author: tlangs
+      changes:
+        - addColumn:
+            tableName: dataset_column
+            columns:
+              name: required
+              type: boolean
+              defaultValue: false
+              constraints:
+                nullable: false
+        - addColumn:
+            tableName: snapshot_column
+            columns:
+              name: required
+              type: boolean
+              defaultValue: false
+              constraints:
+                nullable: false

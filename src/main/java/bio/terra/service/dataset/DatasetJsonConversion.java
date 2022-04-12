@@ -230,7 +230,8 @@ public final class DatasetJsonConversion {
     return new Column()
         .name(columnModel.getName())
         .type(columnModel.getDatatype())
-        .arrayOf(columnModel.isArrayOf());
+        .arrayOf(columnModel.isArrayOf())
+        .required(columnModel.isRequired());
   }
 
   public static Relationship relationshipModelToDatasetRelationship(

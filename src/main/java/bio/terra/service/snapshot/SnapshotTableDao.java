@@ -32,12 +32,12 @@ public class SnapshotTableDao {
           + "VALUES (:name, :parent_id, :primary_key)";
   private static final String sqlInsertColumn =
       "INSERT INTO snapshot_column "
-          + "(table_id, name, type, array_of, ordinal) "
-          + "VALUES (:table_id, :name, :type, :array_of, :ordinal)";
+          + "(table_id, name, type, array_of, required, ordinal) "
+          + "VALUES (:table_id, :name, :type, :array_of, :required, :ordinal)";
   private static final String sqlSelectTable =
       "SELECT id, name, row_count, primary_key FROM snapshot_table WHERE parent_id = :parent_id";
   private static final String sqlSelectColumn =
-      "SELECT id, name, type, array_of "
+      "SELECT id, name, type, array_of, required "
           + "FROM snapshot_column "
           + "WHERE table_id = :table_id "
           + "ORDER BY ordinal";
@@ -84,6 +84,7 @@ public class SnapshotTableDao {
       params.addValue("name", column.getName());
       params.addValue("type", column.getType().toString());
       params.addValue("array_of", column.isArrayOf());
+      params.addValue("required", column.isRequired());
       params.addValue("ordinal", ordinal++);
       jdbcTemplate.update(sqlInsertColumn, params, keyHolder);
       UUID columnId = keyHolder.getId();
@@ -127,6 +128,7 @@ public class SnapshotTableDao {
                 .table(table)
                 .name(rs.getString("name"))
                 .type(TableDataType.fromValue(rs.getString("type")))
-                .arrayOf(rs.getBoolean("array_of")));
+                .arrayOf(rs.getBoolean("array_of"))
+                .required(rs.getBoolean("required")));
   }
 }

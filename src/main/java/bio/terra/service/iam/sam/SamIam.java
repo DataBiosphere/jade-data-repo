@@ -8,6 +8,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
@@ -70,6 +71,8 @@ public class SamIam implements IamProviderInterface {
     ApiClient apiClient = new ApiClient();
     apiClient.setAccessToken(accessToken);
     apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java"); // only logs an error in sam
+    apiClient.setConnectTimeout(
+        configurationService.getParameterValue(ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS));
     return apiClient.setBasePath(samConfig.getBasePath());
   }
 

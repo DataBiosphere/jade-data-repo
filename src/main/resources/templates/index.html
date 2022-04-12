@@ -63,6 +63,11 @@
       left: 0;
       z-index: 100;
     }
+    /* Support classes for hiding auth */
+    .swagger-ui .hidden {
+      display: none;
+    }
+
   </style>
 </head>
 
@@ -74,7 +79,7 @@
 <script th:inline="javascript">
 
   // Adds support for pinning the auth bar when the user scrolls down far enough to hide the bar
-  const pinLoginPlugin = function(system) {
+  var pinLoginPlugin = function(system) {
     return {
       afterLoad: function(system) {
         var offsetY;
@@ -98,6 +103,48 @@
     }
   }
 
+  var clientIds = {
+    googleoauth: [[${oauthClientId}]],
+    oidc: [[${oidcClientId}]]
+  }
+  var insertClientIdsPlugin = function(system) {
+    return {
+      afterLoad: function (system) {
+        var callback = function(mutationsList, observer) {
+          // Use traditional 'for loops' for IE 11
+          for (var mutation of mutationsList) {
+            if (mutation.type === 'childList' && mutation.target.className === 'auth-wrapper') {
+              mutation.target.querySelectorAll('.auth-container').forEach(function(ac) {
+                var scheme = ac.querySelector('h4').childNodes[0].textContent;
+                // Hide the login if there is no value
+                if (!clientIds[scheme]) {
+                  ac.classList.add('hidden');
+                } else {
+                  // Set the correct client ID value using the native input component (needed for newer react versions used by Swagger UI)
+                  var clientIdInput = ac.querySelector('#client_id');
+                  if (clientIdInput) {
+                    var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                    nativeInputValueSetter.call(clientIdInput, clientIds[scheme]);
+                    var ev2 = new Event('input', { bubbles: true});
+                    clientIdInput.dispatchEvent(ev2);
+                  }
+                }
+              })
+            }
+          }
+        }
+
+        var observer = new MutationObserver(callback);
+        var targetNode = document.getElementById('swagger-ui');
+        var config = { attributes: true, childList: true, subtree: true };
+
+        observer.observe(targetNode, config);
+      }
+    }
+  }
+
+
+
   // Removes the online validation since some code gen bugs cause us to have some specs that cause the validator to squawk
   const clearValidator = function(system) {
     return {
@@ -120,14 +167,17 @@
       plugins: [
         SwaggerUIBundle.plugins.DownloadUrl,
         pinLoginPlugin,
-        clearValidator
+        clearValidator,
+        insertClientIdsPlugin
       ],
       layout: 'StandaloneLayout',
       displayOperationId: true,
+      displayRequestDuration: true,
       docExpansion: 'none',
-      defaultModelsExpandDepth: -1, // hide the huge list of schemas under the routes
+      // defaultModelsExpandDepth: -1, // hide the huge list of schemas under the routes
       defaultModelExpandDepth: 2, // affects the schema shown for a request or response
       oauth2RedirectUrl: window.location.protocol + '//' + window.location.host + '/webjars/swagger-ui-dist/oauth2-redirect.html',
+      showExtensions: true,
       tagsSorter: function (a, b) {
         // Sort function to ensure that upper case tags show up first (e.g. ASCII sort)
         if (a === b) {
@@ -140,10 +190,9 @@
     // End Swagger UI call region
 
     ui.initOAuth({
-      clientId: [[${clientId}]],
-      clientSecret: [[${clientSecret}]],
-      scopes: "openid email profile"
-    })
+      scopes: "openid email profile",
+      usePkceWithAuthorizationCodeGrant: true
+    });
 
     window.ui = ui
   }

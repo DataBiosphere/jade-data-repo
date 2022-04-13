@@ -230,7 +230,7 @@ public final class DatasetJsonConversion {
   public static Column columnModelToDatasetColumn(
       ColumnModel columnModel, List<String> primaryKeys) {
     boolean required =
-        primaryKeys.contains(columnModel.getName())
+        (Objects.nonNull(primaryKeys) && primaryKeys.contains(columnModel.getName()))
             || Boolean.TRUE.equals(columnModel.isRequired());
     return new Column()
         .name(columnModel.getName())

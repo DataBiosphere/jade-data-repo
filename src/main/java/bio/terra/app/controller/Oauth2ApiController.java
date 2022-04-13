@@ -74,7 +74,11 @@ public class Oauth2ApiController {
     return URLEncodedUtils.format(parameters, Charsets.UTF_8);
   }
 
-  @RequestMapping(value = TOKEN_REFRESH_ENDPOINT, method = RequestMethod.POST)
+  @RequestMapping(
+      value = TOKEN_REFRESH_ENDPOINT,
+      method = RequestMethod.POST,
+      consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<JsonNode> oauthTokenPost(HttpServletRequest request) {
     String queryString =
         StringUtils.isEmpty(request.getQueryString()) ? "" : "?" + request.getQueryString();

@@ -2,8 +2,8 @@ package bio.terra.service.configuration;
 
 import bio.terra.model.RepositoryStatusModel;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

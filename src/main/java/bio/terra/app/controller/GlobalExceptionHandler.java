@@ -9,7 +9,7 @@ import bio.terra.common.exception.NotImplementedException;
 import bio.terra.common.exception.ServiceUnavailableException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
-import bio.terra.service.iam.sam.SamIam;
+import bio.terra.service.auth.iam.sam.SamIam;
 import bio.terra.service.job.exception.JobResponseException;
 import java.util.Collections;
 import java.util.List;

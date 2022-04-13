@@ -2,7 +2,7 @@ package bio.terra.common.auth;
 
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;

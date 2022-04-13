@@ -17,11 +17,13 @@ import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @EnableConfigurationProperties
@@ -395,6 +397,11 @@ public class ApplicationConfiguration {
         0,
         TimeUnit.MILLISECONDS,
         new LinkedBlockingQueue<>(getMaxPerformanceThreadQueueSize()));
+  }
+
+  @Bean
+  public RestTemplate restTemplate(RestTemplateBuilder builder) {
+    return builder.build();
   }
 
   // This is a "magic bean": It supplies a method that Spring calls after the application is setup,

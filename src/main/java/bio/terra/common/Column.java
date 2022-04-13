@@ -10,6 +10,7 @@ public class Column {
   private String name;
   private TableDataType type;
   private boolean arrayOf;
+  private boolean required;
 
   public Column() {}
 
@@ -19,13 +20,15 @@ public class Column {
     this.name = fromColumn.name;
     this.type = fromColumn.type;
     this.arrayOf = fromColumn.arrayOf;
+    this.required = fromColumn.required;
   }
 
   public static Column toSnapshotColumn(Column datasetColumn) {
     return new Column()
         .name(datasetColumn.getName())
         .type(datasetColumn.getType())
-        .arrayOf(datasetColumn.isArrayOf());
+        .arrayOf(datasetColumn.isArrayOf())
+        .required(datasetColumn.isRequired());
   }
 
   public static SynapseColumn toSynapseColumn(Column datasetColumn) {
@@ -41,7 +44,8 @@ public class Column {
                     datasetColumn.getType(), datasetColumn.isArrayOf()))
             .name(datasetColumn.getName())
             .type(datasetColumn.getType())
-            .arrayOf(datasetColumn.isArrayOf());
+            .arrayOf(datasetColumn.isArrayOf())
+            .required(datasetColumn.isRequired());
   }
 
   public UUID getId() {
@@ -89,8 +93,17 @@ public class Column {
     return this;
   }
 
+  public boolean isRequired() {
+    return required;
+  }
+
+  public Column required(boolean required) {
+    this.required = required;
+    return this;
+  }
+
   public ColumnModel toColumnModel() {
-    return new ColumnModel().name(name).datatype(type).arrayOf(arrayOf);
+    return new ColumnModel().name(name).datatype(type).arrayOf(arrayOf).required(required);
   }
 
   public boolean isFileOrDirRef() {

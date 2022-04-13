@@ -156,6 +156,11 @@ public class BigQueryPdaoDatasetConnectedTest {
           BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-no-id.json").build();
       BlobInfo nullPkBlob =
           BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-null-id.json").build();
+      BlobInfo nulledRequiredFieldBlob =
+          BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-null-column.json").build();
+      BlobInfo missingRequiredFieldBlob =
+          BlobInfo.newBuilder(bucket, targetPath + "ingest-test-sample-missing-column.json")
+              .build();
 
       try {
         bigQueryDatasetPdao.createDataset(dataset);
@@ -166,6 +171,9 @@ public class BigQueryPdaoDatasetConnectedTest {
         storage.create(sampleBlob, readFile("ingest-test-sample.json"));
         storage.create(missingPkBlob, readFile("ingest-test-sample-no-id.json"));
         storage.create(nullPkBlob, readFile("ingest-test-sample-null-id.json"));
+        storage.create(nulledRequiredFieldBlob, readFile("ingest-test-sample-null-column.json"));
+        storage.create(
+            missingRequiredFieldBlob, readFile("ingest-test-sample-missing-column.json"));
 
         // Ingest staged data into the new dataset.
         IngestRequestModel ingestRequest =
@@ -180,6 +188,14 @@ public class BigQueryPdaoDatasetConnectedTest {
             datasetId, ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(missingPkBlob)));
         connectedOperations.ingestTableFailure(
             datasetId, ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(nullPkBlob)));
+
+        // Check required columns are enforced.
+        connectedOperations.ingestTableFailure(
+            datasetId,
+            ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(nulledRequiredFieldBlob)));
+        connectedOperations.ingestTableFailure(
+            datasetId,
+            ingestRequest.table("sample").path(BigQueryPdaoTest.gsPath(missingRequiredFieldBlob)));
 
         // Create a snapshot!
         DatasetSummaryModel datasetSummaryModel = dataset.getDatasetSummary().toModel();

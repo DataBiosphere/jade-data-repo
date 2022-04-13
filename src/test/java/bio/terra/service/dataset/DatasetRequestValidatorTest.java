@@ -480,6 +480,29 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
+  public void testNonRequiredPrimaryKeyColumn() throws Exception {
+    TableModel table =
+        new TableModel()
+            .name("table")
+            .columns(
+                List.of(
+                    new ColumnModel()
+                        .name("pkColumn")
+                        .datatype(TableDataType.STRING)
+                        .required(false)))
+            .primaryKey(Collections.singletonList("pkColumn"));
+
+    DatasetRequestModel req = buildDatasetRequest();
+    req.getSchema()
+        .tables(Collections.singletonList(table))
+        .relationships(Collections.emptyList())
+        .assets(Collections.emptyList());
+
+    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+    checkValidationErrorModel(errorModel, new String[] {"OptionalPrimaryKeyColumn"});
+  }
+
+  @Test
   public void testDatePartitionWithBadOptions() throws Exception {
     TableModel table =
         new TableModel()

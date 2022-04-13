@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -11,9 +12,11 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
@@ -64,7 +67,8 @@ public class DatasetJsonConversionTest {
             .id(DATASET_COLUMN_ID)
             .name(DATASET_COLUMN_NAME)
             .arrayOf(false)
-            .type(DATASET_COLUMN_TYPE);
+            .type(DATASET_COLUMN_TYPE)
+            .required(true);
     DatasetTable datasetTable =
         new DatasetTable()
             .id(DATASET_TABLE_ID)
@@ -76,7 +80,8 @@ public class DatasetJsonConversionTest {
                     new Column()
                         .id(DATASET_COLUMN_ID)
                         .name(DATASET_COLUMN_NAME)
-                        .type(DATASET_COLUMN_TYPE)))
+                        .type(DATASET_COLUMN_TYPE)
+                        .required(true)))
             .bigQueryPartitionConfig(BigQueryPartitionConfigV1.none());
 
     AssetColumn assetColumn =
@@ -131,7 +136,8 @@ public class DatasetJsonConversionTest {
                                 new ColumnModel()
                                     .name(DATASET_COLUMN_NAME)
                                     .datatype(DATASET_COLUMN_TYPE)
-                                    .arrayOf(false)))
+                                    .arrayOf(false)
+                                    .required(true)))
                     .relationships(Collections.emptyList())
                     .assets(
                         List.of(
@@ -241,5 +247,50 @@ public class DatasetJsonConversionTest {
                                                     + "."
                                                     + DATASET_TABLE_NAME
                                                     + "` LIMIT 1000")))))));
+  }
+
+  @Test
+  public void testRequiredColumns() throws Exception {
+    var defaultColumnName = "NOT_PRIMARY_KEY_COLUMN";
+    var requiredColumnName = "REQUIRED_COLUMN";
+    DatasetRequestModel datasetRequestModel =
+        new DatasetRequestModel()
+            .name(DATASET_NAME)
+            .defaultProfileId(DATASET_PROFILE_ID)
+            .description(DATASET_DESCRIPTION)
+            .cloudPlatform(CloudPlatform.GCP)
+            .region(GoogleRegion.DEFAULT_GOOGLE_REGION.name())
+            .schema(
+                new DatasetSpecificationModel()
+                    .tables(
+                        List.of(
+                            new TableModel()
+                                .name(DATASET_TABLE_NAME)
+                                .primaryKey(List.of(DATASET_COLUMN_NAME))
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name(DATASET_COLUMN_NAME)
+                                            .datatype(DATASET_COLUMN_TYPE)
+                                            .arrayOf(false),
+                                        new ColumnModel()
+                                            .name(defaultColumnName)
+                                            .datatype(DATASET_COLUMN_TYPE)
+                                            .arrayOf(false),
+                                        new ColumnModel()
+                                            .name(requiredColumnName)
+                                            .datatype(DATASET_COLUMN_TYPE)
+                                            .required(true)
+                                            .arrayOf(false))))));
+
+    var dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel);
+    var columnMap = dataset.getTables().get(0).getColumnsMap();
+    var pkColumn = columnMap.get(DATASET_COLUMN_NAME);
+    var defaultColumn = columnMap.get(defaultColumnName);
+    var requiredColumn = columnMap.get(requiredColumnName);
+
+    assertThat("Primary key columns are marked as required", pkColumn.isRequired(), is(true));
+    assertThat("Regular columns default to not required", defaultColumn.isRequired(), is(false));
+    assertThat("Required columns are marked as required", requiredColumn.isRequired(), is(true));
   }
 }

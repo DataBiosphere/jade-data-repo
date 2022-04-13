@@ -18,7 +18,7 @@
         "columns": [
           {"name": "id", "datatype": "string"},
           {"name": "participant_ids", "datatype": "string", "array_of": true},
-          {"name": "date_collected", "datatype": "date"},
+          {"name": "date_collected", "datatype": "date", "required": true},
           {"name": "derived_from", "datatype": "string"}
         ],
         "primaryKey": ["id"]

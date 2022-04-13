@@ -3375,6 +3375,9 @@ components:
           type: boolean
           description: if true, make this column an array of type datatype.
           default: false
+        required:
+          type: boolean
+          description: if true, mark this column as required
       description: one column of a table
     TableModel:
       required:
@@ -3392,6 +3395,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ObjectNameProperty'
+          description: >
+            Primary key columns names. Any columns listed as a primary key will be marked as required by default.
         partitionMode:
           type: string
           default: none

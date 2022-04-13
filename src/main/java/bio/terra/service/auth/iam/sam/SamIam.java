@@ -17,6 +17,7 @@ import bio.terra.service.auth.iam.exception.IamConflictException;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
+import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -666,6 +667,10 @@ public class SamIam implements IamProviderInterface {
         {
           return new IamBadRequestException(message, samEx);
         }
+      case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED:
+      {
+        return new IamUnauthorizedException(message, samEx);
+      }
       case HttpStatusCodes.STATUS_CODE_FORBIDDEN:
         {
           return new IamForbiddenException(message, samEx);

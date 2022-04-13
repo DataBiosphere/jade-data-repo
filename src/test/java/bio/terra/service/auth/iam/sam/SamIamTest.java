@@ -398,12 +398,4 @@ public class SamIamTest {
     assertThat(uuidSetMap, is((Map.of(id, Set.of(IamRole.OWNER, IamRole.READER)))));
   }
 
-  @Test
-  public void listAuthorizedResourcesTest401Error() throws Exception {
-    when(samResourceApi.listResourcesAndPolicies(IamResourceType.DATASNAPSHOT.getSamResourceName()))
-        .thenThrow(UnauthorizedException.class);
-    assertThrows(
-        IamInternalServerErrorException.class,
-        () -> samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT));
-  }
 }

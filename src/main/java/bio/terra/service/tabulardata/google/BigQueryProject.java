@@ -6,6 +6,7 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -33,23 +34,32 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
-public final class BigQueryProject {
+public final class BigQueryProject implements ApplicationContextAware {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryProject.class);
   private static final ConcurrentHashMap<String, BigQueryProject> PROJECT_CACHE =
       new ConcurrentHashMap<>();
   private final String projectId;
   private final BigQuery bigQuery;
-  private final int TIMEOUT_SECONDS = 40;
+  private static ApplicationContext appContext;
+
+  @Override
+  public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+    appContext = applicationContext;
+  }
 
   private BigQueryProject(String projectId) {
     logger.info("Retrieving Bigquery project for project id: {}", projectId);
     this.projectId = projectId;
     HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
+    GcsConfiguration gcsConfiguration = appContext.getBean(GcsConfiguration.class);
     transportOptions =
         transportOptions.toBuilder()
-            .setConnectTimeout(TIMEOUT_SECONDS * 1000)
-            .setReadTimeout(TIMEOUT_SECONDS * 1000)
+            .setConnectTimeout(gcsConfiguration.getConnectTimeoutSeconds() * 1000)
+            .setReadTimeout(gcsConfiguration.getReadTimeoutSeconds() * 1000)
             .build();
     bigQuery =
         BigQueryOptions.newBuilder()

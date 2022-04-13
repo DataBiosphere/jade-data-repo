@@ -484,7 +484,12 @@ public class DatasetRequestValidatorTest {
     TableModel table =
         new TableModel()
             .name("table")
-            .columns(List.of(new ColumnModel().name("pkColumn").datatype(TableDataType.STRING)))
+            .columns(
+                List.of(
+                    new ColumnModel()
+                        .name("pkColumn")
+                        .datatype(TableDataType.STRING)
+                        .required(false)))
             .primaryKey(Collections.singletonList("pkColumn"));
 
     DatasetRequestModel req = buildDatasetRequest();
@@ -494,29 +499,6 @@ public class DatasetRequestValidatorTest {
         .assets(Collections.emptyList());
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    assertThat(errorModel.getErrorDetail(), hasSize(0));
-
-    table.getColumns().get(0).setRequired(false);
-    errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"OptionalPrimaryKeyColumn"});
-  }
-
-  @Test
-  public void testDefaultRequiredPrimaryKeyColumn() throws Exception {
-    TableModel table =
-        new TableModel()
-            .name("table")
-            .columns(List.of(new ColumnModel().name("pkColumn").datatype(TableDataType.STRING)))
-            .primaryKey(Collections.singletonList("pkColumn"));
-
-    DatasetRequestModel req = buildDatasetRequest();
-    req.getSchema()
-        .tables(Collections.singletonList(table))
-        .relationships(Collections.emptyList())
-        .assets(Collections.emptyList());
-
-    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-
     checkValidationErrorModel(errorModel, new String[] {"OptionalPrimaryKeyColumn"});
   }
 

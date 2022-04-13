@@ -147,18 +147,17 @@ public final class DatasetJsonConversion {
     Map<String, Column> columnMap = new HashMap<>();
     List<Column> columns = new ArrayList<>();
     DatasetTable datasetTable = new DatasetTable().name(tableModel.getName());
+    List<String> primaryKeys =
+        Optional.ofNullable(tableModel.getPrimaryKey()).orElse(Collections.emptyList());
 
     for (ColumnModel columnModel : tableModel.getColumns()) {
-      Column column =
-          columnModelToDatasetColumn(columnModel, tableModel.getPrimaryKey()).table(datasetTable);
+      Column column = columnModelToDatasetColumn(columnModel, primaryKeys).table(datasetTable);
       columnMap.put(column.getName(), column);
       columns.add(column);
     }
 
     List<Column> primaryKeyColumns =
-        Optional.ofNullable(tableModel.getPrimaryKey()).orElse(Collections.emptyList()).stream()
-            .map(columnMap::get)
-            .collect(Collectors.toList());
+        primaryKeys.stream().map(columnMap::get).collect(Collectors.toList());
     datasetTable.primaryKey(primaryKeyColumns);
 
     BigQueryPartitionConfigV1 partitionConfig;
@@ -230,7 +229,7 @@ public final class DatasetJsonConversion {
   public static Column columnModelToDatasetColumn(
       ColumnModel columnModel, List<String> primaryKeys) {
     boolean required =
-        (Objects.nonNull(primaryKeys) && primaryKeys.contains(columnModel.getName()))
+        primaryKeys.contains(columnModel.getName())
             || Boolean.TRUE.equals(columnModel.isRequired());
     return new Column()
         .name(columnModel.getName())

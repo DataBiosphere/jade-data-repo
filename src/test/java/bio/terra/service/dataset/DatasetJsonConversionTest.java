@@ -67,7 +67,8 @@ public class DatasetJsonConversionTest {
             .id(DATASET_COLUMN_ID)
             .name(DATASET_COLUMN_NAME)
             .arrayOf(false)
-            .type(DATASET_COLUMN_TYPE);
+            .type(DATASET_COLUMN_TYPE)
+            .required(true);
     DatasetTable datasetTable =
         new DatasetTable()
             .id(DATASET_TABLE_ID)
@@ -79,7 +80,8 @@ public class DatasetJsonConversionTest {
                     new Column()
                         .id(DATASET_COLUMN_ID)
                         .name(DATASET_COLUMN_NAME)
-                        .type(DATASET_COLUMN_TYPE)))
+                        .type(DATASET_COLUMN_TYPE)
+                        .required(true)))
             .bigQueryPartitionConfig(BigQueryPartitionConfigV1.none());
 
     AssetColumn assetColumn =
@@ -134,7 +136,8 @@ public class DatasetJsonConversionTest {
                                 new ColumnModel()
                                     .name(DATASET_COLUMN_NAME)
                                     .datatype(DATASET_COLUMN_TYPE)
-                                    .arrayOf(false)))
+                                    .arrayOf(false)
+                                    .required(true)))
                     .relationships(Collections.emptyList())
                     .assets(
                         List.of(

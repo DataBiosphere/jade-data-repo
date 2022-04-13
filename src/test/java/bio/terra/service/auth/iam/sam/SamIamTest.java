@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -15,7 +14,6 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.category.Unit;
-import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
@@ -23,7 +21,6 @@ import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
-import bio.terra.service.auth.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import java.util.List;
@@ -397,5 +394,4 @@ public class SamIamTest {
         samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT);
     assertThat(uuidSetMap, is((Map.of(id, Set.of(IamRole.OWNER, IamRole.READER)))));
   }
-
 }

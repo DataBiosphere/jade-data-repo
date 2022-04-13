@@ -668,9 +668,9 @@ public class SamIam implements IamProviderInterface {
           return new IamBadRequestException(message, samEx);
         }
       case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED:
-      {
-        return new IamUnauthorizedException(message, samEx);
-      }
+        {
+          return new IamUnauthorizedException(message, samEx);
+        }
       case HttpStatusCodes.STATUS_CODE_FORBIDDEN:
         {
           return new IamForbiddenException(message, samEx);

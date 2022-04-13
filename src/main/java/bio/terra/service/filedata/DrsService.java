@@ -253,7 +253,7 @@ public class DrsService {
     var result = ecmService.validatePassport(request);
 
     var df = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss z");
-    df.setTimeZone(TimeZone.getTimeZone("EST"));
+    df.setTimeZone(TimeZone.getTimeZone("UTC"));
     logger.info(
         "[Validate Passport Audit]: Data Repository accessed: {}, Study/Data set accessed: {}, Date/Time of access: {}, ECM Audit Info: {}",
         "TDR",

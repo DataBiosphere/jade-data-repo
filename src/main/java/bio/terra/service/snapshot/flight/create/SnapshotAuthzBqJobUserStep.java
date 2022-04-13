@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.service.iam.IamRole;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;

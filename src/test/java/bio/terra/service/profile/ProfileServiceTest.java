@@ -15,7 +15,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.ErrorModel;
-import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;

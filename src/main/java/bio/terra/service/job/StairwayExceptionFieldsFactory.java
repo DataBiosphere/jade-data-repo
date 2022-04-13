@@ -92,6 +92,8 @@ public class StairwayExceptionFieldsFactory {
       if (!errorReportException.getCauses().isEmpty()) {
         return errorReportException.getCauses();
       }
+    } else if (StringUtils.isNotEmpty(exception.getMessage())) {
+      return List.of(exception.getMessage());
     }
     return null;
   }

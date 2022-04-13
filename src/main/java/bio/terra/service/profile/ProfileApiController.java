@@ -14,7 +14,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
-import bio.terra.service.iam.PolicyMemberValidator;
+import bio.terra.service.auth.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;

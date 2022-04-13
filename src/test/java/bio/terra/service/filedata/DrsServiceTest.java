@@ -1,6 +1,8 @@
 package bio.terra.service.filedata;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -16,21 +18,30 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DRSPassportRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
+import bio.terra.service.auth.ras.ECMService;
+import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
+import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -40,6 +51,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -67,6 +79,7 @@ public class DrsServiceTest {
   @Mock private PerformanceLogger performanceLogger;
   @Mock private AzureBlobStorePdao azureBlobStorePdao;
   @Mock private GcsProjectFactory gcsProjectFactory;
+  @Mock private ECMService ecmService;
 
   private final DrsIdService drsIdService = new DrsIdService(new ApplicationConfiguration());
 
@@ -82,6 +95,10 @@ public class DrsServiceTest {
 
   private UUID snapshotId;
 
+  private UUID googleFileId;
+
+  private DRSPassportRequestModel drsPassportRequestModel;
+
   private final AuthenticatedUserRequest authUser =
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
@@ -91,7 +108,6 @@ public class DrsServiceTest {
 
   @Before
   public void before() throws Exception {
-    UUID defaultProfileModelId = UUID.randomUUID();
     drsService =
         new DrsService(
             snapshotService,
@@ -103,7 +119,8 @@ public class DrsServiceTest {
             jobService,
             performanceLogger,
             azureBlobStorePdao,
-            gcsProjectFactory);
+            gcsProjectFactory,
+            ecmService);
     when(jobService.getActivePodCount()).thenReturn(1);
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
 
@@ -111,6 +128,7 @@ public class DrsServiceTest {
     SnapshotProject snapshotProject = new SnapshotProject();
     when(snapshotService.retrieveAvailableSnapshotProject(snapshotId)).thenReturn(snapshotProject);
 
+    BillingProfileModel billingProfile = new BillingProfileModel().id(UUID.randomUUID());
     when(snapshotService.retrieve(snapshotId))
         .thenReturn(
             new Snapshot()
@@ -123,16 +141,12 @@ public class DrsServiceTest {
                                 new Dataset(
                                     new DatasetSummary()
                                         .selfHosted(false)
-                                        .defaultProfileId(defaultProfileModelId)
-                                        .billingProfiles(
-                                            List.of(
-                                                new BillingProfileModel()
-                                                    .id(defaultProfileModelId)
-                                                    .cloudPlatform(CloudPlatform.GCP))))))));
+                                        .defaultProfileId(billingProfile.getId())
+                                        .billingProfiles(List.of(billingProfile)))))));
 
     String bucketResourceId = UUID.randomUUID().toString();
     String storageAccountResourceId = UUID.randomUUID().toString();
-    UUID googleFileId = UUID.randomUUID();
+    googleFileId = UUID.randomUUID();
     DrsId googleDrsId = new DrsId("", "v1", snapshotId.toString(), googleFileId.toString());
     googleDrsObjectId = googleDrsId.toDrsObjectId();
 
@@ -170,6 +184,9 @@ public class DrsServiceTest {
         .thenReturn(new GoogleBucketResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION));
     when(resourceService.lookupStorageAccountMetadata(storageAccountResourceId))
         .thenReturn(new AzureStorageAccountResource().region(AzureRegion.DEFAULT_AZURE_REGION));
+
+    drsPassportRequestModel =
+        new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
   }
 
   @Test
@@ -201,6 +218,147 @@ public class DrsServiceTest {
   }
 
   @Test
+  public void testLookupSnapshot() {
+    DrsService.SnapshotCacheResult cacheResult =
+        drsService.lookupSnapshotForDRSObject(googleDrsObjectId);
+    assertThat("retrieves correct snapshot", cacheResult.getId(), equalTo(snapshotId));
+  }
+
+  @Test
+  public void testLookupSnapshotNotFound() {
+    UUID randomSnapshotId = UUID.randomUUID();
+    when(snapshotService.retrieve(randomSnapshotId)).thenThrow(SnapshotNotFoundException.class);
+    DrsId drsIdWithInvalidSnapshotId =
+        new DrsId("", "v1", randomSnapshotId.toString(), googleFileId.toString());
+    String drsObjectIdWithInvalidSnapshotId = drsIdWithInvalidSnapshotId.toDrsObjectId();
+    assertThrows(
+        DrsObjectNotFoundException.class,
+        () -> drsService.lookupSnapshotForDRSObject(drsObjectIdWithInvalidSnapshotId));
+  }
+
+  @Test
+  public void testLookupSnapshotInvalidDrsId() {
+    UUID randomSnapshotId = UUID.randomUUID();
+    DrsId drsIdWithInvalidDrsId =
+        new DrsId("", "", randomSnapshotId.toString(), googleFileId.toString());
+    String drsObjectIdWithInvalidDrsId = drsIdWithInvalidDrsId.toDrsObjectId();
+    assertThrows(
+        InvalidDrsIdException.class,
+        () -> drsService.lookupSnapshotForDRSObject(drsObjectIdWithInvalidDrsId));
+  }
+
+  @Test
+  public void verifyPassportAuthNoPHSID() {
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(new SnapshotSummaryModel().id(snapshotId).consentCode("c99"));
+    assertThrows(
+        InvalidAuthorizationMethod.class,
+        () -> drsService.verifyPassportAuth(snapshotId, new DRSPassportRequestModel()));
+  }
+
+  @Test
+  public void verifyPassportAuthNoConsentCode() {
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(new SnapshotSummaryModel().id(snapshotId).phsId("phs1240343"));
+    assertThrows(
+        InvalidAuthorizationMethod.class,
+        () -> drsService.verifyPassportAuth(snapshotId, new DRSPassportRequestModel()));
+  }
+
+  @Test
+  public void verifyValidPassport() {
+    // valid passport + phs id + consent code
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(
+            new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
+    DRSPassportRequestModel drsPassportRequestModel =
+        new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
+    when(ecmService.validatePassport(any()))
+        .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
+    drsService.verifyPassportAuth(snapshotId, drsPassportRequestModel);
+  }
+
+  @Test
+  public void invalidPassport() {
+    // invalid passport
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(
+            new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
+    when(ecmService.validatePassport(any()))
+        .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(false));
+    DRSPassportRequestModel drsPassportRequestModel =
+        new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
+    assertThrows(
+        UnauthorizedException.class,
+        () -> drsService.verifyPassportAuth(snapshotId, drsPassportRequestModel));
+  }
+
+  @Test
+  public void lookupObjectByDrsIdPassport() {
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(
+            new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
+    // provide valid passport
+    when(ecmService.validatePassport(any()))
+        .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
+    DRSObject object =
+        drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel);
+    DRSAccessMethod accessMethod = object.getAccessMethods().get(0);
+    assertThat(
+        "Correct access method is returned",
+        "gcp-passport-us-central1",
+        equalTo(accessMethod.getAccessId()));
+    assertThat("Correct drs object is returned", googleDrsObjectId, equalTo(object.getId()));
+  }
+
+  @Test
+  public void lookupObjectByDrsIdPassportInvalid() {
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(
+            new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
+    // provide invalid passport
+    when(ecmService.validatePassport(any()))
+        .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(false));
+    assertThrows(
+        UnauthorizedException.class,
+        () -> drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel));
+  }
+
+  @Test
+  public void postAccessUrlForObjectId() {
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(
+            new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
+    // provide valid passport
+    when(ecmService.validatePassport(any()))
+        .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
+    DRSAccessURL url =
+        drsService.postAccessUrlForObjectId(
+            googleDrsObjectId, "gcp-passport-us-central1", drsPassportRequestModel);
+
+    assertThat(
+        "returns url",
+        url.getUrl(),
+        containsString("https://storage.googleapis.com/path/to/file.txt"));
+  }
+
+  @Test
+  public void postAccessUrlForObjectIdInvalidPassport() {
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(
+            new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
+    // provide invalid passport
+    when(ecmService.validatePassport(any()))
+        .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(false));
+
+    assertThrows(
+        UnauthorizedException.class,
+        () ->
+            drsService.postAccessUrlForObjectId(
+                googleDrsObjectId, "gcp-passport-us-central1", drsPassportRequestModel));
+  }
+
+  @Test
   public void testSignAzureUrl() throws InterruptedException {
     UUID defaultProfileModelId = UUID.randomUUID();
     Dataset dataset =
@@ -213,7 +371,9 @@ public class DrsServiceTest {
                             .cloudPlatform(CloudPlatform.AZURE)))
                 .defaultProfileId(defaultProfileModelId));
     Snapshot snapshot =
-        new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
+        new Snapshot()
+            .id(snapshotId)
+            .snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
     DrsId drsId = drsIdService.fromObjectId(azureDrsObjectId);
     when(snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()))).thenReturn(snapshot);
     AzureStorageAccountResource storageAccountResource =

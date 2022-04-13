@@ -11,11 +11,12 @@ import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DRSPassportRequestModel;
 import bio.terra.model.DRSServiceInfo;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
+import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
-import bio.terra.service.iam.exception.IamForbiddenException;
-import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.Optional;
@@ -28,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
@@ -134,12 +136,30 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   }
 
   @Override
+  public ResponseEntity<DRSAccessURL> postAccessURL(
+      @PathVariable("object_id") String objectId,
+      @PathVariable("access_id") String accessId,
+      @RequestBody DRSPassportRequestModel drsPassportRequestModel) {
+    DRSAccessURL accessURL =
+        drsService.postAccessUrlForObjectId(objectId, accessId, drsPassportRequestModel);
+    return new ResponseEntity<>(accessURL, HttpStatus.OK);
+  }
+
+  @Override
   public ResponseEntity<DRSObject> getObject(
       @PathVariable("object_id") String objectId,
       @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand) {
     // The incoming object id is a DRS object id, not a file id.
     AuthenticatedUserRequest authUser = getAuthenticatedInfo();
     DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, objectId, expand);
+    return new ResponseEntity<>(drsObject, HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<DRSObject> postObject(
+      @PathVariable("object_id") String objectId,
+      @RequestBody DRSPassportRequestModel drsPassportRequestModel) {
+    DRSObject drsObject = drsService.lookupObjectByDrsIdPassport(objectId, drsPassportRequestModel);
     return new ResponseEntity<>(drsObject, HttpStatus.OK);
   }
 

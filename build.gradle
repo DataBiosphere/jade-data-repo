@@ -42,7 +42,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.327.0-SNAPSHOT'
+    version '1.330.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -233,6 +233,7 @@ dependencies {
     }
 
     implementation group: "bio.terra", name: "terra-resource-buffer-client", version: "0.4.3-SNAPSHOT"
+    implementation group: "bio.terra", name: "externalcreds-client-resttemplate", version: "0.72.0-SNAPSHOT"
     implementation group: "org.glassfish.jersey.inject", name: "jersey-hk2", version: "2.30.1"
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'

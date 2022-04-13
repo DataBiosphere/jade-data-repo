@@ -4,11 +4,11 @@ import static bio.terra.service.configuration.ConfigEnum.DATASET_GRANT_ACCESS_FA
 
 import bio.terra.common.FlightUtils;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.iam.IamRole;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;

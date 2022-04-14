@@ -33,6 +33,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -117,7 +118,10 @@ public class Oauth2ApiControllerTest {
         .thenReturn(ResponseEntity.ok().body(returnNode));
     when(controller.getRestTemplate()).thenReturn(restTemplate);
 
-    mvc.perform(post(TOKEN_REFRESH_ENDPOINT).content(requestBody))
+    mvc.perform(
+            post(TOKEN_REFRESH_ENDPOINT)
+                .content(requestBody)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED))
         .andExpect(status().is2xxSuccessful())
         .andExpect(jsonPath("$.access_token").value("tkn"));
 

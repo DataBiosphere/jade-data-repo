@@ -1,5 +1,6 @@
 package bio.terra.service.tabulardata.google;
 
+import bio.terra.app.configuration.ApplicationContextUtils;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.AclUtils;
 import bio.terra.common.exception.PdaoException;
@@ -34,28 +35,21 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 
-public final class BigQueryProject implements ApplicationContextAware {
+public final class BigQueryProject {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryProject.class);
   private static final ConcurrentHashMap<String, BigQueryProject> PROJECT_CACHE =
       new ConcurrentHashMap<>();
   private final String projectId;
   private final BigQuery bigQuery;
-  private static ApplicationContext appContext;
-
-  @Override
-  public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-    appContext = applicationContext;
-  }
 
   private BigQueryProject(String projectId) {
     logger.info("Retrieving Bigquery project for project id: {}", projectId);
     this.projectId = projectId;
     HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
-    GcsConfiguration gcsConfiguration = appContext.getBean(GcsConfiguration.class);
+    ApplicationContext appCtx = ApplicationContextUtils.getApplicationContext();
+    GcsConfiguration gcsConfiguration = appCtx.getBean(GcsConfiguration.class);
     transportOptions =
         transportOptions.toBuilder()
             .setConnectTimeout(gcsConfiguration.getConnectTimeoutSeconds() * 1000)

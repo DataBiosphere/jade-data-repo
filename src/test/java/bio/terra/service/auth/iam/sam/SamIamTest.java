@@ -21,6 +21,7 @@ import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import java.util.List;
@@ -393,5 +394,17 @@ public class SamIamTest {
     Map<UUID, Set<IamRole>> uuidSetMap =
         samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT);
     assertThat(uuidSetMap, is((Map.of(id, Set.of(IamRole.OWNER, IamRole.READER)))));
+  }
+
+  @Test(expected = IamUnauthorizedException.class)
+  public void listAuthorizedResourcesTest401Error() throws Exception {
+    when(samResourceApi.listResourcesAndPolicies(IamResourceType.DATASNAPSHOT.getSamResourceName()))
+        .thenThrow(IamUnauthorizedException.class);
+    try {
+      samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT);
+    } finally {
+      verify(samResourceApi, times(1))
+          .listResourcesAndPolicies(IamResourceType.DATASNAPSHOT.getSamResourceName());
+    }
   }
 }

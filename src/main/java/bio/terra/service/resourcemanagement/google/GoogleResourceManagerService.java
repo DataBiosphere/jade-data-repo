@@ -94,6 +94,13 @@ public class GoogleResourceManagerService {
       // the response will be empty if the request is successful in the delete
       request.execute();
     } catch (IOException | GeneralSecurityException e) {
+      if (e.getMessage().equals("Cannot delete an inactive project.")) {
+        logger.warn(
+            String.format(
+                "Project [%s] is already inactive and so will not be deleted", googleProjectId),
+            e);
+        return;
+      }
       throw new GoogleResourceException("Could not delete project", e);
     }
   }

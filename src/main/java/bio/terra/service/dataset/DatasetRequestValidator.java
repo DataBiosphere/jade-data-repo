@@ -262,9 +262,9 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
-  // Primary Keys and Foreign Keys cannot be arrays or filerefs or dirrefs
+  // Primary Keys and Foreign Keys cannot be filerefs or dirrefs and Primary keys cannot be arrays
   private void validateColumnType(Errors errors, ColumnModel columnModel, String keyType) {
-    if (columnModel.isArrayOf()) {
+    if (keyType.equals(PRIMARY_KEY) && columnModel.isArrayOf()) {
       rejectKey(errors, keyType, columnModel.getName(), "array");
     }
 

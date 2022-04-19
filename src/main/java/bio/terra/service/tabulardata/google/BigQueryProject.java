@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -52,8 +53,10 @@ public final class BigQueryProject {
     GcsConfiguration gcsConfiguration = appCtx.getBean(GcsConfiguration.class);
     transportOptions =
         transportOptions.toBuilder()
-            .setConnectTimeout(gcsConfiguration.getConnectTimeoutSeconds() * 1000)
-            .setReadTimeout(gcsConfiguration.getReadTimeoutSeconds() * 1000)
+            .setConnectTimeout(
+                (int) TimeUnit.SECONDS.toMillis(gcsConfiguration.getConnectTimeoutSeconds()))
+            .setReadTimeout(
+                (int) TimeUnit.SECONDS.toMillis(gcsConfiguration.getReadTimeoutSeconds()))
             .build();
     bigQuery =
         BigQueryOptions.newBuilder()

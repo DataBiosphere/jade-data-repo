@@ -23,6 +23,9 @@ public class ApplicationContextUtils implements ApplicationContextAware {
   }
 
   public static ApplicationContext getApplicationContext() {
+    if (ctx == null) {
+      throw new RuntimeException("The application context isn't initialized yet.");
+    }
     return ctx;
   }
 }

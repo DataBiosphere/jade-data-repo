@@ -62,7 +62,7 @@ team.
 ## 4. Create Terra Accounts
 
 The Data Repo and [Terra](https://terra.bio/) use [Sam](https://github.com/broadinstitute/sam)
-to abtract identity and access management. To gain access to these services,
+to abstract identity and access management. To gain access to these services,
 first create a non-Broad email address through Gmail. This email address will
 specifically be used for development purposes in our non-prod environments.
 Next, to register as a new user, click the `Sign in with Google` button in each
@@ -87,7 +87,7 @@ line interface. To automatically install development tools necessary for the
 team, a [Brewfile](https://github.com/Homebrew/homebrew-bundle) is used:
 
 ```
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 curl -LO https://raw.githubusercontent.com/DataBiosphere/jade-data-repo/develop/docs/Brewfile
 brew bundle --no-lock install
 ```
@@ -180,63 +180,59 @@ Download the team's projects:
 git clone git@github.com:DataBiosphere/jade-data-repo.git
 git clone git@github.com:DataBiosphere/jade-data-repo-ui.git
 git clone git@github.com:DataBiosphere/jade-data-repo-cli
-git clone git@github.com:DataBiosphere/terraform-jade
 git clone git@github.com:broadinstitute/datarepo-helm
 git clone git@github.com:broadinstitute/datarepo-helm-definitions
+git clone git@github.com:broadinstitute/terraform-jade
 ```
 
 ## 8. Set up your Development Environment
 
 The goal of this step is set up some of the basic components of your development
-environment.  You'll actually spin up this instance on broad-jade-dev in next step.
+environment.  You'll actually spin up this instance on broad-jade-dev in the next step.
 
-> These instructions have not been tested yet! This may be a good step to
-pair on with another Jade team member. There is a video of us walking through
+> There is a video of us walking through
 these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing).
 
-1. Follow the [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
-to add your initials to the terraform templates and generate the static resources needed
-to deploy your personal development environment. Apply the changes and create a pull request
-to merge your additions to `terraform-jade`.
+1. Follow the
+   [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
+   to add your initials to the terraform templates and generate the static resources needed
+   to deploy your personal development environment.
+   Apply the changes and create a pull request to merge your additions to `terraform-jade`.
+
 2. Create your datarepo helm definition:
-  -  In `datarepo-helm-definitions/dev` directory, copy an existing developer
-definition and change all initials to your own.
-  -  Create a pull request with these changes in [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions)
-3. Connect to your new dev postgres database instance (replace `ZZ` with your initials):
-Note that this is separate instance than the local one you will configure in step 9.
-The following command connects to the database via a proxy.
-
-```
-cd jade-data-repo/ops
-DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
-```
-
-4. Now that you're connected to your dev database, run the following command
-(Once [DR-1156](https://broadworkbench.atlassian.net/browse/DR-1156) is done, this will no longer be needed):
-
-```
-create extension pgcrypto;
-```
+  -  In `datarepo-helm-definitions/dev` directory,
+     copy an existing developer definition and change all initials to your own.
+  -  Verify that any release chart versions specified in your `helmfile.yaml` match the
+     [latest dependency versions](https://github.com/broadinstitute/datarepo-helm/blob/master/charts/datarepo/Chart.lock).
+     Any left unspecified will automatically pick up the latest version
+     when running helmfile commands.
+  -  Create a pull request with these changes in
+     [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions).
 
 ## 9. Google Cloud Platform setup
 
-1. Log in to [Google Cloud Platform](https://console.cloud.google.com). In the
-top-left corner, select the **BROADINSTITUTE.ORG** organization. Select
-**broad-jade-dev** from the list of projects.
+Throughout these instructions, replace all instances of `ZZ` with your initials.
+
+1. Log in to [Google Cloud Platform](https://console.cloud.google.com).
+   In the top-left corner, select the **BROADINSTITUTE.ORG** organization.
+   Select **broad-jade-dev** from the list of projects.
+
 2. From the left hand sidebar, select **Kubernetes Engine -> Clusters** under
-**COMPUTE**.
-3. Click **Connect** on the **dev-master** cluster. This gives you a `kubectl`
-command to copy and paste into the terminal:
+   **COMPUTE**.
+
+3. Click **Connect** on the **dev-master** cluster.
+   (You can also navigate here via
+   [direct link](https://console.cloud.google.com/kubernetes/clusters/details/us-central1/dev-master/details?project=broad-jade-dev).)
+   This gives you a `kubectl` command to copy and paste into the terminal:
 
 ```
 gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
 ```
 
 4. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`,
-bring up Helm services (note it will take about 10-15 minutes for ingress and cert creation):
+   bring up Helm services (note it will take up to 10-15 minutes for ingress and cert creation):
 
 ```
-# replace all instances of `ZZ` with your initials
 cd datarepo-helm-definitions/dev/ZZ
 helmfile apply
 
@@ -244,20 +240,38 @@ helmfile apply
 helm list --namespace ZZ
 ```
 
-5. On the Google Cloud Platform [API Credentials](https://console.cloud.google.com/apis/credentials?authuser=3&project=broad-jade-dev)
-page, select the Jade Data Repository OAuth2 Client ID and update the authorized domains:
+5. Update the following authorized domains within the
+   [Jade Data Repository OAuth2 Client configuration](https://console.cloud.google.com/apis/credentials/oauthclient/970791974390-1581mjhtp2b3jmg4avhor1vabs13b7ur.apps.googleusercontent.com?authuser=0&project=broad-jade-dev):
+
  - Under Authorized JavaScript origins, add `https://jade-ZZ.datarepo-dev.broadinstitute.org`
  - Under Authorized redirect URIs, add `https://jade-ZZ.datarepo-dev.broadinstitute.org/login/google` and
    `https://jade-ZZ.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
 
+6. Connect to your new dev postgres database instance:
+   Note that this is a different instance than the local one you will configure in [step 10](#10-install-postgres-12).
+   The following command connects to the database via a proxy.
+
+```
+cd jade-data-repo/ops
+DB=datarepo-ZZ SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
+```
+
+7. Now that you're connected to your dev database, run the following command
+   (Once [DR-1156](https://broadworkbench.atlassian.net/browse/DR-1156) is done, this will no longer be needed):
+
+```
+create extension pgcrypto;
+```
+
 ## 10. Install Postgres 12
 
 [Postgres](https://www.postgresql.org/) is an advanced open-source database.
-**Postgres.app** is used to manage a local installation of Postgres. The latest
-release can be found on the [GitHub releases](https://github.com/PostgresApp/PostgresApp/releases)
-page. For compatibility, make sure to select a version which supports all the
-older versions of Postgres including 9.6. After launching the application,
-create a new version 12 database as follows:
+**Postgres.app** is used to manage a local installation of Postgres.
+The latest release can be found on the [GitHub releases](https://github.com/PostgresApp/PostgresApp/releases)
+page.
+For compatibility, make sure to select a version which supports
+all the older versions of Postgres including 9.6.
+After launching the application, create a new version 12 database as follows:
 
 1. Click the sidebar icon (bottom left-hand corner) and then click the plus sign
 2. Name the new server, making sure to select version **12**, and then
@@ -292,9 +306,11 @@ to build `jade-data-repo`.
 
 * You will need to run `render-configs.sh` before running integration tests.
 
-* **Set Environment Variables**: While not exhaustive, here's a list that notes the important environment variables to set when running `jade-data-repo` locally. Instances of `ZZ` should be replaced by your initials or the environment (i.e. `dev`).  These variables override settings in
-jade-data-repo/application.properties.  You can convert any application.property to an environment
-variable by switching to upper case and every "." to "_".
+* **Set Environment Variables**: While not exhaustive,
+  here's a list that notes the important environment variables to set when running `jade-data-repo` locally.
+  Instances of `ZZ` should be replaced by your initials or the environment (i.e. `dev`).
+  These variables override settings in jade-data-repo/application.properties.
+  You can convert any application.property to an environment variable by switching to upper case and every "." to "_".
 
 ```
 # Point to your personal dev project/deployment
@@ -338,6 +354,14 @@ export HOST=localhost
 ./gradlew testIntegration  # integration tests
 ```
 
+Note that connected and integration test suites can each take 90+ minutes to run.
+In normal development, you'll likely rely on GitHub Actions / automated PR test runs
+to run all tests, initially running locally those tests which pertain to your work.
+
+To run a subset of tests, you can specify `--tests <pattern>` when running
+the above test commands.  More specific examples are available in
+[Gradle documentation](https://docs.gradle.org/current/userguide/java_testing.html#test_filtering).
+
 ### 2. Build `jade-data-repo-ui`
 
 Follow the [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui)
@@ -350,4 +374,4 @@ Ensure that:
 1. You are on the Broad Non-split VPN. See earlier [instructions](#-getting-started).
 2. Docker is running.
 3. Postgres database is started.
-4. Environment variables are set. See list of environment variables [above](#11-repository-setup).
+4. Environment variables are set. See list of environment variables [above](#12-repository-setup).

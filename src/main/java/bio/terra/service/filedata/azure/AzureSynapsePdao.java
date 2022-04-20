@@ -160,6 +160,17 @@ public class AzureSynapsePdao {
           + "<endif>\n"
           + ") AS rows;";
 
+  private static final String countNullsInTableTemplate =
+      "SELECT COUNT(DISTINCT(datarepo_row_id)) AS rows_with_nulls FROM [<tableName>] WHERE <nullChecks>;";
+
+  private static final String createFinalParquetFilesTemplate =
+      "CREATE EXTERNAL TABLE [<finalTableName>]\n"
+          + "WITH (\n"
+          + "    LOCATION = '<destinationParquetFile>',\n"
+          + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
+          + "    FILE_FORMAT = [<fileFormat>]\n"
+          + ") AS SELECT * FROM [<scratchTableName>] <where> <nullChecks>;";
+
   private static final String queryColumnsFromExternalTableTemplate =
       "SELECT DISTINCT [<refCol>] FROM [<tableName>] WHERE [<refCol>] IS NOT NULL;";
 
@@ -281,14 +292,14 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlDataSourceCreateTemplate.render());
   }
 
-  public int createParquetFiles(
+  public int createScratchParquetFiles(
       FormatEnum ingestType,
       DatasetTable datasetTable,
       String ingestFileName,
-      String destinationParquetFile,
-      String destinationDataSourceName,
+      String scratchParquetFile,
+      String scratchDataSourceName,
       String controlFileDataSourceName,
-      String ingestTableName,
+      String scratchTableName,
       Integer csvSkipLeadingRows,
       String csvFieldTerminator,
       String csvStringDelimiter)
@@ -311,15 +322,68 @@ public class AzureSynapsePdao {
       sqlCreateTableTemplate.add(
           "csvQuote", Objects.requireNonNullElse(csvStringDelimiter, DEFAULT_CSV_QUOTE));
     }
-    sqlCreateTableTemplate.add("tableName", ingestTableName);
-    sqlCreateTableTemplate.add("destinationParquetFile", destinationParquetFile);
-    sqlCreateTableTemplate.add("destinationDataSourceName", destinationDataSourceName);
+    sqlCreateTableTemplate.add("tableName", scratchTableName);
+    sqlCreateTableTemplate.add("destinationParquetFile", scratchParquetFile);
+    sqlCreateTableTemplate.add("destinationDataSourceName", scratchDataSourceName);
     sqlCreateTableTemplate.add(
         "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
     sqlCreateTableTemplate.add("columns", columns);
     return executeSynapseQuery(sqlCreateTableTemplate.render());
+  }
+
+  public long validateScratchParquetFiles(DatasetTable datasetTable, String scratchTableName)
+      throws SQLException {
+
+    String nullChecks =
+        datasetTable.getColumns().stream()
+            .filter(Column::isRequired)
+            .map(column -> String.format("%s IS NULL", column.getName()))
+            .collect(Collectors.joining(" OR "));
+
+    if (StringUtils.isBlank(nullChecks)) {
+      return 0L;
+    }
+
+    ST sqlCountNullsTemplate = new ST(countNullsInTableTemplate);
+    sqlCountNullsTemplate.add("tableName", scratchTableName);
+    sqlCountNullsTemplate.add("nullChecks", nullChecks);
+
+    return executeCountQuery(sqlCountNullsTemplate.render());
+  }
+
+  public long createFinalParquetFiles(
+      String finalTableName,
+      String destinationParquetFile,
+      String destinationDataSourceName,
+      String scratchTableName,
+      DatasetTable datasetTable)
+      throws SQLException {
+
+    ST sqlCreateFinalParquetFilesTemplate = new ST(createFinalParquetFilesTemplate);
+    sqlCreateFinalParquetFilesTemplate.add("finalTableName", finalTableName);
+    sqlCreateFinalParquetFilesTemplate.add("destinationParquetFile", destinationParquetFile);
+    sqlCreateFinalParquetFilesTemplate.add("destinationDataSourceName", destinationDataSourceName);
+    sqlCreateFinalParquetFilesTemplate.add(
+        "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
+    sqlCreateFinalParquetFilesTemplate.add("scratchTableName", scratchTableName);
+
+    String nullChecks =
+        datasetTable.getColumns().stream()
+            .filter(Column::isRequired)
+            .map(column -> String.format("%s IS NOT NULL", column.getName()))
+            .collect(Collectors.joining(" AND "));
+
+    if (StringUtils.isBlank(nullChecks)) {
+      sqlCreateFinalParquetFilesTemplate.add("where", "");
+      sqlCreateFinalParquetFilesTemplate.add("nullChecks", "");
+    } else {
+      sqlCreateFinalParquetFilesTemplate.add("where", "WHERE");
+      sqlCreateFinalParquetFilesTemplate.add("nullChecks", nullChecks);
+    }
+
+    return executeSynapseQuery(sqlCreateFinalParquetFilesTemplate.render());
   }
 
   public void createSnapshotRowIdsParquetFile(
@@ -504,6 +568,17 @@ public class AzureSynapsePdao {
         Statement statement = connection.createStatement()) {
       statement.execute(query);
       return statement.getUpdateCount();
+    }
+  }
+
+  public long executeCountQuery(String query) throws SQLException {
+    SQLServerDataSource ds = getDatasource();
+    try (Connection connection = ds.getConnection();
+        Statement statement = connection.createStatement()) {
+      try (ResultSet resultSet = statement.executeQuery(query)) {
+        resultSet.next();
+        return resultSet.getInt(1);
+      }
     }
   }
 

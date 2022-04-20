@@ -303,7 +303,7 @@ public class AzureSynapsePdaoConnectedTest {
     // 4 - Create parquet files via external table
     // All inputs should be sanitized before passed into this method
     int updateCount =
-        azureSynapsePdao.createParquetFiles(
+        azureSynapsePdao.createScratchParquetFiles(
             ingestRequestModel.getFormat(),
             destinationTable,
             ingestRequestSignUrlBlob.getBlobName(),

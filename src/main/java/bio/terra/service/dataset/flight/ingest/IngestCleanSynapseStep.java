@@ -4,7 +4,7 @@ import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import java.util.Arrays;
+import java.util.List;
 
 public class IngestCleanSynapseStep implements Step {
   private AzureSynapsePdao azureSynapsePdao;
@@ -16,13 +16,17 @@ public class IngestCleanSynapseStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     azureSynapsePdao.dropTables(
-        Arrays.asList(IngestUtils.getSynapseTableName(context.getFlightId())));
+        List.of(
+            IngestUtils.getSynapseScratchTableName(context.getFlightId()),
+            IngestUtils.getSynapseIngestTableName(context.getFlightId())));
     azureSynapsePdao.dropDataSources(
-        Arrays.asList(
+        List.of(
+            IngestUtils.getScratchDataSourceName(context.getFlightId()),
             IngestUtils.getTargetDataSourceName(context.getFlightId()),
             IngestUtils.getIngestRequestDataSourceName(context.getFlightId())));
     azureSynapsePdao.dropScopedCredentials(
-        Arrays.asList(
+        List.of(
+            IngestUtils.getScratchScopedCredentialName(context.getFlightId()),
             IngestUtils.getTargetScopedCredentialName(context.getFlightId()),
             IngestUtils.getIngestRequestScopedCredentialName(context.getFlightId())));
 

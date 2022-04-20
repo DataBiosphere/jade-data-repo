@@ -17,7 +17,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.storage.blob.BlobUrlParts;
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.util.List;
 
 public class IngestCreateIngestRequestDataSourceStep implements Step {
   private final AzureSynapsePdao azureSynapsePdao;
@@ -41,7 +41,6 @@ public class IngestCreateIngestRequestDataSourceStep implements Step {
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
     final BlobUrlParts signedBlobUrlParts;
-    final ContainerType containerType;
     if (IngestUtils.isCombinedFileIngest(context)) {
       String path = workingMap.get(IngestMapKeys.INGEST_CONTROL_FILE_PATH, String.class);
       AzureStorageAccountResource storageAccount =
@@ -71,9 +70,9 @@ public class IngestCreateIngestRequestDataSourceStep implements Step {
   @Override
   public StepResult undoStep(FlightContext context) {
     azureSynapsePdao.dropDataSources(
-        Arrays.asList(IngestUtils.getIngestRequestDataSourceName(context.getFlightId())));
+        List.of(IngestUtils.getIngestRequestDataSourceName(context.getFlightId())));
     azureSynapsePdao.dropScopedCredentials(
-        Arrays.asList(IngestUtils.getIngestRequestScopedCredentialName(context.getFlightId())));
+        List.of(IngestUtils.getIngestRequestScopedCredentialName(context.getFlightId())));
 
     return StepResult.getStepResultSuccess();
   }

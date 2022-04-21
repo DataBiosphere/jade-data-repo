@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.app.configuration.DrsServiceConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
@@ -81,11 +82,6 @@ public class DrsService {
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
   private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
-  // TODO: move to application.properties
-  // Shelby: I didn't realize that the issuer would change between environments.
-  // So, it will be "https://stsstg.nih.gov" for non-prod envs and most likely
-  // "https://sts.nih.gov/" for prod.
-  private static final String RAS_ISSUER = "https://stsstg.nih.gov";
   private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
   private static final String DRS_OBJECT_VERSION = "0";
   private static final Duration URL_TTL = Duration.ofMinutes(15);
@@ -103,6 +99,7 @@ public class DrsService {
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
   private final ECMService ecmService;
+  private final DrsServiceConfiguration drsServiceConfiguration;
 
   private final Map<UUID, SnapshotProject> snapshotProjects =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
@@ -123,7 +120,8 @@ public class DrsService {
       PerformanceLogger performanceLogger,
       AzureBlobStorePdao azureBlobStorePdao,
       GcsProjectFactory gcsProjectFactory,
-      ECMService ecmService) {
+      ECMService ecmService,
+      DrsServiceConfiguration drsServiceConfiguration) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -135,6 +133,7 @@ public class DrsService {
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.gcsProjectFactory = gcsProjectFactory;
     this.ecmService = ecmService;
+    this.drsServiceConfiguration = drsServiceConfiguration;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -185,7 +184,7 @@ public class DrsService {
 
       if (phsId != null && consentCode != null) {
         auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
-        auths.addPassportAuthIssuersItem(RAS_ISSUER);
+        auths.addPassportAuthIssuersItem(drsServiceConfiguration.getRasIssuer());
       }
 
       return auths;
@@ -282,7 +281,7 @@ public class DrsService {
     }
     // Pass the passport + phs id + consent code to ECM
     var criteria = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
-    criteria.issuer(RAS_ISSUER).type(RAS_CRITERIA_TYPE);
+    criteria.issuer(drsServiceConfiguration.getRasIssuer()).type(RAS_CRITERIA_TYPE);
     var request =
         new ValidatePassportRequest()
             .passports(drsPassportRequestModel.getPassports())

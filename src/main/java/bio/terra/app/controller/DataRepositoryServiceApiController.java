@@ -157,8 +157,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   }
 
   @Override
-  public ResponseEntity<DRSAuthorizations> optionsObject(
-      @PathVariable("object_id") String objectId) {
+  public ResponseEntity<DRSAuthorizations> optionsObject(String objectId) {
     DRSAuthorizations auths = drsService.lookupAuthorizationsByDrsId(objectId);
     return new ResponseEntity<>(auths, HttpStatus.OK);
   }

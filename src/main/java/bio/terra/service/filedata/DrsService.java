@@ -168,25 +168,28 @@ public class DrsService {
    * @return the `DrsAuthorizations` for this ID
    * @throws IllegalArgumentException if there is an issue with the object id
    * @throws SnapshotNotFoundException if the snapshot for the DRS object cannot be found
+   * @throws TooManyRequestsException if there are too many concurrent DRS lookup requests
    */
   public DRSAuthorizations lookupAuthorizationsByDrsId(String drsObjectId) {
-    DRSAuthorizations auths = new DRSAuthorizations();
+    try (DrsRequestResource r = new DrsRequestResource()) {
+      DRSAuthorizations auths = new DRSAuthorizations();
 
-    auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
-    // TODO: add to bearer_auth_issuers, ask Muscles.
+      auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
+      // TODO: add to bearer_auth_issuers, ask Muscles.
 
-    SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
-    SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshot.id);
+      SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
+      SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshot.id);
 
-    String phsId = snapshotSummary.getPhsId();
-    String consentCode = snapshotSummary.getConsentCode();
+      String phsId = snapshotSummary.getPhsId();
+      String consentCode = snapshotSummary.getConsentCode();
 
-    if (phsId != null && consentCode != null) {
-      auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
-      auths.addPassportAuthIssuersItem(RAS_ISSUER);
+      if (phsId != null && consentCode != null) {
+        auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
+        auths.addPassportAuthIssuersItem(RAS_ISSUER);
+      }
+
+      return auths;
     }
-
-    return auths;
   }
 
   /**

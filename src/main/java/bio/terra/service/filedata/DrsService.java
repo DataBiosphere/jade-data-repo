@@ -161,8 +161,8 @@ public class DrsService {
   }
 
   /**
-   * Determine the acceptable means of authentication for a given DRS ID,
-   * including the passport issuers when supported.
+   * Determine the acceptable means of authentication for a given DRS ID, including the passport
+   * issuers when supported.
    *
    * @param drsObjectId the object ID for which to look up authorizations
    * @return the `DrsAuthorizations` for this ID

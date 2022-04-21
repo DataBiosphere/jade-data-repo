@@ -13,6 +13,7 @@ import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSAuthorizations;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
@@ -80,6 +81,10 @@ public class DrsService {
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
   private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
+  // TODO: move to application.properties
+  // Shelby: I didn't realize that the issuer would change between environments.
+  // So, it will be "https://stsstg.nih.gov" for non-prod envs and most likely
+  // "https://sts.nih.gov/" for prod.
   private static final String RAS_ISSUER = "https://stsstg.nih.gov";
   private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
   private static final String DRS_OBJECT_VERSION = "0";
@@ -153,6 +158,35 @@ public class DrsService {
     public void close() {
       currentDRSRequests.decrementAndGet();
     }
+  }
+
+  /**
+   * Determine the acceptable means of authentication for a given DRS ID,
+   * including the passport issuers when supported.
+   *
+   * @param drsObjectId the object ID for which to look up authorizations
+   * @return the `DrsAuthorizations` for this ID
+   * @throws IllegalArgumentException if there is an issue with the object id
+   * @throws SnapshotNotFoundException if the snapshot for the DRS object cannot be found
+   */
+  public DRSAuthorizations lookupAuthorizationsByDrsId(String drsObjectId) {
+    DRSAuthorizations auths = new DRSAuthorizations();
+
+    auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
+    // TODO: add to bearer_auth_issuers, ask Muscles.
+
+    SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
+    SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshot.id);
+
+    String phsId = snapshotSummary.getPhsId();
+    String consentCode = snapshotSummary.getConsentCode();
+
+    if (phsId != null && consentCode != null) {
+      auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
+      auths.addPassportAuthIssuersItem(RAS_ISSUER);
+    }
+
+    return auths;
   }
 
   /**

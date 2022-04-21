@@ -9,6 +9,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSAuthorizations;
 import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSPassportRequestModel;
@@ -153,6 +154,13 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     AuthenticatedUserRequest authUser = getAuthenticatedInfo();
     DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, objectId, expand);
     return new ResponseEntity<>(drsObject, HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<DRSAuthorizations> optionsObject(
+      @PathVariable("object_id") String objectId) {
+    DRSAuthorizations auths = drsService.lookupAuthorizationsByDrsId(objectId);
+    return new ResponseEntity<>(auths, HttpStatus.OK);
   }
 
   @Override

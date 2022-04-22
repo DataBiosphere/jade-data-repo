@@ -15,7 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.app.configuration.DrsServiceConfiguration;
+import bio.terra.app.configuration.ECMConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
@@ -83,7 +83,7 @@ public class DrsServiceTest {
   @Mock private AzureBlobStorePdao azureBlobStorePdao;
   @Mock private GcsProjectFactory gcsProjectFactory;
   @Mock private ECMService ecmService;
-  @Mock private DrsServiceConfiguration drsServiceConfiguration;
+  @Mock private ECMConfiguration ecmConfiguration;
 
   private final DrsIdService drsIdService = new DrsIdService(new ApplicationConfiguration());
 
@@ -127,7 +127,7 @@ public class DrsServiceTest {
             azureBlobStorePdao,
             gcsProjectFactory,
             ecmService,
-            drsServiceConfiguration);
+            ecmConfiguration);
     when(jobService.getActivePodCount()).thenReturn(1);
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
 
@@ -195,7 +195,7 @@ public class DrsServiceTest {
     drsPassportRequestModel =
         new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
 
-    when(drsServiceConfiguration.getRasIssuer()).thenReturn(rasIssuer);
+    when(ecmConfiguration.getRasIssuer()).thenReturn(rasIssuer);
   }
 
   @Test

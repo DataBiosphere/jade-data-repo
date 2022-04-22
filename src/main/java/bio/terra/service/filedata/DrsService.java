@@ -1,6 +1,6 @@
 package bio.terra.service.filedata;
 
-import bio.terra.app.configuration.DrsServiceConfiguration;
+import bio.terra.app.configuration.ECMConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
@@ -99,7 +99,7 @@ public class DrsService {
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
   private final ECMService ecmService;
-  private final DrsServiceConfiguration drsServiceConfiguration;
+  private final ECMConfiguration ecmConfiguration;
 
   private final Map<UUID, SnapshotProject> snapshotProjects =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
@@ -121,7 +121,7 @@ public class DrsService {
       AzureBlobStorePdao azureBlobStorePdao,
       GcsProjectFactory gcsProjectFactory,
       ECMService ecmService,
-      DrsServiceConfiguration drsServiceConfiguration) {
+      ECMConfiguration ecmConfiguration) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -133,7 +133,7 @@ public class DrsService {
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.gcsProjectFactory = gcsProjectFactory;
     this.ecmService = ecmService;
-    this.drsServiceConfiguration = drsServiceConfiguration;
+    this.ecmConfiguration = ecmConfiguration;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -184,7 +184,7 @@ public class DrsService {
 
       if (phsId != null && consentCode != null) {
         auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
-        auths.addPassportAuthIssuersItem(drsServiceConfiguration.getRasIssuer());
+        auths.addPassportAuthIssuersItem(ecmConfiguration.getRasIssuer());
       }
 
       return auths;
@@ -281,7 +281,7 @@ public class DrsService {
     }
     // Pass the passport + phs id + consent code to ECM
     var criteria = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
-    criteria.issuer(drsServiceConfiguration.getRasIssuer()).type(RAS_CRITERIA_TYPE);
+    criteria.issuer(ecmConfiguration.getRasIssuer()).type(RAS_CRITERIA_TYPE);
     var request =
         new ValidatePassportRequest()
             .passports(drsPassportRequestModel.getPassports())

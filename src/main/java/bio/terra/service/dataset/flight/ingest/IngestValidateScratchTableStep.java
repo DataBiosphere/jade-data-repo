@@ -14,12 +14,12 @@ import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
 import java.util.List;
 
-public class IngestCheckIngestScratchTableStep implements Step {
+public class IngestValidateScratchTableStep implements Step {
 
   private AzureSynapsePdao azureSynapsePdao;
   private DatasetService datasetService;
 
-  public IngestCheckIngestScratchTableStep(
+  public IngestValidateScratchTableStep(
       AzureSynapsePdao azureSynapsePdao, DatasetService datasetService) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.datasetService = datasetService;
@@ -32,7 +32,7 @@ public class IngestCheckIngestScratchTableStep implements Step {
 
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
-    long failCount;
+    int failCount;
     try {
       failCount =
           azureSynapsePdao.validateScratchParquetFiles(

@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.StringUtils;
-import org.stringtemplate.v4.ST;
 
 // Common code for the ingest steps
 public final class IngestUtils {
@@ -338,14 +337,15 @@ public final class IngestUtils {
     }
   }
 
-  public static String getParquetTargetLocationURL(
-      AzureStorageAccountResource storageAccountResource) {
-    String storageAccount = storageAccountResource.getName();
-    String storageAccountURLTemplate = "https://<storageAccount>.blob.core.windows.net";
-
-    ST storageAccountURL = new ST(storageAccountURLTemplate);
-    storageAccountURL.add("storageAccount", storageAccount);
-    return storageAccountURL.render();
+  public static String getParquetBlobUrl(
+      AzureStorageAccountResource storageAccountResource,
+      AzureStorageAccountResource.ContainerType containerType,
+      String path) {
+    return String.format(
+        "%s/%s/%s",
+        storageAccountResource.getStorageAccountUrl(),
+        storageAccountResource.determineContainer(containerType),
+        path);
   }
 
   public static String getParquetFilePath(String targetTableName, String flightId) {

@@ -1069,18 +1069,21 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     ingestRequest.maxBadRecords(1);
 
+    DataRepoResponse<IngestResponseModel> dataRepoResponseSuccess =
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, ingestRequest);
+
     IngestResponseModel ingestResponseSuccess =
-        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+        dataRepoResponseSuccess.getResponseObject().orElseThrow();
 
     assertThat(
         "allowing 1 bad record means 1 bad record is allowed",
         ingestResponseSuccess.getBadRowCount(),
-        equalTo(1));
+        equalTo(1L));
 
     assertThat(
         "allowing a bad row means 2 rows still succeeded",
         ingestResponseSuccess.getRowCount(),
-        equalTo(2));
+        equalTo(2L));
 
     clearEnvironment();
   }

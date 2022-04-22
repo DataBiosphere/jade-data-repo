@@ -35,7 +35,7 @@ public class IngestCreateParquetFilesStep implements Step {
     String parquetFilePath = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
     DatasetTable datasetTable = IngestUtils.getDatasetTable(context, dataset);
 
-    Long failedRowCount = workingMap.get(IngestMapKeys.AZURE_ROWS_FAILED_VALIDATION, Long.class);
+    int failedRowCount = workingMap.get(IngestMapKeys.AZURE_ROWS_FAILED_VALIDATION, Integer.class);
 
     long updateCount;
     try {

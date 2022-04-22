@@ -46,8 +46,7 @@ public class IngestCreateTargetDataSourceStep implements Step {
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
-    String parquetDestinationLocation =
-        IngestUtils.getParquetTargetLocationURL(storageAccountResource);
+    String parquetDestinationLocation = storageAccountResource.getStorageAccountUrl();
     BlobUrlParts targetSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
             parquetDestinationLocation,

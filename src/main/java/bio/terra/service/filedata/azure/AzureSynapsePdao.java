@@ -333,7 +333,7 @@ public class AzureSynapsePdao {
     return executeSynapseQuery(sqlCreateTableTemplate.render());
   }
 
-  public long validateScratchParquetFiles(DatasetTable datasetTable, String scratchTableName)
+  public int validateScratchParquetFiles(DatasetTable datasetTable, String scratchTableName)
       throws SQLException {
 
     String nullChecks =
@@ -343,7 +343,7 @@ public class AzureSynapsePdao {
             .collect(Collectors.joining(" OR "));
 
     if (StringUtils.isBlank(nullChecks)) {
-      return 0L;
+      return 0;
     }
 
     ST sqlCountNullsTemplate = new ST(countNullsInTableTemplate);
@@ -571,7 +571,7 @@ public class AzureSynapsePdao {
     }
   }
 
-  public long executeCountQuery(String query) throws SQLException {
+  public int executeCountQuery(String query) throws SQLException {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {

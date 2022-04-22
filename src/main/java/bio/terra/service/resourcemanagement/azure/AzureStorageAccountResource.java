@@ -4,6 +4,7 @@ import bio.terra.app.model.AzureRegion;
 import java.util.Objects;
 import java.util.UUID;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.stringtemplate.v4.ST;
 
 public class AzureStorageAccountResource {
   private UUID resourceId;
@@ -102,6 +103,14 @@ public class AzureStorageAccountResource {
 
   public String determineContainer(ContainerType containerType) {
     return containerType.getContainer(this);
+  }
+
+  public String getStorageAccountUrl() {
+    String storageAccountURLTemplate = "https://<storageAccount>.blob.core.windows.net";
+
+    ST storageAccountURL = new ST(storageAccountURLTemplate);
+    storageAccountURL.add("storageAccount", name);
+    return storageAccountURL.render();
   }
 
   @Override

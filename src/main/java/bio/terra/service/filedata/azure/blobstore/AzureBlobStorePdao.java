@@ -40,11 +40,15 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AzureBlobStorePdao implements CloudFileReader {
+
+  private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
 
   private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
 
@@ -258,6 +262,40 @@ public class AzureBlobStorePdao implements CloudFileReader {
       blobCrl.deleteBlobQuietFailure(parentBlob.toString());
     }
     return success;
+  }
+
+  public boolean deleteScratchParquet(
+      String blobPath,
+      AzureStorageAccountResource storageAccountResource,
+      AuthenticatedUserRequest userRequest) {
+
+    String blobUrl =
+        String.format(
+            "%s/%s/%s",
+            storageAccountResource.getStorageAccountUrl(),
+            storageAccountResource.determineContainer(ContainerType.SCRATCH),
+            blobPath);
+    BlobUrlParts blobParts = BlobUrlParts.parse(blobUrl);
+
+    BillingProfileModel profileModel =
+        profileDao.getBillingProfileById(storageAccountResource.getProfileId());
+    BlobContainerClientFactory destinationClientFactory =
+        getTargetDataClientFactory(
+            profileModel,
+            storageAccountResource,
+            ContainerType.SCRATCH,
+            new BlobSasTokenOptions(
+                DEFAULT_SAS_TOKEN_EXPIRATION,
+                new BlobSasPermission()
+                    .setReadPermission(true)
+                    .setDeletePermission(true)
+                    .setListPermission(true),
+                userRequest.getEmail()));
+
+    String blobName = blobParts.getBlobName();
+    BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
+
+    return blobCrl.deleteBlobsWithPrefix(blobName);
   }
 
   public String signFile(

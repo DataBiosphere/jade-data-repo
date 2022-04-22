@@ -40,8 +40,7 @@ public class CreateSnapshotSourceDatasetDataSourceAzureStep implements Step {
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
-    String parquetDatasetSourceLocation =
-        IngestUtils.getParquetTargetLocationURL(datasetAzureStorageAccountResource);
+    String parquetDatasetSourceLocation = datasetAzureStorageAccountResource.getStorageAccountUrl();
     BlobUrlParts snapshotSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
             parquetDatasetSourceLocation,

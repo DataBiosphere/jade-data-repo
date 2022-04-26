@@ -54,6 +54,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import java.time.Instant;
 import java.util.List;
@@ -315,40 +316,56 @@ public class DrsServiceTest {
 
   @Test
   public void lookupAuthorizationsByDrsIdWithoutPHSOrConsentCode() {
-    when(snapshotService.retrieveSnapshotSummary(snapshotId))
-        .thenReturn(new SnapshotSummaryModel().id(snapshotId));
+    SnapshotSummaryModel snapshotSummary = new SnapshotSummaryModel().id(snapshotId);
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    assertThat(
+        "Passport authorization not available without PHS ID or consent code",
+        !SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
     verifyAuthorizationsWithoutPassport(drsService.lookupAuthorizationsByDrsId(googleDrsObjectId));
   }
 
   @Test
   public void lookupAuthorizationsByDrsIdWithoutConsentCode() {
-    when(snapshotService.retrieveSnapshotSummary(snapshotId))
-        .thenReturn(new SnapshotSummaryModel().id(snapshotId).phsId("phs100789"));
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).phsId("phs100789");
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    assertThat(
+        "Passport authorization not available without consent code",
+        !SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
     verifyAuthorizationsWithoutPassport(drsService.lookupAuthorizationsByDrsId(googleDrsObjectId));
   }
 
   @Test
   public void lookupAuthorizationsByDrsIdWithoutPHS() {
-    when(snapshotService.retrieveSnapshotSummary(snapshotId))
-        .thenReturn(new SnapshotSummaryModel().id(snapshotId).consentCode("c99"));
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).consentCode("c99");
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    assertThat(
+        "Passport authorization not available without PHS ID",
+        !SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
     verifyAuthorizationsWithoutPassport(drsService.lookupAuthorizationsByDrsId(googleDrsObjectId));
   }
 
   @Test
   public void lookupAuthorizationsByDrsIdWithPassportIdentifiers() {
-    when(snapshotService.retrieveSnapshotSummary(snapshotId))
-        .thenReturn(
-            new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99");
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
 
     DRSAuthorizations auths = drsService.lookupAuthorizationsByDrsId(googleDrsObjectId);
 
+    assertThat(
+        "Passport authorization available with PHS ID and consent code",
+        SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
     assertThat(
         "BearerAuth and PassportAuth are supported",
         auths.getSupportedTypes(),
         containsInAnyOrder(
             DRSAuthorizations.SupportedTypesEnum.BEARERAUTH,
             DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH));
-
     assertThat(
         "Passport issuer supplied when authorized for passport",
         auths.getPassportAuthIssuers(),

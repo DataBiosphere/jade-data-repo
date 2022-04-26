@@ -161,4 +161,12 @@ public class SnapshotSummary {
   private List<StorageResourceModel> toStorageResourceModel() {
     return getStorage().stream().map(StorageResource::toModel).collect(Collectors.toList());
   }
+
+  /**
+   * @param model a `SnapshotSummaryModel`
+   * @return whether the underlying snapshot can be accessed via RAS passport authorization
+   */
+  public static boolean passportAuthorizationAvailable(SnapshotSummaryModel model) {
+    return model.getPhsId() != null && model.getConsentCode() != null;
+  }
 }

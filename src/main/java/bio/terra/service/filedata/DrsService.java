@@ -42,6 +42,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.cloud.storage.BlobId;
@@ -178,10 +179,7 @@ public class DrsService {
       SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
       SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshot.id);
 
-      String phsId = snapshotSummary.getPhsId();
-      String consentCode = snapshotSummary.getConsentCode();
-
-      if (phsId != null && consentCode != null) {
+      if (SnapshotSummary.passportAuthorizationAvailable(snapshotSummary)) {
         auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
         auths.addPassportAuthIssuersItem(ecmConfiguration.getRasIssuer());
       }
@@ -273,12 +271,12 @@ public class DrsService {
 
   void verifyPassportAuth(UUID snapshotId, DRSPassportRequestModel drsPassportRequestModel) {
     SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshotId);
-    String phsId = snapshotSummary.getPhsId();
-    String consentCode = snapshotSummary.getConsentCode();
-    if (phsId == null || consentCode == null) {
+    if (!SnapshotSummary.passportAuthorizationAvailable(snapshotSummary)) {
       throw new InvalidAuthorizationMethod("Snapshot cannot use Ras Passport authorization");
     }
     // Pass the passport + phs id + consent code to ECM
+    String phsId = snapshotSummary.getPhsId();
+    String consentCode = snapshotSummary.getConsentCode();
     var criteria = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
     criteria.issuer(ecmConfiguration.getRasIssuer()).type(RAS_CRITERIA_TYPE);
     var request =

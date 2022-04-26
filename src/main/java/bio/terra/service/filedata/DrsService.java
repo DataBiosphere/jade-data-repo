@@ -174,7 +174,6 @@ public class DrsService {
       DRSAuthorizations auths = new DRSAuthorizations();
 
       auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
-      // TODO: add to bearer_auth_issuers, ask Muscles.
 
       SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
       SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshot.id);

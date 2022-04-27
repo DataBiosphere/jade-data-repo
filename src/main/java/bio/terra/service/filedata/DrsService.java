@@ -102,11 +102,11 @@ public class DrsService {
   private final ECMService ecmService;
   private final ECMConfiguration ecmConfiguration;
 
-  private final Map<UUID, SnapshotProject> snapshotProjects =
+  private final Map<UUID, SnapshotProject> snapshotProjectsCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
   private final Map<UUID, SnapshotCacheResult> snapshotCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
-  private final Map<UUID, SnapshotSummaryModel> snapshotSummaries =
+  private final Map<UUID, SnapshotSummaryModel> snapshotSummariesCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
 
   @Autowired
@@ -600,7 +600,7 @@ public class DrsService {
   }
 
   private SnapshotProject getSnapshotProject(UUID snapshotId) {
-    return snapshotProjects.computeIfAbsent(
+    return snapshotProjectsCache.computeIfAbsent(
         snapshotId, snapshotService::retrieveAvailableSnapshotProject);
   }
 
@@ -610,7 +610,8 @@ public class DrsService {
   }
 
   private SnapshotSummaryModel getSnapshotSummary(UUID snapshotId) {
-    return snapshotSummaries.computeIfAbsent(snapshotId, snapshotService::retrieveSnapshotSummary);
+    return snapshotSummariesCache.computeIfAbsent(
+        snapshotId, snapshotService::retrieveSnapshotSummary);
   }
 
   @VisibleForTesting

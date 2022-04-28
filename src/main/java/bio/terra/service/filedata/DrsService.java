@@ -174,8 +174,6 @@ public class DrsService {
     try (DrsRequestResource r = new DrsRequestResource()) {
       DRSAuthorizations auths = new DRSAuthorizations();
 
-      auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
-
       SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
       SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshot.id);
 
@@ -183,6 +181,8 @@ public class DrsService {
         auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
         auths.addPassportAuthIssuersItem(ecmConfiguration.getRasIssuer());
       }
+
+      auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
 
       return auths;
     }

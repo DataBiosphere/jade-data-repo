@@ -1,7 +1,7 @@
 package bio.terra.service.filedata;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -307,7 +307,7 @@ public class DrsServiceTest {
     assertThat(
         "BearerAuth is only type supported",
         auths.getSupportedTypes(),
-        containsInAnyOrder(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH));
+        contains(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH));
     assertThat(
         "Unauthorized for passport means no passport issuer",
         auths.getPassportAuthIssuers(),
@@ -361,15 +361,15 @@ public class DrsServiceTest {
         "Passport authorization available with PHS ID and consent code",
         SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
     assertThat(
-        "BearerAuth and PassportAuth are supported",
+        "PassportAuth and BearerAuth are supported",
         auths.getSupportedTypes(),
-        containsInAnyOrder(
-            DRSAuthorizations.SupportedTypesEnum.BEARERAUTH,
-            DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH));
+        contains(
+            DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH,
+            DRSAuthorizations.SupportedTypesEnum.BEARERAUTH));
     assertThat(
         "Passport issuer supplied when authorized for passport",
         auths.getPassportAuthIssuers(),
-        containsInAnyOrder(rasIssuer));
+        contains(rasIssuer));
   }
 
   @Test

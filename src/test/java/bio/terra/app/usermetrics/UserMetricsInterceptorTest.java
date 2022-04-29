@@ -17,6 +17,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -45,18 +46,20 @@ public class UserMetricsInterceptorTest {
   @Autowired private UserMetricsConfiguration metricsConfig;
   @Captor private ArgumentCaptor<AuthenticatedUserRequest> authCaptor;
   @Autowired private UserMetricsInterceptor metricsInterceptor;
+  HttpServletRequest request;
+  HttpServletResponse response;
 
   @Before
   public void setUp() throws Exception {
     metricsConfig.setIgnorePaths(List.of());
+    request = mock(HttpServletRequest.class);
+    response = mock(HttpServletResponse.class);
+    when(request.getMethod()).thenReturn("post");
+    when(request.getRequestURI()).thenReturn("/foo/bar");
   }
 
   @Test
   public void testSendEvent() throws Exception {
-    HttpServletRequest request = mock(HttpServletRequest.class);
-    HttpServletResponse response = mock(HttpServletResponse.class);
-    when(request.getMethod()).thenReturn("post");
-    when(request.getRequestURI()).thenReturn("/foo/bar");
     mockRequestAuth(request);
 
     runAnWait(request, response);
@@ -77,11 +80,34 @@ public class UserMetricsInterceptorTest {
   }
 
   @Test
+  public void testSendEventWithBillingProfileId() throws Exception {
+    String billingProfileId = UUID.randomUUID().toString();
+    Map<String, String[]> parameters =
+        Map.of(
+            UserMetricsInterceptor.BILLING_PROFILE_ID_FIELD_NAME, new String[] {billingProfileId});
+    when(request.getParameterMap()).thenReturn(parameters);
+    mockRequestAuth(request);
+
+    runAnWait(request, response);
+
+    verify(bardClient, times(1))
+        .logEvent(
+            authCaptor.capture(),
+            eq(
+                new BardEvent(
+                    UserMetricsInterceptor.API_EVENT_NAME,
+                    Map.of(
+                        UserMetricsInterceptor.METHOD_FIELD_NAME, "POST",
+                        UserMetricsInterceptor.PATH_FIELD_NAME, "/foo/bar",
+                        UserMetricsInterceptor.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId),
+                    "testapp",
+                    "some.dnsname.org")));
+
+    assertThat("token is correct", authCaptor.getValue().getToken(), equalTo("footoken"));
+  }
+
+  @Test
   public void testSendEventNotFiredWithNoToken() throws Exception {
-    HttpServletRequest request = mock(HttpServletRequest.class);
-    HttpServletResponse response = mock(HttpServletResponse.class);
-    when(request.getMethod()).thenReturn("post");
-    when(request.getRequestURI()).thenReturn("/foo/bar");
     doThrow(new UnauthorizedException("Building AuthenticatedUserRequest failed"))
         .when(authenticatedUserRequestFactory)
         .from(any());
@@ -93,10 +119,6 @@ public class UserMetricsInterceptorTest {
 
   @Test
   public void testSendEventNotFiredWithIgnoredUrl() throws Exception {
-    HttpServletRequest request = mock(HttpServletRequest.class);
-    HttpServletResponse response = mock(HttpServletResponse.class);
-    when(request.getMethod()).thenReturn("post");
-    when(request.getRequestURI()).thenReturn("/foo/bar");
     metricsConfig.setIgnorePaths(List.of("/foo/bar"));
     mockRequestAuth(request);
 
@@ -107,10 +129,6 @@ public class UserMetricsInterceptorTest {
 
   @Test
   public void testSendEventNotFiredWithIgnoredWildcardUrl() throws Exception {
-    HttpServletRequest request = mock(HttpServletRequest.class);
-    HttpServletResponse response = mock(HttpServletResponse.class);
-    when(request.getMethod()).thenReturn("post");
-    when(request.getRequestURI()).thenReturn("/foo/bar");
     metricsConfig.setIgnorePaths(List.of("/foo/*"));
     mockRequestAuth(request);
 

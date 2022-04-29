@@ -5,12 +5,14 @@ import bio.terra.app.configuration.UserMetricsConfiguration;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import liquibase.util.StringUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -21,6 +23,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
   static final String API_EVENT_NAME = "tdr:api";
   static final String METHOD_FIELD_NAME = "method";
   static final String PATH_FIELD_NAME = "path";
+  static final String BILLING_PROFILE_ID_FIELD_NAME = "billingProfileId";
 
   private final BardClient bardClient;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
@@ -55,11 +58,21 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
       // Don't track unauthenticated requests
       return;
     }
+
     // Don't log metrics if bard isn't configured or the path is part of the ignore-list
     if (StringUtils.isEmpty(metricsConfig.getBardBasePath()) || ignoreEventForPath(path)) {
       return;
     }
 
+    HashMap<String, Object> eventProperties =
+        new HashMap<>(
+            Map.of(
+                METHOD_FIELD_NAME, method,
+                PATH_FIELD_NAME, path));
+    String[] billingProfileId = request.getParameterMap().get(BILLING_PROFILE_ID_FIELD_NAME);
+    if (ArrayUtils.isNotEmpty(billingProfileId)) {
+      eventProperties.put(BILLING_PROFILE_ID_FIELD_NAME, billingProfileId[0]);
+    }
     // Spawn a thread so that sending the metric doesn't slow down the initial request
     metricsPerformanceThreadpool.submit(
         () ->
@@ -67,9 +80,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
                 userRequest,
                 new BardEvent(
                     API_EVENT_NAME,
-                    Map.of(
-                        METHOD_FIELD_NAME, method,
-                        PATH_FIELD_NAME, path),
+                    eventProperties,
                     metricsConfig.getAppId(),
                     applicationConfiguration.getDnsName())));
   }

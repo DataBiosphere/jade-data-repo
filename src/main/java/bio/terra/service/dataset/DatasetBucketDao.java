@@ -100,7 +100,7 @@ public class DatasetBucketDao {
       return null;
     } else if (results.size() > 1) {
       throw new GoogleResourceException(
-          "There should only be one google project per dataset/billing combo.");
+          " There should only be one google project per dataset/billing combo.");
     }
     // case where we can re-use an exisiting google project
     return results.get(0);

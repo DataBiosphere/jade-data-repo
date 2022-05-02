@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,15 +140,19 @@ public class BlobCrl {
       prefix = blobName;
     }
     BlobContainerClient blobContainerClient = blobContainerClientFactory.getBlobContainerClient();
-    List<BlobItem> blobsToDelete =
-        blobContainerClient.listBlobs().stream()
-            .filter(blobItem -> blobItem.getName().startsWith(prefix))
-            .collect(Collectors.toList());
-    Collections.reverse(blobsToDelete);
 
-    return blobsToDelete.stream()
-        .map(item -> deleteBlob(item.getName()))
-        .reduce(true, Boolean::logicalAnd);
+    try (Stream<BlobItem> blobsStream = blobContainerClient.listBlobs().stream()) {
+      List<BlobItem> blobsToDelete =
+          blobsStream
+              .filter(blobItem -> blobItem.getName().startsWith(prefix))
+              .collect(Collectors.toList());
+
+      Collections.reverse(blobsToDelete);
+
+      return blobsToDelete.stream()
+          .map(item -> deleteBlob(item.getName()))
+          .reduce(true, Boolean::logicalAnd);
+    }
   }
 
   public boolean blobExists(String blobName) {

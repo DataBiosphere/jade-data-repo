@@ -1,6 +1,7 @@
 package bio.terra.app.controller;
 
 import bio.terra.app.configuration.OauthConfiguration;
+import bio.terra.app.configuration.OpenIDConnectConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.configuration.TerraConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
@@ -33,6 +34,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final OauthConfiguration oauthConfig;
+  private final OpenIDConnectConfiguration openIDConnectConfiguration;
   private final Logger logger = LoggerFactory.getLogger(UnauthenticatedApiController.class);
   private final JobService jobService;
   private final Environment env;
@@ -51,6 +53,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
       ObjectMapper objectMapper,
       HttpServletRequest request,
       OauthConfiguration oauthConfig,
+      OpenIDConnectConfiguration openIDConnectConfiguration,
       JobService jobService,
       Environment env,
       StatusService statusService,
@@ -59,6 +62,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     this.objectMapper = objectMapper;
     this.request = request;
     this.oauthConfig = oauthConfig;
+    this.openIDConnectConfiguration = openIDConnectConfiguration;
     this.jobService = jobService;
     this.env = env;
     this.statusService = statusService;
@@ -98,11 +102,13 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     RepositoryConfigurationModel configurationModel =
         new RepositoryConfigurationModel()
             .clientId(oauthConfig.getClientId())
+            .oidcClientId(openIDConnectConfiguration.getClientId())
             .activeProfiles(Arrays.asList(env.getActiveProfiles()))
             .semVer(semVer)
             .gitHash(gitHash)
             .terraUrl(terraConfiguration.getBasePath())
-            .samUrl(samConfiguration.getBasePath());
+            .samUrl(samConfiguration.getBasePath())
+            .authorityEndpoint(openIDConnectConfiguration.getAuthorityEndpoint());
 
     return new ResponseEntity<>(configurationModel, HttpStatus.OK);
   }
@@ -127,8 +133,9 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
   }
 
   @RequestMapping(value = "/swagger-ui.html")
-  public String getSwagger(Model model) {
-    model.addAttribute("clientId", oauthConfig.getClientId());
+  public String getSwaggerUI(Model model) {
+    model.addAttribute("oauthClientId", oauthConfig.getClientId());
+    model.addAttribute("oidcClientId", openIDConnectConfiguration.getClientId());
     return "index";
   }
 }

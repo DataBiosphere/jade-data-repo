@@ -4,6 +4,7 @@ import static java.time.Instant.now;
 
 import bio.terra.common.exception.ErrorReportException;
 import bio.terra.service.auth.iam.exception.IamInternalServerErrorException;
+import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import com.google.api.client.http.HttpStatusCodes;
@@ -59,6 +60,8 @@ class SamRetry {
         return function.apply();
       } catch (ApiException ex) {
         handleApiException(ex);
+      } catch (IamUnauthorizedException ex) {
+        throw ex;
       } catch (Exception ex) {
         throw new IamInternalServerErrorException(
             "Unexpected exception type: " + ex.toString(), ex);
@@ -76,6 +79,8 @@ class SamRetry {
         return;
       } catch (ApiException ex) {
         handleApiException(ex);
+      } catch (IamUnauthorizedException ex) {
+        throw ex;
       } catch (Exception ex) {
         throw new IamInternalServerErrorException(
             "Unexpected exception type: " + ex.toString(), ex);

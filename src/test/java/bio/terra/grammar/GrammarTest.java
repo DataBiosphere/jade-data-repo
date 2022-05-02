@@ -102,6 +102,17 @@ public class GrammarTest {
   }
 
   @Test
+  public void testWhereLike() {
+    Query query =
+        Query.parse(
+            "SELECT baz.quux.datarepo_row_id FROM foo.bar, baz.quux "
+                + "WHERE baz.quux.x LIKE 'lux' AND baz.quux.y NOT LIKE 'box'");
+    List<String> columnNames = query.getColumnNames();
+    assertThat("there are three columns", columnNames.size(), equalTo(3));
+    assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
+  }
+
+  @Test
   public void test1000Genomes() {
     // test for DR-2143 Fix validating dataset names that start with a number
     Query.parse("SELECT * FROM 1000GenomesDataset.sample_info");
@@ -234,5 +245,23 @@ public class GrammarTest {
     BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
     Query query = Query.parse("SELECT * FROM noDataset.table WHERE noDataset.table.x = 'string'");
     query.translateSql(bqVisitor);
+  }
+
+  @Test(expected = InvalidQueryException.class)
+  public void testDeleteInvalid() {
+    Query query = Query.parse("DELETE * FROM foo.bar");
+    query.getDatasetNames();
+  }
+
+  @Test(expected = InvalidQueryException.class)
+  public void testSemicolonsInvalid() {
+    Query query = Query.parse("SELECT * FROM foo.bar; DELETE * FROM foo.bar");
+    query.getDatasetNames();
+  }
+
+  @Test(expected = InvalidQueryException.class)
+  public void testUpdateInvalid() {
+    Query query = Query.parse("INSERT INTO foo.bar (x, y, z) VALUES 1 2 3");
+    query.getDatasetNames();
   }
 }

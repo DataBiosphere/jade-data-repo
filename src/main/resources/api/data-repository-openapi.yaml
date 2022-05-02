@@ -34,6 +34,10 @@ security:
       - openid
       - email
       - profile
+  - oidc:
+      - openid
+      - email
+      - profile
 paths:
   /status:
     get:
@@ -4619,7 +4623,10 @@ components:
       properties:
         clientId:
           type: string
-          description: the google defined client id for the repository
+          description: the Oauth client id for the repository
+        oidcClientId:
+          type: string
+          description: the Oauth client id for the OpenID Connect config for the repository
         activeProfiles:
           type: array
           description: the active profiles for this instance
@@ -4638,6 +4645,10 @@ components:
           type: string
           format: uri
           description: the URI of SAM this instance uses
+        authorityEndpoint:
+          type: string
+          format: uri
+          description: the URI of oauth authority for the UI to use (e.g. .well-known/openid-configuration gets appended to it)
     ConfigModel:
       type: object
       properties:
@@ -5208,4 +5219,13 @@ components:
             email: email authorization
             profile: profile authorization
             https://www.googleapis.com/auth/cloud-billing.readonly: cloud billing authorization
-
+    oidc:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: /oauth2/authorize
+          tokenUrl: /oauth2/token
+          scopes:
+            openid: open id authorization
+            email: email authorization
+            profile: profile authorization

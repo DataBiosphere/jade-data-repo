@@ -43,7 +43,8 @@ import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
-import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
+import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipV2;
+import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
 import org.slf4j.Logger;
@@ -147,14 +148,15 @@ public class SamIam implements IamProviderInterface {
   private Map<UUID, Set<IamRole>> listAuthorizedResourcesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType) throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-    return samResourceApi.listResourcesAndPolicies(iamResourceType.getSamResourceName()).stream()
+    return samResourceApi.listResourcesAndPoliciesV2(iamResourceType.getSamResourceName()).stream()
         .filter(resource -> ValidationUtils.isValidUuid(resource.getResourceId()))
         .collect(
-            Collectors.groupingBy(
+            Collectors.toMap(
                 resource -> UUID.fromString(resource.getResourceId()),
-                Collectors.mapping(
-                    resource -> IamRole.fromValue(resource.getAccessPolicyName()),
-                    Collectors.toSet())));
+                resource ->
+                    resource.getDirect().getRoles().stream()
+                        .map(IamRole::fromValue)
+                        .collect(Collectors.toSet())));
   }
 
   @Override
@@ -170,7 +172,7 @@ public class SamIam implements IamProviderInterface {
       throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     List<String> actionList =
-        samResourceApi.resourceActions(iamResourceType.toString(), resourceId);
+        samResourceApi.resourceActionsV2(iamResourceType.toString(), resourceId);
     return (actionList.size() > 0);
   }
 
@@ -197,7 +199,7 @@ public class SamIam implements IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-    samResourceApi.deleteResource(iamResourceType.toString(), resourceId);
+    samResourceApi.deleteResourceV2(iamResourceType.toString(), resourceId);
   }
 
   @Override
@@ -373,7 +375,7 @@ public class SamIam implements IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-    return samResourceApi.resourceRoles(
+    return samResourceApi.resourceRolesV2(
         iamResourceType.getSamResourceName(), resourceId.toString());
   }
 
@@ -381,9 +383,9 @@ public class SamIam implements IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-    try (Stream<AccessPolicyResponseEntry> resultStream =
+    try (Stream<AccessPolicyResponseEntryV2> resultStream =
         samResourceApi
-            .listResourcePolicies(iamResourceType.toString(), resourceId.toString())
+            .listResourcePoliciesV2(iamResourceType.toString(), resourceId.toString())
             .stream()) {
       return resultStream
           .map(
@@ -408,13 +410,13 @@ public class SamIam implements IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-    try (Stream<AccessPolicyResponseEntry> resultStream =
+    try (Stream<AccessPolicyResponseEntryV2> resultStream =
         samResourceApi
-            .listResourcePolicies(iamResourceType.toString(), resourceId.toString())
+            .listResourcePoliciesV2(iamResourceType.toString(), resourceId.toString())
             .stream()) {
       return resultStream.collect(
           Collectors.toMap(
-              a -> IamRole.fromValue(a.getPolicyName()), AccessPolicyResponseEntry::getEmail));
+              a -> IamRole.fromValue(a.getPolicyName()), AccessPolicyResponseEntryV2::getEmail));
     }
   }
 
@@ -448,7 +450,7 @@ public class SamIam implements IamProviderInterface {
         resourceId.toString(),
         policyName,
         userEmail);
-    samResourceApi.addUserToPolicy(
+    samResourceApi.addUserToPolicyV2(
         iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
   }
 
@@ -476,7 +478,7 @@ public class SamIam implements IamProviderInterface {
       String userEmail)
       throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-    samResourceApi.removeUserFromPolicy(
+    samResourceApi.removeUserFromPolicyV2(
         iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
   }
 
@@ -487,8 +489,8 @@ public class SamIam implements IamProviderInterface {
       String policyName)
       throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-    AccessPolicyMembership result =
-        samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
+    AccessPolicyMembershipV2 result =
+        samResourceApi.getPolicyV2(iamResourceType.toString(), resourceId.toString(), policyName);
     return new PolicyModel().name(policyName).members(result.getMemberEmails());
   }
 

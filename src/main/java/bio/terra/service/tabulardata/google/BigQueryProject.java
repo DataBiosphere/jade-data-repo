@@ -1,13 +1,11 @@
 package bio.terra.service.tabulardata.google;
 
-import bio.terra.app.configuration.ApplicationContextUtils;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.AclUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.filedata.FSContainerInterface;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -31,12 +29,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 
 public final class BigQueryProject {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryProject.class);
@@ -44,19 +40,16 @@ public final class BigQueryProject {
       new ConcurrentHashMap<>();
   private final String projectId;
   private final BigQuery bigQuery;
+  private final int TIMEOUT_SECONDS = 40;
 
   private BigQueryProject(String projectId) {
     logger.info("Retrieving Bigquery project for project id: {}", projectId);
     this.projectId = projectId;
     HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
-    ApplicationContext appCtx = ApplicationContextUtils.getApplicationContext();
-    GcsConfiguration gcsConfiguration = appCtx.getBean(GcsConfiguration.class);
     transportOptions =
         transportOptions.toBuilder()
-            .setConnectTimeout(
-                (int) TimeUnit.SECONDS.toMillis(gcsConfiguration.getConnectTimeoutSeconds()))
-            .setReadTimeout(
-                (int) TimeUnit.SECONDS.toMillis(gcsConfiguration.getReadTimeoutSeconds()))
+            .setConnectTimeout(TIMEOUT_SECONDS * 1000)
+            .setReadTimeout(TIMEOUT_SECONDS * 1000)
             .build();
     bigQuery =
         BigQueryOptions.newBuilder()

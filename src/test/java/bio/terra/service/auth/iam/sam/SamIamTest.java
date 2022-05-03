@@ -35,11 +35,12 @@ import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
-import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
-import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
+import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipV2;
+import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
-import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
+import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserResourcesResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -126,12 +127,12 @@ public class SamIamTest {
   public void testIgnoresNonUUIDResourceName() throws ApiException, InterruptedException {
     final UUID goodId = UUID.randomUUID();
     final String badId = "badUUID";
-    when(samResourceApi.listResourcesAndPolicies(
+    when(samResourceApi.listResourcesAndPoliciesV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName()))
         .thenReturn(
             List.of(
-                new ResourceAndAccessPolicy().resourceId(goodId.toString()),
-                new ResourceAndAccessPolicy().resourceId(badId)));
+                new UserResourcesResponse().resourceId(goodId.toString()),
+                new UserResourcesResponse().resourceId(badId)));
 
     Set<UUID> uuids =
         samIam.listAuthorizedResources(userReq, IamResourceType.SPEND_PROFILE).keySet();
@@ -193,10 +194,10 @@ public class SamIamTest {
 
   @Test
   public void testHasActions() throws ApiException, InterruptedException {
-    when(samResourceApi.resourceActions(
+    when(samResourceApi.resourceActionsV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName(), "my-id-1"))
         .thenReturn(List.of(IamAction.READ_DATA.toString()));
-    when(samResourceApi.resourceActions(
+    when(samResourceApi.resourceActionsV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName(), "my-id-2"))
         .thenReturn(List.of());
     assertTrue(samIam.hasActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-1"));
@@ -209,18 +210,19 @@ public class SamIamTest {
     samIam.deleteDatasetResource(userReq, datasetId);
     // Verify that the correct Sam API call was made
     verify(samResourceApi, times(1))
-        .deleteResource(eq(IamResourceType.DATASET.getSamResourceName()), eq(datasetId.toString()));
+        .deleteResourceV2(
+            eq(IamResourceType.DATASET.getSamResourceName()), eq(datasetId.toString()));
 
     final UUID snapshotId = UUID.randomUUID();
     samIam.deleteSnapshotResource(userReq, snapshotId);
     verify(samResourceApi, times(1))
-        .deleteResource(
+        .deleteResourceV2(
             eq(IamResourceType.DATASNAPSHOT.getSamResourceName()), eq(snapshotId.toString()));
 
     final UUID profileId = UUID.randomUUID();
     samIam.deleteProfileResource(userReq, profileId.toString());
     verify(samResourceApi, times(1))
-        .deleteResource(
+        .deleteResourceV2(
             eq(IamResourceType.SPEND_PROFILE.getSamResourceName()), eq(profileId.toString()));
   }
 
@@ -229,20 +231,23 @@ public class SamIamTest {
     final UUID id = UUID.randomUUID();
     final String policyEmail = "policygroup@firecloud.org";
     final String memberEmail = "a@a.com";
-    when(samResourceApi.listResourcePolicies(
+    when(samResourceApi.listResourcePoliciesV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName(), id.toString()))
         .thenReturn(
             List.of(
-                new AccessPolicyResponseEntry()
+                new AccessPolicyResponseEntryV2()
                     .policyName(IamRole.CUSTODIAN.toString())
                     .email(policyEmail)
-                    .policy(new AccessPolicyMembership().addMemberEmailsItem(memberEmail))));
+                    .policy(new AccessPolicyMembershipV2().addMemberEmailsItem(memberEmail))));
 
     assertThat(
         samIam.retrievePolicies(userReq, IamResourceType.SPEND_PROFILE, id),
         is(
             List.of(
-                new PolicyModel().name(IamRole.CUSTODIAN.toString()).addMembersItem(memberEmail))));
+                new PolicyModel()
+                    .name(IamRole.CUSTODIAN.toString())
+                    .addMembersItem(memberEmail)
+                    .memberPolicies(List.of()))));
 
     assertThat(
         samIam.retrievePolicyEmails(userReq, IamResourceType.SPEND_PROFILE, id),
@@ -329,11 +334,11 @@ public class SamIamTest {
   public void testAddPolicy() throws InterruptedException, ApiException {
     final UUID id = UUID.randomUUID();
     final String userEmail = "a@a.com";
-    when(samResourceApi.getPolicy(
+    when(samResourceApi.getPolicyV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName(),
             id.toString(),
             IamRole.OWNER.toString()))
-        .thenReturn(new AccessPolicyMembership().memberEmails(List.of(userEmail)));
+        .thenReturn(new AccessPolicyMembershipV2().memberEmails(List.of(userEmail)));
     final PolicyModel policyModel =
         samIam.addPolicyMember(
             userReq, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
@@ -341,7 +346,7 @@ public class SamIamTest {
         policyModel,
         is(new PolicyModel().name(IamRole.OWNER.toString()).addMembersItem(userEmail)));
     verify(samResourceApi, times(1))
-        .addUserToPolicy(
+        .addUserToPolicyV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName(),
             id.toString(),
             IamRole.OWNER.toString(),
@@ -352,18 +357,18 @@ public class SamIamTest {
   public void testDeletePolicy() throws InterruptedException, ApiException {
     final UUID id = UUID.randomUUID();
     final String userEmail = "a@a.com";
-    when(samResourceApi.getPolicy(
+    when(samResourceApi.getPolicyV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName(),
             id.toString(),
             IamRole.OWNER.toString()))
-        .thenReturn(new AccessPolicyMembership().memberEmails(List.of()));
+        .thenReturn(new AccessPolicyMembershipV2().memberEmails(List.of()));
     final PolicyModel policyModel =
         samIam.deletePolicyMember(
             userReq, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
     assertThat(
         policyModel, is(new PolicyModel().name(IamRole.OWNER.toString()).members(List.of())));
     verify(samResourceApi, times(1))
-        .removeUserFromPolicy(
+        .removeUserFromPolicyV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName(),
             id.toString(),
             IamRole.OWNER.toString(),
@@ -382,15 +387,16 @@ public class SamIamTest {
   @Test
   public void listAuthorizedResourcesTest() throws Exception {
     UUID id = UUID.randomUUID();
-    when(samResourceApi.listResourcesAndPolicies(IamResourceType.DATASNAPSHOT.getSamResourceName()))
+    when(samResourceApi.listResourcesAndPoliciesV2(
+            IamResourceType.DATASNAPSHOT.getSamResourceName()))
         .thenReturn(
             List.of(
-                new ResourceAndAccessPolicy()
+                new UserResourcesResponse()
                     .resourceId(id.toString())
-                    .accessPolicyName(IamRole.OWNER.toString()),
-                new ResourceAndAccessPolicy()
+                    .direct(new RolesAndActions().roles(List.of(IamRole.OWNER.toString()))),
+                new UserResourcesResponse()
                     .resourceId(id.toString())
-                    .accessPolicyName(IamRole.READER.toString())));
+                    .direct(new RolesAndActions().roles(List.of(IamRole.READER.toString())))));
     Map<UUID, Set<IamRole>> uuidSetMap =
         samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT);
     assertThat(uuidSetMap, is((Map.of(id, Set.of(IamRole.OWNER, IamRole.READER)))));
@@ -398,13 +404,14 @@ public class SamIamTest {
 
   @Test(expected = IamUnauthorizedException.class)
   public void listAuthorizedResourcesTest401Error() throws Exception {
-    when(samResourceApi.listResourcesAndPolicies(IamResourceType.DATASNAPSHOT.getSamResourceName()))
+    when(samResourceApi.listResourcesAndPoliciesV2(
+            IamResourceType.DATASNAPSHOT.getSamResourceName()))
         .thenThrow(IamUnauthorizedException.class);
     try {
       samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT);
     } finally {
       verify(samResourceApi, times(1))
-          .listResourcesAndPolicies(IamResourceType.DATASNAPSHOT.getSamResourceName());
+          .listResourcesAndPoliciesV2(IamResourceType.DATASNAPSHOT.getSamResourceName());
     }
   }
 }

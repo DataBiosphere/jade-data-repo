@@ -7,6 +7,7 @@ import bio.terra.common.exception.ErrorReportException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.model.ResourcePolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
@@ -30,6 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -46,6 +48,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
+import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,12 +154,15 @@ public class SamIam implements IamProviderInterface {
     return samResourceApi.listResourcesAndPoliciesV2(iamResourceType.getSamResourceName()).stream()
         .filter(resource -> ValidationUtils.isValidUuid(resource.getResourceId()))
         .collect(
-            Collectors.toMap(
+            Collectors.groupingBy(
                 resource -> UUID.fromString(resource.getResourceId()),
-                resource ->
-                    resource.getDirect().getRoles().stream()
-                        .map(IamRole::fromValue)
-                        .collect(Collectors.toSet())));
+                Collectors.flatMapping(
+                    r ->
+                        Objects.requireNonNullElse(r.getDirect(), new RolesAndActions())
+                            .getRoles()
+                            .stream()
+                            .map(IamRole::fromValue),
+                    Collectors.toSet())));
   }
 
   @Override
@@ -392,7 +398,17 @@ public class SamIam implements IamProviderInterface {
               entry ->
                   new PolicyModel()
                       .name(entry.getPolicyName())
-                      .members(entry.getPolicy().getMemberEmails()))
+                      .members(entry.getPolicy().getMemberEmails())
+                      .memberPolicies(
+                          entry.getPolicy().getMemberPolicies().stream()
+                              .map(
+                                  pid ->
+                                      new ResourcePolicyModel()
+                                          .policyName(pid.getPolicyName())
+                                          .policyEmail(pid.getPolicyEmail())
+                                          .resourceId(UUID.fromString(pid.getResourceId()))
+                                          .resourceTypeName(pid.getResourceTypeName()))
+                              .collect(Collectors.toList())))
           .collect(Collectors.toList());
     }
   }

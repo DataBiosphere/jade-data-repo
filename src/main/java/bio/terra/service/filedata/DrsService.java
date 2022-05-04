@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.app.configuration.ECMConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
@@ -13,6 +14,7 @@ import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSAuthorizations;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
@@ -40,6 +42,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.cloud.storage.BlobId;
@@ -80,7 +83,6 @@ public class DrsService {
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
   private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
-  private static final String RAS_ISSUER = "https://stsstg.nih.gov";
   private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
   private static final String DRS_OBJECT_VERSION = "0";
   private static final Duration URL_TTL = Duration.ofMinutes(15);
@@ -98,12 +100,13 @@ public class DrsService {
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
   private final ECMService ecmService;
+  private final ECMConfiguration ecmConfiguration;
 
-  private final Map<UUID, SnapshotProject> snapshotProjects =
+  private final Map<UUID, SnapshotProject> snapshotProjectsCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
   private final Map<UUID, SnapshotCacheResult> snapshotCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
-  private final Map<UUID, SnapshotSummaryModel> snapshotSummaries =
+  private final Map<UUID, SnapshotSummaryModel> snapshotSummariesCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
 
   @Autowired
@@ -118,7 +121,8 @@ public class DrsService {
       PerformanceLogger performanceLogger,
       AzureBlobStorePdao azureBlobStorePdao,
       GcsProjectFactory gcsProjectFactory,
-      ECMService ecmService) {
+      ECMService ecmService,
+      ECMConfiguration ecmConfiguration) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -130,6 +134,7 @@ public class DrsService {
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.gcsProjectFactory = gcsProjectFactory;
     this.ecmService = ecmService;
+    this.ecmConfiguration = ecmConfiguration;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -152,6 +157,34 @@ public class DrsService {
     @Override
     public void close() {
       currentDRSRequests.decrementAndGet();
+    }
+  }
+
+  /**
+   * Determine the acceptable means of authentication for a given DRS ID, including the passport
+   * issuers when supported.
+   *
+   * @param drsObjectId the object ID for which to look up authorizations
+   * @return the `DrsAuthorizations` for this ID
+   * @throws IllegalArgumentException if there is an issue with the object id
+   * @throws SnapshotNotFoundException if the snapshot for the DRS object cannot be found
+   * @throws TooManyRequestsException if there are too many concurrent DRS lookup requests
+   */
+  public DRSAuthorizations lookupAuthorizationsByDrsId(String drsObjectId) {
+    try (DrsRequestResource r = new DrsRequestResource()) {
+      DRSAuthorizations auths = new DRSAuthorizations();
+
+      SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
+      SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshot.id);
+
+      if (SnapshotSummary.passportAuthorizationAvailable(snapshotSummary)) {
+        auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
+        auths.addPassportAuthIssuersItem(ecmConfiguration.getRasIssuer());
+      }
+
+      auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
+
+      return auths;
     }
   }
 
@@ -238,14 +271,14 @@ public class DrsService {
 
   void verifyPassportAuth(UUID snapshotId, DRSPassportRequestModel drsPassportRequestModel) {
     SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshotId);
-    String phsId = snapshotSummary.getPhsId();
-    String consentCode = snapshotSummary.getConsentCode();
-    if (phsId == null || consentCode == null) {
+    if (!SnapshotSummary.passportAuthorizationAvailable(snapshotSummary)) {
       throw new InvalidAuthorizationMethod("Snapshot cannot use Ras Passport authorization");
     }
     // Pass the passport + phs id + consent code to ECM
+    String phsId = snapshotSummary.getPhsId();
+    String consentCode = snapshotSummary.getConsentCode();
     var criteria = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
-    criteria.issuer(RAS_ISSUER).type(RAS_CRITERIA_TYPE);
+    criteria.issuer(ecmConfiguration.getRasIssuer()).type(RAS_CRITERIA_TYPE);
     var request =
         new ValidatePassportRequest()
             .passports(drsPassportRequestModel.getPassports())
@@ -567,7 +600,7 @@ public class DrsService {
   }
 
   private SnapshotProject getSnapshotProject(UUID snapshotId) {
-    return snapshotProjects.computeIfAbsent(
+    return snapshotProjectsCache.computeIfAbsent(
         snapshotId, snapshotService::retrieveAvailableSnapshotProject);
   }
 
@@ -577,7 +610,8 @@ public class DrsService {
   }
 
   private SnapshotSummaryModel getSnapshotSummary(UUID snapshotId) {
-    return snapshotSummaries.computeIfAbsent(snapshotId, snapshotService::retrieveSnapshotSummary);
+    return snapshotSummariesCache.computeIfAbsent(
+        snapshotId, snapshotService::retrieveSnapshotSummary);
   }
 
   @VisibleForTesting

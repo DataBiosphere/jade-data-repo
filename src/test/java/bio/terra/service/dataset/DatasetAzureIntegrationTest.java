@@ -367,19 +367,19 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     // lookup file
     List<BulkLoadFileResultModel> loadedFiles = result.getLoadFileResults();
     BulkLoadFileResultModel file1 = loadedFiles.get(0);
-    FileModel file1Model = dataRepoFixtures.getFileById(steward(), datasetId, file1.getFileId());
+    FileModel file1Model = dataRepoFixtures.getFileById(steward, datasetId, file1.getFileId());
     assertThat("Test retrieve file by ID", file1Model.getFileId(), equalTo(file1.getFileId()));
 
     FileModel file2Model =
-        dataRepoFixtures.getFileById(steward(), datasetId, loadedFiles.get(1).getFileId());
+        dataRepoFixtures.getFileById(steward, datasetId, loadedFiles.get(1).getFileId());
 
     BulkLoadFileResultModel file3 = loadedFiles.get(2);
     FileModel file3Model =
-        dataRepoFixtures.getFileByName(steward(), datasetId, file3.getTargetPath());
+        dataRepoFixtures.getFileByName(steward, datasetId, file3.getTargetPath());
     assertThat("Test retrieve file by path", file3Model.getFileId(), equalTo(file3.getFileId()));
 
     FileModel file4Model =
-        dataRepoFixtures.getFileById(steward(), datasetId, loadedFiles.get(3).getFileId());
+        dataRepoFixtures.getFileById(steward, datasetId, loadedFiles.get(3).getFileId());
 
     // ingest via control file
     String flightId = UUID.randomUUID().toString();

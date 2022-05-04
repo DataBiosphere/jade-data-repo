@@ -11,6 +11,7 @@ import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.TransactionSystemException;
 
 public class LockDatasetStep implements Step {
 
@@ -58,7 +59,7 @@ public class LockDatasetStep implements Step {
       } else {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
       }
-    } catch (RetryQueryException | DatasetLockException e) {
+    } catch (RetryQueryException | DatasetLockException | TransactionSystemException e) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
   }

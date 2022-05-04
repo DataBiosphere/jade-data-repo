@@ -4,6 +4,7 @@ import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -15,6 +16,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -277,14 +279,16 @@ public class SnapshotsApiController implements SnapshotsApi {
   @Override
   public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(@PathVariable("id") UUID id) {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
-    List<PolicyModel> policyModels =
+    List<SamPolicyModel> samPolicyModels =
         iamService.retrievePolicies(userRequest, IamResourceType.DATASNAPSHOT, id);
     List<WorkspacePolicyModel> workspacePolicyModels =
-        policyModels.stream()
+        samPolicyModels.stream()
             .flatMap(pm -> rawlsService.resolvePolicyEmails(pm, userRequest).stream())
             .collect(Collectors.toList());
     PolicyResponse response =
-        new PolicyResponse().policies(policyModels).workspaces(workspacePolicyModels);
+        new PolicyResponse()
+            .policies(PolicyUtils.samToTdrPolicyModels(samPolicyModels))
+            .workspaces(workspacePolicyModels);
 
     return new ResponseEntity<>(response, HttpStatus.OK);
   }

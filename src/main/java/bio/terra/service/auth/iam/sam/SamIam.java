@@ -8,6 +8,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.ResourcePolicyModel;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
@@ -362,7 +363,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public List<PolicyModel> retrievePolicies(
+  public List<SamPolicyModel> retrievePolicies(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException {
     return SamRetry.retry(
@@ -385,7 +386,7 @@ public class SamIam implements IamProviderInterface {
         iamResourceType.getSamResourceName(), resourceId.toString());
   }
 
-  private List<PolicyModel> retrievePoliciesInner(
+  private List<SamPolicyModel> retrievePoliciesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
@@ -396,7 +397,7 @@ public class SamIam implements IamProviderInterface {
       return resultStream
           .map(
               entry ->
-                  new PolicyModel()
+                  new SamPolicyModel()
                       .name(entry.getPolicyName())
                       .members(entry.getPolicy().getMemberEmails())
                       .memberPolicies(

@@ -1,11 +1,10 @@
 package bio.terra.service.rawls;
 
 import bio.terra.app.configuration.TerraConfiguration;
-import bio.terra.app.model.rawls.WorkspaceDetails;
 import bio.terra.app.model.rawls.WorkspaceResponse;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.PolicyModel;
 import bio.terra.model.ResourcePolicyModel;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.WorkspacePolicyModel;
 import java.util.List;
 import java.util.Map;
@@ -27,9 +26,9 @@ public class RawlsService {
   }
 
   public List<WorkspacePolicyModel> resolvePolicyEmails(
-      PolicyModel policyModel, AuthenticatedUserRequest userRequest) {
+      SamPolicyModel samPolicyModel, AuthenticatedUserRequest userRequest) {
     Map<UUID, List<ResourcePolicyModel>> workspaceToPolicy =
-        policyModel.getMemberPolicies().stream()
+        samPolicyModel.getMemberPolicies().stream()
             .filter(p -> p.getResourceTypeName().equals("workspace"))
             .collect(Collectors.groupingBy(ResourcePolicyModel::getResourceId));
 

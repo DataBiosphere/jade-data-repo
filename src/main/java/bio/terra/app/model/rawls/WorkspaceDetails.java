@@ -12,13 +12,9 @@
 
 package bio.terra.app.model.rawls;
 
-import bio.terra.model.ResourcePolicyModel;
-import bio.terra.model.WorkspacePolicyModel;
 import com.google.gson.annotations.SerializedName;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 /** WorkspaceDetails */
 @javax.annotation.Generated(

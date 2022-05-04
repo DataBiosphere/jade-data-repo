@@ -17,6 +17,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -244,7 +245,7 @@ public class SamIamTest {
         samIam.retrievePolicies(userReq, IamResourceType.SPEND_PROFILE, id),
         is(
             List.of(
-                new PolicyModel()
+                new SamPolicyModel()
                     .name(IamRole.CUSTODIAN.toString())
                     .addMembersItem(memberEmail)
                     .memberPolicies(List.of()))));

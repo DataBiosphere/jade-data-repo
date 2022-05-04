@@ -12,11 +12,11 @@
 
 package bio.terra.app.model.rawls;
 
+import bio.terra.app.utils.PolicyUtils;
 import bio.terra.model.ResourcePolicyModel;
 import bio.terra.model.WorkspacePolicyModel;
 import com.google.gson.annotations.SerializedName;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -55,8 +55,11 @@ public class WorkspaceResponse {
         .workspaceId(UUID.fromString(workspace.getWorkspaceId()))
         .workspaceName(workspace.getName())
         .workspaceNamespace(workspace.getNamespace())
-        .workspacePolicies(resourcePolicyModels)
-        .workspaceLink(String.format("%s/#workspaces/%s/%s", terraBasePath, workspace.getNamespace(), workspace.getName()));
+        .workspacePolicies(PolicyUtils.resourcePolicyToPolicyModel(resourcePolicyModels))
+        .workspaceLink(
+            String.format(
+                "%s/#workspaces/%s/%s",
+                terraBasePath, workspace.getNamespace(), workspace.getName()));
   }
 
   @Override

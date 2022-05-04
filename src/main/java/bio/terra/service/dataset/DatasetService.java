@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import bio.terra.app.controller.DatasetsApiController;
+import bio.terra.app.usermetrics.UserMetricsInterceptor;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -119,6 +120,12 @@ public class DatasetService {
   public String createDataset(
       DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
     String description = "Create dataset " + datasetRequest.getName();
+    HashMap<String, Object> properties =
+        new HashMap<>(
+            Map.of(
+                UserMetricsInterceptor.BILLING_PROFILE_ID_FIELD_NAME,
+                datasetRequest.getDefaultProfileId()));
+    UserMetricsInterceptor.eventProperties.set(properties);
     return jobService
         .newJob(description, DatasetCreateFlight.class, datasetRequest, userReq)
         .submit();

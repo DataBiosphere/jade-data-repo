@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -15,9 +14,9 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
@@ -36,7 +35,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.util.ContentCachingRequestWrapper;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
@@ -51,22 +49,17 @@ public class UserMetricsInterceptorTest {
   @SpyBean private UserMetricsInterceptor metricsInterceptor;
   @Mock HttpServletRequest request;
   @Mock HttpServletResponse response;
-  ContentCachingRequestWrapper requestWrapper;
 
   @Before
   public void setUp() throws Exception {
     metricsConfig.setIgnorePaths(List.of());
     when(request.getMethod()).thenReturn("post");
     when(request.getRequestURI()).thenReturn("/foo/bar");
-    when(request.getContentLength()).thenReturn(1000);
-    requestWrapper = new ContentCachingRequestWrapper(request);
-    doReturn(requestWrapper).when(metricsInterceptor).getRequestWrapper(request);
   }
 
   @Test
   public void testSendEvent() throws Exception {
     mockRequestAuth(request);
-    when(metricsInterceptor.getProfileIdFromRequest(request)).thenReturn(Optional.empty());
 
     runAnWait(request, response);
 
@@ -88,8 +81,10 @@ public class UserMetricsInterceptorTest {
   @Test
   public void testSendEventWithBillingProfileId() throws Exception {
     String billingProfileId = UUID.randomUUID().toString();
-    when(metricsInterceptor.getProfileIdFromRequest(request))
-        .thenReturn(Optional.of(billingProfileId));
+    HashMap<String, Object> properties =
+        new HashMap<>(
+            Map.of(UserMetricsInterceptor.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId));
+    UserMetricsInterceptor.eventProperties.set(properties);
 
     mockRequestAuth(request);
 

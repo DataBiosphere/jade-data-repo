@@ -2796,6 +2796,49 @@ paths:
               schema:
                 $ref: '#/components/schemas/DRSServiceInfo'
   /ga4gh/drs/v1/objects/{object_id}:
+    options:
+      tags:
+        - DataRepositoryService
+      summary: Get Authorization info about a DRS Object.
+      description: >-
+        Returns `DRSAuthorizations` that can be used to determine
+        how to authorize requests to GET or POST a `DRSObject`.
+      operationId: OptionsObject
+      parameters:
+        - name: object_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: "`DRSAuthorizations` were found successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DRSAuthorizations'
+        204:
+          description: "`DRSAuthorizations` are not supported for this object. Default to `None`."
+        400:
+          description: The request is malformed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DRSError'
+        404:
+          description: The requested `Object` wasn't found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DRSError'
+        405:
+          description: "`DRSAuthorizations` are not supported for this object. Default to `None`."
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DRSError'
     get:
       tags:
         - DataRepositoryService
@@ -5168,6 +5211,41 @@ components:
             type: string
             example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJnYTRnaF9wYXNzcG9ydF92MSI6W119.JJ5rN0ktP0qwyZmIPpxmF_p7JsxAZH6L6brUxtad3CM
           description: the encoded JWT GA4GH Passport that contains embedded Visas.  The overall JWT is signed as are the individual Passport Visas.
+    DRSAuthorizations:
+      type: object
+      properties:
+        supported_types:
+          type: array
+          items:
+            type: string
+            enum:
+              - None
+              - BasicAuth
+              - BearerAuth
+              - PassportAuth
+          description: >-
+            An Optional list of supported authorization types. More than one can be supported and tried in sequence.
+            Defaults to `None` if empty or missing.
+        passport_auth_issuers:
+          type: array
+          items:
+            type: string
+          description: >-
+            If authorizations contain `PassportAuth`, this is a required list of visa issuers
+            (as found in a visa's `iss` claim) that may authorize access to this object. The caller must
+            only provide passports that contain visas from this list. It is strongly recommended that the caller
+            validate that it is appropriate to send the requested passport/visa to the DRS server to mitigate attacks
+            by malicious DRS servers requesting credentials they should not have.
+        bearer_auth_issuers:
+          type: array
+          items:
+            type: string
+          description: >-
+            If authorizations contain `BearerAuth`, this is an optional list of issuers that may authorize access to this object.
+            The caller must provide a token from one of these issuers. If this is empty or missing it is assumed that the caller knows
+            which token to send via other means. It is strongly recommended that the caller
+            validate that it is appropriate to send the requested token to the DRS server to mitigate attacks
+            by malicious DRS servers requesting credentials they should not have.
   parameters:
     Id:
       name: id

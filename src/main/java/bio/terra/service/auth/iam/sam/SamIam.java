@@ -89,7 +89,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   @VisibleForTesting
-  ResourcesApi samResourcesApi(String accessToken) {
+  public ResourcesApi samResourcesApi(String accessToken) {
     return new ResourcesApi(getApiClient(accessToken));
   }
 

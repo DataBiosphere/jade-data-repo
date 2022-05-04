@@ -4500,8 +4500,38 @@ components:
           type: array
           items:
             type: string
+        memberPolicies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourcePolicyModel'
       description: >
         Describes a policy
+    ResourcePolicyModel:
+      type: object
+      properties:
+        policyEmail:
+          type: string
+        policyName:
+          type: string
+        resourceId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        resourceTypeName:
+          type: string
+    WorkspacePolicyModel:
+      type: object
+      properties:
+        workspaceId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        workspaceName:
+          type: string
+        workspaceNamespace:
+          type: string
+        workspaceLink:
+          type: string
+        workspacePolicies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourcePolicyModel'
     PolicyResponse:
       type: object
       properties:
@@ -4509,6 +4539,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PolicyModel'
+        workspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspacePolicyModel'
       description: >
         email of user or group to add to policy
     DataDeletionRequest:

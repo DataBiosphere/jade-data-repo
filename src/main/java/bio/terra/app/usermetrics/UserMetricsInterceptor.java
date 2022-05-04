@@ -20,9 +20,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class UserMetricsInterceptor implements HandlerInterceptor {
   static final String API_EVENT_NAME = "tdr:api";
-  static final String METHOD_FIELD_NAME = "method";
-  static final String PATH_FIELD_NAME = "path";
-  public static final String BILLING_PROFILE_ID_FIELD_NAME = "billingProfileId";
   public static ThreadLocal<HashMap<String, Object>> eventProperties =
       ThreadLocal.withInitial(() -> new HashMap<>());
   private final BardClient bardClient;
@@ -62,8 +59,8 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
     HashMap<String, Object> properties =
         new HashMap<>(
             Map.of(
-                METHOD_FIELD_NAME, method,
-                PATH_FIELD_NAME, path));
+                BardEventProperties.METHOD_FIELD_NAME, method,
+                BardEventProperties.PATH_FIELD_NAME, path));
     properties.putAll(eventProperties.get());
 
     // Don't log metrics if bard isn't configured or the path is part of the ignore-list

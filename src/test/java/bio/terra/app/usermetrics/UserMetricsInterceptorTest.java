@@ -70,8 +70,8 @@ public class UserMetricsInterceptorTest {
                 new BardEvent(
                     UserMetricsInterceptor.API_EVENT_NAME,
                     Map.of(
-                        UserMetricsInterceptor.METHOD_FIELD_NAME, "POST",
-                        UserMetricsInterceptor.PATH_FIELD_NAME, "/foo/bar"),
+                        BardEventProperties.METHOD_FIELD_NAME, "POST",
+                        BardEventProperties.PATH_FIELD_NAME, "/foo/bar"),
                     "testapp",
                     "some.dnsname.org")));
 
@@ -82,8 +82,7 @@ public class UserMetricsInterceptorTest {
   public void testSendEventWithBillingProfileId() throws Exception {
     String billingProfileId = UUID.randomUUID().toString();
     HashMap<String, Object> properties =
-        new HashMap<>(
-            Map.of(UserMetricsInterceptor.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId));
+        new HashMap<>(Map.of(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId));
     UserMetricsInterceptor.eventProperties.set(properties);
 
     mockRequestAuth(request);
@@ -97,9 +96,9 @@ public class UserMetricsInterceptorTest {
                 new BardEvent(
                     UserMetricsInterceptor.API_EVENT_NAME,
                     Map.of(
-                        UserMetricsInterceptor.METHOD_FIELD_NAME, "POST",
-                        UserMetricsInterceptor.PATH_FIELD_NAME, "/foo/bar",
-                        UserMetricsInterceptor.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId),
+                        BardEventProperties.METHOD_FIELD_NAME, "POST",
+                        BardEventProperties.PATH_FIELD_NAME, "/foo/bar",
+                        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId),
                     "testapp",
                     "some.dnsname.org")));
 

@@ -3594,6 +3594,18 @@ components:
           items:
             $ref: '#/components/schemas/AssetModel'
       description: data model definition
+    DatasetSchemaUpdateModel:
+      type: object
+      properties:
+        description:
+          type: string
+        changes:
+          type: object
+          properties:
+            addTables:
+              type: array
+              items:
+                $ref: '#/components/schemas/TableModel'
     IngestRequestModel:
       required:
         - format

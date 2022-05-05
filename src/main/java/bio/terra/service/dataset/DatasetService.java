@@ -12,6 +12,7 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
@@ -35,6 +36,7 @@ import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepare
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
+import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -342,6 +344,15 @@ public class DatasetService {
     String description = "Deleting tabular data from dataset " + datasetId;
     return jobService
         .newJob(description, DatasetDataDeleteFlight.class, dataDeletionRequest, userReq)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .submit();
+  }
+
+  public String updateDatasetSchema(
+      String datasetId, DatasetSchemaUpdateModel updateModel, AuthenticatedUserRequest userReq) {
+    String description = "Updating dataset schema for dataset " + datasetId;
+    return jobService
+        .newJob(description, DatasetSchemaUpdateFlight.class, updateModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .submit();
   }

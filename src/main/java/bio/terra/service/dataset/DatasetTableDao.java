@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
+import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,12 @@ public class DatasetTableDao {
           + "FROM dataset_column "
           + "WHERE table_id = :table_id "
           + "ORDER BY ordinal";
+
+  private static final String sqlDeleteTable =
+      "DELETE FROM dataset_table WHERE id = :table_id AND dataset_id = :dataset_id";
+
+  private static final String sqlDeleteColumn =
+      "DELETE FROM dataset_column WHERE id = :column_id AND table_id = :table_id";
 
   private final DataSource jdbcDataSource;
   private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -96,6 +103,21 @@ public class DatasetTableDao {
     }
   }
 
+  public void removeTables(UUID parentId, List<String> tableNames) {
+    List<DatasetTable> tablesToDelete =
+        retrieveTables(parentId).stream()
+            .filter(dt -> tableNames.contains(dt.getName()))
+            .collect(Collectors.toList());
+
+    for (DatasetTable tableToDelete : tablesToDelete) {
+      removeColumns(parentId, tableToDelete.getId(), tableToDelete.getColumns());
+      MapSqlParameterSource params = new MapSqlParameterSource();
+      params.addValue("table_id", tableToDelete.getId().toString());
+      params.addValue("dataset_id", parentId.toString());
+      jdbcTemplate.update(sqlDeleteTable, params);
+    }
+  }
+
   private void createColumns(UUID tableId, Collection<Column> columns) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     params.addValue("table_id", tableId);
@@ -111,6 +133,27 @@ public class DatasetTableDao {
       UUID columnId = keyHolder.getId();
       column.id(columnId);
     }
+  }
+
+  public void removeColumns(Table table, Collection<Column> columns) {
+    MapSqlParameterSource params = new MapSqlParameterSource();
+    params.addValue("table_id", table.getId());
+
+    List<Column> existingColumns = retrieveColumns(table);
+    Collection<Column> columnsToDelete = CollectionUtils.intersection(existingColumns, columns);
+    for (Column column : columnsToDelete) {
+      params.addValue("column_id", column.getId().toString());
+      jdbcTemplate.update(sqlDeleteColumn, params);
+    }
+  }
+
+  public void removeColumns(UUID datasetId, UUID tableId, Collection<Column> columns) {
+    removeColumns(
+        retrieveTables(datasetId).stream()
+            .filter(dt -> dt.getId().equals(tableId))
+            .findFirst()
+            .orElseThrow(),
+        columns);
   }
 
   public List<DatasetTable> retrieveTables(UUID parentId) {

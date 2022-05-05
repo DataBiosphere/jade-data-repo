@@ -20,7 +20,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class UserMetricsInterceptor implements HandlerInterceptor {
   static final String API_EVENT_NAME = "tdr:api";
-  public static ThreadLocal<HashMap<String, Object>> eventProperties =
+  public static final ThreadLocal<HashMap<String, Object>> eventProperties =
       ThreadLocal.withInitial(() -> new HashMap<>());
   private final BardClient bardClient;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;

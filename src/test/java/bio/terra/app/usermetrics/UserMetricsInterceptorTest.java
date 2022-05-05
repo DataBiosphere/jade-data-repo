@@ -14,7 +14,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -44,6 +43,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class UserMetricsInterceptorTest {
   @SpyBean private AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   @MockBean private BardClient bardClient;
+  @Autowired private UserLoggingMetrics loggingMetrics;
   @Autowired private UserMetricsConfiguration metricsConfig;
   @Captor private ArgumentCaptor<AuthenticatedUserRequest> authCaptor;
   @SpyBean private UserMetricsInterceptor metricsInterceptor;
@@ -81,9 +81,7 @@ public class UserMetricsInterceptorTest {
   @Test
   public void testSendEventWithBillingProfileId() throws Exception {
     String billingProfileId = UUID.randomUUID().toString();
-    HashMap<String, Object> properties =
-        new HashMap<>(Map.of(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId));
-    UserMetricsInterceptor.eventProperties.set(properties);
+    loggingMetrics.set(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, billingProfileId);
 
     mockRequestAuth(request);
 

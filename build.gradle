@@ -482,11 +482,11 @@ test {
         includeCategories 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
-//    retry {
-//        if (isCiServer) {
-//           maxRetries = 3
-//        }
-//    }
+    retry {
+        if (isCiServer) {
+           maxRetries = 3
+        }
+    }
     maxParallelForks = 2
 }
 
@@ -497,14 +497,14 @@ task testConnected(type: Test) {
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
-//    retry {
-//        if (isCiServer) {
-//            maxRetries = 3
-//            maxFailures = 15
-//        } else {
-//            maxRetries = 2
-//        }
-//    }
+    retry {
+        if (isCiServer) {
+            maxRetries = 3
+            maxFailures = 15
+        } else {
+            maxRetries = 2
+        }
+    }
     maxParallelForks = 2
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"
@@ -518,14 +518,14 @@ task testIntegration(type: Test) {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
 
-//    retry {
-//        if (isCiServer) {
-//            maxRetries = 3
-//            maxFailures = 15
-//        } else {
-//            maxRetries = 2
-//        }
-//    }
+    retry {
+        if (isCiServer) {
+            maxRetries = 3
+            maxFailures = 15
+        } else {
+            maxRetries = 2
+        }
+    }
     maxParallelForks = 2
     outputs.upToDateWhen { false }
 }

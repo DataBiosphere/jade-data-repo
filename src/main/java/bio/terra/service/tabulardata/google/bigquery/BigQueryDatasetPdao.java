@@ -104,21 +104,33 @@ public class BigQueryDatasetPdao {
           datasetName,
           PDAO_TRANSACTIONS_TABLE,
           BigQueryTransactionPdao.buildTransactionsTableSchema());
-      for (DatasetTable table : dataset.getTables()) {
-        bigQueryProject.createTable(
-            datasetName,
-            table.getRawTableName(),
-            buildSchema(table, true, true),
-            table.getBigQueryPartitionConfig());
-        bigQueryProject.createTable(
-            datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
-        bigQueryProject.createTable(
-            datasetName, table.getRowMetadataTableName(), buildRowMetadataSchema());
-        bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
-      }
+
+      createTables(bigQueryProject, bigQuery, datasetName, dataset.getTables());
       // TODO: don't catch generic exceptions
     } catch (Exception ex) {
       throw new PdaoException("create dataset failed for " + datasetName, ex);
+    }
+  }
+
+  public void createTables(Dataset dataset, List<DatasetTable> tables) {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    BigQuery bigQuery = bigQueryProject.getBigQuery();
+    String datasetName = BigQueryPdao.prefixName(dataset.getName());
+    createTables(bigQueryProject, bigQuery, datasetName, tables);
+  }
+
+  public void createTables(BigQueryProject bigQueryProject, BigQuery bigQuery, String datasetName, List<DatasetTable> tables) {
+    for (DatasetTable table : tables) {
+      bigQueryProject.createTable(
+          datasetName,
+          table.getRawTableName(),
+          buildSchema(table, true, true),
+          table.getBigQueryPartitionConfig());
+      bigQueryProject.createTable(
+          datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
+      bigQueryProject.createTable(
+          datasetName, table.getRowMetadataTableName(), buildRowMetadataSchema());
+      bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
     }
   }
 

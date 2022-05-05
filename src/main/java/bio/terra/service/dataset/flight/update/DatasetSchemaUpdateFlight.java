@@ -8,6 +8,7 @@ import bio.terra.service.dataset.DatasetTableDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -19,8 +20,10 @@ public class DatasetSchemaUpdateFlight extends Flight {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
+    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetTableDao datasetTableDao = appContext.getBean(DatasetTableDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
+    BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
 
     DatasetSchemaUpdateModel updateModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetSchemaUpdateModel.class);
@@ -35,7 +38,8 @@ public class DatasetSchemaUpdateFlight extends Flight {
     addStep(new LockDatasetStep(datasetService, datasetId, false));
 
     if (DatasetSchemaUpdateUtils.hasTableAdditions(updateModel)) {
-      addStep(new DatasetSchemaUpdateAddTablesStep(datasetTableDao, datasetId, updateModel));
+      addStep(new DatasetSchemaUpdateAddTablesPostgresStep(datasetTableDao, datasetId, updateModel));
+      addStep(new DatasetSchemaUpdateAddTablesBigQueryStep(bigQueryDatasetPdao, datasetDao, datasetId, updateModel));
     }
 
     addStep(new UnlockDatasetStep(datasetService, datasetId, false));

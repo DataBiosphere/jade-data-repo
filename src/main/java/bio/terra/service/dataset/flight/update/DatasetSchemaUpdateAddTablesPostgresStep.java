@@ -15,12 +15,12 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class DatasetSchemaUpdateAddTablesStep implements Step {
+public class DatasetSchemaUpdateAddTablesPostgresStep implements Step {
   private final DatasetTableDao datasetTableDao;
   private final UUID datasetId;
   private final DatasetSchemaUpdateModel updateModel;
 
-  public DatasetSchemaUpdateAddTablesStep(
+  public DatasetSchemaUpdateAddTablesPostgresStep(
       DatasetTableDao datasetTableDao, UUID datasetId, DatasetSchemaUpdateModel updateModel) {
     this.datasetTableDao = datasetTableDao;
     this.datasetId = datasetId;
@@ -47,9 +47,7 @@ public class DatasetSchemaUpdateAddTablesStep implements Step {
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     datasetTableDao.removeTables(
         datasetId,
-        updateModel.getChanges().getAddTables().stream()
-            .map(TableModel::getName)
-            .collect(Collectors.toList()));
+        DatasetSchemaUpdateUtils.getNewTableNames(updateModel));
     return StepResult.getStepResultSuccess();
   }
 }

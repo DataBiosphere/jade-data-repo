@@ -33,10 +33,7 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
     Dataset dataset = datasetService.retrieve(datasetId);
     List<String> existingTableNames =
         dataset.getTables().stream().map(DatasetTable::getName).collect(Collectors.toList());
-    List<String> newTableNames =
-        updateModel.getChanges().getAddTables().stream()
-            .map(TableModel::getName)
-            .collect(Collectors.toList());
+    List<String> newTableNames = DatasetSchemaUpdateUtils.getNewTableNames(updateModel);
     Collection<String> uniqueTableNames =
         CollectionUtils.intersection(existingTableNames, newTableNames);
 

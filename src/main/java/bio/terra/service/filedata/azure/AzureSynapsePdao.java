@@ -169,7 +169,7 @@ public class AzureSynapsePdao {
           + "    LOCATION = '<destinationParquetFile>',\n"
           + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
           + "    FILE_FORMAT = [<fileFormat>]\n"
-          + ") AS SELECT <columns> FROM [<scratchTableName>] <where> <nullChecks>;";
+          + ") AS SELECT datarepo_row_id, <columns> FROM [<scratchTableName>] <where> <nullChecks>;";
 
   private static final String queryColumnsFromExternalTableTemplate =
       "SELECT DISTINCT [<refCol>] FROM [<tableName>] WHERE [<refCol>] IS NOT NULL;";
@@ -370,7 +370,10 @@ public class AzureSynapsePdao {
     sqlCreateFinalParquetFilesTemplate.add("scratchTableName", scratchTableName);
 
     String columns =
-        datasetTable.getColumns().stream().map(Column::getName).collect(Collectors.joining(", "));
+        datasetTable.getColumns().stream()
+            .map(Column::getName)
+            .map(s -> String.format("[%s]", s))
+            .collect(Collectors.joining(", "));
 
     sqlCreateFinalParquetFilesTemplate.add("columns", columns);
 

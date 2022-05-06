@@ -1,6 +1,5 @@
 package bio.terra.service.dataset.flight.update;
 
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
@@ -31,15 +30,15 @@ public class DatasetSchemaUpdateFlight extends Flight {
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
 
-    AuthenticatedUserRequest userReq =
-        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-
     addStep(new DatasetSchemaUpdateValidateModelStep(datasetService, datasetId, updateModel));
     addStep(new LockDatasetStep(datasetService, datasetId, false));
 
     if (DatasetSchemaUpdateUtils.hasTableAdditions(updateModel)) {
-      addStep(new DatasetSchemaUpdateAddTablesPostgresStep(datasetTableDao, datasetId, updateModel));
-      addStep(new DatasetSchemaUpdateAddTablesBigQueryStep(bigQueryDatasetPdao, datasetDao, datasetId, updateModel));
+      addStep(
+          new DatasetSchemaUpdateAddTablesPostgresStep(datasetTableDao, datasetId, updateModel));
+      addStep(
+          new DatasetSchemaUpdateAddTablesBigQueryStep(
+              bigQueryDatasetPdao, datasetDao, datasetId, updateModel));
     }
 
     addStep(new UnlockDatasetStep(datasetService, datasetId, false));

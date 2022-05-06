@@ -119,7 +119,11 @@ public class BigQueryDatasetPdao {
     createTables(bigQueryProject, bigQuery, datasetName, tables);
   }
 
-  public void createTables(BigQueryProject bigQueryProject, BigQuery bigQuery, String datasetName, List<DatasetTable> tables) {
+  public void createTables(
+      BigQueryProject bigQueryProject,
+      BigQuery bigQuery,
+      String datasetName,
+      List<DatasetTable> tables) {
     for (DatasetTable table : tables) {
       bigQueryProject.createTable(
           datasetName,

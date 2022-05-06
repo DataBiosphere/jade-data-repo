@@ -1,7 +1,6 @@
 package bio.terra.service.dataset.flight.update;
 
 import bio.terra.model.DatasetSchemaUpdateModel;
-import bio.terra.model.TableModel;
 import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetTableDao;
@@ -45,9 +44,7 @@ public class DatasetSchemaUpdateAddTablesPostgresStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    datasetTableDao.removeTables(
-        datasetId,
-        DatasetSchemaUpdateUtils.getNewTableNames(updateModel));
+    datasetTableDao.removeTables(datasetId, DatasetSchemaUpdateUtils.getNewTableNames(updateModel));
     return StepResult.getStepResultSuccess();
   }
 }

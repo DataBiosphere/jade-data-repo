@@ -39,6 +39,7 @@ import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DataDeletionRequestValidator;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetRequestValidator;
+import bio.terra.service.dataset.DatasetSchemaUpdateValidator;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
@@ -85,6 +86,8 @@ public class DatasetsApiController implements DatasetsApi {
   private final IngestRequestValidator ingestRequestValidator;
   private final DataDeletionRequestValidator dataDeletionRequestValidator;
 
+  private final DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
+
   @Autowired
   public DatasetsApiController(
       ObjectMapper objectMapper,
@@ -97,7 +100,8 @@ public class DatasetsApiController implements DatasetsApi {
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator,
       IngestRequestValidator ingestRequestValidator,
-      DataDeletionRequestValidator dataDeletionRequestValidator) {
+      DataDeletionRequestValidator dataDeletionRequestValidator,
+      DatasetSchemaUpdateValidator datasetSchemaUpdateValidator) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.jobService = jobService;
@@ -109,6 +113,7 @@ public class DatasetsApiController implements DatasetsApi {
     this.assetModelValidator = assetModelValidator;
     this.ingestRequestValidator = ingestRequestValidator;
     this.dataDeletionRequestValidator = dataDeletionRequestValidator;
+    this.datasetSchemaUpdateValidator = datasetSchemaUpdateValidator;
   }
 
   @InitBinder
@@ -117,6 +122,7 @@ public class DatasetsApiController implements DatasetsApi {
     binder.addValidators(datasetRequestValidator);
     binder.addValidators(assetModelValidator);
     binder.addValidators(dataDeletionRequestValidator);
+    binder.addValidators(datasetSchemaUpdateValidator);
   }
 
   @Override

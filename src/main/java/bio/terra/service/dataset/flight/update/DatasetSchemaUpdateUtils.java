@@ -3,7 +3,6 @@ package bio.terra.service.dataset.flight.update;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModelChanges;
 import bio.terra.model.TableModel;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -24,6 +23,8 @@ public class DatasetSchemaUpdateUtils {
   }
 
   public static List<String> getNewTableNames(DatasetSchemaUpdateModel updateModel) {
-    return updateModel.getChanges().getAddTables().stream().map(TableModel::getName).collect(Collectors.toList());
+    return updateModel.getChanges().getAddTables().stream()
+        .map(TableModel::getName)
+        .collect(Collectors.toList());
   }
 }

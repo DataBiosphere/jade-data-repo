@@ -1,7 +1,6 @@
 package bio.terra.service.dataset.flight.update;
 
 import bio.terra.model.DatasetSchemaUpdateModel;
-import bio.terra.model.TableModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
@@ -12,9 +11,7 @@ import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -47,15 +44,6 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
               List.of(
                   "Found new tables that would overwrite existing tables",
                   String.join(", ", uniqueTableNames))));
-    }
-    if (newTableNames.stream().distinct().count() != newTableNames.size()) {
-      String duplicateTables = newTableNames.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting())).entrySet().stream().filter(e -> e.getValue() > 1L).map(Map.Entry::getKey).collect(Collectors.joining(", "));
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL,
-          new DatasetSchemaUpdateException(
-              "Could not validate table additions",
-              List.of(
-                  "Found duplicate new tables", duplicateTables)));
     }
     return StepResult.getStepResultSuccess();
   }

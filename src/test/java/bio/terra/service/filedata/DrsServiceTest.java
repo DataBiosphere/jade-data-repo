@@ -1,6 +1,7 @@
 package bio.terra.service.filedata;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.configuration.ECMConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
@@ -25,6 +27,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSAuthorizations;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSPassportRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -51,6 +54,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import java.time.Instant;
 import java.util.List;
@@ -80,6 +84,7 @@ public class DrsServiceTest {
   @Mock private AzureBlobStorePdao azureBlobStorePdao;
   @Mock private GcsProjectFactory gcsProjectFactory;
   @Mock private ECMService ecmService;
+  @Mock private ECMConfiguration ecmConfiguration;
 
   private final DrsIdService drsIdService = new DrsIdService(new ApplicationConfiguration());
 
@@ -106,6 +111,8 @@ public class DrsServiceTest {
           .setToken("token")
           .build();
 
+  private String rasIssuer = "https://stsstg.nih.gov";
+
   @Before
   public void before() throws Exception {
     drsService =
@@ -120,7 +127,8 @@ public class DrsServiceTest {
             performanceLogger,
             azureBlobStorePdao,
             gcsProjectFactory,
-            ecmService);
+            ecmService,
+            ecmConfiguration);
     when(jobService.getActivePodCount()).thenReturn(1);
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
 
@@ -187,6 +195,8 @@ public class DrsServiceTest {
 
     drsPassportRequestModel =
         new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
+
+    when(ecmConfiguration.getRasIssuer()).thenReturn(rasIssuer);
   }
 
   @Test
@@ -291,6 +301,75 @@ public class DrsServiceTest {
     assertThrows(
         UnauthorizedException.class,
         () -> drsService.verifyPassportAuth(snapshotId, drsPassportRequestModel));
+  }
+
+  private void verifyAuthorizationsWithoutPassport(DRSAuthorizations auths) {
+    assertThat(
+        "BearerAuth is only type supported",
+        auths.getSupportedTypes(),
+        contains(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH));
+    assertThat(
+        "Unauthorized for passport means no passport issuer",
+        auths.getPassportAuthIssuers(),
+        equalTo(null));
+  }
+
+  @Test
+  public void lookupAuthorizationsByDrsIdWithoutPHSOrConsentCode() {
+    SnapshotSummaryModel snapshotSummary = new SnapshotSummaryModel().id(snapshotId);
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    assertThat(
+        "Passport authorization not available without PHS ID or consent code",
+        !SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
+    verifyAuthorizationsWithoutPassport(drsService.lookupAuthorizationsByDrsId(googleDrsObjectId));
+  }
+
+  @Test
+  public void lookupAuthorizationsByDrsIdWithoutConsentCode() {
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).phsId("phs100789");
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    assertThat(
+        "Passport authorization not available without consent code",
+        !SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
+    verifyAuthorizationsWithoutPassport(drsService.lookupAuthorizationsByDrsId(googleDrsObjectId));
+  }
+
+  @Test
+  public void lookupAuthorizationsByDrsIdWithoutPHS() {
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).consentCode("c99");
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    assertThat(
+        "Passport authorization not available without PHS ID",
+        !SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
+    verifyAuthorizationsWithoutPassport(drsService.lookupAuthorizationsByDrsId(googleDrsObjectId));
+  }
+
+  @Test
+  public void lookupAuthorizationsByDrsIdWithPassportIdentifiers() {
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99");
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    DRSAuthorizations auths = drsService.lookupAuthorizationsByDrsId(googleDrsObjectId);
+
+    assertThat(
+        "Passport authorization available with PHS ID and consent code",
+        SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
+    assertThat(
+        "PassportAuth and BearerAuth are supported",
+        auths.getSupportedTypes(),
+        contains(
+            DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH,
+            DRSAuthorizations.SupportedTypesEnum.BEARERAUTH));
+    assertThat(
+        "Passport issuer supplied when authorized for passport",
+        auths.getPassportAuthIssuers(),
+        contains(rasIssuer));
   }
 
   @Test

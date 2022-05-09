@@ -11,7 +11,7 @@
 #
 # If you get an AlreadyExists error, it's possible the pod didn't shut down properly. You can
 # delete it using kubectl, where ZZ is the SUFFIX.
-# $ kubectl --namespace ZZ delete pod ZZ-sql
+# $ kubectl --namespace ZZ delete pod ZZ-psql
 
 : "${DB:?}"
 : "${ENVIRONMENT:?}"

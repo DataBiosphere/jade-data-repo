@@ -42,7 +42,7 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
 
     var tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
     Table table = IngestUtils.getDatasetTable(context, dataset);
-    var tableName = IngestUtils.getSynapseTableName(context.getFlightId());
+    var tableName = IngestUtils.getSynapseIngestTableName(context.getFlightId());
 
     // For each fileref column, scan the staging table and build an array of file ids
     // Then probe the file system to validate that the file exists and is part

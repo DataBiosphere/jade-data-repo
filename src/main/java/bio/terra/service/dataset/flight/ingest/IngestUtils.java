@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.StringUtils;
-import org.stringtemplate.v4.ST;
 
 // Common code for the ingest steps
 public final class IngestUtils {
@@ -49,10 +48,13 @@ public final class IngestUtils {
       "source_dataset_scoped_credential_";
   private static final String SOURCE_SCOPED_CREDENTIAL_PREFIX = "source_scoped_credential_";
   private static final String TARGET_SCOPED_CREDENTIAL_PREFIX = "target_scoped_credential_";
+  private static final String SCRATCH_SCOPED_CREDENTIAL_PREFIX = "scratch_scoped_credential_";
   private static final String SOURCE_DATASET_DATA_SOURCE_PREFIX = "source_dataset_data_source_";
   private static final String SOURCE_DATA_SOURCE_PREFIX = "source_data_source_";
   private static final String TARGET_DATA_SOURCE_PREFIX = "target_data_source_";
-  private static final String TABLE_NAME_PREFIX = "ingest_";
+  private static final String SCRATCH_DATA_SOURCE_PREFIX = "scratch_data_source_";
+  private static final String INGEST_TABLE_NAME_PREFIX = "ingest_";
+  private static final String SCRATCH_TABLE_NAME_PREFIX = "scratch_";
 
   private IngestUtils() {}
 
@@ -335,14 +337,15 @@ public final class IngestUtils {
     }
   }
 
-  public static String getParquetTargetLocationURL(
-      AzureStorageAccountResource storageAccountResource) {
-    String storageAccount = storageAccountResource.getName();
-    String storageAccountURLTemplate = "https://<storageAccount>.blob.core.windows.net";
-
-    ST storageAccountURL = new ST(storageAccountURLTemplate);
-    storageAccountURL.add("storageAccount", storageAccount);
-    return storageAccountURL.render();
+  public static String getParquetBlobUrl(
+      AzureStorageAccountResource storageAccountResource,
+      AzureStorageAccountResource.ContainerType containerType,
+      String path) {
+    return String.format(
+        "%s/%s/%s",
+        storageAccountResource.getStorageAccountUrl(),
+        storageAccountResource.determineContainer(containerType),
+        path);
   }
 
   public static String getParquetFilePath(String targetTableName, String flightId) {
@@ -384,12 +387,24 @@ public final class IngestUtils {
     return TARGET_DATA_SOURCE_PREFIX + flightId;
   }
 
+  public static String getScratchDataSourceName(String flightId) {
+    return SCRATCH_DATA_SOURCE_PREFIX + flightId;
+  }
+
   public static String getTargetScopedCredentialName(String flightId) {
     return TARGET_SCOPED_CREDENTIAL_PREFIX + flightId;
   }
 
-  public static String getSynapseTableName(String flightId) {
-    return TABLE_NAME_PREFIX + flightId;
+  public static String getScratchScopedCredentialName(String flightId) {
+    return SCRATCH_SCOPED_CREDENTIAL_PREFIX + flightId;
+  }
+
+  public static String getSynapseIngestTableName(String flightId) {
+    return INGEST_TABLE_NAME_PREFIX + flightId;
+  }
+
+  public static String getSynapseScratchTableName(String flightId) {
+    return SCRATCH_TABLE_NAME_PREFIX + flightId;
   }
 
   public static BillingProfileModel getIngestBillingProfileFromDataset(
@@ -431,6 +446,34 @@ public final class IngestUtils {
           String.format(
               "The following required field(s) were not defined: %s",
               itemsNotDefined.stream().collect(Collectors.joining(", "))));
+    }
+  }
+
+  public static String getDataSourceName(
+      AzureStorageAccountResource.ContainerType containerType, String flightId) {
+    switch (containerType) {
+      case METADATA:
+        return IngestUtils.getTargetDataSourceName(flightId);
+      case SCRATCH:
+        return IngestUtils.getScratchDataSourceName(flightId);
+      default:
+        throw new IllegalArgumentException(
+            String.format(
+                "Cannot get data source name for %s ContainerType", containerType.name()));
+    }
+  }
+
+  public static String getScopedCredentialName(
+      AzureStorageAccountResource.ContainerType containerType, String flightId) {
+    switch (containerType) {
+      case METADATA:
+        return IngestUtils.getTargetScopedCredentialName(flightId);
+      case SCRATCH:
+        return IngestUtils.getScratchScopedCredentialName(flightId);
+      default:
+        throw new IllegalArgumentException(
+            String.format(
+                "Cannot get data source name for %s ContainerType", containerType.name()));
     }
   }
 }

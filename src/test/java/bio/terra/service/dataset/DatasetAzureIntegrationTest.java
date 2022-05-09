@@ -49,6 +49,7 @@ import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
@@ -1019,6 +1020,71 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
+    clearEnvironment();
+  }
+
+  @Test
+  public void testRequiredColumnsIngest() throws Exception {
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward,
+            profileId,
+            "dataset-ingest-combined-azure-required-columns.json",
+            CloudPlatform.AZURE);
+    datasetId = summaryModel.getId();
+
+    String controlFileContents;
+    try (var resourceStream =
+        this.getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
+      controlFileContents = new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    String controlFile =
+        blobIOTestUtility.uploadFileWithContents(
+            "dataset-files-ingest-combined.json", controlFileContents);
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .profileId(profileId)
+            .path(controlFile)
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .loadTag(Names.randomizeName("azureCombinedIngestTest"));
+
+    DataRepoResponse<IngestResponseModel> ingestResponseFail =
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, ingestRequest);
+
+    assertThat(
+        "ingesting null values into required columns results in failure",
+        ingestResponseFail.getErrorObject().isPresent());
+
+    ErrorModel errorResponse = ingestResponseFail.getErrorObject().orElseThrow();
+
+    assertThat(
+        "ingest failure due to missing required values has the correct message",
+        errorResponse.getMessage(),
+        equalTo(String.format("Failed to load data into dataset %s", datasetId)));
+
+    ingestRequest.maxBadRecords(1);
+
+    DataRepoResponse<IngestResponseModel> dataRepoResponseSuccess =
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, ingestRequest);
+
+    IngestResponseModel ingestResponseSuccess =
+        dataRepoResponseSuccess.getResponseObject().orElseThrow();
+
+    assertThat(
+        "allowing 1 bad record means 1 bad record is allowed",
+        ingestResponseSuccess.getBadRowCount(),
+        equalTo(1L));
+
+    assertThat(
+        "allowing a bad row means 2 rows still succeeded",
+        ingestResponseSuccess.getRowCount(),
+        equalTo(2L));
+
     clearEnvironment();
   }
 

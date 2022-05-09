@@ -52,6 +52,7 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -229,12 +230,21 @@ public class DatasetIngestFlight extends Flight {
       addStep(
           new IngestCreateIngestRequestDataSourceStep(
               azureSynapsePdao, azureBlobStorePdao, userReq));
-      addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao, userReq));
+      addStep(
+          new IngestCreateTargetDataSourceStep(
+              azureSynapsePdao, azureBlobStorePdao, ContainerType.METADATA, userReq));
+      addStep(
+          new IngestCreateTargetDataSourceStep(
+              azureSynapsePdao, azureBlobStorePdao, ContainerType.SCRATCH, userReq));
+      addStep(
+          new IngestCreateScratchParquetFilesStep(
+              azureSynapsePdao, azureBlobStorePdao, datasetService, userReq));
+      addStep(new IngestValidateScratchTableStep(azureSynapsePdao, datasetService));
       addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
       addStep(
           new IngestValidateAzureRefsStep(
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
-      addStep(new IngestCleanSynapseStep(azureSynapsePdao));
+      addStep(new IngestCleanAzureStep(azureSynapsePdao, azureBlobStorePdao, userReq));
       addStep(
           new PerformPayloadIngestStep(
               new IngestLandingFileDeleteAzureStep(false, azureContainerPdao)));

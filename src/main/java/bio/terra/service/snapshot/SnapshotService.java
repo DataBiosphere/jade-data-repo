@@ -407,6 +407,7 @@ public class SnapshotService {
                         "No snapshot table exists with the name: " + tableName));
 
     String sortColumn = Optional.ofNullable(sort).orElse(PDAO_ROW_ID_COLUMN);
+    SqlSortDirection sortDirection = Optional.ofNullable(direction).orElse(SqlSortDirection.ASC);
     if (!StringUtils.equals(sortColumn, PDAO_ROW_ID_COLUMN)) {
       table.getColumns().stream()
           .filter(t -> t.getName().equals(sort))
@@ -420,7 +421,7 @@ public class SnapshotService {
     try {
       List<Map<String, Object>> values =
           bigQuerySnapshotPdao.getSnapshotTable(
-              snapshot, tableName, limit, offset, sortColumn, direction);
+              snapshot, tableName, limit, offset, sortColumn, sortDirection);
 
       return new SnapshotPreviewModel().result(List.copyOf(values));
     } catch (InterruptedException e) {

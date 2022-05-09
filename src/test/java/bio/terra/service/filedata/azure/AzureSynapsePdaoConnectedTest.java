@@ -69,6 +69,8 @@ public class AzureSynapsePdaoConnectedTest {
   private String randomFlightId;
   private String destinationParquetFile;
 
+  private String scratchParquetFile;
+
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
           .setSubjectId("DatasetUnit")
@@ -83,6 +85,7 @@ public class AzureSynapsePdaoConnectedTest {
   private static final String DESTINATION_DATA_SOURCE_PREFIX = "dds_";
   private static final String SNAPSHOT_DATA_SOURCE_PREFIX = "sds_";
   private static final String TABLE_NAME_PREFIX = "ingest_";
+  private static final String SCRATCH_TABLE_NAME_PREFIX = "scratch_";
 
   private String ingestRequestScopedCredentialName;
   private String destinationScopedCredentialName;
@@ -91,6 +94,7 @@ public class AzureSynapsePdaoConnectedTest {
   private String destinationDataSourceName;
   private String snapshotDataSourceName;
   private String tableName;
+  private String scratchTableName;
   private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
   private static final String STORAGE_ACCOUNT_NAME = "tdrshiqauwlpzxavohmxxhfv";
   private static final UUID snapshotId = UUID.randomUUID();
@@ -123,6 +127,7 @@ public class AzureSynapsePdaoConnectedTest {
     destinationDataSourceName = DESTINATION_DATA_SOURCE_PREFIX + randomFlightId;
     snapshotDataSourceName = SNAPSHOT_DATA_SOURCE_PREFIX + randomFlightId;
     tableName = TABLE_NAME_PREFIX + randomFlightId;
+    scratchTableName = SCRATCH_TABLE_NAME_PREFIX + randomFlightId;
     UUID applicationId = UUID.randomUUID();
     UUID storageAccountId = UUID.randomUUID();
 
@@ -176,14 +181,16 @@ public class AzureSynapsePdaoConnectedTest {
   @After
   public void cleanup() throws Exception {
     try {
-      synapseUtils.deleteParquetFile(
-          billingProfile,
-          storageAccountResource,
-          destinationParquetFile,
-          new BlobSasTokenOptions(
-              Duration.ofMinutes(15),
-              new BlobSasPermission().setReadPermission(true).setDeletePermission(true),
-              null));
+      for (var parquetFile : List.of(scratchParquetFile, destinationParquetFile)) {
+        synapseUtils.deleteParquetFile(
+            billingProfile,
+            storageAccountResource,
+            parquetFile,
+            new BlobSasTokenOptions(
+                Duration.ofMinutes(15),
+                new BlobSasPermission().setReadPermission(true).setDeletePermission(true),
+                null));
+      }
 
       // check to see if successful delete
       List<String> emptyList =
@@ -200,6 +207,7 @@ public class AzureSynapsePdaoConnectedTest {
 
     azureSynapsePdao.dropTables(
         List.of(
+            scratchTableName,
             tableName,
             IngestUtils.formatSnapshotTableName(snapshotId, "participant"),
             IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
@@ -274,6 +282,9 @@ public class AzureSynapsePdaoConnectedTest {
     // B - Build parameters based on user input
     destinationParquetFile = "parquet/" + destinationTableName + "/" + randomFlightId + ".parquet";
 
+    scratchParquetFile =
+        "parquet/scratch_" + destinationTableName + "/" + randomFlightId + ".parquet";
+
     // 1 - Create external data source for the ingest control file
     BlobUrlParts ingestRequestSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId, TEST_USER);
@@ -284,8 +295,7 @@ public class AzureSynapsePdaoConnectedTest {
     // where we'll write the resulting parquet files
     // We will build this parquetDestinationLocation according
     // to the associated storage account for the dataset
-    String parquetDestinationLocation =
-        IngestUtils.getParquetTargetLocationURL(storageAccountResource);
+    String parquetDestinationLocation = storageAccountResource.getStorageAccountUrl();
 
     BlobUrlParts destinationSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
@@ -303,18 +313,30 @@ public class AzureSynapsePdaoConnectedTest {
     // 4 - Create parquet files via external table
     // All inputs should be sanitized before passed into this method
     int updateCount =
-        azureSynapsePdao.createParquetFiles(
+        azureSynapsePdao.createScratchParquetFiles(
             ingestRequestModel.getFormat(),
             destinationTable,
             ingestRequestSignUrlBlob.getBlobName(),
-            destinationParquetFile,
+            scratchParquetFile,
             destinationDataSourceName,
             ingestRequestDataSourceName,
-            tableName,
+            scratchTableName,
             ingestRequestModel.getCsvSkipLeadingRows(),
             ingestRequestModel.getCsvFieldDelimiter(),
             ingestRequestModel.getCsvQuote());
     assertThat("num rows updated is two", updateCount, equalTo(2));
+
+    int failedRows =
+        azureSynapsePdao.validateScratchParquetFiles(destinationTable, scratchTableName);
+
+    assertThat("there are no rows that fail validation", failedRows, equalTo(0));
+
+    azureSynapsePdao.createFinalParquetFiles(
+        tableName,
+        destinationParquetFile,
+        destinationDataSourceName,
+        scratchTableName,
+        destinationTable);
 
     // Check that the parquet files were successfully created.
     List<String> firstNames =
@@ -334,8 +356,7 @@ public class AzureSynapsePdaoConnectedTest {
     // 5 - Create external data source for the snapshot
 
     // where we'll write the resulting parquet files
-    String parquetSnapshotLocation =
-        IngestUtils.getParquetTargetLocationURL(snapshotStorageAccountResource);
+    String parquetSnapshotLocation = snapshotStorageAccountResource.getStorageAccountUrl();
     BlobUrlParts snapshotSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
             parquetSnapshotLocation,

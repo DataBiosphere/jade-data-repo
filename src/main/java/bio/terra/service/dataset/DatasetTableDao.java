@@ -112,8 +112,8 @@ public class DatasetTableDao {
     for (DatasetTable tableToDelete : tablesToDelete) {
       removeColumns(parentId, tableToDelete.getId(), tableToDelete.getColumns());
       MapSqlParameterSource params = new MapSqlParameterSource();
-      params.addValue("table_id", tableToDelete.getId().toString());
-      params.addValue("dataset_id", parentId.toString());
+      params.addValue("table_id", tableToDelete.getId());
+      params.addValue("dataset_id", parentId);
       jdbcTemplate.update(sqlDeleteTable, params);
     }
   }
@@ -142,7 +142,7 @@ public class DatasetTableDao {
     List<Column> existingColumns = retrieveColumns(table);
     Collection<Column> columnsToDelete = CollectionUtils.intersection(existingColumns, columns);
     for (Column column : columnsToDelete) {
-      params.addValue("column_id", column.getId().toString());
+      params.addValue("column_id", column.getId());
       jdbcTemplate.update(sqlDeleteColumn, params);
     }
   }

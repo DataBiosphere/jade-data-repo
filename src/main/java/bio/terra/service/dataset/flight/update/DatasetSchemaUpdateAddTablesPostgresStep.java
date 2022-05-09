@@ -4,6 +4,7 @@ import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetTableDao;
+import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -32,6 +33,7 @@ public class DatasetSchemaUpdateAddTablesPostgresStep implements Step {
         updateModel.getChanges().getAddTables().stream()
             .map(DatasetJsonConversion::tableModelToTable)
             .collect(Collectors.toList());
+    DatasetUtils.fillGeneratedTableNames(datasetTables);
     try {
       datasetTableDao.createTables(datasetId, datasetTables);
     } catch (IOException e) {

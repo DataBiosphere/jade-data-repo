@@ -16,6 +16,7 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SnapshotPreviewModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -66,21 +67,27 @@ public class SearchApiControllerTest {
   public void testSnapshotPreviewById() throws Exception {
     var id = UUID.randomUUID();
     var table = "good_table";
+    var column = "good_column";
+    var direction = SqlSortDirection.ASC;
     var limit = 10;
     var offset = 0;
     var list = List.of("hello", "world");
     var result = new SnapshotPreviewModel().result(List.copyOf(list));
-    when(snapshotService.retrievePreview(id, table, limit, offset)).thenReturn(result);
+    when(snapshotService.retrievePreview(id, table, limit, offset, column, direction))
+        .thenReturn(result);
     mvc.perform(
             get(GET_PREVIEW_ENDPOINT, id, table)
                 .queryParam("limit", String.valueOf(limit))
-                .queryParam("offset", String.valueOf(offset)))
+                .queryParam("offset", String.valueOf(offset))
+                .queryParam("sort", column)
+                .queryParam("direction", String.valueOf(direction))
+        )
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.result").isArray());
     verify(iamService)
         .verifyAuthorization(
             any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
-    verify(snapshotService).retrievePreview(id, table, limit, offset);
+    verify(snapshotService).retrievePreview(id, table, limit, offset, column, direction);
   }
 
   @Test

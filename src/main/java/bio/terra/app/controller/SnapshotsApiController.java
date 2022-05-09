@@ -242,12 +242,18 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
-      UUID id, String table, Integer offset, Integer limit) {
+      UUID id,
+      String table,
+      Integer offset,
+      Integer limit,
+      String sort,
+      SqlSortDirection direction) {
     logger.info("Verifying user access");
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
     logger.info("Retrieving snapshot id {}", id);
-    SnapshotPreviewModel previewModel = snapshotService.retrievePreview(id, table, limit, offset);
+    SnapshotPreviewModel previewModel =
+        snapshotService.retrievePreview(id, table, limit, offset, sort, direction);
     return new ResponseEntity<>(previewModel, HttpStatus.OK);
   }
 

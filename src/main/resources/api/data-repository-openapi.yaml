@@ -475,7 +475,6 @@ paths:
           in: query
           description: The direction to sort.
           schema:
-            default: asc
             $ref: '#/components/schemas/SqlSortDirection'
         - name: filter
           in: query
@@ -693,6 +692,16 @@ paths:
             default: 30
             minimum: 1
             maximum: 1000
+        - name: sort
+          in: query
+          description: The table column to sort by
+          schema:
+            type: string
+        - name: direction
+          in: query
+          description: The direction to sort.
+          schema:
+            $ref: '#/components/schemas/SqlSortDirection'
       responses:
         200:
           description: Returns the table data from a snapshot
@@ -1053,7 +1062,6 @@ paths:
           in: query
           description: The direction to sort.
           schema:
-            default: asc
             $ref: '#/components/schemas/SqlSortDirection'
         - name: filter
           in: query
@@ -3135,7 +3143,10 @@ components:
         The type of a column in a table.
     SqlSortDirection:
       type: string
-      enum: [ asc, desc ]
+      enum:
+        - asc
+        - desc
+      default: asc
       description: >
         The sort direction of a query result
     EnumerateSortByParam:

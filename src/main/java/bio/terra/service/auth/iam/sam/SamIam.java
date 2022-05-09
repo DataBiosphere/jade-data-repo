@@ -40,7 +40,6 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
-import org.broadinstitute.dsde.workbench.client.sam.Pair;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
@@ -593,60 +592,6 @@ public class SamIam implements IamProviderInterface {
       membership.memberEmails(emails);
     }
     return membership;
-  }
-
-  // This is a work around for https://broadworkbench.atlassian.net/browse/AP-149
-  // This is a copy of the ApiClient.createResourceCall but adds in the validation and
-  // the actual execution of the call. And doesn't allow listener callbacks
-  private void createResourceCorrectCall(
-      ApiClient localVarApiClient,
-      String resourceTypeName,
-      CreateResourceCorrectRequest resourceCreate)
-      throws ApiException {
-
-    // verify the required parameter 'resourceTypeName' is set
-    if (resourceTypeName == null) {
-      throw new ApiException(
-          "Missing the required parameter 'resourceTypeName' when calling createResource(Async)");
-    }
-
-    // verify the required parameter 'resourceCreate' is set
-    if (resourceCreate == null) {
-      throw new ApiException(
-          "Missing the required parameter 'resourceCreate' when calling createResource(Async)");
-    }
-
-    // create path and map variables
-    String localVarPath = "/api/resources/v2/" + localVarApiClient.escapeString(resourceTypeName);
-
-    List<Pair> localVarQueryParams = new ArrayList<Pair>();
-    List<Pair> localVarCollectionQueryParams = new ArrayList<Pair>();
-    Map<String, String> localVarHeaderParams = new HashMap<String, String>();
-    Map<String, Object> localVarFormParams = new HashMap<String, Object>();
-    final String[] localVarAccepts = {"application/json"};
-    final String localVarAccept = localVarApiClient.selectHeaderAccept(localVarAccepts);
-    if (localVarAccept != null) {
-      localVarHeaderParams.put("Accept", localVarAccept);
-    }
-
-    final String[] localVarContentTypes = {};
-    final String localVarContentType =
-        localVarApiClient.selectHeaderContentType(localVarContentTypes);
-    localVarHeaderParams.put("Content-Type", localVarContentType);
-
-    String[] localVarAuthNames = new String[] {"googleoauth"};
-    okhttp3.Call localVarCall =
-        localVarApiClient.buildCall(
-            localVarPath,
-            "POST",
-            localVarQueryParams,
-            localVarCollectionQueryParams,
-            resourceCreate,
-            localVarHeaderParams,
-            localVarFormParams,
-            localVarAuthNames,
-            null);
-    localVarApiClient.execute(localVarCall);
   }
 
   /**

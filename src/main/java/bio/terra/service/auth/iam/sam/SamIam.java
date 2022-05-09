@@ -44,7 +44,6 @@ import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
-import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
@@ -568,26 +567,13 @@ public class SamIam implements IamProviderInterface {
     return userStatusInfo;
   }
 
-  AccessPolicyMembership createAccessPolicyOne(IamRole role, String email) {
-    return createAccessPolicy(role, Collections.singletonList(email));
-  }
-
   AccessPolicyMembershipV2 createAccessPolicyOneV2(IamRole role, String email) {
-    return createAccessPolicyV2(role, List.of(email));
+    return createAccessPolicyV2(role, Collections.singletonList(email));
   }
 
   AccessPolicyMembershipV2 createAccessPolicyV2(IamRole role, List<String> emails) {
     AccessPolicyMembershipV2 membership =
         new AccessPolicyMembershipV2().roles(Collections.singletonList(role.toString()));
-    if (emails != null) {
-      membership.memberEmails(emails);
-    }
-    return membership;
-  }
-
-  AccessPolicyMembership createAccessPolicy(IamRole role, List<String> emails) {
-    AccessPolicyMembership membership =
-        new AccessPolicyMembership().roles(Collections.singletonList(role.toString()));
     if (emails != null) {
       membership.memberEmails(emails);
     }

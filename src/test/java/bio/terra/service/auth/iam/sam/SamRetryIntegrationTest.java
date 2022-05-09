@@ -10,7 +10,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
-import bio.terra.model.PolicyModel;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -89,20 +89,20 @@ public class SamRetryIntegrationTest extends UsersBase {
     // Otherwise, need to break up each "SamIam.syncOnePolicy" into own retry loop
     String policyEmail = SyncPolicy(IamResourceType.DATASET, fakeDatasetId, IamRole.STEWARD);
     logger.info("[TEST INFO] Policy email on first sync: {}", policyEmail);
-    List<PolicyModel> firstSync_policyList =
+    List<SamPolicyModel> firstSync_policyList =
         iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
 
     String second_policyEmail = SyncPolicy(IamResourceType.DATASET, fakeDatasetId, IamRole.STEWARD);
     logger.info("[TEST INFO] Policy email on second sync: {}", policyEmail);
-    List<PolicyModel> secondSync_policyList =
+    List<SamPolicyModel> secondSync_policyList =
         iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
 
     assertEquals("Policy Emails should be the same", policyEmail, second_policyEmail);
 
     // Let's make sure the policy model didn't change between the first and second sync
     for (int i = 0; i < firstSync_policyList.size(); i++) {
-      PolicyModel firstSync_policy = firstSync_policyList.get(i);
-      PolicyModel secondSync_policy = secondSync_policyList.get(i);
+      SamPolicyModel firstSync_policy = firstSync_policyList.get(i);
+      SamPolicyModel secondSync_policy = secondSync_policyList.get(i);
 
       logger.info(
           "[TEST INFO] Checking Role {} - {} of {} SAM policies synced",

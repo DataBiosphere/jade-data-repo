@@ -200,7 +200,7 @@ dependencies {
     implementation 'org.springframework:spring-jdbc:5.1.9.RELEASE'
     implementation 'org.springframework.cloud:spring-cloud-gcp-starter-logging:1.2.8.RELEASE'
     implementation "org.springframework.cloud:spring-cloud-starter-sleuth:3.0.2"
-    implementation 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-343dfff-SNAP'
+    implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:0.1-c53306a-SNAP'
     implementation 'org.antlr:ST4:4.3'                          // String templating
     implementation group: 'io.kubernetes', name: 'client-java', version: '10.0.0'
 

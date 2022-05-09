@@ -6,6 +6,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.ResourcePolicyModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.WorkspacePolicyModel;
+import bio.terra.service.auth.iam.IamResourceType;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,7 +30,7 @@ public class RawlsService {
       SamPolicyModel samPolicyModel, AuthenticatedUserRequest userRequest) {
     Map<UUID, List<ResourcePolicyModel>> workspaceToPolicy =
         samPolicyModel.getMemberPolicies().stream()
-            .filter(p -> p.getResourceTypeName().equals("workspace"))
+            .filter(p -> p.getResourceTypeName().equals(IamResourceType.WORKSPACE.toString()))
             .collect(Collectors.groupingBy(ResourcePolicyModel::getResourceId));
 
     return workspaceToPolicy.entrySet().stream()

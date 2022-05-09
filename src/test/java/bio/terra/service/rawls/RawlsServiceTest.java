@@ -109,7 +109,7 @@ public class RawlsServiceTest {
 
     final String ownerName = "owner";
     final String ownerEmail = String.format("policy-%s@firecloud.org", UUID.randomUUID());
-    final String resourceTypeName = "workspace";
+    final String resourceTypeName = IamResourceType.WORKSPACE.toString();
     final UUID resourceId = UUID.randomUUID();
     when(samResourceApi.listResourcePoliciesV2(
             IamResourceType.DATASNAPSHOT.getSamResourceName(), id.toString()))

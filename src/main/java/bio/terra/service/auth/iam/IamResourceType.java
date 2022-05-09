@@ -8,7 +8,8 @@ public enum IamResourceType {
   DATAREPO("datarepo"),
   DATASET("dataset"),
   DATASNAPSHOT("datasnapshot"),
-  SPEND_PROFILE("spend-profile");
+  SPEND_PROFILE("spend-profile"),
+  WORKSPACE("workspace");
 
   private final String samResourceName;
 

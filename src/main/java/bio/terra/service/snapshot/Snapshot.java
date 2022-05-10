@@ -88,6 +88,10 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
     return this;
   }
 
+  public Optional<SnapshotTable> getTableByName(String tableName) {
+    return this.getTables().stream().filter(t -> t.getName().equals(tableName)).findFirst();
+  }
+
   public List<SnapshotSource> getSnapshotSources() {
     return snapshotSources;
   }

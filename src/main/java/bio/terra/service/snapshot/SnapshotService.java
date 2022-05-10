@@ -1,5 +1,7 @@
 package bio.terra.service.snapshot;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.Column;
@@ -387,20 +389,35 @@ public class SnapshotService {
   }
 
   public SnapshotPreviewModel retrievePreview(
-      UUID snapshotId, String tableName, int limit, int offset) {
+      UUID snapshotId,
+      String tableName,
+      int limit,
+      int offset,
+      String sort,
+      SqlSortDirection direction) {
     Snapshot snapshot = retrieve(snapshotId);
 
-    snapshot.getTables().stream()
-        .filter(t -> t.getName().equals(tableName))
-        .findFirst()
-        .orElseThrow(
-            () ->
-                new SnapshotPreviewException(
-                    "No snapshot table exists with the name: " + tableName));
+    SnapshotTable table =
+        snapshot
+            .getTableByName(tableName)
+            .orElseThrow(
+                () ->
+                    new SnapshotPreviewException(
+                        "No snapshot table exists with the name: " + tableName));
+
+    if (!sort.equalsIgnoreCase(PDAO_ROW_ID_COLUMN)) {
+      table
+          .getColumnByName(sort)
+          .orElseThrow(
+              () ->
+                  new SnapshotPreviewException(
+                      "No snapshot table column exists with the name: " + sort));
+    }
 
     try {
       List<Map<String, Object>> values =
-          bigQuerySnapshotPdao.getSnapshotTable(snapshot, tableName, limit, offset);
+          bigQuerySnapshotPdao.getSnapshotTable(
+              snapshot, tableName, limit, offset, sort, direction);
 
       return new SnapshotPreviewModel().result(List.copyOf(values));
     } catch (InterruptedException e) {

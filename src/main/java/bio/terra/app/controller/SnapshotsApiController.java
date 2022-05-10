@@ -40,6 +40,7 @@ import io.swagger.annotations.Api;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -250,12 +251,20 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
-      UUID id, String table, Integer offset, Integer limit) {
+      UUID id,
+      String table,
+      Integer offset,
+      Integer limit,
+      String sort,
+      SqlSortDirection direction) {
     logger.info("Verifying user access");
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
     logger.info("Retrieving snapshot id {}", id);
-    SnapshotPreviewModel previewModel = snapshotService.retrievePreview(id, table, limit, offset);
+    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
+    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
+    SnapshotPreviewModel previewModel =
+        snapshotService.retrievePreview(id, table, limit, offset, sort, sortDirection);
     return new ResponseEntity<>(previewModel, HttpStatus.OK);
   }
 

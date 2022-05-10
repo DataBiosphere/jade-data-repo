@@ -693,6 +693,18 @@ paths:
             default: 30
             minimum: 1
             maximum: 1000
+        - name: sort
+          in: query
+          description: The table column to sort by
+          schema:
+            type: string
+            default: "datarepo_row_id"
+        - name: direction
+          in: query
+          description: The direction to sort.
+          schema:
+            default: asc
+            $ref: '#/components/schemas/SqlSortDirection'
       responses:
         200:
           description: Returns the table data from a snapshot

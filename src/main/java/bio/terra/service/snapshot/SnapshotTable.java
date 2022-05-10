@@ -4,6 +4,7 @@ import bio.terra.common.Column;
 import bio.terra.common.Table;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class SnapshotTable implements Table {
@@ -35,6 +36,10 @@ public class SnapshotTable implements Table {
   @Override
   public List<Column> getColumns() {
     return columns;
+  }
+
+  public Optional<Column> getColumnByName(String columnName) {
+    return this.columns.stream().filter(t -> t.getName().equals(columnName)).findFirst();
   }
 
   public SnapshotTable columns(List<Column> columns) {

@@ -698,6 +698,7 @@ paths:
           description: The table column to sort by
           schema:
             type: string
+            default: "datarepo_row_id"
         - name: direction
           in: query
           description: The direction to sort.

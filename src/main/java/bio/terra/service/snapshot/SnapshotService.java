@@ -58,6 +58,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -405,8 +406,8 @@ public class SnapshotService {
                     new SnapshotPreviewException(
                         "No snapshot table exists with the name: " + tableName));
 
-    SqlSortDirection sortDirection = Optional.ofNullable(direction).orElse(SqlSortDirection.ASC);
-    if (!StringUtils.equals(sort, PDAO_ROW_ID_COLUMN)) {
+    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
+    if (!sort.equalsIgnoreCase(PDAO_ROW_ID_COLUMN)) {
       table
           .getColumnByName(sort)
           .orElseThrow(

@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
 import bio.terra.service.auth.iam.IamRole;
@@ -59,6 +60,7 @@ public class DatasetServiceUnitTest {
   @MockBean private ObjectMapper objectMapper;
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockBean private ProfileService profileService;
+  @MockBean private UserLoggingMetrics loggingMetrics;
 
   @Test
   public void enumerate() {

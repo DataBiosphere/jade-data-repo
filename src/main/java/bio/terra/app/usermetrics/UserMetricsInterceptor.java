@@ -5,6 +5,7 @@ import bio.terra.app.configuration.UserMetricsConfiguration;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import javax.servlet.http.HttpServletRequest;
@@ -19,14 +20,13 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class UserMetricsInterceptor implements HandlerInterceptor {
   static final String API_EVENT_NAME = "tdr:api";
-  static final String METHOD_FIELD_NAME = "method";
-  static final String PATH_FIELD_NAME = "path";
 
   private final BardClient bardClient;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final ApplicationConfiguration applicationConfiguration;
   private final UserMetricsConfiguration metricsConfig;
   private final ExecutorService metricsPerformanceThreadpool;
+  private final UserLoggingMetrics eventProperties;
 
   @Autowired
   public UserMetricsInterceptor(
@@ -34,12 +34,14 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       ApplicationConfiguration applicationConfiguration,
       UserMetricsConfiguration metricsConfig,
+      UserLoggingMetrics eventProperties,
       @Qualifier("metricsReportingThreadpool") ExecutorService metricsPerformanceThreadpool) {
     this.bardClient = bardClient;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.applicationConfiguration = applicationConfiguration;
     this.metricsConfig = metricsConfig;
     this.metricsPerformanceThreadpool = metricsPerformanceThreadpool;
+    this.eventProperties = eventProperties;
   }
 
   @Override
@@ -55,10 +57,19 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
       // Don't track unauthenticated requests
       return;
     }
+
     // Don't log metrics if bard isn't configured or the path is part of the ignore-list
     if (StringUtils.isEmpty(metricsConfig.getBardBasePath()) || ignoreEventForPath(path)) {
       return;
     }
+
+    HashMap<String, Object> properties =
+        new HashMap<>(
+            Map.of(
+                BardEventProperties.METHOD_FIELD_NAME, method,
+                BardEventProperties.PATH_FIELD_NAME, path));
+    eventProperties.setAll(properties);
+    HashMap<String, Object> bardEventProperties = eventProperties.get();
 
     // Spawn a thread so that sending the metric doesn't slow down the initial request
     metricsPerformanceThreadpool.submit(
@@ -67,9 +78,7 @@ public class UserMetricsInterceptor implements HandlerInterceptor {
                 userRequest,
                 new BardEvent(
                     API_EVENT_NAME,
-                    Map.of(
-                        METHOD_FIELD_NAME, method,
-                        PATH_FIELD_NAME, path),
+                    bardEventProperties,
                     metricsConfig.getAppId(),
                     applicationConfiguration.getDnsName())));
   }

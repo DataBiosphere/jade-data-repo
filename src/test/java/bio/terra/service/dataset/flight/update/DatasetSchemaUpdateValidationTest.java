@@ -49,15 +49,13 @@ public class DatasetSchemaUpdateValidationTest {
   @MockBean private ConfigurationService configurationService;
 
   private UUID datasetId;
-  private String existingTableName = "existing_table";
-  private UUID existingTableId;
-  private String existingColumnName = "existing_column";
-  private UUID existingColumnId;
+  private static final String EXISTING_TABLE_NAME = "existing_table";
 
   @Before
   public void setup() {
     datasetId = UUID.randomUUID();
-    existingTableId = UUID.randomUUID();
+    UUID existingTableId = UUID.randomUUID();
+    UUID existingColumnId = UUID.randomUUID();
     when(datasetService.retrieve(datasetId))
         .thenReturn(
             new Dataset()
@@ -67,12 +65,12 @@ public class DatasetSchemaUpdateValidationTest {
                 .tables(
                     List.of(
                         new DatasetTable()
-                            .name(existingTableName)
+                            .name(EXISTING_TABLE_NAME)
                             .id(existingTableId)
                             .columns(
                                 List.of(
                                     new Column()
-                                        .name(existingColumnName)
+                                        .name("existing_column")
                                         .id(existingColumnId)
                                         .type(TableDataType.STRING)
                                         .arrayOf(false)
@@ -90,7 +88,7 @@ public class DatasetSchemaUpdateValidationTest {
                     .addTables(
                         List.of(
                             new TableModel()
-                                .name(existingTableName)
+                                .name(EXISTING_TABLE_NAME)
                                 .columns(
                                     List.of(
                                         new ColumnModel()
@@ -111,6 +109,6 @@ public class DatasetSchemaUpdateValidationTest {
 
     assertThat(exception.getMessage(), containsString("Could not validate"));
     assertThat(exception.getCauses().get(0), containsString("overwrite"));
-    assertThat(exception.getCauses().get(1), is(existingTableName));
+    assertThat(exception.getCauses().get(1), is(EXISTING_TABLE_NAME));
   }
 }

@@ -497,6 +497,7 @@ public class DrsService {
             .accessUrl(gsAccessURL)
             .accessId(accessId)
             .region(region);
+    //TODO - add authorizations
 
     DRSAccessURL httpsAccessURL =
         new DRSAccessURL()
@@ -508,6 +509,7 @@ public class DrsService {
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessUrl(httpsAccessURL)
             .region(region);
+    //TODO - add authorizations
 
     return List.of(gsAccessMethod, httpsAccessMethod);
   }
@@ -519,6 +521,7 @@ public class DrsService {
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessId(accessId)
             .region(region);
+    // TODO - add authorizations
 
     return List.of(httpsAccessMethod);
   }

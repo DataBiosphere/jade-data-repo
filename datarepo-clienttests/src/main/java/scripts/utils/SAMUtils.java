@@ -84,7 +84,7 @@ public class SAMUtils {
   public static boolean isDataRepoSteward(ApiClient apiClient, String datarepoResourceId)
       throws ApiException {
     ResourcesApi resourcesApi = new ResourcesApi(apiClient);
-    return resourcesApi.resourceActionsV2("datarepo", datarepoResourceId, "create_dataset");
+    return resourcesApi.resourcePermissionV2("datarepo", datarepoResourceId, "create_dataset");
   }
 
   /**

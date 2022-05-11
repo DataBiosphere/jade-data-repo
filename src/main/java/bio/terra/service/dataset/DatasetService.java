@@ -1,6 +1,8 @@
 package bio.terra.service.dataset;
 
 import bio.terra.app.controller.DatasetsApiController;
+import bio.terra.app.usermetrics.BardEventProperties;
+import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -87,6 +89,7 @@ public class DatasetService {
   private final ObjectMapper objectMapper;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final ProfileService profileService;
+  private final UserLoggingMetrics loggingMetrics;
 
   @Autowired
   public DatasetService(
@@ -102,7 +105,8 @@ public class DatasetService {
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
       AzureBlobStorePdao azureBlobStorePdao,
-      ProfileService profileService) {
+      ProfileService profileService,
+      UserLoggingMetrics loggingMetrics) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
@@ -116,11 +120,14 @@ public class DatasetService {
     this.objectMapper = objectMapper;
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.profileService = profileService;
+    this.loggingMetrics = loggingMetrics;
   }
 
   public String createDataset(
       DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
     String description = "Create dataset " + datasetRequest.getName();
+    loggingMetrics.set(
+        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, datasetRequest.getDefaultProfileId());
     return jobService
         .newJob(description, DatasetCreateFlight.class, datasetRequest, userReq)
         .submit();

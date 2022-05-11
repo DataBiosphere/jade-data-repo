@@ -17,6 +17,7 @@ import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
@@ -814,14 +815,20 @@ public class BigQuerySnapshotPdao {
   }
 
   private static final String SNAPSHOT_DATA_TEMPLATE =
-      "SELECT * FROM `<project>.<snapshot>.<table>` ORDER BY datarepo_row_id"
+      "SELECT * FROM `<project>.<snapshot>.<table>` ORDER BY <sort> <direction>"
           + " LIMIT <limit> OFFSET <offset>";
 
   /*
    * WARNING: Ensure input parameters are validated before executing this method!
    */
   public List<Map<String, Object>> getSnapshotTable(
-      Snapshot snapshot, String tableName, int limit, int offset) throws InterruptedException {
+      Snapshot snapshot,
+      String tableName,
+      int limit,
+      int offset,
+      String sort,
+      SqlSortDirection direction)
+      throws InterruptedException {
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final String snapshotProjectId = bigQueryProject.getProjectId();
     final String sql =
@@ -829,6 +836,8 @@ public class BigQuerySnapshotPdao {
             .add("project", snapshotProjectId)
             .add("snapshot", snapshot.getName())
             .add("table", tableName)
+            .add("sort", sort)
+            .add("direction", direction)
             .add("limit", limit)
             .add("offset", offset)
             .render();

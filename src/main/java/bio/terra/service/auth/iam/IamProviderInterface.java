@@ -3,6 +3,7 @@ package bio.terra.service.auth.iam;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import java.util.List;
@@ -136,7 +137,7 @@ public interface IamProviderInterface {
 
   // -- policy membership support --
 
-  List<PolicyModel> retrievePolicies(
+  List<SamPolicyModel> retrievePolicies(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException;
 

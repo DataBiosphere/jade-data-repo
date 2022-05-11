@@ -5,6 +5,7 @@ import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECO
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
@@ -218,7 +219,7 @@ public class IamService {
 
   // -- policy membership support --
 
-  public List<PolicyModel> retrievePolicies(
+  public List<SamPolicyModel> retrievePolicies(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId) {
     return callProvider(() -> iamProvider.retrievePolicies(userReq, iamResourceType, resourceId));
   }

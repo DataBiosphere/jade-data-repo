@@ -1,6 +1,7 @@
 package bio.terra.service.profile;
 
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -240,7 +241,8 @@ public class ProfileService {
   }
 
   public List<PolicyModel> retrieveProfilePolicies(UUID profileId, AuthenticatedUserRequest user) {
-    return iamService.retrievePolicies(user, IamResourceType.SPEND_PROFILE, profileId);
+    return PolicyUtils.samToTdrPolicyModels(
+        iamService.retrievePolicies(user, IamResourceType.SPEND_PROFILE, profileId));
   }
 
   // -- methods invoked from billing profile flights --

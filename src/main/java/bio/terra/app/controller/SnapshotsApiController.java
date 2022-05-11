@@ -4,6 +4,7 @@ import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
@@ -15,11 +16,13 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -29,6 +32,7 @@ import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
+import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +40,7 @@ import io.swagger.annotations.Api;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -76,6 +81,8 @@ public class SnapshotsApiController implements SnapshotsApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
 
+  private final RawlsService rawlsService;
+
   @Autowired
   public SnapshotsApiController(
       ObjectMapper objectMapper,
@@ -87,7 +94,8 @@ public class SnapshotsApiController implements SnapshotsApi {
       IngestRequestValidator ingestRequestValidator,
       FileService fileService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
-      AssetModelValidator assetModelValidator) {
+      AssetModelValidator assetModelValidator,
+      RawlsService rawlsService) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.jobService = jobService;
@@ -98,6 +106,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     this.fileService = fileService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.assetModelValidator = assetModelValidator;
+    this.rawlsService = rawlsService;
   }
 
   @InitBinder
@@ -242,12 +251,20 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
-      UUID id, String table, Integer offset, Integer limit) {
+      UUID id,
+      String table,
+      Integer offset,
+      Integer limit,
+      String sort,
+      SqlSortDirection direction) {
     logger.info("Verifying user access");
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
     logger.info("Retrieving snapshot id {}", id);
-    SnapshotPreviewModel previewModel = snapshotService.retrievePreview(id, table, limit, offset);
+    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
+    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
+    SnapshotPreviewModel previewModel =
+        snapshotService.retrievePreview(id, table, limit, offset, sort, sortDirection);
     return new ResponseEntity<>(previewModel, HttpStatus.OK);
   }
 
@@ -270,11 +287,18 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(@PathVariable("id") UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    List<SamPolicyModel> samPolicyModels =
+        iamService.retrievePolicies(userRequest, IamResourceType.DATASNAPSHOT, id);
+    List<WorkspacePolicyModel> workspacePolicyModels =
+        samPolicyModels.stream()
+            .flatMap(pm -> rawlsService.resolvePolicyEmails(pm, userRequest).stream())
+            .collect(Collectors.toList());
     PolicyResponse response =
         new PolicyResponse()
-            .policies(
-                iamService.retrievePolicies(
-                    getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id));
+            .policies(PolicyUtils.samToTdrPolicyModels(samPolicyModels))
+            .workspaces(workspacePolicyModels);
+
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 

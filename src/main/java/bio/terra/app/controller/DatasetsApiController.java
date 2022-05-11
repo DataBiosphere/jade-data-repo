@@ -4,6 +4,7 @@ import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -28,6 +29,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
@@ -329,9 +331,10 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<PolicyResponse> retrieveDatasetPolicies(@PathVariable("id") UUID id) {
-    List<PolicyModel> policies =
+    List<SamPolicyModel> policies =
         iamService.retrievePolicies(getAuthenticatedInfo(), IamResourceType.DATASET, id);
-    PolicyResponse response = new PolicyResponse().policies(policies);
+    PolicyResponse response =
+        new PolicyResponse().policies(PolicyUtils.samToTdrPolicyModels(policies));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 

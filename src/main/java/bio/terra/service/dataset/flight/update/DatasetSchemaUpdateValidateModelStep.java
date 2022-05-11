@@ -2,6 +2,7 @@ package bio.terra.service.dataset.flight.update;
 
 import bio.terra.common.Column;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.Dataset;
@@ -14,7 +15,6 @@ import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListUtils;
@@ -52,22 +52,22 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
     }
 
     if (DatasetSchemaUpdateUtils.hasColumnAdditions(updateModel)) {
-      Map<String, List<ColumnModel>> newColumnsMap =
-          DatasetSchemaUpdateUtils.makeNewColumnsMap(updateModel);
+      List<DatasetSchemaColumnUpdateModel> addColumns = updateModel.getChanges().getAddColumns();
       List<String> newAndExistingTableNames = ListUtils.union(existingTableNames, newTableNames);
 
       List<String> missingTables = new ArrayList<>();
       List<String> duplicateColumns = new ArrayList<>();
-      for (var entry : newColumnsMap.entrySet()) {
-        String tableName = entry.getKey();
+      for (var columnAddition : addColumns) {
+        String tableName = columnAddition.getTableName();
         if (!newAndExistingTableNames.contains(tableName)) {
           missingTables.add(tableName);
           continue;
         }
         if (newTableNames.contains(tableName)) {
-          duplicateColumns.addAll(conflictingNewColumns(tableName, entry.getValue()));
+          duplicateColumns.addAll(conflictingNewColumns(tableName, columnAddition.getColumns()));
         } else {
-          duplicateColumns.addAll(conflictingExistingColumns(tableName, dataset, entry.getValue()));
+          duplicateColumns.addAll(
+              conflictingExistingColumns(tableName, dataset, columnAddition.getColumns()));
         }
       }
       if (!missingTables.isEmpty()) {

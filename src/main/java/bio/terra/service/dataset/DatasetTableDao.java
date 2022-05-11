@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -55,6 +56,9 @@ public class DatasetTableDao {
 
   private static final String sqlDeleteColumn =
       "DELETE FROM dataset_column WHERE id = :column_id AND table_id = :table_id";
+
+  private static final String sqlGetMaxColumnOrdinal =
+      "SELECT MAX(ordinal) FROM dataset_column WHERE table_id = :table_id";
 
   private final DataSource jdbcDataSource;
   private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -99,7 +103,7 @@ public class DatasetTableDao {
 
       UUID tableId = keyHolder.getId();
       table.id(tableId);
-      createColumns(tableId, table.getColumns());
+      createColumnsNewTable(tableId, table.getColumns());
     }
   }
 
@@ -118,11 +122,22 @@ public class DatasetTableDao {
     }
   }
 
-  private void createColumns(UUID tableId, Collection<Column> columns) {
+  private void createColumnsNewTable(UUID tableId, Collection<Column> columns) {
+    createColumns(tableId, columns, 0);
+  }
+
+  public void createColumnsExistingTable(UUID tableId, Collection<Column> columns) {
+    MapSqlParameterSource params = new MapSqlParameterSource();
+    params.addValue("table_id", tableId);
+    Integer maxOrdinal = jdbcTemplate.queryForObject(sqlGetMaxColumnOrdinal, params, Integer.class);
+    // Need to requireNonNull or else SpotBugs complains
+    createColumns(tableId, columns, Objects.requireNonNullElse(maxOrdinal, 0));
+  }
+
+  private void createColumns(UUID tableId, Collection<Column> columns, int ordinal) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     params.addValue("table_id", tableId);
     DaoKeyHolder keyHolder = new DaoKeyHolder();
-    int ordinal = 0;
     for (Column column : columns) {
       params.addValue("name", column.getName());
       params.addValue("type", column.getType().toString());
@@ -135,6 +150,15 @@ public class DatasetTableDao {
     }
   }
 
+  private void removeColumns(UUID datasetId, UUID tableId, Collection<Column> columns) {
+    removeColumns(
+        retrieveTables(datasetId).stream()
+            .filter(dt -> dt.getId().equals(tableId))
+            .findFirst()
+            .orElseThrow(),
+        columns);
+  }
+
   public void removeColumns(Table table, Collection<Column> columns) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     params.addValue("table_id", table.getId());
@@ -145,15 +169,6 @@ public class DatasetTableDao {
       params.addValue("column_id", column.getId());
       jdbcTemplate.update(sqlDeleteColumn, params);
     }
-  }
-
-  public void removeColumns(UUID datasetId, UUID tableId, Collection<Column> columns) {
-    removeColumns(
-        retrieveTables(datasetId).stream()
-            .filter(dt -> dt.getId().equals(tableId))
-            .findFirst()
-            .orElseThrow(),
-        columns);
   }
 
   public List<DatasetTable> retrieveTables(UUID parentId) {

@@ -1,12 +1,9 @@
 package bio.terra.service.dataset.flight.update;
 
-import bio.terra.model.ColumnModel;
-import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModelChanges;
 import bio.terra.model.TableModel;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -30,14 +27,5 @@ public class DatasetSchemaUpdateUtils {
     return updateModel.getChanges().getAddTables().stream()
         .map(TableModel::getName)
         .collect(Collectors.toList());
-  }
-
-  public static Map<String, List<ColumnModel>> makeNewColumnsMap(
-      DatasetSchemaUpdateModel updateModel) {
-    return updateModel.getChanges().getAddColumns().stream()
-        .collect(
-            Collectors.toMap(
-                DatasetSchemaColumnUpdateModel::getTableName,
-                DatasetSchemaColumnUpdateModel::getColumns));
   }
 }

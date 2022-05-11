@@ -54,5 +54,6 @@
     <include file="changesets/20220324_addsnapshottablepkfield.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220325_selfhosteddatasets.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220411_requiredcolumns.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220511_dropsnapshotmetadata.yml" relativeToChangelogFile="true" />
 
 </databaseChangeLog>

@@ -53,6 +53,11 @@ public class DatasetSchemaUpdateFlight extends Flight {
               bigQueryDatasetPdao, datasetDao, datasetId, updateModel));
     }
 
+    if (DatasetSchemaUpdateUtils.hasColumnAdditions(updateModel)) {
+      addStep(
+          new DatasetSchemaUpdateAddColumnsPostgresStep(datasetTableDao, datasetId, updateModel));
+    }
+
     addStep(new UnlockDatasetStep(datasetService, datasetId, false));
   }
 }

@@ -39,7 +39,7 @@ dependencies {
         jersey = "2.30.1"
 
         datarepoClient = "1.260.0-SNAPSHOT"
-        samClient = "0.1-9435410-SNAP"
+        samClient = "0.1-c53306a-SNAP"
     }
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junit}")
@@ -83,7 +83,7 @@ dependencies {
         implementation "io.swagger.core.v3:swagger-annotations:${swaggerAnnotations}"
     }
 
-    implementation "org.broadinstitute.dsde.workbench:sam-client_2.12:${samClient}"
+    implementation "org.broadinstitute.dsde.workbench:sam-client_2.13:${samClient}"
 }
 
 group 'bio.terra'

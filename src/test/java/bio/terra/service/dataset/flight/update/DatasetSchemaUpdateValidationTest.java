@@ -50,6 +50,7 @@ public class DatasetSchemaUpdateValidationTest {
 
   private UUID datasetId;
   private static final String EXISTING_TABLE_NAME = "existing_table";
+  public static final String EXISTING_COLUMN_NAME = "existing_column";
 
   @Before
   public void setup() {
@@ -70,7 +71,7 @@ public class DatasetSchemaUpdateValidationTest {
                             .columns(
                                 List.of(
                                     new Column()
-                                        .name("existing_column")
+                                        .name(EXISTING_COLUMN_NAME)
                                         .id(existingColumnId)
                                         .type(TableDataType.STRING)
                                         .arrayOf(false)

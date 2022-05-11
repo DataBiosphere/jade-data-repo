@@ -1,6 +1,9 @@
 package bio.terra.service.dataset.flight.update;
 
+import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.model.DatasetSchemaUpdateModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTableDao;
@@ -30,8 +33,17 @@ public class DatasetSchemaUpdateFlight extends Flight {
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
 
-    addStep(new DatasetSchemaUpdateValidateModelStep(datasetService, datasetId, updateModel));
+    Dataset dataset = datasetDao.retrieve(datasetId);
+    CloudPlatformWrapper cloudPlatform =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getCloudPlatform());
+
+    if (cloudPlatform.isAzure()) {
+      throw new InvalidCloudPlatformException("Cannot update table schema for Azure datasets");
+    }
+
     addStep(new LockDatasetStep(datasetService, datasetId, false));
+
+    addStep(new DatasetSchemaUpdateValidateModelStep(datasetService, datasetId, updateModel));
 
     if (DatasetSchemaUpdateUtils.hasTableAdditions(updateModel)) {
       addStep(

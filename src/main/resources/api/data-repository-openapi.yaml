@@ -5056,9 +5056,7 @@ components:
             belongs to.
           example: us-east-1
         authorizations:
-          allOf:
-            - $ref: '#/components/schemas/DRSAuthorizations'
-            - description: When `access_id` is provided, `authorizations` provides information about how to authorize the `/access` method.
+          $ref: '#/components/schemas/DRSAuthorizations'
     DRSError:
       type: object
       properties:

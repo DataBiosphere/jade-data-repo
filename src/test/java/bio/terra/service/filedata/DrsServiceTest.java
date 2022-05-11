@@ -373,6 +373,18 @@ public class DrsServiceTest {
   }
 
   @Test
+  public void lookupObjectByDrsId() {
+    when(snapshotService.retrieveSnapshotSummary(snapshotId))
+        .thenReturn(new SnapshotSummaryModel().id(snapshotId));
+    DRSObject object = drsService.lookupObjectByDrsId(authUser, googleDrsObjectId, false);
+    DRSAccessMethod accessMethod = object.getAccessMethods().get(0);
+    assertThat(
+        "Only BEARER authorization is included",
+        accessMethod.getAuthorizations().getSupportedTypes().size(),
+        equalTo(1));
+  }
+
+  @Test
   public void lookupObjectByDrsIdPassport() {
     when(snapshotService.retrieveSnapshotSummary(snapshotId))
         .thenReturn(
@@ -387,6 +399,10 @@ public class DrsServiceTest {
         "Correct access method is returned",
         "gcp-passport-us-central1",
         equalTo(accessMethod.getAccessId()));
+    assertThat(
+        "Both authorization types are included",
+        accessMethod.getAuthorizations().getSupportedTypes().size(),
+        equalTo(2));
     assertThat("Correct drs object is returned", googleDrsObjectId, equalTo(object.getId()));
   }
 

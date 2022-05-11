@@ -14,7 +14,6 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.search.SearchService;
-import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -52,7 +51,6 @@ public class SearchApiController implements SearchApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final SearchService searchService;
   private final SnapshotService snapshotService;
-  private final SnapshotSearchMetadataDao snapshotSearchMetadataDao;
 
   @Autowired
   public SearchApiController(
@@ -62,8 +60,7 @@ public class SearchApiController implements SearchApi {
       IamService iamService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       SearchService searchService,
-      SnapshotService snapshotService,
-      SnapshotSearchMetadataDao snapshotSearchMetadataDao) {
+      SnapshotService snapshotService) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.appConfig = appConfig;
@@ -71,7 +68,6 @@ public class SearchApiController implements SearchApi {
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.searchService = searchService;
     this.snapshotService = snapshotService;
-    this.snapshotSearchMetadataDao = snapshotSearchMetadataDao;
   }
 
   @Override

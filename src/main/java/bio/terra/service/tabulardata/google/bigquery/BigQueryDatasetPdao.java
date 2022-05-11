@@ -43,6 +43,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
@@ -53,6 +54,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
@@ -127,6 +129,45 @@ public class BigQueryDatasetPdao {
     bigQueryProject.createTable(
         datasetName, table.getRowMetadataTableName(), buildRowMetadataSchema());
     bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
+  }
+
+  public void createColumn(
+      BigQueryProject bigQueryProject, BigQuery bigQuery, DatasetTable table, Column column) {
+    // Shamelessly pulled from the BigQuery documentation
+    Table bigQueryTable =
+        bigQuery.getTable(TableId.of(bigQueryProject.getProjectId(), table.getRawTableName()));
+    Schema schema = bigQueryTable.getDefinition().getSchema();
+    FieldList fields = schema.getFields();
+
+    // Create the new field/column
+    Field newField = Field.of(column.getName(), translateType(column.getType()));
+
+    // Create a new schema adding the current fields, plus the new one
+    fields.add(newField);
+    Schema newSchema = Schema.of(fields);
+
+    // Update the table with the new schema
+    Table updatedTable =
+        bigQueryTable.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
+    updatedTable.update();
+  }
+
+  public void deleteColumn(
+      BigQueryProject bigQueryProject, BigQuery bigQuery, DatasetTable table, String columnName) {
+    Table bigQueryTable =
+        bigQuery.getTable(TableId.of(bigQueryProject.getProjectId(), table.getRawTableName()));
+    Schema schema = bigQueryTable.getDefinition().getSchema();
+    FieldList fields = schema.getFields();
+
+    // Create a new schema adding the current fields, plus the new one
+    List<Field> updatedFields =
+        fields.stream().filter(f -> !f.getName().equals(columnName)).collect(Collectors.toList());
+    Schema newSchema = Schema.of(updatedFields);
+
+    // Update the table with the new schema
+    Table updatedTable =
+        bigQueryTable.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
+    updatedTable.update();
   }
 
   public boolean deleteDataset(Dataset dataset) throws InterruptedException {

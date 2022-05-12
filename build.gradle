@@ -237,7 +237,6 @@ dependencies {
     implementation group: "org.glassfish.jersey.inject", name: "jersey-hk2", version: "2.30.1"
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
 
     implementation 'com.fasterxml.jackson.core:jackson-core:2.13.2'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2'

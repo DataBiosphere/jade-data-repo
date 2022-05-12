@@ -75,7 +75,6 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
             "Could not find tables to add columns to",
             List.of(String.format("Missing tables: %s", String.join(", ", missingTables))));
       }
-
       if (!duplicateColumns.isEmpty()) {
         return failsValidation(
             "Cannot overwrite existing or to-be-added columns in tables", duplicateColumns);

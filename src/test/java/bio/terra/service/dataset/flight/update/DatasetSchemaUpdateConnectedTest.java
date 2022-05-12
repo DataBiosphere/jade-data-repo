@@ -152,7 +152,6 @@ public class DatasetSchemaUpdateConnectedTest {
 
     Table bigQueryTable =
         bigQuery.getTable(TableId.of(bigQueryProjectId, bqDatasetName, tableName));
-    bigQueryTable.getDefinition().getSchema();
     List<String> columnNames =
         bigQueryTable.getDefinition().getSchema().getFields().stream()
             .map(Field::getName)

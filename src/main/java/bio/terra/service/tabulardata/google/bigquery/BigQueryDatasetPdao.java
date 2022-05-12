@@ -132,10 +132,9 @@ public class BigQueryDatasetPdao {
   }
 
   public void createColumn(
-      BigQueryProject bigQueryProject, BigQuery bigQuery, DatasetTable table, Column column) {
+      String datasetName, BigQuery bigQuery, DatasetTable table, Column column) {
     // Shamelessly pulled from the BigQuery documentation
-    Table bigQueryTable =
-        bigQuery.getTable(TableId.of(bigQueryProject.getProjectId(), table.getRawTableName()));
+    Table bigQueryTable = bigQuery.getTable(TableId.of(datasetName, table.getRawTableName()));
     Schema schema = bigQueryTable.getDefinition().getSchema();
     FieldList fields = schema.getFields();
 
@@ -143,8 +142,9 @@ public class BigQueryDatasetPdao {
     Field newField = Field.of(column.getName(), translateType(column.getType()));
 
     // Create a new schema adding the current fields, plus the new one
-    fields.add(newField);
-    Schema newSchema = Schema.of(fields);
+    List<Field> newFields = new ArrayList<>(fields);
+    newFields.add(newField);
+    Schema newSchema = Schema.of(newFields);
 
     // Update the table with the new schema
     Table updatedTable =
@@ -153,9 +153,8 @@ public class BigQueryDatasetPdao {
   }
 
   public void deleteColumn(
-      BigQueryProject bigQueryProject, BigQuery bigQuery, DatasetTable table, String columnName) {
-    Table bigQueryTable =
-        bigQuery.getTable(TableId.of(bigQueryProject.getProjectId(), table.getRawTableName()));
+      String datasetName, BigQuery bigQuery, DatasetTable table, String columnName) {
+    Table bigQueryTable = bigQuery.getTable(TableId.of(datasetName, table.getRawTableName()));
     Schema schema = bigQueryTable.getDefinition().getSchema();
     FieldList fields = schema.getFields();
 
@@ -984,7 +983,8 @@ public class BigQueryDatasetPdao {
             Field.of(PDAO_DELETED_BY_COLUMN, LegacySQLTypeName.STRING)));
   }
 
-  private TableInfo buildLiveView(String bigQueryProject, String datasetName, DatasetTable table) {
+  public static TableInfo buildLiveView(
+      String bigQueryProject, String datasetName, DatasetTable table) {
     TableId liveViewId = TableId.of(datasetName, table.getName());
     return TableInfo.of(
         liveViewId,

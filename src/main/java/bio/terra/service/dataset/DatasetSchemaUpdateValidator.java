@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateUtils;
@@ -45,6 +46,21 @@ public class DatasetSchemaUpdateValidator implements Validator {
             "DuplicateTableNames",
             duplicateTables,
             "Cannot add multiple tables of the same name");
+      }
+      if (DatasetSchemaUpdateUtils.hasColumnAdditions(updateModel)) {
+        Object[] requiredColumns =
+            updateModel.getChanges().getAddColumns().stream()
+                .flatMap(c -> c.getColumns().stream())
+                .filter(c -> c.isRequired())
+                .map(ColumnModel::getName)
+                .toArray();
+        if (requiredColumns.length > 0) {
+          errors.rejectValue(
+              "changes.addColumns",
+              "RequiredColumns",
+              requiredColumns,
+              "Cannot add required columns to existing tables");
+        }
       }
     }
   }

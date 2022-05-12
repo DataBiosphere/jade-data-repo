@@ -123,7 +123,7 @@ public class DatasetSchemaUpdateValidationTest {
   }
 
   @Test
-  public void testColumnValidations() throws Exception {
+  public void testColumnDuplicatesValidations() throws Exception {
     DatasetSchemaUpdateModel duplicateColumnsUpdateModel =
         new DatasetSchemaUpdateModel()
             .description("test changeset")
@@ -168,6 +168,17 @@ public class DatasetSchemaUpdateValidationTest {
         (DatasetSchemaUpdateException)
             validateModelStep.doStep(flightContext).getException().orElseThrow();
 
+    assertThat(
+        duplicateColumnsException.getMessage(),
+        containsString("overwrite existing or to-be-added"));
+    assertThat(duplicateColumnsException.getCauses(), hasSize(2));
+    assertThat(
+        duplicateColumnsException.getCauses(),
+        equalTo(List.of("existing_table:existing_column", "new_table:new_table_column")));
+  }
+
+  @Test
+  public void testColumnMissingTableValidations() throws Exception {
     DatasetSchemaUpdateModel missingTableUpdateModel =
         new DatasetSchemaUpdateModel()
             .changes(
@@ -181,21 +192,16 @@ public class DatasetSchemaUpdateValidationTest {
                                         new ColumnModel()
                                             .name("new_column")
                                             .datatype(TableDataType.STRING))))));
-    validateModelStep =
+
+    DatasetSchemaUpdateValidateModelStep validateModelStep =
         new DatasetSchemaUpdateValidateModelStep(
             datasetService, datasetId, missingTableUpdateModel);
+
+    FlightContext flightContext = mock(FlightContext.class);
 
     DatasetSchemaUpdateException missingTableException =
         (DatasetSchemaUpdateException)
             validateModelStep.doStep(flightContext).getException().orElseThrow();
-
-    assertThat(
-        duplicateColumnsException.getMessage(),
-        containsString("overwrite existing or to-be-added"));
-    assertThat(duplicateColumnsException.getCauses(), hasSize(2));
-    assertThat(
-        duplicateColumnsException.getCauses(),
-        equalTo(List.of("existing_table:existing_column", "new_table:new_table_column")));
 
     assertThat(missingTableException.getMessage(), containsString("Could not find tables"));
     assertThat(missingTableException.getCauses(), hasSize(1));

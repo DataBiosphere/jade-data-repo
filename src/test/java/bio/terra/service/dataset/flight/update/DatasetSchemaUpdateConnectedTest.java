@@ -15,6 +15,7 @@ import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModelChanges;
 import bio.terra.model.DatasetSummaryModel;
@@ -30,11 +31,13 @@ import bio.terra.service.tabulardata.google.BigQueryProject;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.Step;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -71,6 +74,7 @@ public class DatasetSchemaUpdateConnectedTest {
 
   private BillingProfileModel billingProfile;
   private DatasetSummaryModel summaryModel;
+  private UUID datasetId;
   private static final Logger logger =
       LoggerFactory.getLogger(DatasetSchemaUpdateConnectedTest.class);
 
@@ -88,6 +92,7 @@ public class DatasetSchemaUpdateConnectedTest {
         .name(Names.randomizeName(datasetRequest.getName()))
         .defaultProfileId(billingProfile.getId());
     summaryModel = connectedOperations.createDataset(datasetRequest);
+    datasetId = summaryModel.getId();
     logger.info("--------begin test---------");
   }
 
@@ -120,7 +125,6 @@ public class DatasetSchemaUpdateConnectedTest {
                                             .required(false)
                                             .arrayOf(false))))));
 
-    UUID datasetId = summaryModel.getId();
     FlightContext flightContext = mock(FlightContext.class);
     DatasetSchemaUpdateAddTablesPostgresStep postgresStep =
         new DatasetSchemaUpdateAddTablesPostgresStep(datasetTableDao, datasetId, updateModel);
@@ -173,5 +177,155 @@ public class DatasetSchemaUpdateConnectedTest {
 
     assertThat(
         "undoing the step removes dataset table and columns from BigQuery", bigQueryTable == null);
+  }
+
+  @Test
+  public void testColumnAdditionSteps() throws Exception {
+    String newTableName = "added_table";
+    String existingTableName = "thetable";
+
+    String newTableColumnName = "added_table_column";
+    String anotherNewColumnName = "another_added_table_column";
+    String existingTableColumnA = "added_column_a";
+    String existingTableColumnB = "added_column_b";
+
+    DatasetSchemaUpdateModel updateModel =
+        new DatasetSchemaUpdateModel()
+            .description("column addition tests")
+            .changes(
+                new DatasetSchemaUpdateModelChanges()
+                    .addTables(
+                        List.of(
+                            new TableModel()
+                                .name(newTableName)
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name(newTableColumnName)
+                                            .datatype(TableDataType.STRING)))))
+                    .addColumns(
+                        List.of(
+                            new DatasetSchemaColumnUpdateModel()
+                                .tableName(existingTableName)
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name(existingTableColumnA)
+                                            .datatype(TableDataType.STRING),
+                                        new ColumnModel()
+                                            .name(existingTableColumnB)
+                                            .datatype(TableDataType.STRING))),
+                            new DatasetSchemaColumnUpdateModel()
+                                .tableName(newTableName)
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name(anotherNewColumnName)
+                                            .datatype(TableDataType.STRING))))));
+
+    DatasetSchemaUpdateAddTablesPostgresStep postgresTableStep =
+        new DatasetSchemaUpdateAddTablesPostgresStep(datasetTableDao, datasetId, updateModel);
+    DatasetSchemaUpdateAddTablesBigQueryStep bigQueryTableStep =
+        new DatasetSchemaUpdateAddTablesBigQueryStep(
+            bigQueryDatasetPdao, datasetDao, datasetId, updateModel);
+    DatasetSchemaUpdateAddColumnsPostgresStep postgresColumnStep =
+        new DatasetSchemaUpdateAddColumnsPostgresStep(datasetTableDao, datasetId, updateModel);
+    DatasetSchemaUpdateAddColumnsBigQueryStep bigQueryColumnStep =
+        new DatasetSchemaUpdateAddColumnsBigQueryStep(
+            bigQueryDatasetPdao, datasetDao, datasetId, updateModel);
+
+    List<Step> steps =
+        List.of(postgresTableStep, bigQueryTableStep, postgresColumnStep, bigQueryColumnStep);
+
+    FlightContext flightContext = mock(FlightContext.class);
+
+    for (Step step : steps) {
+      step.doStep(flightContext);
+    }
+
+    Dataset postUpdateDataset = datasetDao.retrieve(datasetId);
+    DatasetTable existingTable = postUpdateDataset.getTableByName(existingTableName).orElseThrow();
+    DatasetTable newTable = postUpdateDataset.getTableByName(newTableName).orElseThrow();
+
+    Map<String, Column> existingTableColumnsMap = existingTable.getColumnsMap();
+    Map<String, Column> newTableColumnsMap = newTable.getColumnsMap();
+
+    assertThat(
+        "the first table column was added to the existing table",
+        existingTableColumnsMap.containsKey(existingTableColumnA));
+    assertThat(
+        "the second table column was added to the existing table",
+        existingTableColumnsMap.containsKey(existingTableColumnB));
+    assertThat(
+        "The new table had its new column added",
+        newTableColumnsMap.containsKey(newTableColumnName));
+
+    String datasetName = summaryModel.getName();
+    String bqDatasetName = BigQueryPdao.prefixName(datasetName);
+    BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetDao, datasetName);
+    String bigQueryProjectId = bigQueryProject.getProjectId();
+    BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+    Table existingBigQueryTable =
+        bigQuery.getTable(TableId.of(bigQueryProjectId, bqDatasetName, existingTableName));
+    List<String> existingTableColumnNames =
+        existingBigQueryTable.getDefinition().getSchema().getFields().stream()
+            .map(Field::getName)
+            .collect(Collectors.toList());
+
+    Table newBigQueryTable =
+        bigQuery.getTable(TableId.of(bigQueryProjectId, bqDatasetName, newTableName));
+    List<String> newTableColumnNames =
+        newBigQueryTable.getDefinition().getSchema().getFields().stream()
+            .map(Field::getName)
+            .collect(Collectors.toList());
+
+    assertThat(
+        "the first table column was added to the existing BigQuery table",
+        existingTableColumnNames.contains(existingTableColumnA));
+    assertThat(
+        "the second table column was added to the existing BigQuery table",
+        existingTableColumnNames.contains(existingTableColumnB));
+    assertThat(
+        "The new BigQuery table had its new column added",
+        newTableColumnNames.contains(newTableColumnName));
+
+    for (int i = steps.size() - 1; i >= 0; i--) {
+      Step step = steps.get(i);
+      step.undoStep(flightContext);
+    }
+
+    Dataset postUndoUpdateDataset = datasetDao.retrieve(datasetId);
+    existingTable = postUndoUpdateDataset.getTableByName(existingTableName).orElseThrow();
+
+    existingTableColumnsMap = existingTable.getColumnsMap();
+
+    assertThat(
+        "the first table column was removed in the undo step",
+        !existingTableColumnsMap.containsKey(existingTableColumnA));
+    assertThat(
+        "the second table column was removed in the undo step",
+        !existingTableColumnsMap.containsKey(existingTableColumnB));
+    assertThat(
+        "the new table does not exist after the undo step",
+        postUndoUpdateDataset.getTableByName(newTableName).isEmpty());
+
+    Table postUndoExistingBigQueryTable =
+        bigQuery.getTable(TableId.of(bigQueryProjectId, bqDatasetName, existingTableName));
+    existingTableColumnNames =
+        postUndoExistingBigQueryTable.getDefinition().getSchema().getFields().stream()
+            .map(Field::getName)
+            .collect(Collectors.toList());
+
+    newBigQueryTable =
+        bigQuery.getTable(TableId.of(bigQueryProjectId, bqDatasetName, newTableName));
+
+    assertThat(
+        "the first table column was removed from the existing BigQuery table in the undo",
+        !existingTableColumnNames.contains(existingTableColumnA));
+    assertThat(
+        "the second table column was removed from the existing BigQuery table in the undo",
+        !existingTableColumnNames.contains(existingTableColumnB));
+    assertThat("the new BigQuery table down not exist", newBigQueryTable == null);
   }
 }

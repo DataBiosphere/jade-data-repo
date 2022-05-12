@@ -439,7 +439,7 @@ public class DrsService {
       if (passportAuth) {
         accessMethods =
             getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT, gcpRegion, true);
+                ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT, gcpRegion, passportAuth);
       } else {
         accessMethods = getDrsAccessMethodsOnGcp(fsFile, authUser, gcpRegion);
       }
@@ -448,9 +448,10 @@ public class DrsService {
       if (passportAuth) {
         accessMethods =
             getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT, azureRegion, true);
+                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT, azureRegion, passportAuth);
       } else {
-        accessMethods = getDrsSignedURLAccessMethods(ACCESS_ID_PREFIX_AZURE, azureRegion, false);
+        accessMethods =
+            getDrsSignedURLAccessMethods(ACCESS_ID_PREFIX_AZURE, azureRegion, passportAuth);
       }
     } else {
       throw new InvalidCloudPlatformException();
@@ -519,13 +520,13 @@ public class DrsService {
   private List<DRSAccessMethod> getDrsSignedURLAccessMethods(
       String prefix, String region, boolean passportAuth) {
     String accessId = prefix + region;
-    DRSAuthorizations authorizationsBearerOnly = buildDRSAuth(passportAuth);
+    DRSAuthorizations authorizations = buildDRSAuth(passportAuth);
     DRSAccessMethod httpsAccessMethod =
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessId(accessId)
             .region(region)
-            .authorizations(authorizationsBearerOnly);
+            .authorizations(authorizations);
 
     return List.of(httpsAccessMethod);
   }

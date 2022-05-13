@@ -20,6 +20,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
@@ -371,6 +372,15 @@ public class DatasetsApiController implements DatasetsApi {
     List<String> roles =
         iamService.retrieveUserRoles(getAuthenticatedInfo(), IamResourceType.DATASET, id);
     return new ResponseEntity<>(roles, HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<JobModel> updateSchema(UUID id, DatasetSchemaUpdateModel body) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
+    String jobId = datasetService.updateDatasetSchema(id, body, userReq);
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override

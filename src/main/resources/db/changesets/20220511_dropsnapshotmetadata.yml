@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshotdropmetadata
+      author: fb
+      changes:
+        - dropTable:
+            tableName: snapshot_search_metadata

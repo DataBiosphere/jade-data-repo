@@ -64,8 +64,6 @@ public class SearchServiceTest {
 
   @Mock private BigQuerySnapshotPdao bigQuerySnapshotPdao;
 
-  @Mock private SnapshotSearchMetadataDao snapshotSearchMetadataDao;
-
   @Mock private RestHighLevelClient client;
 
   @Mock private IndicesClient indicesClient;

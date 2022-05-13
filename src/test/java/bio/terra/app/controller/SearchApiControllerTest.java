@@ -1,14 +1,11 @@
 package bio.terra.app.controller;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,16 +16,12 @@ import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.search.SearchService;
-import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -60,8 +53,6 @@ public class SearchApiControllerTest {
   @Autowired private MockMvc mvc;
 
   @MockBean private IamService iamService;
-
-  @MockBean private SnapshotSearchMetadataDao snapshotMetadataDao;
 
   @MockBean private SearchService searchService;
 
@@ -141,70 +132,6 @@ public class SearchApiControllerTest {
         .verifyAuthorization(
             any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
     snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION);
-  }
-
-  @Test
-  public void testUpsert() throws Exception {
-    var id = UUID.randomUUID();
-    String json = "{\"dct:identifier\": \"my snapshot\", \"dcat:byteSize\" : \"10000\"}";
-    mvc.perform(
-            put(UPSERT_DELETE_ENDPOINT, id).contentType(MediaType.APPLICATION_JSON).content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.metadataSummary").value(containsString(id.toString())));
-    verify(iamService)
-        .verifyAuthorization(
-            any(),
-            eq(IamResourceType.DATASNAPSHOT),
-            eq(id.toString()),
-            eq(IamAction.UPDATE_SNAPSHOT));
-    verify(snapshotMetadataDao).putMetadata(id, json);
-  }
-
-  @Test
-  public void testDelete() throws Exception {
-    var id = UUID.randomUUID();
-    mvc.perform(delete(UPSERT_DELETE_ENDPOINT, id)).andExpect(status().isNoContent());
-    verify(iamService)
-        .verifyAuthorization(
-            any(),
-            eq(IamResourceType.DATASNAPSHOT),
-            eq(id.toString()),
-            eq(IamAction.UPDATE_SNAPSHOT));
-    verify(snapshotMetadataDao).deleteMetadata(id);
-  }
-
-  @Test
-  public void testEnumerateSnapshotSearch() throws Exception {
-    var endpoint = "/api/repository/v1/search/metadata";
-    var json = "{\"test\":\"data\"}";
-    UUID uuid = UUID.randomUUID();
-    Set<UUID> uuids = Set.of(uuid);
-    Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(uuid, Set.of(IamRole.DISCOVERER));
-    when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
-        .thenReturn(resourcesAndRoles);
-    when(snapshotMetadataDao.getMetadata(uuids)).thenReturn(Map.of(uuid, json));
-    mvc.perform(get(endpoint))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result[0].test").value("data"));
-    verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
-    verify(snapshotMetadataDao).getMetadata(uuids);
-  }
-
-  @Test
-  public void testEnumerateSnapshotSearchPermission() throws Exception {
-    var endpoint = "/api/repository/v1/search/metadata";
-    var json = "{}";
-    UUID uuid = UUID.randomUUID();
-    Set<UUID> uuids = Set.of(uuid);
-    Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(uuid, Set.of(IamRole.DISCOVERER));
-    when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
-        .thenReturn(resourcesAndRoles);
-    when(snapshotMetadataDao.getMetadata(uuids)).thenReturn(Map.of(uuid, json));
-    mvc.perform(get(endpoint))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result[0].roles").value("discoverer"));
-    verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
-    verify(snapshotMetadataDao).getMetadata(uuids);
   }
 
   @Test

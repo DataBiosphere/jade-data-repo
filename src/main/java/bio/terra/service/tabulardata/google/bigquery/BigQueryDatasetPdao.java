@@ -104,22 +104,29 @@ public class BigQueryDatasetPdao {
           datasetName,
           PDAO_TRANSACTIONS_TABLE,
           BigQueryTransactionPdao.buildTransactionsTableSchema());
+
       for (DatasetTable table : dataset.getTables()) {
-        bigQueryProject.createTable(
-            datasetName,
-            table.getRawTableName(),
-            buildSchema(table, true, true),
-            table.getBigQueryPartitionConfig());
-        bigQueryProject.createTable(
-            datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
-        bigQueryProject.createTable(
-            datasetName, table.getRowMetadataTableName(), buildRowMetadataSchema());
-        bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
+        createTable(bigQueryProject, bigQuery, datasetName, table);
       }
+
       // TODO: don't catch generic exceptions
     } catch (Exception ex) {
       throw new PdaoException("create dataset failed for " + datasetName, ex);
     }
+  }
+
+  public void createTable(
+      BigQueryProject bigQueryProject, BigQuery bigQuery, String datasetName, DatasetTable table) {
+    bigQueryProject.createTable(
+        datasetName,
+        table.getRawTableName(),
+        buildSchema(table, true, true),
+        table.getBigQueryPartitionConfig());
+    bigQueryProject.createTable(
+        datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
+    bigQueryProject.createTable(
+        datasetName, table.getRowMetadataTableName(), buildRowMetadataSchema());
+    bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
   }
 
   public boolean deleteDataset(Dataset dataset) throws InterruptedException {

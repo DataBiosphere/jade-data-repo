@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.PdaoConstant;
 import bio.terra.model.DatasetRequestModel;
+import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.stringtemplate.v4.ST;
@@ -52,14 +53,16 @@ public final class DatasetUtils {
    */
   public static Dataset convertRequestWithGeneratedNames(DatasetRequestModel request) {
     Dataset baseDataset = DatasetJsonConversion.datasetRequestToDataset(request);
-    baseDataset
-        .getTables()
-        .forEach(
-            t -> {
-              t.rawTableName(generateAuxTableName(t, "raw"));
-              t.softDeleteTableName(generateAuxTableName(t, "sd"));
-              t.rowMetadataTableName(generateMetadataTableName(t, "row_metadata"));
-            });
+    fillGeneratedTableNames(baseDataset.getTables());
     return baseDataset;
+  }
+
+  public static void fillGeneratedTableNames(List<DatasetTable> tables) {
+    tables.forEach(
+        t -> {
+          t.rawTableName(generateAuxTableName(t, "raw"));
+          t.softDeleteTableName(generateAuxTableName(t, "sd"));
+          t.rowMetadataTableName(generateMetadataTableName(t, "row_metadata"));
+        });
   }
 }

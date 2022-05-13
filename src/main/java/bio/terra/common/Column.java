@@ -2,6 +2,7 @@ package bio.terra.common;
 
 import bio.terra.model.ColumnModel;
 import bio.terra.model.TableDataType;
+import java.util.Objects;
 import java.util.UUID;
 
 public class Column {
@@ -108,5 +109,23 @@ public class Column {
 
   public boolean isFileOrDirRef() {
     return type == TableDataType.FILEREF || type == TableDataType.DIRREF;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Column column = (Column) o;
+    return arrayOf == column.arrayOf
+        && required == column.required
+        && id.equals(column.id)
+        && Objects.equals(table, column.table)
+        && Objects.equals(name, column.name)
+        && type == column.type;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, table, name, type, arrayOf, required);
   }
 }

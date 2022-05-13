@@ -47,7 +47,7 @@ public class DatasetRequestValidator implements Validator {
     return true;
   }
 
-  private static class SchemaValidationContext {
+  public static class SchemaValidationContext {
 
     private HashMap<String, HashSet<String>> tableColumnMap;
     private HashMap<String, HashSet<String>> tableArrayColumns;
@@ -184,7 +184,7 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
-  private void validateTable(TableModel table, Errors errors, SchemaValidationContext context) {
+  public void validateTable(TableModel table, Errors errors, SchemaValidationContext context) {
     String tableName = table.getName();
     List<ColumnModel> columns = table.getColumns();
     List<String> primaryKeyList = table.getPrimaryKey();

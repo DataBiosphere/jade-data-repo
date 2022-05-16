@@ -5055,6 +5055,8 @@ components:
           description: Name of the region in the cloud service provider that the object
             belongs to.
           example: us-east-1
+        authorizations:
+          $ref: '#/components/schemas/DRSAuthorizations'
     DRSError:
       type: object
       properties:

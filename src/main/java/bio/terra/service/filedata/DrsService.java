@@ -172,20 +172,21 @@ public class DrsService {
    */
   public DRSAuthorizations lookupAuthorizationsByDrsId(String drsObjectId) {
     try (DrsRequestResource r = new DrsRequestResource()) {
-      DRSAuthorizations auths = new DRSAuthorizations();
-
       SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
       SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshot.id);
 
-      if (SnapshotSummary.passportAuthorizationAvailable(snapshotSummary)) {
-        auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
-        auths.addPassportAuthIssuersItem(ecmConfiguration.getRasIssuer());
-      }
-
-      auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
-
-      return auths;
+      return buildDRSAuth(SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
     }
+  }
+
+  private DRSAuthorizations buildDRSAuth(boolean passportAuthorizationAvailable) {
+    DRSAuthorizations auths = new DRSAuthorizations();
+    if (passportAuthorizationAvailable) {
+      auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
+      auths.addPassportAuthIssuersItem(ecmConfiguration.getRasIssuer());
+    }
+    auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
+    return auths;
   }
 
   /**
@@ -438,7 +439,7 @@ public class DrsService {
       if (passportAuth) {
         accessMethods =
             getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT, gcpRegion);
+                ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT, gcpRegion, passportAuth);
       } else {
         accessMethods = getDrsAccessMethodsOnGcp(fsFile, authUser, gcpRegion);
       }
@@ -447,9 +448,10 @@ public class DrsService {
       if (passportAuth) {
         accessMethods =
             getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT, azureRegion);
+                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT, azureRegion, passportAuth);
       } else {
-        accessMethods = getDrsSignedURLAccessMethods(ACCESS_ID_PREFIX_AZURE, azureRegion);
+        accessMethods =
+            getDrsSignedURLAccessMethods(ACCESS_ID_PREFIX_AZURE, azureRegion, passportAuth);
       }
     } else {
       throw new InvalidCloudPlatformException();
@@ -489,6 +491,7 @@ public class DrsService {
   private List<DRSAccessMethod> getDrsAccessMethodsOnGcp(
       FSFile fsFile, AuthenticatedUserRequest authUser, String region) {
     DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getCloudPath());
+    DRSAuthorizations authorizationsBearerOnly = buildDRSAuth(false);
 
     String accessId = ACCESS_ID_PREFIX_GCP + region;
     DRSAccessMethod gsAccessMethod =
@@ -496,7 +499,8 @@ public class DrsService {
             .type(DRSAccessMethod.TypeEnum.GS)
             .accessUrl(gsAccessURL)
             .accessId(accessId)
-            .region(region);
+            .region(region)
+            .authorizations(authorizationsBearerOnly);
 
     DRSAccessURL httpsAccessURL =
         new DRSAccessURL()
@@ -507,18 +511,22 @@ public class DrsService {
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessUrl(httpsAccessURL)
-            .region(region);
+            .region(region)
+            .authorizations(authorizationsBearerOnly);
 
     return List.of(gsAccessMethod, httpsAccessMethod);
   }
 
-  private List<DRSAccessMethod> getDrsSignedURLAccessMethods(String prefix, String region) {
+  private List<DRSAccessMethod> getDrsSignedURLAccessMethods(
+      String prefix, String region, boolean passportAuth) {
     String accessId = prefix + region;
+    DRSAuthorizations authorizations = buildDRSAuth(passportAuth);
     DRSAccessMethod httpsAccessMethod =
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessId(accessId)
-            .region(region);
+            .region(region)
+            .authorizations(authorizations);
 
     return List.of(httpsAccessMethod);
   }

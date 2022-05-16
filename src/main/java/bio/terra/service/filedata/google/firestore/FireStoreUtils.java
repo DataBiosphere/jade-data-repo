@@ -188,6 +188,8 @@ public class FireStoreUtils {
           requestCount++;
         }
       }
+      logger.info(
+          "[batchOperation] Processing {} requests, input size: {}", requestCount, inputSize);
       if (requestCount == 0) {
         break;
       }
@@ -210,7 +212,9 @@ public class FireStoreUtils {
               logger.warn(
                   "[batchOperation] Retry-able error in firestore future get - input: "
                       + inputs.get(i)
-                      + " message: "
+                      + "; output: "
+                      + outputs.get(i)
+                      + "; message: "
                       + ex.getMessage(),
                   ex);
             } else {
@@ -236,14 +240,14 @@ public class FireStoreUtils {
               "[batchOperation] Operation failed - "
                   + getFirestoreRetries()
                   + " tries with no progress.");
-        } else {
-          logger.info(
-              "[batchOperation] will attempt retry #{} after {} millisecond pause.",
-              noProgressCount,
-              retryWait);
         }
       }
       // Exponential backoff
+      logger.info(
+          "[batchOperation] will attempt retry #{} after {} millisecond pause. {} requests completed this round.",
+          noProgressCount,
+          retryWait,
+          completeCount);
       TimeUnit.SECONDS.sleep(retryWait);
     }
 

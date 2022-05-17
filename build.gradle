@@ -26,7 +26,7 @@ buildscript {
 }
 
 plugins {
-    id "com.google.cloud.tools.jib" version "2.7.1"
+    id "com.google.cloud.tools.jib" version "3.2.0"
     id 'org.liquibase.gradle' version '2.1.1'
     id "org.gradle.test-retry" version "1.2.0"
     id 'antlr'
@@ -411,7 +411,10 @@ jar {
 }
 
 jib {
-    extraDirectories.paths = ['build/gen-expanded']
+    extraDirectories {
+        mkdir 'build/gen-expanded'
+        paths = ['build/gen-expanded']
+    }
     from {
         image = "us.gcr.io/broad-dsp-gcr-public/base/jre:11-debian"
     }

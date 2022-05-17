@@ -1235,6 +1235,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+    patch:
+      tags:
+        - datasets
+        - repository
+      description: Update supported fields of the specified dataset.
+      operationId: patchDataset
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        description: >-
+          A 'lite' dataset definition (used to modify supported fields of a dataset).
+          Null assignments will be ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetPatchRequestModel'
+      responses:
+        200:
+          description: Summary of updated dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetSummaryModel'
+        400:
+          description: Bad request - invalid id, badly formed modification instructions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - dataset does not exist, missing permissions to modify.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - dataset does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets/{id}/policies:
     get:
       tags:
@@ -3220,8 +3267,7 @@ components:
           type: boolean
           default: false
         phsId:
-          type: string
-          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+          $ref: '#/components/schemas/PhsId'
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
         selfHosted:
@@ -3261,8 +3307,7 @@ components:
           type: string
           description: The azure storage account of this dataset
         phsId:
-          type: string
-          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+          $ref: '#/components/schemas/PhsId'
         selfHosted:
           type: boolean
           default: false
@@ -3293,8 +3338,7 @@ components:
           type: boolean
           default: false
         phsId:
-          type: string
-          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+          $ref: '#/components/schemas/PhsId'
         experimentalSelfHosted:
           type: boolean
           default: false
@@ -3302,6 +3346,14 @@ components:
             files in their original location.
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
+    DatasetPatchRequestModel:
+      type: object
+      properties:
+        phsId:
+          $ref: '#/components/schemas/PhsId'
+      description: >
+        A 'lite' dataset definition (used to modify supported fields of a dataset).
+        Null assignments will be ignored.
     DatasetRequestAccessIncludeModel:
       type: string
       description: >
@@ -4003,8 +4055,7 @@ components:
           type: string
           description: Description of the snapshot
         consentCode:
-          type: string
-          description: Consent code together with PHS Id that will determine user access
+          $ref: '#/components/schemas/ConsentCode'
         contents:
           type: array
           items:
@@ -4133,11 +4184,9 @@ components:
           type: boolean
           default: false
         consentCode:
-          type: string
-          description: Consent code together with PHS Id that will determine user access
+          $ref: '#/components/schemas/ConsentCode'
         phsId:
-          type: string
-          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+          $ref: '#/components/schemas/PhsId'
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
         dataProject:
@@ -4189,8 +4238,7 @@ components:
           type: string
           description: Date the snapshot was created
         consentCode:
-          type: string
-          description: Consent code together with PHS Id that will determine user access
+          $ref: '#/components/schemas/ConsentCode'
         source:
           type: array
           items:
@@ -4836,6 +4884,16 @@ components:
       enum: [ gcp, azure ]
       default: gcp
       description: Cloud platforms supported by TDR.
+
+    PhsId:
+      type: string
+      description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+      example: phs123456
+
+    ConsentCode:
+      type: string
+      description: Consent code together with PHS ID that will determine user access
+      example: c99
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

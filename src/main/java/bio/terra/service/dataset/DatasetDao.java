@@ -8,6 +8,7 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SqlSortDirection;
@@ -701,6 +702,27 @@ public class DatasetDao {
           .phsId(rs.getString("phs_id"))
           .selfHosted(rs.getBoolean("self_hosted"));
     }
+  }
+
+  /**
+   * Update a dataset according to specified fields in the patch request.
+   * Any fields unspecified in the request will remain unaltered.
+   *
+   * @param datasetId
+   * @param datasetPatchRequest updates to merge with existing dataset.
+   * @return whether the dataset record was updated.
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean patch(UUID datasetId, DatasetPatchRequestModel datasetPatchRequest) {
+    String sql = "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id) WHERE id = :datasetid";
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("phs_id", datasetPatchRequest.getPhsId())
+            .addValue("datasetid", datasetId);
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    return rowsAffected > 0;
   }
 
   /**

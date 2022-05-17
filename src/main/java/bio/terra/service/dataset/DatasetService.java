@@ -12,6 +12,7 @@ import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
@@ -253,6 +254,14 @@ public class DatasetService {
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
         .submit();
+  }
+
+  public DatasetSummaryModel patch(UUID id, DatasetPatchRequestModel datasetPatchRequest) {
+    boolean patchSucceeded = datasetDao.patch(id, datasetPatchRequest);
+    if (!patchSucceeded) {
+      throw new RuntimeException("Dataset was not updated");
+    }
+    return datasetDao.retrieveSummaryById(id).toModel();
   }
 
   public String ingestDataset(

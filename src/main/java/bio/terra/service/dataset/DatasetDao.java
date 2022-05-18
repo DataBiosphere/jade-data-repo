@@ -705,8 +705,8 @@ public class DatasetDao {
   }
 
   /**
-   * Update a dataset according to specified fields in the patch request.
-   * Any fields unspecified in the request will remain unaltered.
+   * Update a dataset according to specified fields in the patch request. Any fields unspecified in
+   * the request will remain unaltered.
    *
    * @param datasetId
    * @param datasetPatchRequest updates to merge with existing dataset.

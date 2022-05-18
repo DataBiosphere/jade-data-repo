@@ -14,7 +14,6 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -150,15 +149,6 @@ public class DatasetTableDao {
     }
   }
 
-  private void removeColumns(UUID datasetId, UUID tableId, Collection<Column> columns) {
-    removeColumns(
-        retrieveTables(datasetId).stream()
-            .filter(dt -> dt.getId().equals(tableId))
-            .findFirst()
-            .orElseThrow(),
-        columns);
-  }
-
   public void removeColumns(Table table, Collection<Column> columns) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     params.addValue("table_id", table.getId());
@@ -169,6 +159,15 @@ public class DatasetTableDao {
       params.addValue("column_id", column.getId());
       jdbcTemplate.update(sqlDeleteColumn, params);
     }
+  }
+
+  private void removeColumns(UUID datasetId, UUID tableId, Collection<Column> columns) {
+    removeColumns(
+        retrieveTables(datasetId).stream()
+            .filter(dt -> dt.getId().equals(tableId))
+            .findFirst()
+            .orElseThrow(),
+        columns);
   }
 
   public List<DatasetTable> retrieveTables(UUID parentId) {

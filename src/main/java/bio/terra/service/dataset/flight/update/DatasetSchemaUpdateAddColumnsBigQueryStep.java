@@ -15,7 +15,6 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.bigquery.BigQuery;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -26,8 +25,6 @@ public class DatasetSchemaUpdateAddColumnsBigQueryStep implements Step {
   private final DatasetDao datasetDao;
   private final UUID datasetId;
   private final DatasetSchemaUpdateModel updateModel;
-
-  private static final List<String> EMPTY_LIST = Collections.emptyList();
 
   public DatasetSchemaUpdateAddColumnsBigQueryStep(
       BigQueryDatasetPdao bigQueryDatasetPdao,
@@ -51,7 +48,7 @@ public class DatasetSchemaUpdateAddColumnsBigQueryStep implements Step {
     for (var columnChanges : updateModel.getChanges().getAddColumns()) {
       DatasetTable table = dataset.getTableByName(columnChanges.getTableName()).orElseThrow();
       for (ColumnModel columnModel : columnChanges.getColumns()) {
-        Column column = DatasetJsonConversion.columnModelToDatasetColumn(columnModel, EMPTY_LIST);
+        Column column = DatasetJsonConversion.columnModelToDatasetColumn(columnModel, List.of());
         bigQueryDatasetPdao.createColumn(datasetName, bigQuery, table, column);
       }
       bigQuery.update(

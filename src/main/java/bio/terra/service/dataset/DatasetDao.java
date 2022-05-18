@@ -717,9 +717,7 @@ public class DatasetDao {
     String sql = "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id) WHERE id = :id";
 
     MapSqlParameterSource params =
-        new MapSqlParameterSource()
-            .addValue("phs_id", patchRequest.getPhsId())
-            .addValue("id", id);
+        new MapSqlParameterSource().addValue("phs_id", patchRequest.getPhsId()).addValue("id", id);
 
     int rowsAffected = jdbcTemplate.update(sql, params);
     return rowsAffected > 0;

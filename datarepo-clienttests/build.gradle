@@ -29,7 +29,7 @@ dependencies {
         apacheMath = "3.0"
 
         googleApi = "1.23.0"
-        googleCloud = "1.108.0"
+        googleCloud = "2.6.1"
         googlePeople = "v1-rev277-1.23.0"
         googleOauth2 = "0.20.0"
         googleMonitoring = "2.0.1"

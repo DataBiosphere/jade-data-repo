@@ -178,7 +178,7 @@ dependencies {
     implementation 'com.google.apis:google-api-services-serviceusage:v1-rev20201021-1.30.10'
     implementation 'com.google.apis:google-api-services-appengine:v1-rev20201201-1.31.0'
     implementation 'com.google.cloud:google-cloud-bigquery:1.108.1'
-    implementation 'com.google.cloud:google-cloud-storage:1.108.0'
+    implementation 'com.google.cloud:google-cloud-storage:2.6.1'
     implementation 'com.google.cloud:google-cloud-firestore:1.22.0'
     implementation group: 'com.google.cloud', name: 'google-cloud-pubsub', version: '1.104.1'
     implementation 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support

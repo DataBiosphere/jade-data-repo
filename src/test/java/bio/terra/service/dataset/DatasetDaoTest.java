@@ -28,6 +28,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.EnumerateSortByParam;
@@ -833,5 +834,40 @@ public class DatasetDaoTest {
 
     datasetDao.delete(dataset1Id);
     datasetDao.delete(dataset2Id);
+  }
+
+  @Test
+  public void patchDatasetPhsId() throws Exception {
+    UUID datasetId = createDataset("dataset-create-test.json");
+
+    assertThat(
+        "dataset's PHS ID is null before patch",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(null));
+
+    String phsIdSet = "phs000000";
+    DatasetPatchRequestModel patchRequestSet = new DatasetPatchRequestModel().phsId(phsIdSet);
+    datasetDao.patch(datasetId, patchRequestSet);
+    assertThat(
+        "dataset's PHS ID is set from patch",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(phsIdSet));
+
+    String phsIdOverride = "phs111111";
+    DatasetPatchRequestModel patchRequestOverride =
+        new DatasetPatchRequestModel().phsId(phsIdOverride);
+    datasetDao.patch(datasetId, patchRequestOverride);
+    assertThat(
+        "dataset's PHS ID is overridden from patch",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(phsIdOverride));
+
+    datasetDao.patch(datasetId, new DatasetPatchRequestModel());
+    assertThat(
+        "dataset's PHS ID is unchanged when unspecified in patch request",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(phsIdOverride));
+
+    datasetDao.delete(datasetId);
   }
 }

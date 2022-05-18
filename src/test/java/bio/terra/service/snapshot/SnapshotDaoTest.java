@@ -26,6 +26,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.Dataset;
@@ -544,5 +545,48 @@ public class SnapshotDaoTest {
       }
       index++;
     }
+  }
+
+  @Test
+  public void testPatchSnapshotConsentCode() throws Exception {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+
+    Snapshot snapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(snapshotRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    String flightId = UUID.randomUUID().toString();
+    snapshotDao.createAndLock(snapshot, flightId);
+    snapshotDao.unlock(snapshotId, flightId);
+
+    assertThat(
+        "snapshot's consent code is null before patch",
+        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        equalTo(null));
+
+    String consentCodeSet = "c01";
+    SnapshotPatchRequestModel patchRequestSet =
+        new SnapshotPatchRequestModel().consentCode(consentCodeSet);
+    snapshotDao.patch(snapshotId, patchRequestSet);
+    assertThat(
+        "snapshot's consent code is set from patch",
+        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        equalTo(consentCodeSet));
+
+    String consentCodeOverride = "c99";
+    SnapshotPatchRequestModel patchRequestOverride =
+        new SnapshotPatchRequestModel().consentCode(consentCodeOverride);
+    snapshotDao.patch(snapshotId, patchRequestOverride);
+    assertThat(
+        "snapshot's consent code is overridden from patch",
+        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        equalTo(consentCodeOverride));
+
+    snapshotDao.patch(snapshotId, new SnapshotPatchRequestModel());
+    assertThat(
+        "snapshot's consent code is unchanged when unspecified in patch request",
+        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        equalTo(consentCodeOverride));
   }
 }

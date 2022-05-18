@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -130,7 +131,8 @@ public class DatasetTableDao {
     params.addValue("table_id", tableId);
     @SuppressWarnings("ConstantConditions")
     int maxOrdinal = jdbcTemplate.queryForObject(sqlGetMaxColumnOrdinal, params, Integer.class);
-    createColumns(tableId, columns, maxOrdinal);
+    // Need to requireNonNull or else SpotBugs complains
+    createColumns(tableId, columns, Objects.requireNonNullElse(maxOrdinal, 0));
   }
 
   private void createColumns(UUID tableId, Collection<Column> columns, int ordinal) {

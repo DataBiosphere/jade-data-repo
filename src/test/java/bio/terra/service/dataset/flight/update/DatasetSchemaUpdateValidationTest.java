@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.update;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -117,8 +118,8 @@ public class DatasetSchemaUpdateValidationTest {
         (DatasetSchemaUpdateException) stepResult.getException().orElseThrow();
 
     assertThat(exception.getMessage(), containsString("Could not validate"));
-    assertThat(exception.getCauses().get(0), containsString("overwrite"));
-    assertThat(exception.getCauses().get(1), is(EXISTING_TABLE_NAME));
+    assertThat(exception.getCauses(), contains(containsString("overwrite")));
+    assertThat(exception.getCauses(), contains(is(EXISTING_TABLE_NAME)));
     assertThat(exception.getCauses(), hasSize(2));
   }
 
@@ -204,7 +205,6 @@ public class DatasetSchemaUpdateValidationTest {
             validateModelStep.doStep(flightContext).getException().orElseThrow();
 
     assertThat(missingTableException.getMessage(), containsString("Could not find tables"));
-    assertThat(missingTableException.getCauses(), hasSize(1));
-    assertThat(missingTableException.getCauses().get(0), containsString("not_a_real_table"));
+    assertThat(missingTableException.getCauses(), contains(containsString("not_a_real_table")));
   }
 }

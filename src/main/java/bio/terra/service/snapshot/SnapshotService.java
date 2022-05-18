@@ -16,6 +16,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -132,6 +133,14 @@ public class SnapshotService {
         .newJob(description, SnapshotDeleteFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
         .submit();
+  }
+
+  public SnapshotSummaryModel patch(UUID id, SnapshotPatchRequestModel patchRequest) {
+    boolean patchSucceeded = snapshotDao.patch(id, patchRequest);
+    if (!patchSucceeded) {
+      throw new RuntimeException("Snapshot was not updated");
+    }
+    return snapshotDao.retrieveSummaryById(id).toModel();
   }
 
   public String exportSnapshot(

@@ -6,6 +6,7 @@ import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetSpecification;
@@ -673,6 +674,28 @@ public class SnapshotDao {
               .addValue("tableName", tableName);
       jdbcTemplate.update(sql, params);
     }
+  }
+
+  /**
+   * Update a snapshot according to specified fields in the patch request. Any fields unspecified in
+   * the request will remain unaltered.
+   *
+   * @param id snapshot UUID
+   * @param patchRequest updates to merge with existing snapshot
+   * @return whether the snapshot record was updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean patch(UUID id, SnapshotPatchRequestModel patchRequest) {
+    String sql =
+        "UPDATE snapshot SET consent_code = COALESCE(:consent_code, consent_code) WHERE id = :id";
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("consent_code", patchRequest.getConsentCode())
+            .addValue("id", id);
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    return rowsAffected > 0;
   }
 
   private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {

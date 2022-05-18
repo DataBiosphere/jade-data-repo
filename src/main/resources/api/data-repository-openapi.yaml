@@ -662,6 +662,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+    patch:
+      tags:
+        - snapshots
+        - repository
+      description: Update supported fields of the specified snapshot.
+      operationId: patchSnapshot
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        description: >-
+          A 'lite' snapshot definition (used to modify supported fields of a snapshot).
+          Null assignments will be ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotPatchRequestModel'
+      responses:
+        200:
+          description: Summary of updated snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotSummaryModel'
+        400:
+          description: Bad request - invalid id, badly formed modification instructions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot does not exist, missing permissions to modify.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - snapshot was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshots/{id}/data/{table}:
     get:
       tags:
@@ -4156,6 +4203,14 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
+    SnapshotPatchRequestModel:
+      type: object
+      properties:
+        consentCode:
+          $ref: '#/components/schemas/ConsentCode'
+      description: >
+        A 'lite' snapshot definition (used to modify supported fields of a snapshot).
+        Null assignments will be ignored.
     SnapshotRetrieveIncludeModel:
       type: string
       description: >

@@ -256,8 +256,8 @@ public class DatasetService {
         .submit();
   }
 
-  public DatasetSummaryModel patch(UUID id, DatasetPatchRequestModel datasetPatchRequest) {
-    boolean patchSucceeded = datasetDao.patch(id, datasetPatchRequest);
+  public DatasetSummaryModel patch(UUID id, DatasetPatchRequestModel patchRequest) {
+    boolean patchSucceeded = datasetDao.patch(id, patchRequest);
     if (!patchSucceeded) {
       throw new RuntimeException("Dataset was not updated");
     }

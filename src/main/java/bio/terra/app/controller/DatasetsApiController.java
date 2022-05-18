@@ -180,11 +180,11 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<DatasetSummaryModel> patchDataset(
-      UUID id, DatasetPatchRequestModel datasetPatchRequest) {
+      UUID id, DatasetPatchRequestModel patchRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
-    return new ResponseEntity<>(datasetService.patch(id, datasetPatchRequest), HttpStatus.OK);
+    return new ResponseEntity<>(datasetService.patch(id, patchRequest), HttpStatus.OK);
   }
 
   @Override

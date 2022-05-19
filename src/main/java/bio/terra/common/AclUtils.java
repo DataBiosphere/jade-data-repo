@@ -28,6 +28,9 @@ public class AclUtils {
                 "Failed to update ACL due to [%s]. Retry %d of %d", ex.getReason(), i, RETRIES),
             ex);
         lastException = ex.getCause();
+        if (ex.getReason().startsWith("400 ")) {
+          throw new GoogleResourceException("Error while performing ACL update", ex);
+        }
       } catch (Exception ex) {
         throw new GoogleResourceException("Error while performing ACL update", ex);
       }

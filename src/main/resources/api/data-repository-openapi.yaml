@@ -3228,6 +3228,10 @@ components:
           type: boolean
           default: false
           description: denotes whether data files in the dataset are self-hosted or not
+        ingestServiceAccount:
+          type: string
+          description: >
+            Google service account to grant storage.object.get access on source Google storage buckets to in order to ingest files
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -3267,6 +3271,10 @@ components:
           type: boolean
           default: false
           description: denotes whether data files in the dataset are self-hosted or not
+        ingestServiceAccount:
+          type: string
+          description: >
+            Google service account to grant storage.object.get access on source Google storage buckets to in order to ingest files
       description: >
         Summary of a dataset.
     DatasetRequestModel:

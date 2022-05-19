@@ -348,7 +348,7 @@ public class GoogleBucketService {
 
     GoogleProjectResource projectResource = bucketResource.getProjectResource();
     String googleProjectId = projectResource.getGoogleProjectId();
-    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId);
+    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId, true);
 
     // the project will have been created before this point, so no need to fetch it
     logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);

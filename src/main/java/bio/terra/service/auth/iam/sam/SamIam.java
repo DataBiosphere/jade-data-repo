@@ -58,6 +58,7 @@ import org.springframework.stereotype.Component;
 @Component("iamProvider")
 // Use @Profile to select when there is more than one IamService
 public class SamIam implements IamProviderInterface {
+  private static final String SAM_AUTH_RESP_HEADER = "www-authenticate";
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private final SamConfiguration samConfig;
@@ -608,6 +609,14 @@ public class SamIam implements IamProviderInterface {
     // Sometimes the sam message is buried several levels down inside of the error report object.
     // If we find an empty message then we try to deserialize the error report and use that message.
     String message = samEx.getMessage();
+    if (StringUtils.isEmpty(message)) {
+      String headerMessage =
+          String.join(
+              ", ", samEx.getResponseHeaders().getOrDefault(SAM_AUTH_RESP_HEADER, List.of()));
+      if (!StringUtils.isEmpty(headerMessage)) {
+        message = headerMessage;
+      }
+    }
     if (StringUtils.isEmpty(message)) {
       try {
         ErrorReport errorReport =

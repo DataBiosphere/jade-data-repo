@@ -31,7 +31,8 @@ public class GoogleResourceDao {
   private final GoogleRegion defaultRegion;
 
   private static final String sqlProjectRetrieve =
-      "SELECT id, google_project_id, google_project_number, profile_id" + " FROM project_resource";
+      "SELECT id, google_project_id, google_project_number, profile_id, service_account"
+          + " FROM project_resource";
   private static final String sqlProjectRetrieveById =
       sqlProjectRetrieve + " WHERE marked_for_delete = false AND id = :id";
   private static final String sqlProjectRetrieveByProjectId =
@@ -252,6 +253,18 @@ public class GoogleResourceDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void updateProjectResourceServiceAccount(UUID projectId, String serviceAccountEmail) {
+    MapSqlParameterSource markParams =
+        new MapSqlParameterSource()
+            .addValue("project_id", projectId)
+            .addValue("service_account", serviceAccountEmail);
+
+    final String sqlMarkProjects =
+        "UPDATE project_resource SET service_account = :service_account WHERE id = :project_id";
+    jdbcTemplate.update(sqlMarkProjects, markParams);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void deleteProjectMetadata(List<UUID> projectIds) {
     if (!projectIds.isEmpty()) {
       MapSqlParameterSource markParams =
@@ -291,7 +304,8 @@ public class GoogleResourceDao {
                 .id(rs.getObject("id", UUID.class))
                 .profileId(rs.getObject("profile_id", UUID.class))
                 .googleProjectId(rs.getString("google_project_id"))
-                .googleProjectNumber(rs.getString("google_project_number")));
+                .googleProjectNumber(rs.getString("google_project_number"))
+                .serviceAccount(rs.getString("service_account")));
   }
 
   // -- bucket resource methods --

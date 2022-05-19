@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_project_sa_column
+      author: nm
+      changes:
+        - addColumn:
+            tableName: project_resource
+            columns:
+              name: service_account
+              type: varchar(256)

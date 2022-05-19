@@ -113,6 +113,7 @@ public final class DatasetJsonConversion {
     if (include.contains(DatasetRequestAccessIncludeModel.DATA_PROJECT)
         && dataset.getProjectResource() != null) {
       datasetModel.dataProject(dataset.getProjectResource().getGoogleProjectId());
+      datasetModel.ingestServiceAccount(dataset.getProjectResource().getServiceAccount());
     }
 
     if (include.contains(DatasetRequestAccessIncludeModel.STORAGE)) {

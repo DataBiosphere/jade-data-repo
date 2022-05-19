@@ -7,6 +7,7 @@ import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CollectionType;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
@@ -467,6 +468,21 @@ public class ResourceService {
             projectId, billingProfile, getStewardPolicy(), region, labels);
 
     return googleProjectResource.getId();
+  }
+
+  /**
+   * Create a new service account for a dataset to be used to ingest, if none exists already.
+   *
+   * @param billingProfile authorized billing profile to pay for the project
+   * @param projectId the Google id of the project to create the SA for
+   * @param datasetName the name of the dataset the SA is being created for
+   * @return email of the created service account
+   */
+  public String createDatasetServiceAccount(
+      BillingProfileModel billingProfile, String projectId, String datasetName) {
+
+    return projectService.createProjectServiceAccount(
+        projectId, billingProfile, CollectionType.DATASET, datasetName);
   }
 
   /**

@@ -385,7 +385,7 @@ public class GcsPdao implements CloudFileReader {
       // derives from BadRequestException). I think there are several cases here. We might need to
       // retry
       // for flaky google case or we might need to bail out if access is denied.
-      throw new PdaoFileCopyException("File ingest failed", ex);
+      throw new PdaoFileCopyException("File ingest failed", List.of(ex.getMessage()));
     }
   }
 
@@ -472,7 +472,7 @@ public class GcsPdao implements CloudFileReader {
   }
 
   private boolean deleteWorker(BlobId blobId, String projectId) {
-    GcsProject gcsProject = gcsProjectFactory.get(projectId);
+    GcsProject gcsProject = gcsProjectFactory.get(projectId, true);
     Storage storage = gcsProject.getStorage();
     Blob blob = storage.get(blobId);
     if (blob != null) {

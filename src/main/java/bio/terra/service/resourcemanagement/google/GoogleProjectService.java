@@ -1,7 +1,9 @@
 package bio.terra.service.resourcemanagement.google;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.CollectionType;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
@@ -23,18 +25,29 @@ import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.Status;
+import com.google.api.services.iam.v1.Iam;
+import com.google.api.services.iam.v1.IamScopes;
+import com.google.api.services.iam.v1.model.Binding;
+import com.google.api.services.iam.v1.model.CreateServiceAccountRequest;
+import com.google.api.services.iam.v1.model.Policy;
+import com.google.api.services.iam.v1.model.ServiceAccount;
 import com.google.api.services.serviceusage.v1.ServiceUsage;
 import com.google.api.services.serviceusage.v1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1.model.GoogleApiServiceusageV1Service;
 import com.google.api.services.serviceusage.v1.model.ListServicesResponse;
+import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -43,6 +56,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -69,6 +83,7 @@ public class GoogleProjectService {
   private final GoogleResourceManagerService resourceManagerService;
   private final BufferService bufferService;
   private final DatasetBucketDao datasetBucketDao;
+  private final String tdrServiceAccountEmail;
 
   private static final String GS_BUCKET_PATTERN = "[a-z0-9\\-\\.\\_]{3,63}";
 
@@ -79,13 +94,15 @@ public class GoogleProjectService {
       GoogleBillingService billingService,
       GoogleResourceManagerService resourceManagerService,
       BufferService bufferService,
-      DatasetBucketDao datasetBucketDao) {
+      DatasetBucketDao datasetBucketDao,
+      @Qualifier("applicationCredentials") ServiceAccountCredentials applicationCredentials) {
     this.resourceDao = resourceDao;
     this.resourceConfiguration = resourceConfiguration;
     this.billingService = billingService;
     this.resourceManagerService = resourceManagerService;
     this.bufferService = bufferService;
     this.datasetBucketDao = datasetBucketDao;
+    this.tdrServiceAccountEmail = applicationCredentials.getClientEmail();
   }
 
   public String bucketForBigQueryScratchFile(String googleProjectId) {
@@ -298,6 +315,82 @@ public class GoogleProjectService {
     }
   }
 
+  public String createProjectServiceAccount(
+      String googleProjectId,
+      BillingProfileModel billingProfile,
+      CollectionType collectionType,
+      String collectionName) {
+    try {
+      String serviceAccountName = "tdr-ingest-sa";
+      logger.info(
+          "Creating service account {} for {} {} and billing account {}",
+          serviceAccountName,
+          collectionType.toString().toLowerCase(),
+          collectionName,
+          billingProfile.getId());
+
+      GoogleProjectResource projectResource =
+          resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
+
+      ServiceAccount serviceAccount = new ServiceAccount();
+      serviceAccount.setDisplayName(
+          String.format(
+              "Ingest service account for %s %s and billing account %s",
+              collectionType.toString().toLowerCase(),
+              collectionName,
+              billingProfile.getBillingAccountId()));
+      CreateServiceAccountRequest request = new CreateServiceAccountRequest();
+      request.setAccountId(serviceAccountName);
+      request.setServiceAccount(serviceAccount);
+
+      Iam iamService = iamService();
+      serviceAccount =
+          iamService
+              .projects()
+              .serviceAccounts()
+              .create("projects/" + projectResource.getGoogleProjectId(), request)
+              .execute();
+
+      logger.info("Created service account: {}", serviceAccount.getEmail());
+
+      String datasetSa = String.format("serviceAccount:%s", serviceAccount.getEmail());
+      String tdrSa = String.format("serviceAccount:%s", tdrServiceAccountEmail);
+      resourceManagerService.updateIamPermissions(
+          Map.of(
+              "roles/iam.serviceAccountTokenCreator", List.of(datasetSa),
+              "roles/serviceusage.serviceUsageConsumer", List.of(datasetSa, tdrSa),
+              "roles/storage.objectCreator", List.of(datasetSa),
+              "roles/storage.objectViewer", List.of(datasetSa)),
+          projectResource.getGoogleProjectId(),
+          PermissionOp.ENABLE_PERMISSIONS);
+
+      resourceDao.updateProjectResourceServiceAccount(
+          projectResource.getId(), serviceAccount.getEmail());
+      logger.info("Did set the correct permissions on service accounts");
+      return serviceAccount.getEmail();
+    } catch (IOException | GeneralSecurityException | InterruptedException e) {
+      throw new GoogleResourceException("Unable to create service account", e);
+    }
+  }
+
+  private void addBinding(Policy policy, String role, String principal) {
+    String formattedPrincipal = String.format("serviceAccount:%s", principal);
+    List<Binding> bindings = Optional.ofNullable(policy.getBindings()).orElse(new ArrayList<>());
+    Optional<Binding> binding = bindings.stream().filter(b -> b.getRole().equals(role)).findFirst();
+
+    if (binding.isPresent()) {
+      if (!binding.get().getMembers().contains(formattedPrincipal)) {
+        binding.get().getMembers().add(formattedPrincipal);
+      }
+    } else {
+      // Needs to be mutable
+      bindings.add(
+          new Binding().setRole(role).setMembers(new ArrayList<>(List.of(formattedPrincipal))));
+    }
+
+    policy.setBindings(bindings);
+  }
+
   public enum PermissionOp {
     ENABLE_PERMISSIONS,
     REVOKE_PERMISSIONS
@@ -465,6 +558,21 @@ public class GoogleProjectService {
     return new ServiceUsage.Builder(httpTransport, jsonFactory, credential)
         .setApplicationName(resourceConfiguration.getApplicationName())
         .build();
+  }
+
+  // Initialize the IAM service, which can be used to send requests to the IAM API.
+  private Iam iamService() throws GeneralSecurityException, IOException {
+    GoogleCredentials credential =
+        GoogleCredentials.getApplicationDefault()
+            .createScoped(Collections.singleton(IamScopes.CLOUD_PLATFORM));
+    Iam service =
+        new Iam.Builder(
+                GoogleNetHttpTransport.newTrustedTransport(),
+                JacksonFactory.getDefaultInstance(),
+                new HttpCredentialsAdapter(credential))
+            .setApplicationName(ApplicationConfiguration.APPLICATION_NAME)
+            .build();
+    return service;
   }
 
   private static com.google.api.services.serviceusage.v1.model.Operation

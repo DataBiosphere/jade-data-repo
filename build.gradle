@@ -177,6 +177,7 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-resourcemanager:0.118.2-alpha'
     implementation 'com.google.apis:google-api-services-serviceusage:v1-rev20201021-1.30.10'
     implementation 'com.google.apis:google-api-services-appengine:v1-rev20201201-1.31.0'
+    implementation 'com.google.apis:google-api-services-iam:v1-rev20220428-1.32.1'
     implementation 'com.google.cloud:google-cloud-bigquery:1.108.1'
     implementation 'com.google.cloud:google-cloud-storage:1.108.0'
     implementation 'com.google.cloud:google-cloud-firestore:1.22.0'

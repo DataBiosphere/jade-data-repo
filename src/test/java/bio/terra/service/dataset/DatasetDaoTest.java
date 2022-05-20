@@ -868,6 +868,13 @@ public class DatasetDaoTest {
         datasetDao.retrieve(datasetId).getPhsId(),
         equalTo(phsIdOverride));
 
+    DatasetPatchRequestModel patchRequestBlank = new DatasetPatchRequestModel().phsId("");
+    datasetDao.patch(datasetId, patchRequestBlank);
+    assertThat(
+        "dataset's PHS ID is set to empty string from patch",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(""));
+
     datasetDao.delete(datasetId);
   }
 }

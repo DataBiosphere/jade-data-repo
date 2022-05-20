@@ -588,5 +588,12 @@ public class SnapshotDaoTest {
         "snapshot's consent code is unchanged when unspecified in patch request",
         snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
         equalTo(consentCodeOverride));
+
+    SnapshotPatchRequestModel patchRequestBlank = new SnapshotPatchRequestModel().consentCode("");
+    snapshotDao.patch(snapshotId, patchRequestBlank);
+    assertThat(
+        "snapshot's consent code is set to empty string from patch",
+        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        equalTo(""));
   }
 }

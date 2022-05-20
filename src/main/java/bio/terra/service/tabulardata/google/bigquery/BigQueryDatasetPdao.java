@@ -204,20 +204,16 @@ public class BigQueryDatasetPdao {
         throw new PdaoException("Staging table load failed to complete within timeout - canceled");
       }
     }
-    loadJob = loadJob.reload();
-
-    BigQueryError loadJobError = loadJob.getStatus().getError();
-    if (loadJobError == null) {
-      logger.info("Staging table load job " + loadJob.getJobId().getJob() + " succeeded");
-    } else {
-      logger.info(
-          "Staging table load job " + loadJob.getJobId().getJob() + " failed: " + loadJobError);
-      if ("notFound".equals(loadJobError.getReason())) {
+    try {
+      loadJob = loadJob.reload();
+    } catch (BigQueryException ex) {
+      logger.info("Staging table load job " + loadJob.getJobId().getJob() + " failed: " + ex);
+      if ("notFound".equals(ex.getReason())) {
         throw new ControlFileNotFoundException("Ingest source file not found: " + path);
       }
 
       List<String> loadErrors = new ArrayList<>();
-      List<BigQueryError> bigQueryErrors = loadJob.getStatus().getExecutionErrors();
+      List<BigQueryError> bigQueryErrors = ex.getErrors();
       for (BigQueryError bigQueryError : bigQueryErrors) {
         loadErrors.add(
             "BigQueryError: reason="
@@ -228,6 +224,7 @@ public class BigQueryDatasetPdao {
       throw new IngestFailureException(
           "Ingest failed with " + loadErrors.size() + " errors - see error details", loadErrors);
     }
+    logger.info("Staging table load job " + loadJob.getJobId().getJob() + " succeeded");
     return loadJob;
   }
 

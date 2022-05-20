@@ -25,6 +25,7 @@ import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
@@ -62,6 +63,7 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -254,6 +256,22 @@ public class DatasetService {
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
         .submit();
+  }
+
+  /**
+   * Conditionally require sharing privileges when a caller is updating a passport identifier. Such
+   * a modification indirectly affects who can access the underlying data.
+   *
+   * @param patchRequest updates to merge with an existing dataset
+   * @return IAM actions needed to apply the requested patch
+   */
+  public List<IamAction> iamActions(DatasetPatchRequestModel patchRequest) {
+    List<IamAction> actions = new ArrayList<>();
+    actions.add(IamAction.MANAGE_SCHEMA);
+    if (patchRequest.getPhsId() != null) {
+      actions.add(IamAction.SHARE_POLICY_STEWARD);
+    }
+    return actions;
   }
 
   public DatasetSummaryModel patch(UUID id, DatasetPatchRequestModel patchRequest) {

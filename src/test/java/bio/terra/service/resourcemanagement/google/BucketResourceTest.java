@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -391,10 +390,9 @@ public class BucketResourceTest {
 
     assertThat("Delete lifecycle action is set for 1 day", lifecycleDeleteAge, equalTo(deleteAge));
 
-    assertThat(
+    assertTrue(
         "Bucket without ttl has no lifecycle rules",
-        bucketWithoutTtl.getLifecycleRules(),
-        nullValue());
+        bucketWithoutTtl.getLifecycleRules().isEmpty());
 
     // delete the bucket and metadata
     for (var bucketResource : List.of(bucketWithTtlResource, bucketWithoutTtlResource)) {

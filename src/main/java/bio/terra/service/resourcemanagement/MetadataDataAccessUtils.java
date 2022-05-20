@@ -42,7 +42,7 @@ public final class MetadataDataAccessUtils {
   private static final String BIGQUERY_TABLE_ADDRESS = "<project>.<dataset>.<table>";
   private static final String BIGQUERY_DATASET_ID = "<project>:<dataset>";
   private static final String BIGQUERY_TABLE_ID = "<dataset_id>.<table>";
-  private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>` LIMIT 1000";
+  private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>`";
 
   private static final String AZURE_PARQUET_LINK =
       "https://<storageAccount>.blob.core.windows.net/metadata/<blob>";

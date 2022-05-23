@@ -173,14 +173,16 @@ ext['log4j2.version'] = '2.17.0'
 
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
-    implementation 'com.google.cloud:google-cloud-billing:1.1.6'
-    implementation 'com.google.cloud:google-cloud-resourcemanager:0.118.2-alpha'
     implementation 'com.google.apis:google-api-services-serviceusage:v1-rev20201021-1.30.10'
     implementation 'com.google.apis:google-api-services-appengine:v1-rev20201201-1.31.0'
-    implementation 'com.google.cloud:google-cloud-bigquery:1.108.1'
-    implementation 'com.google.cloud:google-cloud-storage:1.108.0'
-    implementation 'com.google.cloud:google-cloud-firestore:1.22.0'
-    implementation group: 'com.google.cloud', name: 'google-cloud-pubsub', version: '1.104.1'
+    implementation platform('com.google.cloud:libraries-bom:25.3.0')
+    implementation 'com.google.cloud:google-cloud-billing'
+    implementation 'com.google.cloud:google-cloud-resourcemanager'
+    implementation 'com.google.cloud:google-cloud-bigquery'
+    implementation 'com.google.cloud:google-cloud-storage'
+    implementation 'com.google.cloud:google-cloud-firestore'
+    implementation 'com.google.cloud:google-cloud-pubsub'
+    implementation 'com.google.http-client:google-http-client'
     implementation 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
     implementation 'org.apache.commons:commons-lang3:3.11'
     implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
@@ -191,8 +193,6 @@ dependencies {
     implementation 'org.codehaus.janino:janino:3.1.6'           // Provides if/else xml parsing for logback config
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation group: "javax.validation", name: "validation-api"
-    // Fix to this version
-    implementation 'com.google.http-client:google-http-client:1.38.0'
 
     implementation group: "io.swagger.core.v3", name: "swagger-annotations"
     swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"

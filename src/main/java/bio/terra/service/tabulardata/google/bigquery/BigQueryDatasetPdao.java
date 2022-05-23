@@ -138,18 +138,24 @@ public class BigQueryDatasetPdao {
     Schema schema = bigQueryTable.getDefinition().getSchema();
     FieldList fields = schema.getFields();
 
-    // Create the new field/column
-    Field newField = Field.of(column.getName(), translateType(column.getType()));
+    boolean fieldExists = fields.stream()
+        .anyMatch(field -> field.getName().equalsIgnoreCase(column.getName()));
+    if (!fieldExists) {
+      // Create the new field/column
+      Field newField = Field.of(column.getName(), translateType(column.getType()));
+      // Create a new schema adding the current fields, plus the new one
+      List<Field> newFields = new ArrayList<>(fields);
+      newFields.add(newField);
+      Schema newSchema = Schema.of(newFields);
 
-    // Create a new schema adding the current fields, plus the new one
-    List<Field> newFields = new ArrayList<>(fields);
-    newFields.add(newField);
-    Schema newSchema = Schema.of(newFields);
-
-    // Update the table with the new schema
-    Table updatedTable =
-        bigQueryTable.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
-    updatedTable.update();
+      // Update the table with the new schema
+      Table updatedTable =
+          bigQueryTable.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
+      updatedTable.update();
+    } else {
+      logger.warn("Column {} already exists in table {}",
+          column.getName(), table.getRawTableName());
+    }
   }
 
   public void deleteColumn(

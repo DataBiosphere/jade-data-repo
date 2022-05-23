@@ -138,8 +138,8 @@ public class BigQueryDatasetPdao {
     Schema schema = bigQueryTable.getDefinition().getSchema();
     FieldList fields = schema.getFields();
 
-    boolean fieldExists = fields.stream()
-        .anyMatch(field -> field.getName().equalsIgnoreCase(column.getName()));
+    boolean fieldExists =
+        fields.stream().anyMatch(field -> field.getName().equalsIgnoreCase(column.getName()));
     if (!fieldExists) {
       // Create the new field/column
       Field newField = Field.of(column.getName(), translateType(column.getType()));
@@ -153,8 +153,8 @@ public class BigQueryDatasetPdao {
           bigQueryTable.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
       updatedTable.update();
     } else {
-      logger.warn("Column {} already exists in table {}",
-          column.getName(), table.getRawTableName());
+      logger.warn(
+          "Column {} already exists in table {}", column.getName(), table.getRawTableName());
     }
   }
 

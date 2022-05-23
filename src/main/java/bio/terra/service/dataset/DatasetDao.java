@@ -720,7 +720,12 @@ public class DatasetDao {
         new MapSqlParameterSource().addValue("phs_id", patchRequest.getPhsId()).addValue("id", id);
 
     int rowsAffected = jdbcTemplate.update(sql, params);
-    return rowsAffected > 0;
+    boolean patchSucceeded = (rowsAffected == 1);
+
+    if (patchSucceeded) {
+      logger.info("Dataset {} patched with {}", id, patchRequest.toString());
+    }
+    return patchSucceeded;
   }
 
   /**

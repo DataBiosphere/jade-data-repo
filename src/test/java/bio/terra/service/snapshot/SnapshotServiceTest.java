@@ -232,7 +232,7 @@ public class SnapshotServiceTest {
                                                     + SNAPSHOT_NAME
                                                     + "."
                                                     + SNAPSHOT_TABLE_NAME
-                                                    + "` LIMIT 1000")))))));
+                                                    + "`")))))));
   }
 
   @Test

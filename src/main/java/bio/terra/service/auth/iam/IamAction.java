@@ -36,7 +36,7 @@ public enum IamAction {
   private final String samActionName;
 
   IamAction() {
-    this.samActionName = StringUtils.lowerCase(name());
+    this.samActionName = name().toLowerCase();
   }
 
   @Override

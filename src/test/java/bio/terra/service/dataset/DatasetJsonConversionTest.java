@@ -246,7 +246,7 @@ public class DatasetJsonConversionTest {
                                                     + expectedDatasetName
                                                     + "."
                                                     + DATASET_TABLE_NAME
-                                                    + "` LIMIT 1000")))))));
+                                                    + "`")))))));
   }
 
   @Test

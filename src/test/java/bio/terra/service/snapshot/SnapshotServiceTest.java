@@ -1,8 +1,8 @@
 package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -19,11 +19,13 @@ import bio.terra.model.AccessInfoModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -306,5 +308,23 @@ public class SnapshotServiceTest {
         service.enumerateSnapshots(0, 10, null, null, null, null, List.of(), resourcesAndRoles);
     assertThat(snapshots.getItems().get(0).getId(), equalTo(snapshotId));
     assertThat(snapshots.getRoleMap(), hasEntry(snapshotId.toString(), List.of(role.toString())));
+  }
+
+  @Test
+  public void patchSnapshotIamActions() {
+    assertThat(
+        "Patch without consent code update does not require passport identifier update permissions",
+        service.patchSnapshotIamActions(new SnapshotPatchRequestModel()),
+        contains(IamAction.UPDATE_SNAPSHOT));
+
+    assertThat(
+        "Patch with consent code update to empty string requires passport identifier update permissions",
+        service.patchSnapshotIamActions(new SnapshotPatchRequestModel().consentCode("")),
+        contains(IamAction.UPDATE_SNAPSHOT, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+
+    assertThat(
+        "Patch with consent code update requires passport identifier update permissions",
+        service.patchSnapshotIamActions(new SnapshotPatchRequestModel().consentCode("c99")),
+        contains(IamAction.UPDATE_SNAPSHOT, IamAction.UPDATE_PASSPORT_IDENTIFIER));
   }
 }

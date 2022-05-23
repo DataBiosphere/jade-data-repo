@@ -17,8 +17,10 @@ import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
@@ -174,6 +176,16 @@ public class DatasetsApiController implements DatasetsApi {
     String jobId = datasetService.delete(id.toString(), userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
+  public ResponseEntity<DatasetSummaryModel> patchDataset(
+      UUID id, DatasetPatchRequestModel patchRequest) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    for (IamAction action : datasetService.patchDatasetIamActions(patchRequest)) {
+      iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id.toString(), action);
+    }
+    return new ResponseEntity<>(datasetService.patch(id, patchRequest), HttpStatus.OK);
   }
 
   @Override

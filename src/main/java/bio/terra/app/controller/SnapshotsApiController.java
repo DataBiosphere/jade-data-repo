@@ -18,9 +18,11 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamAction;
@@ -166,6 +168,16 @@ public class SnapshotsApiController implements SnapshotsApi {
     String jobId = snapshotService.deleteSnapshot(id, userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotSummaryModel> patchSnapshot(
+      UUID id, SnapshotPatchRequestModel patchRequest) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    for (IamAction action : snapshotService.patchSnapshotIamActions(patchRequest)) {
+      iamService.verifyAuthorization(userReq, IamResourceType.DATASNAPSHOT, id.toString(), action);
+    }
+    return new ResponseEntity<>(snapshotService.patch(id, patchRequest), HttpStatus.OK);
   }
 
   @Override

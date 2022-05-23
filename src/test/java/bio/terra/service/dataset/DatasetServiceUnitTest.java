@@ -85,18 +85,18 @@ public class DatasetServiceUnitTest {
   @Test
   public void patchDatasetIamActions() {
     assertThat(
-        "Patch without updating passport identifier does not require share permissions",
-        datasetService.iamActions(new DatasetPatchRequestModel()),
+        "Patch without PHS ID update does not require passport identifier update permissions",
+        datasetService.patchDatasetIamActions(new DatasetPatchRequestModel()),
         contains(IamAction.MANAGE_SCHEMA));
 
     assertThat(
-        "Updating passport identifier requires share permissions",
-        datasetService.iamActions(new DatasetPatchRequestModel().phsId("")),
-        contains(IamAction.MANAGE_SCHEMA, IamAction.SHARE_POLICY_STEWARD));
+        "Patch with PHS ID update to empty string requires passport identifier update permissions",
+        datasetService.patchDatasetIamActions(new DatasetPatchRequestModel().phsId("")),
+        contains(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER));
 
     assertThat(
-        "Updating passport identifier requires share permissions",
-        datasetService.iamActions(new DatasetPatchRequestModel().phsId("phs123456")),
-        contains(IamAction.MANAGE_SCHEMA, IamAction.SHARE_POLICY_STEWARD));
+        "Patch with PHS ID update requires passport identifier update permissions",
+        datasetService.patchDatasetIamActions(new DatasetPatchRequestModel().phsId("phs123456")),
+        contains(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER));
   }
 }

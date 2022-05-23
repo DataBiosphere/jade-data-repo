@@ -265,11 +265,11 @@ public class DatasetService {
    * @param patchRequest updates to merge with an existing dataset
    * @return IAM actions needed to apply the requested patch
    */
-  public List<IamAction> iamActions(DatasetPatchRequestModel patchRequest) {
+  public List<IamAction> patchDatasetIamActions(DatasetPatchRequestModel patchRequest) {
     List<IamAction> actions = new ArrayList<>();
     actions.add(IamAction.MANAGE_SCHEMA);
     if (patchRequest.getPhsId() != null) {
-      actions.add(IamAction.SHARE_POLICY_STEWARD);
+      actions.add(IamAction.UPDATE_PASSPORT_IDENTIFIER);
     }
     return actions;
   }

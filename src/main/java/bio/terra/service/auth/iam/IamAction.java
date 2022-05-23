@@ -4,14 +4,15 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import org.apache.commons.lang3.StringUtils;
 
+// NOTE: these action enums must have exactly the same text as the Sam action name.
 public enum IamAction {
   // common
   CREATE,
   DELETE,
-  SHARE_POLICY_STEWARD("share_policy::steward"),
   READ_POLICY,
   READ_POLICIES,
   ALTER_POLICIES,
+  UPDATE_PASSPORT_IDENTIFIER,
   // datarepo
   LIST_JOBS,
   DELETE_JOBS,
@@ -36,16 +37,6 @@ public enum IamAction {
 
   IamAction() {
     this.samActionName = StringUtils.lowerCase(name());
-  }
-
-  /**
-   * When the enum name's text does not exactly match that of the Sam action name, specify it during
-   * construction.
-   *
-   * @param samActionName
-   */
-  IamAction(String samActionName) {
-    this.samActionName = samActionName;
   }
 
   @Override

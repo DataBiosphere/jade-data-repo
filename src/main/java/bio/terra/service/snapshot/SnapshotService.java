@@ -10,6 +10,7 @@ import bio.terra.common.Table;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
@@ -29,6 +30,7 @@ import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableModel;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.AssetColumn;
@@ -133,6 +135,22 @@ public class SnapshotService {
         .newJob(description, SnapshotDeleteFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
         .submit();
+  }
+
+  /**
+   * Conditionally require sharing privileges when a caller is updating a passport identifier. Such
+   * a modification indirectly affects who can access the underlying data.
+   *
+   * @param patchRequest updates to merge with an existing snapshot
+   * @return IAM actions needed to apply the requested patch
+   */
+  public List<IamAction> patchSnapshotIamActions(SnapshotPatchRequestModel patchRequest) {
+    List<IamAction> actions = new ArrayList<>();
+    actions.add(IamAction.UPDATE_SNAPSHOT);
+    if (patchRequest.getConsentCode() != null) {
+      actions.add(IamAction.UPDATE_PASSPORT_IDENTIFIER);
+    }
+    return actions;
   }
 
   public SnapshotSummaryModel patch(UUID id, SnapshotPatchRequestModel patchRequest) {

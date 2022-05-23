@@ -13,6 +13,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.bigquery.BigQuery;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -65,10 +66,12 @@ public class DatasetSchemaUpdateAddTablesBigQueryStep implements Step {
     Dataset dataset = datasetDao.retrieve(datasetId);
     List<String> newTableNames = DatasetSchemaUpdateUtils.getNewTableNames(updateModel);
     for (String tableName : newTableNames) {
-      boolean success = bigQueryDatasetPdao.deleteDatasetTable(dataset, tableName);
-      if (!success) {
+      Optional<DatasetTable> table = dataset.getTableByName(tableName);
+      if (table.isPresent()) {
+        bigQueryDatasetPdao.undoDatasetTableCreate(dataset, table.get());
+      } else {
         logger.warn(
-            "Could not delete table '{}' from dataset '{}' in BigQuery",
+            "Could not delete nonexistent table '{}' from dataset '{}' in BigQuery",
             tableName,
             dataset.getName());
       }

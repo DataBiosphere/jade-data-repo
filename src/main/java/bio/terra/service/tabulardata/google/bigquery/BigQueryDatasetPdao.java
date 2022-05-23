@@ -802,6 +802,25 @@ public class BigQueryDatasetPdao {
     return bigQueryProject.deleteTable(BigQueryPdao.prefixName(dataset.getName()), tableName);
   }
 
+  public void undoDatasetTableCreate(Dataset dataset, DatasetTable table)
+      throws InterruptedException {
+    List<String> tableNames =
+        List.of(
+            table.getRawTableName(),
+            table.getSoftDeleteTableName(),
+            table.getRowMetadataTableName(),
+            table.getName());
+    for (String tableName : tableNames) {
+      boolean success = deleteDatasetTable(dataset, tableName);
+      if (!success) {
+        logger.warn(
+            "Could not delete table '{}' from dataset '{}' in BigQuery",
+            tableName,
+            dataset.getName());
+      }
+    }
+  }
+
   @VisibleForTesting
   static String renderDatasetLiveViewSql(
       String bigQueryProject,

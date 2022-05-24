@@ -3,9 +3,10 @@ on:
   workflow_dispatch: {}
   #Note: We're scheduling this to run before the Jenkins alpha deploy job
   # this schedule is defined here: /dsp-jenkins/src/main/groovy/org/broadinstitute/dspjenkins/FCLegacyDeploy.groovyL130
+  # However, github action runs can be delayed over an hour, so leaving extra buffer
   schedule:
-    - cron: '0 18 * * 5' # Fridays at 1:00 pm EST; 6PM UTC
-    - cron: '0 3 * * 1-5' # Sun - Thurs 10:00 pm EST; 3AM UTC
+    - cron: '0 17 * * 5' # Fridays at 12PM EST or 1PM EDT; 5PM UTC
+    - cron: '0 1 * * 1-5' # Sun - Thurs 8PM EST or 9PM EDT; 1AM UTC
 env:
   chartVersion: 0.1.461
 jobs:

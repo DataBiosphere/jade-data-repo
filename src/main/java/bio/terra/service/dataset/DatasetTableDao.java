@@ -129,8 +129,7 @@ public class DatasetTableDao {
   public void createColumnsExistingTable(UUID tableId, Collection<Column> columns) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     params.addValue("table_id", tableId);
-    @SuppressWarnings("ConstantConditions")
-    int maxOrdinal = jdbcTemplate.queryForObject(sqlGetMaxColumnOrdinal, params, Integer.class);
+    Integer maxOrdinal = jdbcTemplate.queryForObject(sqlGetMaxColumnOrdinal, params, Integer.class);
     // Need to requireNonNull or else SpotBugs complains
     createColumns(tableId, columns, Objects.requireNonNullElse(maxOrdinal, 0));
   }

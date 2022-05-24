@@ -118,8 +118,8 @@ public class DatasetSchemaUpdateValidationTest {
         (DatasetSchemaUpdateException) stepResult.getException().orElseThrow();
 
     assertThat(exception.getMessage(), containsString("Could not validate"));
-    assertThat(exception.getCauses(), contains(containsString("overwrite")));
-    assertThat(exception.getCauses(), contains(is(EXISTING_TABLE_NAME)));
+    assertThat(exception.getCauses().get(0), containsString("overwrite"));
+    assertThat(exception.getCauses().get(1), is(EXISTING_TABLE_NAME));
     assertThat(exception.getCauses(), hasSize(2));
   }
 

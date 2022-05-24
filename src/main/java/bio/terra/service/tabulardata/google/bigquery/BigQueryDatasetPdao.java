@@ -810,12 +810,7 @@ public class BigQueryDatasetPdao {
 
   public void undoDatasetTableCreate(Dataset dataset, DatasetTable table)
       throws InterruptedException {
-    List<String> tableNames =
-        List.of(
-            table.getRawTableName(),
-            table.getSoftDeleteTableName(),
-            table.getRowMetadataTableName(),
-            table.getName());
+    List<String> tableNames = table.getBigQueryTableNames();
     for (String tableName : tableNames) {
       boolean success = deleteDatasetTable(dataset, tableName);
       if (!success) {

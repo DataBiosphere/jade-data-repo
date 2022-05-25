@@ -41,7 +41,7 @@ public class DatasetSchemaUpdateAddTablesPostgresStep implements Step {
           StepStatus.STEP_RESULT_FAILURE_FATAL,
           new DatasetSchemaUpdateException("Failed to add tables to the dataset", e));
     }
-    return null;
+    return StepResult.getStepResultSuccess();
   }
 
   @Override

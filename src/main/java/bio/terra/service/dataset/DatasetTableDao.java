@@ -131,7 +131,7 @@ public class DatasetTableDao {
     params.addValue("table_id", tableId);
     Integer maxOrdinal = jdbcTemplate.queryForObject(sqlGetMaxColumnOrdinal, params, Integer.class);
     // Need to requireNonNull or else SpotBugs complains
-    createColumns(tableId, columns, Objects.requireNonNullElse(maxOrdinal, 0));
+    createColumns(tableId, columns, Objects.requireNonNullElse(maxOrdinal, 0) + 1);
   }
 
   private void createColumns(UUID tableId, Collection<Column> columns, int ordinal) {

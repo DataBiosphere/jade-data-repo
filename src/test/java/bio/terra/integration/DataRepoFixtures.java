@@ -35,6 +35,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
+import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
@@ -708,26 +709,18 @@ public class DataRepoFixtures {
         new TypeReference<>() {});
   }
 
-  public DataRepoResponse<JobModel> updateSchema(
-      TestConfiguration.User user, UUID datasetId, DatasetSchemaUpdateModel updateModel)
+  public DatasetSpecificationModel updateSchema(
+      TestConfiguration.User user, UUID datasetId, DatasetSchemaUpdateModel request)
       throws Exception {
-    DataRepoResponse<JobModel> response = updateSchemaRaw(user, datasetId, updateModel);
-
-    assertThat("ingestOne is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
-    assertTrue("ingestOne response is present", response.getResponseObject().isPresent());
-    return response;
+    DataRepoResponse<JobModel> jobResponse = updateSchemaRaw(user, datasetId, request);
+    assertTrue("update schema succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue("update schema response is present", jobResponse.getResponseObject().isPresent());
+    DataRepoResponse<DatasetSpecificationModel> updateResponse =
+        dataRepoClient.waitForResponse(user, jobResponse, new TypeReference<>() {});
+    return validateResponse(updateResponse, "update schema", HttpStatus.OK, jobResponse);
   }
 
   public DataRepoResponse<JobModel> updateSchemaRaw(
-      TestConfiguration.User user, UUID datasetId, DatasetSchemaUpdateModel request)
-      throws Exception {
-    DataRepoResponse<JobModel> launchResp = updateSchemaLaunch(user, datasetId, request);
-    assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
-    assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
-    return dataRepoClient.waitForResponse(user, launchResp, new TypeReference<>() {});
-  }
-
-  public DataRepoResponse<JobModel> updateSchemaLaunch(
       TestConfiguration.User user, UUID datasetId, DatasetSchemaUpdateModel request)
       throws Exception {
     String ingestBody = TestUtils.mapToJson(request);

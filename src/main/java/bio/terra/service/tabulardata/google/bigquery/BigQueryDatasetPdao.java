@@ -137,10 +137,12 @@ public class BigQueryDatasetPdao {
     Table bigQueryTable = bigQuery.getTable(TableId.of(datasetName, table.getRawTableName()));
     Schema schema = bigQueryTable.getDefinition().getSchema();
     FieldList fields = schema.getFields();
+    Optional<Field> existingField =
+        fields.stream()
+            .filter(field -> field.getName().equalsIgnoreCase(column.getName()))
+            .findFirst();
 
-    boolean fieldExists =
-        fields.stream().anyMatch(field -> field.getName().equalsIgnoreCase(column.getName()));
-    if (!fieldExists) {
+    if (existingField.isEmpty()) {
       // Create the new field/column
       Field newField = Field.of(column.getName(), translateType(column.getType()));
       // Create a new schema adding the current fields, plus the new one
@@ -153,8 +155,16 @@ public class BigQueryDatasetPdao {
           bigQueryTable.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
       updatedTable.update();
     } else {
-      logger.warn(
-          "Column {} already exists in table {}", column.getName(), table.getRawTableName());
+      String message =
+          String.format(
+              "Column %s with type %s already exists in table %s",
+              column.getName(), column.getType(), table.getRawTableName());
+      logger.warn("Skipping schema update: {}", message);
+
+      // Only fail if the existing column has a different type
+      if (!existingField.get().getType().equals(translateType(column.getType()))) {
+        throw new PdaoException(String.format("Schema update failed: %s", message));
+      }
     }
   }
 

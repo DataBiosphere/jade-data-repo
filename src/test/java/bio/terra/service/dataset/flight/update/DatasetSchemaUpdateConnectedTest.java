@@ -4,6 +4,7 @@ import static bio.terra.common.TestUtils.bigQueryProjectForDatasetName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -11,6 +12,7 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.Column;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
+import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
@@ -283,6 +285,23 @@ public class DatasetSchemaUpdateConnectedTest {
     assertThat(
         "the second table column was re-added to the existing BigQuery table",
         existingTableColumnNames.contains(existingTableColumnB));
+
+    bigQueryColumnStep.undoStep(flightContext);
+    postgresColumnStep.undoStep(flightContext);
+
+    // Retry adding a column with a different type
+    updateModel
+        .getChanges()
+        .getAddColumns()
+        .get(0)
+        .setColumns(
+            List.of(new ColumnModel().name(existingTableColumnA).datatype(TableDataType.INTEGER)));
+    postgresColumnStep.doStep(flightContext);
+    assertThrows(
+        PdaoException.class,
+        () -> {
+          bigQueryColumnStep.doStep(flightContext);
+        });
   }
 
   @Test

@@ -21,7 +21,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger:swagger-codegen:2.4.11')
+        classpath('io.swagger:swagger-codegen:2.4.27')
     }
 }
 
@@ -37,7 +37,7 @@ plugins {
     id "java"
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
     id "jacoco"
-    id "com.diffplug.spotless" version "5.14.0"
+    id "com.diffplug.spotless" version "6.6.1"
 }
 
 allprojects {
@@ -56,7 +56,7 @@ allprojects {
         }
         dependencies {
             dependency group: "io.swagger.core.v3", name: "swagger-annotations", version: "2.1.5"
-            dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.22"
+            dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.34"
         }
     }
 }
@@ -72,8 +72,8 @@ subprojects.each { s ->
 
 def boolean isCiServer = System.getenv().containsKey("CI")
 
-sourceCompatibility = 11
-targetCompatibility = 11
+sourceCompatibility = 17
+targetCompatibility = 17
 
 if (hasProperty('buildScan')) {
     buildScan {

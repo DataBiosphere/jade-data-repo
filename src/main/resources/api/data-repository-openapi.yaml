@@ -3730,12 +3730,18 @@ components:
           enum:
             - append
             - replace
+            - merge
           description: >
             Approach for how to treat updates to the target table:
              * `append` - Default: only ever insert rows, regardless of whether or not the primary key value exists
              * `replace` - If a primary key is present on the table, treat rows with matching primary keys
-                         as updates. If duplicates IDs are found in your ingest, the ingest job
+                         as updates. If duplicate IDs are found in your ingest, the ingest job
                          will fail. Note: the full new record must be specified.
+             * `merge` - If a primary key is present on the table, treat rows with matching primary keys
+                         as partial updates. Any fields specified will overwrite their current values
+                         in the matching table row.  If an ingest row matches multiple table rows,
+                         it cannot be ingested. If duplicate IDs are found in your ingest, the ingest job
+                         will fail.
       description: >
         Request to ingest data from a file in GCS into a table in a dataset.
         The ingest source must be readable by the DR manager.

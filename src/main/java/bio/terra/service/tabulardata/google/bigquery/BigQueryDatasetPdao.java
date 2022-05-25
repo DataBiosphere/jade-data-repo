@@ -120,7 +120,7 @@ public class BigQueryDatasetPdao {
     bigQueryProject.createTable(
         datasetName,
         table.getRawTableName(),
-        buildSchema(table, true, true),
+        buildSchema(table, true, true, true),
         table.getBigQueryPartitionConfig());
     bigQueryProject.createTable(
         datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
@@ -172,11 +172,20 @@ public class BigQueryDatasetPdao {
     }
     Job loadJob;
 
-    Schema schemaWithRowId = buildSchema(targetTable, true, false); // Source does not have row_id
+    // When staging merge records, we will not enforce that required columns outside of the primary
+    // key
+    // be specified as they could be derived from an earlier full row ingest.
+    // Full row ingests enforce that required columns are set, and merge ingests cannot unset
+    // values.
+    boolean enforceRequiredCols =
+        (ingestRequest.getUpdateStrategy() != IngestRequestModel.UpdateStrategyEnum.MERGE);
+
+    Schema schemaWithRowId =
+        buildSchema(targetTable, true, false, enforceRequiredCols); // Source does not have row_id
     if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV
         && ingestRequest.isCsvGenerateRowIds()) {
       // Ingest without the datarepo_row_id column
-      Schema noRowId = buildSchema(targetTable, false, false);
+      Schema noRowId = buildSchema(targetTable, false, false, enforceRequiredCols);
       loadBuilder.setSchema(noRowId);
       loadJob = ingestData(bigQuery, path, loadBuilder.build());
       // Then add the datarepo_row_id column to the schema
@@ -883,7 +892,10 @@ public class BigQueryDatasetPdao {
   }
 
   private Schema buildSchema(
-      DatasetTable table, boolean addRowIdColumn, boolean addTransactionIdColumn) {
+      DatasetTable table,
+      boolean addRowIdColumn,
+      boolean addTransactionIdColumn,
+      boolean enforceRequiredCols) {
     List<Field> fieldList = new ArrayList<>();
     List<String> primaryKeys =
         table.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList());
@@ -898,7 +910,7 @@ public class BigQueryDatasetPdao {
 
     for (Column column : table.getColumns()) {
       Field.Mode mode;
-      if (primaryKeys.contains(column.getName()) || column.isRequired()) {
+      if (primaryKeys.contains(column.getName()) || (enforceRequiredCols && column.isRequired())) {
         mode = Field.Mode.REQUIRED;
       } else if (column.isArrayOf()) {
         mode = Field.Mode.REPEATED;
@@ -1004,7 +1016,7 @@ public class BigQueryDatasetPdao {
             bigQuery,
             bqDatasetId,
             datasetTable.getRawTableName(),
-            buildSchema(datasetTable, true, true),
+            buildSchema(datasetTable, true, true, true),
             false);
         logger.info("......Soft delete table");
         updateSchema(

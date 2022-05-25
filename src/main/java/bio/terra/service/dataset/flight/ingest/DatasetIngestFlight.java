@@ -209,9 +209,18 @@ public class DatasetIngestFlight extends Flight {
           new NonCombinedFileIngestOptionalStep(
               new IngestCopyControlFileStep(datasetService, gcsPdao)));
       addStep(new IngestLoadTableStep(datasetService, bigQueryDatasetPdao));
-      if (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE) {
+
+      boolean replaceIngest =
+          (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE);
+      boolean mergeIngest =
+          (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.MERGE);
+      if (replaceIngest || mergeIngest) {
         // Ensure that no duplicate IDs are being loaded in
         addStep(new IngestValidateIngestRowsStep(datasetService));
+        if (mergeIngest) {
+          // TODO: verify exactly 1 matching target record for each PK
+          // TODO: coalesce ingest with target to staging table
+        }
         // Soft deletes rows from the target table
         addStep(
             new IngestSoftDeleteExistingRowsStep(

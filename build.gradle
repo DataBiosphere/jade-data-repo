@@ -396,7 +396,7 @@ sourceSets {
         runtimeClasspath += generated.output
     }
     jacoco {
-        toolVersion '0.8.3'
+        toolVersion '0.8.7'
     }
 }
 
@@ -416,7 +416,7 @@ jib {
         paths = ['build/gen-expanded']
     }
     from {
-        image = "us.gcr.io/broad-dsp-gcr-public/base/jre:11-debian"
+        image = "us.gcr.io/broad-dsp-gcr-public/base/jre:17-debian"
     }
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())

@@ -47,7 +47,7 @@ jobs:
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-6/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: "[datarepo-helm-definitions] Merge chart version update"
-        uses: broadinstitute/datarepo-actions/actions/merger@0.59.0
+        uses: broadinstitute/datarepo-actions/actions/merger@sh-dr-2581-upgrade-java
         env:
           COMMIT_MESSAGE: "Datarepo api tag version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm-definitions
@@ -106,7 +106,7 @@ jobs:
         with:
           args: yq w -i datarepo-helm/charts/datarepo-api/Chart.yaml version ${{ steps.chartversion.outputs.chartversion }}"
       - name: "[datarepo-helm] Merge chart version update"
-        uses: broadinstitute/datarepo-actions/actions/merger@0.59.0
+        uses: broadinstitute/datarepo-actions/actions/merger@sh-dr-2581-upgrade-java
         env:
           COMMIT_MESSAGE: "Datarepo api version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm

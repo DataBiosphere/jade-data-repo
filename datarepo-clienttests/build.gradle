@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id "com.google.cloud.tools.jib" version "1.6.1"
-    id "com.diffplug.spotless" version "5.14.0"
+    id "com.diffplug.spotless" version "6.6.1"
     id 'com.github.spotbugs' version '4.7.1'
 }
 
@@ -86,8 +86,8 @@ dependencies {
 
 group 'bio.terra'
 version '1.0-SNAPSHOT'
-sourceCompatibility = 11
-targetCompatibility = 11
+sourceCompatibility = 17
+targetCompatibility = 17
 
 test {
     useJUnitPlatform()

@@ -2,9 +2,7 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
@@ -16,7 +14,6 @@ import bio.terra.model.DatasetSchemaUpdateModelChanges;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,8 +24,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,37 +38,25 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Integration.class)
 public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
 
-  @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Autowired private TestConfiguration testConfiguration;
   @Rule @Autowired public TestJobWatcher testWatcher;
-
-  private static final Logger logger =
-      LoggerFactory.getLogger(DatasetSchemaUpdateIntegrationTest.class);
-  private String stewardToken;
   private UUID profileId;
-  private List<UUID> createdDatasetIds = new ArrayList<>();
+  private UUID datasetId;
 
   @Before
   public void setup() throws Exception {
     super.setup();
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    datasetId = null;
   }
 
   @After
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
-    createdDatasetIds.forEach(
-        datasetId -> {
-          try {
-            dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
-          } catch (Exception ex) {
-            logger.warn("cleanup failed when deleting snapshot " + datasetId);
-            ex.printStackTrace();
-          }
-        });
+    if (datasetId != null) {
+      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+    }
 
     if (profileId != null) {
       dataRepoFixtures.deleteProfileLog(steward(), profileId);
@@ -84,8 +67,7 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
   public void testDatasetAddNewTableSuccess() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
-    UUID datasetId = datasetSummaryModel.getId();
-    createdDatasetIds.add(datasetId);
+    datasetId = datasetSummaryModel.getId();
 
     String newTableName = "new_table";
     String newTableColumnName = "new_table_column";
@@ -96,8 +78,7 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
             .changes(
                 new DatasetSchemaUpdateModelChanges()
                     .addTables(List.of(tableModel(newTableName, List.of(newTableColumnName)))));
-    DatasetModel response =
-        dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> newTable =
         response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(newTableName))
@@ -115,8 +96,7 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
   public void testDatasetAddNewColumnSuccess() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
-    UUID datasetId = datasetSummaryModel.getId();
-    createdDatasetIds.add(datasetId);
+    datasetId = datasetSummaryModel.getId();
 
     String existingTableName = "thetable";
     String existingTableColumnA = "added_column_a";
@@ -129,8 +109,7 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
             .changes(
                 new DatasetSchemaUpdateModelChanges()
                     .addColumns(List.of(columnUpdateModel(existingTableName, newColumns))));
-    DatasetModel response =
-        dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> existingTable =
         response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(existingTableName))
@@ -148,8 +127,7 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
   public void testDatasetAddColumnToNewTableSuccess() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "snapshot-test-dataset.json");
-    UUID datasetId = datasetSummaryModel.getId();
-    createdDatasetIds.add(datasetId);
+    datasetId = datasetSummaryModel.getId();
 
     String newTableName = "added_table";
     String newTableColumnName = "added_table_column";
@@ -164,8 +142,7 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
                     .addColumns(
                         List.of(columnUpdateModel(newTableName, List.of(anotherNewColumnName)))));
 
-    DatasetModel response =
-        dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
+    DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> newTable =
         response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(newTableName))

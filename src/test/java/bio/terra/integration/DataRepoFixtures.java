@@ -35,7 +35,6 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
-import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
@@ -709,13 +708,13 @@ public class DataRepoFixtures {
         new TypeReference<>() {});
   }
 
-  public DatasetSpecificationModel updateSchema(
+  public DatasetModel updateSchema(
       TestConfiguration.User user, UUID datasetId, DatasetSchemaUpdateModel request)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse = updateSchemaRaw(user, datasetId, request);
     assertTrue("update schema succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue("update schema response is present", jobResponse.getResponseObject().isPresent());
-    DataRepoResponse<DatasetSpecificationModel> updateResponse =
+    DataRepoResponse<DatasetModel> updateResponse =
         dataRepoClient.waitForResponse(user, jobResponse, new TypeReference<>() {});
     return validateResponse(updateResponse, "update schema", HttpStatus.OK, jobResponse);
   }

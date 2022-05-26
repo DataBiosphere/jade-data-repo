@@ -2,6 +2,7 @@ package bio.terra.service.dataset.flight.update;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.InvalidCloudPlatformException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
@@ -26,6 +27,9 @@ public class DatasetSchemaUpdateFlight extends Flight {
     DatasetTableDao datasetTableDao = appContext.getBean(DatasetTableDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
+
+    AuthenticatedUserRequest userRequest =
+        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     DatasetSchemaUpdateModel updateModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetSchemaUpdateModel.class);
@@ -60,6 +64,10 @@ public class DatasetSchemaUpdateFlight extends Flight {
           new DatasetSchemaUpdateAddColumnsBigQueryStep(
               bigQueryDatasetPdao, datasetDao, datasetId, updateModel));
     }
+
+    addStep(
+        new DatasetSchemaUpdateResponseStep(
+            datasetDao, datasetId, datasetService, updateModel, userRequest));
 
     addStep(new UnlockDatasetStep(datasetService, datasetId, false));
   }

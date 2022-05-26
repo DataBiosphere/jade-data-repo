@@ -3,17 +3,14 @@ package bio.terra.service.dataset.flight.update;
 import bio.terra.common.Column;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
-import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
@@ -22,7 +19,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.springframework.http.HttpStatus;
 
 public class DatasetSchemaUpdateAddColumnsBigQueryStep implements Step {
   private final BigQueryDatasetPdao bigQueryDatasetPdao;
@@ -58,13 +54,6 @@ public class DatasetSchemaUpdateAddColumnsBigQueryStep implements Step {
       bigQuery.update(
           BigQueryDatasetPdao.buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
     }
-
-    DatasetSpecificationModel updatedSchema =
-        DatasetJsonConversion.datasetSpecificationModelFromDatasetSchema(dataset);
-    FlightMap workingMap = context.getWorkingMap();
-    workingMap.put(JobMapKeys.RESPONSE.getKeyName(), updatedSchema);
-    workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.OK);
-
     return StepResult.getStepResultSuccess();
   }
 

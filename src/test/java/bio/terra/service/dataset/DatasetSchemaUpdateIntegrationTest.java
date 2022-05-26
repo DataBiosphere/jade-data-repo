@@ -9,10 +9,10 @@ import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModelChanges;
-import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
@@ -96,10 +96,10 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
             .changes(
                 new DatasetSchemaUpdateModelChanges()
                     .addTables(List.of(tableModel(newTableName, List.of(newTableColumnName)))));
-    DatasetSpecificationModel response =
+    DatasetModel response =
         dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> newTable =
-        response.getTables().stream()
+        response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(newTableName))
             .findFirst();
     assertThat("The new table is in the update response", newTable.isPresent());
@@ -129,10 +129,10 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
             .changes(
                 new DatasetSchemaUpdateModelChanges()
                     .addColumns(List.of(columnUpdateModel(existingTableName, newColumns))));
-    DatasetSpecificationModel response =
+    DatasetModel response =
         dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> existingTable =
-        response.getTables().stream()
+        response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(existingTableName))
             .findFirst();
     assertThat("The existing table is in the update response", existingTable.isPresent());
@@ -164,10 +164,10 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
                     .addColumns(
                         List.of(columnUpdateModel(newTableName, List.of(anotherNewColumnName)))));
 
-    DatasetSpecificationModel response =
+    DatasetModel response =
         dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> newTable =
-        response.getTables().stream()
+        response.getSchema().getTables().stream()
             .filter(tableModel -> tableModel.getName().equals(newTableName))
             .findFirst();
     assertThat("The new table is in the update response", newTable.isPresent());

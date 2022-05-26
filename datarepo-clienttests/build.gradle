@@ -40,7 +40,7 @@ dependencies {
     }
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junit}")
-    testRuntime("org.junit.jupiter:junit-jupiter-engine:${junit}")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junit}")
     compileOnly "com.google.code.findbugs:annotations:${findbugsAnnotations}"
 
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jackson}"

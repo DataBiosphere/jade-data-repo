@@ -5,8 +5,8 @@ plugins {
     id 'org.hidetake.swagger.generator'
 }
 
-sourceCompatibility = 11
-targetCompatibility = 11
+sourceCompatibility = 17
+targetCompatibility = 17
 
 // TODO: there may be a better way to supply these values than envvars.
 // This and the test below makes sure the build will fail reasonably if you try

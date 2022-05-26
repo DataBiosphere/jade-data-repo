@@ -30,6 +30,7 @@ import com.azure.storage.blob.BlobUrlParts;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.storage.StorageException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -266,7 +267,8 @@ public final class IngestUtils {
                       List.of(loadFileModel.getSourcePath()), userRequest);
                 } catch (BlobAccessNotAuthorizedException
                     | BadRequestException
-                    | IllegalArgumentException ex) {
+                    | IllegalArgumentException
+                    | StorageException ex) {
                   errorCollector.record("Error: %s", ex.getMessage());
                 }
               })

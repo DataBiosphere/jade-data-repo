@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
+import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,7 +67,8 @@ public class DatasetDao {
 
   private static final String summaryQueryColumns =
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
-          + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, created_date, ";
+          + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, "
+          + "properties, created_date, ";
 
   private static final String summaryCloudPlatformQuery =
       "(SELECT pr.google_project_id "
@@ -371,7 +373,6 @@ public class DatasetDao {
    *
    * @param dataset the dataset object to create
    * @return the id of the new dataset
-   * @throws SQLException
    * @throws IOException
    * @throws InvalidDatasetException if a row already exists with this dataset name
    */
@@ -382,9 +383,19 @@ public class DatasetDao {
     String sql =
         "INSERT INTO dataset "
             + "(name, default_profile_id, id, project_resource_id, application_resource_id, flightid, description, "
-            + "secure_monitoring, phs_id, self_hosted, sharedlock) "
+            + "secure_monitoring, phs_id, self_hosted, properties, sharedlock) "
             + "VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id, :flightid, "
-            + ":description, :secure_monitoring, :phs_id, :self_hosted, ARRAY[]::TEXT[]) ";
+            + ":description, :secure_monitoring, :phs_id, :self_hosted, :properties, ARRAY[]::TEXT[]) ";
+
+    String datasetProperties = objectMapper.writeValueAsString(dataset.getProperties());
+    PGobject jsonObject = new PGobject();
+    jsonObject.setType("jsonb");
+    try {
+      jsonObject.setValue(datasetProperties);
+    } catch (SQLException ex) {
+      throw new InvalidDatasetException(
+          "Invalid dataset properties: " + dataset.getProperties().toString(), ex);
+    }
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -397,7 +408,9 @@ public class DatasetDao {
             .addValue("description", dataset.getDescription())
             .addValue("secure_monitoring", dataset.isSecureMonitoringEnabled())
             .addValue("phs_id", dataset.getPhsId())
-            .addValue("self_hosted", dataset.isSelfHosted());
+            .addValue("self_hosted", dataset.isSelfHosted())
+            .addValue("properties", jsonObject);
+
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
       jdbcTemplate.update(sql, params, keyHolder);
@@ -679,6 +692,13 @@ public class DatasetDao {
         throw new CorruptMetadataException(
             String.format("Invalid billing profiles for dataset - id: %s", datasetId), e);
       }
+      final Object properties;
+      try {
+        properties = objectMapper.readValue(rs.getString("properties"), new TypeReference<>() {});
+      } catch (JsonProcessingException e) {
+        throw new CorruptMetadataException(
+            String.format("Invalid properties field for dataset - id: %s", datasetId), e);
+      }
 
       boolean isAzure =
           storageResources.stream().anyMatch(sr -> sr.getCloudPlatform() == CloudPlatform.AZURE);
@@ -700,7 +720,8 @@ public class DatasetDao {
           .dataProject(rs.getString("google_project_id"))
           .storageAccount(rs.getString("storage_account_name"))
           .phsId(rs.getString("phs_id"))
-          .selfHosted(rs.getBoolean("self_hosted"));
+          .selfHosted(rs.getBoolean("self_hosted"))
+          .properties(properties);
     }
   }
 

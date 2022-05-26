@@ -233,6 +233,10 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return datasetSummary.isSelfHosted();
   }
 
+  public Object getProperties() {
+    return datasetSummary.getProperties();
+  }
+
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());

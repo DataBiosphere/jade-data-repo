@@ -77,7 +77,8 @@ public final class DatasetJsonConversion {
                 .defaultProfileId(defaultProfileId)
                 .secureMonitoringEnabled(enableSecureMonitoring)
                 .phsId(datasetRequest.getPhsId())
-                .selfHosted(datasetRequest.isExperimentalSelfHosted()))
+                .selfHosted(datasetRequest.isExperimentalSelfHosted())
+                .properties(datasetRequest.getProperties()))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
@@ -106,6 +107,10 @@ public final class DatasetJsonConversion {
       datasetModel.defaultProfileId(dataset.getDefaultProfileId());
     }
 
+    if (include.contains(DatasetRequestAccessIncludeModel.PROPERTIES)) {
+      datasetModel.properties(dataset.getProperties());
+    }
+
     if (include.contains(DatasetRequestAccessIncludeModel.SCHEMA)) {
       datasetModel.schema(datasetSpecificationModelFromDatasetSchema(dataset));
     }
@@ -123,6 +128,7 @@ public final class DatasetJsonConversion {
       datasetModel.accessInformation(
           metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest));
     }
+
     return datasetModel;
   }
 

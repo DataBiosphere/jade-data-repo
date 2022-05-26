@@ -1,7 +1,10 @@
 package bio.terra.service.dataset.flight.update;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -10,6 +13,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.Column;
 import bio.terra.common.category.Unit;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModelChanges;
 import bio.terra.model.TableDataType;
@@ -50,7 +54,7 @@ public class DatasetSchemaUpdateValidationTest {
 
   private UUID datasetId;
   private static final String EXISTING_TABLE_NAME = "existing_table";
-  public static final String EXISTING_COLUMN_NAME = "existing_column";
+  private static final String EXISTING_COLUMN_NAME = "existing_column";
 
   @Before
   public void setup() {
@@ -80,7 +84,7 @@ public class DatasetSchemaUpdateValidationTest {
   }
 
   @Test
-  public void testValidations() throws Exception {
+  public void testTableValidations() throws Exception {
     DatasetSchemaUpdateModel updateModel =
         new DatasetSchemaUpdateModel()
             .description("test changeset")
@@ -89,14 +93,19 @@ public class DatasetSchemaUpdateValidationTest {
                     .addTables(
                         List.of(
                             new TableModel()
+                                .name("new_table")
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name("new_table_column")
+                                            .datatype(TableDataType.STRING))),
+                            new TableModel()
                                 .name(EXISTING_TABLE_NAME)
                                 .columns(
                                     List.of(
                                         new ColumnModel()
                                             .name("new_column")
-                                            .datatype(TableDataType.STRING)
-                                            .arrayOf(false)
-                                            .required(false))))));
+                                            .datatype(TableDataType.STRING))))));
 
     DatasetSchemaUpdateValidateModelStep validateModelStep =
         new DatasetSchemaUpdateValidateModelStep(datasetService, datasetId, updateModel);
@@ -111,5 +120,91 @@ public class DatasetSchemaUpdateValidationTest {
     assertThat(exception.getMessage(), containsString("Could not validate"));
     assertThat(exception.getCauses().get(0), containsString("overwrite"));
     assertThat(exception.getCauses().get(1), is(EXISTING_TABLE_NAME));
+    assertThat(exception.getCauses(), hasSize(2));
+  }
+
+  @Test
+  public void testColumnDuplicatesValidations() throws Exception {
+    DatasetSchemaUpdateModel duplicateColumnsUpdateModel =
+        new DatasetSchemaUpdateModel()
+            .description("test changeset")
+            .changes(
+                new DatasetSchemaUpdateModelChanges()
+                    .addTables(
+                        List.of(
+                            new TableModel()
+                                .name("new_table")
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name("new_table_column")
+                                            .datatype(TableDataType.STRING)))))
+                    .addColumns(
+                        List.of(
+                            new DatasetSchemaColumnUpdateModel()
+                                .tableName(EXISTING_TABLE_NAME)
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name(EXISTING_COLUMN_NAME)
+                                            .datatype(TableDataType.STRING),
+                                        new ColumnModel()
+                                            .name("new_column")
+                                            .datatype(TableDataType.STRING))),
+                            new DatasetSchemaColumnUpdateModel()
+                                .tableName("new_table")
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name("new_table_column")
+                                            .datatype(TableDataType.STRING))))));
+
+    DatasetSchemaUpdateValidateModelStep validateModelStep =
+        new DatasetSchemaUpdateValidateModelStep(
+            datasetService, datasetId, duplicateColumnsUpdateModel);
+
+    FlightContext flightContext = mock(FlightContext.class);
+
+    DatasetSchemaUpdateException duplicateColumnsException =
+        (DatasetSchemaUpdateException)
+            validateModelStep.doStep(flightContext).getException().orElseThrow();
+
+    assertThat(
+        duplicateColumnsException.getMessage(),
+        containsString("overwrite existing or to-be-added"));
+    assertThat(duplicateColumnsException.getCauses(), hasSize(2));
+    assertThat(
+        duplicateColumnsException.getCauses(),
+        equalTo(List.of("existing_table:existing_column", "new_table:new_table_column")));
+  }
+
+  @Test
+  public void testColumnMissingTableValidations() throws Exception {
+    DatasetSchemaUpdateModel missingTableUpdateModel =
+        new DatasetSchemaUpdateModel()
+            .changes(
+                new DatasetSchemaUpdateModelChanges()
+                    .addColumns(
+                        List.of(
+                            new DatasetSchemaColumnUpdateModel()
+                                .tableName("not_a_real_table")
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name("new_column")
+                                            .datatype(TableDataType.STRING))))));
+
+    DatasetSchemaUpdateValidateModelStep validateModelStep =
+        new DatasetSchemaUpdateValidateModelStep(
+            datasetService, datasetId, missingTableUpdateModel);
+
+    FlightContext flightContext = mock(FlightContext.class);
+
+    DatasetSchemaUpdateException missingTableException =
+        (DatasetSchemaUpdateException)
+            validateModelStep.doStep(flightContext).getException().orElseThrow();
+
+    assertThat(missingTableException.getMessage(), containsString("Could not find tables"));
+    assertThat(missingTableException.getCauses(), contains(containsString("not_a_real_table")));
   }
 }

@@ -3641,12 +3641,30 @@ components:
         description:
           type: string
         changes:
+          nullable: false
           type: object
           properties:
             addTables:
               type: array
+              nullable: false
               items:
                 $ref: '#/components/schemas/TableModel'
+            addColumns:
+              type: array
+              nullable: false
+              items:
+                $ref: '#/components/schemas/DatasetSchemaColumnUpdateModel'
+    DatasetSchemaColumnUpdateModel:
+      type: object
+      properties:
+        tableName:
+          type: string
+          nullable: false
+        columns:
+          type: array
+          nullable: false
+          items:
+            $ref: '#/components/schemas/ColumnModel'
     IngestRequestModel:
       required:
         - format

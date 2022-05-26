@@ -43,6 +43,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
@@ -53,6 +54,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
@@ -127,6 +129,60 @@ public class BigQueryDatasetPdao {
     bigQueryProject.createTable(
         datasetName, table.getRowMetadataTableName(), buildRowMetadataSchema());
     bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
+  }
+
+  public void createColumn(
+      String datasetName, BigQuery bigQuery, DatasetTable table, Column column) {
+    // Shamelessly pulled from the BigQuery documentation
+    Table bigQueryTable = bigQuery.getTable(TableId.of(datasetName, table.getRawTableName()));
+    Schema schema = bigQueryTable.getDefinition().getSchema();
+    FieldList fields = schema.getFields();
+    Optional<Field> existingField =
+        fields.stream()
+            .filter(field -> field.getName().equalsIgnoreCase(column.getName()))
+            .findFirst();
+
+    if (existingField.isEmpty()) {
+      // Create the new field/column
+      Field newField = Field.of(column.getName(), translateType(column.getType()));
+      // Create a new schema adding the current fields, plus the new one
+      List<Field> newFields = new ArrayList<>(fields);
+      newFields.add(newField);
+      Schema newSchema = Schema.of(newFields);
+
+      // Update the table with the new schema
+      Table updatedTable =
+          bigQueryTable.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
+      updatedTable.update();
+    } else {
+      String message =
+          String.format(
+              "Column %s with type %s already exists in table %s",
+              column.getName(), column.getType(), table.getRawTableName());
+      logger.warn("Skipping schema update: {}", message);
+
+      // Only fail if the existing column has a different type
+      if (!existingField.get().getType().equals(translateType(column.getType()))) {
+        throw new PdaoException(String.format("Schema update failed: %s", message));
+      }
+    }
+  }
+
+  public void deleteColumn(
+      String datasetName, BigQuery bigQuery, DatasetTable table, String columnName) {
+    Table bigQueryTable = bigQuery.getTable(TableId.of(datasetName, table.getRawTableName()));
+    Schema schema = bigQueryTable.getDefinition().getSchema();
+    FieldList fields = schema.getFields();
+
+    // Create a new schema adding the current fields, plus the new one
+    List<Field> updatedFields =
+        fields.stream().filter(f -> !f.getName().equals(columnName)).collect(Collectors.toList());
+    Schema newSchema = Schema.of(updatedFields);
+
+    // Update the table with the new schema
+    Table updatedTable =
+        bigQueryTable.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
+    updatedTable.update();
   }
 
   public boolean deleteDataset(Dataset dataset) throws InterruptedException {
@@ -762,6 +818,20 @@ public class BigQueryDatasetPdao {
     return bigQueryProject.deleteTable(BigQueryPdao.prefixName(dataset.getName()), tableName);
   }
 
+  public void undoDatasetTableCreate(Dataset dataset, DatasetTable table)
+      throws InterruptedException {
+    List<String> tableNames = table.getBigQueryTableNames();
+    for (String tableName : tableNames) {
+      boolean success = deleteDatasetTable(dataset, tableName);
+      if (!success) {
+        logger.warn(
+            "Could not delete table '{}' from dataset '{}' in BigQuery",
+            tableName,
+            dataset.getName());
+      }
+    }
+  }
+
   @VisibleForTesting
   static String renderDatasetLiveViewSql(
       String bigQueryProject,
@@ -943,7 +1013,8 @@ public class BigQueryDatasetPdao {
             Field.of(PDAO_DELETED_BY_COLUMN, LegacySQLTypeName.STRING)));
   }
 
-  private TableInfo buildLiveView(String bigQueryProject, String datasetName, DatasetTable table) {
+  public static TableInfo buildLiveView(
+      String bigQueryProject, String datasetName, DatasetTable table) {
     TableId liveViewId = TableId.of(datasetName, table.getName());
     return TableInfo.of(
         liveViewId,

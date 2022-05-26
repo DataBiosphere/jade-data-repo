@@ -1,6 +1,10 @@
 package bio.terra.service.dataset.flight.update;
 
+import bio.terra.common.Column;
+import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
+import bio.terra.model.TableModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
@@ -9,11 +13,11 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 
 public class DatasetSchemaUpdateValidateModelStep implements Step {
   private final UUID datasetId;
@@ -32,20 +36,86 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
     Dataset dataset = datasetService.retrieve(datasetId);
     List<String> existingTableNames =
         dataset.getTables().stream().map(DatasetTable::getName).collect(Collectors.toList());
-    List<String> newTableNames = DatasetSchemaUpdateUtils.getNewTableNames(updateModel);
-    Collection<String> uniqueTableNames =
-        CollectionUtils.intersection(existingTableNames, newTableNames);
-
-    if (!uniqueTableNames.isEmpty()) {
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL,
-          new DatasetSchemaUpdateException(
-              "Could not validate table additions",
-              List.of(
-                  "Found new tables that would overwrite existing tables",
-                  String.join(", ", uniqueTableNames))));
+    final List<String> newTableNames;
+    if (DatasetSchemaUpdateUtils.hasTableAdditions(updateModel)) {
+      newTableNames = DatasetSchemaUpdateUtils.getNewTableNames(updateModel);
+      List<String> uniqueTableNames = ListUtils.intersection(existingTableNames, newTableNames);
+      if (!uniqueTableNames.isEmpty()) {
+        return failsValidation(
+            "Could not validate table additions",
+            List.of(
+                "Found new tables that would overwrite existing tables",
+                String.join(", ", uniqueTableNames)));
+      }
+    } else {
+      newTableNames = List.of();
     }
+
+    if (DatasetSchemaUpdateUtils.hasColumnAdditions(updateModel)) {
+      List<DatasetSchemaColumnUpdateModel> addColumns = updateModel.getChanges().getAddColumns();
+      List<String> newAndExistingTableNames = ListUtils.union(existingTableNames, newTableNames);
+
+      List<String> missingTables = new ArrayList<>();
+      List<String> duplicateColumns = new ArrayList<>();
+      for (var columnAddition : addColumns) {
+        String tableName = columnAddition.getTableName();
+        if (!newAndExistingTableNames.contains(tableName)) {
+          missingTables.add(tableName);
+          continue;
+        }
+        if (newTableNames.contains(tableName)) {
+          duplicateColumns.addAll(conflictingNewColumns(tableName, columnAddition.getColumns()));
+        } else {
+          duplicateColumns.addAll(
+              conflictingExistingColumns(tableName, dataset, columnAddition.getColumns()));
+        }
+      }
+      if (!missingTables.isEmpty()) {
+        return failsValidation(
+            "Could not find tables to add columns to",
+            List.of(String.format("Missing tables: %s", String.join(", ", missingTables))));
+      }
+      if (!duplicateColumns.isEmpty()) {
+        return failsValidation(
+            "Cannot overwrite existing or to-be-added columns in tables", duplicateColumns);
+      }
+    }
+
     return StepResult.getStepResultSuccess();
+  }
+
+  private List<String> conflictingNewColumns(String tableName, List<ColumnModel> newColumns) {
+    TableModel tableModel =
+        updateModel.getChanges().getAddTables().stream()
+            .filter(tm -> tm.getName().equals(tableName))
+            .findFirst()
+            .orElseThrow();
+    List<String> newTableColumnNames =
+        tableModel.getColumns().stream().map(ColumnModel::getName).collect(Collectors.toList());
+    List<String> newColumnNames = newColumnNames(newColumns);
+    return prependTableName(tableName, ListUtils.intersection(newTableColumnNames, newColumnNames));
+  }
+
+  private List<String> conflictingExistingColumns(
+      String tableName, Dataset dataset, List<ColumnModel> newColumns) {
+    DatasetTable table = dataset.getTableByName(tableName).orElseThrow();
+    List<String> existingColumnNames =
+        table.getColumns().stream().map(Column::getName).collect(Collectors.toList());
+    List<String> newColumnNames = newColumnNames(newColumns);
+    return prependTableName(tableName, ListUtils.intersection(existingColumnNames, newColumnNames));
+  }
+
+  private StepResult failsValidation(String message, List<String> reasons) {
+    return new StepResult(
+        StepStatus.STEP_RESULT_FAILURE_FATAL, new DatasetSchemaUpdateException(message, reasons));
+  }
+
+  private static List<String> newColumnNames(List<ColumnModel> columns) {
+    return columns.stream().map(ColumnModel::getName).collect(Collectors.toList());
+  }
+
+  private static List<String> prependTableName(String tableName, List<String> columnNames) {
+    return columnNames.stream().map(n -> tableName + ":" + n).collect(Collectors.toList());
   }
 
   @Override

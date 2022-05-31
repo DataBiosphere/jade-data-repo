@@ -28,7 +28,7 @@ buildscript {
 plugins {
     id "com.google.cloud.tools.jib" version "3.2.0"
     id 'org.liquibase.gradle' version '2.1.1'
-    id "org.gradle.test-retry" version "1.2.0"
+    id "org.gradle.test-retry" version "1.4.0"
     id 'antlr'
     id 'com.github.spotbugs' version '4.7.1'
     id "org.hidetake.swagger.generator" version "2.18.2"

@@ -41,11 +41,13 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -165,8 +167,8 @@ public class DatasetSchemaUpdateConnectedTest {
           bigQueryDatasetPdao.tableExists(postTableUpdateDataset, bigQueryTable));
     }
 
-    List<String> columnNames =
-        getBigQueryTableColumnNames(bigQueryProject, bqDatasetName, newTable.get().getName());
+    Set<String> columnNames =
+        getBigQueryFieldsMap(bigQueryProject, bqDatasetName, newTable.get().getName()).keySet();
     assertThat(
         "BigQuery view has expected columns", columnNames, hasItems("datarepo_row_id", columnName));
 
@@ -233,34 +235,33 @@ public class DatasetSchemaUpdateConnectedTest {
     String bqDatasetName = BigQueryPdao.prefixName(datasetName);
     BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetDao, datasetName);
 
-    List<String> existingTableColumnNames =
-        getBigQueryTableColumnNames(bigQueryProject, bqDatasetName, existingTable.getName());
+    Map<String, Field> existingTableColumnNames =
+        getBigQueryFieldsMap(bigQueryProject, bqDatasetName, existingTable.getName());
     assertThat(
         "the first table column was added to the existing BigQuery table",
-        existingTableColumnNames.contains(existingTableColumnA));
+        existingTableColumnNames.containsKey(existingTableColumnA));
     assertThat(
         "the second table column was added to the existing BigQuery table",
-        existingTableColumnNames.contains(existingTableColumnB));
+        existingTableColumnNames.containsKey(existingTableColumnB));
 
     bigQueryColumnStep.undoStep(flightContext);
     existingTableColumnNames =
-        getBigQueryTableColumnNames(bigQueryProject, bqDatasetName, existingTable.getName());
+        getBigQueryFieldsMap(bigQueryProject, bqDatasetName, existingTable.getName());
     assertThat(
         "the first table column was removed from the existing BigQuery table view in the undo",
-        !existingTableColumnNames.contains(existingTableColumnA));
+        !existingTableColumnNames.containsKey(existingTableColumnA));
     assertThat(
         "the second table column was removed from the existing BigQuery table view in the undo",
-        !existingTableColumnNames.contains(existingTableColumnB));
+        !existingTableColumnNames.containsKey(existingTableColumnB));
 
-    List<String> existingRawTableColumnNames =
-        getBigQueryTableColumnNames(
-            bigQueryProject, bqDatasetName, existingTable.getRawTableName());
+    Map<String, Field> existingRawTableColumnNames =
+        getBigQueryFieldsMap(bigQueryProject, bqDatasetName, existingTable.getRawTableName());
     assertThat(
         "the first table column was not removed from the existing BigQuery raw table in the undo",
-        existingRawTableColumnNames.contains(existingTableColumnA));
+        existingRawTableColumnNames.containsKey(existingTableColumnA));
     assertThat(
         "the second table column was not removed from the existing BigQuery raw table in the undo",
-        existingRawTableColumnNames.contains(existingTableColumnB));
+        existingRawTableColumnNames.containsKey(existingTableColumnB));
 
     postgresColumnStep.undoStep(flightContext);
     Dataset postUndoUpdateDataset = datasetDao.retrieve(datasetId);
@@ -278,13 +279,13 @@ public class DatasetSchemaUpdateConnectedTest {
     postgresColumnStep.doStep(flightContext);
     bigQueryColumnStep.doStep(flightContext);
     existingTableColumnNames =
-        getBigQueryTableColumnNames(bigQueryProject, bqDatasetName, existingTable.getName());
+        getBigQueryFieldsMap(bigQueryProject, bqDatasetName, existingTable.getName());
     assertThat(
         "the first table column was re-added to the existing BigQuery table",
-        existingTableColumnNames.contains(existingTableColumnA));
+        existingTableColumnNames.containsKey(existingTableColumnA));
     assertThat(
         "the second table column was re-added to the existing BigQuery table",
-        existingTableColumnNames.contains(existingTableColumnB));
+        existingTableColumnNames.containsKey(existingTableColumnB));
 
     bigQueryColumnStep.undoStep(flightContext);
     postgresColumnStep.undoStep(flightContext);
@@ -364,11 +365,11 @@ public class DatasetSchemaUpdateConnectedTest {
     String datasetName = summaryModel.getName();
     String bqDatasetName = BigQueryPdao.prefixName(datasetName);
     BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetDao, datasetName);
-    List<String> newTableColumnNames =
-        getBigQueryTableColumnNames(bigQueryProject, bqDatasetName, newTable.getName());
+    Map<String, Field> newTableFields =
+        getBigQueryFieldsMap(bigQueryProject, bqDatasetName, newTable.getName());
     assertThat(
         "The new BigQuery table was created with its new column",
-        newTableColumnNames.contains(newTableColumnName));
+        newTableFields.containsKey(newTableColumnName));
 
     for (int i = steps.size() - 1; i >= 0; i--) {
       Step step = steps.get(i);
@@ -388,14 +389,110 @@ public class DatasetSchemaUpdateConnectedTest {
     }
   }
 
-  private List<String> getBigQueryTableColumnNames(
+  @Test
+  public void testRepeatedColumnAdditionSteps() throws Exception {
+    String newTableName = "added_table";
+    String newTableColumnName = "repeated_column";
+    String anotherNewColumnName = "another_repeated_column";
+
+    DatasetSchemaUpdateModel updateModel =
+        new DatasetSchemaUpdateModel()
+            .description("repeated column tests")
+            .changes(
+                new DatasetSchemaUpdateModelChanges()
+                    .addTables(
+                        List.of(
+                            new TableModel()
+                                .name(newTableName)
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name(newTableColumnName)
+                                            .datatype(TableDataType.STRING)
+                                            .arrayOf(true)))))
+                    .addColumns(
+                        List.of(
+                            new DatasetSchemaColumnUpdateModel()
+                                .tableName(newTableName)
+                                .columns(
+                                    List.of(
+                                        new ColumnModel()
+                                            .name(anotherNewColumnName)
+                                            .datatype(TableDataType.STRING)
+                                            .arrayOf(true))))));
+
+    DatasetSchemaUpdateAddTablesPostgresStep postgresTableStep =
+        new DatasetSchemaUpdateAddTablesPostgresStep(datasetTableDao, datasetId, updateModel);
+    DatasetSchemaUpdateAddTablesBigQueryStep bigQueryTableStep =
+        new DatasetSchemaUpdateAddTablesBigQueryStep(
+            bigQueryDatasetPdao, datasetDao, datasetId, updateModel);
+    DatasetSchemaUpdateAddColumnsPostgresStep postgresColumnStep =
+        new DatasetSchemaUpdateAddColumnsPostgresStep(datasetTableDao, datasetId, updateModel);
+    DatasetSchemaUpdateAddColumnsBigQueryStep bigQueryColumnStep =
+        new DatasetSchemaUpdateAddColumnsBigQueryStep(
+            bigQueryDatasetPdao, datasetDao, datasetId, updateModel);
+
+    List<Step> steps =
+        List.of(postgresTableStep, bigQueryTableStep, postgresColumnStep, bigQueryColumnStep);
+
+    FlightContext flightContext = mock(FlightContext.class);
+
+    for (Step step : steps) {
+      step.doStep(flightContext);
+    }
+
+    Dataset postUpdateDataset = datasetDao.retrieve(datasetId);
+    DatasetTable newTable = postUpdateDataset.getTableByName(newTableName).orElseThrow();
+    Map<String, Column> newTableColumnsMap = newTable.getColumnsMap();
+    assertTrue(
+        "The new table was created with the new repeated column",
+        newTableColumnsMap.get(newTableColumnName).isArrayOf());
+    assertTrue(
+        "The new table contains the second repeated column",
+        newTableColumnsMap.get(anotherNewColumnName).isArrayOf());
+
+    String datasetName = summaryModel.getName();
+    String bqDatasetName = BigQueryPdao.prefixName(datasetName);
+    BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetDao, datasetName);
+    Map<String, Field> newTableFields =
+        getBigQueryFieldsMap(bigQueryProject, bqDatasetName, newTable.getName());
+    assertThat(
+        "The array_of column created with the new table has the REPEATED mode",
+        newTableFields.get(newTableColumnName).getMode().equals(Field.Mode.REPEATED));
+    assertThat(
+        "The second array_of column added after table creation has the REPEATED mode",
+        newTableFields.get(anotherNewColumnName).getMode().equals(Field.Mode.REPEATED));
+
+    for (int i = steps.size() - 1; i >= 0; i--) {
+      Step step = steps.get(i);
+      step.undoStep(flightContext);
+    }
+
+    Dataset postUndoUpdateDataset = datasetDao.retrieve(datasetId);
+    assertThat(
+        "the new table does not exist after the undo step",
+        postUndoUpdateDataset.getTableByName(newTableName).isEmpty());
+
+    List<String> newBigQueryTableNames = newTable.getBigQueryTableNames();
+    for (String postUndoBigQueryTable : newBigQueryTableNames) {
+      assertFalse(
+          String.format("the new table %s does not exist in BigQuery", postUndoBigQueryTable),
+          bigQueryDatasetPdao.tableExists(postUpdateDataset, postUndoBigQueryTable));
+    }
+  }
+
+  private Map<String, Field> getBigQueryFieldsMap(
       BigQueryProject bigQueryProject, String bqDatasetName, String bqTableName) {
     String bigQueryProjectId = bigQueryProject.getProjectId();
     BigQuery bigQuery = bigQueryProject.getBigQuery();
     Table bigQueryTable =
         bigQuery.getTable(TableId.of(bigQueryProjectId, bqDatasetName, bqTableName));
-    return bigQueryTable.getDefinition().getSchema().getFields().stream()
-        .map(Field::getName)
-        .collect(Collectors.toList());
+    Map<String, Field> fieldsMap = new HashMap<>();
+    bigQueryTable
+        .getDefinition()
+        .getSchema()
+        .getFields()
+        .forEach(field -> fieldsMap.put(field.getName(), field));
+    return Collections.unmodifiableMap(fieldsMap);
   }
 }

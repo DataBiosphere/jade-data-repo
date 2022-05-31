@@ -144,7 +144,9 @@ public class BigQueryDatasetPdao {
 
     if (existingField.isEmpty()) {
       // Create the new field/column
-      Field newField = Field.of(column.getName(), translateType(column.getType()));
+      Field.Mode mode = column.isArrayOf() ? Field.Mode.REPEATED : Field.Mode.NULLABLE;
+      Field newField =
+          Field.newBuilder(column.getName(), translateType(column.getType())).setMode(mode).build();
       // Create a new schema adding the current fields, plus the new one
       List<Field> newFields = new ArrayList<>(fields);
       newFields.add(newField);

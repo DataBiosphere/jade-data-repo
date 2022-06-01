@@ -3,16 +3,15 @@ package bio.terra.service.dataset;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.common.category.Integration;
+import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModelChanges;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import java.util.List;
 import java.util.Optional;
@@ -77,7 +76,10 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
             .description("column addition tests")
             .changes(
                 new DatasetSchemaUpdateModelChanges()
-                    .addTables(List.of(tableModel(newTableName, List.of(newTableColumnName)))));
+                    .addTables(
+                        List.of(
+                            DatasetFixtures.tableModel(
+                                newTableName, List.of(newTableColumnName)))));
     DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> newTable =
         response.getSchema().getTables().stream()
@@ -101,14 +103,18 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
     String existingTableName = "thetable";
     String existingTableColumnA = "added_column_a";
     String existingTableColumnB = "added_column_b";
-    List<String> newColumns = List.of(existingTableColumnA, existingTableColumnB);
+    List<ColumnModel> newColumns =
+        List.of(
+            DatasetFixtures.columnModel(existingTableColumnA),
+            DatasetFixtures.columnModel(existingTableColumnB));
 
     DatasetSchemaUpdateModel updateModel =
         new DatasetSchemaUpdateModel()
             .description("column addition tests")
             .changes(
                 new DatasetSchemaUpdateModelChanges()
-                    .addColumns(List.of(columnUpdateModel(existingTableName, newColumns))));
+                    .addColumns(
+                        List.of(DatasetFixtures.columnUpdateModel(existingTableName, newColumns))));
     DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> existingTable =
         response.getSchema().getTables().stream()
@@ -119,7 +125,7 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
         existingTable.get().getColumns().stream()
             .map(ColumnModel::getName)
             .collect(Collectors.toList())
-            .containsAll(newColumns);
+            .containsAll(List.of(existingTableColumnA, existingTableColumnB));
     assertThat("The existing table includes the new columns in the update response", addedColumns);
   }
 
@@ -132,15 +138,18 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
     String newTableName = "added_table";
     String newTableColumnName = "added_table_column";
     String anotherNewColumnName = "another_added_table_column";
+    List<ColumnModel> newColumns = List.of(DatasetFixtures.columnModel(anotherNewColumnName));
 
     DatasetSchemaUpdateModel updateModel =
         new DatasetSchemaUpdateModel()
             .description("column addition tests")
             .changes(
                 new DatasetSchemaUpdateModelChanges()
-                    .addTables(List.of(tableModel(newTableName, List.of(newTableColumnName))))
+                    .addTables(
+                        List.of(
+                            DatasetFixtures.tableModel(newTableName, List.of(newTableColumnName))))
                     .addColumns(
-                        List.of(columnUpdateModel(newTableName, List.of(anotherNewColumnName)))));
+                        List.of(DatasetFixtures.columnUpdateModel(newTableName, newColumns))));
 
     DatasetModel response = dataRepoFixtures.updateSchema(steward(), datasetId, updateModel);
     Optional<TableModel> newTable =
@@ -148,27 +157,11 @@ public class DatasetSchemaUpdateIntegrationTest extends UsersBase {
             .filter(tableModel -> tableModel.getName().equals(newTableName))
             .findFirst();
     assertThat("The new table is in the update response", newTable.isPresent());
-    boolean newColumns =
+    boolean columns =
         newTable.get().getColumns().stream()
             .map(ColumnModel::getName)
             .collect(Collectors.toList())
             .containsAll(List.of(newTableColumnName, anotherNewColumnName));
-    assertThat("The new table includes the new columns in the update response", newColumns);
-  }
-
-  private TableModel tableModel(String tableName, List<String> columns) {
-    return new TableModel()
-        .name(tableName)
-        .columns(columns.stream().map(this::columnModel).collect(Collectors.toList()));
-  }
-
-  private DatasetSchemaColumnUpdateModel columnUpdateModel(String tableName, List<String> columns) {
-    return new DatasetSchemaColumnUpdateModel()
-        .tableName(tableName)
-        .columns(columns.stream().map(this::columnModel).collect(Collectors.toList()));
-  }
-
-  private ColumnModel columnModel(String name) {
-    return new ColumnModel().name(name).datatype(TableDataType.STRING);
+    assertThat("The new table includes the new columns in the update response", columns);
   }
 }

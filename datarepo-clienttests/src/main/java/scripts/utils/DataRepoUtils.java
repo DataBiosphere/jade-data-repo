@@ -32,6 +32,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import javax.ws.rs.client.ClientBuilder;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.jdk.connector.JdkConnectorProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -83,6 +86,10 @@ public final class DataRepoUtils {
     apiClient.setBasePath(server.datarepoUri);
 
     apiClient.setAccessToken(userAccessToken.getTokenValue());
+
+    ClientConfig clientConfig = new ClientConfig();
+    clientConfig.connectorProvider(new JdkConnectorProvider());
+    apiClient.setHttpClient(ClientBuilder.newClient(clientConfig));
 
     apiClientsForTestUsers.put(testUser, apiClient);
     return apiClient;

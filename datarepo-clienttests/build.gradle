@@ -64,6 +64,7 @@ dependencies {
     implementation "org.glassfish.jersey.media:jersey-media-json-jackson:${jersey}"
     implementation "org.glassfish.jersey.media:jersey-media-multipart:${jersey}"
     implementation "org.glassfish.jersey.inject:jersey-hk2:${jersey}"
+    implementation "org.glassfish.jersey.connectors:jersey-jdk-connector:${jersey}"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jackson}"
 
     // Azure related dependencies

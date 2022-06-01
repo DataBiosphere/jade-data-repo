@@ -48,20 +48,20 @@ public class DatasetSchemaUpdateValidator implements Validator {
             duplicateTables,
             "Cannot add multiple tables of the same name");
       }
-      if (DatasetSchemaUpdateUtils.hasColumnAdditions(updateModel)) {
-        Object[] requiredColumns =
-            updateModel.getChanges().getAddColumns().stream()
-                .flatMap(c -> c.getColumns().stream())
-                .filter(c -> Objects.requireNonNullElse(c.isRequired(), false))
-                .map(ColumnModel::getName)
-                .toArray();
-        if (requiredColumns.length > 0) {
-          errors.rejectValue(
-              "changes.addColumns",
-              "RequiredColumns",
-              requiredColumns,
-              "Cannot add required columns to existing tables");
-        }
+    }
+    if (DatasetSchemaUpdateUtils.hasColumnAdditions(updateModel)) {
+      Object[] requiredColumns =
+          updateModel.getChanges().getAddColumns().stream()
+              .flatMap(c -> c.getColumns().stream())
+              .filter(c -> Objects.requireNonNullElse(c.isRequired(), false))
+              .map(ColumnModel::getName)
+              .toArray();
+      if (requiredColumns.length > 0) {
+        errors.rejectValue(
+            "changes.addColumns",
+            "RequiredColumns",
+            requiredColumns,
+            "Cannot add required columns to existing tables");
       }
     }
   }

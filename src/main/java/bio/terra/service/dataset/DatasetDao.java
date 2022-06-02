@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
-import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -387,16 +386,6 @@ public class DatasetDao {
             + "VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id, :flightid, "
             + ":description, :secure_monitoring, :phs_id, :self_hosted, :properties, ARRAY[]::TEXT[]) ";
 
-    String datasetProperties = objectMapper.writeValueAsString(dataset.getProperties());
-    PGobject jsonObject = new PGobject();
-    jsonObject.setType("jsonb");
-    try {
-      jsonObject.setValue(datasetProperties);
-    } catch (SQLException ex) {
-      throw new InvalidDatasetException(
-          "Invalid dataset properties: " + dataset.getProperties().toString(), ex);
-    }
-
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("name", dataset.getName())
@@ -409,7 +398,8 @@ public class DatasetDao {
             .addValue("secure_monitoring", dataset.isSecureMonitoringEnabled())
             .addValue("phs_id", dataset.getPhsId())
             .addValue("self_hosted", dataset.isSelfHosted())
-            .addValue("properties", jsonObject);
+            .addValue(
+                "properties", DaoUtils.propertiesToPGobject(objectMapper, dataset.getProperties()));
 
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
@@ -735,10 +725,17 @@ public class DatasetDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean patch(UUID id, DatasetPatchRequestModel patchRequest) {
-    String sql = "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id) WHERE id = :id";
+    String sql =
+        "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id), "
+            + "properties = COALESCE(:properties, properties) WHERE id = :id";
 
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("phs_id", patchRequest.getPhsId()).addValue("id", id);
+        new MapSqlParameterSource()
+            .addValue("phs_id", patchRequest.getPhsId())
+            .addValue(
+                "properties",
+                DaoUtils.propertiesToPGobject(objectMapper, patchRequest.getProperties()))
+            .addValue("id", id);
 
     int rowsAffected = jdbcTemplate.update(sql, params);
     boolean patchSucceeded = (rowsAffected == 1);

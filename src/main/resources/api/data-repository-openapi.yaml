@@ -3423,6 +3423,9 @@ components:
       properties:
         phsId:
           $ref: '#/components/schemas/PhsId'
+        properties:
+          type: object
+          description: Additional metadata about the dataset.
       description: >
         A 'lite' dataset definition (used to modify supported fields of a dataset).
         Null assignments will be ignored.

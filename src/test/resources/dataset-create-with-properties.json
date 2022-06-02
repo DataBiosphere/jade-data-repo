@@ -1,0 +1,65 @@
+{
+  "name":        "Multiples",
+  "description": "This is a sample dataset definition with multiple tables, relationships and assets",
+  "schema":      {
+    "tables":        [
+      {
+        "name":    "participant",
+        "primaryKey": ["id"],
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "age", "datatype": "integer"},
+          {"name": "gender", "datatype": "string"},
+          {"name": "phenotype", "datatype": "string"}
+        ]
+      },
+      {
+        "name":    "sample",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "participant_id", "datatype": "string"},
+          {"name": "date_collected", "datatype": "date"}
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "participant_sample",
+        "from": {"table": "participant", "column": "id"},
+        "to":   {"table": "sample", "column": "participant_id"}
+      },
+      {
+        "name": "parent_with_a_long_pointless_suffix_to_push_the_name_length_over_the_old_limit",
+        "from": {"table": "participant", "column": "id"},
+        "to":   {"table": "participant", "column": "id"}
+      }
+    ],
+    "assets":        [
+      {
+        "name":   "sample",
+        "rootTable": "sample",
+        "rootColumn": "id",
+        "tables": [
+          {"name": "sample", "columns": []},
+          {"name": "participant", "columns": []}
+        ],
+        "follow": [
+          "participant_sample"
+        ]
+      },
+      {
+        "name":   "Trio",
+        "rootTable": "participant",
+        "rootColumn": "id",
+        "tables": [
+          {"name": "participant", "columns": ["id", "age", "gender"]},
+          {"name": "sample", "columns": []}
+        ],
+        "follow": [
+          "participant_sample",
+          "parent_with_a_long_pointless_suffix_to_push_the_name_length_over_the_old_limit"
+        ]
+      }
+    ]
+  }
+}

@@ -3,6 +3,7 @@ package bio.terra.common;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.postgresql.util.PGobject;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
@@ -112,5 +114,18 @@ public final class DaoUtils {
   public static boolean retryQuery(DataAccessException dataAccessException) {
     return ExceptionUtils.hasCause(dataAccessException, RecoverableDataAccessException.class)
         || ExceptionUtils.hasCause(dataAccessException, TransientDataAccessException.class);
+  }
+
+  public static PGobject propertiesToPGobject(ObjectMapper objectMapper, Object properties) {
+    String datasetProperties;
+    PGobject jsonObject = new PGobject();
+    try {
+      datasetProperties = objectMapper.writeValueAsString(properties);
+      jsonObject.setType("jsonb");
+      jsonObject.setValue(datasetProperties);
+    } catch (JsonProcessingException | SQLException ex) {
+      throw new InvalidDatasetException("Invalid dataset properties: " + properties.toString(), ex);
+    }
+    return jsonObject;
   }
 }

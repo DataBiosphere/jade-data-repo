@@ -387,14 +387,14 @@ public class BigQueryTransactionPdao {
                 .map(Object::toString)
                 .orElse(null))
         .createdAt(
-            DateTimeUtils.ofEpicMicros(
+            DateTimeUtils.ofEpicNanos(
                     values.get(PDAO_TRANSACTION_CREATED_AT_COLUMN).getTimestampValue())
                 .toString())
         .createdBy(values.get(PDAO_TRANSACTION_CREATED_BY_COLUMN).getStringValue())
         .terminatedAt(
             values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).isNull()
                 ? null
-                : DateTimeUtils.ofEpicMicros(
+                : DateTimeUtils.ofEpicNanos(
                         values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).getTimestampValue())
                     .toString())
         .terminatedBy(

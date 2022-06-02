@@ -25,4 +25,8 @@ public class DateTimeUtils {
   public static Instant ofEpicMicros(long epochMicros) {
     return Instant.EPOCH.plus(epochMicros, ChronoUnit.MICROS);
   }
+
+  public static Instant ofEpicNanos(long epochMicros) {
+    return Instant.EPOCH.plus(epochMicros, ChronoUnit.NANOS);
+  }
 }

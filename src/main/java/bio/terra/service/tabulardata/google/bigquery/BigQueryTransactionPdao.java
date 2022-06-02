@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableResult;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -73,7 +74,7 @@ public class BigQueryTransactionPdao {
     sqlTemplate.add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
     sqlTemplate.add("transactCreatedByCol", PDAO_TRANSACTION_CREATED_BY_COLUMN);
 
-    Instant filterBefore = Instant.now();
+    Instant filterBefore = Instant.now().truncatedTo(ChronoUnit.MICROS);
     TransactionModel transaction =
         new TransactionModel()
             .id(UUID.randomUUID())
@@ -387,14 +388,14 @@ public class BigQueryTransactionPdao {
                 .map(Object::toString)
                 .orElse(null))
         .createdAt(
-            DateTimeUtils.ofEpicNanos(
+            DateTimeUtils.ofEpicMicros(
                     values.get(PDAO_TRANSACTION_CREATED_AT_COLUMN).getTimestampValue())
                 .toString())
         .createdBy(values.get(PDAO_TRANSACTION_CREATED_BY_COLUMN).getStringValue())
         .terminatedAt(
             values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).isNull()
                 ? null
-                : DateTimeUtils.ofEpicNanos(
+                : DateTimeUtils.ofEpicMicros(
                         values.get(PDAO_TRANSACTION_TERMINATED_AT_COLUMN).getTimestampValue())
                     .toString())
         .terminatedBy(

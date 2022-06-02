@@ -55,7 +55,8 @@ public class DatasetBucketDao {
   // it will decrement to zero.
   private static final String sqlCreateLink =
       "INSERT INTO dataset_bucket "
-          + " (dataset_id, bucket_resource_id, successful_ingests) VALUES (:dataset_id, :bucket_resource_id, 1)";
+          + " (dataset_id, bucket_resource_id, successful_ingests) "
+          + "VALUES (:dataset_id, :bucket_resource_id, :initial_value)";
 
   private static final String whereClause =
       " WHERE dataset_id = :dataset_id AND bucket_resource_id = :bucket_resource_id";
@@ -126,23 +127,28 @@ public class DatasetBucketDao {
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void createDatasetBucketLink(UUID datasetId, UUID bucketResourceId) {
+    createDatasetBucketLink(datasetId, bucketResourceId, true);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void createDatasetBucketLink(UUID datasetId, UUID bucketResourceId, boolean isIngest) {
     if (datasetBucketLinkExists(datasetId, bucketResourceId)) {
       // If the link is already made then increment our use of it.
       incrementDatasetBucketLink(datasetId, bucketResourceId);
     } else {
       // Not there, try creating it
-      datasetBucketLinkUpdate(sqlCreateLink, datasetId, bucketResourceId);
+      datasetBucketLinkUpdate(sqlCreateLink, datasetId, bucketResourceId, isIngest);
     }
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void deleteDatasetBucketLink(UUID datasetId, UUID bucketResourceId) {
-    datasetBucketLinkUpdate(sqlDeleteLink, datasetId, bucketResourceId);
+    datasetBucketLinkUpdate(sqlDeleteLink, datasetId, bucketResourceId, false);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void decrementDatasetBucketLink(UUID datasetId, UUID bucketResourceId) {
-    datasetBucketLinkUpdate(sqlDecrementCount, datasetId, bucketResourceId);
+    datasetBucketLinkUpdate(sqlDecrementCount, datasetId, bucketResourceId, true);
   }
 
   boolean datasetBucketLinkExists(UUID datasetId, UUID bucketResourceId) {
@@ -176,14 +182,17 @@ public class DatasetBucketDao {
   }
 
   private void incrementDatasetBucketLink(UUID datasetId, UUID bucketResourceId) {
-    datasetBucketLinkUpdate(sqlIncrementCount, datasetId, bucketResourceId);
+    datasetBucketLinkUpdate(sqlIncrementCount, datasetId, bucketResourceId, true);
   }
 
-  private void datasetBucketLinkUpdate(String sql, UUID datasetId, UUID bucketResourceId) {
+  private void datasetBucketLinkUpdate(
+      String sql, UUID datasetId, UUID bucketResourceId, boolean isIngest) {
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("dataset_id", datasetId)
-            .addValue("bucket_resource_id", bucketResourceId);
+            .addValue("bucket_resource_id", bucketResourceId)
+            // Only gets used on link creation
+            .addValue("initial_value", isIngest ? 1 : 0);
     try {
       jdbcTemplate.update(sql, params);
     } catch (DataAccessException dataAccessException) {

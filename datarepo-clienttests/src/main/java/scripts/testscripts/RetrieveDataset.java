@@ -12,6 +12,7 @@ import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.PolicyMemberRequest;
 import bio.terra.datarepo.model.PolicyResponse;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -52,8 +53,23 @@ public class RetrieveDataset extends SimpleDataset {
     DatasetPatchRequestModel request = new DatasetPatchRequestModel();
     String newPhsId = "phs123456";
     request.setPhsId(newPhsId);
-    DatasetSummaryModel newDatasetModel =
-        repositoryApi.patchDataset(datasetSummaryModel.getId(), request);
+    DatasetSummaryModel newDatasetModel = new DatasetSummaryModel();
+    int tryCount = 0;
+    int maxCount = 5;
+    while (tryCount < maxCount) {
+      try {
+        newDatasetModel = repositoryApi.patchDataset(datasetSummaryModel.getId(), request);
+        break;
+      } catch (Exception ex) {
+        logger.info("Patch Dataset failed - {}", ex);
+        tryCount++;
+        if (tryCount >= maxCount) {
+          logger.error("Max retries exceeded.");
+          throw ex;
+        }
+      }
+      TimeUnit.SECONDS.sleep(1);
+    }
     assertThat("PhsId has been updated for dataset", newDatasetModel.getPhsId(), equalTo(newPhsId));
   }
 }

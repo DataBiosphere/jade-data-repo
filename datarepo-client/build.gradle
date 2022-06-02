@@ -8,6 +8,11 @@ plugins {
 sourceCompatibility = 11
 targetCompatibility = 11
 
+java {
+    sourceCompatibility = 11
+    targetCompatibility = 11
+}
+
 // TODO: there may be a better way to supply these values than envvars.
 // This and the test below makes sure the build will fail reasonably if you try
 // to publish without the environment variables defined.

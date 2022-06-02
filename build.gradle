@@ -75,6 +75,11 @@ def boolean isCiServer = System.getenv().containsKey("CI")
 sourceCompatibility = 17
 targetCompatibility = 17
 
+java {
+    sourceCompatibility = 17
+    targetCompatibility = 17
+}
+
 if (hasProperty('buildScan')) {
     buildScan {
         termsOfServiceUrl = 'https://gradle.com/terms-of-service'

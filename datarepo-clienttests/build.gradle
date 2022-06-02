@@ -43,6 +43,7 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junit}")
     compileOnly "com.google.code.findbugs:annotations:${findbugsAnnotations}"
 
+    implementation "org.awaitility:awaitility:4.0.3"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jackson}"
     implementation "io.kubernetes:client-java:${kubernetesClient}"
     implementation "ch.qos.logback:logback-classic:${logback}"

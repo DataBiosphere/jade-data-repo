@@ -383,7 +383,7 @@ public class DatasetService {
   }
 
   public String updateDatasetSchema(
-      String datasetId, DatasetSchemaUpdateModel updateModel, AuthenticatedUserRequest userReq) {
+      UUID datasetId, DatasetSchemaUpdateModel updateModel, AuthenticatedUserRequest userReq) {
     String description = "Updating dataset schema for dataset " + datasetId;
     return jobService
         .newJob(description, DatasetSchemaUpdateFlight.class, updateModel, userReq)

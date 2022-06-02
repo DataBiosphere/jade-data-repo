@@ -87,6 +87,10 @@ public final class DataRepoUtils {
 
     apiClient.setAccessToken(userAccessToken.getTokenValue());
 
+    // Workaround for jersey bug on upgrading to Java 17
+    // Needed for PATCH endpoints
+    // More details here: https://github.com/eclipse-ee4j/jersey/issues/4825#issuecomment-925836004
+    // And in PR description: https://github.com/DataBiosphere/jade-data-repo/pull/1288
     ClientConfig clientConfig = new ClientConfig();
     clientConfig.connectorProvider(new JdkConnectorProvider());
     apiClient.setHttpClient(ClientBuilder.newClient(clientConfig));

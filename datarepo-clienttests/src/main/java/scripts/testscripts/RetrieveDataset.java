@@ -5,9 +5,12 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetPatchRequestModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
+import bio.terra.datarepo.model.PolicyMemberRequest;
+import bio.terra.datarepo.model.PolicyResponse;
 import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +36,19 @@ public class RetrieveDataset extends SimpleDataset {
         datasetModel.getName(),
         datasetModel.getDataProject());
 
+    // add test user as steward so that they have access to edit phs id
+    try {
+      logger.debug("Adding test user {} as steward", testUser.userEmail);
+      PolicyResponse policyResponse =
+          repositoryApi.addDatasetPolicyMember(
+              datasetSummaryModel.getId(),
+              "steward",
+              new PolicyMemberRequest().email(testUser.userEmail));
+    } catch (ApiException e) {
+      throw new RuntimeException("Error adding user as steward", e);
+    }
+
+    // Test editing PhsId via patch endpoint
     DatasetPatchRequestModel request = new DatasetPatchRequestModel();
     String newPhsId = "phs123456";
     request.setPhsId(newPhsId);

@@ -175,6 +175,7 @@ dependencies {
     // TODO: Unpack the "starter" and include just what we use
     implementation 'com.google.apis:google-api-services-serviceusage:v1-rev20201021-1.30.10'
     implementation 'com.google.apis:google-api-services-appengine:v1-rev20201201-1.31.0'
+    implementation 'com.google.apis:google-api-services-oauth2:v2-rev20200213-1.32.1'
     implementation platform('com.google.cloud:libraries-bom:25.3.0')
     implementation 'com.google.cloud:google-cloud-billing'
     implementation 'com.google.cloud:google-cloud-resourcemanager'

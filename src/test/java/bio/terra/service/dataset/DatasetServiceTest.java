@@ -156,6 +156,7 @@ public class DatasetServiceTest {
     billingProfile = profileDao.createBillingProfile(profileRequest, "hi@hi.hi");
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
     projectId = resourceDao.createProject(projectResource);
+    when(resourceService.getProjectResource(projectId)).thenReturn(projectResource);
 
     // Setup mock sam service
     connectedOperations.stubOutSamCalls(samService);

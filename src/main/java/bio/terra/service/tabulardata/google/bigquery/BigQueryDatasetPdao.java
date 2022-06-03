@@ -1,19 +1,6 @@
 package bio.terra.service.tabulardata.google.bigquery;
 
-import static bio.terra.common.PdaoConstant.PDAO_DELETED_AT_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_DELETED_BY_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_FLIGHT_ID_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_INGESTED_BY_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS;
-import static bio.terra.common.PdaoConstant.PDAO_INGEST_TIME_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
-import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static bio.terra.common.PdaoConstant.PDAO_LOAD_TAG_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_TRANSACTIONS_TABLE;
-import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_ID_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_STATUS_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_TERMINATED_AT_COLUMN;
+import static bio.terra.common.PdaoConstant.*;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -762,7 +749,7 @@ public class BigQueryDatasetPdao {
    */
   private static final String stagingRowsWithoutSingleTargetRowMatchTemplate(
       String datasetLiveViewSql) {
-    return "SELECT COUNT(T.<rowIdColumn>) AS numTargetRows, "
+    return "SELECT COUNT(T.<rowIdColumn>) AS <count>, "
         + "<pkColumns:{c|S.<c.name>}; separator=\",\"> "
         + "FROM ("
         + datasetLiveViewSql
@@ -793,6 +780,7 @@ public class BigQueryDatasetPdao {
         renderDatasetLiveViewSql(projectId, datasetName, targetTable, transactionId, null);
 
     ST sqlTemplate = new ST(stagingRowsWithoutSingleTargetRowMatchTemplate(datasetLiveViewSql));
+    sqlTemplate.add("count", PDAO_COUNT_ALIAS);
     sqlTemplate.add("project", projectId);
     sqlTemplate.add("dataset", datasetName);
     sqlTemplate.add("targetTable", targetTable.getRawTableName());

@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
@@ -50,7 +51,7 @@ public class IngestValidateTargetRowsStep implements Step {
           break;
         }
         errorDetails.add(
-            row.get("numTargetRows").getStringValue()
+            row.get(PdaoConstant.PDAO_COUNT_ALIAS).getStringValue()
                 + " rows in target table with "
                 + targetTable.primaryKeyToString(row));
         count++;

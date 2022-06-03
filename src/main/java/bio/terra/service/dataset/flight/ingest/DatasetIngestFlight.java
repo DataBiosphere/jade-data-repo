@@ -218,6 +218,7 @@ public class DatasetIngestFlight extends Flight {
         // Ensure that no duplicate IDs are being loaded in
         addStep(new IngestValidateIngestRowsStep(datasetService));
         if (mergeIngest) {
+          addStep(new IngestValidatePrimaryKeyDefinedStep(datasetService));
           // TODO: verify exactly 1 matching target record for each PK
           // TODO: coalesce ingest with target to staging table
         }

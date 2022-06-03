@@ -156,7 +156,8 @@ public class AzureBlobStorePdao implements CloudFileReader {
   }
 
   @Override
-  public void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user) {
+  public void validateUserCanRead(
+      List<String> sourcePaths, String cloudEncapsulationId, AuthenticatedUserRequest user) {
     // This checked is not needed for Azure because we use signed URLS that by default check
     // permissions
     // Keeping this method because we do need to do this check for GCP in code that is shared

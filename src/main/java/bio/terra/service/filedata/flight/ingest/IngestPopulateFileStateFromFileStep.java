@@ -53,7 +53,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     this.userRequest = userRequest;
   }
 
-  void readFile(BufferedReader reader, FlightContext context) throws IOException {
+  void readFile(BufferedReader reader, String projectId, FlightContext context) throws IOException {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 
@@ -80,7 +80,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
                       bulkLoadObjectMapper.readValue(lineCopy, BulkLoadFileModel.class);
                   IngestUtils.validateBulkLoadFileModel(loadFile);
                   cloudFileReader.validateUserCanRead(
-                      List.of(loadFile.getSourcePath()), userRequest);
+                      List.of(loadFile.getSourcePath()), projectId, userRequest);
                   return loadFile;
                 } catch (IOException | BlobAccessNotAuthorizedException | BadRequestException ex) {
                   try {

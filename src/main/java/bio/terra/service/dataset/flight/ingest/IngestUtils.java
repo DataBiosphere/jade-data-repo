@@ -264,7 +264,7 @@ public final class IngestUtils {
                 try {
                   validateBulkLoadFileModel(loadFileModel);
                   cloudFileReader.validateUserCanRead(
-                      List.of(loadFileModel.getSourcePath()), userRequest);
+                      List.of(loadFileModel.getSourcePath()), cloudEncapsulationId, userRequest);
                 } catch (BlobAccessNotAuthorizedException
                     | BadRequestException
                     | IllegalArgumentException

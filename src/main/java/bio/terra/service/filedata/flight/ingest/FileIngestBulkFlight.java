@@ -174,7 +174,9 @@ public class FileIngestBulkFlight extends Flight {
       addStep(new IngestPopulateFileStateFromArrayStep(loadService));
     } else {
       if (platform.isGcp()) {
-        addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
+        addStep(
+            new ValidateBucketAccessStep(
+                gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq));
         addStep(
             new IngestPopulateFileStateFromFileGcpStep(
                 loadService,

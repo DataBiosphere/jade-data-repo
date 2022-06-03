@@ -9,5 +9,6 @@ public interface CloudFileReader {
   Stream<String> getBlobsLinesStream(
       String blobUrl, String cloudEncapsulationId, AuthenticatedUserRequest userRequest);
 
-  void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user);
+  void validateUserCanRead(
+      List<String> sourcePaths, String cloudEncapsulationId, AuthenticatedUserRequest user);
 }

@@ -6,6 +6,7 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -13,15 +14,30 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class ValidateBucketAccessStep implements Step {
   private final GcsPdao gcsPdao;
   private final AuthenticatedUserRequest userRequest;
+  private final String projectId;
 
-  public ValidateBucketAccessStep(GcsPdao gcsPdao, AuthenticatedUserRequest userRequest) {
+  public ValidateBucketAccessStep(
+      GcsPdao gcsPdao, String projectId, AuthenticatedUserRequest userRequest) {
+    this.gcsPdao = gcsPdao;
+    this.projectId = projectId;
+    this.userRequest = userRequest;
+  }
+
+  public ValidateBucketAccessStep(
+      GcsPdao gcsPdao,
+      UUID datasetId,
+      DatasetService datasetService,
+      AuthenticatedUserRequest userRequest) {
     this.gcsPdao = gcsPdao;
     this.userRequest = userRequest;
+    this.projectId =
+        datasetService.retrieveAvailable(datasetId).getProjectResource().getGoogleProjectId();
   }
 
   @Override
@@ -53,7 +69,7 @@ public class ValidateBucketAccessStep implements Step {
     } else {
       throw new IllegalArgumentException("Invalid request type");
     }
-    gcsPdao.validateUserCanRead(sourcePath, userRequest);
+    gcsPdao.validateUserCanRead(sourcePath, projectId, userRequest);
     return StepResult.getStepResultSuccess();
   }
 

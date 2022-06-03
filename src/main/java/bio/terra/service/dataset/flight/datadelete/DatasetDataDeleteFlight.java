@@ -64,7 +64,9 @@ public class DatasetDataDeleteFlight extends Flight {
             iamClient, IamResourceType.DATASET, datasetId, IamAction.SOFT_DELETE));
 
     if (request.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
-      addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
+      addStep(
+          new ValidateBucketAccessStep(
+              gcsPdao, UUID.fromString(datasetId), datasetService, userReq));
     }
 
     // need to lock, need dataset name and flight id

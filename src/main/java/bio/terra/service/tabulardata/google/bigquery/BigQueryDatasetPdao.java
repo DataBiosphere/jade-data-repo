@@ -173,8 +173,7 @@ public class BigQueryDatasetPdao {
     Job loadJob;
 
     // When staging merge records, we will not enforce that required columns outside of the primary
-    // key
-    // be specified as they could be derived from an earlier full row ingest.
+    // key be specified as they could be derived from an earlier full row ingest.
     // Full row ingests enforce that required columns are set, and merge ingests cannot unset
     // values.
     boolean enforceRequiredCols =
@@ -749,6 +748,64 @@ public class BigQueryDatasetPdao {
       throws InterruptedException {
     BigQueryPdao.grantReadAccessWorker(
         BigQueryProject.from(dataset), BigQueryPdao.prefixName(dataset.getName()), policies);
+  }
+
+  // MERGE INGEST
+
+  /**
+   * This join counts the number of occurrences of each staging primary key within the target
+   * table's active records. Only primary keys which do not resolve to a single target record will
+   * be returned.
+   *
+   * @param datasetLiveViewSql SQL representing the target table's active records
+   * @return The SQL for obtaining irresolvable merge records
+   */
+  private static final String stagingRowsWithoutSingleTargetRowMatchTemplate(
+      String datasetLiveViewSql) {
+    return "SELECT COUNT(T.<rowIdColumn>) AS numTargetRows, "
+        + "<pkColumns:{c|S.<c.name>}; separator=\",\"> "
+        + "FROM ("
+        + datasetLiveViewSql
+        + ") T "
+        + "RIGHT JOIN `<project>.<dataset>.<stagingTable>` S "
+        + "ON <pkColumns:{c|T.<c.name> = S.<c.name>}; separator=\" AND \"> "
+        + "GROUP BY <pkColumns:{c|S.<c.name>}; separator=\",\"> "
+        + "HAVING COUNT(T.<rowIdColumn>) != 1";
+  }
+
+  /**
+   * @param dataset repo dataset
+   * @param targetTable eventual destination for ingest in progress
+   * @param stagingTableName name of the temporary table containing partial merge records
+   * @param transactionId the transaction associated with the ingest
+   * @return a `TableResult` with `stagingTableName` primary keys and the number of matching
+   *     occurrences in `targetTable` when a single match cannot be found.
+   * @throws InterruptedException
+   */
+  public static TableResult stagingRowsWithoutSingleTargetRowMatch(
+      Dataset dataset, DatasetTable targetTable, String stagingTableName, UUID transactionId)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    String projectId = bigQueryProject.getProjectId();
+    String datasetName = BigQueryPdao.prefixName(dataset.getName());
+
+    String datasetLiveViewSql =
+        renderDatasetLiveViewSql(projectId, datasetName, targetTable, transactionId, null);
+
+    ST sqlTemplate = new ST(stagingRowsWithoutSingleTargetRowMatchTemplate(datasetLiveViewSql));
+    sqlTemplate.add("project", projectId);
+    sqlTemplate.add("dataset", datasetName);
+    sqlTemplate.add("targetTable", targetTable.getRawTableName());
+    sqlTemplate.add("stagingTable", stagingTableName);
+    sqlTemplate.add("pkColumns", targetTable.getPrimaryKey());
+    sqlTemplate.add("rowIdColumn", PDAO_ROW_ID_COLUMN);
+
+    return bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of(
+            "transactId",
+            QueryParameterValue.string(
+                Optional.ofNullable(transactionId).map(UUID::toString).orElse(null))));
   }
 
   // UTILITY METHODS

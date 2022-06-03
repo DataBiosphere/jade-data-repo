@@ -27,7 +27,6 @@ import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableResult;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -74,14 +73,14 @@ public class BigQueryTransactionPdao {
     sqlTemplate.add("transactCreatedAtCol", PDAO_TRANSACTION_CREATED_AT_COLUMN);
     sqlTemplate.add("transactCreatedByCol", PDAO_TRANSACTION_CREATED_BY_COLUMN);
 
-    Instant filterBefore = Instant.now().truncatedTo(ChronoUnit.MICROS);
+    Instant filterBefore = Instant.now();
     TransactionModel transaction =
         new TransactionModel()
             .id(UUID.randomUUID())
             .lock(flightId)
             .description(transactionDescription)
             .status(TransactionModel.StatusEnum.ACTIVE)
-            .createdAt(filterBefore.toString())
+            .createdAt(DateTimeUtils.toMicrosString(filterBefore))
             .createdBy(authedUser.getEmail());
 
     bigQueryProject.query(

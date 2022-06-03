@@ -8,7 +8,6 @@ import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetPatchRequestModel;
-import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.PolicyMemberRequest;
 import bio.terra.datarepo.model.PolicyResponse;
 import java.util.Collections;
@@ -54,7 +53,7 @@ public class RetrieveDataset extends SimpleDataset {
     DatasetPatchRequestModel request = new DatasetPatchRequestModel();
     String newPhsId = "phs123456";
     request.setPhsId(newPhsId);
-    DatasetSummaryModel newDatasetModel = new DatasetSummaryModel();
+
     // Retry patch dataset endpoint
     // Can run into concurrent update error
     Awaitility.await()

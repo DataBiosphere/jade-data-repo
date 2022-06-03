@@ -220,7 +220,7 @@ public class DatasetIngestFlight extends Flight {
         if (mergeIngest) {
           addStep(new IngestValidatePrimaryKeyDefinedStep(datasetService));
           addStep(new IngestValidateTargetRowsStep(datasetService));
-          // TODO: coalesce ingest with target to staging table
+          addStep(new IngestMergeStagingWithTargetStep(datasetService));
         }
         // Soft deletes rows from the target table
         addStep(

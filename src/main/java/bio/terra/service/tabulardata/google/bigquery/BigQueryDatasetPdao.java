@@ -808,6 +808,63 @@ public class BigQueryDatasetPdao {
                 Optional.ofNullable(transactionId).map(UUID::toString).orElse(null))));
   }
 
+  /**
+   * When applying a merge ingest, we take any values defined by the merge record and fall back to
+   * the target table's values otherwise.
+   *
+   * Array-type fields require special handling: BigQuery does not allow a field to be both
+   * NULLABLE and REPEATED. Unspecified arrays default to [] and incorrectly override the target
+   * value if COALESCE-ing.
+   *
+   * @param datasetLiveViewSql SQL representing the target table's active records
+   * @return the SQL for applying a merge ingest
+   */
+  private static String mergeIngestTemplate(String datasetLiveViewSql) {
+    return "UPDATE `<project>.<dataset>.<stagingTable>` S "
+        + "SET <columns:{c|S.<c.name> = "
+        + "<if(c.arrayOf)>IF(ARRAY_LENGTH(S.<c.name>) > 0, S.<c.name>, T.<c.name>)"
+        + "<else>COALESCE(S.<c.name>, T.<c.name>)<endif>}; separator=\",\"> "
+        + "FROM ("
+        + datasetLiveViewSql
+        + ") T "
+        + "WHERE <pkColumns:{c|T.<c.name> = S.<c.name>}; separator=\" AND \">";
+  }
+
+  /**
+   * Apply a merge ingest in `stagingTableName`.
+   *
+   * @param dataset repo dataset
+   * @param targetTable eventual destination for ingest in progress
+   * @param stagingTableName name of the temporary table containing partial merge records
+   * @param transactionId the transaction associated with the ingest
+   * @throws InterruptedException
+   */
+  public static void mergeIngest(
+      Dataset dataset, DatasetTable targetTable, String stagingTableName, UUID transactionId)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    String projectId = bigQueryProject.getProjectId();
+    String datasetName = BigQueryPdao.prefixName(dataset.getName());
+
+    String datasetLiveViewSql =
+        renderDatasetLiveViewSql(projectId, datasetName, targetTable, transactionId, null);
+
+    ST sqlTemplate = new ST(mergeIngestTemplate(datasetLiveViewSql));
+    sqlTemplate.add("project", projectId);
+    sqlTemplate.add("dataset", datasetName);
+    sqlTemplate.add("targetTable", targetTable.getRawTableName());
+    sqlTemplate.add("stagingTable", stagingTableName);
+    sqlTemplate.add("columns", targetTable.getColumns());
+    sqlTemplate.add("pkColumns", targetTable.getPrimaryKey());
+
+    bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of(
+            "transactId",
+            QueryParameterValue.string(
+                Optional.ofNullable(transactionId).map(UUID::toString).orElse(null))));
+  }
+
   // UTILITY METHODS
 
   public boolean datasetExists(Dataset dataset) throws InterruptedException {

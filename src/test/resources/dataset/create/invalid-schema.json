@@ -1,0 +1,40 @@
+{
+  "name": "testInvalidDataTypes",
+  "description": "testInvalidDataTypes",
+  "defaultProfileId": "fa8d8a79-5d66-4c42-831b-047dadfe84af",
+  "schema": {
+    "tables": [
+      {
+        "name": "table1",
+        "columns": [
+          {
+            "name": "bad_column",
+            "datatype": "STRING"
+          }
+        ]
+      },
+      {
+        "name": "table2",
+        "columns": [
+          {
+            "name": "bad_column",
+            "datatype": "STRING"
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "test_relationship",
+        "to": {
+          "table": "table1",
+          "column": "bad_column"
+        },
+        "from": {
+          "table": "table2",
+          "column": "bad_column"
+        }
+      }
+    ]
+  }
+}

@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.CloudPlatform;
@@ -71,6 +72,8 @@ public class DatasetRequestValidatorTest {
   @Autowired private ObjectMapper objectMapper;
 
   @MockBean private DatasetService datasetService;
+
+  @Autowired private JsonLoader jsonLoader;
 
   private ErrorModel expectBadDatasetCreateRequest(DatasetRequestModel datasetRequest)
       throws Exception {
@@ -366,13 +369,7 @@ public class DatasetRequestValidatorTest {
 
   @Test
   public void testTableSchemaInvalidDataType() throws Exception {
-    String invalidSchema =
-        "{\"name\":\"no_response\","
-            + "\"description\":\"Invalid datatype in dataset schema leads to no response body\","
-            + "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\","
-            + "\"schema\":{\"tables\":[{\"name\":\"table\",\"columns\":"
-            + "[{\"name\":\"bad_column1\",\"datatype\":\"bad_datatype\"}, "
-            + "{\"name\":\"bad_column2\",\"datatype\":\"FILEREF\"}]}]}}";
+    String invalidSchema = jsonLoader.loadJson("./dataset/create/invalid-schema.json");
     MvcResult result =
         mvc.perform(
                 post("/api/repository/v1/datasets")
@@ -386,7 +383,7 @@ public class DatasetRequestValidatorTest {
     assertTrue(
         "Invalid DataTypes are logged and returned",
         responseBody.contains(
-            "invalid datatype in table column(s): bad_column1, bad_column2, "
+            "invalid datatype in table column(s): bad_column, "
                 + "DataTypes must be lowercase, valid DataTypes are [string, boolean, bytes, date, datetime, dirref, fileref, "
                 + "float, float64, integer, int64, numeric, record, text, time, timestamp]"));
   }

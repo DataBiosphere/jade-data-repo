@@ -269,7 +269,7 @@ public class DatasetRequestValidator implements Validator {
     }
 
     Set<TableDataType> invalidTypes = Set.of(TableDataType.DIRREF, TableDataType.FILEREF);
-    if (invalidTypes.contains(columnModel.getDatatype())) {
+    if (columnModel.getDatatype() != null && invalidTypes.contains(columnModel.getDatatype())) {
       rejectKey(errors, keyType, columnModel.getName(), columnModel.getDatatype().toString());
     }
     if (PRIMARY_KEY.equals(keyType) && Boolean.FALSE.equals(columnModel.isRequired())) {

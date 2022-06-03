@@ -812,7 +812,7 @@ public class BigQueryDatasetPdao {
    * When applying a merge ingest, we take any values defined by the merge record and fall back to
    * the target table's values otherwise.
    *
-   * Array-type fields require special handling: BigQuery does not allow a field to be both
+   * <p>Array-type fields require special handling: BigQuery does not allow a field to be both
    * NULLABLE and REPEATED. Unspecified arrays default to [] and incorrectly override the target
    * value if COALESCE-ing.
    *

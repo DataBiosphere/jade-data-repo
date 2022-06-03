@@ -27,6 +27,7 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -67,6 +68,8 @@ public class SnapshotCreateFlight extends Flight {
     AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
     TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
+    GoogleResourceManagerService googleResourceManagerService =
+        appContext.getBean(GoogleResourceManagerService.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -98,7 +101,9 @@ public class SnapshotCreateFlight extends Flight {
       // Get a new google project from RBS and store it in the working map
       addStep(
           new GetResourceBufferProjectStep(
-              bufferService, sourceDataset.isSecureMonitoringEnabled()));
+              bufferService,
+              googleResourceManagerService,
+              sourceDataset.isSecureMonitoringEnabled()));
 
       // Get or initialize the project where the snapshot resources will be created
       addStep(

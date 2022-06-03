@@ -26,6 +26,7 @@ import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -55,6 +56,8 @@ public class DatasetCreateFlight extends Flight {
         appContext.getBean(DatasetStorageAccountDao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
+    GoogleResourceManagerService googleResourceManagerService =
+        appContext.getBean(GoogleResourceManagerService.class);
 
     DatasetRequestModel datasetRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
@@ -78,7 +81,9 @@ public class DatasetCreateFlight extends Flight {
       // Get a new google project from RBS and store it in the working map
       addStep(
           new GetResourceBufferProjectStep(
-              bufferService, datasetRequest.isEnableSecureMonitoring()));
+              bufferService,
+              googleResourceManagerService,
+              datasetRequest.isEnableSecureMonitoring()));
 
       // Get or initialize the project where the dataset resources will be created
       addStep(

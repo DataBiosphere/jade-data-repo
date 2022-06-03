@@ -2,14 +2,12 @@ package bio.terra.service.dataset.flight.create;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.flight.ingest.IngestFilePrimaryDataLocationStep;
-import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
@@ -85,23 +83,7 @@ public class CreateDatasetGetOrCreateBucketStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    // There is not much to undo here. It is possible that a bucket was created in the last step. We
-    // could look to
-    // see if there are no other files in the bucket and delete it here, but I think it is likely
-    // the bucket will
-    // be used again.
-    FlightMap workingMap = context.getWorkingMap();
-    BillingProfileModel billingProfile =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-    GoogleProjectResource googleProjectResource =
-        workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
-
-    try {
-      resourceService.updateBucketMetadata(
-          googleProjectResource.getGoogleProjectId(), billingProfile, context.getFlightId());
-    } catch (GoogleResourceNamingException e) {
-      logger.error(e.getMessage());
-    }
+    // Leaving artifacts on undo
     return StepResult.getStepResultSuccess();
   }
 }

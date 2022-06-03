@@ -4,7 +4,7 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.exception.InvalidIngestRowResolutionException;
+import bio.terra.service.dataset.exception.InvalidIngestDuplicatesException;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -55,7 +55,7 @@ public class IngestValidateIngestRowsStep implements Step {
 
         errorMessage.append(numDuplicatePrimaryKeys + " returned in details)");
 
-        throw new InvalidIngestRowResolutionException(errorMessage.toString(), errorDetails);
+        throw new InvalidIngestDuplicatesException(errorMessage.toString(), errorDetails);
       }
     }
 

@@ -1,7 +1,6 @@
 package bio.terra.service.tabulardata.google.bigquery;
 
-import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
-import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
+import static bio.terra.common.PdaoConstant.*;
 
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
@@ -28,7 +27,7 @@ public abstract class BigQueryPdao {
   }
 
   private static final String selectHasDuplicateStagingIdsTemplate =
-      "SELECT <pkColumns:{c|<c.name>}; separator=\",\">,COUNT(*) "
+      "SELECT <pkColumns:{c|<c.name>}; separator=\",\">,COUNT(*) AS <count> "
           + "FROM `<project>.<dataset>.<tableName>` "
           + "GROUP BY <pkColumns:{c|<c.name>}; separator=\",\"> "
           + "HAVING COUNT(*) > 1";
@@ -37,7 +36,7 @@ public abstract class BigQueryPdao {
    * Returns true is any duplicate IDs are present in a BigQuery table TODO: add support for
    * returning top few instances
    */
-  public static boolean hasDuplicatePrimaryKeys(
+  public static TableResult duplicatePrimaryKeys(
       FSContainerInterface container, List<Column> pkColumns, String tableName)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(container);
@@ -45,13 +44,13 @@ public abstract class BigQueryPdao {
     String bqDatasetName = prefixContainerName(container);
 
     ST sqlTemplate = new ST(selectHasDuplicateStagingIdsTemplate);
+    sqlTemplate.add("count", PDAO_COUNT_ALIAS);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", bqDatasetName);
     sqlTemplate.add("tableName", tableName);
     sqlTemplate.add("pkColumns", pkColumns);
 
-    TableResult result = bigQueryProject.query(sqlTemplate.render());
-    return result.getTotalRows() > 0;
+    return bigQueryProject.query(sqlTemplate.render());
   }
 
   public static String prefixName(String name) {

@@ -15,6 +15,7 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -48,6 +49,11 @@ public class ValidateBucketAccessStep implements Step {
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "BC",
+      justification =
+          "The check is wrong. The exception when calling validateUserCanRead can in "
+              + "fact be a GoogleJsonResponseException")
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap inputParameters = context.getInputParameters();
     List<String> sourcePath;

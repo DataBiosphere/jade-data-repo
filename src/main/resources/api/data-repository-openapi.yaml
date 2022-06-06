@@ -3342,7 +3342,7 @@ components:
           description: denotes whether data files in the dataset are self-hosted or not
         properties:
           type: object
-          description: Additional metadata about the dataset.
+          description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -3415,7 +3415,7 @@ components:
             files in their original location.
         properties:
           type: object
-          description: Additional metadata about the dataset.
+          description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     DatasetPatchRequestModel:
@@ -3425,7 +3425,7 @@ components:
           $ref: '#/components/schemas/PhsId'
         properties:
           type: object
-          description: Additional metadata about the dataset.
+          description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
       description: >
         A 'lite' dataset definition (used to modify supported fields of a dataset).
         Null assignments will be ignored.

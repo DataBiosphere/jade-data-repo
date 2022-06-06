@@ -81,6 +81,7 @@ if (hasProperty('buildScan')) {
     buildScan {
         termsOfServiceUrl = 'https://gradle.com/terms-of-service'
         termsOfServiceAgree = 'yes'
+        // Note: Hope to reintroduce the following functionality once we get gradle scans working again [DR-1438]
 //        publishAlways()
 //        def project = ""; def cluster = ""; def nschunk = "";
 //        if (System.getenv("NAMESPACEINUSE")) {

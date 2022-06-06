@@ -120,11 +120,9 @@ public class DatasetTable implements Table, LogPrintable {
     if (primaryKey == null || primaryKey.isEmpty()) {
       return "undefined";
     } else {
-      List<String> primaryKeyStrings =
-          primaryKey.stream()
-              .map(c -> c.getName() + "=" + columnValueFromRow(c, row))
-              .collect(Collectors.toList());
-      return String.join(",", primaryKeyStrings);
+      return primaryKey.stream()
+          .map(c -> c.getName() + "=" + columnValueFromRow(c, row))
+          .collect(Collectors.joining(","));
     }
   }
 

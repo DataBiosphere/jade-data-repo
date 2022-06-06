@@ -14,7 +14,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.cloud.storage.StorageException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.UUID;
@@ -84,18 +84,13 @@ public class ValidateBucketAccessStep implements Step {
     }
     try {
       gcsPdao.validateUserCanRead(sourcePath, projectId, userRequest);
-    } catch (Exception e) {
-      // Note: because the validateUserCanRead doesn't throw a GoogleJsonResponseException exception
-      // explicitly, we can't catch on it.  Instead, we need to do a class check
-      if (e instanceof GoogleJsonResponseException) {
-        GoogleJsonResponseException gsre = (GoogleJsonResponseException) e;
-        if (gsre.getDetails().getCode() == HttpStatus.SC_FORBIDDEN
-            && gsre.getMessage()
-                .contains(
-                    "does not have serviceusage.services.use access to the Google Cloud project.")) {
-          logger.warn("Pet service account has not propagated permissions yet", gsre);
-          return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
-        }
+    } catch (StorageException e) {
+      if (e.getCode() == HttpStatus.SC_FORBIDDEN
+          && e.getMessage()
+              .contains(
+                  "does not have serviceusage.services.use access to the Google Cloud project.")) {
+        logger.warn("Pet service account has not propagated permissions yet", e);
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
       }
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
     }

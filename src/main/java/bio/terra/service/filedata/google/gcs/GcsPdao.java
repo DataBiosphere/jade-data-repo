@@ -332,7 +332,10 @@ public class GcsPdao implements CloudFileReader {
 
   private void addPetServiceAccountToDatasetProject(
       String projectId, String petServiceAccountEmail) {
-    logger.info("Adding pet service account permissions to dataset project");
+    logger.info(
+        "Adding pet service account {} permissions to dataset project {}",
+        petServiceAccountEmail,
+        projectId);
     String petSa = String.format("serviceAccount:%s", petServiceAccountEmail);
     try {
       resourceManagerService.updateIamPermissions(

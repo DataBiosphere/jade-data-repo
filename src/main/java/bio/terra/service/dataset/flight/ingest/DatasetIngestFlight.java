@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -311,7 +312,8 @@ public class DatasetIngestFlight extends Flight {
     // Verify that the user is allowed to access the bucket where the control file lives
     addStep(
         new ValidateBucketAccessStep(
-            gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq));
+            gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq),
+        getDefaultExponentialBackoffRetryRule());
 
     // Parse the JSON file and see if there's actually any files to load.
     // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`

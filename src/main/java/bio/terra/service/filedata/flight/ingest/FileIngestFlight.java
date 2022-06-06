@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -137,7 +138,8 @@ public class FileIngestFlight extends Flight {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));
       addStep(
           new ValidateBucketAccessStep(
-              gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq));
+              gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq),
+          getDefaultExponentialBackoffRetryRule());
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
       addStep(new IngestFileDirectoryStep(fileDao, dataset), randomBackoffRetry);
       if (!dataset.isSelfHosted()) {

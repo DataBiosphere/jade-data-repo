@@ -13,11 +13,18 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ValidateBucketAccessStep implements Step {
+  private static final Logger logger = LoggerFactory.getLogger(ValidateBucketAccessStep.class);
+
   private final GcsPdao gcsPdao;
   private final AuthenticatedUserRequest userRequest;
   private final String projectId;
@@ -69,7 +76,23 @@ public class ValidateBucketAccessStep implements Step {
     } else {
       throw new IllegalArgumentException("Invalid request type");
     }
-    gcsPdao.validateUserCanRead(sourcePath, projectId, userRequest);
+    try {
+      gcsPdao.validateUserCanRead(sourcePath, projectId, userRequest);
+    } catch (Exception e) {
+      // Note: because the validateUserCanRead doesn't throw a GoogleJsonResponseException exception
+      // explicitly, we can't catch on it.  Instead, we need to do a class check
+      if (e instanceof GoogleJsonResponseException) {
+        GoogleJsonResponseException gsre = (GoogleJsonResponseException) e;
+        if (gsre.getDetails().getCode() == HttpStatus.SC_FORBIDDEN
+            && gsre.getMessage()
+                .contains(
+                    "does not have serviceusage.services.use access to the Google Cloud project.")) {
+          logger.warn("Pet service account has not propagated permissions yet", gsre);
+          return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
+        }
+      }
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
+    }
     return StepResult.getStepResultSuccess();
   }
 

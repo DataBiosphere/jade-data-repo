@@ -23,7 +23,9 @@ public abstract class OpenApiEnumConverter<T> implements Converter<String, T> {
    */
   abstract T fromValue(String source);
 
-  /** @return A specific error string for the type T. */
+  /**
+   * @return A specific error string for the type T.
+   */
   abstract String errorString();
 
   @Override

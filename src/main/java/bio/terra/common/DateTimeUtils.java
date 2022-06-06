@@ -13,7 +13,8 @@ public class DateTimeUtils {
    * @return A long
    */
   public static long toEpochMicros(Instant instant) {
-    return ChronoUnit.MICROS.between(Instant.EPOCH, instant);
+    Instant microInstant = instant.truncatedTo(ChronoUnit.MICROS);
+    return ChronoUnit.MICROS.between(Instant.EPOCH, microInstant);
   }
 
   /**
@@ -24,5 +25,10 @@ public class DateTimeUtils {
    */
   public static Instant ofEpicMicros(long epochMicros) {
     return Instant.EPOCH.plus(epochMicros, ChronoUnit.MICROS);
+  }
+
+  /** Truncates Instant to Microseconds and converts to string */
+  public static String toMicrosString(Instant instant) {
+    return instant.truncatedTo(ChronoUnit.MICROS).toString();
   }
 }

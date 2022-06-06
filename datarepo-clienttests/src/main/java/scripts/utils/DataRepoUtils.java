@@ -32,6 +32,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import javax.ws.rs.client.ClientBuilder;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.jdk.connector.JdkConnectorProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -83,6 +86,14 @@ public final class DataRepoUtils {
     apiClient.setBasePath(server.datarepoUri);
 
     apiClient.setAccessToken(userAccessToken.getTokenValue());
+
+    // Workaround for jersey bug on upgrading to Java 17
+    // Needed for PATCH endpoints
+    // More details here: https://github.com/eclipse-ee4j/jersey/issues/4825#issuecomment-925836004
+    // And in PR description: https://github.com/DataBiosphere/jade-data-repo/pull/1288
+    ClientConfig clientConfig = new ClientConfig();
+    clientConfig.connectorProvider(new JdkConnectorProvider());
+    apiClient.setHttpClient(ClientBuilder.newClient(clientConfig));
 
     apiClientsForTestUsers.put(testUser, apiClient);
     return apiClient;

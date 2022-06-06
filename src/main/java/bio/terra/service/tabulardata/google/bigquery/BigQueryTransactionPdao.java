@@ -80,7 +80,7 @@ public class BigQueryTransactionPdao {
             .lock(flightId)
             .description(transactionDescription)
             .status(TransactionModel.StatusEnum.ACTIVE)
-            .createdAt(filterBefore.toString())
+            .createdAt(DateTimeUtils.toMicrosString(filterBefore))
             .createdBy(authedUser.getEmail());
 
     bigQueryProject.query(

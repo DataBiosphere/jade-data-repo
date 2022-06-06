@@ -21,8 +21,3 @@ target
 .gradle
 build
 
-# exclude property override that allows using jar for local client build
-# To use, build the jars at the top level with ./gradlew :datarepo-client:jar then add the following to your local
-# gradle.properties as:
-# datarepoclientjar=<absolute path to repo root>/datarepo-client/build/libs/<newest file>.jar
-gradle.properties

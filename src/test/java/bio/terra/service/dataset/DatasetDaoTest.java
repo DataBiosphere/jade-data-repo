@@ -911,6 +911,21 @@ public class DatasetDaoTest {
         datasetDao.retrieve(datasetId).getProperties(),
         equalTo(updatedDatasetProperties));
 
+    DatasetPatchRequestModel patchRequestNull = new DatasetPatchRequestModel().phsId("phs123");
+    datasetDao.patch(datasetId, patchRequestNull);
+    assertThat(
+        "dataset properties is unchanged when not in request",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(updatedDatasetProperties));
+
+    DatasetPatchRequestModel patchRequestExplicitNull =
+        new DatasetPatchRequestModel().properties(null);
+    datasetDao.patch(datasetId, patchRequestExplicitNull);
+    assertThat(
+        "dataset properties is unchanged if set to null",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(updatedDatasetProperties));
+
     Object unsetDatasetProperties = jsonLoader.loadJson("{}", new TypeReference<>() {});
     DatasetPatchRequestModel patchRequestUnset =
         new DatasetPatchRequestModel().properties(unsetDatasetProperties);

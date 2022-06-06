@@ -384,7 +384,7 @@ public class DatasetDao {
             + "(name, default_profile_id, id, project_resource_id, application_resource_id, flightid, description, "
             + "secure_monitoring, phs_id, self_hosted, properties, sharedlock) "
             + "VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id, :flightid, "
-            + ":description, :secure_monitoring, :phs_id, :self_hosted, :properties, ARRAY[]::TEXT[]) ";
+            + ":description, :secure_monitoring, :phs_id, :self_hosted, cast(:properties as jsonb), ARRAY[]::TEXT[]) ";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -399,7 +399,7 @@ public class DatasetDao {
             .addValue("phs_id", dataset.getPhsId())
             .addValue("self_hosted", dataset.isSelfHosted())
             .addValue(
-                "properties", DaoUtils.propertiesToPGobject(objectMapper, dataset.getProperties()));
+                "properties", DaoUtils.propertiesToString(objectMapper, dataset.getProperties()));
 
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
@@ -682,12 +682,15 @@ public class DatasetDao {
         throw new CorruptMetadataException(
             String.format("Invalid billing profiles for dataset - id: %s", datasetId), e);
       }
-      final Object properties;
-      try {
-        properties = objectMapper.readValue(rs.getString("properties"), new TypeReference<>() {});
-      } catch (JsonProcessingException e) {
-        throw new CorruptMetadataException(
-            String.format("Invalid properties field for dataset - id: %s", datasetId), e);
+      Object properties = null;
+      String rsProperties = rs.getString("properties");
+      if (rsProperties != null) {
+        try {
+          properties = objectMapper.readValue(rsProperties, new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+          throw new CorruptMetadataException(
+              String.format("Invalid properties field for dataset - id: %s", datasetId), e);
+        }
       }
 
       boolean isAzure =
@@ -727,14 +730,14 @@ public class DatasetDao {
   public boolean patch(UUID id, DatasetPatchRequestModel patchRequest) {
     String sql =
         "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id), "
-            + "properties = COALESCE(:properties, properties) WHERE id = :id";
+            + "properties = COALESCE(cast(:properties as jsonb), properties) WHERE id = :id";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("phs_id", patchRequest.getPhsId())
             .addValue(
                 "properties",
-                DaoUtils.propertiesToPGobject(objectMapper, patchRequest.getProperties()))
+                DaoUtils.propertiesToString(objectMapper, patchRequest.getProperties()))
             .addValue("id", id);
 
     int rowsAffected = jdbcTemplate.update(sql, params);

@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.postgresql.util.PGobject;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
@@ -116,16 +115,15 @@ public final class DaoUtils {
         || ExceptionUtils.hasCause(dataAccessException, TransientDataAccessException.class);
   }
 
-  public static PGobject propertiesToPGobject(ObjectMapper objectMapper, Object properties) {
-    String datasetProperties;
-    PGobject jsonObject = new PGobject();
-    try {
-      datasetProperties = objectMapper.writeValueAsString(properties);
-      jsonObject.setType("jsonb");
-      jsonObject.setValue(datasetProperties);
-    } catch (JsonProcessingException | SQLException ex) {
-      throw new InvalidDatasetException("Invalid dataset properties: " + properties.toString(), ex);
+  public static String propertiesToString(ObjectMapper objectMapper, Object properties) {
+    if (properties != null) {
+      try {
+        return objectMapper.writeValueAsString(properties);
+      } catch (JsonProcessingException ex) {
+        throw new InvalidDatasetException("Invalid dataset properties: " + properties, ex);
+      }
+    } else {
+      return null;
     }
-    return jsonObject;
   }
 }

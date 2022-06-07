@@ -18,7 +18,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +30,6 @@ public class IngestFilePrimaryDataLocationStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
 
-  @VisibleForTesting
   public static final Set<IamRole> BUCKET_READER_ROLES =
       Set.of(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.SNAPSHOT_CREATOR);
 

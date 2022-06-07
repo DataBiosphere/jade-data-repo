@@ -1,10 +1,12 @@
 package bio.terra.service.dataset;
 
+import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateUtils;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
@@ -45,6 +47,21 @@ public class DatasetSchemaUpdateValidator implements Validator {
             "DuplicateTableNames",
             duplicateTables,
             "Cannot add multiple tables of the same name");
+      }
+    }
+    if (DatasetSchemaUpdateUtils.hasColumnAdditions(updateModel)) {
+      Object[] requiredColumns =
+          updateModel.getChanges().getAddColumns().stream()
+              .flatMap(c -> c.getColumns().stream())
+              .filter(c -> Objects.requireNonNullElse(c.isRequired(), false))
+              .map(ColumnModel::getName)
+              .toArray();
+      if (requiredColumns.length > 0) {
+        errors.rejectValue(
+            "changes.addColumns",
+            "RequiredColumns",
+            requiredColumns,
+            "Cannot add required columns to existing tables");
       }
     }
   }

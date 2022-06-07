@@ -149,4 +149,9 @@ public class DatasetTable implements Table, LogPrintable {
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());
   }
+
+  public List<String> getBigQueryTableNames() {
+    return List.of(
+        this.name, this.rawTableName, this.softDeleteTableName, this.rowMetadataTableName);
+  }
 }

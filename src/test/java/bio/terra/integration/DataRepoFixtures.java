@@ -34,6 +34,7 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
@@ -704,6 +705,28 @@ public class DataRepoFixtures {
     return dataRepoClient.get(
         user,
         String.format("/api/repository/v1/snapshots/%s/export?exportGsPaths=true", snapshotId),
+        new TypeReference<>() {});
+  }
+
+  public DatasetModel updateSchema(
+      TestConfiguration.User user, UUID datasetId, DatasetSchemaUpdateModel request)
+      throws Exception {
+    DataRepoResponse<JobModel> jobResponse = updateSchemaRaw(user, datasetId, request);
+    assertTrue("update schema succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue("update schema response is present", jobResponse.getResponseObject().isPresent());
+    DataRepoResponse<DatasetModel> updateResponse =
+        dataRepoClient.waitForResponse(user, jobResponse, new TypeReference<>() {});
+    return validateResponse(updateResponse, "update schema", HttpStatus.OK, jobResponse);
+  }
+
+  public DataRepoResponse<JobModel> updateSchemaRaw(
+      TestConfiguration.User user, UUID datasetId, DatasetSchemaUpdateModel request)
+      throws Exception {
+    String ingestBody = TestUtils.mapToJson(request);
+    return dataRepoClient.post(
+        user,
+        "/api/repository/v1/datasets/" + datasetId + "/updateSchema",
+        ingestBody,
         new TypeReference<>() {});
   }
 

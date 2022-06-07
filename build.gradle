@@ -21,14 +21,14 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.swagger:swagger-codegen:2.4.11')
+        classpath('io.swagger:swagger-codegen:2.4.27')
     }
 }
 
 plugins {
     id "com.google.cloud.tools.jib" version "3.2.0"
     id 'org.liquibase.gradle' version '2.1.1'
-    id "org.gradle.test-retry" version "1.2.0"
+    id "org.gradle.test-retry" version "1.4.0"
     id 'antlr'
     id 'com.github.spotbugs' version '4.7.1'
     id "org.hidetake.swagger.generator" version "2.18.2"
@@ -37,12 +37,12 @@ plugins {
     id "java"
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
     id "jacoco"
-    id "com.diffplug.spotless" version "5.14.0"
+    id "com.diffplug.spotless" version "6.6.1"
 }
 
 allprojects {
     group 'bio.terra'
-    version '1.353.0-SNAPSHOT'
+    version '1.357.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -56,7 +56,7 @@ allprojects {
         }
         dependencies {
             dependency group: "io.swagger.core.v3", name: "swagger-annotations", version: "2.1.5"
-            dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.22"
+            dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.34"
         }
     }
 }
@@ -72,30 +72,33 @@ subprojects.each { s ->
 
 def boolean isCiServer = System.getenv().containsKey("CI")
 
-sourceCompatibility = 11
-targetCompatibility = 11
+java {
+    sourceCompatibility = 17
+    targetCompatibility = 17
+}
 
 if (hasProperty('buildScan')) {
     buildScan {
         termsOfServiceUrl = 'https://gradle.com/terms-of-service'
         termsOfServiceAgree = 'yes'
-        publishAlways()
-        def project = ""; def cluster = ""; def nschunk = "";
-        if (System.getenv("NAMESPACEINUSE")) {
-            project = "broad-jade-integration"
-            cluster = "integration-master"
-            def ns = System.getenv("NAMESPACEINUSE")
-            nschunk = "%0Aresource.labels.namespace_name%3D%22${ns}%22%0Alabels.k8s-pod%2Fcomponent%3D%22${ns}-jade-datarepo-api%22"
-        } else {
-            project = System.getenv("GOOGLE_CLOUD_PROJECT")
-            cluster = "jade-master-us-central1"
-            nschunk = ""
-        }
-        def startTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
-        buildFinished { ->
-            def endTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
-            link "Jump to StackDriver Logs 🔗 ", "https://console.cloud.google.com/logs/viewer?interval=CUSTOM&project=${project}&folder&organizationId&minLogLevel=0&expandAll=false&customFacets=&limitCustomFacetWidth=true&scrollTimestamp=${startTest}&dateRangeStart=${startTest}&dateRangeEnd=${endTest}&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22${project}%22%0Aresource.labels.location%3D%22us-central1%22%0Aresource.labels.cluster_name%3D%22${cluster}%22${nschunk}"
-        }
+        // Note: Hope to reintroduce the following functionality once we get gradle scans working again [DR-1438]
+//        publishAlways()
+//        def project = ""; def cluster = ""; def nschunk = "";
+//        if (System.getenv("NAMESPACEINUSE")) {
+//            project = "broad-jade-integration"
+//            cluster = "integration-master"
+//            def ns = System.getenv("NAMESPACEINUSE")
+//            nschunk = "%0Aresource.labels.namespace_name%3D%22${ns}%22%0Alabels.k8s-pod%2Fcomponent%3D%22${ns}-jade-datarepo-api%22"
+//        } else {
+//            project = System.getenv("GOOGLE_CLOUD_PROJECT")
+//            cluster = "jade-master-us-central1"
+//            nschunk = ""
+//        }
+//        def startTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
+//        buildFinished { ->
+//            def endTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
+//            link "Jump to StackDriver Logs 🔗 ", "https://console.cloud.google.com/logs/viewer?interval=CUSTOM&project=${project}&folder&organizationId&minLogLevel=0&expandAll=false&customFacets=&limitCustomFacetWidth=true&scrollTimestamp=${startTest}&dateRangeStart=${startTest}&dateRangeEnd=${endTest}&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22${project}%22%0Aresource.labels.location%3D%22us-central1%22%0Aresource.labels.cluster_name%3D%22${cluster}%22${nschunk}"
+//        }
     }
 }
 
@@ -396,7 +399,7 @@ sourceSets {
         runtimeClasspath += generated.output
     }
     jacoco {
-        toolVersion '0.8.3'
+        toolVersion '0.8.7'
     }
 }
 
@@ -416,7 +419,7 @@ jib {
         paths = ['build/gen-expanded']
     }
     from {
-        image = "us.gcr.io/broad-dsp-gcr-public/base/jre:11-debian"
+        image = "us.gcr.io/broad-dsp-gcr-public/base/jre:17-debian"
     }
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())

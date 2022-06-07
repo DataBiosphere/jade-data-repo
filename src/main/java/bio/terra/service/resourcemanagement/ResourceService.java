@@ -123,11 +123,36 @@ public class ResourceService {
       String flightId,
       Callable<List<String>> getReaderGroups)
       throws InterruptedException, GoogleResourceNamingException {
+    return getOrCreateBucketForFile(
+        (GoogleRegion)
+            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+        projectResource,
+        flightId,
+        getReaderGroups);
+  }
+
+  /**
+   * Fetch/create a project, then use that to fetch/create a bucket.
+   *
+   * @param flightId used to lock the bucket metadata during possible creation
+   * @return a reference to the bucket as a POJO GoogleBucketResource
+   * @throws CorruptMetadataException in two cases.
+   *     <ul>
+   *       <li>if the bucket already exists, but the metadata does not AND the application property
+   *           allowReuseExistingBuckets=false.
+   *       <li>if the metadata exists, but the bucket does not
+   *     </ul>
+   */
+  public GoogleBucketResource getOrCreateBucketForFile(
+      GoogleRegion region,
+      GoogleProjectResource projectResource,
+      String flightId,
+      Callable<List<String>> getReaderGroups)
+      throws InterruptedException, GoogleResourceNamingException {
     return bucketService.getOrCreateBucket(
         projectService.bucketForFile(projectResource.getGoogleProjectId()),
         projectResource,
-        (GoogleRegion)
-            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+        region,
         flightId,
         null,
         getReaderGroups);

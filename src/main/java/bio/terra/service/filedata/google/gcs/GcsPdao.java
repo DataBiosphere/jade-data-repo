@@ -93,7 +93,9 @@ public class GcsPdao implements CloudFileReader {
   private static final String GCS_REQUESTER_PAYS_TARGET_ROLE =
       "roles/serviceusage.serviceUsageConsumer";
 
-  // Cache of pet service account tokens keys on a given user's actual access_token
+  private static final String PSA_SEPARATOR = "|";
+  // Cache of pet service account tokens keys on a given user's actual access_token + separator +
+  // projectid combo
   private final Map<String, Tokeninfo> petAccountTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(30, TimeUnit.MINUTES));
 
@@ -268,7 +270,7 @@ public class GcsPdao implements CloudFileReader {
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
     Tokeninfo token =
         petAccountTokens.computeIfAbsent(
-            user.getToken(),
+            String.format("%s%s%s", user.getToken(), PSA_SEPARATOR, cloudEncapsulationId),
             t -> {
               try {
                 String oauthToken = iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);

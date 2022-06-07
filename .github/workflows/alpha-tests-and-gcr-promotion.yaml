@@ -26,6 +26,7 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
+        cache: 'gradle'
     - name: "Fetch current alpha version from /configuration endpoint"
       id: configuration
       run: |

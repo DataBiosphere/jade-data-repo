@@ -57,6 +57,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.1.0
         with:

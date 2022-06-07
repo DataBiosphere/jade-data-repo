@@ -1,6 +1,20 @@
 package bio.terra.service.tabulardata.google.bigquery;
 
-import static bio.terra.common.PdaoConstant.*;
+import static bio.terra.common.PdaoConstant.PDAO_COUNT_ALIAS;
+import static bio.terra.common.PdaoConstant.PDAO_DELETED_AT_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_DELETED_BY_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_FLIGHT_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_INGESTED_BY_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS;
+import static bio.terra.common.PdaoConstant.PDAO_INGEST_TIME_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_TAG_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTIONS_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_STATUS_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_TERMINATED_AT_COLUMN;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -827,7 +841,7 @@ public class BigQueryDatasetPdao {
    *     occurrences in `targetTable` when a single match cannot be found.
    * @throws InterruptedException
    */
-  public static TableResult stagingRowsWithoutSingleTargetRowMatch(
+  public TableResult stagingRowsWithoutSingleTargetRowMatch(
       Dataset dataset, DatasetTable targetTable, String stagingTableName, UUID transactionId)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
@@ -885,7 +899,7 @@ public class BigQueryDatasetPdao {
    * @param transactionId the transaction associated with the ingest
    * @throws InterruptedException
    */
-  public static void mergeIngest(
+  public void mergeIngest(
       Dataset dataset, DatasetTable targetTable, String stagingTableName, UUID transactionId)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);

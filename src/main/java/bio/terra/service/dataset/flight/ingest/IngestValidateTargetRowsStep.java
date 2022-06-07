@@ -22,9 +22,12 @@ public class IngestValidateTargetRowsStep implements Step {
   private static final int MAX_ERROR_MISMATCHED_ROWS = 20;
   private static final Logger logger = LoggerFactory.getLogger(IngestValidateTargetRowsStep.class);
   private final DatasetService datasetService;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
-  public IngestValidateTargetRowsStep(DatasetService datasetService) {
+  public IngestValidateTargetRowsStep(
+      DatasetService datasetService, BigQueryDatasetPdao bigQueryDatasetPdao) {
     this.datasetService = datasetService;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
   }
 
   @Override
@@ -35,7 +38,7 @@ public class IngestValidateTargetRowsStep implements Step {
     UUID transactionId = TransactionUtils.getTransactionId(context);
 
     TableResult mismatchedMergeRows =
-        BigQueryDatasetPdao.stagingRowsWithoutSingleTargetRowMatch(
+        bigQueryDatasetPdao.stagingRowsWithoutSingleTargetRowMatch(
             dataset, targetTable, stagingTableName, transactionId);
     long numMismatchedMergeRows = mismatchedMergeRows.getTotalRows();
 

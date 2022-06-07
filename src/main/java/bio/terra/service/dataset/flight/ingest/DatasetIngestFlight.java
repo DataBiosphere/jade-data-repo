@@ -219,8 +219,8 @@ public class DatasetIngestFlight extends Flight {
         addStep(new IngestValidateIngestRowsStep(datasetService));
         if (mergeIngest) {
           addStep(new IngestValidatePrimaryKeyDefinedStep(datasetService));
-          addStep(new IngestValidateTargetRowsStep(datasetService));
-          addStep(new IngestMergeStagingWithTargetStep(datasetService));
+          addStep(new IngestValidateTargetRowsStep(datasetService, bigQueryDatasetPdao));
+          addStep(new IngestMergeStagingWithTargetStep(datasetService, bigQueryDatasetPdao));
         }
         // Soft deletes rows from the target table
         addStep(

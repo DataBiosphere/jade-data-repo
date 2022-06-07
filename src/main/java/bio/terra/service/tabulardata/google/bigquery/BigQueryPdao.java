@@ -1,6 +1,8 @@
 package bio.terra.service.tabulardata.google.bigquery;
 
-import static bio.terra.common.PdaoConstant.*;
+import static bio.terra.common.PdaoConstant.PDAO_COUNT_ALIAS;
+import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;

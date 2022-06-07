@@ -16,9 +16,12 @@ public class IngestMergeStagingWithTargetStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(IngestMergeStagingWithTargetStep.class);
   private final DatasetService datasetService;
+  private final BigQueryDatasetPdao bigQueryDatasetPdao;
 
-  public IngestMergeStagingWithTargetStep(DatasetService datasetService) {
+  public IngestMergeStagingWithTargetStep(
+      DatasetService datasetService, BigQueryDatasetPdao bigQueryDatasetPdao) {
     this.datasetService = datasetService;
+    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
   }
 
   @Override
@@ -28,7 +31,7 @@ public class IngestMergeStagingWithTargetStep implements Step {
     String stagingTableName = IngestUtils.getStagingTableName(context);
     UUID transactionId = TransactionUtils.getTransactionId(context);
 
-    BigQueryDatasetPdao.mergeIngest(dataset, targetTable, stagingTableName, transactionId);
+    bigQueryDatasetPdao.mergeIngest(dataset, targetTable, stagingTableName, transactionId);
 
     return StepResult.getStepResultSuccess();
   }

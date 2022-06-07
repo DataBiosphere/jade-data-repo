@@ -16,6 +16,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
+import bio.terra.service.auth.oauth2.GoogleOauthUtils;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -29,6 +30,9 @@ import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
+import com.google.api.services.oauth2.model.Tokeninfo;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.cloud.storage.Acl;
@@ -38,6 +42,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BucketSourceOption;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
@@ -49,9 +54,11 @@ import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -75,12 +82,21 @@ import org.springframework.stereotype.Component;
 public class GcsPdao implements CloudFileReader {
   private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
 
+  private static final String TOKEN_FIELD = "token";
+
   private static final List<String> GCS_VERIFICATION_SCOPES =
       List.of(
           "openid", "email", "profile", "https://www.googleapis.com/auth/devstorage.full_control");
 
-  // Cache of pet service account tokens keys on a given user's actual access_token
-  private final Map<String, String> petAccountTokens =
+  private static final String GCS_SOURCE_BUCKET_REQUIRED_PERMISSION = "storage.objects.get";
+
+  private static final String GCS_REQUESTER_PAYS_TARGET_ROLE =
+      "roles/serviceusage.serviceUsageConsumer";
+
+  private static final String PSA_SEPARATOR = "|";
+  // Cache of pet service account tokens keys on a given user's actual access_token + separator +
+  // projectid combo
+  private final Map<String, Tokeninfo> petAccountTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(30, TimeUnit.MINUTES));
 
   private final GcsProjectFactory gcsProjectFactory;
@@ -91,6 +107,7 @@ public class GcsPdao implements CloudFileReader {
   private final PerformanceLogger performanceLogger;
   private final IamProviderInterface iamClient;
   private final Environment environment;
+  private final GoogleResourceManagerService resourceManagerService;
 
   @Autowired
   public GcsPdao(
@@ -101,7 +118,8 @@ public class GcsPdao implements CloudFileReader {
       @Qualifier("performanceThreadpool") ExecutorService executor,
       PerformanceLogger performanceLogger,
       IamProviderInterface iamClient,
-      Environment environment) {
+      Environment environment,
+      GoogleResourceManagerService resourceManagerService) {
     this.gcsProjectFactory = gcsProjectFactory;
     this.resourceService = resourceService;
     this.fileDao = fileDao;
@@ -110,6 +128,7 @@ public class GcsPdao implements CloudFileReader {
     this.performanceLogger = performanceLogger;
     this.iamClient = iamClient;
     this.environment = environment;
+    this.resourceManagerService = resourceManagerService;
   }
 
   public Storage storageForBucket(GoogleBucketResource bucketResource) {
@@ -235,23 +254,30 @@ public class GcsPdao implements CloudFileReader {
    * read permissions
    *
    * @param sourcePaths A list of gs:// formatted paths
-   * @param user An authenticed user
+   * @param cloudEncapsulationId The dataset project to bill to if any of the source buckets are
+   *     configured to use requester pays
+   * @param user An authenticated user
    * @throws BlobAccessNotAuthorizedException if the user does not have an authorized pet
    * @throws IllegalArgumentException if the source path is not a valid blob url
    */
-  public void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user) {
+  public void validateUserCanRead(
+      List<String> sourcePaths, String cloudEncapsulationId, AuthenticatedUserRequest user) {
     // If the connected profile is used, skip this check since we don't specify users when mocking
     // requests
     if (List.of(environment.getActiveProfiles()).contains("connectedtest")) {
       return;
     }
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
-    String token =
+    Tokeninfo token =
         petAccountTokens.computeIfAbsent(
-            user.getToken(),
+            String.format("%s%s%s", user.getToken(), PSA_SEPARATOR, cloudEncapsulationId),
             t -> {
               try {
-                return iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
+                String oauthToken = iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
+                Tokeninfo tokeninfo =
+                    GoogleOauthUtils.getOauth2TokenInfo(oauthToken).set(TOKEN_FIELD, oauthToken);
+                addPetServiceAccountToDatasetProject(cloudEncapsulationId, tokeninfo.getEmail());
+                return tokeninfo;
               } catch (InterruptedException e) {
                 throw new PdaoException("Error obtaining a pet service account token");
               } catch (IamUnauthorizedException e) {
@@ -266,7 +292,11 @@ public class GcsPdao implements CloudFileReader {
 
     Storage storageAsPet =
         StorageOptions.newBuilder()
-            .setCredentials(OAuth2Credentials.create(new AccessToken(token, null)))
+            .setCredentials(
+                OAuth2Credentials.create(
+                    new AccessToken(
+                        token.get(TOKEN_FIELD).toString(),
+                        Date.from(Instant.now().plusSeconds(token.getExpiresIn())))))
             .build()
             .getService();
 
@@ -275,9 +305,15 @@ public class GcsPdao implements CloudFileReader {
             .map(GcsUriUtils::parseBlobUri)
             .map(BlobId::getBucket)
             .collect(Collectors.toSet());
+    BucketSourceOption[] options =
+        Optional.ofNullable(cloudEncapsulationId)
+            .map(p -> new BucketSourceOption[] {BucketSourceOption.userProject(p)})
+            .orElseGet(() -> new BucketSourceOption[0]);
+
     for (String bucket : buckets) {
       List<Boolean> permissions =
-          storageAsPet.testIamPermissions(bucket, List.of("storage.objects.get"));
+          storageAsPet.testIamPermissions(
+              bucket, List.of(GCS_SOURCE_BUCKET_REQUIRED_PERMISSION), options);
 
       if (!permissions.equals(List.of(true))) {
         String proxyGroup;
@@ -293,6 +329,23 @@ public class GcsPdao implements CloudFileReader {
                 "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group (%s)",
                 bucket, user.getEmail(), proxyGroup));
       }
+    }
+  }
+
+  private void addPetServiceAccountToDatasetProject(
+      String projectId, String petServiceAccountEmail) {
+    logger.info(
+        "Adding pet service account {} permissions to dataset project {}",
+        petServiceAccountEmail,
+        projectId);
+    String petSa = String.format("serviceAccount:%s", petServiceAccountEmail);
+    try {
+      resourceManagerService.updateIamPermissions(
+          Map.of(GCS_REQUESTER_PAYS_TARGET_ROLE, List.of(petSa)),
+          projectId,
+          PermissionOp.ENABLE_PERMISSIONS);
+    } catch (InterruptedException e) {
+      throw new PdaoException("Error adding pet service account to dataset project", e);
     }
   }
 

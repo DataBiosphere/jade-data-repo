@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.datadelete;
 
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -64,7 +65,10 @@ public class DatasetDataDeleteFlight extends Flight {
             iamClient, IamResourceType.DATASET, datasetId, IamAction.SOFT_DELETE));
 
     if (request.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
-      addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
+      addStep(
+          new ValidateBucketAccessStep(
+              gcsPdao, UUID.fromString(datasetId), datasetService, userReq),
+          getDefaultExponentialBackoffRetryRule());
     }
 
     // need to lock, need dataset name and flight id

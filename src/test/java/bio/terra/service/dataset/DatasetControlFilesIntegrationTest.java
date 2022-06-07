@@ -327,4 +327,53 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
     dataRepoFixtures.deleteDataset(steward(), datasetId);
   }
+
+  @Test
+  public void interactionsFromRequesterPaysBucket() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    UUID datasetId = datasetSummaryModel.getId();
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(
+                "gs://jade_testbucket_requester_pays/dataset-ingest-combined-control-duplicates-array.json");
+
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
+
+    assertThat(
+        "All 4 rows were ingested, including the one with duplicate files",
+        ingestResponse.getRowCount(),
+        equalTo(4L));
+
+    // Soft delete from file
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+    List<String> rowIds = DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample_vcf", 4L);
+    String rowIdsPath =
+        DatasetIntegrationTest.writeListToScratch(
+            "jade_testbucket_requester_pays",
+            "softDel",
+            rowIds.subList(0, 2),
+            dataset.getDataProject());
+
+    // build the deletion request with pointers to the two files with row ids to soft delete
+    List<DataDeletionTableModel> dataDeletionTableModels =
+        List.of(DatasetIntegrationTest.deletionTableFile("sample_vcf", rowIdsPath));
+    DataDeletionRequest request =
+        DatasetIntegrationTest.dataDeletionRequest().tables(dataDeletionTableModels);
+
+    // send off the soft delete request
+    dataRepoFixtures.deleteData(steward(), datasetId, request);
+
+    // We should only see 2 records now
+    DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample_vcf", 2L);
+  }
 }

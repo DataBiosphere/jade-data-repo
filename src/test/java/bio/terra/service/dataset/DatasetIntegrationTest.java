@@ -44,6 +44,7 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BlobWriteOption;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
 import java.io.IOException;
@@ -54,6 +55,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -408,10 +410,20 @@ public class DatasetIntegrationTest extends UsersBase {
 
   static String writeListToScratch(String bucket, String prefix, List<String> contents)
       throws IOException {
+    return writeListToScratch(bucket, prefix, contents, null);
+  }
+
+  static String writeListToScratch(
+      String bucket, String prefix, List<String> contents, String userProject) throws IOException {
     Storage storage = StorageOptions.getDefaultInstance().getService();
     String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID() + ".csv";
     BlobInfo blob = BlobInfo.newBuilder(bucket, targetPath).build();
-    try (WriteChannel writer = storage.writer(blob)) {
+    BlobWriteOption[] options =
+        Optional.ofNullable(userProject)
+            .map(p -> new BlobWriteOption[] {BlobWriteOption.userProject(p)})
+            .orElseGet(() -> new BlobWriteOption[0]);
+
+    try (WriteChannel writer = storage.writer(blob, options)) {
       for (String line : contents) {
         writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
       }

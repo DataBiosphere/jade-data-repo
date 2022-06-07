@@ -77,33 +77,44 @@ java {
     targetCompatibility = 17
 }
 
-if (hasProperty('buildScan')) {
+gradleEnterprise {
     buildScan {
         termsOfServiceUrl = 'https://gradle.com/terms-of-service'
         termsOfServiceAgree = 'yes'
         // Probably want to only set to false for CI runs, as suggested in documentation
         // https://docs.gradle.com/enterprise/gradle-plugin/#configuring_background_uploading
         uploadInBackground = false
-        // Note: Hope to reintroduce the following functionality once we get gradle scans working again [DR-1438]
-//        publishAlways()
-//        def project = ""; def cluster = ""; def nschunk = "";
-//        if (System.getenv("NAMESPACEINUSE")) {
-//            project = "broad-jade-integration"
-//            cluster = "integration-master"
-//            def ns = System.getenv("NAMESPACEINUSE")
-//            nschunk = "%0Aresource.labels.namespace_name%3D%22${ns}%22%0Alabels.k8s-pod%2Fcomponent%3D%22${ns}-jade-datarepo-api%22"
-//        } else {
-//            project = System.getenv("GOOGLE_CLOUD_PROJECT")
-//            cluster = "jade-master-us-central1"
-//            nschunk = ""
-//        }
-//        def startTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
-//        buildFinished { ->
-//            def endTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
-//            link "Jump to StackDriver Logs 🔗 ", "https://console.cloud.google.com/logs/viewer?interval=CUSTOM&project=${project}&folder&organizationId&minLogLevel=0&expandAll=false&customFacets=&limitCustomFacetWidth=true&scrollTimestamp=${startTest}&dateRangeStart=${startTest}&dateRangeEnd=${endTest}&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22${project}%22%0Aresource.labels.location%3D%22us-central1%22%0Aresource.labels.cluster_name%3D%22${cluster}%22${nschunk}"
-//        }
+        publishAlways()
     }
 }
+
+//if (hasProperty('buildScan')) {
+//    buildScan {
+//        termsOfServiceUrl = 'https://gradle.com/terms-of-service'
+//        termsOfServiceAgree = 'yes'
+//        // Probably want to only set to false for CI runs, as suggested in documentation
+//        // https://docs.gradle.com/enterprise/gradle-plugin/#configuring_background_uploading
+//        uploadInBackground = false
+//        // Note: Hope to reintroduce the following functionality once we get gradle scans working again [DR-1438]
+////        publishAlways()
+////        def project = ""; def cluster = ""; def nschunk = "";
+////        if (System.getenv("NAMESPACEINUSE")) {
+////            project = "broad-jade-integration"
+////            cluster = "integration-master"
+////            def ns = System.getenv("NAMESPACEINUSE")
+////            nschunk = "%0Aresource.labels.namespace_name%3D%22${ns}%22%0Alabels.k8s-pod%2Fcomponent%3D%22${ns}-jade-datarepo-api%22"
+////        } else {
+////            project = System.getenv("GOOGLE_CLOUD_PROJECT")
+////            cluster = "jade-master-us-central1"
+////            nschunk = ""
+////        }
+////        def startTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
+////        buildFinished { ->
+////            def endTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
+////            link "Jump to StackDriver Logs 🔗 ", "https://console.cloud.google.com/logs/viewer?interval=CUSTOM&project=${project}&folder&organizationId&minLogLevel=0&expandAll=false&customFacets=&limitCustomFacetWidth=true&scrollTimestamp=${startTest}&dateRangeStart=${startTest}&dateRangeEnd=${endTest}&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22${project}%22%0Aresource.labels.location%3D%22us-central1%22%0Aresource.labels.cluster_name%3D%22${cluster}%22${nschunk}"
+////        }
+//    }
+//}
 
 spotbugs {
     effort = 'max'

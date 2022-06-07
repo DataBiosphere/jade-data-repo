@@ -354,7 +354,7 @@ public class IngestTest extends UsersBase {
 
     IngestRequestModel mergeIngestRequest =
         dataRepoFixtures
-            .buildSimpleIngest("sample", "ingest-test/ingest-test-sample-merge.json")
+            .buildSimpleIngest("sample", "ingest-test/merge/ingest-test-sample-merge.json")
             .updateStrategy(UpdateStrategyEnum.MERGE);
     IngestResponseModel mergeIngestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, mergeIngestRequest);
@@ -404,7 +404,7 @@ public class IngestTest extends UsersBase {
     // Updating the same row again via merge ingest should succeed
     IngestRequestModel mergeAgainIngestRequest =
         dataRepoFixtures
-            .buildSimpleIngest("sample", "ingest-test/ingest-test-sample-merge-again.json")
+            .buildSimpleIngest("sample", "ingest-test/merge/ingest-test-sample-merge-again.json")
             .updateStrategy(UpdateStrategyEnum.MERGE);
     IngestResponseModel mergeAgainIngestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, mergeAgainIngestRequest);
@@ -471,7 +471,8 @@ public class IngestTest extends UsersBase {
 
     IngestRequestModel mergeIngestRequest =
         dataRepoFixtures
-            .buildSimpleIngest("sample", "ingest-test/ingest-test-sample-merge-missing-pks.json")
+            .buildSimpleIngest(
+                "sample", "ingest-test/merge/ingest-test-sample-merge-missing-pks.json")
             .updateStrategy(UpdateStrategyEnum.MERGE);
     DataRepoResponse<JobModel> mergeIngestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);
@@ -500,7 +501,8 @@ public class IngestTest extends UsersBase {
 
     IngestRequestModel mergeIngestRequest =
         dataRepoFixtures
-            .buildSimpleIngest("sample", "ingest-test/ingest-test-sample-merge-duplicate-pks.json")
+            .buildSimpleIngest(
+                "sample", "ingest-test/merge/ingest-test-sample-merge-duplicate-pks.json")
             .updateStrategy(UpdateStrategyEnum.MERGE);
     DataRepoResponse<JobModel> mergeIngestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);
@@ -539,7 +541,7 @@ public class IngestTest extends UsersBase {
     IngestRequestModel mergeIngestRequest =
         dataRepoFixtures
             .buildSimpleIngest(
-                "participant", "ingest-test/ingest-test-participant-merge-mismatched.json")
+                "participant", "ingest-test/merge/ingest-test-participant-merge-mismatched.json")
             .updateStrategy(UpdateStrategyEnum.MERGE);
     DataRepoResponse<JobModel> mergeIngestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);

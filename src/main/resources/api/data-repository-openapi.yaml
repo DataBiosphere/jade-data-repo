@@ -3399,6 +3399,9 @@ components:
           type: boolean
           default: false
           description: denotes whether data files in the dataset are self-hosted or not
+        properties:
+          type: object
+          description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -3469,6 +3472,9 @@ components:
           default: false
           description: Create the dataset in self-hosted mode, where TDR does not ingest files, but rather points to
             files in their original location.
+        properties:
+          type: object
+          description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     DatasetPatchRequestModel:
@@ -3476,6 +3482,9 @@ components:
       properties:
         phsId:
           $ref: '#/components/schemas/PhsId'
+        properties:
+          type: object
+          description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
       description: >
         A 'lite' dataset definition (used to modify supported fields of a dataset).
         Null assignments will be ignored.
@@ -3483,7 +3492,7 @@ components:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, DATA_PROJECT, STORAGE ]
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE ]
     EnumerateDatasetModel:
       type: object
       properties:

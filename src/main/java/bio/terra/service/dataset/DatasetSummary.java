@@ -32,6 +32,7 @@ public class DatasetSummary {
   private String storageAccount;
   private String phsId;
   private boolean selfHosted;
+  private Object properties;
 
   public UUID getId() {
     return id;
@@ -209,6 +210,15 @@ public class DatasetSummary {
 
   public DatasetSummary selfHosted(boolean selfHosted) {
     this.selfHosted = selfHosted;
+    return this;
+  }
+
+  public Object getProperties() {
+    return properties;
+  }
+
+  public DatasetSummary properties(Object properties) {
+    this.properties = properties;
     return this;
   }
 

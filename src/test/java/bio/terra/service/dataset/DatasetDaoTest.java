@@ -40,6 +40,7 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -875,6 +876,64 @@ public class DatasetDaoTest {
         datasetDao.retrieve(datasetId).getPhsId(),
         equalTo(""));
 
+    datasetDao.delete(datasetId);
+  }
+
+  @Test
+  public void createDatasetWithProperties() throws Exception {
+    DatasetRequestModel request =
+        jsonLoader.loadObject("dataset-create-with-properties.json", DatasetRequestModel.class);
+    String expectedName = request.getName() + UUID.randomUUID().toString();
+    UUID datasetId = createDataset(request, expectedName, null);
+    assertThat(
+        "dataset properties are set",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(request.getProperties()));
+    datasetDao.delete(datasetId);
+  }
+
+  @Test
+  public void patchDatasetProperties() throws Exception {
+    UUID datasetId = createDataset("dataset-create-test.json");
+    assertThat(
+        "dataset properties is null before patch",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(null));
+
+    String updatedProperties = "{\"projectName\":\"updatedProject\"}";
+    Object updatedDatasetProperties =
+        jsonLoader.loadJson(updatedProperties, new TypeReference<>() {});
+    DatasetPatchRequestModel patchRequestSet =
+        new DatasetPatchRequestModel().properties(updatedDatasetProperties);
+    datasetDao.patch(datasetId, patchRequestSet);
+    assertThat(
+        "dataset properties is set from patch",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(updatedDatasetProperties));
+
+    DatasetPatchRequestModel patchRequestNull = new DatasetPatchRequestModel().phsId("phs123");
+    datasetDao.patch(datasetId, patchRequestNull);
+    assertThat(
+        "dataset properties is unchanged when not in request",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(updatedDatasetProperties));
+
+    DatasetPatchRequestModel patchRequestExplicitNull =
+        new DatasetPatchRequestModel().properties(null);
+    datasetDao.patch(datasetId, patchRequestExplicitNull);
+    assertThat(
+        "dataset properties is unchanged if set to null",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(updatedDatasetProperties));
+
+    Object unsetDatasetProperties = jsonLoader.loadJson("{}", new TypeReference<>() {});
+    DatasetPatchRequestModel patchRequestUnset =
+        new DatasetPatchRequestModel().properties(unsetDatasetProperties);
+    datasetDao.patch(datasetId, patchRequestUnset);
+    assertThat(
+        "dataset properties is set to empty",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(unsetDatasetProperties));
     datasetDao.delete(datasetId);
   }
 }

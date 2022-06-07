@@ -66,7 +66,8 @@ public class DatasetDao {
 
   private static final String summaryQueryColumns =
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
-          + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, created_date, ";
+          + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, "
+          + "properties, created_date, ";
 
   private static final String summaryCloudPlatformQuery =
       "(SELECT pr.google_project_id "
@@ -371,7 +372,6 @@ public class DatasetDao {
    *
    * @param dataset the dataset object to create
    * @return the id of the new dataset
-   * @throws SQLException
    * @throws IOException
    * @throws InvalidDatasetException if a row already exists with this dataset name
    */
@@ -382,9 +382,9 @@ public class DatasetDao {
     String sql =
         "INSERT INTO dataset "
             + "(name, default_profile_id, id, project_resource_id, application_resource_id, flightid, description, "
-            + "secure_monitoring, phs_id, self_hosted, sharedlock) "
+            + "secure_monitoring, phs_id, self_hosted, properties, sharedlock) "
             + "VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id, :flightid, "
-            + ":description, :secure_monitoring, :phs_id, :self_hosted, ARRAY[]::TEXT[]) ";
+            + ":description, :secure_monitoring, :phs_id, :self_hosted, cast(:properties as jsonb), ARRAY[]::TEXT[]) ";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -397,7 +397,10 @@ public class DatasetDao {
             .addValue("description", dataset.getDescription())
             .addValue("secure_monitoring", dataset.isSecureMonitoringEnabled())
             .addValue("phs_id", dataset.getPhsId())
-            .addValue("self_hosted", dataset.isSelfHosted());
+            .addValue("self_hosted", dataset.isSelfHosted())
+            .addValue(
+                "properties", DaoUtils.propertiesToString(objectMapper, dataset.getProperties()));
+
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
       jdbcTemplate.update(sql, params, keyHolder);
@@ -679,6 +682,16 @@ public class DatasetDao {
         throw new CorruptMetadataException(
             String.format("Invalid billing profiles for dataset - id: %s", datasetId), e);
       }
+      Object properties = null;
+      String rsProperties = rs.getString("properties");
+      if (rsProperties != null) {
+        try {
+          properties = objectMapper.readValue(rsProperties, new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+          throw new CorruptMetadataException(
+              String.format("Invalid properties field for dataset - id: %s", datasetId), e);
+        }
+      }
 
       boolean isAzure =
           storageResources.stream().anyMatch(sr -> sr.getCloudPlatform() == CloudPlatform.AZURE);
@@ -700,7 +713,8 @@ public class DatasetDao {
           .dataProject(rs.getString("google_project_id"))
           .storageAccount(rs.getString("storage_account_name"))
           .phsId(rs.getString("phs_id"))
-          .selfHosted(rs.getBoolean("self_hosted"));
+          .selfHosted(rs.getBoolean("self_hosted"))
+          .properties(properties);
     }
   }
 
@@ -714,10 +728,17 @@ public class DatasetDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean patch(UUID id, DatasetPatchRequestModel patchRequest) {
-    String sql = "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id) WHERE id = :id";
+    String sql =
+        "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id), "
+            + "properties = COALESCE(cast(:properties as jsonb), properties) WHERE id = :id";
 
     MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("phs_id", patchRequest.getPhsId()).addValue("id", id);
+        new MapSqlParameterSource()
+            .addValue("phs_id", patchRequest.getPhsId())
+            .addValue(
+                "properties",
+                DaoUtils.propertiesToString(objectMapper, patchRequest.getProperties()))
+            .addValue("id", id);
 
     int rowsAffected = jdbcTemplate.update(sql, params);
     boolean patchSucceeded = (rowsAffected == 1);

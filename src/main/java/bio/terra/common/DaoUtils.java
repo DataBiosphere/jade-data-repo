@@ -3,6 +3,7 @@ package bio.terra.common;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -112,5 +113,17 @@ public final class DaoUtils {
   public static boolean retryQuery(DataAccessException dataAccessException) {
     return ExceptionUtils.hasCause(dataAccessException, RecoverableDataAccessException.class)
         || ExceptionUtils.hasCause(dataAccessException, TransientDataAccessException.class);
+  }
+
+  public static String propertiesToString(ObjectMapper objectMapper, Object properties) {
+    if (properties != null) {
+      try {
+        return objectMapper.writeValueAsString(properties);
+      } catch (JsonProcessingException ex) {
+        throw new InvalidDatasetException("Invalid dataset properties: " + properties, ex);
+      }
+    } else {
+      return null;
+    }
   }
 }

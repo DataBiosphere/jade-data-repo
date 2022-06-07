@@ -1,0 +1,24 @@
+{
+  "name": "DatasetWithProperties",
+  "description": "This is a sample dataset definition with properties",
+  "defaultProfileId": "deadbeef-face-cafe-bead-0ddba11deed5",
+  "schema": {
+    "tables": [
+      {
+        "name":    "participant",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "age", "datatype": "integer"}
+        ]
+      }
+    ]
+  },
+  "properties": {
+    "projectId": "projectId",
+    "authors": ["harry", "ron", "hermionie"],
+    "samples": {
+      "count": 1000,
+      "species": "human"
+    }
+  }
+}

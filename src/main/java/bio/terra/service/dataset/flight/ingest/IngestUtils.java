@@ -42,6 +42,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // Common code for the ingest steps
 public final class IngestUtils {
@@ -56,6 +58,8 @@ public final class IngestUtils {
   private static final String SCRATCH_DATA_SOURCE_PREFIX = "scratch_data_source_";
   private static final String INGEST_TABLE_NAME_PREFIX = "ingest_";
   private static final String SCRATCH_TABLE_NAME_PREFIX = "scratch_";
+
+  private static final Logger logger = LoggerFactory.getLogger(IngestUtils.class);
 
   private IngestUtils() {}
 
@@ -429,10 +433,17 @@ public final class IngestUtils {
     FlightMap workingMap = context.getWorkingMap();
     GoogleBucketResource bucketResource =
         FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
-    IngestRequestModel ingestRequestModel =
-        context.getInputParameters().get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
-    String pathToLandingFile = ingestRequestModel.getPath();
-    gcsPdao.deleteFileByGspath(pathToLandingFile, bucketResource.projectIdForBucket());
+    if (bucketResource != null) {
+      IngestRequestModel ingestRequestModel =
+          context
+              .getInputParameters()
+              .get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
+      String pathToLandingFile = ingestRequestModel.getPath();
+      gcsPdao.deleteFileByGspath(pathToLandingFile, bucketResource.projectIdForBucket());
+    } else {
+      // Occurs when there is an "array" combined ingest
+      logger.info("No scratch bucket to delete");
+    }
   }
 
   public static void validateBulkLoadFileModel(BulkLoadFileModel loadFile) {

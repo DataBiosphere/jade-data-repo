@@ -17,12 +17,6 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     steps:
-      - name: "Setup Java 17"
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
       - name: "Fetch latest semantic version from data-repo dev"
         id: "read_property"
         run: |
@@ -39,6 +33,12 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
+      - name: "Setup Java 17"
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
       - name: "Import Vault perf secrets"
         uses: hashicorp/vault-action@v2.1.0
         with:

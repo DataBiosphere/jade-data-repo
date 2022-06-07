@@ -21,6 +21,11 @@ jobs:
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
+    - name: "Setup Java 17"
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
     - name: "Fetch current alpha version from /configuration endpoint"
       id: configuration
       run: |

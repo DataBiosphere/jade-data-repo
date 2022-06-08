@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.hasSize;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
@@ -21,8 +22,10 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.BigQuery;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -46,6 +49,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
   @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private JsonLoader jsonLoader;
   @Autowired private TestConfiguration testConfiguration;
   @Rule @Autowired public TestJobWatcher testWatcher;
 
@@ -220,6 +224,30 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         "The number of error messages should be 5 (the max) + 1 to note the error messages have been truncated.",
         errorModel.getErrorDetail(),
         hasSize(6));
+  }
+
+  @Test
+  public void testDirectIngestSourcePathAuth() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
+    UUID datasetId = datasetSummaryModel.getId();
+    Map<String, Object> data =
+        jsonLoader.loadObject("test-direct-ingest-auth.json", new TypeReference<>() {});
+    IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("sample_vcf", List.of(data));
+    DataRepoResponse<IngestResponseModel> ingestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, request);
+
+    assertThat(
+        "The ingest fails if there are any errors accessing the source path(s)",
+        ingestResponse.getErrorObject().isPresent(),
+        is(true));
+
+    ErrorModel errorModel = ingestResponse.getErrorObject().get();
+
+    assertThat(
+        "The source bucket does not exist.",
+        errorModel.getErrorDetail().get(0),
+        containsString("The specified bucket does not exist"));
   }
 
   @Test

@@ -30,8 +30,10 @@ public class IngestValidatePrimaryKeyDefinedStep implements Step {
       IngestRequestModel.UpdateStrategyEnum updateStrategy =
           IngestUtils.getIngestRequestModel(context).getUpdateStrategy();
       throw new InvalidIngestPrimaryKeyRequiredException(
-          "Target table must have primary key defined.",
-          List.of("Update strategy = " + updateStrategy));
+          "Cannot ingest to a table without a primary key defined.",
+          List.of(
+              "Please recreate your table with a defined primary key.",
+              "Update strategy = " + updateStrategy));
     }
 
     return StepResult.getStepResultSuccess();

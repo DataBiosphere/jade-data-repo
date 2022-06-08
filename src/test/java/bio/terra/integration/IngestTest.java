@@ -459,7 +459,7 @@ public class IngestTest extends UsersBase {
     assertThat(
         "failure is explained",
         mergeIngestResponse.getErrorObject().get().getMessage(),
-        equalTo("Target table must have primary key defined."));
+        equalTo("Cannot ingest to a table without a primary key defined."));
   }
 
   @Test

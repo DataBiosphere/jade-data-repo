@@ -382,7 +382,7 @@ public class IngestTest extends UsersBase {
 
     List<Map<String, Object>> dataPostMerge =
         jsonLoader.loadObjectAsStream(
-            "ingest-test-sample-merge-expected.json", new TypeReference<>() {});
+            "ingest-test/merge/ingest-test-sample-merge-expected.json", new TypeReference<>() {});
     List<Map<String, Object>> dataOriginal =
         jsonLoader.loadObjectAsStream("ingest-test-sample.json", new TypeReference<>() {});
 
@@ -422,7 +422,8 @@ public class IngestTest extends UsersBase {
 
     List<Map<String, Object>> dataPostMergeAgain =
         jsonLoader.loadObjectAsStream(
-            "ingest-test-sample-merge-again-expected.json", new TypeReference<>() {});
+            "ingest-test/merge/ingest-test-sample-merge-again-expected.json",
+            new TypeReference<>() {});
 
     assertThat(
         "Only specified records and fields updated by second merge ingest",

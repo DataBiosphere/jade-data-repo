@@ -1,6 +1,9 @@
 package bio.terra.service.auth.iam;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -9,9 +12,13 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -95,5 +102,36 @@ public class IamServiceTest {
             eq(policyName),
             eq(email));
     assertEquals(policyModel, result);
+  }
+
+  @Test
+  public void testVerifyAuthorizations() throws Exception {
+    IamResourceType resourceType = IamResourceType.DATASET;
+    String id = ID.toString();
+
+    List<IamAction> hasActions = List.of(IamAction.MANAGE_SCHEMA, IamAction.READ_DATA);
+    when(iamProvider.listActions(eq(authenticatedUserRequest), eq(resourceType), eq(id)))
+        .thenReturn(hasActions.stream().map(IamAction::toString).collect(Collectors.toList()));
+
+    // Checking authorizations for actions associated with the caller should not throw.
+    iamService.verifyAuthorizations(authenticatedUserRequest, resourceType, id, List.of());
+    iamService.verifyAuthorizations(authenticatedUserRequest, resourceType, id, hasActions);
+
+    List<IamAction> missingActions = List.of(IamAction.UPDATE_PASSPORT_IDENTIFIER);
+    List<IamAction> requiredActions = new ArrayList<>();
+    requiredActions.addAll(hasActions);
+    requiredActions.addAll(missingActions);
+
+    Throwable thrown =
+        assertThrows(
+            IamForbiddenException.class,
+            () ->
+                iamService.verifyAuthorizations(
+                    authenticatedUserRequest, resourceType, id, requiredActions),
+            "Authorization verification throws if the caller is missing a required action");
+    assertThat(
+        "Error message contains missing actions",
+        thrown.getMessage(),
+        containsString(missingActions.toString()));
   }
 }

@@ -12,12 +12,14 @@ import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.configuration.ConfigurationService;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,6 +148,36 @@ public class IamService {
   public Map<UUID, Set<IamRole>> listAuthorizedResources(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType) {
     return callProvider(() -> iamProvider.listAuthorizedResources(userReq, iamResourceType));
+  }
+
+  /**
+   * Note: calling this method will trigger a call to SAM API. No cache backs it. If calling,
+   * consider whether new usage patterns necessitate refactoring to add a cache.
+   *
+   * @param userReq authenticated user
+   * @param iamResourceType resource type; e.g. dataset
+   * @param resourceId UUID identifying a resource
+   * @param actions required
+   * @throws IamForbiddenException if the user is missing any `actions` on the resource
+   */
+  public void verifyAuthorizations(
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      String resourceId,
+      List<IamAction> actions)
+      throws IamForbiddenException {
+    String userEmail = userReq.getEmail();
+    List<IamAction> availableActions =
+        callProvider(() -> iamProvider.listActions(userReq, iamResourceType, resourceId)).stream()
+            .map(IamAction::fromValue)
+            .collect(Collectors.toList());
+
+    List<IamAction> unavailableActions = new ArrayList<>(actions);
+    unavailableActions.removeAll(availableActions);
+    if (!unavailableActions.isEmpty()) {
+      throw new IamForbiddenException(
+          "User '" + userEmail + "' does not have required action(s): " + unavailableActions);
+    }
   }
 
   /**

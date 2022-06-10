@@ -68,7 +68,7 @@ public interface IamProviderInterface {
    * @param resourceId resource in question
    * @return the user's available actions on that resource
    */
-  List<String> listActions(
+  Set<IamAction> listActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws InterruptedException;
 

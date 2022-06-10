@@ -56,6 +56,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -143,9 +144,8 @@ public class SnapshotService {
    * @param patchRequest updates to merge with an existing snapshot
    * @return IAM actions needed to apply the requested patch
    */
-  public List<IamAction> patchSnapshotIamActions(SnapshotPatchRequestModel patchRequest) {
-    List<IamAction> actions = new ArrayList<>();
-    actions.add(IamAction.UPDATE_SNAPSHOT);
+  public Set<IamAction> patchSnapshotIamActions(SnapshotPatchRequestModel patchRequest) {
+    Set<IamAction> actions = EnumSet.of(IamAction.UPDATE_SNAPSHOT);
     if (patchRequest.getConsentCode() != null) {
       actions.add(IamAction.UPDATE_PASSPORT_IDENTIFIER);
     }

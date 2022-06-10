@@ -16,9 +16,10 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -109,9 +110,9 @@ public class IamServiceTest {
     IamResourceType resourceType = IamResourceType.DATASET;
     String id = ID.toString();
 
-    List<IamAction> hasActions = List.of(IamAction.MANAGE_SCHEMA, IamAction.READ_DATA);
+    Set<IamAction> hasActions = EnumSet.of(IamAction.MANAGE_SCHEMA, IamAction.READ_DATA);
     when(iamProvider.listActions(eq(authenticatedUserRequest), eq(resourceType), eq(id)))
-        .thenReturn(hasActions.stream().map(IamAction::toString).collect(Collectors.toList()));
+        .thenReturn(hasActions);
 
     // Checking authorizations for actions associated with the caller should not throw.
     iamService.verifyAuthorizations(authenticatedUserRequest, resourceType, id, List.of());

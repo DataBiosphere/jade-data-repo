@@ -166,18 +166,20 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public List<String> listActions(
+  public Set<IamAction> listActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws InterruptedException {
     return SamRetry.retry(
         configurationService, () -> listActionsInner(userReq, iamResourceType, resourceId));
   }
 
-  private List<String> listActionsInner(
+  private Set<IamAction> listActionsInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-    return samResourceApi.resourceActionsV2(iamResourceType.toString(), resourceId);
+    return samResourceApi.resourceActionsV2(iamResourceType.toString(), resourceId).stream()
+        .map(IamAction::valueOf)
+        .collect(Collectors.toSet());
   }
 
   @Override

@@ -13,13 +13,13 @@ import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.configuration.ConfigurationService;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,24 +98,21 @@ public class IamService {
         () -> {
           int timeoutSeconds = configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS);
           AuthorizedCacheKey authorizedCacheKey =
-              new AuthorizedCacheKey(userReq, iamResourceType, resourceId, action);
+              new AuthorizedCacheKey(userReq, iamResourceType, resourceId);
           AuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
           if (authorizedCacheValue != null) { // check if it's in the cache
             // check if it's still in the allotted time
-            if (Instant.now().isBefore(authorizedCacheValue.getTimeout())) {
+            if (Instant.now().isBefore(authorizedCacheValue.timeout())) {
               logger.debug("Using the cache!");
-              return authorizedCacheValue.isAuthorized();
+              return authorizedCacheValue.actions().contains(action);
             }
             authorizedMap.remove(authorizedCacheKey); // if timed out, remove it
           }
-          boolean authorizedLookup =
-              iamProvider.isAuthorized(userReq, iamResourceType, resourceId, action);
+          var actions = iamProvider.listActions(userReq, iamResourceType, resourceId);
           Instant newTimeout = Instant.now().plusSeconds(timeoutSeconds);
-          AuthorizedCacheValue newAuthorizedCacheValue =
-              new AuthorizedCacheValue(newTimeout, authorizedLookup);
-          authorizedMap.put(authorizedCacheKey, newAuthorizedCacheValue);
+          authorizedMap.put(authorizedCacheKey, new AuthorizedCacheValue(newTimeout, actions));
           // finally return the authorization
-          return authorizedLookup;
+          return actions.contains(action);
         });
   }
 
@@ -164,13 +161,11 @@ public class IamService {
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       String resourceId,
-      List<IamAction> actions)
+      Collection<IamAction> actions)
       throws IamForbiddenException {
     String userEmail = userReq.getEmail();
-    List<IamAction> availableActions =
-        callProvider(() -> iamProvider.listActions(userReq, iamResourceType, resourceId)).stream()
-            .map(IamAction::fromValue)
-            .collect(Collectors.toList());
+    Set<IamAction> availableActions =
+        callProvider(() -> iamProvider.listActions(userReq, iamResourceType, resourceId));
 
     List<IamAction> unavailableActions = new ArrayList<>(actions);
     unavailableActions.removeAll(availableActions);

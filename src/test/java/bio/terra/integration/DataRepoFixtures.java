@@ -457,6 +457,17 @@ public class DataRepoFixtures {
         response.getStatusCode().is2xxSuccessful());
   }
 
+  public ErrorModel addDatasetAssetExpectFailure(
+      TestConfiguration.User user, UUID datasetId, AssetModel assetModel) throws Exception {
+    DataRepoResponse<JobModel> response = addDatasetAssetRaw(user, datasetId, assetModel);
+    assertTrue(
+        assetModel + " job is successfully kicked off", response.getStatusCode().is2xxSuccessful());
+    DataRepoResponse<ErrorModel> errorModel =
+        dataRepoClient.waitForResponse(user, response, new TypeReference<>() {});
+    assertTrue("dataset asset error response is present", errorModel.getErrorObject().isPresent());
+    return errorModel.getErrorObject().get();
+  }
+
   // snapshots
 
   // adding snapshot policy

@@ -65,8 +65,22 @@ public final class DatasetFixtures {
         .to(buildSampleTerm());
   }
 
+  public static AssetTableModel generateAssetTable(String tableName, List<String> columnNames) {
+    return new AssetTableModel().name(tableName).columns(columnNames);
+  }
+
   public static AssetTableModel buildAssetParticipantTable() {
     return new AssetTableModel().name("participant").columns(Collections.emptyList());
+  }
+
+  public static AssetTableModel buildInvalidPersonTable() {
+    return new AssetTableModel().name("person").columns(Arrays.asList("invalidColumn"));
+  }
+
+  public static AssetTableModel buildValidPersonTable() {
+    return new AssetTableModel()
+        .name("person")
+        .columns(Arrays.asList("person_id", "gender_concept_id"));
   }
 
   public static AssetTableModel buildAssetSampleTable() {

@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -31,6 +32,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.auth.iam.IamRole;
@@ -348,15 +350,31 @@ public class DatasetIntegrationTest extends UsersBase {
 
     assertThat(
         "Asset specification is as originally expected", originalAssetList.size(), equalTo(1));
+
+    // Test Asset Validation
+    AssetModel invalidAssetModel =
+        new AssetModel()
+            .name("assetName")
+            .rootTable("person")
+            .rootColumn("person_id")
+            .tables(Arrays.asList(DatasetFixtures.buildInvalidPersonTable()))
+            .follow(Collections.singletonList("fpk_visit_person"));
+
+    ErrorModel errorModel =
+        dataRepoFixtures.addDatasetAssetExpectFailure(
+            steward(), datasetModel.getId(), invalidAssetModel);
+    assertThat(
+        "Error model errored on invalid column in person table",
+        errorModel.getMessage(),
+        containsString("Column invalidColumn does not exist in table person"));
+
+    // Test successful Asset Creation
     AssetModel assetModel =
         new AssetModel()
             .name("assetName")
             .rootTable("person")
             .rootColumn("person_id")
-            .tables(
-                Arrays.asList(
-                    DatasetFixtures.buildAssetParticipantTable(),
-                    DatasetFixtures.buildAssetSampleTable()))
+            .tables(Arrays.asList(DatasetFixtures.buildValidPersonTable()))
             .follow(Collections.singletonList("fpk_visit_person"));
 
     // have the asset creation fail

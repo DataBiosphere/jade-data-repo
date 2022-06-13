@@ -18,7 +18,6 @@ import bio.terra.service.configuration.ConfigurationService;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -95,7 +94,7 @@ public class IamServiceTest {
 
     Set<IamAction> hasActions = EnumSet.of(IamAction.MANAGE_SCHEMA, IamAction.READ_DATA);
     when(iamProvider.listActions(authenticatedUserRequest, resourceType, id))
-        .thenReturn(hasActions.stream().map(IamAction::toString).collect(Collectors.toList()));
+        .thenReturn(hasActions.stream().map(IamAction::toString).toList());
 
     // Checking authorizations for actions associated with the caller should not throw.
     iamService.verifyAuthorizations(authenticatedUserRequest, resourceType, id, Set.of());

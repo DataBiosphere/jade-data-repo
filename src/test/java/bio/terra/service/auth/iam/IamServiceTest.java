@@ -1,6 +1,9 @@
 package bio.terra.service.auth.iam;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -9,6 +12,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import java.util.UUID;
@@ -35,7 +39,8 @@ public class IamServiceTest {
 
   @Before
   public void setup() {
-    when(configurationService.getParameterValue(eq(ConfigEnum.AUTH_CACHE_SIZE))).thenReturn(1);
+    when(configurationService.getParameterValue(ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS))
+        .thenReturn(0);
     iamService = new IamService(iamProvider, configurationService);
     authenticatedUserRequest =
         AuthenticatedUserRequest.builder()
@@ -95,5 +100,30 @@ public class IamServiceTest {
             eq(policyName),
             eq(email));
     assertEquals(policyModel, result);
+  }
+
+  @Test
+  public void testVerifyAuthorization() throws Exception {
+    IamResourceType resourceType = IamResourceType.DATASET;
+    String id = ID.toString();
+    IamAction action = IamAction.READ_DATA;
+
+    when(iamProvider.isAuthorized(authenticatedUserRequest, resourceType, id, action))
+        .thenReturn(true);
+    // Checking authorization for an action associated with the caller should not throw.
+    iamService.verifyAuthorization(authenticatedUserRequest, resourceType, id, action);
+
+    when(iamProvider.isAuthorized(authenticatedUserRequest, resourceType, id, action))
+        .thenReturn(false);
+    IamForbiddenException thrown =
+        assertThrows(
+            IamForbiddenException.class,
+            () ->
+                iamService.verifyAuthorization(authenticatedUserRequest, resourceType, id, action),
+            "Authorization verification throws if the caller is missing the action");
+    assertThat(
+        "Error message reflects cause",
+        thrown.getMessage(),
+        containsString("does not have required action: " + action));
   }
 }

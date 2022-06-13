@@ -1,6 +1,5 @@
 package bio.terra.service.auth.iam;
 
-import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -11,14 +10,14 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.configuration.ConfigurationService;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import org.apache.commons.collections4.map.LRUMap;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,21 +40,22 @@ import org.springframework.stereotype.Component;
 public class IamService {
   private final Logger logger = LoggerFactory.getLogger(IamService.class);
 
-  private static final int AUTH_CACHE_SIZE_DEFAULT = 100;
+  private static final int AUTH_CACHE_TIMEOUT_SECONDS_DEFAULT = 60;
 
   private final IamProviderInterface iamProvider;
   private final ConfigurationService configurationService;
-  private final Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap;
+  private final Map<AuthorizedCacheKey, Boolean> authorizedMap;
 
   @Autowired
   public IamService(IamProviderInterface iamProvider, ConfigurationService configurationService) {
     this.iamProvider = iamProvider;
     this.configurationService = configurationService;
-    int cacheSize =
+    int ttl =
         Objects.requireNonNullElse(
-            configurationService.getParameterValue(AUTH_CACHE_SIZE), AUTH_CACHE_SIZE_DEFAULT);
+            configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS),
+            AUTH_CACHE_TIMEOUT_SECONDS_DEFAULT);
     // wrap the cache map with a synchronized map to safely share the cache across threads
-    authorizedMap = Collections.synchronizedMap(new LRUMap<>(cacheSize));
+    authorizedMap = Collections.synchronizedMap(new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS));
   }
 
   private interface Call<T> {
@@ -83,7 +83,7 @@ public class IamService {
   }
 
   /**
-   * Is a user authorized to do an action on a resource.
+   * Check a cache to determine whether a user is authorized to do an action on a resource.
    *
    * @return true if authorized, false otherwise
    */
@@ -92,29 +92,21 @@ public class IamService {
       IamResourceType iamResourceType,
       String resourceId,
       IamAction action) {
+    return authorizedMap.computeIfAbsent(
+        new AuthorizedCacheKey(userReq, iamResourceType, resourceId, action),
+        this::computeAuthorized);
+  }
+
+  /**
+   * Call external API to determine whether a user is authorized to do an action on a resource.
+   *
+   * @return true if authorized, false otherwise
+   */
+  private boolean computeAuthorized(AuthorizedCacheKey key) {
     return callProvider(
-        () -> {
-          int timeoutSeconds = configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS);
-          AuthorizedCacheKey authorizedCacheKey =
-              new AuthorizedCacheKey(userReq, iamResourceType, resourceId, action);
-          AuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
-          if (authorizedCacheValue != null) { // check if it's in the cache
-            // check if it's still in the allotted time
-            if (Instant.now().isBefore(authorizedCacheValue.getTimeout())) {
-              logger.debug("Using the cache!");
-              return authorizedCacheValue.isAuthorized();
-            }
-            authorizedMap.remove(authorizedCacheKey); // if timed out, remove it
-          }
-          boolean authorizedLookup =
-              iamProvider.isAuthorized(userReq, iamResourceType, resourceId, action);
-          Instant newTimeout = Instant.now().plusSeconds(timeoutSeconds);
-          AuthorizedCacheValue newAuthorizedCacheValue =
-              new AuthorizedCacheValue(newTimeout, authorizedLookup);
-          authorizedMap.put(authorizedCacheKey, newAuthorizedCacheValue);
-          // finally return the authorization
-          return authorizedLookup;
-        });
+        () ->
+            iamProvider.isAuthorized(
+                key.userReq(), key.iamResourceType(), key.resourceId(), key.action()));
   }
 
   /**

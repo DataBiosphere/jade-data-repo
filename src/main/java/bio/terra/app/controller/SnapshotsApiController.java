@@ -174,7 +174,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<SnapshotSummaryModel> patchSnapshot(
       UUID id, SnapshotPatchRequestModel patchRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    List<IamAction> actions = snapshotService.patchSnapshotIamActions(patchRequest);
+    Set<IamAction> actions = snapshotService.patchSnapshotIamActions(patchRequest);
     iamService.verifyAuthorizations(userReq, IamResourceType.DATASNAPSHOT, id.toString(), actions);
     return new ResponseEntity<>(snapshotService.patch(id, patchRequest), HttpStatus.OK);
   }

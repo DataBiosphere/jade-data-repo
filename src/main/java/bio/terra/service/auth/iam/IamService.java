@@ -12,14 +12,13 @@ import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.configuration.ConfigurationService;
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,19 +163,22 @@ public class IamService {
       AuthenticatedUserRequest userReq,
       IamResourceType iamResourceType,
       String resourceId,
-      List<IamAction> actions)
+      Collection<IamAction> actions)
       throws IamForbiddenException {
     String userEmail = userReq.getEmail();
-    List<IamAction> availableActions =
-        callProvider(() -> iamProvider.listActions(userReq, iamResourceType, resourceId)).stream()
-            .map(IamAction::fromValue)
-            .collect(Collectors.toList());
+    List<String> availableActions =
+        callProvider(() -> iamProvider.listActions(userReq, iamResourceType, resourceId));
 
-    List<IamAction> unavailableActions = new ArrayList<>(actions);
-    unavailableActions.removeAll(availableActions);
+    List<String> unavailableActions =
+        actions.stream()
+            .map(IamAction::toString)
+            .filter(action -> !availableActions.contains(action))
+            .toList();
+
     if (!unavailableActions.isEmpty()) {
       throw new IamForbiddenException(
-          "User '" + userEmail + "' does not have required action(s): " + unavailableActions);
+          "User '" + userEmail + "' is missing required actions (returned in details)",
+          unavailableActions);
     }
   }
 

@@ -1,7 +1,7 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
@@ -87,16 +87,16 @@ public class DatasetServiceUnitTest {
     assertThat(
         "Patch without PHS ID update does not require passport identifier update permissions",
         datasetService.patchDatasetIamActions(new DatasetPatchRequestModel()),
-        contains(IamAction.MANAGE_SCHEMA));
+        containsInAnyOrder(IamAction.MANAGE_SCHEMA));
 
     assertThat(
         "Patch with PHS ID update to empty string requires passport identifier update permissions",
         datasetService.patchDatasetIamActions(new DatasetPatchRequestModel().phsId("")),
-        contains(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+        containsInAnyOrder(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER));
 
     assertThat(
         "Patch with PHS ID update requires passport identifier update permissions",
         datasetService.patchDatasetIamActions(new DatasetPatchRequestModel().phsId("phs123456")),
-        contains(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+        containsInAnyOrder(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER));
   }
 }

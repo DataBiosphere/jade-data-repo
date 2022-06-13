@@ -1,0 +1,17 @@
+{
+  "name": "duplicateColAsset",
+  "tables": [
+    {
+      "name": "table1",
+      "columns": [
+        "duplicateCol",
+        "duplicateCol"
+      ]
+    }
+  ],
+  "rootTable": "table1",
+  "rootColumn": "duplicateCol",
+  "follow": [
+    "table1_relationship"
+  ]
+}

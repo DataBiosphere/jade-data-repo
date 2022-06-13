@@ -177,7 +177,7 @@ public class ProfileService {
    * @throws IamUnauthorizedException when the caller does not have access to the billing profile
    */
   public BillingProfileModel getProfileById(UUID id, AuthenticatedUserRequest user) {
-    if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id.toString())) {
+    if (!iamService.hasAnyActions(user, IamResourceType.SPEND_PROFILE, id.toString())) {
       throw new IamUnauthorizedException("unauthorized");
     }
     return getProfileByIdNoCheck(id);

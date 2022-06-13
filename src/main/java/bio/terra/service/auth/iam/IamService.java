@@ -191,9 +191,9 @@ public class IamService {
    * @param resourceId resource in question
    * @return true if the user has any actions on that resource
    */
-  public boolean hasActions(
+  public boolean hasAnyActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
-    return callProvider(() -> iamProvider.hasActions(userReq, iamResourceType, resourceId));
+    return callProvider(() -> iamProvider.hasAnyActions(userReq, iamResourceType, resourceId));
   }
 
   /**

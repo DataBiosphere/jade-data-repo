@@ -81,7 +81,7 @@ public interface IamProviderInterface {
    * @param resourceId resource in question
    * @return true if the user has any actions on that resource
    */
-  boolean hasActions(
+  boolean hasAnyActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws InterruptedException;
 

@@ -181,7 +181,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public boolean hasActions(
+  public boolean hasAnyActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws InterruptedException {
     return listActions(userReq, iamResourceType, resourceId).size() > 0;

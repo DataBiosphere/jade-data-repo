@@ -73,16 +73,6 @@ public final class DatasetFixtures {
     return new AssetTableModel().name("participant").columns(Collections.emptyList());
   }
 
-  public static AssetTableModel buildInvalidPersonTable() {
-    return new AssetTableModel().name("person").columns(Arrays.asList("invalidColumn"));
-  }
-
-  public static AssetTableModel buildValidPersonTable() {
-    return new AssetTableModel()
-        .name("person")
-        .columns(Arrays.asList("person_id", "gender_concept_id"));
-  }
-
   public static AssetTableModel buildAssetSampleTable() {
     return new AssetTableModel()
         .name("sample")

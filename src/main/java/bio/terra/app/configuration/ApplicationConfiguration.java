@@ -111,9 +111,6 @@ public class ApplicationConfiguration {
   /** Maximum number of DRS lookup requests allowed */
   private int maxDrsLookups;
 
-  /** Size of users in auth cache */
-  private int authCacheSize;
-
   /** Time in seconds of auth cache timeout */
   private int authCacheTimeoutSeconds;
 
@@ -310,14 +307,6 @@ public class ApplicationConfiguration {
 
   public void setMaxDrsLookups(int maxDrsLookups) {
     this.maxDrsLookups = maxDrsLookups;
-  }
-
-  public int getAuthCacheSize() {
-    return authCacheSize;
-  }
-
-  public void setAuthCacheSize(int authCacheSize) {
-    this.authCacheSize = authCacheSize;
   }
 
   public int getAuthCacheTimeoutSeconds() {

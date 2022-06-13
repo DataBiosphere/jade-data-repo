@@ -58,8 +58,10 @@ public class ValidateAssetUnitTest {
   @MockBean private UserLoggingMetrics loggingMetrics;
 
   private String tableName = "tableName1";
+  private String tableName2 = "tableName2";
   private String col1Name = "col1";
   private String col2Name = "col2";
+  private String col3Name = "col3";
   private String relationshipName = "rel1";
   private Dataset dataset;
   private AssetModel assetModel;
@@ -71,7 +73,9 @@ public class ValidateAssetUnitTest {
             .tables(
                 Arrays.asList(
                     DatasetFixtures.generateDatasetTable(
-                        tableName, TableDataType.STRING, List.of(col1Name, col2Name))))
+                        tableName, TableDataType.STRING, List.of(col1Name, col2Name)),
+                    DatasetFixtures.generateDatasetTable(
+                        tableName2, TableDataType.STRING, List.of(col3Name))))
             .relationships(Arrays.asList(new Relationship().name(relationshipName)));
 
     assetModel =
@@ -88,6 +92,26 @@ public class ValidateAssetUnitTest {
   @Test
   public void validateAssetModel() {
     datasetService.validateDatasetAssetSpecification(dataset, assetModel);
+  }
+
+  @Test
+  public void testTwoTables() {
+    assetModel.tables(
+        Arrays.asList(
+            DatasetFixtures.generateAssetTable(tableName, List.of(col1Name, col2Name)),
+            DatasetFixtures.generateAssetTable(tableName2, List.of(col3Name))));
+    datasetService.validateDatasetAssetSpecification(dataset, assetModel);
+  }
+
+  @Test(expected = InvalidAssetException.class)
+  public void testTwoTablesInvalidOverlap() {
+    // col3 is only in table2, not table2
+    assetModel.tables(
+        Arrays.asList(
+            DatasetFixtures.generateAssetTable(tableName, List.of(col1Name, col3Name)),
+            DatasetFixtures.generateAssetTable(tableName2, List.of(col3Name))));
+    testAssetModel(
+        "invalid column", "Column " + col3Name + " does not exist in table " + tableName);
   }
 
   @Test(expected = InvalidAssetException.class)

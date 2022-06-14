@@ -10,6 +10,8 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.configuration.ConfigurationService;
+import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -141,6 +143,39 @@ public class IamService {
   }
 
   /**
+   * Note: calling this method will trigger a call to SAM API. No cache backs it. If calling,
+   * consider whether new usage patterns necessitate refactoring to add a cache.
+   *
+   * @param userReq authenticated user
+   * @param iamResourceType resource type; e.g. dataset
+   * @param resourceId UUID identifying a resource
+   * @param actions required
+   * @throws IamForbiddenException if the user is missing any `actions` on the resource
+   */
+  public void verifyAuthorizations(
+      AuthenticatedUserRequest userReq,
+      IamResourceType iamResourceType,
+      String resourceId,
+      Collection<IamAction> actions)
+      throws IamForbiddenException {
+    String userEmail = userReq.getEmail();
+    List<String> availableActions =
+        callProvider(() -> iamProvider.listActions(userReq, iamResourceType, resourceId));
+
+    List<String> unavailableActions =
+        actions.stream()
+            .map(IamAction::toString)
+            .filter(action -> !availableActions.contains(action))
+            .toList();
+
+    if (!unavailableActions.isEmpty()) {
+      throw new IamForbiddenException(
+          "User '" + userEmail + "' is missing required actions (returned in details)",
+          unavailableActions);
+    }
+  }
+
+  /**
    * If user has any action on a resource than we allow that user to list the resource, rather than
    * have a specific action for listing. That is the Sam convention.
    *
@@ -149,9 +184,9 @@ public class IamService {
    * @param resourceId resource in question
    * @return true if the user has any actions on that resource
    */
-  public boolean hasActions(
+  public boolean hasAnyActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
-    return callProvider(() -> iamProvider.hasActions(userReq, iamResourceType, resourceId));
+    return callProvider(() -> iamProvider.hasAnyActions(userReq, iamResourceType, resourceId));
   }
 
   /**

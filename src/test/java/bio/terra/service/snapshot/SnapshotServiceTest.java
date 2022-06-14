@@ -1,8 +1,9 @@
 package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -315,16 +316,16 @@ public class SnapshotServiceTest {
     assertThat(
         "Patch without consent code update does not require passport identifier update permissions",
         service.patchSnapshotIamActions(new SnapshotPatchRequestModel()),
-        contains(IamAction.UPDATE_SNAPSHOT));
+        containsInAnyOrder(IamAction.UPDATE_SNAPSHOT));
 
     assertThat(
         "Patch with consent code update to empty string requires passport identifier update permissions",
         service.patchSnapshotIamActions(new SnapshotPatchRequestModel().consentCode("")),
-        contains(IamAction.UPDATE_SNAPSHOT, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+        containsInAnyOrder(IamAction.UPDATE_SNAPSHOT, IamAction.UPDATE_PASSPORT_IDENTIFIER));
 
     assertThat(
         "Patch with consent code update requires passport identifier update permissions",
         service.patchSnapshotIamActions(new SnapshotPatchRequestModel().consentCode("c99")),
-        contains(IamAction.UPDATE_SNAPSHOT, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+        containsInAnyOrder(IamAction.UPDATE_SNAPSHOT, IamAction.UPDATE_PASSPORT_IDENTIFIER));
   }
 }

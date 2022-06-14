@@ -56,6 +56,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -183,9 +184,8 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<DatasetSummaryModel> patchDataset(
       UUID id, DatasetPatchRequestModel patchRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    for (IamAction action : datasetService.patchDatasetIamActions(patchRequest)) {
-      iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id.toString(), action);
-    }
+    Set<IamAction> actions = datasetService.patchDatasetIamActions(patchRequest);
+    iamService.verifyAuthorizations(userReq, IamResourceType.DATASET, id.toString(), actions);
     return new ResponseEntity<>(datasetService.patch(id, patchRequest), HttpStatus.OK);
   }
 

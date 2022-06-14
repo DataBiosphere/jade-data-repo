@@ -166,20 +166,25 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public boolean hasActions(
+  public List<String> listActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws InterruptedException {
     return SamRetry.retry(
-        configurationService, () -> hasActionsInner(userReq, iamResourceType, resourceId));
+        configurationService, () -> listActionsInner(userReq, iamResourceType, resourceId));
   }
 
-  private boolean hasActionsInner(
+  private List<String> listActionsInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws ApiException {
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-    List<String> actionList =
-        samResourceApi.resourceActionsV2(iamResourceType.toString(), resourceId);
-    return (actionList.size() > 0);
+    return samResourceApi.resourceActionsV2(iamResourceType.toString(), resourceId);
+  }
+
+  @Override
+  public boolean hasAnyActions(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
+      throws InterruptedException {
+    return listActions(userReq, iamResourceType, resourceId).size() > 0;
   }
 
   @Override

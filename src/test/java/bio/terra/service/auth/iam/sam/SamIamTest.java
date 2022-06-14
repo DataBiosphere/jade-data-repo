@@ -194,15 +194,15 @@ public class SamIamTest {
   }
 
   @Test
-  public void testHasActions() throws ApiException, InterruptedException {
+  public void testHasAnyActions() throws ApiException, InterruptedException {
     when(samResourceApi.resourceActionsV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName(), "my-id-1"))
         .thenReturn(List.of(IamAction.READ_DATA.toString()));
     when(samResourceApi.resourceActionsV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName(), "my-id-2"))
         .thenReturn(List.of());
-    assertTrue(samIam.hasActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-1"));
-    assertFalse(samIam.hasActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-2"));
+    assertTrue(samIam.hasAnyActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-1"));
+    assertFalse(samIam.hasAnyActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-2"));
   }
 
   @Test

@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.Relationship;
@@ -134,7 +135,7 @@ public class ValidateAssetUnitTest {
     String invalidRootTable = "InvalidRootTable";
     assetModel.rootTable(invalidRootTable);
     testAssetModel(
-        "invalid root table", "Table " + invalidRootTable + " does not exist in dataset.");
+        "invalid root table", "Root table " + invalidRootTable + " does not exist in dataset.");
   }
 
   @Test(expected = InvalidAssetException.class)
@@ -157,13 +158,50 @@ public class ValidateAssetUnitTest {
             + "' does not exist in dataset's list of relationships");
   }
 
+  @Test(expected = InvalidAssetException.class)
+  public void testMultipleErrors() {
+    String invalidRootTable = "InvalidRootTable";
+    assetModel.rootTable(invalidRootTable);
+    String invalidColumn = "InvalidCol";
+    String invalidColumn2 = "InvalidCol2";
+    assetModel.tables(
+        List.of(
+            DatasetFixtures.generateAssetTable(tableName, List.of(invalidColumn, invalidColumn2))));
+    try {
+      dataset.validateDatasetAssetSpecification(assetModel);
+    } catch (InvalidAssetException ex) {
+      assertThat(
+          "At least one validation error caught for asset",
+          ex.getMessage(),
+          containsString("Invalid asset create request. See causes list for details."));
+      assertThat("3 errors found", ex.getCauses().size(), equalTo(3));
+      assertThat(
+          "Validation of asset model should fail on invalid root table",
+          ex.getCauses().get(0),
+          containsString("Root table " + invalidRootTable + " does not exist in dataset."));
+      assertThat(
+          "Validation of asset model should fail on invalid column",
+          ex.getCauses().get(1),
+          containsString("Column " + invalidColumn + " does not exist in table " + tableName));
+      assertThat(
+          "Validation of asset model should fail on second invalid column",
+          ex.getCauses().get(2),
+          containsString("Column " + invalidColumn2 + " does not exist in table " + tableName));
+      throw ex;
+    }
+  }
+
   private void testAssetModel(String itemChecked, String expectedErrorMessage) {
     try {
       dataset.validateDatasetAssetSpecification(assetModel);
     } catch (InvalidAssetException ex) {
       assertThat(
-          "Validation of asset model should fail on " + itemChecked,
+          "At least one validation error caught for asset",
           ex.getMessage(),
+          containsString("Invalid asset create request. See causes list for details."));
+      assertThat(
+          "Validation of asset model should fail on " + itemChecked,
+          ex.getCauses().get(0),
           containsString(expectedErrorMessage));
       throw ex;
     }

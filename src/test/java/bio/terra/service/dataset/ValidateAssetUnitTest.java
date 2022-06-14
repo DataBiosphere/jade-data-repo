@@ -22,7 +22,6 @@ import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,12 +70,12 @@ public class ValidateAssetUnitTest {
     dataset =
         new Dataset()
             .tables(
-                Arrays.asList(
+                List.of(
                     DatasetFixtures.generateDatasetTable(
                         tableName, TableDataType.STRING, List.of(col1Name, col2Name)),
                     DatasetFixtures.generateDatasetTable(
                         tableName2, TableDataType.STRING, List.of(col3Name))))
-            .relationships(Arrays.asList(new Relationship().name(relationshipName)));
+            .relationships(List.of(new Relationship().name(relationshipName)));
 
     assetModel =
         new AssetModel()
@@ -84,9 +83,8 @@ public class ValidateAssetUnitTest {
             .rootTable(tableName)
             .rootColumn(col1Name)
             .tables(
-                Arrays.asList(
-                    DatasetFixtures.generateAssetTable(tableName, List.of(col1Name, col2Name))))
-            .follow(Arrays.asList(relationshipName));
+                List.of(DatasetFixtures.generateAssetTable(tableName, List.of(col1Name, col2Name))))
+            .follow(List.of(relationshipName));
   }
 
   @Test
@@ -97,7 +95,7 @@ public class ValidateAssetUnitTest {
   @Test
   public void testTwoTables() {
     assetModel.tables(
-        Arrays.asList(
+        List.of(
             DatasetFixtures.generateAssetTable(tableName, List.of(col1Name, col2Name)),
             DatasetFixtures.generateAssetTable(tableName2, List.of(col3Name))));
     datasetService.validateDatasetAssetSpecification(dataset, assetModel);
@@ -107,7 +105,7 @@ public class ValidateAssetUnitTest {
   public void testTwoTablesInvalidOverlap() {
     // col3 is only in table2, not table2
     assetModel.tables(
-        Arrays.asList(
+        List.of(
             DatasetFixtures.generateAssetTable(tableName, List.of(col1Name, col3Name)),
             DatasetFixtures.generateAssetTable(tableName2, List.of(col3Name))));
     testAssetModel(
@@ -118,8 +116,7 @@ public class ValidateAssetUnitTest {
   public void testInvalidColumn() {
     String invalidColumn = "InvalidCol";
     assetModel.tables(
-        Arrays.asList(
-            DatasetFixtures.generateAssetTable(tableName, List.of(col1Name, invalidColumn))));
+        List.of(DatasetFixtures.generateAssetTable(tableName, List.of(col1Name, invalidColumn))));
     testAssetModel(
         "invalid column", "Column " + invalidColumn + " does not exist in table " + tableName);
   }
@@ -128,8 +125,7 @@ public class ValidateAssetUnitTest {
   public void testInvalidTable() {
     String invalidTable = "invalidTable";
     assetModel.tables(
-        Arrays.asList(
-            DatasetFixtures.generateAssetTable(invalidTable, List.of(col1Name, col2Name))));
+        List.of(DatasetFixtures.generateAssetTable(invalidTable, List.of(col1Name, col2Name))));
     testAssetModel("invalid table", "Table " + invalidTable + " does not exist in dataset.");
   }
 
@@ -138,7 +134,7 @@ public class ValidateAssetUnitTest {
     String invalidRootTable = "InvalidRootTable";
     assetModel.rootTable(invalidRootTable);
     testAssetModel(
-        "invalid root table", "Root table " + invalidRootTable + " does not exist in dataset.");
+        "invalid root table", "Table " + invalidRootTable + " does not exist in dataset.");
   }
 
   @Test(expected = InvalidAssetException.class)

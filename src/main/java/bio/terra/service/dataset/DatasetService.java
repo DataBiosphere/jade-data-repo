@@ -356,19 +356,10 @@ public class DatasetService {
 
   public void validateDatasetAssetSpecification(Dataset dataset, AssetModel assetModel) {
     // Validate Root Table
-    DatasetTable rootTable =
-        dataset.getTables().stream()
-            .filter(datasetTable -> datasetTable.getName().equals(assetModel.getRootTable()))
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new InvalidAssetException(
-                        "Root table " + assetModel.getRootTable() + " does not exist in dataset."));
+    DatasetTable rootTable = getAndValidateTable(dataset, assetModel.getRootTable());
     // Validate Root Column
     if (!rootTable.getColumns().stream()
-        .map(c -> c.getName())
-        .toList()
-        .contains(assetModel.getRootColumn())) {
+        .anyMatch(c -> c.getName().equals(assetModel.getRootColumn()))) {
       throw new InvalidAssetException(
           "Root column "
               + assetModel.getRootColumn()
@@ -376,63 +367,53 @@ public class DatasetService {
               + rootTable.getName());
     }
     // Validate Tables
-    assetModel
-        .getTables()
-        .forEach(
-            assetTable -> {
-              DatasetTable currentTable =
-                  dataset.getTables().stream()
-                      .filter(datasetTable -> datasetTable.getName().equals(assetTable.getName()))
-                      .findFirst()
-                      .orElseThrow(
-                          () ->
-                              new InvalidAssetException(
-                                  "Table " + assetTable.getName() + " does not exist in dataset."));
-              List<String> datasetTableColumnNames =
-                  currentTable.getColumns().stream().map(c -> c.getName()).toList();
-              assetTable
-                  .getColumns()
-                  .forEach(
-                      assetColumn -> {
-                        if (!datasetTableColumnNames.contains(assetColumn)) {
-                          throw new InvalidAssetException(
-                              "Column "
-                                  + assetColumn
-                                  + " does not exist in table "
-                                  + assetTable.getName());
-                        }
-                      });
-            });
+    for (var assetTable : assetModel.getTables()) {
+      DatasetTable currentTable = getAndValidateTable(dataset, assetTable.getName());
+      List<String> datasetTableColumnNames =
+          currentTable.getColumns().stream().map(c -> c.getName()).toList();
+      assetTable
+          .getColumns()
+          .forEach(
+              assetColumn -> {
+                if (!datasetTableColumnNames.contains(assetColumn)) {
+                  throw new InvalidAssetException(
+                      "Column " + assetColumn + " does not exist in table " + assetTable.getName());
+                }
+              });
+    }
 
     // Follow should reference an existing relationship as defined in the original dataset create
     // query
-    assetModel
-        .getFollow()
-        .forEach(
-            follow -> {
-              if (!dataset.getRelationships().stream()
-                  .map(r -> r.getName())
-                  .toList()
-                  .contains(follow)) {
-                throw new InvalidAssetException(
-                    "Relationship specified in follow list '"
-                        + follow
-                        + "' does not exist in dataset's list of relationships");
-              }
-            });
+    for (var assetFollow : assetModel.getFollow()) {
+      if (!dataset.getRelationships().stream().anyMatch(r -> r.getName().equals(assetFollow))) {
+        throw new InvalidAssetException(
+            "Relationship specified in follow list '"
+                + assetFollow
+                + "' does not exist in dataset's list of relationships");
+      }
+    }
+  }
+
+  private DatasetTable getAndValidateTable(Dataset dataset, String tableName) {
+    return dataset.getTables().stream()
+        .filter(datasetTable -> datasetTable.getName().equals(tableName))
+        .findFirst()
+        .orElseThrow(
+            () -> new InvalidAssetException("Table " + tableName + " does not exist in dataset."));
   }
 
   public AssetSpecification getNewAssetSpec(Dataset dataset, AssetModel assetModel) {
-    List<DatasetTable> datasetTables = dataset.getTables();
-    Map<String, Relationship> relationshipMap = new HashMap<>();
-    Map<String, DatasetTable> tablesMap = new HashMap<>();
+    Map<String, DatasetTable> tablesMap =
+        dataset.getTables().stream()
+            .collect(
+                Collectors.toMap(
+                    datasetTable -> datasetTable.getName(), datasetTable -> datasetTable));
+    Map<String, Relationship> relationshipMap =
+        dataset.getRelationships().stream()
+            .collect(
+                Collectors.toMap(
+                    relationship -> relationship.getName(), relationship -> relationship));
 
-    datasetTables.forEach(datasetTable -> tablesMap.put(datasetTable.getName(), datasetTable));
-
-    List<Relationship> datasetRelationships = dataset.getRelationships();
-
-    datasetRelationships.forEach(
-        relationship -> relationshipMap.put(relationship.getName(), relationship));
     AssetSpecification assetSpecification =
         DatasetJsonConversion.assetModelToAssetSpecification(
             assetModel, tablesMap, relationshipMap);

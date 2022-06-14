@@ -4,7 +4,7 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigModel;
-import java.util.Random;
+import java.security.SecureRandom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +22,7 @@ public class ConfigFaultCounted extends ConfigFault {
   private int skippedCounter;
   private boolean doneInserting;
   private int insertCounter;
-  private Random random;
+  private SecureRandom random;
   private int every;
   private int everyCounter;
   private int testCounter;
@@ -147,7 +147,7 @@ public class ConfigFaultCounted extends ConfigFault {
     switch (countedModel.getRateStyle()) {
       case RANDOM:
         if (random == null) {
-          random = new Random();
+          random = new SecureRandom();
         }
         break;
 

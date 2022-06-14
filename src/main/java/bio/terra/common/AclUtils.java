@@ -2,7 +2,7 @@ package bio.terra.common;
 
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -16,7 +16,7 @@ public class AclUtils {
   private static final int INITIAL_WAIT_SECONDS = 2;
 
   public static <T> T aclUpdateRetry(Callable<T> aclUpdate) throws InterruptedException {
-    Random random = new Random();
+    SecureRandom random = new SecureRandom();
     Throwable lastException = null;
     int retryWait = INITIAL_WAIT_SECONDS;
     for (int i = 0; i < RETRIES; i++) {

@@ -4,7 +4,6 @@ import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.Relationship;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AssetModel;
@@ -30,7 +29,6 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
-import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
@@ -352,72 +350,6 @@ public class DatasetService {
         .newJob(description, AddAssetSpecFlight.class, assetModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .submit();
-  }
-
-  public void validateDatasetAssetSpecification(Dataset dataset, AssetModel assetModel) {
-    // Validate Root Table
-    DatasetTable rootTable = getAndValidateTable(dataset, assetModel.getRootTable());
-    // Validate Root Column
-    if (!rootTable.getColumns().stream()
-        .anyMatch(c -> c.getName().equals(assetModel.getRootColumn()))) {
-      throw new InvalidAssetException(
-          "Root column "
-              + assetModel.getRootColumn()
-              + " does not exist in table "
-              + rootTable.getName());
-    }
-    // Validate Tables
-    for (var assetTable : assetModel.getTables()) {
-      DatasetTable currentTable = getAndValidateTable(dataset, assetTable.getName());
-      List<String> datasetTableColumnNames =
-          currentTable.getColumns().stream().map(c -> c.getName()).toList();
-      assetTable
-          .getColumns()
-          .forEach(
-              assetColumn -> {
-                if (!datasetTableColumnNames.contains(assetColumn)) {
-                  throw new InvalidAssetException(
-                      "Column " + assetColumn + " does not exist in table " + assetTable.getName());
-                }
-              });
-    }
-
-    // Follow should reference an existing relationship as defined in the original dataset create
-    // query
-    for (var assetFollow : assetModel.getFollow()) {
-      if (!dataset.getRelationships().stream().anyMatch(r -> r.getName().equals(assetFollow))) {
-        throw new InvalidAssetException(
-            "Relationship specified in follow list '"
-                + assetFollow
-                + "' does not exist in dataset's list of relationships");
-      }
-    }
-  }
-
-  private DatasetTable getAndValidateTable(Dataset dataset, String tableName) {
-    return dataset.getTables().stream()
-        .filter(datasetTable -> datasetTable.getName().equals(tableName))
-        .findFirst()
-        .orElseThrow(
-            () -> new InvalidAssetException("Table " + tableName + " does not exist in dataset."));
-  }
-
-  public AssetSpecification getNewAssetSpec(Dataset dataset, AssetModel assetModel) {
-    Map<String, DatasetTable> tablesMap =
-        dataset.getTables().stream()
-            .collect(
-                Collectors.toMap(
-                    datasetTable -> datasetTable.getName(), datasetTable -> datasetTable));
-    Map<String, Relationship> relationshipMap =
-        dataset.getRelationships().stream()
-            .collect(
-                Collectors.toMap(
-                    relationship -> relationship.getName(), relationship -> relationship));
-
-    AssetSpecification assetSpecification =
-        DatasetJsonConversion.assetModelToAssetSpecification(
-            assetModel, tablesMap, relationshipMap);
-    return assetSpecification;
   }
 
   public String removeDatasetAssetSpecifications(

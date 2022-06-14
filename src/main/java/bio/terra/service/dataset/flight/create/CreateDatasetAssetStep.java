@@ -44,10 +44,10 @@ public class CreateDatasetAssetStep implements Step {
     AssetModel assetModel =
         context.getInputParameters().get(JobMapKeys.REQUEST.getKeyName(), AssetModel.class);
 
-    datasetService.validateDatasetAssetSpecification(dataset, assetModel);
+    dataset.validateDatasetAssetSpecification(assetModel);
 
     // get the dataset assets that already exist --asset name needs to be unique
-    AssetSpecification newAssetSpecification = datasetService.getNewAssetSpec(dataset, assetModel);
+    AssetSpecification newAssetSpecification = dataset.getNewAssetSpec(assetModel);
 
     // add a fault that forces an exception to make sure the undo works
     try {

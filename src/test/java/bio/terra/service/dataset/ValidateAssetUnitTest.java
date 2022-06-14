@@ -89,7 +89,7 @@ public class ValidateAssetUnitTest {
 
   @Test
   public void validateAssetModel() {
-    datasetService.validateDatasetAssetSpecification(dataset, assetModel);
+    dataset.validateDatasetAssetSpecification(assetModel);
   }
 
   @Test
@@ -98,7 +98,7 @@ public class ValidateAssetUnitTest {
         List.of(
             DatasetFixtures.generateAssetTable(tableName, List.of(col1Name, col2Name)),
             DatasetFixtures.generateAssetTable(tableName2, List.of(col3Name))));
-    datasetService.validateDatasetAssetSpecification(dataset, assetModel);
+    dataset.validateDatasetAssetSpecification(assetModel);
   }
 
   @Test(expected = InvalidAssetException.class)
@@ -159,7 +159,7 @@ public class ValidateAssetUnitTest {
 
   private void testAssetModel(String itemChecked, String expectedErrorMessage) {
     try {
-      datasetService.validateDatasetAssetSpecification(dataset, assetModel);
+      dataset.validateDatasetAssetSpecification(assetModel);
     } catch (InvalidAssetException ex) {
       assertThat(
           "Validation of asset model should fail on " + itemChecked,

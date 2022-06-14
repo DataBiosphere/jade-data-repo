@@ -10,7 +10,6 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.configuration.ConfigurationService;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;

@@ -104,7 +104,8 @@ public class IamServiceTest {
     IamForbiddenException thrown =
         assertThrows(
             IamForbiddenException.class,
-            () -> iamService.verifyAuthorization(authenticatedUserRequest, resourceType, id, action),
+            () ->
+                iamService.verifyAuthorization(authenticatedUserRequest, resourceType, id, action),
             "Authorization verification throws if the caller is missing the action");
     assertThat(
         "Error message reflects cause",

@@ -17,12 +17,12 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -181,7 +181,7 @@ public class BlobIOTestUtility {
   private InputStream createInputStream(long length) {
     return new InputStream() {
       private long dataProduced;
-      private final Random rand = new Random();
+      private final SecureRandom rand = new SecureRandom();
 
       @Override
       public int read() {

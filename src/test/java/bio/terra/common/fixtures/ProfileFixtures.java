@@ -6,7 +6,6 @@ import bio.terra.model.CloudPlatform;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.UUID;
 
 public final class ProfileFixtures {
@@ -15,7 +14,7 @@ public final class ProfileFixtures {
   private static SecureRandom randomGenerator = new SecureRandom();
 
   public static String randomHex(int n) {
-    Random r = new Random();
+    SecureRandom r = new SecureRandom();
     StringBuffer sb = new StringBuffer();
     while (sb.length() < n) {
       sb.append(Integer.toHexString(r.nextInt(16)));

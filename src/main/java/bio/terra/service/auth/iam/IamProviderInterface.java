@@ -63,6 +63,16 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   /**
+   * @param userReq authenticated user
+   * @param iamResourceType resource type
+   * @param resourceId resource in question
+   * @return the user's available actions on that resource
+   */
+  List<String> listActions(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
+      throws InterruptedException;
+
+  /**
    * If user has any action on a resource than we allow that user to list the resource, rather than
    * have a specific action for listing. That is the Sam convention.
    *
@@ -71,7 +81,7 @@ public interface IamProviderInterface {
    * @param resourceId resource in question
    * @return true if the user has any actions on that resource
    */
-  boolean hasActions(
+  boolean hasAnyActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws InterruptedException;
 

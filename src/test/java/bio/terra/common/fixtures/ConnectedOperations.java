@@ -153,7 +153,8 @@ public class ConnectedOperations {
     // Mock the billing profile calls
     when(samService.listAuthorizedResources(any(), eq(IamResourceType.SPEND_PROFILE)))
         .thenAnswer(invocation -> uuidsToAuthMap(createdProfileIds));
-    when(samService.hasActions(any(), eq(IamResourceType.SPEND_PROFILE), any())).thenReturn(true);
+    when(samService.hasAnyActions(any(), eq(IamResourceType.SPEND_PROFILE), any()))
+        .thenReturn(true);
 
     doNothing().when(samService).createProfileResource(any(), any());
     doNothing().when(samService).deleteProfileResource(any(), any());

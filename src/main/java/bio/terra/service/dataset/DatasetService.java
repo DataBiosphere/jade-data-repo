@@ -63,8 +63,8 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -265,9 +265,8 @@ public class DatasetService {
    * @param patchRequest updates to merge with an existing dataset
    * @return IAM actions needed to apply the requested patch
    */
-  public List<IamAction> patchDatasetIamActions(DatasetPatchRequestModel patchRequest) {
-    List<IamAction> actions = new ArrayList<>();
-    actions.add(IamAction.MANAGE_SCHEMA);
+  public Set<IamAction> patchDatasetIamActions(DatasetPatchRequestModel patchRequest) {
+    Set<IamAction> actions = EnumSet.of(IamAction.MANAGE_SCHEMA);
     if (patchRequest.getPhsId() != null) {
       actions.add(IamAction.UPDATE_PASSPORT_IDENTIFIER);
     }

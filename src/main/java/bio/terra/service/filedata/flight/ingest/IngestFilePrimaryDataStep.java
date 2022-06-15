@@ -8,6 +8,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.exception.InvalidUserProjectException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
@@ -16,6 +17,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 
 public class IngestFilePrimaryDataStep implements Step {
   private final ConfigurationService configService;
@@ -40,22 +42,26 @@ public class IngestFilePrimaryDataStep implements Step {
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       FSFileInfo fsFileInfo;
-      if (dataset.isSelfHosted()) {
-        fsFileInfo =
-            gcsPdao.linkSelfHostedFile(
-                fileLoadModel, fileId, dataset.getProjectResource().getGoogleProjectId());
-      } else {
-        GoogleBucketResource bucketResource =
-            FlightUtils.getContextValue(
-                context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-        if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
+      try {
+        if (dataset.isSelfHosted()) {
           fsFileInfo =
-              FSFileInfo.getTestInstance(fileId, bucketResource.getResourceId().toString());
+              gcsPdao.linkSelfHostedFile(
+                  fileLoadModel, fileId, dataset.getProjectResource().getGoogleProjectId());
         } else {
-          fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
+          GoogleBucketResource bucketResource =
+              FlightUtils.getContextValue(
+                  context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+          if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
+            fsFileInfo =
+                FSFileInfo.getTestInstance(fileId, bucketResource.getResourceId().toString());
+          } else {
+            fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
+          }
         }
+        workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
+      } catch (InvalidUserProjectException ex) {
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
       }
-      workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
     }
     return StepResult.getStepResultSuccess();
   }

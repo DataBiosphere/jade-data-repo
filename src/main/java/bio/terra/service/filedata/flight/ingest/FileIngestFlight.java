@@ -150,7 +150,7 @@ public class FileIngestFlight extends Flight {
             randomBackoffRetry);
         addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
       }
-      addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
+      addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), randomBackoffRetry);
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {
       addStep(

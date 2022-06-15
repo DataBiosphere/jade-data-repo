@@ -169,8 +169,8 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb) ";
+        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties) "
+            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, cast(:properties as jsonb)) ";
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
@@ -187,7 +187,9 @@ public class SnapshotDao {
             .addValue("id", snapshot.getId())
             .addValue("consent_code", snapshot.getConsentCode())
             .addValue("flightid", flightId)
-            .addValue("creation_information", creationInfo);
+            .addValue("creation_information", creationInfo)
+            .addValue(
+                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()));
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {

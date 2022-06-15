@@ -690,12 +690,14 @@ public class SnapshotDao {
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean patch(UUID id, SnapshotPatchRequestModel patchRequest) {
     String sql =
-        "UPDATE snapshot SET consent_code = COALESCE(:consent_code, consent_code) WHERE id = :id";
+        "UPDATE snapshot SET consent_code = COALESCE(:consent_code, consent_code), " +
+            "properties = COALESCE(cast(:properties as jsonb), properties) WHERE id = :id";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("consent_code", patchRequest.getConsentCode())
-            .addValue("id", id);
+            .addValue("id", id)
+            .addValue("properties", DaoUtils.propertiesToString(objectMapper, patchRequest.getProperties()));
 
     int rowsAffected = jdbcTemplate.update(sql, params);
     boolean patchSucceeded = (rowsAffected == 1);

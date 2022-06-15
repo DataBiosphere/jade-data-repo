@@ -4,6 +4,7 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -124,6 +125,18 @@ public final class DaoUtils {
       }
     } else {
       return null;
+    }
+  }
+
+  public static Object stringToProperties(ObjectMapper objectMapper, String properties) {
+    if (properties != null) {
+      try {
+        return objectMapper.readValue(properties, new TypeReference<>() {});
+      } catch (JsonProcessingException e) {
+        throw new CorruptMetadataException("Invalid properties field");
+      }
+    } else {
+      return  null;
     }
   }
 }

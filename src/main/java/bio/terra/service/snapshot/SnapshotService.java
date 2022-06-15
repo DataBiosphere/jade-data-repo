@@ -718,6 +718,10 @@ public class SnapshotService {
     if (include.contains(SnapshotRetrieveIncludeModel.CREATION_INFORMATION)) {
       snapshotModel.creationInformation(snapshot.getCreationInformation());
     }
+    if (include.contains(SnapshotRetrieveIncludeModel.PROPERTIES)) {
+      snapshotModel.properties(snapshot.getProperties());
+    }
+
     return snapshotModel;
   }
 

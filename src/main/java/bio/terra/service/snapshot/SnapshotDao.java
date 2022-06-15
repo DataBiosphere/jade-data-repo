@@ -401,7 +401,8 @@ public class SnapshotDao {
                       .creationInformation(
                           stringToSnapshotRequestContentsModel(
                               rs.getString("creation_information")))
-                      .consentCode(rs.getString("consent_code")));
+                      .consentCode(rs.getString("consent_code"))
+                      .properties(DaoUtils.stringToProperties(objectMapper, rs.getString("properties"))));
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
         // retrieve the snapshot tables and relationships

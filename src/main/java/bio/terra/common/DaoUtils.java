@@ -136,7 +136,7 @@ public final class DaoUtils {
         throw new CorruptMetadataException("Invalid properties field");
       }
     } else {
-      return  null;
+      return null;
     }
   }
 }

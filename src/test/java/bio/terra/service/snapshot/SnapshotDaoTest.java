@@ -37,6 +37,7 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -595,5 +596,69 @@ public class SnapshotDaoTest {
         "snapshot's consent code is set to empty string from patch",
         snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
         equalTo(""));
+  }
+
+  @Test
+  public void createSnapshotWithProperties() throws Exception {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    String properties =
+        "{\"projectName\":\"project\", " + "\"authors\": [\"harry\", \"ron\", \"hermionie\"]}";
+    snapshotRequest.properties(properties);
+    Snapshot snapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(snapshotRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    String flightId = UUID.randomUUID().toString();
+    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, flightId);
+    assertThat(
+        "snapshot properties set correctly",
+        fromDB.getProperties(),
+        equalTo(snapshot.getProperties()));
+  }
+
+  @Test
+  public void patchSnapshotProperties() throws Exception {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    Snapshot snapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(snapshotRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, "patchDatasetProperties_flightId");
+    assertThat("snapshot properties is null before patch", fromDB.getProperties(), equalTo(null));
+
+    String updatedProperties = "{\"projectName\":\"updatedProject\"}";
+    SnapshotPatchRequestModel patchRequestSet =
+        new SnapshotPatchRequestModel().properties(updatedProperties);
+    snapshotDao.patch(snapshotId, patchRequestSet);
+    assertThat(
+        "snapshot properties is set from patch",
+        snapshotDao.retrieveSnapshot(snapshotId).getProperties(),
+        equalTo(updatedProperties));
+
+    SnapshotPatchRequestModel patchRequestNull = new SnapshotPatchRequestModel().consentCode("c01");
+    snapshotDao.patch(datasetId, patchRequestNull);
+    assertThat(
+        "snapshot properties is unchanged when not in request",
+        snapshotDao.retrieveSnapshot(snapshotId).getProperties(),
+        equalTo(updatedProperties));
+
+    SnapshotPatchRequestModel patchRequestExplicitNull =
+        new SnapshotPatchRequestModel().properties(null);
+    snapshotDao.patch(snapshotId, patchRequestExplicitNull);
+    assertThat(
+        "snapshot properties is unchanged if set to null",
+        snapshotDao.retrieveSnapshot(snapshotId).getProperties(),
+        equalTo(updatedProperties));
+
+    Object unsetDatasetProperties = jsonLoader.loadJson("{}", new TypeReference<>() {});
+    SnapshotPatchRequestModel patchRequestUnset =
+        new SnapshotPatchRequestModel().properties(unsetDatasetProperties);
+    snapshotDao.patch(snapshotId, patchRequestUnset);
+    assertThat(
+        "snapshot properties is set to empty",
+        snapshotDao.retrieveSnapshot(snapshotId).getProperties(),
+        equalTo(unsetDatasetProperties));
   }
 }

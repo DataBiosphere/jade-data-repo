@@ -170,7 +170,7 @@ public class SnapshotDao {
 
     String sql =
         "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, cast(:properties as jsonb)) ";
+            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb) ";
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
@@ -692,7 +692,7 @@ public class SnapshotDao {
   public boolean patch(UUID id, SnapshotPatchRequestModel patchRequest) {
     String sql =
         "UPDATE snapshot SET consent_code = COALESCE(:consent_code, consent_code), "
-            + "properties = COALESCE(cast(:properties as jsonb), properties) WHERE id = :id";
+            + "properties = COALESCE(:properties::jsonb, properties) WHERE id = :id";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()

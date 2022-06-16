@@ -4,10 +4,14 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigModel;
-import java.security.SecureRandom;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Random;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressFBWarnings(
+    value = "DMI_RANDOM_USED_ONLY_ONCE",
+    justification = "False positive introduced in 4.2.3, fixed in 4.4.2")
 public class ConfigFaultCounted extends ConfigFault {
   private final Logger logger = LoggerFactory.getLogger(ConfigFaultCounted.class);
 
@@ -22,7 +26,7 @@ public class ConfigFaultCounted extends ConfigFault {
   private int skippedCounter;
   private boolean doneInserting;
   private int insertCounter;
-  private SecureRandom random;
+  private Random random;
   private int every;
   private int everyCounter;
   private int testCounter;
@@ -147,7 +151,7 @@ public class ConfigFaultCounted extends ConfigFault {
     switch (countedModel.getRateStyle()) {
       case RANDOM:
         if (random == null) {
-          random = new SecureRandom();
+          random = new Random();
         }
         break;
 

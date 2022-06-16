@@ -356,7 +356,10 @@ paths:
       tags:
         - profiles
         - resources
-      description: Adds a member to the specified policy for the snapshot
+      description: >
+        Adds a member to the specified policy for the profile.
+
+        NOTE: Change may take up to 60 seconds to take effect.
       operationId: addProfilePolicyMember
       requestBody:
         content:
@@ -398,7 +401,10 @@ paths:
       tags:
         - profiles
         - resources
-      description: Removes a member from the specified policy for the profile
+      description: >
+        Removes a member from the specified policy for the profile.
+
+        NOTE: Change may take up to 60 seconds to take effect.
       operationId: deleteProfilePolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'

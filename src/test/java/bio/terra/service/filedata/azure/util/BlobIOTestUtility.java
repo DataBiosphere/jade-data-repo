@@ -13,6 +13,7 @@ import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.sas.SasProtocol;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +33,9 @@ import org.apache.commons.lang3.RandomStringUtils;
  * Test component that facilitates the creation and deletion of data in Azure storage for testing
  * copy operations.
  */
+@SuppressFBWarnings(
+    value = "DMI_RANDOM_USED_ONLY_ONCE",
+    justification = "False positive introduced in 4.2.3, fixed in 4.4.2")
 public class BlobIOTestUtility {
   public static final long MIB = 1024 * 1024;
   private static final String SOURCE_BLOB_NAME = "myTestBlob";

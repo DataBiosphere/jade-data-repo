@@ -41,7 +41,8 @@ public class IamServiceTest {
 
   @Before
   public void setup() {
-    when(configurationService.getParameterValue(ConfigEnum.AUTH_CACHE_SIZE)).thenReturn(1);
+    when(configurationService.getParameterValue(ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS))
+        .thenReturn(0);
     iamService = new IamService(iamProvider, configurationService);
     authenticatedUserRequest =
         AuthenticatedUserRequest.builder()
@@ -88,6 +89,30 @@ public class IamServiceTest {
   }
 
   @Test
+  public void testVerifyAuthorization() throws Exception {
+    IamResourceType resourceType = IamResourceType.DATASET;
+    String id = ID.toString();
+    IamAction action = IamAction.READ_DATA;
+
+    when(iamProvider.isAuthorized(authenticatedUserRequest, resourceType, id, action))
+        .thenReturn(true);
+    // Checking authorization for an action associated with the caller should not throw.
+    iamService.verifyAuthorization(authenticatedUserRequest, resourceType, id, action);
+
+    when(iamProvider.isAuthorized(authenticatedUserRequest, resourceType, id, action))
+        .thenReturn(false);
+    IamForbiddenException thrown =
+        assertThrows(
+            IamForbiddenException.class,
+            () ->
+                iamService.verifyAuthorization(authenticatedUserRequest, resourceType, id, action),
+            "Authorization verification throws if the caller is missing the action");
+    assertThat(
+        "Error message reflects cause",
+        thrown.getMessage(),
+        containsString("does not have required action: " + action));
+  }
+
   public void testVerifyAuthorizations() throws Exception {
     IamResourceType resourceType = IamResourceType.DATASET;
     String id = ID.toString();

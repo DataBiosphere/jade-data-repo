@@ -281,7 +281,7 @@ dependencies {
 
 
     antlr "org.antlr:antlr4:4.8"
-    spotbugs 'com.github.spotbugs:spotbugs:4.2.2'
+    spotbugs 'com.github.spotbugs:spotbugs:4.2.3'
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.

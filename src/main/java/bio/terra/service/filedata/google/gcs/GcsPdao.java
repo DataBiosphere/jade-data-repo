@@ -25,6 +25,7 @@ import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.exception.FileNotFoundException;
+import bio.terra.service.filedata.exception.InvalidUserProjectException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -32,6 +33,7 @@ import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.oauth2.model.Tokeninfo;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.OAuth2Credentials;
@@ -373,6 +375,11 @@ public class GcsPdao implements CloudFileReader {
     fromBlob.copyTo(to, Blob.BlobSourceOption.userProject(projectId));
   }
 
+  private boolean isInvalidUserProjectException(StorageException ex) {
+    return ex.getCause() instanceof GoogleJsonResponseException
+        && ex.getMessage().contains("User project specified in the request is invalid");
+  }
+
   public FSFileInfo copyFile(
       Dataset dataset,
       FileLoadModel fileLoadModel,
@@ -433,11 +440,12 @@ public class GcsPdao implements CloudFileReader {
           .bucketResourceId(bucketResource.getResourceId().toString());
 
     } catch (StorageException ex) {
-      // For now, we assume that the storage exception is caused by bad input (the file copy
-      // exception
-      // derives from BadRequestException). I think there are several cases here. We might need to
-      // retry
-      // for flaky google case or we might need to bail out if access is denied.
+      // In most cases, we assume that the storage exception is caused by bad input (the file copy
+      // exception derives from BadRequestException). I think there are several cases here.
+      // We might need to retry for flaky google cases, or we bail out if access is denied.
+      if (isInvalidUserProjectException(ex)) {
+        throw new InvalidUserProjectException("File ingest failed", ex);
+      }
       throw new PdaoFileCopyException("File ingest failed", ex);
     }
   }
@@ -475,11 +483,12 @@ public class GcsPdao implements CloudFileReader {
           .bucketResourceId(null);
 
     } catch (StorageException ex) {
-      // For now, we assume that the storage exception is caused by bad input (the file copy
-      // exception
-      // derives from BadRequestException). I think there are several cases here. We might need to
-      // retry
-      // for flaky google case or we might need to bail out if access is denied.
+      // In most cases, we assume that the storage exception is caused by bad input (the file copy
+      // exception derives from BadRequestException). I think there are several cases here.
+      // We might need to retry for flaky google cases, or we bail out if access is denied.
+      if (isInvalidUserProjectException(ex)) {
+        throw new InvalidUserProjectException("File ingest failed", ex);
+      }
       throw new PdaoFileLinkException("File ingest failed", ex);
     }
   }

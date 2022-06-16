@@ -421,7 +421,8 @@ public class SnapshotService {
       int limit,
       int offset,
       String sort,
-      SqlSortDirection direction) {
+      SqlSortDirection direction,
+      String filter) {
     Snapshot snapshot = retrieve(snapshotId);
 
     SnapshotTable table =
@@ -444,7 +445,7 @@ public class SnapshotService {
     try {
       List<Map<String, Object>> values =
           bigQuerySnapshotPdao.getSnapshotTable(
-              snapshot, tableName, limit, offset, sort, direction);
+              snapshot, tableName, limit, offset, sort, direction, filter);
 
       return new SnapshotPreviewModel().result(List.copyOf(values));
     } catch (InterruptedException e) {

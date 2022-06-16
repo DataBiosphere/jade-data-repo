@@ -13,6 +13,7 @@ import bio.terra.common.DateTimeUtils;
 import bio.terra.common.Table;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.grammar.Query;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -814,9 +815,10 @@ public class BigQuerySnapshotPdao {
     return values;
   }
 
-  private static final String SNAPSHOT_DATA_TEMPLATE =
-      "SELECT * FROM `<project>.<snapshot>.<table>` ORDER BY <sort> <direction>"
-          + " LIMIT <limit> OFFSET <offset>";
+  private static final String SNAPSHOT_DATA_TEMPLATE = "SELECT * FROM <table> <filterParams>";
+
+  private static final String SNAPSHOT_DATA_FILTER_TEMPLATE =
+      "<whereClause> ORDER BY <sort> <direction> LIMIT <limit> OFFSET <offset>";
 
   /*
    * WARNING: Ensure input parameters are validated before executing this method!
@@ -827,23 +829,34 @@ public class BigQuerySnapshotPdao {
       int limit,
       int offset,
       String sort,
-      SqlSortDirection direction)
+      SqlSortDirection direction,
+      String filter)
       throws InterruptedException {
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final String snapshotProjectId = bigQueryProject.getProjectId();
-    final String sql =
-        new ST(SNAPSHOT_DATA_TEMPLATE)
-            .add("project", snapshotProjectId)
-            .add("snapshot", snapshot.getName())
-            .add("table", tableName)
+    String whereClause = filter != null ? filter : "";
+
+    String table = snapshot.getName() + "." + tableName;
+    final String sql = "SELECT * FROM " + table + " " + whereClause;
+    // Parse before querying because the where clause is user-provided
+    Query.parse(sql);
+
+    // The bigquery sql table name must be enclosed in backticks
+    String bigQueryTable = "`" + snapshotProjectId + "." + table + "`";
+    final String filterParams =
+        new ST(SNAPSHOT_DATA_FILTER_TEMPLATE)
+            .add("whereClause", whereClause)
             .add("sort", sort)
             .add("direction", direction)
             .add("limit", limit)
             .add("offset", offset)
             .render();
-
-    final TableResult result = bigQueryProject.query(sql);
-
+    final String bigQuerySQL =
+        new ST(SNAPSHOT_DATA_TEMPLATE)
+            .add("table", bigQueryTable)
+            .add("filterParams", filterParams)
+            .render();
+    final TableResult result = bigQueryProject.query(bigQuerySQL);
     return aggregateSnapshotTable(result);
   }
 

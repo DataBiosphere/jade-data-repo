@@ -758,6 +758,11 @@ paths:
           schema:
             default: asc
             $ref: '#/components/schemas/SqlSortDirection'
+        - name: filter
+          in: query
+          description: A SQL WHERE clause to filter the table results.
+          schema:
+            type: string
       responses:
         200:
           description: Returns the table data from a snapshot

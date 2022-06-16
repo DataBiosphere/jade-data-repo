@@ -267,7 +267,8 @@ public class SnapshotsApiController implements SnapshotsApi {
       Integer offset,
       Integer limit,
       String sort,
-      SqlSortDirection direction) {
+      SqlSortDirection direction,
+      String filter) {
     logger.info("Verifying user access");
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
@@ -275,7 +276,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
     SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
     SnapshotPreviewModel previewModel =
-        snapshotService.retrievePreview(id, table, limit, offset, sort, sortDirection);
+        snapshotService.retrievePreview(id, table, limit, offset, sort, sortDirection, filter);
     return new ResponseEntity<>(previewModel, HttpStatus.OK);
   }
 

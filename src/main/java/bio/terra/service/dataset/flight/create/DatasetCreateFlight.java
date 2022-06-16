@@ -89,6 +89,11 @@ public class DatasetCreateFlight extends Flight {
       addStep(
           new CreateDatasetInitializeProjectStep(resourceService, datasetRequest),
           getDefaultExponentialBackoffRetryRule());
+
+      // Create the service account to use to ingest data
+      if (datasetRequest.isDedicatedIngestServiceAccount()) {
+        addStep(new CreateDatasetCreateIngestServiceAccountStep(resourceService, datasetRequest));
+      }
     }
 
     // Get or create the storage account where the dataset resources will be created for Azure
@@ -126,8 +131,7 @@ public class DatasetCreateFlight extends Flight {
       addStep(new CreateDatasetPrimaryDataStep(bigQueryDatasetPdao, datasetDao));
 
       // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes.
-      // The max
-      // operation timeout is generous.
+      // The max operation timeout is generous.
       RetryRule pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
       addStep(
           new CreateDatasetAuthzPrimaryDataStep(bigQueryDatasetPdao, datasetService, configService),

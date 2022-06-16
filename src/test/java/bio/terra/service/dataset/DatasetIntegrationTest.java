@@ -358,9 +358,9 @@ public class DatasetIntegrationTest extends UsersBase {
         dataRepoFixtures.addDatasetAssetExpectFailure(
             steward(), datasetModel.getId(), invalidAssetModel);
     assertThat(
-        "Error model errored on invalid column in person table",
+        "At least one validation error caught for asset",
         errorModel.getMessage(),
-        containsString("Column invalidColumn does not exist in table person"));
+        containsString("Invalid asset create request. See causes list for details."));
 
     // Test successful Asset Creation
     AssetModel assetModel = jsonLoader.loadObject("dataset-asset-person.json", AssetModel.class);

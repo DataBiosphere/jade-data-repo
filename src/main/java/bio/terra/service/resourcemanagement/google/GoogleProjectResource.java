@@ -7,6 +7,7 @@ public class GoogleProjectResource {
   private UUID profileId; // id of the associated billing profile
   private String googleProjectId; // google's name of the project
   private String googleProjectNumber; // google's id of the project
+  private String serviceAccount; // service account associated with this project
 
   // Default constructor for JSON serdes
   public GoogleProjectResource() {}
@@ -44,6 +45,15 @@ public class GoogleProjectResource {
 
   public GoogleProjectResource googleProjectNumber(String googleProjectNumber) {
     this.googleProjectNumber = googleProjectNumber;
+    return this;
+  }
+
+  public String getServiceAccount() {
+    return serviceAccount;
+  }
+
+  public GoogleProjectResource serviceAccount(String serviceAccount) {
+    this.serviceAccount = serviceAccount;
     return this;
   }
 }

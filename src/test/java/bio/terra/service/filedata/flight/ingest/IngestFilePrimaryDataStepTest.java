@@ -9,6 +9,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.InvalidUserProjectException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -63,23 +64,37 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
   }
 
   @Test
-  public void testDoStepSelfHostedRetry() {
+  public void testDoStepSelfHostedRetryThenSucceed() {
+    // Dataset is self-hosted
     when(dataset.isSelfHosted()).thenReturn(true);
+
+    // Step's first run throws retryable error, second run succeeds
+    FSFileInfo fileInfo = mock(FSFileInfo.class);
     when(gcsPdao.linkSelfHostedFile(any(), any(), any()))
-        .thenThrow(new InvalidUserProjectException("retryable"));
+        .thenThrow(new InvalidUserProjectException("retryable"))
+        .thenReturn(fileInfo);
 
     StepResult result = step.doStep(flightContext);
     verify(gcsPdao, times(1)).linkSelfHostedFile(any(), any(), any());
     assertThat(
-        "step failed and should be retried",
+        "Step failed and should be retried",
         StepStatus.STEP_RESULT_FAILURE_RETRY,
         equalTo(result.getStepStatus()));
+
+    result = step.doStep(flightContext);
+    verify(gcsPdao, times(2)).linkSelfHostedFile(any(), any(), any());
+    assertThat(
+        "Retried step succeeds", StepStatus.STEP_RESULT_SUCCESS, equalTo(result.getStepStatus()));
   }
 
   @Test
-  public void testDoStepExternallyHostedRetry() {
+  public void testDoStepExternallyHostedRetryThenSucceed() {
+    // Dataset is externally hosted by default
+    // Step's first run throws retryable error, second run succeeds
+    FSFileInfo fileInfo = mock(FSFileInfo.class);
     when(gcsPdao.copyFile(any(), any(), any(), any()))
-        .thenThrow(new InvalidUserProjectException("retryable"));
+        .thenThrow(new InvalidUserProjectException("retryable"))
+        .thenReturn(fileInfo);
 
     StepResult result = step.doStep(flightContext);
     verify(gcsPdao, times(1)).copyFile(any(), any(), any(), any());
@@ -87,19 +102,16 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
         "Step failed and should be retried",
         StepStatus.STEP_RESULT_FAILURE_RETRY,
         equalTo(result.getStepStatus()));
-  }
 
-  @Test
-  public void testDoStepExternallyHostedSuccess() {
-    when(gcsPdao.copyFile(any(), any(), any(), any())).thenReturn(null);
-
-    StepResult result = step.doStep(flightContext);
-    verify(gcsPdao, times(1)).copyFile(any(), any(), any(), any());
-    assertThat("Step succeeded", StepStatus.STEP_RESULT_SUCCESS, equalTo(result.getStepStatus()));
+    result = step.doStep(flightContext);
+    verify(gcsPdao, times(2)).copyFile(any(), any(), any(), any());
+    assertThat(
+        "Retried step succeeds", StepStatus.STEP_RESULT_SUCCESS, equalTo(result.getStepStatus()));
   }
 
   @Test
   public void testDoStepExternallyHostedFailureThrows() {
+    // Dataset is externally hosted by default
     String errorMessage = "failure";
     when(gcsPdao.copyFile(any(), any(), any(), any()))
         .thenThrow(new PdaoFileCopyException(errorMessage));
@@ -108,7 +120,7 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
         assertThrows(
             PdaoFileCopyException.class,
             () -> step.doStep(flightContext),
-            "Step throws unretriable exception");
+            "Step throws unretryable exception");
     verify(gcsPdao, times(1)).copyFile(any(), any(), any(), any());
     assertThat("Error message reflects cause", thrown.getMessage(), equalTo(errorMessage));
   }

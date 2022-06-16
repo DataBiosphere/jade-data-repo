@@ -35,6 +35,9 @@ import bio.terra.model.JobModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.configuration.ConfigEnum;
+import com.google.cloud.Identity;
+import com.google.cloud.Policy;
+import com.google.cloud.Role;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
@@ -429,6 +432,24 @@ public class DatasetIntegrationTest extends UsersBase {
       }
     }
     return String.format("gs://%s/%s", blob.getBucket(), targetPath);
+  }
+
+  static void addServiceAccountRoleToBucket(String bucket, String serviceAccount, Role role) {
+    Storage storage = StorageOptions.getDefaultInstance().getService();
+    Policy iamPolicy = storage.getIamPolicy(bucket);
+    storage.setIamPolicy(
+        bucket,
+        iamPolicy.toBuilder().addIdentity(role, Identity.serviceAccount(serviceAccount)).build());
+  }
+
+  static void removeServiceAccountRoleFromBucket(String bucket, String serviceAccount, Role role) {
+    Storage storage = StorageOptions.getDefaultInstance().getService();
+    Policy iamPolicy = storage.getIamPolicy(bucket);
+    storage.setIamPolicy(
+        bucket,
+        iamPolicy.toBuilder()
+            .removeIdentity(role, Identity.serviceAccount(serviceAccount))
+            .build());
   }
 
   static void assertTableCount(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)

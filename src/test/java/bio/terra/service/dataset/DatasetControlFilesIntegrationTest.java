@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -24,6 +25,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.storage.StorageRoles;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -36,6 +38,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -54,6 +57,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String stewardToken;
+  private UUID datasetId;
   private UUID profileId;
 
   @Before
@@ -68,6 +72,10 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
+    if (datasetId != null) {
+      dataRepoFixtures.deleteDataset(steward(), datasetId);
+    }
+
     if (profileId != null) {
       dataRepoFixtures.deleteProfileLog(steward(), profileId);
     }
@@ -77,7 +85,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   public void testCombinedMetadataDataIngest() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    UUID datasetId = datasetSummaryModel.getId();
+    datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -156,7 +164,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   public void testMaxBadRecords() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    UUID datasetId = datasetSummaryModel.getId();
+    datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -198,7 +206,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   public void testSourcePathAuth() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    UUID datasetId = datasetSummaryModel.getId();
+    datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -230,7 +238,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   public void testDirectIngestSourcePathAuth() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    UUID datasetId = datasetSummaryModel.getId();
+    datasetId = datasetSummaryModel.getId();
     Map<String, Object> data =
         jsonLoader.loadObject("test-direct-ingest-auth.json", new TypeReference<>() {});
     IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("sample_vcf", List.of(data));
@@ -254,7 +262,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   public void testCopyingOfControlFiles() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    UUID datasetId = datasetSummaryModel.getId();
+    datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -293,7 +301,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(
             steward(), profileId, "dataset-ingest-combined-array-us.json");
-    UUID datasetId = datasetSummaryModel.getId();
+    datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -332,7 +340,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(
             steward(), profileId, "dataset-ingest-combined-array-us.json");
-    UUID datasetId = datasetSummaryModel.getId();
+    datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -352,15 +360,13 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         "Error message detail should include that the targetPath was not defined in the control file.",
         error.getErrorDetail().get(1),
         containsString("Error: The following required field(s) were not defined: targetPath"));
-
-    dataRepoFixtures.deleteDataset(steward(), datasetId);
   }
 
   @Test
   public void interactionsFromRequesterPaysBucket() throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
-    UUID datasetId = datasetSummaryModel.getId();
+    datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -403,5 +409,61 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
     // We should only see 2 records now
     DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample_vcf", 2L);
+  }
+
+  @Test
+  public void interactionsWithPerDatasetServiceAccount() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDatasetWithOwnServiceAccount(
+            steward(), profileId, "dataset-ingest-combined-array.json");
+
+    datasetId = datasetSummaryModel.getId();
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(
+                "gs://jade_testbucket_no_jade_sa/dataset-ingest-combined-control-duplicates-array.json");
+
+    DataRepoResponse<IngestResponseModel> ingestResponseBeforeGrant =
+        dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, ingestRequest);
+
+    assertThat(
+        "ingest failed before granting SA to source bucket",
+        ingestResponseBeforeGrant.getStatusCode(),
+        equalTo(HttpStatus.UNAUTHORIZED));
+
+    assertThat(
+        "error message is the right one",
+        ingestResponseBeforeGrant.getErrorObject().map(ErrorModel::getMessage).orElse(""),
+        containsString("TDR cannot access bucket jade_testbucket_no_jade_sa."));
+
+    // Now grant the reader role on the source bucket to the ingest service account
+    String ingestServiceAccount =
+        dataRepoFixtures.getDataset(steward(), datasetId).getIngestServiceAccount();
+    assertThat(
+        "the ingest service account is not the global one",
+        ingestServiceAccount,
+        startsWith("tdr-ingest-sa"));
+    DatasetIntegrationTest.addServiceAccountRoleToBucket(
+        "jade_testbucket_no_jade_sa", ingestServiceAccount, StorageRoles.objectViewer());
+    try {
+      IngestResponseModel ingestResponse =
+          dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+
+      dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
+
+      assertThat(
+          "All 4 rows were ingested, including the one with duplicate files",
+          ingestResponse.getRowCount(),
+          equalTo(4L));
+    } finally {
+      // Clean up role grants on shared bucket
+      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
+          "jade_testbucket_no_jade_sa", ingestServiceAccount, StorageRoles.objectViewer());
+    }
   }
 }

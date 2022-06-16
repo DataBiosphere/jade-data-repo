@@ -5,6 +5,7 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import com.google.cloud.storage.Storage;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
@@ -21,7 +22,7 @@ public class GcsProjectFactory {
           new PassiveExpiringMap<>(GcsProject.TOKEN_LENGTH.toSeconds(), TimeUnit.SECONDS));
 
   private static final int PROJECT_RESOURCES_CACHE_SIZE = 500;
-  private static final Map<String, GoogleProjectResource> projectResources =
+  private static final Map<String, Optional<GoogleProjectResource>> projectResources =
       Collections.synchronizedMap(new LRUMap<>(PROJECT_RESOURCES_CACHE_SIZE));
 
   private final GcsConfiguration gcsConfiguration;
@@ -73,8 +74,9 @@ public class GcsProjectFactory {
   }
 
   private GoogleProjectResource retrieveProjectResource(String projectId) {
-    return projectResources.computeIfAbsent(
-        projectId, googleResourceDao::retrieveProjectByGoogleProjectId);
+    return projectResources
+        .computeIfAbsent(projectId, googleResourceDao::retrieveProjectByGoogleProjectIdMaybe)
+        .orElse(null);
   }
 
   /**

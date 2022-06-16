@@ -147,6 +147,14 @@ public class GoogleResourceDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+  public Optional<GoogleProjectResource> retrieveProjectByGoogleProjectIdMaybe(
+      String googleProjectId) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("google_project_id", googleProjectId);
+    return Optional.ofNullable(retrieveProjectBy(sqlProjectRetrieveByProjectId, params, false));
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public GoogleProjectResource retrieveProjectByIdForDelete(UUID id) {
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
     return retrieveProjectBy(sqlProjectRetrieveByIdForDelete, params);
@@ -286,8 +294,16 @@ public class GoogleResourceDao {
   }
 
   private GoogleProjectResource retrieveProjectBy(String sql, MapSqlParameterSource params) {
+    return retrieveProjectBy(sql, params, true);
+  }
+
+  private GoogleProjectResource retrieveProjectBy(
+      String sql, MapSqlParameterSource params, boolean failIfNotFound) {
     List<GoogleProjectResource> projectList = retrieveProjectListBy(sql, params);
     if (projectList.size() == 0) {
+      if (!failIfNotFound) {
+        return null;
+      }
       throw new GoogleResourceNotFoundException("Project not found");
     }
     if (projectList.size() > 1) {

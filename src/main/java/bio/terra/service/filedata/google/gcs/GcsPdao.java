@@ -74,6 +74,7 @@ import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -162,7 +163,7 @@ public class GcsPdao implements CloudFileReader {
       return listGcsFiles(blobUrl, cloudEncapsulationId, storage)
           .flatMap(blob -> getBlobLinesStream(blob, cloudEncapsulationId, storage));
     } catch (StorageException e) {
-      if (e.getMessage().equals("Error requesting access token")) {
+      if (e.getCode() == HttpStatus.SC_FORBIDDEN) {
         String bucket = GcsUriUtils.parseBlobUri(blobUrl).getBucket();
 
         String cred;

@@ -36,6 +36,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private List<Relationship> relationships = Collections.emptyList();
   private SnapshotRequestContentsModel creationInformation;
   private String consentCode;
+  private Object properties;
 
   @Override
   public CollectionType getCollectionType() {
@@ -168,6 +169,15 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public Snapshot consentCode(String consentCode) {
     this.consentCode = consentCode;
+    return this;
+  }
+
+  public Object getProperties() {
+    return properties;
+  }
+
+  public Snapshot properties(Object properties) {
+    this.properties = properties;
     return this;
   }
 

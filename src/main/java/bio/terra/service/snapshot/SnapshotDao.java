@@ -169,8 +169,8 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb) ";
+        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties) "
+            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb) ";
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
@@ -187,7 +187,9 @@ public class SnapshotDao {
             .addValue("id", snapshot.getId())
             .addValue("consent_code", snapshot.getConsentCode())
             .addValue("flightid", flightId)
-            .addValue("creation_information", creationInfo);
+            .addValue("creation_information", creationInfo)
+            .addValue(
+                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()));
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {
@@ -399,7 +401,9 @@ public class SnapshotDao {
                       .creationInformation(
                           stringToSnapshotRequestContentsModel(
                               rs.getString("creation_information")))
-                      .consentCode(rs.getString("consent_code")));
+                      .consentCode(rs.getString("consent_code"))
+                      .properties(
+                          DaoUtils.stringToProperties(objectMapper, rs.getString("properties"))));
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
         // retrieve the snapshot tables and relationships
@@ -687,12 +691,16 @@ public class SnapshotDao {
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean patch(UUID id, SnapshotPatchRequestModel patchRequest) {
     String sql =
-        "UPDATE snapshot SET consent_code = COALESCE(:consent_code, consent_code) WHERE id = :id";
+        "UPDATE snapshot SET consent_code = COALESCE(:consent_code, consent_code), "
+            + "properties = COALESCE(:properties::jsonb, properties) WHERE id = :id";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("consent_code", patchRequest.getConsentCode())
-            .addValue("id", id);
+            .addValue("id", id)
+            .addValue(
+                "properties",
+                DaoUtils.propertiesToString(objectMapper, patchRequest.getProperties()));
 
     int rowsAffected = jdbcTemplate.update(sql, params);
     boolean patchSucceeded = (rowsAffected == 1);

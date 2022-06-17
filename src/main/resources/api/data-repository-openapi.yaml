@@ -4230,6 +4230,9 @@ components:
             type: string
         profileId:
           $ref: '#/components/schemas/UniqueIdProperty'
+        properties:
+          type: object
+          description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
       description: >
         Request for creating a snapshot.
         For now, the API only supports snapshots defined as a single dataset asset and
@@ -4325,6 +4328,9 @@ components:
       properties:
         consentCode:
           $ref: '#/components/schemas/ConsentCode'
+        properties:
+          type: object
+          description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
       description: >
         A 'lite' snapshot definition (used to modify supported fields of a snapshot).
         Null assignments will be ignored.
@@ -4332,7 +4338,7 @@ components:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT, CREATION_INFORMATION ]
+      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, CREATION_INFORMATION ]
     SnapshotSummaryModel:
       type: object
       properties:
@@ -4432,6 +4438,9 @@ components:
           $ref: '#/components/schemas/AccessInfoModel'
         creationInformation:
           $ref: '#/components/schemas/SnapshotRequestContentsModel'
+        properties:
+          type: object
+          description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:

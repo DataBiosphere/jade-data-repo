@@ -56,5 +56,6 @@
     <include file="changesets/20220411_requiredcolumns.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220511_dropsnapshotmetadata.yml" relativeToChangelogFile="true" />
     <include file="changesets/20220526_datasetproperties.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20220615_snapshotproperties.yaml" relativeToChangelogFile="true" />
 
 </databaseChangeLog>

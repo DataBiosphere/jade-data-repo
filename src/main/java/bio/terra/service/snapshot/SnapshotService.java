@@ -388,7 +388,8 @@ public class SnapshotService {
         .profileId(snapshotRequestModel.getProfileId())
         .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource))
         .creationInformation(requestContents)
-        .consentCode(snapshotRequestModel.getConsentCode());
+        .consentCode(snapshotRequestModel.getConsentCode())
+        .properties(snapshotRequestModel.getProperties());
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(
@@ -717,6 +718,10 @@ public class SnapshotService {
     if (include.contains(SnapshotRetrieveIncludeModel.CREATION_INFORMATION)) {
       snapshotModel.creationInformation(snapshot.getCreationInformation());
     }
+    if (include.contains(SnapshotRetrieveIncludeModel.PROPERTIES)) {
+      snapshotModel.properties(snapshot.getProperties());
+    }
+
     return snapshotModel;
   }
 

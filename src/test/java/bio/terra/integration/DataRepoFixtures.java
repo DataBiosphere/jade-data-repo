@@ -212,9 +212,11 @@ public class DataRepoFixtures {
   }
 
   public DatasetSummaryModel createSelfHostedDataset(
-      TestConfiguration.User user, UUID profileId, String fileName) throws Exception {
+      TestConfiguration.User user, UUID profileId, String fileName, boolean dedicatedServiceAccount)
+      throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, fileName, CloudPlatform.GCP, false, true, false);
+        createDatasetRaw(
+            user, profileId, fileName, CloudPlatform.GCP, false, true, dedicatedServiceAccount);
     return waitForDatasetCreate(user, jobResponse);
   }
 

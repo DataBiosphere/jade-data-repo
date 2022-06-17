@@ -755,7 +755,8 @@ public class SnapshotService {
             .phsId(dataset.getPhsId())
             .selfHosted(dataset.isSelfHosted());
 
-    SnapshotSourceModel sourceModel = new SnapshotSourceModel().dataset(summaryModel);
+    SnapshotSourceModel sourceModel =
+        new SnapshotSourceModel().dataset(summaryModel).datasetProperties(dataset.getProperties());
 
     AssetSpecification assetSpec = source.getAssetSpecification();
     if (assetSpec != null) {

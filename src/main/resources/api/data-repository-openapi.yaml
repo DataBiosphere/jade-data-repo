@@ -4625,6 +4625,9 @@ components:
       properties:
         dataset:
           $ref: '#/components/schemas/DatasetSummaryModel'
+        datasetProperties:
+          type: object
+          description: Additional JSON metadata about the source dataset
         asset:
           $ref: '#/components/schemas/ObjectNameProperty'
       description: >

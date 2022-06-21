@@ -65,6 +65,10 @@ public final class DatasetFixtures {
         .to(buildSampleTerm());
   }
 
+  public static AssetTableModel generateAssetTable(String tableName, List<String> columnNames) {
+    return new AssetTableModel().name(tableName).columns(columnNames);
+  }
+
   public static AssetTableModel buildAssetParticipantTable() {
     return new AssetTableModel().name("participant").columns(Collections.emptyList());
   }

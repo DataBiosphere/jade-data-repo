@@ -118,10 +118,11 @@ public class GrammarTest {
     Query.parse("SELECT * FROM 1000GenomesDataset.sample_info");
   }
 
-  @Test(expected = InvalidQueryException.class)
+  @Test
   public void testColumnNotFullyQualifiedName() {
-    // note that the col `datarepo_row_id` does not have a table or dataset attached
+    // allow non-fully qualified column names to support preview filtering
     Query.parse("SELECT datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
+    Query.parse("SELECT * FROM snapshot.table WHERE column = val");
   }
 
   @Test

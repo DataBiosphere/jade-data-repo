@@ -41,8 +41,10 @@ public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
     for (Column column : table.getColumns()) {
       if (column.isFileOrDirRef()) {
         List<String> refIdArray = bigQueryDatasetPdao.getRefIds(dataset, stagingTableName, column);
-        List<String> badRefIds = fileDao.validateRefIds(dataset, refIdArray);
-        badRefIds.forEach(id -> invalidRefIds.add(new InvalidRefId(id, column.getName())));
+        if (!refIdArray.isEmpty()) {
+          List<String> badRefIds = fileDao.validateRefIds(dataset, refIdArray);
+          badRefIds.forEach(id -> invalidRefIds.add(new InvalidRefId(id, column.getName())));
+        }
       }
     }
 

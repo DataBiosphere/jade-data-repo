@@ -815,7 +815,8 @@ public class BigQuerySnapshotPdao {
     return values;
   }
 
-  private static final String SNAPSHOT_DATA_TEMPLATE = "SELECT * FROM <table> <filterParams>";
+  private static final String SNAPSHOT_DATA_TEMPLATE =
+      "SELECT <columns> FROM <table> <filterParams>";
 
   private static final String SNAPSHOT_DATA_FILTER_TEMPLATE =
       "<whereClause> ORDER BY <sort> <direction> LIMIT <limit> OFFSET <offset>";
@@ -826,6 +827,7 @@ public class BigQuerySnapshotPdao {
   public List<Map<String, Object>> getSnapshotTable(
       Snapshot snapshot,
       String tableName,
+      List<String> columnNames,
       int limit,
       int offset,
       String sort,
@@ -834,11 +836,17 @@ public class BigQuerySnapshotPdao {
       throws InterruptedException {
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final String snapshotProjectId = bigQueryProject.getProjectId();
-    String whereClause = filter != null ? filter : "";
+    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
 
     String table = snapshot.getName() + "." + tableName;
-    final String sql = "SELECT * FROM " + table + " " + whereClause;
+    String columns = String.join(",", columnNames);
     // Parse before querying because the where clause is user-provided
+    final String sql =
+        new ST(SNAPSHOT_DATA_TEMPLATE)
+            .add("columns", columns)
+            .add("table", table)
+            .add("filterParams", whereClause)
+            .render();
     Query.parse(sql);
 
     // The bigquery sql table name must be enclosed in backticks
@@ -853,6 +861,7 @@ public class BigQuerySnapshotPdao {
             .render();
     final String bigQuerySQL =
         new ST(SNAPSHOT_DATA_TEMPLATE)
+            .add("columns", columns)
             .add("table", bigQueryTable)
             .add("filterParams", filterParams)
             .render();

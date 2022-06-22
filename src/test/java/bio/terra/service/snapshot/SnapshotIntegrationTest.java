@@ -92,23 +92,23 @@ public class SnapshotIntegrationTest extends UsersBase {
 
   @After
   public void tearDown() throws Exception {
-    //    createdSnapshotIds.forEach(
-    //        snapshot -> {
-    //          try {
-    //            dataRepoFixtures.deleteSnapshot(steward(), snapshot);
-    //          } catch (Exception ex) {
-    //            logger.warn("cleanup failed when deleting snapshot " + snapshot);
-    //            ex.printStackTrace();
-    //          }
-    //        });
-    //
-    //    if (datasetId != null) {
-    //      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
-    //    }
-    //
-    //    if (profileId != null) {
-    //      dataRepoFixtures.deleteProfileLog(steward(), profileId);
-    //    }
+    createdSnapshotIds.forEach(
+        snapshot -> {
+          try {
+            dataRepoFixtures.deleteSnapshot(steward(), snapshot);
+          } catch (Exception ex) {
+            logger.warn("cleanup failed when deleting snapshot " + snapshot);
+            ex.printStackTrace();
+          }
+        });
+
+    if (datasetId != null) {
+      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+    }
+
+    if (profileId != null) {
+      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+    }
   }
 
   @Test
@@ -229,8 +229,6 @@ public class SnapshotIntegrationTest extends UsersBase {
     TimeUnit.SECONDS.sleep(10);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
-    //    dataRepoFixtures.addSnapshotPolicyMember(
-    //        steward(), snapshot.getId(), IamRole.STEWARD, "saman.firecloud@gmail.com");
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     assertEquals("the relationship comes through", 1, snapshot.getRelationships().size());
   }

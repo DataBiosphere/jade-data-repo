@@ -118,7 +118,7 @@ public class SnapshotTableDao {
         });
   }
 
-  private List<Column> retrieveColumns(Table table) {
+  public List<Column> retrieveColumns(Table table) {
     return jdbcTemplate.query(
         sqlSelectColumn,
         new MapSqlParameterSource().addValue("table_id", table.getId()),

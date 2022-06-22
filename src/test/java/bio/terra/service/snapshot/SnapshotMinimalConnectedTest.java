@@ -143,12 +143,43 @@ public class SnapshotMinimalConnectedTest {
 
     SnapshotPreviewModel snapshotPreviewModel =
         SnapshotConnectedTestUtils.getTablePreview(
-            connectedOperations, summaryModel.getId(), "participant", 10, 0);
+            connectedOperations, summaryModel.getId(), "participant", 10, 0, null);
 
     assertThat(
         "participant has the correct age",
         ((LinkedHashMap) snapshotPreviewModel.getResult().get(0)).get("age"),
         equalTo("23"));
+  }
+
+  @Test
+  public void testPreview() throws Exception {
+    DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
+    SnapshotRequestModel snapshotRequest =
+        SnapshotConnectedTestUtils.makeSnapshotTestRequest(
+            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json");
+    MockHttpServletResponse response =
+        SnapshotConnectedTestUtils.performCreateSnapshot(
+            connectedOperations, mvc, snapshotRequest, "");
+    SnapshotSummaryModel summaryModel =
+        SnapshotConnectedTestUtils.validateSnapshotCreated(
+            connectedOperations, snapshotRequest, response);
+    SnapshotPreviewModel snapshotPreviewModel =
+        SnapshotConnectedTestUtils.getTablePreview(
+            connectedOperations, summaryModel.getId(), "participant", 10, 0, "WHERE age > 1");
+
+    assertThat(
+        "participant preview has one record",
+        snapshotPreviewModel.getResult().size(),
+        equalTo(1));
+
+    SnapshotPreviewModel snapshotEmptyPreviewModel =
+        SnapshotConnectedTestUtils.getTablePreview(
+            connectedOperations, summaryModel.getId(), "participant", 10, 0, "WHERE age > 23");
+
+    assertThat(
+        "participant preview is empty",
+        snapshotEmptyPreviewModel.getResult().size(),
+        equalTo(0));
   }
 
   @Test

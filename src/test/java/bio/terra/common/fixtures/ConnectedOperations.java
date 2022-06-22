@@ -834,22 +834,23 @@ public class ConnectedOperations {
   }
 
   public MockHttpServletResponse retrieveSnapshotPreviewByIdRaw(
-      UUID snapshotId, String tableName, int limit, int offset) throws Exception {
+      UUID snapshotId, String tableName, int limit, int offset, String filter) throws Exception {
     String url = "/api/repository/v1/snapshots/{id}/data/{table}";
-    MvcResult result =
-        mvc.perform(
-                get(url, snapshotId, tableName)
-                    .param("limit", String.valueOf(limit))
-                    .param("offset", String.valueOf(offset)))
-            .andReturn();
-
+    MockHttpServletRequestBuilder request =
+        get(url, snapshotId, tableName)
+            .param("limit", String.valueOf(limit))
+            .param("offset", String.valueOf(offset));
+    if (filter != null) {
+      request.param("filter", filter);
+    }
+    MvcResult result = mvc.perform(request).andReturn();
     return result.getResponse();
   }
 
   public SnapshotPreviewModel retrieveSnapshotPreviewByIdSuccess(
-      UUID snapshotId, String tableName, int limit, int offset) throws Exception {
+      UUID snapshotId, String tableName, int limit, int offset, String filter) throws Exception {
     MockHttpServletResponse response =
-        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset);
+        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset, filter);
     assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
     return TestUtils.mapFromJson(response.getContentAsString(), SnapshotPreviewModel.class);
   }

@@ -147,10 +147,11 @@ public class SnapshotConnectedTestUtils {
       UUID snapshotId,
       String tableName,
       int limit,
-      int offset)
+      int offset,
+      String filter)
       throws Exception {
     return connectedOperations.retrieveSnapshotPreviewByIdSuccess(
-        snapshotId, tableName, limit, offset);
+        snapshotId, tableName, limit, offset, filter);
   }
 
   static void loadCsvData(

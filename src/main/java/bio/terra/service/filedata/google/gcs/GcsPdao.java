@@ -36,6 +36,7 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.oauth2.model.Tokeninfo;
 import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
@@ -73,6 +74,7 @@ import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,6 +112,7 @@ public class GcsPdao implements CloudFileReader {
   private final IamProviderInterface iamClient;
   private final Environment environment;
   private final GoogleResourceManagerService resourceManagerService;
+  private final String tdrServiceAccountEmail;
 
   @Autowired
   public GcsPdao(
@@ -121,7 +124,8 @@ public class GcsPdao implements CloudFileReader {
       PerformanceLogger performanceLogger,
       IamProviderInterface iamClient,
       Environment environment,
-      GoogleResourceManagerService resourceManagerService) {
+      GoogleResourceManagerService resourceManagerService,
+      @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail) {
     this.gcsProjectFactory = gcsProjectFactory;
     this.resourceService = resourceService;
     this.fileDao = fileDao;
@@ -131,6 +135,7 @@ public class GcsPdao implements CloudFileReader {
     this.iamClient = iamClient;
     this.environment = environment;
     this.resourceManagerService = resourceManagerService;
+    this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }
 
   public Storage storageForBucket(GoogleBucketResource bucketResource) {
@@ -154,8 +159,28 @@ public class GcsPdao implements CloudFileReader {
   public Stream<String> getBlobsLinesStream(
       String blobUrl, String cloudEncapsulationId, AuthenticatedUserRequest userRequest) {
     Storage storage = gcsProjectFactory.getStorage(cloudEncapsulationId);
-    return listGcsFiles(blobUrl, cloudEncapsulationId, storage)
-        .flatMap(blob -> getBlobLinesStream(blob, cloudEncapsulationId, storage));
+    try {
+      return listGcsFiles(blobUrl, cloudEncapsulationId, storage)
+          .flatMap(blob -> getBlobLinesStream(blob, cloudEncapsulationId, storage));
+    } catch (StorageException e) {
+      if (e.getCode() == HttpStatus.SC_FORBIDDEN) {
+        String bucket = GcsUriUtils.parseBlobUri(blobUrl).getBucket();
+
+        String cred;
+        if (storage.getOptions().getCredentials() instanceof ImpersonatedCredentials) {
+          cred = ((ImpersonatedCredentials) storage.getOptions().getCredentials()).getAccount();
+        } else {
+          cred = tdrServiceAccountEmail;
+        }
+        throw new BlobAccessNotAuthorizedException(
+            String.format(
+                "TDR cannot access bucket %s. Please be sure to grant \"Storage Object Viewer\" permissions on it to the \"%s\" service account",
+                bucket, cred),
+            e);
+      } else {
+        throw new BlobAccessNotAuthorizedException("Error reading from source", e);
+      }
+    }
   }
 
   @SuppressFBWarnings("OS_OPEN_STREAM")
@@ -328,7 +353,7 @@ public class GcsPdao implements CloudFileReader {
         }
         throw new BlobAccessNotAuthorizedException(
             String.format(
-                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account and your Terra proxy user group (%s)",
+                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account or your dataset's ingest service account and your Terra proxy user group (%s)",
                 bucket, user.getEmail(), proxyGroup));
       }
     }
@@ -534,7 +559,7 @@ public class GcsPdao implements CloudFileReader {
   }
 
   private boolean deleteWorker(BlobId blobId, String projectId) {
-    GcsProject gcsProject = gcsProjectFactory.get(projectId);
+    GcsProject gcsProject = gcsProjectFactory.get(projectId, true);
     Storage storage = gcsProject.getStorage();
     Blob blob = storage.get(blobId);
     if (blob != null) {

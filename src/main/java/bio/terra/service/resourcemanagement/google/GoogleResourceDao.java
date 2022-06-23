@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -29,9 +30,11 @@ public class GoogleResourceDao {
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final GoogleResourceConfiguration googleResourceConfiguration;
   private final GoogleRegion defaultRegion;
+  private final String tdrServiceAccountEmail;
 
   private static final String sqlProjectRetrieve =
-      "SELECT id, google_project_id, google_project_number, profile_id" + " FROM project_resource";
+      "SELECT id, google_project_id, google_project_number, profile_id, service_account"
+          + " FROM project_resource";
   private static final String sqlProjectRetrieveById =
       sqlProjectRetrieve + " WHERE marked_for_delete = false AND id = :id";
   private static final String sqlProjectRetrieveByProjectId =
@@ -103,11 +106,13 @@ public class GoogleResourceDao {
   public GoogleResourceDao(
       NamedParameterJdbcTemplate jdbcTemplate,
       GcsConfiguration gcsConfiguration,
-      GoogleResourceConfiguration googleResourceConfiguration)
+      GoogleResourceConfiguration googleResourceConfiguration,
+      @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail)
       throws SQLException {
     this.jdbcTemplate = jdbcTemplate;
     this.defaultRegion = GoogleRegion.fromValue(gcsConfiguration.getRegion());
     this.googleResourceConfiguration = googleResourceConfiguration;
+    this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }
 
   // -- project resource methods --
@@ -139,6 +144,14 @@ public class GoogleResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("google_project_id", googleProjectId);
     return retrieveProjectBy(sqlProjectRetrieveByProjectId, params);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+  public Optional<GoogleProjectResource> retrieveProjectByGoogleProjectIdMaybe(
+      String googleProjectId) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("google_project_id", googleProjectId);
+    return Optional.ofNullable(retrieveProjectBy(sqlProjectRetrieveByProjectId, params, false));
   }
 
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
@@ -252,6 +265,18 @@ public class GoogleResourceDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void updateProjectResourceServiceAccount(UUID projectId, String serviceAccountEmail) {
+    MapSqlParameterSource markParams =
+        new MapSqlParameterSource()
+            .addValue("project_id", projectId)
+            .addValue("service_account", serviceAccountEmail);
+
+    final String sqlMarkProjects =
+        "UPDATE project_resource SET service_account = :service_account WHERE id = :project_id";
+    jdbcTemplate.update(sqlMarkProjects, markParams);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void deleteProjectMetadata(List<UUID> projectIds) {
     if (!projectIds.isEmpty()) {
       MapSqlParameterSource markParams =
@@ -269,8 +294,16 @@ public class GoogleResourceDao {
   }
 
   private GoogleProjectResource retrieveProjectBy(String sql, MapSqlParameterSource params) {
+    return retrieveProjectBy(sql, params, true);
+  }
+
+  private GoogleProjectResource retrieveProjectBy(
+      String sql, MapSqlParameterSource params, boolean failIfNotFound) {
     List<GoogleProjectResource> projectList = retrieveProjectListBy(sql, params);
     if (projectList.size() == 0) {
+      if (!failIfNotFound) {
+        return null;
+      }
       throw new GoogleResourceNotFoundException("Project not found");
     }
     if (projectList.size() > 1) {
@@ -291,7 +324,10 @@ public class GoogleResourceDao {
                 .id(rs.getObject("id", UUID.class))
                 .profileId(rs.getObject("profile_id", UUID.class))
                 .googleProjectId(rs.getString("google_project_id"))
-                .googleProjectNumber(rs.getString("google_project_number")));
+                .googleProjectNumber(rs.getString("google_project_number"))
+                .serviceAccount(
+                    Optional.ofNullable(rs.getString("service_account"))
+                        .orElse(tdrServiceAccountEmail)));
   }
 
   // -- bucket resource methods --

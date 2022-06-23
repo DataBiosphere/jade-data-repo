@@ -1,7 +1,9 @@
 package bio.terra.service.resourcemanagement.google;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.CollectionType;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
@@ -23,10 +25,16 @@ import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.Status;
+import com.google.api.services.iam.v1.Iam;
+import com.google.api.services.iam.v1.IamScopes;
+import com.google.api.services.iam.v1.model.CreateServiceAccountRequest;
+import com.google.api.services.iam.v1.model.ServiceAccount;
 import com.google.api.services.serviceusage.v1.ServiceUsage;
 import com.google.api.services.serviceusage.v1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1.model.GoogleApiServiceusageV1Service;
 import com.google.api.services.serviceusage.v1.model.ListServicesResponse;
+import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
@@ -62,6 +70,9 @@ public class GoogleProjectService {
 
   /** This is where the Firestore database will be created. */
   private static final String FIRESTORE_DB_TYPE = "CLOUD_FIRESTORE";
+
+  /** The name of the project-specific service account to create. */
+  private static final String SERVICE_ACCOUNT_NAME = "tdr-ingest-sa";
 
   private final GoogleBillingService billingService;
   private final GoogleResourceDao resourceDao;
@@ -298,6 +309,56 @@ public class GoogleProjectService {
     }
   }
 
+  public String createProjectServiceAccount(
+      String googleProjectId, CollectionType collectionType, String collectionName) {
+    try {
+      logger.info(
+          "Creating service account {} for {} {}",
+          SERVICE_ACCOUNT_NAME,
+          collectionType.toString().toLowerCase(),
+          collectionName);
+
+      GoogleProjectResource projectResource =
+          resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
+
+      ServiceAccount serviceAccount = new ServiceAccount();
+      // Note: displayName cannot be longer than 100 characters
+      String displayName =
+          String.format("SA for %s %s", collectionType.toString().toLowerCase(), collectionName);
+      serviceAccount.setDisplayName(displayName.substring(0, Math.min(displayName.length(), 100)));
+      CreateServiceAccountRequest request = new CreateServiceAccountRequest();
+      request.setAccountId(SERVICE_ACCOUNT_NAME);
+      request.setServiceAccount(serviceAccount);
+
+      Iam iamService = iamService();
+      serviceAccount =
+          iamService
+              .projects()
+              .serviceAccounts()
+              .create("projects/" + projectResource.getGoogleProjectId(), request)
+              .execute();
+
+      logger.info("Created service account: {}", serviceAccount.getEmail());
+
+      String datasetSa = String.format("serviceAccount:%s", serviceAccount.getEmail());
+      resourceManagerService.updateIamPermissions(
+          Map.of(
+              "roles/iam.serviceAccountTokenCreator", List.of(datasetSa),
+              "roles/serviceusage.serviceUsageConsumer", List.of(datasetSa),
+              "roles/storage.objectCreator", List.of(datasetSa),
+              "roles/storage.objectViewer", List.of(datasetSa)),
+          projectResource.getGoogleProjectId(),
+          PermissionOp.ENABLE_PERMISSIONS);
+
+      resourceDao.updateProjectResourceServiceAccount(
+          projectResource.getId(), serviceAccount.getEmail());
+      logger.info("Set permissions on service accounts");
+      return serviceAccount.getEmail();
+    } catch (IOException | GeneralSecurityException | InterruptedException e) {
+      throw new GoogleResourceException("Unable to create service account", e);
+    }
+  }
+
   public enum PermissionOp {
     ENABLE_PERMISSIONS,
     REVOKE_PERMISSIONS
@@ -465,6 +526,21 @@ public class GoogleProjectService {
     return new ServiceUsage.Builder(httpTransport, jsonFactory, credential)
         .setApplicationName(resourceConfiguration.getApplicationName())
         .build();
+  }
+
+  // Initialize the IAM service, which can be used to send requests to the IAM API.
+  private Iam iamService() throws GeneralSecurityException, IOException {
+    GoogleCredentials credential =
+        GoogleCredentials.getApplicationDefault()
+            .createScoped(Collections.singleton(IamScopes.CLOUD_PLATFORM));
+    Iam service =
+        new Iam.Builder(
+                GoogleNetHttpTransport.newTrustedTransport(),
+                JacksonFactory.getDefaultInstance(),
+                new HttpCredentialsAdapter(credential))
+            .setApplicationName(ApplicationConfiguration.APPLICATION_NAME)
+            .build();
+    return service;
   }
 
   private static com.google.api.services.serviceusage.v1.model.Operation

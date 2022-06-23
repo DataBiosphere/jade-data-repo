@@ -413,6 +413,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
   @Test
   public void interactionsWithPerDatasetServiceAccount() throws Exception {
+    String bucketWithNoJadeSa = "jade_testbucket_no_jade_sa";
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createDatasetWithOwnServiceAccount(
             steward(), profileId, "dataset-ingest-combined-array.json");
@@ -426,7 +427,9 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
             .maxBadRecords(0)
             .table("sample_vcf")
             .path(
-                "gs://jade_testbucket_no_jade_sa/dataset-ingest-combined-control-duplicates-array.json");
+                String.format(
+                    "gs://%s/dataset-ingest-combined-control-duplicates-array.json",
+                    bucketWithNoJadeSa));
 
     DataRepoResponse<IngestResponseModel> ingestResponseBeforeGrant =
         dataRepoFixtures.ingestJsonDataRaw(steward(), datasetId, ingestRequest);
@@ -439,7 +442,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     assertThat(
         "error message is the right one",
         ingestResponseBeforeGrant.getErrorObject().map(ErrorModel::getMessage).orElse(""),
-        containsString("TDR cannot access bucket jade_testbucket_no_jade_sa."));
+        containsString(String.format("TDR cannot access bucket %s.", bucketWithNoJadeSa)));
 
     // Now grant the reader role on the source bucket to the ingest service account
     String ingestServiceAccount =
@@ -449,7 +452,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         ingestServiceAccount,
         startsWith("tdr-ingest-sa"));
     DatasetIntegrationTest.addServiceAccountRoleToBucket(
-        "jade_testbucket_no_jade_sa", ingestServiceAccount, StorageRoles.objectViewer());
+        bucketWithNoJadeSa, ingestServiceAccount, StorageRoles.objectViewer());
     try {
       IngestResponseModel ingestResponse =
           dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
@@ -463,7 +466,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     } finally {
       // Clean up role grants on shared bucket
       DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
-          "jade_testbucket_no_jade_sa", ingestServiceAccount, StorageRoles.objectViewer());
+          bucketWithNoJadeSa, ingestServiceAccount, StorageRoles.objectViewer());
     }
   }
 }

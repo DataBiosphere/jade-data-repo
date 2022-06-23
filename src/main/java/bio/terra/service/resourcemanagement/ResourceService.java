@@ -501,7 +501,7 @@ public class ResourceService {
   }
 
   /**
-   * Create a new service account for a dataset to be used to ingest, if none exists already.
+   * Create a new service account for a dataset to be used to ingest.
    *
    * @param projectId the Google id of the project to create the SA for
    * @param datasetName the name of the dataset the SA is being created for

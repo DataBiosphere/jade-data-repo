@@ -3496,6 +3496,10 @@ components:
             
             Note: this can be done by granting the "Storage Object Viewer", "Storage Legacy Object Reader", or "Storage Legacy Object Owner"
             role to the source buckets
+            
+            This might be useful to set as a security improvement since this provides a dedicated account that explicitly
+            does not have access to any other buckets.  It's also recommended if you need to authorize a large number of buckets
+            since the main service account could run into Google group membership quota violations.
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     DatasetPatchRequestModel:

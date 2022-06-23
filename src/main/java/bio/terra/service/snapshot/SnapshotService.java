@@ -784,7 +784,8 @@ public class SnapshotService {
     return new ColumnModel()
         .name(column.getName())
         .datatype(column.getType())
-        .arrayOf(column.isArrayOf());
+        .arrayOf(column.isArrayOf())
+        .required(column.isRequired());
   }
 
   private static List<SnapshotRetrieveIncludeModel> getDefaultIncludes() {

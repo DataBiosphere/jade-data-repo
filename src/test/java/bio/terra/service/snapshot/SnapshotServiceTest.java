@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -18,6 +19,7 @@ import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
@@ -25,6 +27,7 @@ import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
@@ -72,6 +75,7 @@ public class SnapshotServiceTest {
   private static final String DATASET_NAME = "datasetName";
   private static final String SNAPSHOT_DATA_PROJECT = "tdrdataproject";
   private static final String SNAPSHOT_TABLE_NAME = "tableA";
+  private static final String SNAPSHOT_COLUMN_NAME = "columnA";
 
   @MockBean private JobService jobService;
   @MockBean private DatasetService datasetService;
@@ -118,7 +122,18 @@ public class SnapshotServiceTest {
                                                 .cloudResource(
                                                     GoogleCloudResource.BUCKET.toString())
                                                 .cloudPlatform(CloudPlatform.GCP))))))
-                .tables(List.of(new TableModel().name(SNAPSHOT_TABLE_NAME).primaryKey(List.of())))
+                .tables(
+                    List.of(
+                        new TableModel()
+                            .name(SNAPSHOT_TABLE_NAME)
+                            .primaryKey(List.of())
+                            .columns(
+                                List.of(
+                                    new ColumnModel()
+                                        .name(SNAPSHOT_COLUMN_NAME)
+                                        .datatype(TableDataType.STRING)
+                                        .arrayOf(true)
+                                        .required(true)))))
                 .relationships(Collections.emptyList())
                 .profileId(profileId)
                 .dataProject(SNAPSHOT_DATA_PROJECT)));
@@ -287,7 +302,17 @@ public class SnapshotServiceTest {
                                                     GoogleCloudResource.BUCKET,
                                                     GoogleRegion.DEFAULT_GOOGLE_REGION)))))))
                 .snapshotTables(
-                    List.of(new SnapshotTable().name(SNAPSHOT_TABLE_NAME).id(snapshotTableId)))
+                    List.of(
+                        new SnapshotTable()
+                            .name(SNAPSHOT_TABLE_NAME)
+                            .id(snapshotTableId)
+                            .columns(
+                                List.of(
+                                    new Column()
+                                        .name(SNAPSHOT_COLUMN_NAME)
+                                        .type(TableDataType.STRING)
+                                        .arrayOf(true)
+                                        .required(true)))))
                 .creationInformation(
                     new SnapshotRequestContentsModel()
                         .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)

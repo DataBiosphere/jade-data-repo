@@ -86,6 +86,7 @@ public class SnapshotServiceTest {
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockBean private ProfileService profileService;
   @MockBean private SnapshotDao snapshotDao;
+  @MockBean private SnapshotTableDao snapshotTableDao;
 
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();

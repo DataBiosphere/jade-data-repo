@@ -14,16 +14,17 @@ import org.springframework.http.HttpStatus;
 
 public class DeleteDatasetAssetStep implements Step {
 
-  private AssetDao assetDao;
+  private final AssetDao assetDao;
+  private final UUID datasetId;
 
-  public DeleteDatasetAssetStep(AssetDao assetDao) {
+  public DeleteDatasetAssetStep(AssetDao assetDao, UUID datasetId) {
     this.assetDao = assetDao;
+    this.datasetId = datasetId;
   }
 
   @Override
   public StepResult doStep(FlightContext context) {
     FlightMap inputs = context.getInputParameters();
-    UUID datasetId = UUID.fromString(inputs.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     UUID assetId = UUID.fromString(inputs.get(JobMapKeys.ASSET_ID.getKeyName(), String.class));
     List<UUID> snapshotIds = assetDao.retrieveSnapshotsForAsset(datasetId, assetId);
     if (snapshotIds.size() != 0) {

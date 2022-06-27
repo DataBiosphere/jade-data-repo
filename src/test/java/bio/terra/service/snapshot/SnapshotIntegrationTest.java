@@ -276,5 +276,4 @@ public class SnapshotIntegrationTest extends UsersBase {
                 + ".sample.id ='sample6'");
     return requestModel;
   }
-
 }

@@ -479,6 +479,34 @@ public class DataRepoFixtures {
     return errorModel.getErrorObject().get();
   }
 
+  public DataRepoResponse<JobModel> deleteDatasetAssetRaw(
+      TestConfiguration.User user, UUID datasetId, String assetName) throws Exception {
+    return dataRepoClient.delete(
+        user,
+        "/api/repository/v1/datasets/" + datasetId + "/assets/" + assetName,
+        new TypeReference<>() {});
+  }
+
+  public void deleteDatasetAsset(TestConfiguration.User user, UUID datasetId, String assetName)
+      throws Exception {
+    DataRepoResponse<JobModel> response = deleteDatasetAssetRaw(user, datasetId, assetName);
+    assertTrue(
+        assetName + " asset specification is successfully deleted",
+        response.getStatusCode().is2xxSuccessful());
+  }
+
+  public ErrorModel deleteDatasetAssetExpectFailure(
+      TestConfiguration.User user, UUID datasetId, String assetName) throws Exception {
+    DataRepoResponse<JobModel> response = deleteDatasetAssetRaw(user, datasetId, assetName);
+    assertTrue(
+        assetName + " delete job is successfully kicked off",
+        response.getStatusCode().is2xxSuccessful());
+    DataRepoResponse<ErrorModel> errorModel =
+        dataRepoClient.waitForResponse(user, response, new TypeReference<>() {});
+    assertTrue("dataset asset error response is present", errorModel.getErrorObject().isPresent());
+    return errorModel.getErrorObject().get();
+  }
+
   // snapshots
 
   // adding snapshot policy

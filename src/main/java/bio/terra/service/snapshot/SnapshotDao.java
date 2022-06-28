@@ -9,6 +9,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.auth.ras.RASDbgapPermissions;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
@@ -514,6 +515,31 @@ public class SnapshotDao {
   }
 
   /**
+   * @param permissions RAS dbGaP permissions held by the caller (derived from the caller's linked
+   *     RAS passports)
+   * @return snapshot UUIDs accessible under the permissions
+   */
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public List<UUID> getAccessibleSnapshots(List<RASDbgapPermissions> permissions) {
+    String sql =
+        "SELECT snapshot.id FROM snapshot "
+            + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
+            + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
+            + "WHERE (snapshot.consent_code, dataset.phs_id) IN (:criteria)";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue(
+                "criteria",
+                permissions.stream()
+                    .map(c -> new String[] {c.consent_group(), c.phs_id()})
+                    .toList());
+    return jdbcTemplate.query(sql, params, new UuidMapper("id"));
+  }
+
+  /**
    * Fetch a list of all the available snapshots. This method returns summary objects, which do not
    * include sub-objects associated with snapshots (e.g. tables). Note that this method will only
    * return snapshots that are NOT exclusively locked.
@@ -744,6 +770,18 @@ public class SnapshotDao {
           .consentCode(rs.getString("consent_code"))
           .phsId(rs.getString("phs_id"))
           .selfHosted(rs.getBoolean("self_hosted"));
+    }
+  }
+
+  private static class UuidMapper implements RowMapper<UUID> {
+    private String columnLabel;
+
+    UuidMapper(String columnLabel) {
+      this.columnLabel = columnLabel;
+    }
+
+    public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
+      return rs.getObject(this.columnLabel, UUID.class);
     }
   }
 }

@@ -62,126 +62,130 @@ public class AzureSynapsePdao {
   private static final String DEFAULT_CSV_QUOTE = "\"";
 
   private static final String scopedCredentialCreateTemplate =
-      "CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]\n"
-          + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
-          + "SECRET = '<secret>';";
+      """
+          CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]
+            WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
+            SECRET = '<secret>';""";
 
   private static final String dataSourceCreateTemplate =
-      "CREATE EXTERNAL DATA SOURCE [<dataSourceName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<scheme>://<host>/<container>',\n"
-          + "    CREDENTIAL = [<credential>]\n"
-          + ");";
+      """
+      CREATE EXTERNAL DATA SOURCE [<dataSourceName>]
+          WITH (
+              LOCATION = '<scheme>://<host>/<container>',
+              CREDENTIAL = [<credential>]
+          );""";
 
   private static final String createSnapshotTableTemplate =
-      "CREATE EXTERNAL TABLE [<tableName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<destinationParquetFile>',\n"
-          + "    DATA_SOURCE = [<destinationDataSourceName>],\n" // metadata container
-          + "    FILE_FORMAT = [<fileFormat>]\n"
-          + ") AS SELECT    datarepo_row_id,\n"
-          + "       <columns:{c|"
-          + "          <if(c.isFileType)>"
-          + "             <if(c.arrayOf)>"
-          + "               (SELECT '[' + STRING_AGG('\"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '\"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]"
-          + "             <else>"
-          + "               'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]"
-          + "             <endif>"
-          + "          <else>"
-          + "             <c.name> AS [<c.name>]"
-          + "          <endif>"
-          + "          }; separator=\",\n\">\n"
-          + "    FROM OPENROWSET(\n"
-          + "       BULK '<ingestFileName>',\n"
-          + "       DATA_SOURCE = '<ingestFileDataSourceName>',\n"
-          + "       FORMAT = 'parquet') AS rows \n";
+      """
+      CREATE EXTERNAL TABLE [<tableName>]
+          WITH (
+              LOCATION = '<destinationParquetFile>',
+              DATA_SOURCE = [<destinationDataSourceName>], /* metadata container */
+              FILE_FORMAT = [<fileFormat>]
+          ) AS SELECT    datarepo_row_id,
+                 <columns:{c|
+                    <if(c.isFileType)>
+                       <if(c.arrayOf)>
+                         (SELECT '[' + STRING_AGG('"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                       <else>
+                         'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]
+                       <endif>
+                    <else>
+                       <c.name> AS [<c.name>]
+                    <endif>
+                    }; separator=",\n">
+              FROM OPENROWSET(
+                 BULK '<ingestFileName>',
+                 DATA_SOURCE = '<ingestFileDataSourceName>',
+                 FORMAT = 'parquet') AS rows """;
 
   private static final String createSnapshotTableByRowIdTemplate =
-      createSnapshotTableTemplate + "WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
+      createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
   private static final String createSnapshotRowIdTableTemplate =
-      "CREATE EXTERNAL TABLE [<tableName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<destinationParquetFile>',\n"
-          + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
-          + "    FILE_FORMAT = [<fileFormat>]) AS  <selectStatements>";
+      """
+      CREATE EXTERNAL TABLE [<tableName>]
+          WITH (
+              LOCATION = '<destinationParquetFile>',
+              DATA_SOURCE = [<destinationDataSourceName>],
+              FILE_FORMAT = [<fileFormat>]) AS  <selectStatements>""";
 
   private static final String getLiveViewTableTemplate =
-      "SELECT '<tableId>' as "
-          + PDAO_TABLE_ID_COLUMN
-          + ", <dataRepoRowId> FROM\n"
-          + "    OPENROWSET(\n"
-          + "       BULK '<datasetParquetFileName>',\n"
-          + "       DATA_SOURCE = '<datasetDataSourceName>',\n"
-          + "       FORMAT = 'parquet') AS rows";
+      """
+      SELECT '<tableId>' as <tableIdColumn>, <dataRepoRowIdColumn>
+        FROM OPENROWSET(
+                 BULK '<datasetParquetFileName>',
+                 DATA_SOURCE = '<datasetDataSourceName>',
+                 FORMAT = 'parquet') AS rows""";
 
   private static final String mergeLiveViewTablesTemplate =
       "<selectStatements; separator=\" UNION ALL \">;";
 
   private static final String createTableTemplate =
-      "CREATE EXTERNAL TABLE [<tableName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<destinationParquetFile>',\n"
-          + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
-          + "    FILE_FORMAT = [<fileFormat>]\n"
-          + ") AS SELECT "
-          + "<if(isCSV)>newid() as datarepo_row_id,\n       "
-          + "<columns:{c|[<c.name>]}; separator=\",\n       \">"
-          + "<else>"
-          + "newid() as datarepo_row_id,\n       "
-          + "<columns:{c|"
-          + "<if(c.requiresJSONCast)>"
-          + "cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]"
-          + "<elseif (c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(8000)) [<c.name>]"
-          + "<else>JSON_VALUE(doc, '$.<c.name>') [<c.name>]"
-          + "<endif>"
-          + "}; separator=\",\n       \">\n"
-          + "<endif>"
-          + " FROM\n"
-          + "    OPENROWSET(\n"
-          + "       BULK '<ingestFileName>',\n"
-          + "       DATA_SOURCE = '<controlFileDataSourceName>',\n"
-          + "       FORMAT = 'CSV',\n"
-          + "<if(isCSV)>"
-          + "       PARSER_VERSION = '<parserVersion>',\n"
-          + "       FIRSTROW = <firstRow>,\n"
-          + "       FIELDTERMINATOR = '<fieldTerminator>',\n"
-          + "       FIELDQUOTE = '<csvQuote>'\n"
-          + "<else>"
-          + "       FIELDTERMINATOR ='0x0b',\n"
-          + "       FIELDQUOTE = '0x0b'\n"
-          + "<endif>"
-          + "    ) WITH (\n"
-          + "      <if(isCSV)>"
-          + "<columns:{c|[<c.name>] <c.synapseDataType>"
-          + "<if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>"
-          + "}; separator=\",\n\">"
-          + "<else>doc nvarchar(max)"
-          + "<endif>\n"
-          + ") AS rows;";
+      """
+      CREATE EXTERNAL TABLE [<tableName>]
+          WITH (
+              LOCATION = '<destinationParquetFile>',
+              DATA_SOURCE = [<destinationDataSourceName>],
+              FILE_FORMAT = [<fileFormat>]
+          ) AS SELECT
+          <if(isCSV)>newid() as datarepo_row_id,
+          <columns:{c|[<c.name>]}; separator=",">
+          <else>
+          newid() as datarepo_row_id,
+          <columns:{c|
+          <if(c.requiresJSONCast)>cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]
+          <elseif (c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(8000)) [<c.name>]
+          <else>JSON_VALUE(doc, '$.<c.name>') [<c.name>]
+          <endif>
+          }; separator=", ">
+          <endif>
+           FROM
+              OPENROWSET(
+                 BULK '<ingestFileName>',
+                 DATA_SOURCE = '<controlFileDataSourceName>',
+                 FORMAT = 'CSV',
+          <if(isCSV)>
+                 PARSER_VERSION = '<parserVersion>',
+                 FIRSTROW = <firstRow>,
+                 FIELDTERMINATOR = '<fieldTerminator>',
+                 FIELDQUOTE = '<csvQuote>'
+          <else>
+                 FIELDTERMINATOR ='0x0b',
+                 FIELDQUOTE = '0x0b'
+          <endif>
+              ) WITH (
+                <if(isCSV)>
+          <columns:{c|[<c.name>] <c.synapseDataType>
+          <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+          }; separator=", ">
+          <else>doc nvarchar(max)
+          <endif>
+          ) AS rows;""";
 
   private static final String countNullsInTableTemplate =
       "SELECT COUNT(DISTINCT(datarepo_row_id)) AS rows_with_nulls FROM [<tableName>] WHERE <nullChecks>;";
 
   private static final String createFinalParquetFilesTemplate =
-      "CREATE EXTERNAL TABLE [<finalTableName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<destinationParquetFile>',\n"
-          + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
-          + "    FILE_FORMAT = [<fileFormat>]\n"
-          + ") AS SELECT datarepo_row_id, <columns> FROM [<scratchTableName>] <where> <nullChecks>;";
+      """
+      CREATE EXTERNAL TABLE [<finalTableName>]
+          WITH (
+              LOCATION = '<destinationParquetFile>',
+              DATA_SOURCE = [<destinationDataSourceName>],
+              FILE_FORMAT = [<fileFormat>]
+          ) AS SELECT datarepo_row_id, <columns> FROM [<scratchTableName>] <where> <nullChecks>;""";
 
   private static final String queryColumnsFromExternalTableTemplate =
       "SELECT DISTINCT [<refCol>] FROM [<tableName>] WHERE [<refCol>] IS NOT NULL;";
 
   private static final String queryArrayColumnsFromExternalTableTemplate =
-      "SELECT DISTINCT [Element] AS [<refCol>] "
-          + "FROM [<tableName>] "
-          // Note, refIds can be either UUIDs or drs ids, which is why we are extracting Element as
-          // a large value
-          + "CROSS APPLY OPENJSON([<refCol>]) WITH (Element VARCHAR(8000) '$') AS ARRAY_VALUES "
-          + "WHERE [<refCol>] IS NOT NULL "
-          + "AND [Element] IS NOT NULL;";
+      """
+      SELECT DISTINCT [Element] AS [<refCol>]
+          FROM [<tableName>]
+          /* Note, refIds can be either UUIDs or drs ids, which is why we are extracting Element as a large value */
+          CROSS APPLY OPENJSON([<refCol>]) WITH (Element VARCHAR(8000) '$') AS ARRAY_VALUES
+          WHERE [<refCol>] IS NOT NULL
+          AND [Element] IS NOT NULL;""";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
@@ -417,7 +421,8 @@ public class AzureSynapsePdao {
         ST sqlTableTemplate =
             new ST(getLiveViewTableTemplate)
                 .add("tableId", table.getId().toString())
-                .add("dataRepoRowId", PDAO_ROW_ID_COLUMN)
+                .add("tableIdColumn", PDAO_TABLE_ID_COLUMN)
+                .add("dataRepoRowIdColumn", PDAO_ROW_ID_COLUMN)
                 .add("datasetParquetFileName", datasetParquetFileName)
                 .add("datasetDataSourceName", datasetDataSourceName);
         selectStatements.add(sqlTableTemplate.render());

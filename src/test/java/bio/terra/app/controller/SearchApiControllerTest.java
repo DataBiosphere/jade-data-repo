@@ -49,6 +49,7 @@ public class SearchApiControllerTest {
   private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
   private static final int LIMIT = 10;
   private static final int OFFSET = 0;
+  private static final String FILTER = null;
 
   @Autowired private MockMvc mvc;
 
@@ -62,7 +63,7 @@ public class SearchApiControllerTest {
       throws Exception {
     var list = List.of("hello", "world");
     var result = new SnapshotPreviewModel().result(List.copyOf(list));
-    when(snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION))
+    when(snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
         .thenReturn(result);
     mvc.perform(
             get(GET_PREVIEW_ENDPOINT, id, table)
@@ -75,7 +76,7 @@ public class SearchApiControllerTest {
   }
 
   private void mockSnapshotPreviewByIdError(UUID id, String table, String column) throws Exception {
-    when(snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION))
+    when(snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
         .thenThrow(SnapshotPreviewException.class);
     mvc.perform(
             get(GET_PREVIEW_ENDPOINT, id, table)
@@ -95,7 +96,7 @@ public class SearchApiControllerTest {
     verify(iamService)
         .verifyAuthorization(
             any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
-    verify(snapshotService).retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION);
+    verify(snapshotService).retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
   }
 
   @Test
@@ -107,7 +108,7 @@ public class SearchApiControllerTest {
     verify(iamService)
         .verifyAuthorization(
             any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
-    verify(snapshotService).retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION);
+    verify(snapshotService).retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
   }
 
   @Test(expected = SnapshotPreviewException.class)
@@ -119,7 +120,7 @@ public class SearchApiControllerTest {
     verify(iamService)
         .verifyAuthorization(
             any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
-    snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION);
+    snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
   }
 
   @Test(expected = SnapshotPreviewException.class)
@@ -131,7 +132,7 @@ public class SearchApiControllerTest {
     verify(iamService)
         .verifyAuthorization(
             any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
-    snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION);
+    snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
   }
 
   @Test

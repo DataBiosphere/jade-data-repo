@@ -78,6 +78,7 @@ public class SnapshotService {
   private final FireStoreDependencyDao dependencyDao;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotDao snapshotDao;
+  private final SnapshotTableDao snapshotTableDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Autowired
@@ -87,12 +88,14 @@ public class SnapshotService {
       FireStoreDependencyDao dependencyDao,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
+      SnapshotTableDao snapshotTableDao,
       MetadataDataAccessUtils metadataDataAccessUtils) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotDao = snapshotDao;
+    this.snapshotTableDao = snapshotTableDao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
 
@@ -421,7 +424,8 @@ public class SnapshotService {
       int limit,
       int offset,
       String sort,
-      SqlSortDirection direction) {
+      SqlSortDirection direction,
+      String filter) {
     Snapshot snapshot = retrieve(snapshotId);
 
     SnapshotTable table =
@@ -441,10 +445,13 @@ public class SnapshotService {
                       "No snapshot table column exists with the name: " + sort));
     }
 
+    List<String> columns =
+        snapshotTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
+
     try {
       List<Map<String, Object>> values =
           bigQuerySnapshotPdao.getSnapshotTable(
-              snapshot, tableName, limit, offset, sort, direction);
+              snapshot, tableName, columns, limit, offset, sort, direction, filter);
 
       return new SnapshotPreviewModel().result(List.copyOf(values));
     } catch (InterruptedException e) {

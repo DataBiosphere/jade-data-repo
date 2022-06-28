@@ -68,6 +68,7 @@ expr : number
 
 column_expr : dataset_name '.' table_name '.' column_name
     | alias_name '.' column_name
+    | column_name
     ;
 
 join_type : INNER

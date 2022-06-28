@@ -13,6 +13,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPreviewModel;
@@ -31,6 +32,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import java.util.UUID;
 import org.apache.commons.io.IOUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
@@ -152,6 +154,19 @@ public class SnapshotConnectedTestUtils {
       throws Exception {
     return connectedOperations.retrieveSnapshotPreviewByIdSuccess(
         snapshotId, tableName, limit, offset, filter);
+  }
+
+  static ErrorModel getTablePreviewFailure(
+      ConnectedOperations connectedOperations,
+      UUID snapshotId,
+      String tableName,
+      int limit,
+      int offset,
+      String filter,
+      HttpStatus expectedStatus)
+      throws Exception {
+    return connectedOperations.retrieveSnapshotPreviewByIdFailure(
+        snapshotId, tableName, limit, offset, filter, expectedStatus);
   }
 
   static void loadCsvData(

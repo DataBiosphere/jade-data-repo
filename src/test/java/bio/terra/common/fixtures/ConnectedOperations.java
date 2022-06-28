@@ -855,6 +855,19 @@ public class ConnectedOperations {
     return TestUtils.mapFromJson(response.getContentAsString(), SnapshotPreviewModel.class);
   }
 
+  public ErrorModel retrieveSnapshotPreviewByIdFailure(
+      UUID snapshotId,
+      String tableName,
+      int limit,
+      int offset,
+      String filter,
+      HttpStatus expectedStatus)
+      throws Exception {
+    MockHttpServletResponse response =
+        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset, filter);
+    return handleFailureCase(response, expectedStatus);
+  }
+
   /*
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
    * any consequences downstream to DRS clients.

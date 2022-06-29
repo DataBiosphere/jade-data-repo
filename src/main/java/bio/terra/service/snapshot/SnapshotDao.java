@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.common.DaoUtils.UuidMapper;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
@@ -770,18 +771,6 @@ public class SnapshotDao {
           .consentCode(rs.getString("consent_code"))
           .phsId(rs.getString("phs_id"))
           .selfHosted(rs.getBoolean("self_hosted"));
-    }
-  }
-
-  private static class UuidMapper implements RowMapper<UUID> {
-    private String columnLabel;
-
-    UuidMapper(String columnLabel) {
-      this.columnLabel = columnLabel;
-    }
-
-    public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
-      return rs.getObject(this.columnLabel, UUID.class);
     }
   }
 }

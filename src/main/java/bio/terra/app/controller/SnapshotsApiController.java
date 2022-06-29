@@ -203,7 +203,8 @@ public class SnapshotsApiController implements SnapshotsApi {
       List<String> datasetIds) {
     ControllerUtils.validateEnumerateParams(offset, limit);
     Map<UUID, Set<IamRole>> idsAndRoles =
-        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
+        snapshotService.listAuthorizedSnapshots(getAuthenticatedInfo());
+
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
             .map(UUID::fromString)

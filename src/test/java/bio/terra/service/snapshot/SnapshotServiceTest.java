@@ -2,11 +2,16 @@ package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
@@ -28,6 +33,9 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.ras.ECMService;
+import bio.terra.service.auth.ras.RASDbgapPermissions;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
@@ -82,6 +90,8 @@ public class SnapshotServiceTest {
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockBean private ProfileService profileService;
   @MockBean private SnapshotDao snapshotDao;
+  @MockBean private IamService iamService;
+  @MockBean private ECMService ecmService;
 
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();
@@ -327,5 +337,72 @@ public class SnapshotServiceTest {
         "Patch with consent code update requires passport identifier update permissions",
         service.patchSnapshotIamActions(new SnapshotPatchRequestModel().consentCode("c99")),
         containsInAnyOrder(IamAction.UPDATE_SNAPSHOT, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+  }
+
+  @Test
+  public void listRasAuthorizedSnapshots() throws Exception {
+    String consentCode = "c01";
+    String phsId = "phs123456";
+    List<RASDbgapPermissions> perms = List.of(new RASDbgapPermissions(consentCode, phsId));
+    List<UUID> uuids = List.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+
+    when(ecmService.getRASDbgapPermissions(TEST_USER)).thenReturn(List.of()).thenReturn(perms);
+    when(snapshotDao.getAccessibleSnapshots(perms)).thenReturn(List.of()).thenReturn(uuids);
+
+    // First attempt: No linked passport.
+    assertThat(
+        "No linked passport yields empty result",
+        service.listRasAuthorizedSnapshots(TEST_USER).entrySet(),
+        empty());
+    verifyNoInteractions(snapshotDao);
+
+    // Second attempt: Linked passport, no matching snapshots.
+    assertThat(
+        "Linked passport but no matching snapshots yields empty result",
+        service.listRasAuthorizedSnapshots(TEST_USER).entrySet(),
+        empty());
+    verify(snapshotDao, times(1)).getAccessibleSnapshots(perms);
+
+    // Third attempt: Linked passport, matching snapshots.
+    Map<UUID, Set<IamRole>> idsAndRolesActual = service.listRasAuthorizedSnapshots(TEST_USER);
+    assertThat(
+        "Linked passport matching snapshots returns correct number of snapshots",
+        idsAndRolesActual.size(),
+        equalTo(uuids.size()));
+    assertThat(
+        "All matching snapshot UUIDs are found in map keys",
+        idsAndRolesActual.keySet(),
+        containsInAnyOrder(uuids.toArray()));
+    assertThat(
+        "Snapshot accessibility by passport attributed to reader role",
+        idsAndRolesActual.values(),
+        everyItem(equalTo(Set.of(IamRole.READER))));
+    verify(snapshotDao, times(2)).getAccessibleSnapshots(perms);
+  }
+
+  @Test
+  public void combineIdsAndRoles() {
+    UUID[] uuids = new UUID[] {UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
+
+    assertThat("No arguments yield empty map", service.combineIdsAndRoles().entrySet(), empty());
+
+    assertThat(
+        "Empty map arguments yields empty map",
+        service.combineIdsAndRoles(Map.of(), Map.of()).entrySet(),
+        empty());
+
+    assertThat(
+        "IamRoles are properly written or combined",
+        service.combineIdsAndRoles(
+            Map.of(uuids[0], Set.of(IamRole.READER)),
+            Map.of(uuids[0], Set.of()),
+            Map.of(uuids[1], Set.of(IamRole.READER, IamRole.SNAPSHOT_CREATOR)),
+            Map.of(uuids[1], Set.of(IamRole.READER, IamRole.CUSTODIAN)),
+            Map.of(uuids[2], Set.of(IamRole.READER))),
+        equalTo(
+            Map.of(
+                uuids[0], Set.of(IamRole.READER),
+                uuids[1], Set.of(IamRole.READER, IamRole.SNAPSHOT_CREATOR, IamRole.CUSTODIAN),
+                uuids[2], Set.of(IamRole.READER))));
   }
 }

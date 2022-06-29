@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "ecm")
-public class ECMConfiguration {
+public class EcmConfiguration {
 
   private String basePath;
   private String rasIssuer;

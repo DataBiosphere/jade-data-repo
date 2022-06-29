@@ -9,7 +9,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.service.auth.ras.RASDbgapPermissions;
+import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
@@ -523,7 +523,7 @@ public class SnapshotDao {
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
-  public List<UUID> getAccessibleSnapshots(List<RASDbgapPermissions> permissions) {
+  public List<UUID> getAccessibleSnapshots(List<RasDbgapPermissions> permissions) {
     String sql =
         "SELECT snapshot.id FROM snapshot "
             + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "

@@ -1,6 +1,6 @@
 package bio.terra.service.filedata;
 
-import bio.terra.app.configuration.ECMConfiguration;
+import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
@@ -23,7 +23,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.ras.ECMService;
+import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigEnum;
@@ -99,8 +99,8 @@ public class DrsService {
   private final PerformanceLogger performanceLogger;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
-  private final ECMService ecmService;
-  private final ECMConfiguration ecmConfiguration;
+  private final EcmService ecmService;
+  private final EcmConfiguration ecmConfiguration;
 
   private final Map<UUID, SnapshotProject> snapshotProjectsCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
@@ -121,8 +121,8 @@ public class DrsService {
       PerformanceLogger performanceLogger,
       AzureBlobStorePdao azureBlobStorePdao,
       GcsProjectFactory gcsProjectFactory,
-      ECMService ecmService,
-      ECMConfiguration ecmConfiguration) {
+      EcmService ecmService,
+      EcmConfiguration ecmConfiguration) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;

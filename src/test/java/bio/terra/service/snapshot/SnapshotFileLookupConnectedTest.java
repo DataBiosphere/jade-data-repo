@@ -28,7 +28,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
-import bio.terra.service.auth.ras.ECMService;
+import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.DrsId;
@@ -83,7 +83,7 @@ public class SnapshotFileLookupConnectedTest {
   @Autowired private JsonLoader jsonLoader;
 
   @MockBean private IamProviderInterface samService;
-  @MockBean private ECMService ecmService;
+  @MockBean private EcmService ecmService;
 
   private BillingProfileModel billingProfile;
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
@@ -92,7 +92,7 @@ public class SnapshotFileLookupConnectedTest {
   @Before
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
-    when(ecmService.getRASDbgapPermissions(any())).thenReturn(List.of());
+    when(ecmService.getRasDbgapPermissions(any())).thenReturn(List.of());
     configService.reset();
     billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());

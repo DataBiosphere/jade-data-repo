@@ -1,6 +1,6 @@
 package bio.terra.service.auth.ras;
 
-import bio.terra.app.configuration.ECMConfiguration;
+import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.api.OidcApi;
 import bio.terra.externalcreds.api.PassportApi;
@@ -25,9 +25,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Service
-public class ECMService {
-  private final Logger logger = LoggerFactory.getLogger(ECMService.class);
-  private final ECMConfiguration ecmConfiguration;
+public class EcmService {
+  private final Logger logger = LoggerFactory.getLogger(EcmService.class);
+  private final EcmConfiguration ecmConfiguration;
   private final RestTemplate restTemplate;
   private final ObjectMapper objectMapper;
 
@@ -36,8 +36,8 @@ public class ECMService {
   private static final String RAS_DBGAP_PERMISSIONS_CLAIM = "ras_dbgap_permissions";
 
   @Autowired
-  public ECMService(
-      ECMConfiguration ecmConfiguration, RestTemplate restTemplate, ObjectMapper objectMapper) {
+  public EcmService(
+      EcmConfiguration ecmConfiguration, RestTemplate restTemplate, ObjectMapper objectMapper) {
     this.ecmConfiguration = ecmConfiguration;
     this.restTemplate = restTemplate;
     this.objectMapper = objectMapper;
@@ -67,7 +67,7 @@ public class ECMService {
    * @param userReq authenticated user
    * @return the user's linked RAS passport as a JWT, or null if none exists.
    */
-  private String getRASProviderPassport(AuthenticatedUserRequest userReq) {
+  private String getRasProviderPassport(AuthenticatedUserRequest userReq) {
     try {
       return getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
     } catch (HttpClientErrorException ex) {
@@ -84,14 +84,14 @@ public class ECMService {
    *     none exists.
    * @throws ParseException
    */
-  public List<RASDbgapPermissions> getRASDbgapPermissions(AuthenticatedUserRequest userReq)
+  public List<RasDbgapPermissions> getRasDbgapPermissions(AuthenticatedUserRequest userReq)
       throws ParseException {
-    String passportJwt = getRASProviderPassport(userReq);
+    String passportJwt = getRasProviderPassport(userReq);
     if (!StringUtils.isEmpty(passportJwt)) {
       JWTClaimsSet claims = JWTParser.parse(passportJwt).getJWTClaimsSet();
       if (claims != null) {
         return ListUtils.emptyIfNull(claims.getStringListClaim(GA4GH_PASSPORT_V1_CLAIM)).stream()
-            .flatMap(this::toRASDbgapPermissions)
+            .flatMap(this::toRasDbgapPermissions)
             .toList();
       }
     }
@@ -100,14 +100,14 @@ public class ECMService {
 
   /**
    * @param visaJwt a passport's embedded access token
-   * @return a stream of RASDbgapPermissions constructed from the decoded visa, empty if it cannot
+   * @return a stream of RAS dbGaP permissions constructed from the decoded visa, empty if it cannot
    *     be parsed.
    */
-  private Stream<RASDbgapPermissions> toRASDbgapPermissions(String visaJwt) {
+  private Stream<RasDbgapPermissions> toRasDbgapPermissions(String visaJwt) {
     try {
       Object claim =
           JWTParser.parse(visaJwt).getJWTClaimsSet().getClaim(RAS_DBGAP_PERMISSIONS_CLAIM);
-      return Arrays.stream(objectMapper.convertValue(claim, RASDbgapPermissions[].class));
+      return Arrays.stream(objectMapper.convertValue(claim, RasDbgapPermissions[].class));
     } catch (ParseException ex) {
       logger.warn(String.format("Error parsing RAS passport %s", RAS_DBGAP_PERMISSIONS_CLAIM), ex);
     }

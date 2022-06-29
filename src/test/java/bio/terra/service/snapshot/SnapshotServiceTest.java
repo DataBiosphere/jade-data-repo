@@ -37,8 +37,8 @@ import bio.terra.model.TableModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.ras.ECMService;
-import bio.terra.service.auth.ras.RASDbgapPermissions;
+import bio.terra.service.auth.ras.EcmService;
+import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
@@ -96,7 +96,7 @@ public class SnapshotServiceTest {
   @MockBean private SnapshotDao snapshotDao;
   @MockBean private SnapshotTableDao snapshotTableDao;
   @MockBean private IamService iamService;
-  @MockBean private ECMService ecmService;
+  @MockBean private EcmService ecmService;
 
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();
@@ -369,10 +369,10 @@ public class SnapshotServiceTest {
   public void listRasAuthorizedSnapshots() throws Exception {
     String consentCode = "c01";
     String phsId = "phs123456";
-    List<RASDbgapPermissions> perms = List.of(new RASDbgapPermissions(consentCode, phsId));
+    List<RasDbgapPermissions> perms = List.of(new RasDbgapPermissions(consentCode, phsId));
     List<UUID> uuids = List.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
 
-    when(ecmService.getRASDbgapPermissions(TEST_USER)).thenReturn(List.of()).thenReturn(perms);
+    when(ecmService.getRasDbgapPermissions(TEST_USER)).thenReturn(List.of()).thenReturn(perms);
     when(snapshotDao.getAccessibleSnapshots(perms)).thenReturn(List.of()).thenReturn(uuids);
 
     // First attempt: No linked passport.

@@ -35,8 +35,8 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamRole;
-import bio.terra.service.auth.ras.ECMService;
-import bio.terra.service.auth.ras.RASDbgapPermissions;
+import bio.terra.service.auth.ras.EcmService;
+import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -100,7 +100,7 @@ public class SnapshotConnectedTest {
   @Autowired private GoogleResourceManagerService googleResourceManagerService;
 
   @MockBean private IamProviderInterface samService;
-  @MockBean private ECMService ecmService;
+  @MockBean private EcmService ecmService;
 
   private String snapshotOriginalName;
   private BillingProfileModel billingProfile;
@@ -113,8 +113,8 @@ public class SnapshotConnectedTest {
   @Before
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
-    when(ecmService.getRASDbgapPermissions(any()))
-        .thenReturn(List.of(new RASDbgapPermissions(CONSENT_CODE, PHS_ID)));
+    when(ecmService.getRasDbgapPermissions(any()))
+        .thenReturn(List.of(new RasDbgapPermissions(CONSENT_CODE, PHS_ID)));
     configService.reset();
     billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());

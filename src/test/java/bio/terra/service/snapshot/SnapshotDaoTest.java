@@ -31,7 +31,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.service.auth.ras.RASDbgapPermissions;
+import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
@@ -679,7 +679,7 @@ public class SnapshotDaoTest {
 
     String consentCode = "c01";
     String phsId = "phs123456";
-    List<RASDbgapPermissions> permissions = List.of(new RASDbgapPermissions(consentCode, phsId));
+    List<RasDbgapPermissions> permissions = List.of(new RasDbgapPermissions(consentCode, phsId));
 
     assertThat(
         "Snapshot with all permission elements missing is inaccessible",

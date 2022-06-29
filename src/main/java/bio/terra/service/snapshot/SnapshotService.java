@@ -33,8 +33,8 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.ras.ECMService;
-import bio.terra.service.auth.ras.RASDbgapPermissions;
+import bio.terra.service.auth.ras.EcmService;
+import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
@@ -89,7 +89,7 @@ public class SnapshotService {
   private final SnapshotTableDao snapshotTableDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
   private final IamService iamService;
-  private final ECMService ecmService;
+  private final EcmService ecmService;
 
   @Autowired
   public SnapshotService(
@@ -101,7 +101,7 @@ public class SnapshotService {
       SnapshotTableDao snapshotTableDao,
       MetadataDataAccessUtils metadataDataAccessUtils,
       IamService iamService,
-      ECMService ecmService) {
+      EcmService ecmService) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -210,7 +210,7 @@ public class SnapshotService {
   public Map<UUID, Set<IamRole>> listRasAuthorizedSnapshots(AuthenticatedUserRequest userReq) {
     Map<UUID, Set<IamRole>> idsAndRoles = new HashMap<>();
     try {
-      List<RASDbgapPermissions> permissions = ecmService.getRASDbgapPermissions(userReq);
+      List<RasDbgapPermissions> permissions = ecmService.getRasDbgapPermissions(userReq);
       if (!permissions.isEmpty()) {
         List<UUID> uuids = snapshotDao.getAccessibleSnapshots(permissions);
         Set<IamRole> roles = Set.of(IamRole.READER);

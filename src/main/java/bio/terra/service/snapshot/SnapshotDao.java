@@ -528,11 +528,11 @@ public class SnapshotDao {
         "SELECT snapshot.id FROM snapshot "
             + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
             + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
-            + "WHERE (snapshot.consent_code, dataset.phs_id) IN (:criteria)";
+            + "WHERE (snapshot.consent_code, dataset.phs_id) IN (:permissions)";
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue(
-                "criteria",
+                "permissions",
                 permissions.stream()
                     .map(c -> new String[] {c.consent_group(), c.phs_id()})
                     .toList());

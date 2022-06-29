@@ -26,7 +26,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 public class EcmService {
-  private final Logger logger = LoggerFactory.getLogger(EcmService.class);
+  private static final Logger logger = LoggerFactory.getLogger(EcmService.class);
   private final EcmConfiguration ecmConfiguration;
   private final RestTemplate restTemplate;
   private final ObjectMapper objectMapper;

@@ -70,7 +70,13 @@ public class CreateDatasetGetOrCreateBucketStep implements Step {
     try {
       GoogleBucketResource bucketForFile =
           resourceService.getOrCreateBucketForFile(
-              region, googleProjectResource, context.getFlightId(), getReaderGroups);
+              region,
+              googleProjectResource,
+              context.getFlightId(),
+              getReaderGroups,
+              // Note: since this is being run in dataset creation, the project is the primary
+              // dataset project so we can use its ingest service account
+              googleProjectResource.getServiceAccount());
 
       workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
     } catch (BucketLockException blEx) {

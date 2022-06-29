@@ -1,0 +1,16 @@
+{
+  "name": "AssetPersonTableInvalid",
+  "tables": [
+    {
+      "name": "person",
+      "columns": [
+        "invalidColumn"
+      ]
+    }
+  ],
+  "rootTable": "person",
+  "rootColumn": "person_id",
+  "follow": [
+    "fpk_visit_person"
+  ]
+}

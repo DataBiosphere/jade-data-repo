@@ -6,10 +6,10 @@ import static bio.terra.common.fixtures.DatasetFixtures.buildAssetSampleTable;
 import static bio.terra.common.fixtures.DatasetFixtures.buildDatasetRequest;
 import static bio.terra.common.fixtures.DatasetFixtures.buildParticipantSampleRelationship;
 import static bio.terra.common.fixtures.DatasetFixtures.buildSampleTerm;
+import static bio.terra.service.dataset.ValidatorTestUtils.checkValidationErrorModel;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
@@ -43,9 +43,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -840,26 +838,6 @@ public class DatasetRequestValidatorTest {
         "Validator catches invalid 'records' and 'format' combo",
         payloadIsPresentError,
         containsString("Records should not be specified when ingesting from a path"));
-  }
-
-  private void checkValidationErrorModel(ErrorModel errorModel, String[] messageCodes) {
-    List<String> details = errorModel.getErrorDetail();
-    assertThat(
-        "Main message is right",
-        errorModel.getMessage(),
-        containsString("Validation errors - see error details"));
-    /*
-     * The global exception handler logs in this format:
-     *
-     * <fieldName>: '<messageCode>' (<defaultMessage>)
-     *
-     * We check to see if the code is wrapped in quotes to prevent matching on substrings.
-     */
-    List<Matcher<? super String>> expectedMatches =
-        Arrays.stream(messageCodes)
-            .map(code -> containsString("'" + code + "'"))
-            .collect(Collectors.toList());
-    assertThat("Detail codes are right", details, containsInAnyOrder(expectedMatches));
   }
 
   @Test

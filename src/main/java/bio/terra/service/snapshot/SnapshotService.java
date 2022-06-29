@@ -86,6 +86,7 @@ public class SnapshotService {
   private final FireStoreDependencyDao dependencyDao;
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotDao snapshotDao;
+  private final SnapshotTableDao snapshotTableDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
   private final IamService iamService;
   private final ECMService ecmService;
@@ -97,6 +98,7 @@ public class SnapshotService {
       FireStoreDependencyDao dependencyDao,
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
+      SnapshotTableDao snapshotTableDao,
       MetadataDataAccessUtils metadataDataAccessUtils,
       IamService iamService,
       ECMService ecmService) {
@@ -105,6 +107,7 @@ public class SnapshotService {
     this.dependencyDao = dependencyDao;
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotDao = snapshotDao;
+    this.snapshotTableDao = snapshotTableDao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
     this.iamService = iamService;
     this.ecmService = ecmService;
@@ -483,7 +486,8 @@ public class SnapshotService {
       int limit,
       int offset,
       String sort,
-      SqlSortDirection direction) {
+      SqlSortDirection direction,
+      String filter) {
     Snapshot snapshot = retrieve(snapshotId);
 
     SnapshotTable table =
@@ -503,10 +507,13 @@ public class SnapshotService {
                       "No snapshot table column exists with the name: " + sort));
     }
 
+    List<String> columns =
+        snapshotTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
+
     try {
       List<Map<String, Object>> values =
           bigQuerySnapshotPdao.getSnapshotTable(
-              snapshot, tableName, limit, offset, sort, direction);
+              snapshot, tableName, columns, limit, offset, sort, direction, filter);
 
       return new SnapshotPreviewModel().result(List.copyOf(values));
     } catch (InterruptedException e) {
@@ -817,7 +824,8 @@ public class SnapshotService {
             .phsId(dataset.getPhsId())
             .selfHosted(dataset.isSelfHosted());
 
-    SnapshotSourceModel sourceModel = new SnapshotSourceModel().dataset(summaryModel);
+    SnapshotSourceModel sourceModel =
+        new SnapshotSourceModel().dataset(summaryModel).datasetProperties(dataset.getProperties());
 
     AssetSpecification assetSpec = source.getAssetSpecification();
     if (assetSpec != null) {
@@ -845,7 +853,8 @@ public class SnapshotService {
     return new ColumnModel()
         .name(column.getName())
         .datatype(column.getType())
-        .arrayOf(column.isArrayOf());
+        .arrayOf(column.isArrayOf())
+        .required(column.isRequired());
   }
 
   private static List<SnapshotRetrieveIncludeModel> getDefaultIncludes() {

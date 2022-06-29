@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -15,7 +16,7 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
-import bio.terra.common.fixtures.DatasetFixtures;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
@@ -31,10 +32,14 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.configuration.ConfigEnum;
+import com.google.cloud.Identity;
+import com.google.cloud.Policy;
+import com.google.cloud.Role;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
@@ -50,8 +55,6 @@ import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -91,6 +94,7 @@ public class DatasetIntegrationTest extends UsersBase {
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
   @Rule @Autowired public TestJobWatcher testWatcher;
+  @Autowired private JsonLoader jsonLoader;
 
   private String stewardToken;
   private UUID datasetId;
@@ -348,16 +352,21 @@ public class DatasetIntegrationTest extends UsersBase {
 
     assertThat(
         "Asset specification is as originally expected", originalAssetList.size(), equalTo(1));
-    AssetModel assetModel =
-        new AssetModel()
-            .name("assetName")
-            .rootTable("person")
-            .rootColumn("person_id")
-            .tables(
-                Arrays.asList(
-                    DatasetFixtures.buildAssetParticipantTable(),
-                    DatasetFixtures.buildAssetSampleTable()))
-            .follow(Collections.singletonList("fpk_visit_person"));
+
+    // Test Asset Validation
+    AssetModel invalidAssetModel =
+        jsonLoader.loadObject("dataset-asset-person-invalid-column.json", AssetModel.class);
+
+    ErrorModel errorModel =
+        dataRepoFixtures.addDatasetAssetExpectFailure(
+            steward(), datasetModel.getId(), invalidAssetModel);
+    assertThat(
+        "At least one validation error caught for asset",
+        errorModel.getMessage(),
+        containsString("Invalid asset create request. See causes list for details."));
+
+    // Test successful Asset Creation
+    AssetModel assetModel = jsonLoader.loadObject("dataset-asset-person.json", AssetModel.class);
 
     // have the asset creation fail
     // by calling the fault insertion
@@ -429,6 +438,24 @@ public class DatasetIntegrationTest extends UsersBase {
       }
     }
     return String.format("gs://%s/%s", blob.getBucket(), targetPath);
+  }
+
+  static void addServiceAccountRoleToBucket(String bucket, String serviceAccount, Role role) {
+    Storage storage = StorageOptions.getDefaultInstance().getService();
+    Policy iamPolicy = storage.getIamPolicy(bucket);
+    storage.setIamPolicy(
+        bucket,
+        iamPolicy.toBuilder().addIdentity(role, Identity.serviceAccount(serviceAccount)).build());
+  }
+
+  static void removeServiceAccountRoleFromBucket(String bucket, String serviceAccount, Role role) {
+    Storage storage = StorageOptions.getDefaultInstance().getService();
+    Policy iamPolicy = storage.getIamPolicy(bucket);
+    storage.setIamPolicy(
+        bucket,
+        iamPolicy.toBuilder()
+            .removeIdentity(role, Identity.serviceAccount(serviceAccount))
+            .build());
   }
 
   static void assertTableCount(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)

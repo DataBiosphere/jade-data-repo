@@ -179,7 +179,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     DRSServiceInfo info =
         new DRSServiceInfo()
             .version("0.0.1")
-            .title("Terra Data Repository")
+            .title(ApplicationConfiguration.APPLICATION_NAME)
             .description(
                 "Terra Data Repository (Jade) - a Broad/Verily/Microsoft open source project")
             .contact("cbernard@broadinstitute.org")

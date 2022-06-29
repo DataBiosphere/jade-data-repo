@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -17,6 +18,7 @@ import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -191,29 +193,32 @@ public class SnapshotIntegrationTest extends UsersBase {
   @Test
   public void snapshotByQueryHappyPathTest() throws Exception {
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    String datasetName = dataset.getName();
-    SnapshotRequestModel requestModel =
-        jsonLoader.loadObject("ingest-test-snapshot-query.json", SnapshotRequestModel.class);
-    // swap in the correct dataset name (with the id at the end)
-    requestModel.getContents().get(0).setDatasetName(datasetName);
-    requestModel
-        .getContents()
-        .get(0)
-        .getQuerySpec()
-        .setQuery(
-            "SELECT "
-                + datasetName
-                + ".sample.datarepo_row_id FROM "
-                + datasetName
-                + ".sample WHERE "
-                + datasetName
-                + ".sample.id ='sample6'");
+    SnapshotRequestModel requestModel = snapshotByQueryRequestModel(dataset);
     SnapshotSummaryModel snapshotSummary =
-        dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward(), dataset.getName(), profileId, requestModel);
     TimeUnit.SECONDS.sleep(10);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+  }
+
+  @Test
+  public void deleteAssetWithSnapshotTest() throws Exception {
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    SnapshotRequestModel requestModel = snapshotByQueryRequestModel(dataset);
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward(), dataset.getName(), profileId, requestModel);
+    TimeUnit.SECONDS.sleep(10);
+    ErrorModel errorModel =
+        dataRepoFixtures.deleteDatasetAssetExpectFailure(steward(), datasetId, "sample_centric");
+    assertThat(
+        "Error deleting asset",
+        errorModel.getMessage(),
+        containsString("The asset is being used by snapshots: " + snapshotSummary.getId()));
+    dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
+    dataRepoFixtures.deleteDatasetAsset(steward(), datasetId, "sample_centric");
   }
 
   @Test
@@ -249,5 +254,26 @@ public class SnapshotIntegrationTest extends UsersBase {
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     assertEquals("the relationship comes through", 1, snapshot.getRelationships().size());
+  }
+
+  private SnapshotRequestModel snapshotByQueryRequestModel(DatasetModel dataset) throws Exception {
+    String datasetName = dataset.getName();
+    SnapshotRequestModel requestModel =
+        jsonLoader.loadObject("ingest-test-snapshot-query.json", SnapshotRequestModel.class);
+    // swap in the correct dataset name (with the id at the end)
+    requestModel.getContents().get(0).setDatasetName(datasetName);
+    requestModel
+        .getContents()
+        .get(0)
+        .getQuerySpec()
+        .setQuery(
+            "SELECT "
+                + datasetName
+                + ".sample.datarepo_row_id FROM "
+                + datasetName
+                + ".sample WHERE "
+                + datasetName
+                + ".sample.id ='sample6'");
+    return requestModel;
   }
 }

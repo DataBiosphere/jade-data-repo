@@ -758,6 +758,11 @@ paths:
           schema:
             default: asc
             $ref: '#/components/schemas/SqlSortDirection'
+        - name: filter
+          in: query
+          description: A SQL WHERE clause to filter the table results.
+          schema:
+            type: string
       responses:
         200:
           description: Returns the table data from a snapshot
@@ -3408,6 +3413,10 @@ components:
         properties:
           type: object
           description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
+        ingestServiceAccount:
+          type: string
+          description: >
+            Google service account to grant storage.object.get access on source Google storage buckets to in order to ingest files
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -3481,6 +3490,21 @@ components:
         properties:
           type: object
           description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
+        dedicatedIngestServiceAccount:
+          type: boolean
+          default: false
+          description: >
+            If true, for GCP-backed datasets, a service account will be created in the dataset's primary GCP project.
+            This service account must be granted `storage.objects.get` permissions on any source buckets that TDR will ingest data from.
+            The service account can be obtained when retrieving the dataset.  If this value is false and the dataset
+            is a GCP-backed dataset, then the global service account must be granted `storage.objects.get` permissions to source buckets.
+            
+            Note: this can be done by granting the "Storage Object Viewer", "Storage Legacy Object Reader", or "Storage Legacy Object Owner"
+            role to the source buckets
+            
+            This might be useful to set as a security improvement since this provides a dedicated account that explicitly
+            does not have access to any other buckets.  It's also recommended if you need to authorize a large number of buckets
+            since the main service account could run into Google group membership quota violations.
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     DatasetPatchRequestModel:
@@ -4625,6 +4649,9 @@ components:
       properties:
         dataset:
           $ref: '#/components/schemas/DatasetSummaryModel'
+        datasetProperties:
+          type: object
+          description: Additional JSON metadata about the source dataset
         asset:
           $ref: '#/components/schemas/ObjectNameProperty'
       description: >

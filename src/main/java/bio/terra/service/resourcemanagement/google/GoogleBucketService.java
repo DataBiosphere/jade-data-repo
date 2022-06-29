@@ -42,6 +42,8 @@ public class GoogleBucketService {
   @VisibleForTesting
   public static final String STORAGE_OBJECT_VIEWER_ROLE = "roles/storage.objectViewer";
 
+  public static final String STORAGE_LEGACY_BUCKET_WRITER_ROLE = "roles/storage.legacyBucketWriter";
+
   private final GoogleResourceDao resourceDao;
   private final GcsProjectFactory gcsProjectFactory;
   private final ConfigurationService configService;
@@ -146,7 +148,8 @@ public class GoogleBucketService {
       GoogleRegion region,
       String flightId,
       Duration daysToLive,
-      Callable<List<String>> getReaderGroups)
+      Callable<List<String>> getReaderGroups,
+      String dedicatedServiceAccount)
       throws InterruptedException {
 
     boolean allowReuseExistingBuckets =
@@ -177,7 +180,13 @@ public class GoogleBucketService {
         if (allowReuseExistingBuckets) {
           // CASE 4: go ahead and reuse the bucket and its location
           return createMetadataRecord(
-              bucketName, projectResource, region, flightId, daysToLive, getReaderGroups);
+              bucketName,
+              projectResource,
+              region,
+              flightId,
+              daysToLive,
+              getReaderGroups,
+              dedicatedServiceAccount);
         } else {
           // CASE 5:
           throw new CorruptMetadataException(
@@ -198,11 +207,18 @@ public class GoogleBucketService {
           throw bucketLockException(lockingFlightId);
         }
         // CASE 8: this flight has the metadata locked, but didn't finish creating the bucket
-        return createCloudBucket(googleBucketResource, flightId, daysToLive, getReaderGroups);
+        return createCloudBucket(
+            googleBucketResource, flightId, daysToLive, getReaderGroups, dedicatedServiceAccount);
       } else {
         // CASE 9: no bucket and no record
         return createMetadataRecord(
-            bucketName, projectResource, region, flightId, daysToLive, getReaderGroups);
+            bucketName,
+            projectResource,
+            region,
+            flightId,
+            daysToLive,
+            getReaderGroups,
+            dedicatedServiceAccount);
       }
     }
   }
@@ -218,7 +234,8 @@ public class GoogleBucketService {
       GoogleRegion region,
       String flightId,
       Duration daysToLive,
-      Callable<List<String>> getReaderGroups)
+      Callable<List<String>> getReaderGroups,
+      String dedicatedServiceAccount)
       throws InterruptedException {
 
     // insert a new bucket_resource row and lock it
@@ -248,7 +265,8 @@ public class GoogleBucketService {
       logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
     }
 
-    return createCloudBucket(googleBucketResource, flightId, daysToLive, getReaderGroups);
+    return createCloudBucket(
+        googleBucketResource, flightId, daysToLive, getReaderGroups, dedicatedServiceAccount);
   }
 
   // Step 2 of creating a new bucket
@@ -256,11 +274,12 @@ public class GoogleBucketService {
       GoogleBucketResource bucketResource,
       String flightId,
       Duration daysToLive,
-      Callable<List<String>> getReaderGroups) {
+      Callable<List<String>> getReaderGroups,
+      String dedicatedServiceAccount) {
     // If the bucket doesn't exist, create it
     Bucket bucket = getCloudBucket(bucketResource.getName());
     if (bucket == null) {
-      bucket = newCloudBucket(bucketResource, daysToLive, getReaderGroups);
+      bucket = newCloudBucket(bucketResource, daysToLive, getReaderGroups, dedicatedServiceAccount);
     }
     return createFinish(bucket, flightId, bucketResource);
   }
@@ -305,12 +324,15 @@ public class GoogleBucketService {
    * @param getReaderGroups A Callable to get reader groups that should be added to the bucket. This
    *     is a Callable so that we don't make extraneous calls to SAM every time we get a bucket and
    *     only call SAM when we actually create the bucket.
+   * @param dedicatedServiceAccount If not null, the dataset-specific service account associated
+   *     with the dataset that this bucket will be associated with
    * @return a reference to the bucket as a GCS Bucket object
    */
   private Bucket newCloudBucket(
       GoogleBucketResource bucketResource,
       Duration daysToLive,
-      Callable<List<String>> getReaderGroups) {
+      Callable<List<String>> getReaderGroups,
+      String dedicatedServiceAccount) {
     final List<String> readerGroups;
     try {
       if (getReaderGroups != null) {
@@ -348,27 +370,29 @@ public class GoogleBucketService {
 
     GoogleProjectResource projectResource = bucketResource.getProjectResource();
     String googleProjectId = projectResource.getGoogleProjectId();
-    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId);
+    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId, true);
 
     // the project will have been created before this point, so no need to fetch it
     logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);
     Storage storage = gcsProject.getStorage();
     Bucket createdBucket = storage.create(bucketInfo);
 
-    grantBucketReaderIam(createdBucket, storage, readerGroups);
+    grantBucketReaderIam(createdBucket, storage, readerGroups, dedicatedServiceAccount);
 
     return createdBucket;
   }
 
-  public void grantBucketReaderIam(Bucket bucket, Storage storage, List<String> readerGroups) {
-    if (readerGroups != null && !readerGroups.isEmpty()) {
-      String bucketName = bucket.getName();
+  public void grantBucketReaderIam(
+      Bucket bucket, Storage storage, List<String> readerGroups, String dedicatedServiceAccount) {
+    String bucketName = bucket.getName();
 
-      // Not sure why it needs to be version 3, but that's what the Google documentation says.
-      // https://cloud.google.com/storage/docs/access-control/using-iam-permissions#code-samples
-      Policy originalPolicy =
-          storage.getIamPolicy(bucketName, Storage.BucketSourceOption.requestedPolicyVersion(3));
-      List<Binding> bindings = new ArrayList<>(originalPolicy.getBindingsList());
+    // Not sure why it needs to be version 3, but that's what the Google documentation says.
+    // https://cloud.google.com/storage/docs/access-control/using-iam-permissions#code-samples
+    Policy originalPolicy =
+        storage.getIamPolicy(bucketName, Storage.BucketSourceOption.requestedPolicyVersion(3));
+    List<Binding> bindings = new ArrayList<>(originalPolicy.getBindingsList());
+
+    if (readerGroups != null) {
       for (String policy : readerGroups) {
         Binding.Builder newMemberBindingBuilder = Binding.newBuilder();
         newMemberBindingBuilder
@@ -376,10 +400,17 @@ public class GoogleBucketService {
             .setMembers(List.of(String.format("group:%s", policy)));
         bindings.add(newMemberBindingBuilder.build());
       }
-      Policy.Builder updatedPolicyBuilder = originalPolicy.toBuilder();
-      updatedPolicyBuilder.setBindings(bindings).setVersion(3);
-      storage.setIamPolicy(bucketName, updatedPolicyBuilder.build());
     }
+    if (dedicatedServiceAccount != null) {
+      Binding.Builder newMemberBindingBuilder = Binding.newBuilder();
+      newMemberBindingBuilder
+          .setRole(STORAGE_LEGACY_BUCKET_WRITER_ROLE)
+          .setMembers(List.of(String.format("serviceAccount:%s", dedicatedServiceAccount)));
+      bindings.add(newMemberBindingBuilder.build());
+    }
+    Policy.Builder updatedPolicyBuilder = originalPolicy.toBuilder();
+    updatedPolicyBuilder.setBindings(bindings).setVersion(3);
+    storage.setIamPolicy(bucketName, updatedPolicyBuilder.build());
   }
 
   /**

@@ -368,6 +368,7 @@ public class DatasetService {
 
     return jobService
         .newJob(description, RemoveAssetSpecFlight.class, assetId, userReq)
+        .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(JobMapKeys.ASSET_ID.getKeyName(), assetId)
         .submit();
   }

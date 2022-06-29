@@ -195,6 +195,14 @@ public class AssetDao {
                     allRelationships.get(rs.getObject("relationship_id", UUID.class))));
   }
 
+  public List<UUID> retrieveSnapshotsForAsset(UUID datasetId, UUID specId) {
+    String sql =
+        "SELECT snapshot_id FROM snapshot_source WHERE dataset_id = :datasetId AND asset_id = :assetId";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("datasetId", datasetId).addValue("assetId", specId);
+    return jdbcTemplate.query(sql, params, (rs, rowNum) -> rs.getObject("snapshot_id", UUID.class));
+  }
+
   @Transactional
   public boolean delete(UUID id) {
     int rowsAffected =

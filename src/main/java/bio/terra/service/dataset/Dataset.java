@@ -6,17 +6,21 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
+import bio.terra.model.AssetModel;
+import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 public class Dataset implements FSContainerInterface, LogPrintable {
@@ -84,6 +88,87 @@ public class Dataset implements FSContainerInterface, LogPrintable {
       }
     }
     return Optional.empty();
+  }
+
+  public void validateDatasetAssetSpecification(AssetModel assetModel) {
+    List<String> errors = new ArrayList<>();
+    // Validate Root Table
+    String rootTableName = assetModel.getRootTable();
+    Optional<DatasetTable> rootTable = getAndValidateTable(rootTableName);
+    if (rootTable.isEmpty()) {
+      errors.add("Root table " + rootTableName + " does not exist in dataset.");
+    } else {
+      // Validate Root Column
+      if (!rootTable.get().getColumns().stream()
+          .anyMatch(c -> c.getName().equals(assetModel.getRootColumn()))) {
+        errors.add(
+            "Root column "
+                + assetModel.getRootColumn()
+                + " does not exist in table "
+                + rootTableName);
+      }
+    }
+
+    // Validate Tables
+    for (var assetTable : assetModel.getTables()) {
+      String currentTableName = assetTable.getName();
+      Optional<DatasetTable> currentTable = getAndValidateTable(currentTableName);
+      if (currentTable.isEmpty()) {
+        errors.add("Table " + currentTableName + " does not exist in dataset.");
+      } else {
+        List<String> datasetTableColumnNames =
+            currentTable.get().getColumns().stream().map(c -> c.getName()).toList();
+        assetTable
+            .getColumns()
+            .forEach(
+                assetColumn -> {
+                  if (!datasetTableColumnNames.contains(assetColumn)) {
+                    errors.add(
+                        "Column " + assetColumn + " does not exist in table " + currentTableName);
+                  }
+                });
+      }
+    }
+
+    // Follow should reference an existing relationship as defined in the original dataset create
+    // query
+    for (var assetFollow : assetModel.getFollow()) {
+      if (!relationships.stream().anyMatch(r -> r.getName().equals(assetFollow))) {
+        errors.add(
+            "Relationship specified in follow list '"
+                + assetFollow
+                + "' does not exist in dataset's list of relationships");
+      }
+    }
+
+    if (errors.size() > 0) {
+      throw new InvalidAssetException(
+          "Invalid asset create request. See causes list for details.", errors);
+    }
+  }
+
+  private Optional<DatasetTable> getAndValidateTable(String tableName) {
+    return tables.stream()
+        .filter(datasetTable -> datasetTable.getName().equals(tableName))
+        .findFirst();
+  }
+
+  public AssetSpecification getNewAssetSpec(AssetModel assetModel) {
+    Map<String, DatasetTable> tablesMap =
+        tables.stream()
+            .collect(
+                Collectors.toMap(
+                    datasetTable -> datasetTable.getName(), datasetTable -> datasetTable));
+    Map<String, Relationship> relationshipMap =
+        relationships.stream()
+            .collect(
+                Collectors.toMap(
+                    relationship -> relationship.getName(), relationship -> relationship));
+
+    AssetSpecification assetSpecification =
+        DatasetJsonConversion.assetModelToAssetSpecification(
+            assetModel, tablesMap, relationshipMap);
+    return assetSpecification;
   }
 
   public Map<UUID, Column> getAllColumnsById() {

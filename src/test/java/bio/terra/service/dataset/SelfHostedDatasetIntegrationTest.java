@@ -40,6 +40,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.storage.StorageRoles;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -72,11 +73,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class SelfHostedDatasetIntegrationTest extends UsersBase {
   private static Logger logger = LoggerFactory.getLogger(SelfHostedDatasetIntegrationTest.class);
 
-  private final String wgsVcfPath =
-      "gs://jade-testdata-useastregion/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_wgs.g.vcf.gz";
-  private final String exomeVcfPath =
-      "gs://jade-testdata-useastregion/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_exome.g.vcf.gz";
-
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private DataRepoClient dataRepoClient;
   @Autowired private AuthService authService;
@@ -88,6 +84,8 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   private UUID snapshotId;
   private UUID profileId;
   private List<String> uploadedFiles;
+  private String serviceAccount;
+  private String ingestBucket;
 
   @Before
   public void setup() throws Exception {
@@ -117,13 +115,28 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     for (var path : uploadedFiles) {
       gcsUtils.deleteTestFile(path);
     }
+
+    if (serviceAccount != null && ingestBucket != null) {
+      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
+          ingestBucket, serviceAccount, StorageRoles.objectViewer());
+    }
   }
 
   @Test
   public void testSelfHostedDatasetLifecycle() throws Exception {
+    testSelfHostedDatasetLifecycle("jade-testdata-useastregion", false);
+  }
+
+  @Test
+  public void testSelfHostedDatasetWithDedicatedSALifecycle() throws Exception {
+    testSelfHostedDatasetLifecycle("jade_testbucket_no_jade_sa", true);
+  }
+
+  private void testSelfHostedDatasetLifecycle(String ingestBucket, boolean dedicatedServiceAccount)
+      throws Exception {
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createSelfHostedDataset(
-            steward(), profileId, "dataset-ingest-combined-array.json");
+            steward(), profileId, "dataset-ingest-combined-array.json", dedicatedServiceAccount);
     datasetId = datasetSummaryModel.getId();
 
     assertThat(
@@ -135,13 +148,22 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         dataset.isSelfHosted(),
         is(true));
 
+    // Authorize the ingest source bucket
+    if (dedicatedServiceAccount) {
+      serviceAccount = dataset.getIngestServiceAccount();
+      this.ingestBucket = ingestBucket;
+      // Note: this role gets removed in teardown
+      DatasetIntegrationTest.addServiceAccountRoleToBucket(
+          ingestBucket, serviceAccount, StorageRoles.objectViewer());
+    }
+
     // Ingest a single file
     FileModel exomeVcfModel =
         dataRepoFixtures.ingestFile(
             steward(),
             datasetId,
             profileId,
-            exomeVcfPath,
+            exomeVcfPath(ingestBucket),
             "/vcfs/downsampled/exome/NA12878_PLUMBING.g.vcf.gz");
 
     List<BulkLoadFileModel> vcfIndexLoadModels =
@@ -150,13 +172,17 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
                 .mimeType("text/plain")
                 .description("A downsampled exome gVCF index")
                 .sourcePath(
-                    "gs://jade-testdata-useastregion/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_exome.g.vcf.gz.tbi")
+                    String.format(
+                        "gs://%s/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_exome.g.vcf.gz.tbi",
+                        ingestBucket))
                 .targetPath("/vcfs/downsampled/exome/NA12878_PLUMBING.g.vcf.gz.tbi"),
             new BulkLoadFileModel()
                 .mimeType("text/plain")
                 .description("A downsampled wgs gVCF index")
                 .sourcePath(
-                    "gs://jade-testdata-useastregion/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_wgs.g.vcf.gz.tbi")
+                    String.format(
+                        "gs://%s/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_wgs.g.vcf.gz.tbi",
+                        ingestBucket))
                 .targetPath("/vcfs/downsampled/wgs/NA12878_PLUMBING.g.vcf.gz.tbi"));
 
     BulkLoadArrayRequestModel bulkLoadArrayRequestModel =
@@ -175,7 +201,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
             .collect(
                 Collectors.toMap(
                     BulkLoadFileResultModel::getTargetPath, BulkLoadFileResultModel::getFileId));
-    Map<String, String> replaceMap =
+    Map<String, String> fileReplaceMap =
         Map.of(
             "EXOME_VCF_FILE_ID", exomeVcfModel.getFileId(),
             "EXOME_VCF_INDEX_FILE_ID",
@@ -186,11 +212,13 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     Stream<String> lines =
         Files.lines(
                 Paths.get(ClassLoader.getSystemResource("self-hosted-dataset-ingest.json").toURI()))
-            .map(line -> replaceVars(line, replaceMap));
+            .map(line -> replaceVars(line, fileReplaceMap))
+            .map(line -> replaceVars(line, Map.of("INGEST_BUCKET", ingestBucket)));
 
     // Ingest metadata + 1 combined ingest file
     String ingestPath =
         gcsUtils.uploadTestFile(
+            ingestBucket,
             String.format("selfHostedDatasetTest/%s/self-hosted-ingest-control.json", datasetId),
             lines);
     uploadedFiles.add(ingestPath);
@@ -227,7 +255,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     assertThat(
         "all the fileIds in non-combined ingests show up in dataset results",
         ingestedFileIds,
-        hasItems(replaceMap.values().toArray(new String[0])));
+        hasItems(fileReplaceMap.values().toArray(new String[0])));
 
     SnapshotSummaryModel snapshot =
         dataRepoFixtures.createSnapshot(
@@ -250,7 +278,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
                     throw new RuntimeException(e);
                   }
                 })
-            .collect(Collectors.toList());
+            .toList();
 
     for (DRSObject drsObject : collect) {
       TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods(), stewardToken);
@@ -262,7 +290,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
       assertThat(
           "the drs object's gs-path is in the original ingest bucket",
           GcsUriUtils.parseBlobUri(gsAccessMethod.getAccessUrl().getUrl()).getBucket(),
-          equalTo("jade-testdata-useastregion"));
+          equalTo(ingestBucket));
       DRSAccessURL objectAccessUrl =
           dataRepoFixtures
               .getObjectAccessUrl(steward(), drsObject.getId(), gsAccessMethod.getAccessId())
@@ -317,7 +345,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
                         .jsonArraySpec(
                             new DataDeletionJsonArrayModel().rowIds(List.of(datarepoRowId))))));
 
-    boolean fileExistsAfterDataDelete = gcsUtils.fileExists(wgsVcfPath);
+    boolean fileExistsAfterDataDelete = gcsUtils.fileExists(wgsVcfPath(ingestBucket));
 
     assertThat(
         "files deleted from a self-hosted dataset continue to exist in their source buckets",
@@ -327,7 +355,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     datasetId = null;
 
-    boolean fileExistsAfterDatasetDelete = gcsUtils.fileExists(exomeVcfPath);
+    boolean fileExistsAfterDatasetDelete = gcsUtils.fileExists(exomeVcfPath(ingestBucket));
     assertThat(
         "files still exist even after self-hosted dataset is deleted",
         fileExistsAfterDatasetDelete,
@@ -340,5 +368,15 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
       outputString = outputString.replaceAll(entry.getKey(), entry.getValue());
     }
     return outputString;
+  }
+
+  private String wgsVcfPath(String ingestBucket) {
+    return String.format(
+        "gs://%s/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_wgs.g.vcf.gz", ingestBucket);
+  }
+
+  private String exomeVcfPath(String ingestBucket) {
+    return String.format(
+        "gs://%s/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_exome.g.vcf.gz", ingestBucket);
   }
 }

@@ -8,7 +8,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -33,6 +36,7 @@ import org.springframework.web.client.RestTemplate;
     name = "testWithEmbeddedDatabase",
     matchIfMissing = true)
 public class ApplicationConfiguration {
+  public static final String APPLICATION_NAME = "Terra Data Repository";
 
   private String userEmail;
   private String dnsName;
@@ -401,5 +405,14 @@ public class ApplicationConfiguration {
   @Bean
   public SmartInitializingSingleton postSetupInitialization(ApplicationContext applicationContext) {
     return () -> StartupInitializer.initialize(applicationContext);
+  }
+
+  @Bean("tdrServiceAccountEmail")
+  public String tdrServiceAccountEmail() throws IOException {
+    GoogleCredentials defaultCredentials = GoogleCredentials.getApplicationDefault();
+    if (defaultCredentials instanceof ServiceAccountCredentials) {
+      return ((ServiceAccountCredentials) defaultCredentials).getClientEmail();
+    }
+    return null;
   }
 }

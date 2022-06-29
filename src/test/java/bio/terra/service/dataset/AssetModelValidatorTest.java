@@ -1,17 +1,15 @@
-package bio.terra.app.controller;
+package bio.terra.service.dataset;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static bio.terra.service.dataset.ValidatorTestUtils.checkValidationErrorModel;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
-import bio.terra.model.AssetModel;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.ErrorModel;
-import java.util.List;
+import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -31,16 +29,17 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
-public class AssetModelValidationTest {
+public class AssetModelValidatorTest {
 
   @Autowired private MockMvc mvc;
+  @Autowired private JsonLoader jsonLoader;
 
-  private ErrorModel expectBadAssetModel(AssetModel asset) throws Exception {
+  private ErrorModel expectBadAssetCreateRequest(String jsonModel) throws Exception {
     MvcResult result =
         mvc.perform(
-                post("/api/repository/v1/datasets/assets")
+                post("/api/repository/v1/datasets/" + UUID.randomUUID() + "/assets")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(asset)))
+                    .content(jsonModel))
             .andExpect(status().is4xxClientError())
             .andReturn();
 
@@ -55,35 +54,15 @@ public class AssetModelValidationTest {
   }
 
   @Test
-  public void testInvalidAssetRequest() throws Exception {
-    mvc.perform(
-            post("/api/repository/v1/datasets/assets")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-        .andExpect(status().is4xxClientError());
+  public void testInvalidAssetCreateRequest() throws Exception {
+    ErrorModel errorModel = expectBadAssetCreateRequest("{}");
+    checkValidationErrorModel(errorModel, new String[] {"NotNull", "NotNull", "NotNull"});
   }
 
-  private void checkValidationErrorModel(
-      String context, ErrorModel errorModel, String[] messageCodes) {
-    List<String> details = errorModel.getErrorDetail();
-    int requiredDetailSize = messageCodes.length;
-    assertThat("Got the expected error details", details.size(), equalTo(requiredDetailSize));
-    assertThat(
-        "Main message is right",
-        errorModel.getMessage(),
-        containsString("Validation errors - see error details"));
-    for (int i = 0; i < messageCodes.length; i++) {
-      assertThat(
-          context + ": correct message code (" + i + ")",
-          /**
-           * The global exception handler logs in this format:
-           *
-           * <p><fieldName>: '<messageCode>' (<defaultMessage>)
-           *
-           * <p>We check to see if the code is wrapped in quotes to prevent matching on substrings.
-           */
-          details.get(i),
-          containsString("'" + messageCodes[i] + "'"));
-    }
+  @Test
+  public void testDuplicateColumnAssetCreateRequest() throws Exception {
+    String jsonModel = jsonLoader.loadJson("dataset-asset-duplicate-column.json");
+    ErrorModel errorModel = expectBadAssetCreateRequest(jsonModel);
+    checkValidationErrorModel(errorModel, new String[] {"DuplicateColumnNames"});
   }
 }

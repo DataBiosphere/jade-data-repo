@@ -529,7 +529,8 @@ public class SnapshotDao {
         "SELECT snapshot.id FROM snapshot "
             + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
             + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
-            + "WHERE (snapshot.consent_code, dataset.phs_id) IN (:permissions)";
+            + "WHERE snapshot.consent_code IS NOT NULL AND dataset.phs_id IS NOT NULL "
+            + "AND (snapshot.consent_code, dataset.phs_id) IN (:permissions)";
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue(

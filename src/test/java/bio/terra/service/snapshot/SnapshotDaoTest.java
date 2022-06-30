@@ -679,7 +679,16 @@ public class SnapshotDaoTest {
 
     String consentCode = "c01";
     String phsId = "phs123456";
-    List<RasDbgapPermissions> permissions = List.of(new RasDbgapPermissions(consentCode, phsId));
+
+    // Partially populated RasDbGapPermissions should not yield matching snapshots:
+    // We only return snapshots whose permission criteria are fully populated.
+    // This should never occur if ECM only returns valid passports and visas as indicated by their
+    // Swagger documentation. Testing it anyway to verify our own behavior.
+    List<RasDbgapPermissions> permissions =
+        List.of(
+            new RasDbgapPermissions(consentCode, phsId),
+            new RasDbgapPermissions(null, phsId),
+            new RasDbgapPermissions(consentCode, null));
 
     assertThat(
         "Snapshot with all permission elements missing is inaccessible",

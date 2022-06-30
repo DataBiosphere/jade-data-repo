@@ -113,6 +113,12 @@ public class ValidateAssetUnitTest {
         "invalid column", "Column " + col3Name + " does not exist in table " + tableName);
   }
 
+  @Test
+  public void testNoFollow() {
+    assetModel.follow(null);
+    dataset.validateDatasetAssetSpecification(assetModel);
+  }
+
   @Test(expected = InvalidAssetException.class)
   public void testInvalidColumn() {
     String invalidColumn = "InvalidCol";

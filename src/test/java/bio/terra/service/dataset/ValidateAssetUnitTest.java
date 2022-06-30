@@ -23,6 +23,7 @@ import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -116,6 +117,12 @@ public class ValidateAssetUnitTest {
   @Test
   public void testNoFollow() {
     assetModel.follow(null);
+    dataset.validateDatasetAssetSpecification(assetModel);
+  }
+
+  @Test
+  public void testEmptyFollowList() {
+    assetModel.follow(Collections.emptyList());
     dataset.validateDatasetAssetSpecification(assetModel);
   }
 

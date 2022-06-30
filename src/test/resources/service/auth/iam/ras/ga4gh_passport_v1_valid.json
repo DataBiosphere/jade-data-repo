@@ -1,0 +1,20 @@
+{
+  "sub": "EcmServiceTest",
+  "ras_dbgap_permissions": [
+    {
+      "phs_id": "phs000001",
+      "consent_group": "c01",
+      "ignored_field": "ignored1"
+    },
+    {
+      "phs_id": "phs000001",
+      "consent_group": "c02",
+      "ignored_field": "ignored1"
+    },
+    {
+      "phs_id": "phs000002",
+      "consent_group": "c02",
+      "ignored_field": "ignored1"
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import bio.terra.externalcreds.client.ApiClient;
 import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import java.text.ParseException;
@@ -32,7 +33,7 @@ public class EcmService {
   private final ObjectMapper objectMapper;
 
   private static final String RAS_PROVIDER = "ras";
-  private static final String GA4GH_PASSPORT_V1_CLAIM = "ga4gh_passport_v1";
+  @VisibleForTesting public static final String GA4GH_PASSPORT_V1_CLAIM = "ga4gh_passport_v1";
   private static final String RAS_DBGAP_PERMISSIONS_CLAIM = "ras_dbgap_permissions";
 
   @Autowired
@@ -67,7 +68,7 @@ public class EcmService {
    * @param userReq authenticated user
    * @return the user's linked RAS passport as a JWT, or null if none exists.
    */
-  private String getRasProviderPassport(AuthenticatedUserRequest userReq) {
+  public String getRasProviderPassport(AuthenticatedUserRequest userReq) {
     try {
       return getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
     } catch (HttpClientErrorException ex) {
@@ -108,8 +109,11 @@ public class EcmService {
       Object claim =
           JWTParser.parse(visaJwt).getJWTClaimsSet().getClaim(RAS_DBGAP_PERMISSIONS_CLAIM);
       return Arrays.stream(objectMapper.convertValue(claim, RasDbgapPermissions[].class));
-    } catch (ParseException ex) {
-      logger.warn(String.format("Error parsing RAS passport %s", RAS_DBGAP_PERMISSIONS_CLAIM), ex);
+    } catch (IllegalArgumentException | ParseException ex) {
+      String msg =
+          String.format(
+              "Error parsing RAS passport's decoded visa's %s", RAS_DBGAP_PERMISSIONS_CLAIM);
+      logger.warn(msg, ex);
     }
     return Stream.empty();
   }

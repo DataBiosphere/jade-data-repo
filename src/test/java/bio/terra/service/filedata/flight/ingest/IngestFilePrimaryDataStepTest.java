@@ -10,6 +10,7 @@ import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
 import bio.terra.service.filedata.exception.InvalidUserProjectException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -67,8 +68,7 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
   public void testDoStepSelfHostedRetryThenSucceed() {
     // Dataset is self-hosted
     when(dataset.isSelfHosted()).thenReturn(true);
-
-    // Step's first run throws retryable error, second run succeeds
+    // Step Run 1 - throws retryable "InvalidUserProjectException" exception
     FSFileInfo fileInfo = mock(FSFileInfo.class);
     when(gcsPdao.linkSelfHostedFile(any(), any(), any()))
         .thenThrow(new InvalidUserProjectException("retryable"))
@@ -77,12 +77,25 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
     StepResult result = step.doStep(flightContext);
     verify(gcsPdao, times(1)).linkSelfHostedFile(any(), any(), any());
     assertThat(
-        "Step failed and should be retried",
+        "Step failed due to InvalidUserProjectException and should be retried",
         StepStatus.STEP_RESULT_FAILURE_RETRY,
         equalTo(result.getStepStatus()));
 
+    // Step Run 2 - throws retryable "GoogleInternalServerErrorException" exception
+    when(gcsPdao.linkSelfHostedFile(any(), any(), any()))
+        .thenThrow(new GoogleInternalServerErrorException("retryable"))
+        .thenReturn(fileInfo);
+
     result = step.doStep(flightContext);
     verify(gcsPdao, times(2)).linkSelfHostedFile(any(), any(), any());
+    assertThat(
+        "Step failed due to GoogleInternalServerErrorException and should be retried",
+        StepStatus.STEP_RESULT_FAILURE_RETRY,
+        equalTo(result.getStepStatus()));
+
+    // Step Run 3 - Succeeds
+    result = step.doStep(flightContext);
+    verify(gcsPdao, times(3)).linkSelfHostedFile(any(), any(), any());
     assertThat(
         "Retried step succeeds", StepStatus.STEP_RESULT_SUCCESS, equalTo(result.getStepStatus()));
   }
@@ -90,7 +103,7 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
   @Test
   public void testDoStepExternallyHostedRetryThenSucceed() {
     // Dataset is externally hosted by default
-    // Step's first run throws retryable error, second run succeeds
+    // Step Run 1 - throws retryable "InvalidUserProjectException" exception
     FSFileInfo fileInfo = mock(FSFileInfo.class);
     when(gcsPdao.copyFile(any(), any(), any(), any()))
         .thenThrow(new InvalidUserProjectException("retryable"))
@@ -99,12 +112,25 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
     StepResult result = step.doStep(flightContext);
     verify(gcsPdao, times(1)).copyFile(any(), any(), any(), any());
     assertThat(
-        "Step failed and should be retried",
+        "Step failed due to InvalidUserProjectException and should be retried",
         StepStatus.STEP_RESULT_FAILURE_RETRY,
         equalTo(result.getStepStatus()));
 
+    // Step Run 2 - throws retryable "GoogleInternalServerErrorException" exception
+    when(gcsPdao.copyFile(any(), any(), any(), any()))
+        .thenThrow(new GoogleInternalServerErrorException("retryable"))
+        .thenReturn(fileInfo);
+
     result = step.doStep(flightContext);
     verify(gcsPdao, times(2)).copyFile(any(), any(), any(), any());
+    assertThat(
+        "Step failed due to GoogleInternalServerErrorException and should be retried",
+        StepStatus.STEP_RESULT_FAILURE_RETRY,
+        equalTo(result.getStepStatus()));
+
+    // Step Run 3 - Succeeds
+    result = step.doStep(flightContext);
+    verify(gcsPdao, times(3)).copyFile(any(), any(), any(), any());
     assertThat(
         "Retried step succeeds", StepStatus.STEP_RESULT_SUCCESS, equalTo(result.getStepStatus()));
   }

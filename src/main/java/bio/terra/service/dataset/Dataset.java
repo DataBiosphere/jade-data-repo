@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 
 public class Dataset implements FSContainerInterface, LogPrintable {
@@ -132,14 +133,12 @@ public class Dataset implements FSContainerInterface, LogPrintable {
 
     // Follow should reference an existing relationship as defined in the original dataset create
     // query
-    if (assetModel.getFollow() != null) {
-      for (var assetFollow : assetModel.getFollow()) {
-        if (!relationships.stream().anyMatch(r -> r.getName().equals(assetFollow))) {
-          errors.add(
-              "Relationship specified in follow list '"
-                  + assetFollow
-                  + "' does not exist in dataset's list of relationships");
-        }
+    for (var assetFollow : ListUtils.emptyIfNull(assetModel.getFollow())) {
+      if (!relationships.stream().anyMatch(r -> r.getName().equals(assetFollow))) {
+        errors.add(
+            "Relationship specified in follow list '"
+                + assetFollow
+                + "' does not exist in dataset's list of relationships");
       }
     }
 

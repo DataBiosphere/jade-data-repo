@@ -124,7 +124,8 @@ public class FireStoreDirectoryDaoTest {
         fileObjects.stream()
             .map(fireStoreObject -> fireStoreObject.getFileId())
             .collect(Collectors.toList());
-    List<String> mismatches = directoryDao.validateRefIds(firestore, collectionId, fileRefs);
+    List<String> mismatches =
+        directoryDao.validateRefIds(firestore, collectionId, fileRefs, "testCol");
     assertThat("No invalid file refs", mismatches.size(), equalTo(0));
 
     List<String> badids = Arrays.asList("badid1", "badid2");
@@ -134,7 +135,7 @@ public class FireStoreDirectoryDaoTest {
     badFileRefs.addAll(fileRefs);
     badFileRefs.addAll(badids);
 
-    mismatches = directoryDao.validateRefIds(firestore, collectionId, badFileRefs);
+    mismatches = directoryDao.validateRefIds(firestore, collectionId, badFileRefs, "testCol");
     assertThat("Caught invalid file refs", mismatches.size(), equalTo(badids.size()));
 
     StringListCompare listCompare = new StringListCompare(mismatches, badids);

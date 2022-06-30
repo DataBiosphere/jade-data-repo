@@ -385,12 +385,12 @@ public class FireStoreDao {
     return resultList;
   }
 
-  public List<String> validateRefIds(Dataset dataset, List<String> refIdArray)
+  public List<String> validateRefIds(Dataset dataset, List<String> refIdArray, String columnName)
       throws InterruptedException {
     Firestore firestore =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String datasetId = dataset.getId().toString();
-    return directoryDao.validateRefIds(firestore, datasetId, refIdArray);
+    return directoryDao.validateRefIds(firestore, datasetId, refIdArray, columnName);
   }
 
   // -- private methods --

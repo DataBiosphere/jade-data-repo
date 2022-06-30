@@ -101,8 +101,8 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
   @Test
   public void testDoStepExternallyHostedRetryThenSucceed() {
     // Dataset is externally hosted by default
-    // Step Run 1 - throws retryable "InvalidUserProjectException" exception
     FSFileInfo fileInfo = mock(FSFileInfo.class);
+    // Step throws two retryable exceptions then succeeds
     when(gcsPdao.copyFile(any(), any(), any(), any()))
         .thenThrow(new InvalidUserProjectException("retryable"))
         .thenThrow(new GoogleInternalServerErrorException("retryable"))

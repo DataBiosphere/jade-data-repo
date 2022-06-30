@@ -23,6 +23,7 @@ import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -111,6 +112,18 @@ public class ValidateAssetUnitTest {
             DatasetFixtures.generateAssetTable(tableName2, List.of(col3Name))));
     testAssetModel(
         "invalid column", "Column " + col3Name + " does not exist in table " + tableName);
+  }
+
+  @Test
+  public void testNoFollow() {
+    assetModel.follow(null);
+    dataset.validateDatasetAssetSpecification(assetModel);
+  }
+
+  @Test
+  public void testEmptyFollowList() {
+    assetModel.follow(Collections.emptyList());
+    dataset.validateDatasetAssetSpecification(assetModel);
   }
 
   @Test(expected = InvalidAssetException.class)

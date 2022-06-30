@@ -8,6 +8,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
 import bio.terra.service.filedata.exception.InvalidUserProjectException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -62,6 +63,9 @@ public class IngestFilePrimaryDataStep implements Step {
       } catch (InvalidUserProjectException ex) {
         // We retry this exception because often when we've seen this error it has been transient
         // and untruthful -- i.e. the user project specified exists and has a legal id.
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+      } catch (GoogleInternalServerErrorException ex) {
+        // Google's error message suggests retrying the operation
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
       }
     }

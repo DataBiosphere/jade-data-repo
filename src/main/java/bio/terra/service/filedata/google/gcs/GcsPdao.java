@@ -25,6 +25,7 @@ import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.exception.FileNotFoundException;
+import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
 import bio.terra.service.filedata.exception.InvalidUserProjectException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
@@ -405,6 +406,11 @@ public class GcsPdao implements CloudFileReader {
         && ex.getMessage().contains("User project specified in the request is invalid");
   }
 
+  private boolean isGoogleInternalError(StorageException ex) {
+    return ex.getCause() instanceof GoogleJsonResponseException
+        && ex.getMessage().contains("We encountered an internal error. Please try again.");
+  }
+
   public FSFileInfo copyFile(
       Dataset dataset,
       FileLoadModel fileLoadModel,
@@ -470,6 +476,9 @@ public class GcsPdao implements CloudFileReader {
       // We might need to retry for flaky google cases, or we bail out if access is denied.
       if (isInvalidUserProjectException(ex)) {
         throw new InvalidUserProjectException("File ingest failed", ex);
+      }
+      if (isGoogleInternalError(ex)) {
+        throw new GoogleInternalServerErrorException("File ingest failed", ex);
       }
       throw new PdaoFileCopyException("File ingest failed", ex);
     }

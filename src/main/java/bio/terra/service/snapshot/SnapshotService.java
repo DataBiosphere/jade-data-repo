@@ -80,7 +80,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotService {
-  private final Logger logger = LoggerFactory.getLogger(SnapshotService.class);
+  private static final Logger logger = LoggerFactory.getLogger(SnapshotService.class);
   private final JobService jobService;
   private final DatasetService datasetService;
   private final FireStoreDependencyDao dependencyDao;

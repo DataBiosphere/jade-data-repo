@@ -132,12 +132,14 @@ public class Dataset implements FSContainerInterface, LogPrintable {
 
     // Follow should reference an existing relationship as defined in the original dataset create
     // query
-    for (var assetFollow : assetModel.getFollow()) {
-      if (!relationships.stream().anyMatch(r -> r.getName().equals(assetFollow))) {
-        errors.add(
-            "Relationship specified in follow list '"
-                + assetFollow
-                + "' does not exist in dataset's list of relationships");
+    if (assetModel.getFollow() != null) {
+      for (var assetFollow : assetModel.getFollow()) {
+        if (!relationships.stream().anyMatch(r -> r.getName().equals(assetFollow))) {
+          errors.add(
+              "Relationship specified in follow list '"
+                  + assetFollow
+                  + "' does not exist in dataset's list of relationships");
+        }
       }
     }
 

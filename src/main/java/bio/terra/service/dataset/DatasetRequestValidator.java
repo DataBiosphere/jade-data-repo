@@ -220,6 +220,7 @@ public class DatasetRequestValidator implements Validator {
           if (primaryKeyList.contains(columnModel.getName())) {
             validateColumnType(errors, columnModel, PRIMARY_KEY);
           }
+          validateColumnMode(errors, columnModel);
         }
       }
       context.addTable(tableName, columns);
@@ -277,6 +278,15 @@ public class DatasetRequestValidator implements Validator {
           "schema",
           "OptionalPrimaryKeyColumn",
           String.format("A %s column cannot be marked as not required", PRIMARY_KEY));
+    }
+  }
+
+  private void validateColumnMode(Errors errors, ColumnModel columnModel) {
+    if (columnModel.isRequired() && columnModel.isArrayOf()) {
+      errors.rejectValue(
+          "schema",
+          "InvalidColumnMode",
+          String.format("Array column %s cannot be marked as required", columnModel.getName()));
     }
   }
 

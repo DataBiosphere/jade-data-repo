@@ -214,16 +214,39 @@ public class DatasetRequestValidatorTest {
     ColumnModel badColumnFileRefArray = testTable.getColumns().get(0);
     badColumnFileRefArray.setArrayOf(true);
     badColumnFileRefArray.setDatatype(TableDataType.FILEREF);
+    badColumnFileRefArray.setRequired(true);
 
     ColumnModel badColumnDirref = testTable.getColumns().get(1);
     badColumnDirref.setDatatype(TableDataType.DIRREF);
+    badColumnDirref.setRequired(true);
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
         errorModel,
         new String[] {
-          "InvalidPrimaryKey", "InvalidPrimaryKey", "InvalidPrimaryKey", "InvalidForeignKey"
+          "InvalidPrimaryKey",
+          "InvalidPrimaryKey",
+          "InvalidPrimaryKey",
+          "InvalidForeignKey",
+          "InvalidColumnMode"
         });
+  }
+
+  @Test
+  public void testInvalidColumnMode() throws Exception {
+    DatasetRequestModel req = buildDatasetRequest();
+    TableModel testTable = req.getSchema().getTables().get(0);
+    testTable.setPrimaryKey(List.of("id"));
+
+    ColumnModel goodColumn = testTable.getColumns().get(0);
+    goodColumn.setRequired(true);
+
+    ColumnModel badColumn = testTable.getColumns().get(1);
+    badColumn.setArrayOf(true);
+    badColumn.setRequired(true);
+
+    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+    checkValidationErrorModel(errorModel, new String[] {"InvalidColumnMode"});
   }
 
   @Test

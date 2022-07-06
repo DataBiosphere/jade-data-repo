@@ -1,4 +1,0 @@
-{
-  "sub": "EcmServiceTest",
-  "ras_dbgap_permissions": "should throw InvalidDefinitionException"
-}

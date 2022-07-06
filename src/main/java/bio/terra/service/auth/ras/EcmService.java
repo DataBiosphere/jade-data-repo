@@ -2,7 +2,6 @@ package bio.terra.service.auth.ras;
 
 import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.externalcreds.api.OidcApi;
 import bio.terra.externalcreds.api.PassportApi;
 import bio.terra.externalcreds.client.ApiClient;
 import bio.terra.externalcreds.model.ValidatePassportRequest;
@@ -31,6 +30,7 @@ public class EcmService {
   private final EcmConfiguration ecmConfiguration;
   private final RestTemplate restTemplate;
   private final ObjectMapper objectMapper;
+  private final OidcApiService oidcApiService;
 
   private static final String RAS_PROVIDER = "ras";
   @VisibleForTesting public static final String GA4GH_PASSPORT_V1_CLAIM = "ga4gh_passport_v1";
@@ -38,9 +38,13 @@ public class EcmService {
 
   @Autowired
   public EcmService(
-      EcmConfiguration ecmConfiguration, RestTemplate restTemplate, ObjectMapper objectMapper) {
+      EcmConfiguration ecmConfiguration,
+      RestTemplate restTemplate,
+      OidcApiService oidcApiService,
+      ObjectMapper objectMapper) {
     this.ecmConfiguration = ecmConfiguration;
     this.restTemplate = restTemplate;
+    this.oidcApiService = oidcApiService;
     this.objectMapper = objectMapper;
   }
 
@@ -55,22 +59,13 @@ public class EcmService {
     var passportApi = getPassportApi();
     return passportApi.validatePassport(validatePassportRequest);
   }
-
-  public OidcApi getOidcApi(AuthenticatedUserRequest userReq) {
-    var client = new ApiClient(restTemplate);
-    client.setBasePath(ecmConfiguration.getBasePath());
-    client.setAccessToken(userReq.getToken());
-
-    return new OidcApi(client);
-  }
-
   /**
    * @param userReq authenticated user
    * @return the user's linked RAS passport as a JWT, or null if none exists.
    */
   public String getRasProviderPassport(AuthenticatedUserRequest userReq) {
     try {
-      return getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
+      return oidcApiService.getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
         return null;

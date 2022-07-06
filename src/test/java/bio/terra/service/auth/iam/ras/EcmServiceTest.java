@@ -8,10 +8,10 @@ import static org.mockito.Mockito.*;
 
 import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.api.OidcApi;
 import bio.terra.service.auth.ras.EcmService;
+import bio.terra.service.auth.ras.OidcApiService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.util.Base64URL;
@@ -36,24 +36,17 @@ import org.springframework.web.client.RestTemplate;
 public class EcmServiceTest {
   @Mock private EcmConfiguration ecmConfiguration;
   @Mock private RestTemplate restTemplate;
-  @Mock private OidcApi oidcApi;
+  @Mock private OidcApiService oidcApiService;
   private ObjectMapper objectMapper;
-  private JsonLoader jsonLoader;
   private EcmService ecmService;
-  private AuthenticatedUserRequest authenticatedUserRequest;
+  @Mock private OidcApi oidcApi;
+  @Mock private AuthenticatedUserRequest userReq;
 
   @Before
   public void setup() {
     objectMapper = new ObjectMapper();
-    jsonLoader = new JsonLoader(objectMapper);
-    ecmService = spy(new EcmService(ecmConfiguration, restTemplate, objectMapper));
-    authenticatedUserRequest =
-        AuthenticatedUserRequest.builder()
-            .setSubjectId("DatasetUnit")
-            .setEmail("dataset@unit.com")
-            .setToken("token")
-            .build();
-    doAnswer(a -> oidcApi).when(ecmService).getOidcApi(authenticatedUserRequest);
+    ecmService = new EcmService(ecmConfiguration, restTemplate, oidcApiService, objectMapper);
+    when(oidcApiService.getOidcApi(any())).thenReturn(oidcApi);
   }
 
   @Test
@@ -67,81 +60,111 @@ public class EcmServiceTest {
         .thenThrow(shouldThrow);
 
     assertThat(
-        "Passport is returned",
-        ecmService.getRasProviderPassport(authenticatedUserRequest),
-        equalTo(passport));
+        "Passport is returned", ecmService.getRasProviderPassport(userReq), equalTo(passport));
     assertThat(
         "Passport not found returns null",
-        ecmService.getRasProviderPassport(authenticatedUserRequest),
+        ecmService.getRasProviderPassport(userReq),
         equalTo(null));
     assertThrows(
         HttpClientErrorException.class,
-        () -> ecmService.getRasProviderPassport(authenticatedUserRequest),
+        () -> ecmService.getRasProviderPassport(userReq),
         "Other exceptions are thrown");
   }
 
   @Test
-  public void testGetRasDbgapPermissions() throws Exception {
-    // Note: many of the "unhappy paths" in this test should not occur if ECM only returns valid
-    // passports and visas as indicated by their Swagger documentation.
-    // Testing them anyway to verify our own behavior.
-    doAnswer(a -> null).when(ecmService).getRasProviderPassport(authenticatedUserRequest);
+  public void testGetRasDbgapPermissionsNoPassport() throws Exception {
+    when(oidcApi.getProviderPassport(any())).thenReturn(null);
     assertThat(
         "No RAS dbGaP permissions when a user doesn't have a passport",
-        ecmService.getRasDbgapPermissions(authenticatedUserRequest),
+        ecmService.getRasDbgapPermissions(userReq),
         empty());
+  }
 
-    doAnswer(a -> toJwtToken("{}"))
-        .when(ecmService)
-        .getRasProviderPassport(authenticatedUserRequest);
+  @Test
+  public void testGetRasDbgapPermissionsNoVisaClaim() throws Exception {
+    when(oidcApi.getProviderPassport(any())).thenReturn(toJwtToken("{}"));
     assertThat(
         "No RAS dbGaP permissions when a user's passport has no visa claim'",
-        ecmService.getRasDbgapPermissions(authenticatedUserRequest),
+        ecmService.getRasDbgapPermissions(userReq),
         empty());
+  }
 
-    String passportPayloadNoVisas =
-        String.format("{\"%s\":[]}", EcmService.GA4GH_PASSPORT_V1_CLAIM);
-    doAnswer(a -> toJwtToken(passportPayloadNoVisas))
-        .when(ecmService)
-        .getRasProviderPassport(authenticatedUserRequest);
+  @Test
+  public void testGetRasDbgapPermissionsNoVisas() throws Exception {
+    when(oidcApi.getProviderPassport(any())).thenReturn(toPassportJwt(null));
     assertThat(
         "No RAS dbGaP permissions when a user's passport has no visas",
-        ecmService.getRasDbgapPermissions(authenticatedUserRequest),
+        ecmService.getRasDbgapPermissions(userReq),
         empty());
+  }
 
-    String invalidVisaJwt = toJwtToken(loadJson("ga4gh_passport_v1_invalid.json"));
-    String invalidPassportPayload =
-        String.format("{\"%s\":[\"%s\"]}", EcmService.GA4GH_PASSPORT_V1_CLAIM, invalidVisaJwt);
-    String invalidPassportJwt = toJwtToken(invalidPassportPayload);
-    doAnswer(a -> invalidPassportJwt)
-        .when(ecmService)
-        .getRasProviderPassport(authenticatedUserRequest);
+  @Test
+  public void testGetRasDbgapPermissionsInvalidVisas() throws Exception {
+    String invalidVisa =
+        """
+      {
+        "sub": "EcmServiceTest",
+        "ras_dbgap_permissions": "should throw InvalidDefinitionException"
+      }
+      """;
+    when(oidcApi.getProviderPassport(any())).thenReturn(toPassportJwt(invalidVisa));
+
     assertThat(
         "No RAS dbGaP permissions when a user's passport has invalid visas",
-        ecmService.getRasDbgapPermissions(authenticatedUserRequest),
+        ecmService.getRasDbgapPermissions(userReq),
         empty());
+  }
 
-    String visaJwt = toJwtToken(loadJson("ga4gh_passport_v1_valid.json"));
-    String passportPayload =
-        String.format("{\"%s\":[\"%s\"]}", EcmService.GA4GH_PASSPORT_V1_CLAIM, visaJwt);
-    String passportJwt = toJwtToken(passportPayload);
-    doAnswer(a -> passportJwt).when(ecmService).getRasProviderPassport(authenticatedUserRequest);
+  @Test
+  public void testGetRasDbgapPermissionsValidVisas() throws Exception {
+    String validVisa =
+        """
+      {
+        "sub": "EcmServiceTest",
+        "ras_dbgap_permissions": [
+          {
+            "phs_id": "phs000001",
+            "consent_group": "c01",
+            "ignored_field": "ignored1"
+          },
+          {
+            "phs_id": "phs000001",
+            "consent_group": "c02",
+            "ignored_field": "ignored1"
+          },
+          {
+            "phs_id": "phs000002",
+            "consent_group": "c02",
+            "ignored_field": "ignored1"
+          }
+        ]
+      }
+      """;
+    when(oidcApi.getProviderPassport(any())).thenReturn(toPassportJwt(validVisa));
+
     assertThat(
         "Passport visa permissions are successfully decoded and unknown properties ignored",
-        ecmService.getRasDbgapPermissions(authenticatedUserRequest),
+        ecmService.getRasDbgapPermissions(userReq),
         Matchers.contains(
             new RasDbgapPermissions("c01", "phs000001"),
             new RasDbgapPermissions("c02", "phs000001"),
             new RasDbgapPermissions("c02", "phs000002")));
   }
 
-  /** Helper Methods for Generating JWT Tokens * */
-  private String loadJson(String filename) throws Exception {
-    return jsonLoader.loadJson(String.format("./service/auth/iam/ras/%s", filename));
+  /** Helper Methods for Generating Passports and JWT Tokens * */
+  private String toPassportJwt(String visa) throws Exception {
+    String visaJwt = (visa == null) ? "" : String.format("\"%s\"", toJwtToken(visa));
+    String passportPayload =
+        String.format("{\"%s\": [%s]}", EcmService.GA4GH_PASSPORT_V1_CLAIM, visaJwt);
+    String returned = toJwtToken(passportPayload);
+    System.out.println(returned);
+    return returned;
   }
 
   private String toJwtToken(String payload) throws Exception {
-    String header = "{\"alg\":\"none\",\"typ\":\"JWT\"}";
+    String header = """
+        {"alg":"none","typ":"JWT"}
+        """;
     return new PlainJWT(base64(header), base64(payload)).serialize();
   }
 

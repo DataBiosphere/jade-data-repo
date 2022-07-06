@@ -691,6 +691,11 @@ public class SnapshotDaoTest {
             new RasDbgapPermissions(consentCode, null));
 
     assertThat(
+        "No snapshots returned when no permissions",
+        snapshotDao.getAccessibleSnapshots(List.of()),
+        empty());
+
+    assertThat(
         "Snapshot with all permission elements missing is inaccessible",
         snapshotDao.getAccessibleSnapshots(permissions),
         empty());

@@ -525,20 +525,26 @@ public class SnapshotDao {
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
   public List<UUID> getAccessibleSnapshots(List<RasDbgapPermissions> permissions) {
-    String sql =
-        "SELECT snapshot.id FROM snapshot "
-            + "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id "
-            + "JOIN dataset ON dataset.id = snapshot_source.dataset_id "
-            + "WHERE snapshot.consent_code IS NOT NULL AND dataset.phs_id IS NOT NULL "
-            + "AND (snapshot.consent_code, dataset.phs_id) IN (:permissions)";
-    MapSqlParameterSource params =
-        new MapSqlParameterSource()
-            .addValue(
-                "permissions",
-                permissions.stream()
-                    .map(c -> new String[] {c.consent_group(), c.phs_id()})
-                    .toList());
-    return jdbcTemplate.query(sql, params, new UuidMapper("id"));
+    List<UUID> accessibleSnapshots = List.of();
+    if (!permissions.isEmpty()) {
+      String sql =
+          """
+          SELECT snapshot.id FROM snapshot
+          JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id
+          JOIN dataset ON dataset.id = snapshot_source.dataset_id
+          WHERE snapshot.consent_code IS NOT NULL AND dataset.phs_id IS NOT NULL
+          AND (snapshot.consent_code, dataset.phs_id) IN (:permissions)
+          """;
+      MapSqlParameterSource params =
+          new MapSqlParameterSource()
+              .addValue(
+                  "permissions",
+                  permissions.stream()
+                      .map(c -> new String[] {c.consent_group(), c.phs_id()})
+                      .toList());
+      accessibleSnapshots = jdbcTemplate.query(sql, params, new UuidMapper("id"));
+    }
+    return accessibleSnapshots;
   }
 
   /**

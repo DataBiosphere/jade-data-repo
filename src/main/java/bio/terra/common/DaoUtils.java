@@ -148,6 +148,7 @@ public final class DaoUtils {
       this.columnLabel = columnLabel;
     }
 
+    @Override
     public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
       return rs.getObject(this.columnLabel, UUID.class);
     }

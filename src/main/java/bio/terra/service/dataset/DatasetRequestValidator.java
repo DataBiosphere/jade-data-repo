@@ -282,7 +282,7 @@ public class DatasetRequestValidator implements Validator {
   }
 
   private void validateColumnMode(Errors errors, ColumnModel columnModel) {
-    if (columnModel.isRequired() && columnModel.isArrayOf()) {
+    if (Boolean.TRUE.equals(columnModel.isRequired()) && columnModel.isArrayOf()) {
       errors.rejectValue(
           "schema",
           "InvalidColumnMode",

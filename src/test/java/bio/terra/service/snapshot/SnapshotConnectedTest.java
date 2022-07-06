@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -192,7 +193,7 @@ public class SnapshotConnectedTest {
       snapshotList.add(summaryModel);
       rasSnapshotIds.add(summaryModel.getId());
     }
-    assertThat("3 RAS-authorized snapshots", rasSnapshotIds.size(), equalTo(3));
+    assertThat("3 RAS-authorized snapshots", rasSnapshotIds, hasSize(3));
 
     // Create two snapshots without consent code -- not authorized via a linked RAS passport.
     SnapshotRequestModel snapshotRequest =
@@ -208,7 +209,7 @@ public class SnapshotConnectedTest {
 
     // Designate one of our snapshots as accessible via SAM *and* a linked RAS passport.
     samSnapshotIds.add(rasSnapshotIds.get(0));
-    assertThat("3 SAM-authorized snapshots", samSnapshotIds.size(), equalTo(3));
+    assertThat("3 SAM-authorized snapshots", samSnapshotIds, hasSize(3));
 
     IamRole samIamRole = IamRole.STEWARD;
     Map<UUID, Set<IamRole>> samIdsAndRoles =
@@ -216,7 +217,7 @@ public class SnapshotConnectedTest {
             .collect(Collectors.toMap(Function.identity(), x -> Set.of(samIamRole)));
     when(samService.listAuthorizedResources(any(), any())).thenReturn(samIdsAndRoles);
 
-    assertThat("5 total snapshots created", snapshotList.size(), equalTo(5));
+    assertThat("5 total snapshots created", snapshotList, hasSize(5));
 
     // Reverse the order of the array since the order we return the snapshots in by default is
     // descending order of creation

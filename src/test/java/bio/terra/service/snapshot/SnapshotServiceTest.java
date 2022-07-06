@@ -9,9 +9,6 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
@@ -372,24 +369,23 @@ public class SnapshotServiceTest {
     List<RasDbgapPermissions> perms = List.of(new RasDbgapPermissions(consentCode, phsId));
     List<UUID> uuids = List.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
 
-    when(ecmService.getRasDbgapPermissions(TEST_USER)).thenReturn(List.of()).thenReturn(perms);
-    when(snapshotDao.getAccessibleSnapshots(perms)).thenReturn(List.of()).thenReturn(uuids);
-
     // First attempt: No linked passport.
+    when(ecmService.getRasDbgapPermissions(TEST_USER)).thenReturn(List.of());
+    when(snapshotDao.getAccessibleSnapshots(perms)).thenReturn(List.of());
     assertThat(
         "No linked passport yields empty result",
         service.listRasAuthorizedSnapshots(TEST_USER).entrySet(),
         empty());
-    verifyNoInteractions(snapshotDao);
 
     // Second attempt: Linked passport, no matching snapshots.
+    when(ecmService.getRasDbgapPermissions(TEST_USER)).thenReturn(perms);
     assertThat(
         "Linked passport but no matching snapshots yields empty result",
         service.listRasAuthorizedSnapshots(TEST_USER).entrySet(),
         empty());
-    verify(snapshotDao, times(1)).getAccessibleSnapshots(perms);
 
     // Third attempt: Linked passport, matching snapshots.
+    when(snapshotDao.getAccessibleSnapshots(perms)).thenReturn(uuids);
     Map<UUID, Set<IamRole>> idsAndRolesActual = service.listRasAuthorizedSnapshots(TEST_USER);
     assertThat(
         "Linked passport matching snapshots returns correct number of snapshots",
@@ -403,7 +399,6 @@ public class SnapshotServiceTest {
         "Snapshot accessibility by passport attributed to reader role",
         idsAndRolesActual.values(),
         everyItem(equalTo(Set.of(IamRole.READER))));
-    verify(snapshotDao, times(2)).getAccessibleSnapshots(perms);
   }
 
   @Test

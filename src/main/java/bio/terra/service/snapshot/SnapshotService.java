@@ -211,15 +211,13 @@ public class SnapshotService {
     Map<UUID, Set<IamRole>> idsAndRoles = new HashMap<>();
     try {
       List<RasDbgapPermissions> permissions = ecmService.getRasDbgapPermissions(userReq);
-      if (!permissions.isEmpty()) {
-        List<UUID> uuids = snapshotDao.getAccessibleSnapshots(permissions);
-        Set<IamRole> roles = Set.of(IamRole.READER);
-        uuids.forEach(uuid -> idsAndRoles.put(uuid, roles));
-      }
+      List<UUID> uuids = snapshotDao.getAccessibleSnapshots(permissions);
+      Set<IamRole> roles = Set.of(IamRole.READER);
+      uuids.forEach(uuid -> idsAndRoles.put(uuid, roles));
     } catch (ParseException ex) {
       // Not sure if we want to catch any exception, or catch upstream instead.
       // I don't like the idea of failing snapshot enumeration because of an ECM error.
-      logger.warn("Error parsing RAS passport", ex);
+      logger.error("Error parsing RAS passport", ex);
     }
     return idsAndRoles;
   }

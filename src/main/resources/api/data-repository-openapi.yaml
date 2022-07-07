@@ -455,7 +455,10 @@ paths:
         - snapshots
         - repository
       description: >
-        Returns a list of all of the snapshots the caller has access to
+        Returns a list of all of the snapshots to which the caller has access.
+        Access may be granted directly via SAM and/or indirectly via a user's linked RAS passport
+        in Terra.  Snapshot accessibility derived from a linked RAS passport will be attributed to
+        the "reader" role.
       operationId: enumerateSnapshots
       parameters:
         - name: offset

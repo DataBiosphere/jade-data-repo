@@ -3,7 +3,9 @@ package bio.terra.service.snapshot;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,6 +25,7 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
@@ -33,6 +36,8 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.ras.EcmService;
+import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -96,15 +101,21 @@ public class SnapshotConnectedTest {
   @Autowired private GoogleResourceManagerService googleResourceManagerService;
 
   @MockBean private IamProviderInterface samService;
+  @MockBean private EcmService ecmService;
 
   private String snapshotOriginalName;
   private BillingProfileModel billingProfile;
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
   private DatasetSummaryModel datasetSummary;
 
+  private static final String CONSENT_CODE = "c99";
+  private static final String PHS_ID = "phs123456";
+
   @Before
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
+    when(ecmService.getRasDbgapPermissions(any()))
+        .thenReturn(List.of(new RasDbgapPermissions(CONSENT_CODE, PHS_ID)));
     configService.reset();
     billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
@@ -162,29 +173,56 @@ public class SnapshotConnectedTest {
 
   @Test
   public void testEnumeration() throws Exception {
-    SnapshotRequestModel snapshotRequest =
-        SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetSummary, "snapshot-test-snapshot.json");
+    datasetDao.patch(datasetSummary.getId(), new DatasetPatchRequestModel().phsId(PHS_ID));
 
     // Other unit tests exercise the array bounds, so here we don't fuss with that here.
     // Just make sure we get the same snapshot summary that we made.
     List<SnapshotSummaryModel> snapshotList = new ArrayList<>();
-    for (int i = 0; i < 5; i++) {
+
+    // A snapshot is authorized to be included in enumeration if the caller can access it directly
+    // via SAM and/or indirectly via a linked RAS passport.
+    // Create three snapshots with consent code -- authorized indirectly via a linked RAS passport.
+    SnapshotRequestModel rasSnapshotRequest =
+        SnapshotConnectedTestUtils.makeSnapshotTestRequest(
+                jsonLoader, datasetSummary, "snapshot-test-snapshot.json")
+            .consentCode(CONSENT_CODE);
+    List<UUID> rasSnapshotIds = new ArrayList<>();
+    for (int i = 0; i < 3; i++) {
+      MockHttpServletResponse response = performCreateSnapshot(rasSnapshotRequest, "_en_");
+      SnapshotSummaryModel summaryModel = validateSnapshotCreated(rasSnapshotRequest, response);
+      snapshotList.add(summaryModel);
+      rasSnapshotIds.add(summaryModel.getId());
+    }
+    assertThat("3 RAS-authorized snapshots", rasSnapshotIds, hasSize(3));
+
+    // Create two snapshots without consent code -- not authorized via a linked RAS passport.
+    SnapshotRequestModel snapshotRequest =
+        SnapshotConnectedTestUtils.makeSnapshotTestRequest(
+            jsonLoader, datasetSummary, "snapshot-test-snapshot.json");
+    List<UUID> samSnapshotIds = new ArrayList<>();
+    for (int i = 0; i < 2; i++) {
       MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_en_");
       SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
       snapshotList.add(summaryModel);
+      samSnapshotIds.add(summaryModel.getId());
     }
+
+    // Designate one of our snapshots as accessible via SAM *and* a linked RAS passport.
+    samSnapshotIds.add(rasSnapshotIds.get(0));
+    assertThat("3 SAM-authorized snapshots", samSnapshotIds, hasSize(3));
+
+    IamRole samIamRole = IamRole.STEWARD;
+    Map<UUID, Set<IamRole>> samIdsAndRoles =
+        samSnapshotIds.stream()
+            .collect(Collectors.toMap(Function.identity(), x -> Set.of(samIamRole)));
+    when(samService.listAuthorizedResources(any(), any())).thenReturn(samIdsAndRoles);
+
+    assertThat("5 total snapshots created", snapshotList, hasSize(5));
 
     // Reverse the order of the array since the order we return the snapshots in by default is
     // descending order of creation
     Collections.reverse(snapshotList);
 
-    Map<UUID, Set<IamRole>> snapshotIds =
-        snapshotList.stream()
-            .map(SnapshotSummaryModel::getId)
-            .collect(Collectors.toMap(Function.identity(), x -> Set.of(IamRole.READER)));
-
-    when(samService.listAuthorizedResources(any(), any())).thenReturn(snapshotIds);
     EnumerateSnapshotModel enumResponse = enumerateTestSnapshots();
     List<SnapshotSummaryModel> enumeratedArray = enumResponse.getItems();
     assertThat("total is correct", enumResponse.getTotal(), equalTo(5));
@@ -193,12 +231,28 @@ public class SnapshotConnectedTest {
     // but ours should be in order in the enumeration. So we do a merge waiting until we match
     // by id and then comparing contents.
     int compareIndex = 0;
+
     for (SnapshotSummaryModel anEnumeratedSnapshot : enumeratedArray) {
-      if (anEnumeratedSnapshot.getId().equals(snapshotList.get(compareIndex).getId())) {
+      UUID actualId = anEnumeratedSnapshot.getId();
+      if (actualId.equals(snapshotList.get(compareIndex).getId())) {
         assertThat(
             "MetadataEnumeration summary matches create summary",
             anEnumeratedSnapshot,
             equalTo(snapshotList.get(compareIndex)));
+
+        List<String> expectedIamRoles = new ArrayList<>();
+        if (samSnapshotIds.contains(actualId)) {
+          expectedIamRoles.add(samIamRole.toString());
+        }
+        if (rasSnapshotIds.contains(actualId)) {
+          expectedIamRoles.add(IamRole.READER.toString());
+        }
+
+        assertThat(
+            "IAM roles as expected given snapshot accessibility",
+            enumResponse.getRoleMap().get(actualId.toString()),
+            containsInAnyOrder(expectedIamRoles.toArray()));
+
         compareIndex++;
       }
     }

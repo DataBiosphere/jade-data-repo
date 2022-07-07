@@ -21,6 +21,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 public final class DaoUtils {
@@ -137,6 +138,19 @@ public final class DaoUtils {
       }
     } else {
       return null;
+    }
+  }
+
+  public static class UuidMapper implements RowMapper<UUID> {
+    private final String columnLabel;
+
+    public UuidMapper(String columnLabel) {
+      this.columnLabel = columnLabel;
+    }
+
+    @Override
+    public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
+      return rs.getObject(this.columnLabel, UUID.class);
     }
   }
 }

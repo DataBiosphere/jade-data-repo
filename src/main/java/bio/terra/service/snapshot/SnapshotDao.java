@@ -3,12 +3,14 @@ package bio.terra.service.snapshot;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.common.DaoUtils.UuidMapper;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
@@ -511,6 +513,38 @@ public class SnapshotDao {
     }
 
     return snapshotSources;
+  }
+
+  /**
+   * @param permissions RAS dbGaP permissions held by the caller (derived from the caller's linked
+   *     RAS passports)
+   * @return snapshot UUIDs accessible under the permissions
+   */
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public List<UUID> getAccessibleSnapshots(List<RasDbgapPermissions> permissions) {
+    List<UUID> accessibleSnapshots = List.of();
+    if (!permissions.isEmpty()) {
+      String sql =
+          """
+          SELECT snapshot.id FROM snapshot
+          JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id
+          JOIN dataset ON dataset.id = snapshot_source.dataset_id
+          WHERE snapshot.consent_code IS NOT NULL AND dataset.phs_id IS NOT NULL
+          AND (snapshot.consent_code, dataset.phs_id) IN (:permissions)
+          """;
+      MapSqlParameterSource params =
+          new MapSqlParameterSource()
+              .addValue(
+                  "permissions",
+                  permissions.stream()
+                      .map(c -> new String[] {c.consent_group(), c.phs_id()})
+                      .toList());
+      accessibleSnapshots = jdbcTemplate.query(sql, params, new UuidMapper("id"));
+    }
+    return accessibleSnapshots;
   }
 
   /**

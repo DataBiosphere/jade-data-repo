@@ -15,7 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.app.configuration.ECMConfiguration;
+import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
@@ -35,7 +35,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
-import bio.terra.service.auth.ras.ECMService;
+import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -83,8 +83,8 @@ public class DrsServiceTest {
   @Mock private PerformanceLogger performanceLogger;
   @Mock private AzureBlobStorePdao azureBlobStorePdao;
   @Mock private GcsProjectFactory gcsProjectFactory;
-  @Mock private ECMService ecmService;
-  @Mock private ECMConfiguration ecmConfiguration;
+  @Mock private EcmService ecmService;
+  @Mock private EcmConfiguration ecmConfiguration;
 
   private final DrsIdService drsIdService = new DrsIdService(new ApplicationConfiguration());
 

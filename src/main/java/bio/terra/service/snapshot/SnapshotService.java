@@ -30,7 +30,11 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableModel;
 import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.ras.EcmService;
+import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
@@ -52,6 +56,7 @@ import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,13 +71,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotService {
-
+  private static final Logger logger = LoggerFactory.getLogger(SnapshotService.class);
   private final JobService jobService;
   private final DatasetService datasetService;
   private final FireStoreDependencyDao dependencyDao;
@@ -80,6 +88,8 @@ public class SnapshotService {
   private final SnapshotDao snapshotDao;
   private final SnapshotTableDao snapshotTableDao;
   private final MetadataDataAccessUtils metadataDataAccessUtils;
+  private final IamService iamService;
+  private final EcmService ecmService;
 
   @Autowired
   public SnapshotService(
@@ -89,7 +99,9 @@ public class SnapshotService {
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
       SnapshotTableDao snapshotTableDao,
-      MetadataDataAccessUtils metadataDataAccessUtils) {
+      MetadataDataAccessUtils metadataDataAccessUtils,
+      IamService iamService,
+      EcmService ecmService) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -97,6 +109,8 @@ public class SnapshotService {
     this.snapshotDao = snapshotDao;
     this.snapshotTableDao = snapshotTableDao;
     this.metadataDataAccessUtils = metadataDataAccessUtils;
+    this.iamService = iamService;
+    this.ecmService = ecmService;
   }
 
   /**
@@ -175,6 +189,52 @@ public class SnapshotService {
         .addParameter(ExportMapKeys.EXPORT_GSPATHS, exportGsPaths)
         .addParameter(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, validatePrimaryKeyUniqueness)
         .submit();
+  }
+
+  /**
+   * @param userReq authenticated user
+   * @return accessible snapshot UUIDs and the IamRoles dictating their accessibility, established
+   *     directly by SAM and indirectly by any linked RAS passport
+   */
+  public Map<UUID, Set<IamRole>> listAuthorizedSnapshots(AuthenticatedUserRequest userReq) {
+    return combineIdsAndRoles(
+        iamService.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT),
+        listRasAuthorizedSnapshots(userReq));
+  }
+
+  /**
+   * @param userReq authenticated user
+   * @return accessible snapshot UUIDs and the IamRoles dictating their accessibility, established
+   *     indirectly by any linked RAS passport
+   */
+  public Map<UUID, Set<IamRole>> listRasAuthorizedSnapshots(AuthenticatedUserRequest userReq) {
+    Map<UUID, Set<IamRole>> idsAndRoles = new HashMap<>();
+    try {
+      List<RasDbgapPermissions> permissions = ecmService.getRasDbgapPermissions(userReq);
+      List<UUID> uuids = snapshotDao.getAccessibleSnapshots(permissions);
+      Set<IamRole> roles = Set.of(IamRole.READER);
+      uuids.forEach(uuid -> idsAndRoles.put(uuid, roles));
+    } catch (ParseException ex) {
+      // Not sure if we want to catch any exception, or catch upstream instead.
+      // I don't like the idea of failing snapshot enumeration because of an ECM error.
+      logger.error("Error parsing RAS passport", ex);
+    }
+    return idsAndRoles;
+  }
+
+  /**
+   * @param idsAndRoles maps to merge
+   * @return a single map of UUIDs to the union of their corresponding IamRoles
+   */
+  public Map<UUID, Set<IamRole>> combineIdsAndRoles(Map<UUID, Set<IamRole>>... idsAndRoles) {
+    return Stream.of(idsAndRoles)
+        .flatMap(m -> m.entrySet().stream())
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (roles1, roles2) ->
+                    Stream.concat(roles1.stream(), roles2.stream()).collect(Collectors.toSet())));
   }
 
   /**

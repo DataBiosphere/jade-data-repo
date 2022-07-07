@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
@@ -24,11 +25,13 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
@@ -660,5 +663,58 @@ public class SnapshotDaoTest {
         "snapshot properties is set to empty",
         snapshotDao.retrieveSnapshot(snapshotId).getProperties(),
         equalTo(unsetDatasetProperties));
+  }
+
+  @Test
+  public void getAccessibleSnapshots() {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    Snapshot snapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(snapshotRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    String flightId = UUID.randomUUID().toString();
+    snapshotDao.createAndLock(snapshot, flightId);
+    snapshotDao.unlock(snapshotId, flightId);
+
+    String consentCode = "c01";
+    String phsId = "phs123456";
+
+    // Partially populated RasDbGapPermissions should not yield matching snapshots:
+    // We only return snapshots whose permission criteria are fully populated.
+    // This should never occur if ECM only returns valid passports and visas as indicated by their
+    // Swagger documentation. Testing it anyway to verify our own behavior.
+    List<RasDbgapPermissions> permissions =
+        List.of(
+            new RasDbgapPermissions(consentCode, phsId),
+            new RasDbgapPermissions(null, phsId),
+            new RasDbgapPermissions(consentCode, null));
+
+    assertThat(
+        "No snapshots returned when no permissions",
+        snapshotDao.getAccessibleSnapshots(List.of()),
+        empty());
+
+    assertThat(
+        "Snapshot with all permission elements missing is inaccessible",
+        snapshotDao.getAccessibleSnapshots(permissions),
+        empty());
+
+    SnapshotPatchRequestModel patchRequestConsentCode =
+        new SnapshotPatchRequestModel().consentCode(consentCode);
+    snapshotDao.patch(snapshotId, patchRequestConsentCode);
+
+    assertThat(
+        "Snapshot with partial permission match is inaccessible",
+        snapshotDao.getAccessibleSnapshots(permissions),
+        empty());
+
+    DatasetPatchRequestModel patchRequestPhsId = new DatasetPatchRequestModel().phsId(phsId);
+    datasetDao.patch(datasetId, patchRequestPhsId);
+
+    assertThat(
+        "Snapshot with full permission match is accessible",
+        snapshotDao.getAccessibleSnapshots(permissions),
+        contains(snapshotId));
   }
 }

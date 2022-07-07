@@ -215,14 +215,14 @@ public class DatasetRequestValidator implements Validator {
               "MissingPrimaryKeyColumn",
               String.format("Expected column(s): %s", String.join(", ", missingKeys)));
         }
-
-        for (ColumnModel columnModel : table.getColumns()) {
-          if (primaryKeyList.contains(columnModel.getName())) {
-            validateColumnType(errors, columnModel, PRIMARY_KEY);
-          }
-          validateColumnMode(errors, columnModel);
-        }
       }
+      for (ColumnModel columnModel : table.getColumns()) {
+        if (primaryKeyList != null && primaryKeyList.contains(columnModel.getName())) {
+          validateColumnType(errors, columnModel, PRIMARY_KEY);
+        }
+        validateColumnMode(errors, columnModel);
+      }
+
       context.addTable(tableName, columns);
     }
 

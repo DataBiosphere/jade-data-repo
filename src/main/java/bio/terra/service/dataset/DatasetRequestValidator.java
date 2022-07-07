@@ -282,6 +282,9 @@ public class DatasetRequestValidator implements Validator {
   }
 
   private void validateColumnMode(Errors errors, ColumnModel columnModel) {
+    // Explicitly check if isRequired is true to avoid a null pointer exception.
+    // isArrayOf has a default value set in the open-api spec so it does not require
+    // the same handling.
     if (Boolean.TRUE.equals(columnModel.isRequired()) && columnModel.isArrayOf()) {
       errors.rejectValue(
           "schema",

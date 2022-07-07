@@ -214,11 +214,9 @@ public class DatasetRequestValidatorTest {
     ColumnModel badColumnFileRefArray = testTable.getColumns().get(0);
     badColumnFileRefArray.setArrayOf(true);
     badColumnFileRefArray.setDatatype(TableDataType.FILEREF);
-    badColumnFileRefArray.setRequired(true);
 
     ColumnModel badColumnDirref = testTable.getColumns().get(1);
     badColumnDirref.setDatatype(TableDataType.DIRREF);
-    badColumnDirref.setRequired(true);
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
@@ -236,12 +234,8 @@ public class DatasetRequestValidatorTest {
   public void testInvalidColumnMode() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
     TableModel testTable = req.getSchema().getTables().get(0);
-    testTable.setPrimaryKey(List.of("id"));
-
-    ColumnModel goodColumn = testTable.getColumns().get(0);
-    goodColumn.setRequired(true);
-
-    ColumnModel badColumn = testTable.getColumns().get(1);
+    // Test that a required, array_of column causes a validation error
+    ColumnModel badColumn = testTable.getColumns().get(0);
     badColumn.setArrayOf(true);
     badColumn.setRequired(true);
 

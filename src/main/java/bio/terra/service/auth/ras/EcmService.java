@@ -39,7 +39,7 @@ public class EcmService {
   private static final String RAS_PROVIDER = "ras";
   @VisibleForTesting public static final String GA4GH_PASSPORT_V1_CLAIM = "ga4gh_passport_v1";
   private static final String RAS_DBGAP_PERMISSIONS_CLAIM = "ras_dbgap_permissions";
-  public static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
+  private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
 
   @Autowired
   public EcmService(

@@ -51,16 +51,19 @@ public class EcmServiceTest {
 
   @Test
   public void testGetRasProviderPassport() {
+    String passportEcmFormattingBug = "\"passportJwt\"";
     String passport = "passportJwt";
     HttpClientErrorException shouldCatch = new HttpClientErrorException(HttpStatus.NOT_FOUND);
     HttpClientErrorException shouldThrow = new HttpClientErrorException(HttpStatus.UNAUTHORIZED);
     when(oidcApi.getProviderPassport(any()))
-        .thenReturn(passport)
+        .thenReturn(passportEcmFormattingBug)
         .thenThrow(shouldCatch)
         .thenThrow(shouldThrow);
 
     assertThat(
-        "Passport is returned", ecmService.getRasProviderPassport(userReq), equalTo(passport));
+        "Passport without double quotes is returned",
+        ecmService.getRasProviderPassport(userReq),
+        equalTo(passport));
     assertThat(
         "Passport not found returns null",
         ecmService.getRasProviderPassport(userReq),

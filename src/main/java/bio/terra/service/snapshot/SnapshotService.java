@@ -494,20 +494,15 @@ public class SnapshotService {
     if (!SnapshotSummary.passportAuthorizationAvailable(snapshotSummary) || passports.isEmpty()) {
       throw new InvalidAuthorizationMethod("Snapshot cannot use Ras Passport authorization");
     }
-    // Pass the passport + phs id + consent code to ECM
     String phsId = snapshotSummary.getPhsId();
     String consentCode = snapshotSummary.getConsentCode();
     var criterion = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
     ecmService.addRasIssuerAndType(criterion);
+
     var validatePassportRequest =
         new ValidatePassportRequest().passports(passports).criteria(List.of(criterion));
 
-    // TODO: even when passing a passport that ECM gave us, we have occasionally seen this throw a
-    //  400 Bad Request with "invalid passport jwt" as the message.
-    //  Maybe this is expected behavior in race condition scenarios -- ECM gives us a nearly expired
-    //  but still valid passport, and by the time we validate it it's expired.
-    //  I think this is happening more often than it should.  Besides that, more targeted response
-    //  values may help our own error messaging.
+    // TODO: any special treatment if ECM throws?  What happens if the passport has expired?
     return ecmService.validatePassport(validatePassportRequest);
   }
 

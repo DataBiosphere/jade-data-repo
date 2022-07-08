@@ -3501,10 +3501,10 @@ components:
             This service account must be granted `storage.objects.get` permissions on any source buckets that TDR will ingest data from.
             The service account can be obtained when retrieving the dataset.  If this value is false and the dataset
             is a GCP-backed dataset, then the global service account must be granted `storage.objects.get` permissions to source buckets.
-            
+
             Note: this can be done by granting the "Storage Object Viewer", "Storage Legacy Object Reader", or "Storage Legacy Object Owner"
             role to the source buckets
-            
+
             This might be useful to set as a security improvement since this provides a dedicated account that explicitly
             does not have access to any other buckets.  It's also recommended if you need to authorize a large number of buckets
             since the main service account could run into Google group membership quota violations.
@@ -3755,6 +3755,11 @@ components:
               nullable: false
               items:
                 $ref: '#/components/schemas/DatasetSchemaColumnUpdateModel'
+            addRelationships:
+              type: array
+              nullable: false
+              items:
+                $ref: '#/components/schemas/RelationshipModel'
     DatasetSchemaColumnUpdateModel:
       type: object
       properties:

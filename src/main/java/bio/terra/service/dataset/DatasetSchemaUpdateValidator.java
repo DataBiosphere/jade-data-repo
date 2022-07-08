@@ -1,7 +1,9 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.ValidationUtils;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
+import bio.terra.model.RelationshipModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateUtils;
 import java.util.List;
@@ -49,6 +51,7 @@ public class DatasetSchemaUpdateValidator implements Validator {
             "Cannot add multiple tables of the same name");
       }
     }
+
     if (DatasetSchemaUpdateUtils.hasColumnAdditions(updateModel)) {
       Object[] requiredColumns =
           updateModel.getChanges().getAddColumns().stream()
@@ -64,13 +67,22 @@ public class DatasetSchemaUpdateValidator implements Validator {
             "Cannot add required columns to existing tables");
       }
     }
+
+    List<RelationshipModel> newRelationships = updateModel.getChanges().getAddRelationships();
+    if (DatasetSchemaUpdateUtils.hasRelationshipAdditions(updateModel)) {
+      List<String> relationshipNames =
+          newRelationships.stream().map(RelationshipModel::getName).collect(Collectors.toList());
+      if (ValidationUtils.hasDuplicates(relationshipNames)) {
+        errors.rejectValue("schema", "DuplicateRelationshipNames");
+      }
+    }
   }
 
   @Override
   public void validate(@NotNull Object target, Errors errors) {
     if (target instanceof DatasetSchemaUpdateModel) {
-      DatasetSchemaUpdateModel dataDeletionRequest = (DatasetSchemaUpdateModel) target;
-      validateDatasetSchemaUpdate(dataDeletionRequest, errors);
+      DatasetSchemaUpdateModel schemaUpdateRequest = (DatasetSchemaUpdateModel) target;
+      validateDatasetSchemaUpdate(schemaUpdateRequest, errors);
     }
   }
 }

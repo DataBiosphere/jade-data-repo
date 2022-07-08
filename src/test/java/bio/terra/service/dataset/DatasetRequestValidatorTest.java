@@ -227,6 +227,19 @@ public class DatasetRequestValidatorTest {
   }
 
   @Test
+  public void testInvalidColumnMode() throws Exception {
+    DatasetRequestModel req = buildDatasetRequest();
+    TableModel testTable = req.getSchema().getTables().get(0);
+    // Test that a required, array_of column causes a validation error
+    ColumnModel badColumn = testTable.getColumns().get(0);
+    badColumn.setArrayOf(true);
+    badColumn.setRequired(true);
+
+    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+    checkValidationErrorModel(errorModel, new String[] {"InvalidColumnMode"});
+  }
+
+  @Test
   public void testDuplicateAssetNames() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
     req.getSchema().assets(Arrays.asList(buildAsset(), buildAsset()));

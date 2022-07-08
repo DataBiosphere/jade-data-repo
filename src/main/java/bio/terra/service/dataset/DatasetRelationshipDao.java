@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class DatasetRelationshipDao {
@@ -23,10 +26,15 @@ public class DatasetRelationshipDao {
   }
 
   // part of a transaction propagated from DatasetDao
-  public void createDatasetRelationships(Dataset dataset) {
-    for (Relationship rel : dataset.getRelationships()) {
+  public void createDatasetRelationships(List<Relationship> relationships) {
+    for (Relationship rel : relationships) {
       create(rel);
     }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void createDatasetRelationshipsWithTransaction(List<Relationship> relationships) {
+    createDatasetRelationships(relationships);
   }
 
   protected void create(Relationship relationship) {

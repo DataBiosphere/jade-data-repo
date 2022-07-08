@@ -4,6 +4,7 @@ import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.api.PassportApi;
 import bio.terra.externalcreds.client.ApiClient;
+import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
 import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,8 +12,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.stream.Stream;
 import liquibase.util.StringUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -35,6 +39,7 @@ public class EcmService {
   private static final String RAS_PROVIDER = "ras";
   @VisibleForTesting public static final String GA4GH_PASSPORT_V1_CLAIM = "ga4gh_passport_v1";
   private static final String RAS_DBGAP_PERMISSIONS_CLAIM = "ras_dbgap_permissions";
+  public static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
 
   @Autowired
   public EcmService(
@@ -55,10 +60,39 @@ public class EcmService {
     return new PassportApi(client);
   }
 
-  public ValidatePassportResult validatePassport(ValidatePassportRequest validatePassportRequest) {
-    var passportApi = getPassportApi();
-    return passportApi.validatePassport(validatePassportRequest);
+  public void addRasIssuerAndType(RASv1Dot1VisaCriterion criterion) {
+    criterion.issuer(ecmConfiguration.getRasIssuer()).type(RAS_CRITERIA_TYPE);
   }
+
+  public ValidatePassportResult validatePassport(ValidatePassportRequest validatePassportRequest) {
+    // TODO: do not check in this log, we should not log passports.
+    logger.debug("EcmService.validatePassport: " + validatePassportRequest);
+    var passportApi = getPassportApi();
+    var result = passportApi.validatePassport(validatePassportRequest);
+
+    if (result.isValid()) {
+      var auditInfo = result.getAuditInfo();
+      var df = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss z");
+      df.setTimeZone(TimeZone.getTimeZone("UTC"));
+      logger.info(
+          """
+              [Validate Passport Audit]:
+              NIH User ID: {},
+              Transaction Number: {},
+              Data Repository accessed: {},
+              Study/Data set accessed: {},
+              Date/Time of access: {}
+              """,
+          auditInfo.getOrDefault("external_user_id", "not found"),
+          auditInfo.getOrDefault("txn", "not found"),
+          "TDR",
+          ((RASv1Dot1VisaCriterion) result.getMatchedCriterion()).getPhsId(),
+          df.format(new Date(System.currentTimeMillis())));
+    }
+
+    return result;
+  }
+
   /**
    * @param userReq authenticated user
    * @return the user's linked RAS passport as a JWT, or null if none exists.

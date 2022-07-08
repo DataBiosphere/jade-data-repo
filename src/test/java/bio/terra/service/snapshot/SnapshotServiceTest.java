@@ -6,9 +6,12 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
@@ -28,6 +31,7 @@ import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSourceModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
@@ -36,6 +40,7 @@ import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
+import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
@@ -425,5 +430,25 @@ public class SnapshotServiceTest {
                 uuids[0], Set.of(IamRole.READER),
                 uuids[1], Set.of(IamRole.READER, IamRole.SNAPSHOT_CREATOR, IamRole.CUSTODIAN),
                 uuids[2], Set.of(IamRole.READER))));
+  }
+
+  @Test
+  public void verifyPassportAuthNoPhsId() {
+    SnapshotSummaryModel snapshotSummaryModel =
+        new SnapshotSummaryModel().id(snapshotId).consentCode("c99");
+    assertThrows(
+        InvalidAuthorizationMethod.class,
+        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of()));
+    verify(ecmService, never()).validatePassport(any());
+  }
+
+  @Test
+  public void verifyPassportAuthNoConsentCode() {
+    SnapshotSummaryModel snapshotSummaryModel =
+        new SnapshotSummaryModel().id(snapshotId).phsId("phs1240343");
+    assertThrows(
+        InvalidAuthorizationMethod.class,
+        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of()));
+    verify(ecmService, never()).validatePassport(any());
   }
 }

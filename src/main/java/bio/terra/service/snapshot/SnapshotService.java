@@ -8,6 +8,9 @@ import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
+import bio.terra.externalcreds.model.ValidatePassportRequest;
+import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -33,8 +36,10 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
+import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
@@ -57,10 +62,12 @@ import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,6 +75,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -476,6 +484,55 @@ public class SnapshotService {
         .map(s -> s.getDataset().getId())
         .findFirst()
         .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
+  }
+
+  /**
+   * @param snapshotSummary
+   * @param passports RAS passports as JWT tokens
+   * @return ValidatePassportResult indicating whether the snapshot's contents are accessible via a
+   *     supplied RAS passports
+   */
+  public ValidatePassportResult verifyPassportAuth(
+      SnapshotSummaryModel snapshotSummary, List<String> passports) {
+    if (!SnapshotSummary.passportAuthorizationAvailable(snapshotSummary) || passports.isEmpty()) {
+      throw new InvalidAuthorizationMethod("Snapshot cannot use Ras Passport authorization");
+    }
+    // Pass the passport + phs id + consent code to ECM
+    String phsId = snapshotSummary.getPhsId();
+    String consentCode = snapshotSummary.getConsentCode();
+    var criterion = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
+    ecmService.addRasIssuerAndType(criterion);
+    var validatePassportRequest =
+        new ValidatePassportRequest().passports(passports).criteria(List.of(criterion));
+
+    // TODO: even when passing a passport that ECM gave us, we have occasionally seen this throw a
+    //  400 Bad Request with "invalid passport jwt" as the message.
+    //  Maybe this is expected behavior in race condition scenarios -- ECM gives us a nearly expired
+    //  but still valid passport, and by the time we validate it it's expired.
+    //  I think this is happening more often than it should.  Besides that, more targeted response
+    //  values may help our own error messaging.
+    return ecmService.validatePassport(validatePassportRequest);
+  }
+
+  /**
+   * Throw if the user cannot access the snapshot via SAM permissions or linked RAS passports.
+   *
+   * @param snapshotId snapshot UUID
+   * @param userReq authenticated user
+   */
+  public void verifySnapshotAccessible(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    try {
+      iamService.verifyAuthorization(
+          userReq, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+    } catch (IamForbiddenException samUnauthorizedEx) {
+      logger.info("Snapshot inaccessible via SAM, checking for linked RAS passport");
+      SnapshotSummaryModel snapshotSummary = snapshotDao.retrieveSummaryById(snapshotId).toModel();
+      String passport = ecmService.getRasProviderPassport(userReq);
+      if (passport == null || !verifyPassportAuth(snapshotSummary, List.of(passport)).isValid()) {
+        // TODO: more complete and deterministic communication around exceptions.
+        throw samUnauthorizedEx;
+      }
+    }
   }
 
   public SnapshotPreviewModel retrievePreview(

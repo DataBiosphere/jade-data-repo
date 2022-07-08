@@ -324,7 +324,8 @@ public class DatasetRequestValidator implements Validator {
       List<TableModel> tables,
       Errors errors,
       SchemaValidationContext context) {
-    ArrayList<Map<String, String>> validationErrors = ValidationUtils.getRelationshipValidationErrors(relationship, tables);
+    ArrayList<Map<String, String>> validationErrors =
+        ValidationUtils.getRelationshipValidationErrors(relationship, tables);
     validationErrors.forEach(e -> rejectValues(errors, e));
 
     String relationshipName = relationship.getName();

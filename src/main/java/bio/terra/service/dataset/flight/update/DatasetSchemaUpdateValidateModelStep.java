@@ -89,7 +89,8 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
     if (DatasetSchemaUpdateUtils.hasRelationshipAdditions(updateModel)) {
       List<Relationship> existingRelationships = dataset.getRelationships();
       List<RelationshipModel> newRelationships = updateModel.getChanges().getAddRelationships();
-      List<String> conflictingRelationshipNames = conflictingRelationshipNames(existingRelationships, newRelationships);
+      List<String> conflictingRelationshipNames =
+          conflictingRelationshipNames(existingRelationships, newRelationships);
       if (!conflictingRelationshipNames.isEmpty()) {
         return failsValidation(
             "Could not validate relationship additions",
@@ -98,34 +99,32 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
                 String.join(", ", conflictingRelationshipNames)));
       }
 
-      List<TableModel> allTables = dataset.getTables().stream().map(DatasetJsonConversion::tableModelFromTable).toList();
+      List<TableModel> allTables =
+          dataset.getTables().stream().map(DatasetJsonConversion::tableModelFromTable).toList();
       allTables.addAll(updateModel.getChanges().getAddTables());
 
       ArrayList<String> validationErrors = new ArrayList<>();
       for (var relationship : newRelationships) {
-        ArrayList<Map<String, String>> errors = ValidationUtils.getRelationshipValidationErrors(relationship, allTables);
+        ArrayList<Map<String, String>> errors =
+            ValidationUtils.getRelationshipValidationErrors(relationship, allTables);
         validationErrors.addAll(formatValidationErrors(errors));
       }
       if (!validationErrors.isEmpty()) {
         return failsValidation(
             "Could not validate relationship additions",
-            List.of(
-                "Found invalid terms: ",
-                String.join(", ", validationErrors)));
+            List.of("Found invalid terms: ", String.join(", ", validationErrors)));
       }
     }
     return StepResult.getStepResultSuccess();
   }
 
-  private List<String> conflictingRelationshipNames(List<Relationship> existingRelationships,
-                                                    List<RelationshipModel> newRelationships) {
+  private List<String> conflictingRelationshipNames(
+      List<Relationship> existingRelationships, List<RelationshipModel> newRelationships) {
     List<String> existingRelationshipNames =
         existingRelationships.stream().map(Relationship::getName).collect(Collectors.toList());
-    List<String> newRelationshipNames = newRelationships.stream()
-        .map(RelationshipModel::getName)
-        .toList();
-    return ListUtils.intersection(existingRelationshipNames,
-        newRelationshipNames);
+    List<String> newRelationshipNames =
+        newRelationships.stream().map(RelationshipModel::getName).toList();
+    return ListUtils.intersection(existingRelationshipNames, newRelationshipNames);
   }
 
   private List<String> conflictingNewColumns(String tableName, List<ColumnModel> newColumns) {
@@ -156,9 +155,11 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
 
   private List<String> formatValidationErrors(ArrayList<Map<String, String>> errors) {
     return errors.stream()
-        .flatMap(errorMap -> errorMap.entrySet().stream().map(entry ->
-            String.format("%s: %s", entry.getKey(), entry.getValue())
-        )).collect(Collectors.toList());
+        .flatMap(
+            errorMap ->
+                errorMap.entrySet().stream()
+                    .map(entry -> String.format("%s: %s", entry.getKey(), entry.getValue())))
+        .collect(Collectors.toList());
   }
 
   private static List<String> newColumnNames(List<ColumnModel> columns) {

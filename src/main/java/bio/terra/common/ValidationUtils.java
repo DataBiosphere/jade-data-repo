@@ -1,5 +1,10 @@
 package bio.terra.common;
 
+import bio.terra.model.ColumnModel;
+import bio.terra.model.RelationshipModel;
+import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.TableDataType;
+import bio.terra.model.TableModel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,11 +16,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import bio.terra.model.ColumnModel;
-import bio.terra.model.RelationshipModel;
-import bio.terra.model.RelationshipTermModel;
-import bio.terra.model.TableDataType;
-import bio.terra.model.TableModel;
 import org.apache.commons.lang3.StringUtils;
 
 public final class ValidationUtils {
@@ -80,25 +80,27 @@ public final class ValidationUtils {
     return value;
   }
 
-  public static Map<String, String> validateRelationshipTerm(RelationshipTermModel term, List<TableModel> tables) {
+  public static Map<String, String> validateRelationshipTerm(
+      RelationshipTermModel term, List<TableModel> tables) {
     String tableName = term.getTable();
     String columnName = term.getColumn();
     Map<String, String> termErrors = new HashMap<>();
-    Optional<TableModel> table = tables.stream().filter(t -> t.getName().equals(tableName)).findFirst();
+    Optional<TableModel> table =
+        tables.stream().filter(t -> t.getName().equals(tableName)).findFirst();
     if (table.isEmpty()) {
-      termErrors.put("InvalidRelationshipTermTable",
-          String.format("Invalid table %s", tableName));
+      termErrors.put("InvalidRelationshipTermTable", String.format("Invalid table %s", tableName));
     } else {
-      Optional<ColumnModel> columnModel = table.get().getColumns().stream()
-          .filter(c -> c.getName().equals(columnName)).findFirst();
+      Optional<ColumnModel> columnModel =
+          table.get().getColumns().stream().filter(c -> c.getName().equals(columnName)).findFirst();
       if (columnModel.isEmpty()) {
-        termErrors.put("InvalidRelationshipTermTableColumn",
+        termErrors.put(
+            "InvalidRelationshipTermTableColumn",
             String.format("invalid table %s.%s", tableName, columnName));
       } else {
         if (!isInvalidPrimaryOrForeignKeyType(columnModel.get())) {
-          termErrors.put("OptionalForeignKeyColumn",
-              String.format("Foreign key column %s cannot be marked as not required",
-                  columnName));
+          termErrors.put(
+              "OptionalForeignKeyColumn",
+              String.format("Foreign key column %s cannot be marked as not required", columnName));
         }
       }
     }
@@ -106,18 +108,17 @@ public final class ValidationUtils {
   }
 
   public static ArrayList<Map<String, String>> getRelationshipValidationErrors(
-      RelationshipModel relationship,
-      List<TableModel> tables) {
+      RelationshipModel relationship, List<TableModel> tables) {
     ArrayList<Map<String, String>> errors = new ArrayList<>();
-      RelationshipTermModel fromTerm = relationship.getFrom();
-      if (fromTerm != null) {
-        errors.add(validateRelationshipTerm(fromTerm, tables));
-      }
+    RelationshipTermModel fromTerm = relationship.getFrom();
+    if (fromTerm != null) {
+      errors.add(validateRelationshipTerm(fromTerm, tables));
+    }
 
-      RelationshipTermModel toTerm = relationship.getTo();
-      if (toTerm != null) {
-        errors.add(validateRelationshipTerm(toTerm, tables));
-      }
+    RelationshipTermModel toTerm = relationship.getTo();
+    if (toTerm != null) {
+      errors.add(validateRelationshipTerm(toTerm, tables));
+    }
     return errors;
   }
 
@@ -125,6 +126,4 @@ public final class ValidationUtils {
     Set<TableDataType> invalidTypes = Set.of(TableDataType.DIRREF, TableDataType.FILEREF);
     return columnModel.getDatatype() != null && invalidTypes.contains(columnModel.getDatatype());
   }
-
-
 }

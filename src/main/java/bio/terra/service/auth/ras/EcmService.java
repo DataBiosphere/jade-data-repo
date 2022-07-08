@@ -65,8 +65,6 @@ public class EcmService {
   }
 
   public ValidatePassportResult validatePassport(ValidatePassportRequest validatePassportRequest) {
-    // TODO: do not check in this log, we should not log passports.
-    logger.debug("EcmService.validatePassport: " + validatePassportRequest);
     var passportApi = getPassportApi();
     var result = passportApi.validatePassport(validatePassportRequest);
 
@@ -99,7 +97,12 @@ public class EcmService {
    */
   public String getRasProviderPassport(AuthenticatedUserRequest userReq) {
     try {
-      return oidcApiService.getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
+      String passport = oidcApiService.getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
+      // Passports returned by OidcApi have a bug in their formatting:
+      // they are returned with content-type: application/json.
+      // Double quotes must be stripped if passing back to PassportApi for validation,
+      // otherwise the passport will not be considered valid JWT.
+      return passport.replace("\"", "");
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
         return null;

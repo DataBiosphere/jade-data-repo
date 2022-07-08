@@ -66,4 +66,12 @@ public class IngestUtilsTest {
     IngestUtils.validateBlobAzureBlobFileURL(
         "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple--dataset-ingest-request.csv");
   }
+
+  @Test
+  public void testValidate() {
+    IngestUtils.validateBlobAzureBlobFileURL(
+        //
+        // "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple-dataset-ingest-request.csv");
+        "https://pfizerhackrawdata2.blob.core.windows.net/pfizerstorageexplorermig/flatiron/fmi-specimens.csv");
+  }
 }

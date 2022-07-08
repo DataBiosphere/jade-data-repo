@@ -8,10 +8,17 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
+import bio.terra.common.exception.PdaoException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.grammar.Query;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.exception.InvalidColumnException;
+import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.DrsId;
@@ -23,6 +30,9 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -39,6 +49,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -63,12 +74,18 @@ public class AzureSynapsePdao {
 
   private static final String scopedCredentialCreateTemplate =
       """
-          CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]
-            WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
-            SECRET = '<secret>';""";
+          IF EXISTS (SELECT * FROM sys.database_scoped_credentials WHERE name = '<scopedCredentialName>')
+              ALTER DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]
+              WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
+                   SECRET = '<secret>' ;
+          ELSE
+              CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]
+              WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
+                   SECRET = '<secret>' ;""";
 
   private static final String dataSourceCreateTemplate =
       """
+      IF NOT EXISTS (SELECT * FROM sys.external_data_sources WHERE name = '<dataSourceName>')
       CREATE EXTERNAL DATA SOURCE [<dataSourceName>]
           WITH (
               LOCATION = '<scheme>://<host>/<container>',
@@ -187,6 +204,19 @@ public class AzureSynapsePdao {
           WHERE [<refCol>] IS NOT NULL
           AND [Element] IS NOT NULL;""";
 
+  private static final String queryFromDatasourceTemplate =
+      """
+      SELECT <columns:{c|tbl.[<c>]}; separator=",">
+        FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
+                     <columns:{c|rows.[<c>]}; separator=",">
+                FROM OPENROWSET(BULK 'parquet/*/<tableName>.parquet/*',
+                                DATA_SOURCE = '<datasource>',
+                                FORMAT='PARQUET') AS rows
+                WHERE (<userFilter>)
+             ) AS tbl
+       WHERE tbl.datarepo_row_number >= :offset
+         AND tbl.datarepo_row_number \\< :offset + :limit;""";
+
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
   private static final String dropDataSourceTemplate =
@@ -197,16 +227,19 @@ public class AzureSynapsePdao {
 
   private final ApplicationConfiguration applicationConfiguration;
   private final DrsIdService drsIdService;
+  private final ObjectMapper objectMapper;
 
   @Autowired
   public AzureSynapsePdao(
       AzureResourceConfiguration azureResourceConfiguration,
       ApplicationConfiguration applicationConfiguration,
       DrsIdService drsIdService,
+      ObjectMapper objectMapper,
       @Qualifier("synapseJdbcTemplate") NamedParameterJdbcTemplate synapseJdbcTemplate) {
     this.azureResourceConfiguration = azureResourceConfiguration;
     this.applicationConfiguration = applicationConfiguration;
     this.drsIdService = drsIdService;
+    this.objectMapper = objectMapper;
     this.synapseJdbcTemplate = synapseJdbcTemplate;
   }
 
@@ -276,23 +309,31 @@ public class AzureSynapsePdao {
         .collect(Collectors.toList());
   }
 
-  public void createExternalDataSource(
+  public void getOrCreateExternalDataSource(
+      String blobUrl, String scopedCredentialName, String dataSourceName) throws SQLException {
+    getOrCreateExternalDataSource(
+        BlobUrlParts.parse(blobUrl), scopedCredentialName, dataSourceName);
+  }
+
+  public void getOrCreateExternalDataSource(
       BlobUrlParts signedBlobUrl, String scopedCredentialName, String dataSourceName)
       throws NotImplementedException, SQLException {
     AzureSasCredential blobContainerSasTokenCreds =
         new AzureSasCredential(signedBlobUrl.getCommonSasQueryParameters().encode());
 
+    String credentialName = sanitizeStringForSql(scopedCredentialName);
+    String dsName = sanitizeStringForSql(dataSourceName);
     ST sqlScopedCredentialCreateTemplate = new ST(scopedCredentialCreateTemplate);
-    sqlScopedCredentialCreateTemplate.add("scopedCredentialName", scopedCredentialName);
+    sqlScopedCredentialCreateTemplate.add("scopedCredentialName", credentialName);
     sqlScopedCredentialCreateTemplate.add("secret", blobContainerSasTokenCreds.getSignature());
     executeSynapseQuery(sqlScopedCredentialCreateTemplate.render());
 
     ST sqlDataSourceCreateTemplate = new ST(dataSourceCreateTemplate);
-    sqlDataSourceCreateTemplate.add("dataSourceName", dataSourceName);
+    sqlDataSourceCreateTemplate.add("dataSourceName", dsName);
     sqlDataSourceCreateTemplate.add("scheme", signedBlobUrl.getScheme());
     sqlDataSourceCreateTemplate.add("host", signedBlobUrl.getHost());
     sqlDataSourceCreateTemplate.add("container", signedBlobUrl.getBlobContainerName());
-    sqlDataSourceCreateTemplate.add("credential", scopedCredentialName);
+    sqlDataSourceCreateTemplate.add("credential", credentialName);
     executeSynapseQuery(sqlDataSourceCreateTemplate.render());
   }
 
@@ -575,6 +616,67 @@ public class AzureSynapsePdao {
     cleanup(credentialNames, dropScopedCredentialTemplate);
   }
 
+  public List<Map<String, Object>> getSnapshotTableData(
+      AuthenticatedUserRequest userRequest,
+      Snapshot snapshot,
+      String tableName,
+      int limit,
+      int offset,
+      String sort,
+      SqlSortDirection direction,
+      String filter) {
+
+    // Ensure that the table is a valid table
+    SnapshotTable table =
+        snapshot
+            .getTableByName(tableName)
+            .orElseThrow(
+                () ->
+                    new InvalidTableException(
+                        "Table %s was not found in the snapshot".formatted(tableName)));
+
+    // Ensure that the sort column is a valid column
+    if (!sort.equals(PDAO_ROW_ID_COLUMN)) {
+      table
+          .getColumnByName(sort)
+          .orElseThrow(
+              () ->
+                  new InvalidColumnException(
+                      "Column %s was not found in the snapshot table %s"
+                          .formatted(sort, tableName)));
+    }
+    String userFilter = StringUtils.defaultIfBlank(filter, "1=1");
+
+    // Parse a Sql skeleton with the filter
+    Query.parse("select * from schema.table where (" + userFilter + ")");
+
+    List<Column> columns =
+        ListUtils.union(
+            List.of(new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING)),
+            table.getColumns());
+
+    final String sql =
+        new ST(queryFromDatasourceTemplate)
+            .add("columns", columns.stream().map(Column::getName).toList())
+            .add("datasource", getDataSourceName(snapshot, userRequest.getEmail()))
+            .add("tableName", tableName)
+            .add("sort", sort)
+            .add("direction", direction)
+            .add("userFilter", userFilter)
+            .render();
+
+    return synapseJdbcTemplate.query(
+        sql,
+        Map.of(
+            "offset", offset,
+            "limit", limit),
+        (rs, rowNum) ->
+            columns.stream()
+                .collect(
+                    Collectors.toMap(
+                        Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))));
+  }
+
   public int executeSynapseQuery(String query) throws SQLException {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
@@ -617,5 +719,73 @@ public class AzureSynapsePdao {
                 logger.warn("Unable to clean up synapse resource {}.", resource, ex);
               }
             });
+  }
+
+  public static String getCredentialName(Snapshot snapshot, String email) {
+    return "cred-%s-%s".formatted(snapshot.getId(), email);
+  }
+
+  public static String getDataSourceName(Snapshot snapshot, String email) {
+    return "ds-%s-%s".formatted(snapshot.getId(), email);
+  }
+
+  private String sanitizeStringForSql(String value) {
+    return value.replaceAll("['\\[\\]]", "");
+  }
+
+  private Object extractValue(ResultSet resultSet, Column column) {
+    if (!column.isArrayOf()) {
+      try {
+        return switch (column.getType()) {
+          case BOOLEAN -> resultSet.getBoolean(column.getName());
+          case BYTES -> resultSet.getBytes(column.getName());
+          case DATE, DATETIME -> resultSet.getDate(column.getName());
+          case DIRREF, FILEREF, STRING, TEXT -> resultSet.getString(column.getName());
+          case FLOAT, FLOAT64 -> resultSet.getFloat(column.getName());
+          case INTEGER -> resultSet.getInt(column.getName());
+          case INT64 -> resultSet.getLong(column.getName());
+          case NUMERIC -> resultSet.getDouble(column.getName());
+          case TIME -> resultSet.getTime(column.getName());
+          case TIMESTAMP -> resultSet.getTimestamp(column.getName());
+          default -> throw new IllegalArgumentException(
+              "Unknown datatype '" + column.getType() + "'");
+        };
+      } catch (SQLException e) {
+        throw new PdaoException("Error reading data", e);
+      }
+    } else {
+      String rawValue = null;
+      try {
+        rawValue = resultSet.getString(column.getName());
+      } catch (SQLException e) {
+        throw new PdaoException("Error reading data", e);
+      }
+      if (rawValue == null) {
+        return null;
+      }
+      if (StringUtils.isBlank(rawValue)) {
+        return "";
+      }
+      TypeReference<?> targetType =
+          switch (column.getType()) {
+            case BOOLEAN -> new TypeReference<List<Boolean>>() {};
+            case DATE,
+                DATETIME,
+                DIRREF,
+                FILEREF,
+                STRING,
+                TEXT,
+                TIME,
+                TIMESTAMP -> new TypeReference<List<String>>() {};
+            case FLOAT, FLOAT64, INTEGER, INT64, NUMERIC -> new TypeReference<List<Number>>() {};
+            default -> throw new IllegalArgumentException(
+                "Unknown datatype '" + column.getType() + "'");
+          };
+      try {
+        return objectMapper.readValue(rawValue, targetType);
+      } catch (JsonProcessingException e) {
+        throw new PdaoException("Could not deserialize value %s".formatted(rawValue), e);
+      }
+    }
   }
 }

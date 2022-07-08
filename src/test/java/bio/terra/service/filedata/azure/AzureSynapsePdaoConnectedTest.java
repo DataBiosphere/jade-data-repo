@@ -288,7 +288,7 @@ public class AzureSynapsePdaoConnectedTest {
     // 1 - Create external data source for the ingest control file
     BlobUrlParts ingestRequestSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId, TEST_USER);
-    azureSynapsePdao.createExternalDataSource(
+    azureSynapsePdao.getOrCreateExternalDataSource(
         ingestRequestSignUrlBlob, ingestRequestScopedCredentialName, ingestRequestDataSourceName);
 
     // 2 - Create the external data source for the destination
@@ -304,7 +304,7 @@ public class AzureSynapsePdaoConnectedTest {
             storageAccountResource,
             AzureStorageAccountResource.ContainerType.METADATA,
             TEST_USER);
-    azureSynapsePdao.createExternalDataSource(
+    azureSynapsePdao.getOrCreateExternalDataSource(
         destinationSignUrlBlob, destinationScopedCredentialName, destinationDataSourceName);
 
     // 3 - Retrieve info about database schema so that we can populate the parquet create query
@@ -364,7 +364,7 @@ public class AzureSynapsePdaoConnectedTest {
             snapshotStorageAccountResource,
             AzureStorageAccountResource.ContainerType.METADATA,
             TEST_USER);
-    azureSynapsePdao.createExternalDataSource(
+    azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
 
     // 6 - Create snapshot parquet files via external table

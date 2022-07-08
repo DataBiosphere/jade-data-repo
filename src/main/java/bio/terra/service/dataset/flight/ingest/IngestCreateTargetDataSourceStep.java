@@ -55,7 +55,7 @@ public class IngestCreateTargetDataSourceStep implements Step {
             containerType,
             userRequest);
     try {
-      azureSynapsePdao.createExternalDataSource(
+      azureSynapsePdao.getOrCreateExternalDataSource(
           targetSignUrlBlob,
           IngestUtils.getScopedCredentialName(containerType, flightId),
           IngestUtils.getDataSourceName(containerType, flightId));

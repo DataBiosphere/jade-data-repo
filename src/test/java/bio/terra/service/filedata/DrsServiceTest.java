@@ -35,8 +35,6 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
-import bio.terra.service.auth.ras.EcmService;
-import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -83,7 +81,6 @@ public class DrsServiceTest {
   @Mock private PerformanceLogger performanceLogger;
   @Mock private AzureBlobStorePdao azureBlobStorePdao;
   @Mock private GcsProjectFactory gcsProjectFactory;
-  @Mock private EcmService ecmService;
   @Mock private EcmConfiguration ecmConfiguration;
 
   private final DrsIdService drsIdService = new DrsIdService(new ApplicationConfiguration());
@@ -127,7 +124,6 @@ public class DrsServiceTest {
             performanceLogger,
             azureBlobStorePdao,
             gcsProjectFactory,
-            ecmService,
             ecmConfiguration);
     when(jobService.getActivePodCount()).thenReturn(1);
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
@@ -258,24 +254,6 @@ public class DrsServiceTest {
   }
 
   @Test
-  public void verifyPassportAuthNoPHSID() {
-    when(snapshotService.retrieveSnapshotSummary(snapshotId))
-        .thenReturn(new SnapshotSummaryModel().id(snapshotId).consentCode("c99"));
-    assertThrows(
-        InvalidAuthorizationMethod.class,
-        () -> drsService.verifyPassportAuth(snapshotId, new DRSPassportRequestModel()));
-  }
-
-  @Test
-  public void verifyPassportAuthNoConsentCode() {
-    when(snapshotService.retrieveSnapshotSummary(snapshotId))
-        .thenReturn(new SnapshotSummaryModel().id(snapshotId).phsId("phs1240343"));
-    assertThrows(
-        InvalidAuthorizationMethod.class,
-        () -> drsService.verifyPassportAuth(snapshotId, new DRSPassportRequestModel()));
-  }
-
-  @Test
   public void verifyValidPassport() {
     // valid passport + phs id + consent code
     when(snapshotService.retrieveSnapshotSummary(snapshotId))
@@ -283,7 +261,7 @@ public class DrsServiceTest {
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
     DRSPassportRequestModel drsPassportRequestModel =
         new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
-    when(ecmService.validatePassport(any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
     drsService.verifyPassportAuth(snapshotId, drsPassportRequestModel);
   }
@@ -294,7 +272,7 @@ public class DrsServiceTest {
     when(snapshotService.retrieveSnapshotSummary(snapshotId))
         .thenReturn(
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
-    when(ecmService.validatePassport(any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(false));
     DRSPassportRequestModel drsPassportRequestModel =
         new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
@@ -390,7 +368,7 @@ public class DrsServiceTest {
         .thenReturn(
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
     // provide valid passport
-    when(ecmService.validatePassport(any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
     DRSObject object =
         drsService.lookupObjectByDrsIdPassport(googleDrsObjectId, drsPassportRequestModel);
@@ -412,7 +390,7 @@ public class DrsServiceTest {
         .thenReturn(
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
     // provide invalid passport
-    when(ecmService.validatePassport(any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(false));
     assertThrows(
         UnauthorizedException.class,
@@ -425,7 +403,7 @@ public class DrsServiceTest {
         .thenReturn(
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
     // provide valid passport
-    when(ecmService.validatePassport(any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
     DRSAccessURL url =
         drsService.postAccessUrlForObjectId(
@@ -443,7 +421,7 @@ public class DrsServiceTest {
         .thenReturn(
             new SnapshotSummaryModel().id(snapshotId).phsId("phs100789").consentCode("c99"));
     // provide invalid passport
-    when(ecmService.validatePassport(any()))
+    when(snapshotService.verifyPassportAuth(any(), any()))
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(false));
 
     assertThrows(

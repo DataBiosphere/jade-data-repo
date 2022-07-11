@@ -197,9 +197,19 @@ public class SnapshotService {
    *     directly by SAM and indirectly by any linked RAS passport
    */
   public Map<UUID, Set<IamRole>> listAuthorizedSnapshots(AuthenticatedUserRequest userReq) {
+    Map<UUID, Set<IamRole>> rasAuthorizedSnapshots = new HashMap<>();
+    try {
+      rasAuthorizedSnapshots = listRasAuthorizedSnapshots(userReq);
+    } catch (Exception ex) {
+      // In the absence of robust ECM retries / nuanced error handling,
+      // do not fail snapshot enumeration because of an ECM error.
+      // Ticket for further investment: https://broadworkbench.atlassian.net/browse/DR-2674
+      logger.error("Error listing RAS-authorized snapshots", ex);
+    }
+
     return combineIdsAndRoles(
         iamService.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT),
-        listRasAuthorizedSnapshots(userReq));
+        rasAuthorizedSnapshots);
   }
 
   /**
@@ -215,8 +225,6 @@ public class SnapshotService {
       Set<IamRole> roles = Set.of(IamRole.READER);
       uuids.forEach(uuid -> idsAndRoles.put(uuid, roles));
     } catch (ParseException ex) {
-      // Not sure if we want to catch any exception, or catch upstream instead.
-      // I don't like the idea of failing snapshot enumeration because of an ECM error.
       logger.error("Error parsing RAS passport", ex);
     }
     return idsAndRoles;

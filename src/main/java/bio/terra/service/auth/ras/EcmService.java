@@ -99,9 +99,10 @@ public class EcmService {
     try {
       String passport = oidcApiService.getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
       // Passports returned by OidcApi have a bug in their formatting:
-      // they are returned with content-type: application/json.
-      // Double quotes must be stripped if passing back to PassportApi for validation,
+      // double quotes must be stripped if passing back to PassportApi for validation,
       // otherwise the passport will not be considered valid JWT.
+      // This stopgap can be removed when the client is fixed:
+      // https://broadworkbench.atlassian.net/browse/ID-128
       return passport.replace("\"", "");
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {

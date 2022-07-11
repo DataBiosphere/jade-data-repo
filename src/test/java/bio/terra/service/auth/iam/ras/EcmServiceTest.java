@@ -57,9 +57,14 @@ public class EcmServiceTest {
     HttpClientErrorException shouldThrow = new HttpClientErrorException(HttpStatus.UNAUTHORIZED);
     when(oidcApi.getProviderPassport(any()))
         .thenReturn(passportEcmFormattingBug)
+        .thenReturn(passport)
         .thenThrow(shouldCatch)
         .thenThrow(shouldThrow);
 
+    assertThat(
+        "Passport is stripped of double quotes when returned",
+        ecmService.getRasProviderPassport(userReq),
+        equalTo(passport));
     assertThat(
         "Passport without double quotes is returned",
         ecmService.getRasProviderPassport(userReq),

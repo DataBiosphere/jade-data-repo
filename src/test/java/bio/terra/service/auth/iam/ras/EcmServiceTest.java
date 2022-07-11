@@ -76,7 +76,8 @@ public class EcmServiceTest {
 
   @Test
   public void testGetRasDbgapPermissionsNoPassport() throws Exception {
-    when(oidcApi.getProviderPassport(any())).thenReturn(null);
+    when(oidcApi.getProviderPassport(any()))
+        .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
     assertThat(
         "No RAS dbGaP permissions when a user doesn't have a passport",
         ecmService.getRasDbgapPermissions(userReq),

@@ -68,12 +68,17 @@ public class DatasetSchemaUpdateValidator implements Validator {
       }
     }
 
-    List<RelationshipModel> newRelationships = updateModel.getChanges().getAddRelationships();
     if (DatasetSchemaUpdateUtils.hasRelationshipAdditions(updateModel)) {
+      List<RelationshipModel> newRelationships = updateModel.getChanges().getAddRelationships();
       List<String> relationshipNames =
           newRelationships.stream().map(RelationshipModel::getName).collect(Collectors.toList());
-      if (ValidationUtils.hasDuplicates(relationshipNames)) {
-        errors.rejectValue("schema", "DuplicateRelationshipNames");
+      List<String> duplicateRelationships = ValidationUtils.findDuplicates(relationshipNames);
+      if (!duplicateRelationships.isEmpty()) {
+        errors.rejectValue(
+            "changes.addRelationships",
+            "DuplicateRelationshipNames",
+            "Cannot add multiple relationships of the same name: "
+                + String.join(",", duplicateRelationships));
       }
     }
   }

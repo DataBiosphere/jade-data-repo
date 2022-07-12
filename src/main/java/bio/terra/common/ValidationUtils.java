@@ -97,10 +97,12 @@ public final class ValidationUtils {
             "InvalidRelationshipTermTableColumn",
             String.format("invalid table %s.%s", tableName, columnName));
       } else {
-        if (!isInvalidPrimaryOrForeignKeyType(columnModel.get())) {
+        if (isInvalidPrimaryOrForeignKeyType(columnModel.get())) {
           termErrors.put(
-              "OptionalForeignKeyColumn",
-              String.format("Foreign key column %s cannot be marked as not required", columnName));
+              "InvalidForeignKey",
+              String.format(
+                  "Foreign key %s cannot be a column with %s type",
+                  columnName, columnModel.get().getDatatype()));
         }
       }
     }

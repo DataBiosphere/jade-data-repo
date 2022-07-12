@@ -99,9 +99,13 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
                 String.join(", ", conflictingRelationshipNames)));
       }
 
-      List<TableModel> allTables =
-          dataset.getTables().stream().map(DatasetJsonConversion::tableModelFromTable).toList();
-      allTables.addAll(updateModel.getChanges().getAddTables());
+      ArrayList<TableModel> allTables =
+          dataset.getTables().stream()
+              .map(DatasetJsonConversion::tableModelFromTable)
+              .collect(Collectors.toCollection(ArrayList::new));
+      if (DatasetSchemaUpdateUtils.hasTableAdditions(updateModel)) {
+        allTables.addAll(updateModel.getChanges().getAddTables());
+      }
 
       ArrayList<String> validationErrors = new ArrayList<>();
       for (var relationship : newRelationships) {

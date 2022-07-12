@@ -100,4 +100,22 @@ public class DatasetSchemaUpdateRequestValidatorTest {
         errorModel.getErrorDetail().get(0),
         containsString("RequiredColumns"));
   }
+
+  @Test
+  public void testSchemaUpdateWithDuplicateRelationships() throws Exception {
+    DatasetSchemaUpdateModel updateModel =
+        new DatasetSchemaUpdateModel()
+            .description("duplicate relationship test")
+            .changes(
+                new DatasetSchemaUpdateModelChanges()
+                    .addRelationships(
+                        List.of(
+                            buildParticipantSampleRelationship(),
+                            buildParticipantSampleRelationship())));
+    ErrorModel errorModel = expectBadDatasetUpdateRequest(updateModel);
+    assertThat(
+        "Duplicate relationship throws error",
+        errorModel.getErrorDetail().get(0),
+        containsString("DuplicateRelationshipNames"));
+  }
 }

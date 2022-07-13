@@ -175,8 +175,8 @@ public class DatasetRequestValidatorTest {
         errorModel,
         new String[] {
           "DuplicateTableNames",
-          "InvalidRelationshipTermTableColumn",
-          "InvalidRelationshipTermTableColumn",
+          "InvalidRelationshipTermTable",
+          "InvalidRelationshipTermTable",
           "InvalidAssetTable",
           "InvalidAssetTableColumn",
           "InvalidAssetTableColumn",
@@ -196,8 +196,8 @@ public class DatasetRequestValidatorTest {
         errorModel,
         new String[] {
           "DuplicateColumnNames",
-          "InvalidRelationshipTermTableColumn",
-          "InvalidRelationshipTermTableColumn",
+          "InvalidRelationshipTermTable",
+          "InvalidRelationshipTermTable",
           "InvalidAssetTable",
           "InvalidAssetTableColumn",
           "InvalidAssetTableColumn",

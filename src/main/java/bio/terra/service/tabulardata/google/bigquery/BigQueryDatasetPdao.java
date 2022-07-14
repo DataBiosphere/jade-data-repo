@@ -33,6 +33,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.tabulardata.LoadHistoryUtil;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
@@ -403,6 +404,11 @@ public class BigQueryDatasetPdao {
           + " VALUES (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c,"
           + " checksum_md5, error)";
 
+  private boolean tooManyDmlStatementsOutstanding(PdaoException ex) {
+    return ex.getCause() instanceof BigQueryException
+        && ex.getMessage().contains("Too many DML statements outstanding against table");
+  }
+
   public void mergeStagingLoadHistoryTable(Dataset dataset, String flightId)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
@@ -420,7 +426,14 @@ public class BigQueryDatasetPdao {
     sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
     sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
 
-    bigQueryProject.query(sqlTemplate.render());
+    try {
+      bigQueryProject.query(sqlTemplate.render());
+    } catch (PdaoException ex) {
+      if (tooManyDmlStatementsOutstanding(ex)) {
+        throw new TooManyDmlStatementsOutstandingException(ex);
+      }
+      throw ex;
+    }
   }
 
   private static final String getLoadHistoryTemplate =

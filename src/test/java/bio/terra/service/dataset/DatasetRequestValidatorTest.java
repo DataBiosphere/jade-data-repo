@@ -231,12 +231,19 @@ public class DatasetRequestValidatorTest {
     DatasetRequestModel req = buildDatasetRequest();
     TableModel testTable = req.getSchema().getTables().get(0);
     // Test that a required, array_of column causes a validation error
-    ColumnModel badColumn = testTable.getColumns().get(0);
-    badColumn.setArrayOf(true);
-    badColumn.setRequired(true);
+    // whether it is also a primary key
+    ColumnModel badPrimaryKey = testTable.getColumns().get(0);
+    testTable.setPrimaryKey(List.of(badPrimaryKey.getName()));
+    badPrimaryKey.setArrayOf(true);
+    badPrimaryKey.setRequired(true);
+
+    ColumnModel badRequiredKey = testTable.getColumns().get(1);
+    badRequiredKey.setArrayOf(true);
+    badRequiredKey.setRequired(true);
 
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"InvalidColumnMode"});
+    checkValidationErrorModel(
+        errorModel, new String[] {"InvalidPrimaryKey", "InvalidColumnMode", "InvalidColumnMode"});
   }
 
   @Test

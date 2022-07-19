@@ -167,7 +167,7 @@ public class DataRepoFixtures {
 
   // datasets
 
-  private DataRepoResponse<JobModel> createDatasetRaw(
+  public DataRepoResponse<JobModel> createDatasetRaw(
       TestConfiguration.User user,
       UUID profileId,
       String filename,
@@ -239,7 +239,7 @@ public class DataRepoFixtures {
     return waitForDatasetCreate(user, jobResponse);
   }
 
-  private DatasetSummaryModel waitForDatasetCreate(
+  public DatasetSummaryModel waitForDatasetCreate(
       TestConfiguration.User user, DataRepoResponse<JobModel> jobResponse) throws Exception {
     assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
@@ -867,7 +867,7 @@ public class DataRepoFixtures {
     return assertSuccessful(response, "ingestFile failed");
   }
 
-  public BulkLoadArrayResultModel bulkLoadArray(
+  public DataRepoResponse<JobModel> bulkLoadArrayRaw(
       TestConfiguration.User user, UUID datasetId, BulkLoadArrayRequestModel requestModel)
       throws Exception {
 
@@ -882,18 +882,26 @@ public class DataRepoFixtures {
     assertTrue("bulkLoadArray launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "bulkloadArray launch response is present", launchResponse.getResponseObject().isPresent());
+    return launchResponse;
+  }
+
+  public BulkLoadArrayResultModel bulkLoadArray(
+      TestConfiguration.User user, UUID datasetId, BulkLoadArrayRequestModel requestModel)
+      throws Exception {
+
+    String json = TestUtils.mapToJson(requestModel);
+
+    DataRepoResponse<JobModel> launchResponse = bulkLoadArrayRaw(user, datasetId, requestModel);
 
     DataRepoResponse<BulkLoadArrayResultModel> response =
         dataRepoClient.waitForResponse(user, launchResponse, new TypeReference<>() {});
     return assertSuccessful(response, "bulkLoadArray failed");
   }
 
-  public BulkLoadResultModel bulkLoad(
+  public DataRepoResponse<JobModel> bulkLoadRaw(
       TestConfiguration.User user, UUID datasetId, BulkLoadRequestModel requestModel)
       throws Exception {
-
     String json = TestUtils.mapToJson(requestModel);
-
     DataRepoResponse<JobModel> launchResponse =
         dataRepoClient.post(
             user,
@@ -903,6 +911,14 @@ public class DataRepoFixtures {
     assertTrue("bulkLoad launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "bulkload launch response is present", launchResponse.getResponseObject().isPresent());
+    return launchResponse;
+  }
+
+  public BulkLoadResultModel bulkLoad(
+      TestConfiguration.User user, UUID datasetId, BulkLoadRequestModel requestModel)
+      throws Exception {
+
+    DataRepoResponse<JobModel> launchResponse = bulkLoadRaw(user, datasetId, requestModel);
 
     DataRepoResponse<BulkLoadResultModel> response =
         dataRepoClient.waitForResponse(user, launchResponse, new TypeReference<>() {});
@@ -1279,5 +1295,31 @@ public class DataRepoFixtures {
         + Instant.now().minus(Duration.ofSeconds(30)).toString()
         + "?project="
         + testConfig.getGoogleProjectId();
+  }
+
+  // Jobs
+
+  public <T> void getJobSuccess(String jobId, TestConfiguration.User user) throws Exception {
+    DataRepoResponse<JobModel> jobIdResponse = getJobIdRaw(jobId, user);
+    assertTrue(
+        "transaction create launch succeeded", jobIdResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(
+        "transaction create launch response is present",
+        jobIdResponse.getResponseObject().isPresent());
+
+    //    DataRepoResponse<T> jobResultResponse = getJobResultRaw(jobId, user);
+    //    validateResponse(jobResultResponse, "retrieving job result", HttpStatus.OK,
+    // jobIdResponse);
+  }
+
+  public DataRepoResponse<JobModel> getJobIdRaw(String jobId, TestConfiguration.User user)
+      throws Exception {
+    return dataRepoClient.get(user, "/api/repository/v1/jobs/" + jobId, new TypeReference<>() {});
+  }
+
+  public <T> DataRepoResponse<T> getJobResultRaw(String jobId, TestConfiguration.User user)
+      throws Exception {
+    return dataRepoClient.get(
+        user, "/api/repository/v1/jobs/" + jobId + "/result", new TypeReference<>() {});
   }
 }

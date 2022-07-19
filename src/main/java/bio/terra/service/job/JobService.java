@@ -460,8 +460,20 @@ public class JobService {
       FlightMap inputParameters = flightState.getInputParameters();
       String flightSubjectId =
           inputParameters.get(JobMapKeys.SUBJECT_ID.getKeyName(), String.class);
+
       if (!StringUtils.equals(flightSubjectId, userReq.getSubjectId())) {
-        throw new JobUnauthorizedException("Unauthorized");
+        String resourceId =
+            inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
+        IamResourceType resourceType =
+            inputParameters.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
+        IamAction iamAction =
+            inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
+        if (resourceId != null
+            && resourceType != null
+            && iamAction != null
+            && !samService.isAuthorized(userReq, resourceType, resourceId, iamAction)) {
+          throw new JobUnauthorizedException("Unauthorized");
+        }
       }
     } catch (FlightNotFoundException ex) {
       throw new JobNotFoundException("Job not found", ex);

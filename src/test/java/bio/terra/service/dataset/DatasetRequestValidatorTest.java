@@ -222,7 +222,10 @@ public class DatasetRequestValidatorTest {
     checkValidationErrorModel(
         errorModel,
         new String[] {
-          "InvalidPrimaryKey", "InvalidPrimaryKey", "InvalidPrimaryKey", "InvalidForeignKey"
+          "InvalidPrimaryKey",
+          "InvalidPrimaryKey",
+          "InvalidPrimaryKey",
+          "InvalidRelationshipColumnType"
         });
   }
 

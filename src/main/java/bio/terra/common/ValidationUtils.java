@@ -99,9 +99,9 @@ public final class ValidationUtils {
       } else {
         if (isInvalidPrimaryOrForeignKeyType(columnModel.get())) {
           termErrors.put(
-              "InvalidForeignKey",
+              "InvalidRelationshipColumnType",
               String.format(
-                  "Foreign key %s cannot be a column with %s type",
+                  "Relationship column %s cannot be %s type",
                   columnName, columnModel.get().getDatatype()));
         }
       }

@@ -374,10 +374,8 @@ public class DatasetSchemaUpdateValidationTest {
         invalidRelationshipException.getMessage(),
         containsString("Could not validate relationship additions"));
     assertThat(
-        invalidRelationshipException.getCauses().get(1), containsString("InvalidForeignKey"));
-    assertThat(
         invalidRelationshipException.getCauses().get(1),
         containsString(
-            "InvalidForeignKey: Foreign key new_column cannot be a column with fileref type"));
+            "InvalidRelationshipColumnType: Relationship column new_column cannot be fileref type"));
   }
 }

@@ -889,8 +889,6 @@ public class DataRepoFixtures {
       TestConfiguration.User user, UUID datasetId, BulkLoadArrayRequestModel requestModel)
       throws Exception {
 
-    String json = TestUtils.mapToJson(requestModel);
-
     DataRepoResponse<JobModel> launchResponse = bulkLoadArrayRaw(user, datasetId, requestModel);
 
     DataRepoResponse<BulkLoadArrayResultModel> response =

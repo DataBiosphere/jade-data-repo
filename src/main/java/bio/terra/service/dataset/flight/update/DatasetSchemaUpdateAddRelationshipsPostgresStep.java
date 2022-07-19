@@ -2,6 +2,9 @@ package bio.terra.service.dataset.flight.update;
 
 import bio.terra.common.Relationship;
 import bio.terra.model.DatasetSchemaUpdateModel;
+import bio.terra.model.RelationshipModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetRelationshipDao;
 import bio.terra.service.dataset.DatasetTable;
@@ -18,16 +21,19 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class DatasetSchemaUpdateAddRelationshipsPostgresStep implements Step {
+  private final DatasetDao datasetDao;
   private final DatasetTableDao datasetTableDao;
   private final UUID datasetId;
   private final DatasetRelationshipDao relationshipDao;
   private final DatasetSchemaUpdateModel updateModel;
 
   public DatasetSchemaUpdateAddRelationshipsPostgresStep(
+      DatasetDao datasetDao,
       DatasetTableDao datasetTableDao,
       UUID datasetId,
       DatasetRelationshipDao relationshipDao,
       DatasetSchemaUpdateModel updateModel) {
+    this.datasetDao = datasetDao;
     this.datasetTableDao = datasetTableDao;
     this.datasetId = datasetId;
     this.relationshipDao = relationshipDao;
@@ -44,7 +50,7 @@ public class DatasetSchemaUpdateAddRelationshipsPostgresStep implements Step {
             .map(r -> DatasetJsonConversion.relationshipModelToDatasetRelationship(r, tables))
             .collect(Collectors.toList());
     try {
-      relationshipDao.createDatasetRelationshipsWithTransaction(relationships);
+      relationshipDao.createDatasetRelationships(relationships);
     } catch (Exception e) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,
@@ -55,6 +61,21 @@ public class DatasetSchemaUpdateAddRelationshipsPostgresStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
+    List<String> newRelationshipNames =
+        updateModel.getChanges().getAddRelationships().stream()
+            .map(RelationshipModel::getName)
+            .toList();
+    Dataset dataset = datasetDao.retrieve(datasetId);
+    List<UUID> relationshipsToDelete =
+        dataset.getRelationships().stream()
+            .filter(r -> newRelationshipNames.contains(r.getName()))
+            .map(Relationship::getId)
+            .toList();
+
+    for (var relationshipId : relationshipsToDelete) {
+      relationshipDao.delete(relationshipId);
+    }
+
     return StepResult.getStepResultSuccess();
   }
 }

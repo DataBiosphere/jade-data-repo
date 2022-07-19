@@ -33,10 +33,6 @@ public class DatasetRelationshipDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void createDatasetRelationshipsWithTransaction(List<Relationship> relationships) {
-    createDatasetRelationships(relationships);
-  }
-
   protected void create(Relationship relationship) {
     String sql =
         "INSERT INTO dataset_relationship "
@@ -82,5 +78,13 @@ public class DatasetRelationshipDao {
                 .fromColumn(columns.get(rs.getObject("from_column", UUID.class)))
                 .toTable(tables.get(rs.getObject("to_table", UUID.class)))
                 .toColumn(columns.get(rs.getObject("to_column", UUID.class))));
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean delete(UUID id) {
+    String sql = "DELETE FROM dataset_relationship WHERE id = :id";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    return rowsAffected > 0;
   }
 }

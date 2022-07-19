@@ -508,7 +508,7 @@ public class DatasetSchemaUpdateConnectedTest {
     FlightContext flightContext = mock(FlightContext.class);
     DatasetSchemaUpdateAddRelationshipsPostgresStep postgresStep =
         new DatasetSchemaUpdateAddRelationshipsPostgresStep(
-            datasetTableDao, datasetId, relationshipDao, updateModel);
+            datasetDao, datasetTableDao, datasetId, relationshipDao, updateModel);
 
     postgresStep.doStep(flightContext);
 
@@ -516,6 +516,12 @@ public class DatasetSchemaUpdateConnectedTest {
     List<String> postUpdateRelationships =
         postUpdateDataset.getRelationships().stream().map(Relationship::getName).toList();
     assertTrue("New relationship was created", postUpdateRelationships.contains(relationshipName));
+
+    postgresStep.undoStep(flightContext);
+    Dataset postUndoDataset = datasetDao.retrieve(datasetId);
+    List<String> postUndoRelationships =
+        postUndoDataset.getRelationships().stream().map(Relationship::getName).toList();
+    assertFalse("New relationship was deleted", postUndoRelationships.contains(relationshipName));
   }
 
   private Map<String, Field> getBigQueryFieldsMap(

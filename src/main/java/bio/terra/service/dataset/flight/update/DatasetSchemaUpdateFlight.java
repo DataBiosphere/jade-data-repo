@@ -70,7 +70,7 @@ public class DatasetSchemaUpdateFlight extends Flight {
     if (DatasetSchemaUpdateUtils.hasRelationshipAdditions(updateModel)) {
       addStep(
           new DatasetSchemaUpdateAddRelationshipsPostgresStep(
-              datasetTableDao, datasetId, relationshipDao, updateModel));
+              datasetDao, datasetTableDao, datasetId, relationshipDao, updateModel));
     }
 
     addStep(

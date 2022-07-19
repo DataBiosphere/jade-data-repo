@@ -18,8 +18,8 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListUtils;
@@ -109,7 +109,7 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
 
       ArrayList<String> validationErrors = new ArrayList<>();
       for (var relationship : newRelationships) {
-        ArrayList<Map<String, String>> errors =
+        ArrayList<LinkedHashMap<String, String>> errors =
             ValidationUtils.getRelationshipValidationErrors(relationship, allTables);
         validationErrors.addAll(formatValidationErrors(errors));
       }
@@ -157,7 +157,7 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
         StepStatus.STEP_RESULT_FAILURE_FATAL, new DatasetSchemaUpdateException(message, reasons));
   }
 
-  private List<String> formatValidationErrors(ArrayList<Map<String, String>> errors) {
+  private List<String> formatValidationErrors(ArrayList<LinkedHashMap<String, String>> errors) {
     return errors.stream()
         .flatMap(
             errorMap ->

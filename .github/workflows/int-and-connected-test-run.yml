@@ -84,7 +84,7 @@ jobs:
           path: build/reports
           retention-days: 10
   deploy_test_integration:
-    timeout-minutes: 180
+    timeout-minutes: 360
     strategy:
       matrix:
         os: [ubuntu-latest]

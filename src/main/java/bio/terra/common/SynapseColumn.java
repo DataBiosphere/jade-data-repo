@@ -71,13 +71,13 @@ public class SynapseColumn extends Column {
       case FLOAT:
         return "float";
       case FLOAT64:
-        return "real";
+        return "float";
       case INTEGER:
         return "int";
       case INT64:
         return "bigint";
       case NUMERIC:
-        return "numeric";
+        return "real";
       case TEXT:
       case STRING:
         return "varchar(8000)";

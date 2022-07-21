@@ -549,7 +549,7 @@ public class SnapshotService {
         throw new RuntimeException("Could not configure external datasource", e);
       }
 
-      List<Map<String, Object>> values =
+      List<Map<String, Optional<Object>>> values =
           azureSynapsePdao.getSnapshotTableData(
               userRequest, snapshot, tableName, limit, offset, sort, direction, filter);
       return new SnapshotPreviewModel().result(List.copyOf(values));

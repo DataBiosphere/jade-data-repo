@@ -616,7 +616,7 @@ public class AzureSynapsePdao {
     cleanup(credentialNames, dropScopedCredentialTemplate);
   }
 
-  public List<Map<String, Object>> getSnapshotTableData(
+  public List<Map<String, Optional<Object>>> getSnapshotTableData(
       AuthenticatedUserRequest userRequest,
       Snapshot snapshot,
       String tableName,
@@ -739,14 +739,15 @@ public class AzureSynapsePdao {
         return switch (column.getType()) {
           case BOOLEAN -> resultSet.getBoolean(column.getName());
           case BYTES -> resultSet.getBytes(column.getName());
-          case DATE, DATETIME -> resultSet.getDate(column.getName());
+          case DATE -> resultSet.getDate(column.getName());
           case DIRREF, FILEREF, STRING, TEXT -> resultSet.getString(column.getName());
-          case FLOAT, FLOAT64 -> resultSet.getFloat(column.getName());
+          case FLOAT -> resultSet.getFloat(column.getName());
+          case FLOAT64 -> resultSet.getDouble(column.getName());
           case INTEGER -> resultSet.getInt(column.getName());
           case INT64 -> resultSet.getLong(column.getName());
-          case NUMERIC -> resultSet.getDouble(column.getName());
+          case NUMERIC -> resultSet.getFloat(column.getName());
           case TIME -> resultSet.getTime(column.getName());
-          case TIMESTAMP -> resultSet.getTimestamp(column.getName());
+          case DATETIME, TIMESTAMP -> resultSet.getTimestamp(column.getName());
           default -> throw new IllegalArgumentException(
               "Unknown datatype '" + column.getType() + "'");
         };

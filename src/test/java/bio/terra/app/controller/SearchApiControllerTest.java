@@ -71,7 +71,7 @@ public class SearchApiControllerTest {
     var list = List.of("hello", "world");
     var result = new SnapshotPreviewModel().result(List.copyOf(list));
     when(snapshotService.retrievePreview(
-            TEST_USER, id, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
+            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER)))
         .thenReturn(result);
     mvc.perform(
             get(GET_PREVIEW_ENDPOINT, id, table)
@@ -85,7 +85,7 @@ public class SearchApiControllerTest {
 
   private void mockSnapshotPreviewByIdError(UUID id, String table, String column) throws Exception {
     when(snapshotService.retrievePreview(
-            TEST_USER, id, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
+            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER)))
         .thenThrow(SnapshotPreviewException.class);
     mvc.perform(
             get(GET_PREVIEW_ENDPOINT, id, table)
@@ -106,7 +106,8 @@ public class SearchApiControllerTest {
         .verifyAuthorization(
             any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
     verify(snapshotService)
-        .retrievePreview(TEST_USER, id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+        .retrievePreview(
+            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER));
   }
 
   @Test
@@ -119,7 +120,8 @@ public class SearchApiControllerTest {
         .verifyAuthorization(
             any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
     verify(snapshotService)
-        .retrievePreview(TEST_USER, id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+        .retrievePreview(
+            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER));
   }
 
   @Test(expected = SnapshotPreviewException.class)

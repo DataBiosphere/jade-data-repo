@@ -37,6 +37,14 @@ public final class BQTestUtils {
     }
   }
 
+  public static void mockBQQueryError(BigQueryProject mockBQProject, String sql, Throwable ex) {
+    try {
+      when(mockBQProject.query(eq(sql))).thenThrow(ex);
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Error mocking query execution");
+    }
+  }
+
   public static void mockBQQuery(
       BigQuery mockBQ,
       QueryJobConfiguration sql,

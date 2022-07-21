@@ -393,7 +393,7 @@ public class BigQueryDatasetPdao {
     bigQueryProject.query(sqlTemplate.render());
   }
 
-  private static final String mergeLoadHistoryStagingTableTemplate =
+  public static final String mergeLoadHistoryStagingTableTemplate =
       "MERGE `<project>.<dataset>.<loadTable>` L"
           + " USING `<project>.<dataset>.<stagingTable>` S"
           + " ON S.load_tag = L.load_tag AND S.load_time = L.load_time"

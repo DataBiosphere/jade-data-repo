@@ -95,7 +95,7 @@ public final class ValidationUtils {
       if (columnModel.isEmpty()) {
         termErrors.put(
             "InvalidRelationshipTermTableColumn",
-            String.format("invalid table %s.%s", tableName, columnName));
+            String.format("Invalid column %s.%s", tableName, columnName));
       } else {
         if (isInvalidPrimaryOrForeignKeyType(columnModel.get())) {
           termErrors.put(

@@ -334,7 +334,7 @@ public class DatasetSchemaUpdateValidationTest {
         invalidRelationshipException
             .getCauses()
             .contains(
-                "InvalidRelationshipTermTableColumn: invalid table new_table.nonexistent_column"));
+                "InvalidRelationshipTermTableColumn: Invalid column new_table.nonexistent_column"));
   }
 
   @Test

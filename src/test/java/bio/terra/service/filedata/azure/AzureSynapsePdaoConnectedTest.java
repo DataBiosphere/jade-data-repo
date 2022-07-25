@@ -128,6 +128,8 @@ public class AzureSynapsePdaoConnectedTest {
               .collect(Collectors.toMap(Entry::getKey, e -> Optional.of(e.getValue()))));
   private static final List<Map<String, Optional<Object>>> SAMPLE_DATA_CSV =
       SAMPLE_DATA.stream()
+          // Copy the records so that changing them in this list doesn't affect the original
+          .map(r -> r.entrySet().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue)))
           // We can't load array data with CSVs
           .peek(r -> r.put("arrayCol", Optional.empty()))
           .toList();
@@ -298,7 +300,7 @@ public class AzureSynapsePdaoConnectedTest {
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
             "azure-simple-dataset-ingest-request.csv");
-    testSynapseQuery(ingestRequestModel, ingestFileLocation, true);
+    testSynapseQuery(ingestRequestModel, ingestFileLocation, SAMPLE_DATA_CSV);
   }
 
   @Test
@@ -314,7 +316,15 @@ public class AzureSynapsePdaoConnectedTest {
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
             "azure-simple-dataset-ingest-request-non-standard.csv");
-    testSynapseQuery(nonStandardIngestRequestModel, nonStandardIngestFileLocation, true);
+    // Add exclamation points to the end of the expected text fields
+    var testData =
+        SAMPLE_DATA_CSV.stream()
+            .map(
+                r ->
+                    r.entrySet().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue)))
+            .peek(r -> r.put("textCol", r.get("textCol").map(v -> v + "!")))
+            .toList();
+    testSynapseQuery(nonStandardIngestRequestModel, nonStandardIngestFileLocation, testData);
 
     List<String> textCols =
         synapseUtils.readParquetFileStringColumn(
@@ -331,11 +341,13 @@ public class AzureSynapsePdaoConnectedTest {
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
             "azure-ingest-request.json");
-    testSynapseQuery(ingestRequestModel, ingestFileLocation, false);
+    testSynapseQuery(ingestRequestModel, ingestFileLocation, SAMPLE_DATA);
   }
 
   private void testSynapseQuery(
-      IngestRequestModel ingestRequestModel, String ingestFileLocation, boolean isCsv)
+      IngestRequestModel ingestRequestModel,
+      String ingestFileLocation,
+      List<Map<String, Optional<Object>>> expectedData)
       throws Exception {
 
     UUID tenantId = testConfig.getTargetTenantId();
@@ -479,7 +491,6 @@ public class AzureSynapsePdaoConnectedTest {
     assertThat("4 fileRefs Returned.", refIds.size(), equalTo(4));
 
     // 9 - do a basic query of the data
-    List<Map<String, Optional<Object>>> expectedData = isCsv ? SAMPLE_DATA_CSV : SAMPLE_DATA;
     snapshotQueryCredentialName =
         AzureSynapsePdao.getCredentialName(snapshot, TEST_USER.getEmail());
     snapshotQueryDataSourceName =

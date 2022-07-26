@@ -182,6 +182,31 @@ public class BulkLoadUtils {
         fileRefBytes);
   }
 
+  public static BlobId writeScratchFileForCombinedIngestRequest(
+      ServiceAccountSpecification serviceAccount,
+      BulkLoadFileModel fileModel,
+      String bucketName,
+      String ingestFileName)
+      throws Exception {
+    String jsonLine = "{\"VCF_File_Name\":\"%s\", \"Description\":\"%s\", \"VCF_File_Ref\":%s}%n";
+    String scratchFileJson =
+        String.format(
+            jsonLine, "testFile", "combined metadata ingest", bulkLoadFileModelToJson(fileModel));
+    byte[] fileRefBytes = scratchFileJson.getBytes(StandardCharsets.UTF_8);
+    return StorageUtils.writeBytesToFile(
+        StorageUtils.getClientForServiceAccount(serviceAccount),
+        bucketName,
+        ingestFileName,
+        fileRefBytes);
+  }
+
+  private static String bulkLoadFileModelToJson(BulkLoadFileModel fileModel) {
+    String fileJSON =
+        "[{\"description\":\"Test file\", \"mimeType\":\"%s\", \"sourcePath\":\"%s\", \"targetPath\": \"%s\"}]";
+    return String.format(
+        fileJSON, fileModel.getMimeType(), fileModel.getSourcePath(), fileModel.getTargetPath());
+  }
+
   public static String azureWriteScratchFileForIngestRequest(
       BlobIOTestUtility blobIOTestUtility,
       BulkLoadArrayResultModel arrayResultModel,

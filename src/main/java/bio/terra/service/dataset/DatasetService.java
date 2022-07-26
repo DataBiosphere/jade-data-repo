@@ -134,9 +134,10 @@ public class DatasetService {
     loggingMetrics.set(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, defaultProfileId);
     return jobService
         .newJob(description, DatasetCreateFlight.class, datasetRequest, userReq)
-        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
-        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), defaultProfileId)
-        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK)
+        .addParameter(
+            JobMapKeys.READ_JOB_ACLS.getKeyName(),
+            jobService.readJobAcls(
+                IamResourceType.SPEND_PROFILE, defaultProfileId.toString(), IamAction.LINK))
         .submit();
   }
 
@@ -308,9 +309,9 @@ public class DatasetService {
               .addParameter(JobMapKeys.BILLING_ID.getKeyName(), ingestRequestModel.getProfileId())
               .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
               .addParameter(IngestMapKeys.TABLE_NAME, ingestRequestModel.getTable())
-              .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
-              .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
-              .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
+              .addParameter(
+                  JobMapKeys.READ_JOB_ACLS.getKeyName(),
+                  jobService.readJobAcls(IamResourceType.DATASET, id, IamAction.INGEST_DATA))
               .submitAndWait(String.class);
 
       CloudPlatformWrapper cloudPlatform =
@@ -347,9 +348,9 @@ public class DatasetService {
         .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
-        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
-        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
-        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
+        .addParameter(
+            JobMapKeys.READ_JOB_ACLS.getKeyName(),
+            jobService.readJobAcls(IamResourceType.DATASET, id, IamAction.INGEST_DATA))
         .submit();
   }
 

@@ -10,9 +10,7 @@ public enum JobMapKeys {
   AUTH_USER_INFO("auth_user_info"),
   SUBJECT_ID("subjectId"),
   CLOUD_PLATFORM("cloudPlatform"),
-  IAM_ACTION("iamAction"),
-  IAM_RESOURCE_TYPE("iamResourceType"),
-  IAM_RESOURCE_ID("iamResourceId"),
+  READ_JOB_ACLS("readJobAcls"),
 
   // parameters for specific flight types
   BILLING_ID("billingId"),

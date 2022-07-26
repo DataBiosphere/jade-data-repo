@@ -32,6 +32,7 @@ import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -336,6 +337,15 @@ public class JobService {
     }
   }
 
+  String IAM_RESOURCE_TYPE = "iamResourceType";
+  String IAM_RESOURCE_ID = "iamResourceId";
+  String IAM_ACTION = "iamAction";
+
+  public Map<String, Object> readJobAcls(
+      IamResourceType resourceType, String resourceId, IamAction action) {
+    return Map.of(IAM_RESOURCE_TYPE, resourceType, IAM_RESOURCE_ID, resourceId, IAM_ACTION, action);
+  }
+
   /**
    * There are four cases to handle here:
    *
@@ -462,17 +472,15 @@ public class JobService {
           inputParameters.get(JobMapKeys.SUBJECT_ID.getKeyName(), String.class);
 
       if (!StringUtils.equals(flightSubjectId, userReq.getSubjectId())) {
-        String resourceId =
-            inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
-        IamResourceType resourceType =
-            inputParameters.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
-        IamAction iamAction =
-            inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
-        if (resourceId != null
-            && resourceType != null
-            && iamAction != null
-            && !samService.isAuthorized(userReq, resourceType, resourceId, iamAction)) {
-          throw new JobUnauthorizedException("Unauthorized");
+        Map<String, Object> readJobAcls =
+            inputParameters.get(JobMapKeys.READ_JOB_ACLS.getKeyName(), Map.class);
+        if (readJobAcls != null) {
+          String resourceId = (String) readJobAcls.get(IAM_RESOURCE_ID);
+          IamResourceType resourceType = (IamResourceType) readJobAcls.get(IAM_RESOURCE_TYPE);
+          IamAction iamAction = (IamAction) readJobAcls.get(IAM_ACTION);
+          if (!samService.isAuthorized(userReq, resourceType, resourceId, iamAction)) {
+            throw new JobUnauthorizedException("Unauthorized");
+          }
         }
       }
     } catch (FlightNotFoundException ex) {

@@ -1,10 +1,12 @@
 package bio.terra.service.auth.iam.sam;
 
+import static bio.terra.service.auth.iam.sam.SamIam.TOS_URL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
@@ -35,13 +37,16 @@ import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.TermsOfServiceApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserInfo;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserResourcesResponse;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -61,6 +66,7 @@ public class SamIamTest {
   @Mock private GoogleApi samGoogleApi;
   @Mock private UsersApi samUsersApi;
 
+  @Mock private TermsOfServiceApi samTosApi;
   @Mock private AuthenticatedUserRequest userReq;
 
   private SamIam samIam;
@@ -414,5 +420,27 @@ public class SamIamTest {
       verify(samResourceApi, times(1))
           .listResourcesAndPoliciesV2(IamResourceType.DATASNAPSHOT.getSamResourceName());
     }
+  }
+
+  @Test
+  public void testRegisterUser() throws InterruptedException, ApiException {
+    final String accessToken = "some_other_token";
+    UserStatus userStatus =
+        new UserStatus()
+            .userInfo(
+                new UserInfo()
+                    .userEmail("tdr-ingest-sa@my-project.iam.gserviceaccount.com")
+                    .userSubjectId("subid"));
+    doAnswer(a -> samUsersApi).when(samIam).samUsersApi(accessToken);
+    doAnswer(a -> samTosApi).when(samIam).samTosApi(accessToken);
+    when(samUsersApi.createUserV2()).thenReturn(userStatus);
+    when(samTosApi.acceptTermsOfService(anyString())).thenReturn(userStatus);
+    UserStatus returnedUserStatus = samIam.registerUser(accessToken);
+
+    // Verify that the correct Sam API calls were made
+    verify(samUsersApi, times(1)).createUserV2();
+    verify(samTosApi, times(1)).acceptTermsOfService(eq(TOS_URL));
+
+    assertThat("expected user is returned", returnedUserStatus, is(userStatus));
   }
 }

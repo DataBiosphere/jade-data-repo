@@ -14,6 +14,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.SamFixtures;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DataDeletionRequest;
@@ -52,6 +53,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
   @Autowired private AuthService authService;
   @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private SamFixtures samFixtures;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private TestConfiguration testConfiguration;
   @Rule @Autowired public TestJobWatcher testWatcher;
@@ -59,6 +61,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   private String stewardToken;
   private UUID datasetId;
   private UUID profileId;
+  private String ingestServiceAccount;
 
   @Before
   public void setup() throws Exception {
@@ -78,6 +81,10 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
 
     if (profileId != null) {
       dataRepoFixtures.deleteProfileLog(steward(), profileId);
+    }
+
+    if (ingestServiceAccount != null) {
+      samFixtures.deleteServiceAccountFromTerra(steward(), ingestServiceAccount);
     }
   }
 
@@ -418,6 +425,8 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         dataRepoFixtures.createDatasetWithOwnServiceAccount(
             steward(), profileId, "dataset-ingest-combined-array.json");
 
+    ingestServiceAccount =
+        dataRepoFixtures.getDataset(steward(), datasetId).getIngestServiceAccount();
     datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel ingestRequest =
@@ -445,8 +454,6 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         containsString(String.format("TDR cannot access bucket %s.", bucketWithNoJadeSa)));
 
     // Now grant the reader role on the source bucket to the ingest service account
-    String ingestServiceAccount =
-        dataRepoFixtures.getDataset(steward(), datasetId).getIngestServiceAccount();
     assertThat(
         "the ingest service account is not the global one",
         ingestServiceAccount,

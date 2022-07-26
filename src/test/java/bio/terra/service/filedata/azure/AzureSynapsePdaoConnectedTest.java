@@ -3,6 +3,7 @@ package bio.terra.service.filedata.azure;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
@@ -17,11 +18,13 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableDataType;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
@@ -36,13 +39,21 @@ import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.sas.BlobSasPermission;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,6 +89,50 @@ public class AzureSynapsePdaoConnectedTest {
           .setToken("token")
           .build();
 
+  // Represents the data that lives in Azure storage account
+  private static final List<Map<String, Optional<Object>>> SAMPLE_DATA =
+      List.of(
+          Stream.of(
+                  Map.entry("boolCol", true),
+                  Map.entry("dateCol", Date.valueOf("2021-08-01")),
+                  Map.entry("dateTimeCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("dirRefCol", UUID.fromString("7a1e4648-fb95-11eb-9a03-0242ac130003")),
+                  Map.entry("file", UUID.fromString("816ca5ca-fb95-11eb-9a03-0242ac130003")),
+                  Map.entry("float64Col", 1.79E+308D),
+                  Map.entry("floatCol", -1.18E-38F),
+                  Map.entry("intCol", 2147483647),
+                  Map.entry("int64Col", 9223372036854775806L),
+                  Map.entry("numericCol", 12345.12000F),
+                  Map.entry("first_name", "Bob"),
+                  Map.entry("textCol", "Dao"),
+                  Map.entry("timeCol", Time.valueOf("01:01:00")),
+                  Map.entry("timestampCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("arrayCol", List.of("lion", "tiger")))
+              .collect(Collectors.toMap(Entry::getKey, e -> Optional.of(e.getValue()))),
+          Stream.of(
+                  Map.entry("boolCol", false),
+                  Map.entry("dateCol", Date.valueOf("2021-01-01")),
+                  Map.entry("dateTimeCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("dirRefCol", UUID.fromString("856d0926-fb95-11eb-9a03-0242ac130003")),
+                  Map.entry("file", UUID.fromString("89875e76-fb95-11eb-9a03-0242ac130003")),
+                  Map.entry("float64Col", -1.79E+308D),
+                  Map.entry("floatCol", 3.40E+38F),
+                  Map.entry("intCol", -2147483647),
+                  Map.entry("int64Col", -9223372036L),
+                  Map.entry("numericCol", 12345.12000F),
+                  Map.entry("first_name", "Sally"),
+                  Map.entry("textCol", "Jones"),
+                  Map.entry("timeCol", Time.valueOf("01:01:00")),
+                  Map.entry("timestampCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("arrayCol", List.of("horse", "dog")))
+              .collect(Collectors.toMap(Entry::getKey, e -> Optional.of(e.getValue()))));
+  private static final List<Map<String, Optional<Object>>> SAMPLE_DATA_CSV =
+      SAMPLE_DATA.stream()
+          // Copy the records so that changing them in this list doesn't affect the original
+          .map(r -> r.entrySet().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue)))
+          // We can't load array data with CSVs
+          .peek(r -> r.put("arrayCol", Optional.empty()))
+          .toList();
   private static final String INGEST_REQUEST_SCOPED_CREDENTIAL_PREFIX = "irsas_";
   private static final String DESTINATION_SCOPED_CREDENTIAL_PREFIX = "dsas_";
   private static final String SNAPSHOT_SCOPED_CREDENTIAL_PREFIX = "ssas_";
@@ -90,9 +145,11 @@ public class AzureSynapsePdaoConnectedTest {
   private String ingestRequestScopedCredentialName;
   private String destinationScopedCredentialName;
   private String snapshotScopedCredentialName;
+  private String snapshotQueryCredentialName;
   private String ingestRequestDataSourceName;
   private String destinationDataSourceName;
   private String snapshotDataSourceName;
+  private String snapshotQueryDataSourceName;
   private String tableName;
   private String scratchTableName;
   private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
@@ -126,6 +183,8 @@ public class AzureSynapsePdaoConnectedTest {
     ingestRequestDataSourceName = INGEST_REQUEST_DATA_SOURCE_PREFIX + randomFlightId;
     destinationDataSourceName = DESTINATION_DATA_SOURCE_PREFIX + randomFlightId;
     snapshotDataSourceName = SNAPSHOT_DATA_SOURCE_PREFIX + randomFlightId;
+    snapshotQueryDataSourceName = null;
+    snapshotQueryCredentialName = null;
     tableName = TABLE_NAME_PREFIX + randomFlightId;
     scratchTableName = SCRATCH_TABLE_NAME_PREFIX + randomFlightId;
     UUID applicationId = UUID.randomUUID();
@@ -212,12 +271,21 @@ public class AzureSynapsePdaoConnectedTest {
             IngestUtils.formatSnapshotTableName(snapshotId, "participant"),
             IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
     azureSynapsePdao.dropDataSources(
-        List.of(snapshotDataSourceName, destinationDataSourceName, ingestRequestDataSourceName));
+        Stream.of(
+                snapshotDataSourceName,
+                destinationDataSourceName,
+                ingestRequestDataSourceName,
+                snapshotQueryDataSourceName)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList()));
     azureSynapsePdao.dropScopedCredentials(
-        List.of(
-            snapshotScopedCredentialName,
-            destinationScopedCredentialName,
-            ingestRequestScopedCredentialName));
+        Stream.of(
+                snapshotScopedCredentialName,
+                destinationScopedCredentialName,
+                ingestRequestScopedCredentialName,
+                snapshotQueryCredentialName)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList()));
 
     client.storageAccounts().deleteById(snapshotStorageAccountId);
     connectedOperations.teardown();
@@ -232,7 +300,7 @@ public class AzureSynapsePdaoConnectedTest {
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
             "azure-simple-dataset-ingest-request.csv");
-    testSynapseQuery(ingestRequestModel, ingestFileLocation);
+    testSynapseQuery(ingestRequestModel, ingestFileLocation, SAMPLE_DATA_CSV);
   }
 
   @Test
@@ -248,7 +316,15 @@ public class AzureSynapsePdaoConnectedTest {
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
             "azure-simple-dataset-ingest-request-non-standard.csv");
-    testSynapseQuery(nonStandardIngestRequestModel, nonStandardIngestFileLocation);
+    // Add exclamation points to the end of the expected text fields
+    var testData =
+        SAMPLE_DATA_CSV.stream()
+            .map(
+                r ->
+                    r.entrySet().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue)))
+            .peek(r -> r.put("textCol", r.get("textCol").map(v -> v + "!")))
+            .toList();
+    testSynapseQuery(nonStandardIngestRequestModel, nonStandardIngestFileLocation, testData);
 
     List<String> textCols =
         synapseUtils.readParquetFileStringColumn(
@@ -265,10 +341,13 @@ public class AzureSynapsePdaoConnectedTest {
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
             "azure-ingest-request.json");
-    testSynapseQuery(ingestRequestModel, ingestFileLocation);
+    testSynapseQuery(ingestRequestModel, ingestFileLocation, SAMPLE_DATA);
   }
 
-  private void testSynapseQuery(IngestRequestModel ingestRequestModel, String ingestFileLocation)
+  private void testSynapseQuery(
+      IngestRequestModel ingestRequestModel,
+      String ingestFileLocation,
+      List<Map<String, Optional<Object>>> expectedData)
       throws Exception {
 
     UUID tenantId = testConfig.getTargetTenantId();
@@ -288,7 +367,7 @@ public class AzureSynapsePdaoConnectedTest {
     // 1 - Create external data source for the ingest control file
     BlobUrlParts ingestRequestSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId, TEST_USER);
-    azureSynapsePdao.createExternalDataSource(
+    azureSynapsePdao.getOrCreateExternalDataSource(
         ingestRequestSignUrlBlob, ingestRequestScopedCredentialName, ingestRequestDataSourceName);
 
     // 2 - Create the external data source for the destination
@@ -304,7 +383,7 @@ public class AzureSynapsePdaoConnectedTest {
             storageAccountResource,
             AzureStorageAccountResource.ContainerType.METADATA,
             TEST_USER);
-    azureSynapsePdao.createExternalDataSource(
+    azureSynapsePdao.getOrCreateExternalDataSource(
         destinationSignUrlBlob, destinationScopedCredentialName, destinationDataSourceName);
 
     // 3 - Retrieve info about database schema so that we can populate the parquet create query
@@ -364,7 +443,7 @@ public class AzureSynapsePdaoConnectedTest {
             snapshotStorageAccountResource,
             AzureStorageAccountResource.ContainerType.METADATA,
             TEST_USER);
-    azureSynapsePdao.createExternalDataSource(
+    azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
 
     // 6 - Create snapshot parquet files via external table
@@ -411,7 +490,62 @@ public class AzureSynapsePdaoConnectedTest {
     List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
     assertThat("4 fileRefs Returned.", refIds.size(), equalTo(4));
 
-    // 4 - clean out synapse
+    // 9 - do a basic query of the data
+    snapshotQueryCredentialName =
+        AzureSynapsePdao.getCredentialName(snapshot, TEST_USER.getEmail());
+    snapshotQueryDataSourceName =
+        AzureSynapsePdao.getDataSourceName(snapshot, TEST_USER.getEmail());
+    azureSynapsePdao.getOrCreateExternalDataSource(
+        snapshotSignUrlBlob, snapshotQueryCredentialName, snapshotQueryDataSourceName);
+    List<Map<String, Optional<Object>>> tableData =
+        prepQueryResultForComparison(
+            azureSynapsePdao.getSnapshotTableData(
+                TEST_USER,
+                snapshot,
+                snapshotTable.getName(),
+                10,
+                0,
+                "first_name",
+                SqlSortDirection.ASC,
+                ""));
+    assertThat(
+        "table query contains correct data in the right order (ascending by first name)",
+        tableData,
+        contains(expectedData.get(0), expectedData.get(1)));
+
+    // 10 - now swap the order
+    tableData =
+        prepQueryResultForComparison(
+            azureSynapsePdao.getSnapshotTableData(
+                TEST_USER,
+                snapshot,
+                snapshotTable.getName(),
+                10,
+                0,
+                "first_name",
+                SqlSortDirection.DESC,
+                ""));
+    assertThat(
+        "table query contains correct data in the right order (descending by first name)",
+        tableData,
+        contains(expectedData.get(1), expectedData.get(0)));
+
+    // 11 - now read a single value
+    tableData =
+        prepQueryResultForComparison(
+            azureSynapsePdao.getSnapshotTableData(
+                TEST_USER,
+                snapshot,
+                snapshotTable.getName(),
+                10,
+                0,
+                "first_name",
+                SqlSortDirection.ASC,
+                "upper(first_name)='SALLY'"));
+    assertThat(
+        "table query contains only a single record", tableData, contains(expectedData.get(1)));
+
+    // 12 - clean out synapse
     // we'll do this in the test cleanup method, but it will be a step in the normal flight
 
   }
@@ -461,5 +595,20 @@ public class AzureSynapsePdaoConnectedTest {
     destinationTable.getColumns().get(tableTypesToTry.size() - 1).arrayOf(true);
 
     return destinationTable;
+  }
+
+  private Optional<Object> extractFileId(Optional<Object> drsUri) {
+    return drsUri.map(d -> UUID.fromString(DrsIdService.fromUri(d.toString()).getFsObjectId()));
+  }
+
+  private List<Map<String, Optional<Object>>> prepQueryResultForComparison(
+      List<Map<String, Optional<Object>>> tableData) {
+    return tableData.stream()
+        // Remove datarepo_row_id since it's random
+        .peek(r -> r.remove(PDAO_ROW_ID_COLUMN))
+        // Replace the DRS id with its file ID for easier comparison
+        .peek(r -> r.put("file", extractFileId(r.get("file"))))
+        .peek(r -> r.put("dirRefCol", extractFileId(r.get("dirRefCol"))))
+        .toList();
   }
 }

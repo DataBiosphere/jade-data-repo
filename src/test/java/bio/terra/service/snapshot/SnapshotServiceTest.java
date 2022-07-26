@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +37,7 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.ras.EcmService;
@@ -64,9 +66,11 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.client.HttpClientErrorException;
 
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = {SnapshotService.class, MetadataDataAccessUtils.class})
@@ -365,6 +369,22 @@ public class SnapshotServiceTest {
         "Patch with consent code update requires passport identifier update permissions",
         service.patchSnapshotIamActions(new SnapshotPatchRequestModel().consentCode("c99")),
         containsInAnyOrder(IamAction.UPDATE_SNAPSHOT, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+  }
+
+  @Test
+  public void listAuthorizedSnapshots() throws Exception {
+    Map<UUID, Set<IamRole>> samAuthorizedSnapshots =
+        Map.of(UUID.randomUUID(), Set.of(IamRole.STEWARD));
+    when(ecmService.getRasDbgapPermissions(TEST_USER))
+        .thenThrow(new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT));
+    when(iamService.listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT))
+        .thenReturn(samAuthorizedSnapshots);
+
+    assertThat(
+        "ECM exception should not block snapshot enumeration",
+        service.listAuthorizedSnapshots(TEST_USER),
+        equalTo(samAuthorizedSnapshots));
+    verify(ecmService, times(1)).getRasDbgapPermissions(TEST_USER);
   }
 
   @Test

@@ -215,13 +215,14 @@ public class DatasetRequestValidator implements Validator {
               "MissingPrimaryKeyColumn",
               String.format("Expected column(s): %s", String.join(", ", missingKeys)));
         }
-
-        for (ColumnModel columnModel : table.getColumns()) {
-          if (primaryKeyList.contains(columnModel.getName())) {
-            validateColumnType(errors, columnModel, PRIMARY_KEY);
-          }
-        }
       }
+      for (ColumnModel columnModel : table.getColumns()) {
+        if (primaryKeyList != null && primaryKeyList.contains(columnModel.getName())) {
+          validateColumnType(errors, columnModel, PRIMARY_KEY);
+        }
+        validateColumnMode(errors, columnModel);
+      }
+
       context.addTable(tableName, columns);
     }
 
@@ -277,6 +278,18 @@ public class DatasetRequestValidator implements Validator {
           "schema",
           "OptionalPrimaryKeyColumn",
           String.format("A %s column cannot be marked as not required", PRIMARY_KEY));
+    }
+  }
+
+  private void validateColumnMode(Errors errors, ColumnModel columnModel) {
+    // Explicitly check if isRequired is true to avoid a null pointer exception.
+    // isArrayOf has a default value set in the open-api spec so it does not require
+    // the same handling.
+    if (Boolean.TRUE.equals(columnModel.isRequired()) && columnModel.isArrayOf()) {
+      errors.rejectValue(
+          "schema",
+          "InvalidColumnMode",
+          String.format("Array column %s cannot be marked as required", columnModel.getName()));
     }
   }
 

@@ -66,5 +66,4 @@ public class IngestUtilsTest {
     IngestUtils.validateBlobAzureBlobFileURL(
         "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple--dataset-ingest-request.csv");
   }
-
 }

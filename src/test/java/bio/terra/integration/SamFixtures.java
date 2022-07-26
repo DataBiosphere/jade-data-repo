@@ -4,6 +4,8 @@ import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
@@ -36,7 +38,14 @@ public class SamFixtures {
     try {
       // Get the user ID to delete
       getHeaders(user);
-      String accessToken = headers.get(HttpHeaders.AUTHORIZATION).get(0).replaceAll("Bearer ", "");
+      String accessToken =
+          Optional.ofNullable(
+                  Optional.ofNullable(headers.get(HttpHeaders.AUTHORIZATION))
+                      .orElse(List.of())
+                      .iterator()
+                      .next())
+              .map(h -> h.replaceAll("Bearer ", ""))
+              .orElseThrow(() -> new IllegalArgumentException("No auth header present"));
       AdminApi samAdminApi = new AdminApi(getApiClient(accessToken));
       UserStatus userStatus = samAdminApi.adminGetUserByEmail(serviceAccount);
 

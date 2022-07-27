@@ -10,16 +10,20 @@ import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
 public class SamFixtures {
 
+  private static final Logger logger = LoggerFactory.getLogger(SamFixtures.class);
   @Autowired private SamConfiguration samConfig;
   @Autowired private AuthService authService;
   private final HttpHeaders headers;
@@ -35,6 +39,7 @@ public class SamFixtures {
   }
 
   public void deleteServiceAccountFromTerra(TestConfiguration.User user, String serviceAccount) {
+    logger.info("Deleting user {}", serviceAccount);
     try {
       // Get the user ID to delete
       getHeaders(user);
@@ -49,11 +54,28 @@ public class SamFixtures {
       AdminApi samAdminApi = new AdminApi(getApiClient(accessToken));
       UserStatus userStatus = samAdminApi.adminGetUserByEmail(serviceAccount);
 
+      logger.info(
+          "Found user {} with id {}",
+          userStatus.getUserInfo().getUserEmail(),
+          userStatus.getUserInfo().getUserSubjectId());
+
       // Delete the user
       String userDeletionUrl =
           "%s/api/admin/v1/user/%s"
               .formatted(samConfig.getBasePath(), userStatus.getUserInfo().getUserSubjectId());
-      restTemplate.delete(userDeletionUrl);
+      try {
+        restTemplate.delete(userDeletionUrl);
+      } catch (HttpClientErrorException e) {
+        if (!e.getStatusCode().is2xxSuccessful()) {
+          logger.error(
+              "Error deleting user {} with id {} using user {} with url {}",
+              userStatus.getUserInfo().getUserEmail(),
+              userStatus.getUserInfo().getUserSubjectId(),
+              user,
+              userDeletionUrl);
+          throw e;
+        }
+      }
     } catch (ApiException e) {
       throw new RuntimeException(
           "Error deleting account %s from Terra".formatted(serviceAccount), e);

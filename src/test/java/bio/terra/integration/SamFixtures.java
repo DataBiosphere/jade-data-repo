@@ -13,7 +13,9 @@ import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -42,10 +44,10 @@ public class SamFixtures {
     logger.info("Deleting user {}", serviceAccount);
     try {
       // Get the user ID to delete
-      getHeaders(user);
+      HttpHeaders authedHeader = getHeaders(user);
       String accessToken =
           Optional.ofNullable(
-                  Optional.ofNullable(headers.get(HttpHeaders.AUTHORIZATION))
+                  Optional.ofNullable(authedHeader.get(HttpHeaders.AUTHORIZATION))
                       .orElse(List.of())
                       .iterator()
                       .next())
@@ -64,17 +66,16 @@ public class SamFixtures {
           "%s/api/admin/v1/user/%s"
               .formatted(samConfig.getBasePath(), userStatus.getUserInfo().getUserSubjectId());
       try {
-        restTemplate.delete(userDeletionUrl);
+        restTemplate.exchange(
+            userDeletionUrl, HttpMethod.DELETE, new HttpEntity<>(null, authedHeader), Void.class);
       } catch (HttpClientErrorException e) {
-        if (!e.getStatusCode().is2xxSuccessful()) {
-          logger.error(
-              "Error deleting user {} with id {} using user {} with url {}",
-              userStatus.getUserInfo().getUserEmail(),
-              userStatus.getUserInfo().getUserSubjectId(),
-              user,
-              userDeletionUrl);
-          throw e;
-        }
+        logger.error(
+            "Error deleting user {} with id {} using user {} with url {}",
+            userStatus.getUserInfo().getUserEmail(),
+            userStatus.getUserInfo().getUserSubjectId(),
+            user,
+            userDeletionUrl);
+        throw e;
       }
     } catch (ApiException e) {
       throw new RuntimeException(

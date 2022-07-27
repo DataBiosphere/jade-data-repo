@@ -564,7 +564,12 @@ public class SamIam implements IamProviderInterface {
   @Override
   public UserStatus registerUser(String accessToken) throws InterruptedException {
     logger.info("Registering the ingest service account into Terra");
-    SamRetry.retry(configurationService, () -> samUsersApi(accessToken).createUserV2());
+    SamRetry.retry(
+        configurationService,
+        () -> {
+          logger.info("Running the registration process");
+          samUsersApi(accessToken).createUserV2();
+        });
 
     logger.info("Accepting terms of service for the ingest service account in Terra");
     return SamRetry.retry(

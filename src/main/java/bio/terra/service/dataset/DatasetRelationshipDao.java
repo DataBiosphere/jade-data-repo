@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class DatasetRelationshipDao {
@@ -23,12 +26,13 @@ public class DatasetRelationshipDao {
   }
 
   // part of a transaction propagated from DatasetDao
-  public void createDatasetRelationships(Dataset dataset) {
-    for (Relationship rel : dataset.getRelationships()) {
+  public void createDatasetRelationships(List<Relationship> relationships) {
+    for (Relationship rel : relationships) {
       create(rel);
     }
   }
 
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   protected void create(Relationship relationship) {
     String sql =
         "INSERT INTO dataset_relationship "
@@ -74,5 +78,13 @@ public class DatasetRelationshipDao {
                 .fromColumn(columns.get(rs.getObject("from_column", UUID.class)))
                 .toTable(tables.get(rs.getObject("to_table", UUID.class)))
                 .toColumn(columns.get(rs.getObject("to_column", UUID.class))));
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean delete(UUID id) {
+    String sql = "DELETE FROM dataset_relationship WHERE id = :id";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    return rowsAffected > 0;
   }
 }

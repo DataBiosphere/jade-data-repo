@@ -6,6 +6,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetRelationshipDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTableDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -26,6 +27,7 @@ public class DatasetSchemaUpdateFlight extends Flight {
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetTableDao datasetTableDao = appContext.getBean(DatasetTableDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
+    DatasetRelationshipDao relationshipDao = appContext.getBean(DatasetRelationshipDao.class);
     BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
 
     AuthenticatedUserRequest userRequest =
@@ -63,6 +65,12 @@ public class DatasetSchemaUpdateFlight extends Flight {
       addStep(
           new DatasetSchemaUpdateAddColumnsBigQueryStep(
               bigQueryDatasetPdao, datasetDao, datasetId, updateModel));
+    }
+
+    if (DatasetSchemaUpdateUtils.hasRelationshipAdditions(updateModel)) {
+      addStep(
+          new DatasetSchemaUpdateAddRelationshipsPostgresStep(
+              datasetDao, datasetTableDao, datasetId, relationshipDao, updateModel));
     }
 
     addStep(

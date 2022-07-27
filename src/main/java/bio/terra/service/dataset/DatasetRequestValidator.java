@@ -11,14 +11,15 @@ import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatePartitionOptionsModel;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
-import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -319,50 +320,26 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
-  private void validateRelationshipTerm(
-      RelationshipTermModel term,
-      List<TableModel> tables,
-      Errors errors,
-      SchemaValidationContext context) {
-    String tableName = term.getTable();
-    String column = term.getColumn();
-    if (tableName != null && column != null) {
-      if (!context.isValidTableColumn(tableName, column)) {
-        errors.rejectValue(
-            "schema",
-            "InvalidRelationshipTermTableColumn",
-            "invalid table '" + tableName + "." + column + "'");
-      }
-    }
-    for (TableModel tableModel : tables) {
-      if (term.getTable().equals(tableModel.getName())) {
-        for (ColumnModel columnModel : tableModel.getColumns()) {
-          if (term.getColumn().equals(columnModel.getName())) {
-            validateColumnType(errors, columnModel, FOREIGN_KEY);
-          }
-        }
-      }
-    }
-  }
-
   private void validateRelationship(
       RelationshipModel relationship,
       List<TableModel> tables,
       Errors errors,
       SchemaValidationContext context) {
-    RelationshipTermModel fromTerm = relationship.getFrom();
-    if (fromTerm != null) {
-      validateRelationshipTerm(fromTerm, tables, errors, context);
-    }
-
-    RelationshipTermModel toTerm = relationship.getTo();
-    if (toTerm != null) {
-      validateRelationshipTerm(toTerm, tables, errors, context);
-    }
+    ArrayList<LinkedHashMap<String, String>> validationErrors =
+        ValidationUtils.getRelationshipValidationErrors(relationship, tables);
+    validationErrors.forEach(e -> rejectValues(errors, e));
 
     String relationshipName = relationship.getName();
     if (relationshipName != null) {
       context.addRelationship(relationshipName);
+    }
+  }
+
+  private void rejectValues(Errors errors, Map<String, String> errorMap) {
+    for (var entry : errorMap.entrySet()) {
+      var errorCode = entry.getKey();
+      var errorMessage = entry.getValue();
+      errors.rejectValue("schema", errorCode, errorMessage);
     }
   }
 

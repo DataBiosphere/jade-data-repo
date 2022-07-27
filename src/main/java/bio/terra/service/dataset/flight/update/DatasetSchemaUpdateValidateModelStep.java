@@ -1,11 +1,15 @@
 package bio.terra.service.dataset.flight.update;
 
 import bio.terra.common.Column;
+import bio.terra.common.Relationship;
+import bio.terra.common.ValidationUtils;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
+import bio.terra.model.RelationshipModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.stairway.FlightContext;
@@ -14,6 +18,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -81,7 +86,49 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
       }
     }
 
+    if (DatasetSchemaUpdateUtils.hasRelationshipAdditions(updateModel)) {
+      List<Relationship> existingRelationships = dataset.getRelationships();
+      List<RelationshipModel> newRelationships = updateModel.getChanges().getAddRelationships();
+      List<String> conflictingRelationshipNames =
+          conflictingRelationshipNames(existingRelationships, newRelationships);
+      if (!conflictingRelationshipNames.isEmpty()) {
+        return failsValidation(
+            "Could not validate relationship additions",
+            List.of(
+                "Relationships with these names already exist for this dataset: ",
+                String.join(", ", conflictingRelationshipNames)));
+      }
+
+      ArrayList<TableModel> allTables =
+          dataset.getTables().stream()
+              .map(DatasetJsonConversion::tableModelFromTable)
+              .collect(Collectors.toCollection(ArrayList::new));
+      if (DatasetSchemaUpdateUtils.hasTableAdditions(updateModel)) {
+        allTables.addAll(updateModel.getChanges().getAddTables());
+      }
+
+      ArrayList<String> validationErrors = new ArrayList<>();
+      for (var relationship : newRelationships) {
+        ArrayList<LinkedHashMap<String, String>> errors =
+            ValidationUtils.getRelationshipValidationErrors(relationship, allTables);
+        validationErrors.addAll(formatValidationErrors(errors));
+      }
+      if (!validationErrors.isEmpty()) {
+        return failsValidation(
+            "Could not validate relationship additions",
+            List.of("Found invalid terms: ", String.join(", ", validationErrors)));
+      }
+    }
     return StepResult.getStepResultSuccess();
+  }
+
+  private List<String> conflictingRelationshipNames(
+      List<Relationship> existingRelationships, List<RelationshipModel> newRelationships) {
+    List<String> existingRelationshipNames =
+        existingRelationships.stream().map(Relationship::getName).collect(Collectors.toList());
+    List<String> newRelationshipNames =
+        newRelationships.stream().map(RelationshipModel::getName).toList();
+    return ListUtils.intersection(existingRelationshipNames, newRelationshipNames);
   }
 
   private List<String> conflictingNewColumns(String tableName, List<ColumnModel> newColumns) {
@@ -108,6 +155,15 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
   private StepResult failsValidation(String message, List<String> reasons) {
     return new StepResult(
         StepStatus.STEP_RESULT_FAILURE_FATAL, new DatasetSchemaUpdateException(message, reasons));
+  }
+
+  private List<String> formatValidationErrors(ArrayList<LinkedHashMap<String, String>> errors) {
+    return errors.stream()
+        .flatMap(
+            errorMap ->
+                errorMap.entrySet().stream()
+                    .map(entry -> String.format("%s: %s", entry.getKey(), entry.getValue())))
+        .collect(Collectors.toList());
   }
 
   private static List<String> newColumnNames(List<ColumnModel> columns) {

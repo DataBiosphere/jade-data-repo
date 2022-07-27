@@ -410,7 +410,7 @@ public class DatasetDao {
     }
     dataset.createdDate(keyHolder.getCreatedDate());
     tableDao.createTables(dataset.getId(), dataset.getTables());
-    relationshipDao.createDatasetRelationships(dataset);
+    relationshipDao.createDatasetRelationships(dataset.getRelationships());
     assetDao.createAssets(dataset);
     storageResourceDao.createStorageAttributes(
         dataset.getDatasetSummary().getStorage(), dataset.getId());

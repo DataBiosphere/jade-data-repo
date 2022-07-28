@@ -568,8 +568,18 @@ public class SamIam implements IamProviderInterface {
     SamRetry.retry(
         configurationService,
         () -> {
-          logger.info("Running the registration process");
-          samUsersApi(accessToken).createUserV2();
+          try {
+            logger.info("Running the registration process");
+            samUsersApi(accessToken).createUserV2();
+          } catch(ApiException e) {
+            // This conflict could happen if the request timed out originally.
+            // In that case, it's ok to assume that this is a success and move on
+            if (e.getCode() == 409) {
+              logger.warn("User already exists - skipping", e);
+            } else {
+              throw e;
+            }
+          }
         });
 
     logger.info("Accepting terms of service for the ingest service account in Terra");

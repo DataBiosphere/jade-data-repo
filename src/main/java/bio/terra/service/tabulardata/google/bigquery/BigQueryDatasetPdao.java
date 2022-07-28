@@ -404,11 +404,6 @@ public class BigQueryDatasetPdao {
           + " VALUES (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c,"
           + " checksum_md5, error)";
 
-  private boolean tooManyDmlStatementsOutstanding(PdaoException ex) {
-    return ex.getCause() instanceof BigQueryException
-        && ex.getMessage().contains("Too many DML statements outstanding against table");
-  }
-
   public void mergeStagingLoadHistoryTable(Dataset dataset, String flightId)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
@@ -429,7 +424,7 @@ public class BigQueryDatasetPdao {
     try {
       bigQueryProject.query(sqlTemplate.render());
     } catch (PdaoException ex) {
-      if (tooManyDmlStatementsOutstanding(ex)) {
+      if (BigQueryPdao.tooManyDmlStatementsOutstanding(ex)) {
         throw new TooManyDmlStatementsOutstandingException(ex);
       }
       throw ex;

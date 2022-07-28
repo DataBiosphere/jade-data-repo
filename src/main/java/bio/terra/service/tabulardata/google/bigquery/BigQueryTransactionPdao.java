@@ -19,6 +19,7 @@ import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.TransactionLockException;
+import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValueList;
@@ -200,18 +201,23 @@ public class BigQueryTransactionPdao {
 
     Instant terminatedAt = Instant.now();
 
-    bigQueryProject.query(
-        sqlTemplate.render(),
-        Map.of(
-            "transactId",
-            QueryParameterValue.string(transactId.toString()),
-            "transactStatus",
-            QueryParameterValue.string(status.toString()),
-            "transactTerminatedAt",
-            QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(terminatedAt)),
-            "transactTerminatedBy",
-            QueryParameterValue.string(authedUser.getEmail())));
-
+    try {
+      bigQueryProject.query(
+          sqlTemplate.render(),
+          Map.of(
+              "transactId",
+              QueryParameterValue.string(transactId.toString()),
+              "transactStatus",
+              QueryParameterValue.string(status.toString()),
+              "transactTerminatedAt",
+              QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(terminatedAt)),
+              "transactTerminatedBy",
+              QueryParameterValue.string(authedUser.getEmail())));
+    } catch (PdaoException ex) {
+      if (BigQueryPdao.tooManyDmlStatementsOutstanding(ex)) {
+        throw new TooManyDmlStatementsOutstandingException(ex);
+      }
+    }
     return retrieveTransaction(dataset, transactId);
   }
 

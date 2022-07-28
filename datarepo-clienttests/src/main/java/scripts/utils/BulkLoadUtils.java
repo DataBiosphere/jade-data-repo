@@ -202,7 +202,7 @@ public class BulkLoadUtils {
 
   private static String bulkLoadFileModelToJson(BulkLoadFileModel fileModel) {
     String fileJSON =
-        "[{\"description\":\"Test file\", \"mimeType\":\"%s\", \"sourcePath\":\"%s\", \"targetPath\": \"%s\"}]";
+        "{\"description\":\"Test file\", \"mimeType\":\"%s\", \"sourcePath\":\"%s\", \"targetPath\": \"%s\"}";
     return String.format(
         fileJSON, fileModel.getMimeType(), fileModel.getSourcePath(), fileModel.getTargetPath());
   }

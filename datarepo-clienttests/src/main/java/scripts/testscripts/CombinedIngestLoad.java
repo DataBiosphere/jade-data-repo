@@ -6,12 +6,12 @@ import static org.hamcrest.Matchers.equalTo;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
-import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
 import bio.terra.datarepo.model.BulkLoadResultModel;
 import bio.terra.datarepo.model.CloudPlatform;
 import bio.terra.datarepo.model.ErrorModel;
 import bio.terra.datarepo.model.IngestRequestModel;
+import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
 import com.google.cloud.storage.BlobId;
 import common.utils.StorageUtils;
@@ -93,9 +93,10 @@ public class CombinedIngestLoad extends SimpleDataset {
             DataRepoUtils.getJobResult(repositoryApi, jobResponse, ErrorModel.class);
         errors.add(errorModel.getMessage());
       } else {
-        BulkLoadArrayResultModel result =
-            DataRepoUtils.getJobResult(repositoryApi, jobResponse, BulkLoadArrayResultModel.class);
-        BulkLoadResultModel loadSummary = result.getLoadSummary();
+        IngestResponseModel result =
+            DataRepoUtils.getJobResult(repositoryApi, jobResponse, IngestResponseModel.class);
+        BulkLoadResultModel loadSummary = result.getLoadResult().getLoadSummary();
+        assertThat("Result has expected row count", result.getRowCount(), equalTo(1));
         assertThat(
             "Number of successful files loaded should equal total files.",
             loadSummary.getTotalFiles(),

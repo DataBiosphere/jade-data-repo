@@ -111,6 +111,10 @@ public class ProfileService {
         String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
     return jobService
         .newJob(description, ProfileUpdateFlight.class, billingProfileRequest, user)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
+        .addParameter(
+            JobMapKeys.IAM_RESOURCE_ID.getKeyName(), billingProfileRequest.getId().toString())
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.UPDATE_BILLING_ACCOUNT)
         .submit();
   }
 
@@ -146,6 +150,9 @@ public class ProfileService {
         .newJob(description, ProfileDeleteFlight.class, null, user)
         .addParameter(ProfileMapKeys.PROFILE_ID, id)
         .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.DELETE)
         .submit();
   }
 

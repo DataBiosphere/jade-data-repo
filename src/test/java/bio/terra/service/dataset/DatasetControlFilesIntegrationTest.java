@@ -425,9 +425,9 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         dataRepoFixtures.createDatasetWithOwnServiceAccount(
             steward(), profileId, "dataset-ingest-combined-array.json");
 
+    datasetId = datasetSummaryModel.getId();
     ingestServiceAccount =
         dataRepoFixtures.getDataset(steward(), datasetId).getIngestServiceAccount();
-    datasetId = datasetSummaryModel.getId();
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()

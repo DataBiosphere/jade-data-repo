@@ -259,6 +259,9 @@ public class DatasetService {
         .newJob(description, DatasetDeleteFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.DELETE)
         .submit();
   }
 
@@ -359,6 +362,9 @@ public class DatasetService {
     return jobService
         .newJob(description, AddAssetSpecFlight.class, assetModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.MANAGE_SCHEMA)
         .submit();
   }
 
@@ -380,6 +386,9 @@ public class DatasetService {
         .newJob(description, RemoveAssetSpecFlight.class, assetId, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(JobMapKeys.ASSET_ID.getKeyName(), assetId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.MANAGE_SCHEMA)
         .submit();
   }
 
@@ -389,6 +398,9 @@ public class DatasetService {
     return jobService
         .newJob(description, DatasetDataDeleteFlight.class, dataDeletionRequest, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SOFT_DELETE)
         .submit();
   }
 
@@ -398,6 +410,9 @@ public class DatasetService {
     return jobService
         .newJob(description, DatasetSchemaUpdateFlight.class, updateModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.MANAGE_SCHEMA)
         .submit();
   }
 
@@ -443,6 +458,9 @@ public class DatasetService {
     return jobService
         .newJob(description, TransactionOpenFlight.class, transactionRequest, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 
@@ -482,6 +500,9 @@ public class DatasetService {
         .newJob(description, TransactionCommitFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(JobMapKeys.TRANSACTION_ID.getKeyName(), transactionId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 
@@ -492,6 +513,9 @@ public class DatasetService {
         .newJob(description, TransactionRollbackFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(JobMapKeys.TRANSACTION_ID.getKeyName(), transactionId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 

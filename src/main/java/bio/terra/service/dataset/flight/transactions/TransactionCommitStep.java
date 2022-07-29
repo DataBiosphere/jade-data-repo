@@ -6,11 +6,13 @@ import bio.terra.model.TransactionModel.StatusEnum;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,11 +48,15 @@ public class TransactionCommitStep implements Step {
         this.transactionId == null
             ? TransactionUtils.getTransactionId(context)
             : this.transactionId;
-    TransactionModel transaction =
-        bigQueryTransactionPdao.updateTransactionTableStatus(
-            userReq, dataset, transactionId, StatusEnum.COMMITTED);
-    if (returnTransaction) {
-      context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), transaction);
+    try {
+      TransactionModel transaction =
+          bigQueryTransactionPdao.updateTransactionTableStatus(
+              userReq, dataset, transactionId, StatusEnum.COMMITTED);
+      if (returnTransaction) {
+        context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), transaction);
+      }
+    } catch (TooManyDmlStatementsOutstandingException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
     return StepResult.getStepResultSuccess();
   }

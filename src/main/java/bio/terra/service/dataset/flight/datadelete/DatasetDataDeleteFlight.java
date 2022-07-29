@@ -57,6 +57,9 @@ public class DatasetDataDeleteFlight extends Flight {
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
+    RetryRule randomBackoffRetry =
+        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+
     DataDeletionRequest request =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DataDeletionRequest.class);
 
@@ -119,7 +122,8 @@ public class DatasetDataDeleteFlight extends Flight {
               datasetService, bigQueryTransactionPdao, request.getTransactionId(), userReq));
     } else {
       addStep(
-          new TransactionCommitStep(datasetService, bigQueryTransactionPdao, userReq, false, null));
+          new TransactionCommitStep(datasetService, bigQueryTransactionPdao, userReq, false, null),
+          randomBackoffRetry);
     }
 
     // unlock

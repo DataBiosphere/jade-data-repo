@@ -1297,27 +1297,18 @@ public class DataRepoFixtures {
 
   // Jobs
 
-  public <T> void getJobSuccess(String jobId, TestConfiguration.User user) throws Exception {
+  public void getJobSuccess(String jobId, TestConfiguration.User user) throws Exception {
     DataRepoResponse<JobModel> jobIdResponse = getJobIdRaw(jobId, user);
-    assertTrue(
-        "transaction create launch succeeded", jobIdResponse.getStatusCode().is2xxSuccessful());
-    assertTrue(
-        "transaction create launch response is present",
-        jobIdResponse.getResponseObject().isPresent());
-
-    //    DataRepoResponse<T> jobResultResponse = getJobResultRaw(jobId, user);
-    //    validateResponse(jobResultResponse, "retrieving job result", HttpStatus.OK,
-    // jobIdResponse);
+    try {
+      assertTrue("job launch succeeded", jobIdResponse.getStatusCode().is2xxSuccessful());
+      assertTrue("job launch response is present", jobIdResponse.getResponseObject().isPresent());
+    } catch (AssertionError e) {
+      throw new AssertionError(String.format("Job launch failed. Got response: %s", jobIdResponse));
+    }
   }
 
   public DataRepoResponse<JobModel> getJobIdRaw(String jobId, TestConfiguration.User user)
       throws Exception {
     return dataRepoClient.get(user, "/api/repository/v1/jobs/" + jobId, new TypeReference<>() {});
-  }
-
-  public <T> DataRepoResponse<T> getJobResultRaw(String jobId, TestConfiguration.User user)
-      throws Exception {
-    return dataRepoClient.get(
-        user, "/api/repository/v1/jobs/" + jobId + "/result", new TypeReference<>() {});
   }
 }

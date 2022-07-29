@@ -80,9 +80,8 @@ public class JobPermissionTest extends UsersBase {
         dataRepoFixtures.waitForDatasetCreate(steward(), jobResponse);
 
     datasetId = datasetSummaryModel.getId();
-
-    String datasetCreateJobId = jobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(datasetCreateJobId, custodian());
+    dataRepoFixtures.addPolicyMemberRaw(
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail(), IamResourceType.DATASET);
 
     // Ingest single file
     String ingestBucket = "jade-testdata-useastregion";
@@ -103,9 +102,6 @@ public class JobPermissionTest extends UsersBase {
     DataRepoResponse<FileModel> fileIngestResponse =
         dataRepoClient.waitForResponse(steward(), fileIngestJobResponse, new TypeReference<>() {});
     assert (fileIngestResponse.getStatusCode().is2xxSuccessful());
-
-    String fileIngestJobId = fileIngestJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(fileIngestJobId, custodian());
 
     String vcfIndexFilePath =
         gcsUtils.uploadTestFile(
@@ -146,9 +142,6 @@ public class JobPermissionTest extends UsersBase {
         dataRepoClient.waitForResponse(steward(), bulkLoadJobResponse, new TypeReference<>() {});
     assert (bulkLoadResponse.getStatusCode().is2xxSuccessful());
 
-    String bulkLoadJobId = bulkLoadJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(bulkLoadJobId, custodian());
-
     // Ingest metadata
     IngestRequestModel metadataIngestRequest =
         new IngestRequestModel()
@@ -160,8 +153,6 @@ public class JobPermissionTest extends UsersBase {
     DataRepoResponse<JobModel> metadataIngestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, metadataIngestRequest);
     assert (metadataIngestJobResponse.getStatusCode().is2xxSuccessful());
-    String metadataIngestJobId = metadataIngestJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(metadataIngestJobId, custodian());
 
     // Ingest metadata and files
     IngestRequestModel combinedIngestRequest =
@@ -176,6 +167,20 @@ public class JobPermissionTest extends UsersBase {
     DataRepoResponse<JobModel> combinedIngestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, combinedIngestRequest);
     assert (combinedIngestJobResponse.getStatusCode().is2xxSuccessful());
+
+    // Verify custodian can view jobs
+    String datasetCreateJobId = jobResponse.getResponseObject().get().getId();
+    dataRepoFixtures.getJobSuccess(datasetCreateJobId, custodian());
+
+    String fileIngestJobId = fileIngestJobResponse.getResponseObject().get().getId();
+    dataRepoFixtures.getJobSuccess(fileIngestJobId, custodian());
+
+    String bulkLoadJobId = bulkLoadJobResponse.getResponseObject().get().getId();
+    dataRepoFixtures.getJobSuccess(bulkLoadJobId, custodian());
+
+    String metadataIngestJobId = metadataIngestJobResponse.getResponseObject().get().getId();
+    dataRepoFixtures.getJobSuccess(metadataIngestJobId, custodian());
+
     String combinedIngestJobId = combinedIngestJobResponse.getResponseObject().get().getId();
     dataRepoFixtures.getJobSuccess(combinedIngestJobId, custodian());
   }

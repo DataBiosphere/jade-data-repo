@@ -30,7 +30,6 @@ public class CombinedIngestLoad extends SimpleDataset {
   /** Public constructor so that this class can be instantiated via reflection. */
   public CombinedIngestLoad() {
     super();
-    //    manipulatesKubernetes = true; // this test script manipulates Kubernetes
   }
 
   private int filesToLoad;
@@ -96,7 +95,7 @@ public class CombinedIngestLoad extends SimpleDataset {
         IngestResponseModel result =
             DataRepoUtils.getJobResult(repositoryApi, jobResponse, IngestResponseModel.class);
         BulkLoadResultModel loadSummary = result.getLoadResult().getLoadSummary();
-        assertThat("Result has expected row count", result.getRowCount(), equalTo(1));
+        assertThat("Result has expected row count", result.getRowCount(), equalTo(1L));
         assertThat(
             "Number of successful files loaded should equal total files.",
             loadSummary.getTotalFiles(),

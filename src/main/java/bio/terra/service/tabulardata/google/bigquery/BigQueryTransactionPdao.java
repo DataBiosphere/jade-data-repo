@@ -217,6 +217,7 @@ public class BigQueryTransactionPdao {
       if (BigQueryPdao.tooManyDmlStatementsOutstanding(ex)) {
         throw new TooManyDmlStatementsOutstandingException(ex);
       }
+      throw ex;
     }
     return retrieveTransaction(dataset, transactId);
   }

@@ -86,7 +86,8 @@ public class DatasetDataDeleteFlight extends Flight {
       String transactionDesc = "Autocommit transaction";
       addStep(
           new TransactionOpenStep(
-              datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false));
+              datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false),
+          randomBackoffRetry);
       autocommit = true;
     } else {
       addStep(

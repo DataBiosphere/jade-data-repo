@@ -161,11 +161,11 @@ public class BigQueryPdaoUnitTest {
 
     when(bigQueryProjectDataset.tableExists(dataset.getName(), PDAO_LOAD_HISTORY_TABLE))
         .thenReturn(true);
-    Throwable cause = new BigQueryException(HttpStatus.BAD_REQUEST.value(), "exception");
+    Throwable cause =
+        new BigQueryException(
+            HttpStatus.BAD_REQUEST.value(), "Too many DML statements outstanding against table");
     BQTestUtils.mockBQQueryError(
-        bigQueryProjectDataset,
-        query,
-        new PdaoException("Too many DML statements outstanding against table", cause));
+        bigQueryProjectDataset, query, new PdaoException("Failure executing query", cause));
     assertThrows(
         TooManyDmlStatementsOutstandingException.class,
         () -> bigQueryDatasetPdao.mergeStagingLoadHistoryTable(dataset, flightId));

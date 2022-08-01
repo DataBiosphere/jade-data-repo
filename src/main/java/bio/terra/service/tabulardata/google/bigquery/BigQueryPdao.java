@@ -89,6 +89,7 @@ public abstract class BigQueryPdao {
 
   public static boolean tooManyDmlStatementsOutstanding(PdaoException ex) {
     return ex.getCause() instanceof BigQueryException
-        && ex.getMessage().contains("Too many DML statements outstanding against table");
+        && (ex.getCause().getMessage().contains("Too many DML statements outstanding against table")
+            || ((BigQueryException) ex.getCause()).getReason().contains("jobRateLimitExceeded"));
   }
 }

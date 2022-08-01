@@ -57,6 +57,8 @@ public class TransactionCommitStep implements Step {
       }
     } catch (TooManyDmlStatementsOutstandingException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+    } catch (InterruptedException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
     return StepResult.getStepResultSuccess();
   }

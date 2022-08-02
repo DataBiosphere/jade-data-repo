@@ -571,7 +571,7 @@ public class SamIam implements IamProviderInterface {
           try {
             logger.info("Running the registration process");
             samUsersApi(accessToken).createUserV2();
-          } catch(ApiException e) {
+          } catch (ApiException e) {
             // This conflict could happen if the request timed out originally.
             // In that case, it's ok to assume that this is a success and move on
             if (e.getCode() == 409) {

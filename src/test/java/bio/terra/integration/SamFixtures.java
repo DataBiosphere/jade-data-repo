@@ -41,7 +41,7 @@ public class SamFixtures {
   }
 
   public void deleteServiceAccountFromTerra(TestConfiguration.User user, String serviceAccount) {
-    logger.info("Deleting user {}", serviceAccount);
+    logger.info("Deleting user {} from Sam {}", serviceAccount, samConfig.getBasePath());
     try {
       // Get the user ID to delete
       HttpHeaders authedHeader = getHeaders(user);

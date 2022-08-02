@@ -75,16 +75,16 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 
+    if (ingestServiceAccount != null) {
+      samFixtures.deleteServiceAccountFromTerra(steward(), ingestServiceAccount);
+    }
+
     if (datasetId != null) {
       dataRepoFixtures.deleteDataset(steward(), datasetId);
     }
 
     if (profileId != null) {
       dataRepoFixtures.deleteProfileLog(steward(), profileId);
-    }
-
-    if (ingestServiceAccount != null) {
-      samFixtures.deleteServiceAccountFromTerra(steward(), ingestServiceAccount);
     }
   }
 

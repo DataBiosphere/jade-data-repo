@@ -106,6 +106,10 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
       dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
     }
 
+    if (ingestServiceAccount != null) {
+      samFixtures.deleteServiceAccountFromTerra(steward(), ingestServiceAccount);
+    }
+
     if (datasetId != null) {
       dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
@@ -121,10 +125,6 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     if (ingestServiceAccount != null && ingestBucket != null) {
       DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
           ingestBucket, ingestServiceAccount, StorageRoles.objectViewer());
-    }
-
-    if (ingestServiceAccount != null) {
-      samFixtures.deleteServiceAccountFromTerra(steward(), ingestServiceAccount);
     }
   }
 

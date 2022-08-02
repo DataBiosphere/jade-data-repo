@@ -7,10 +7,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.Column;
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.Relationship;
 import bio.terra.common.category.Connected;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -23,12 +25,15 @@ import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModelChanges;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.RelationshipModel;
+import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetRelationshipDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetTableDao;
@@ -78,6 +83,7 @@ public class DatasetSchemaUpdateConnectedTest {
   @Autowired private ConfigurationService configService;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private BigQueryDatasetPdao bigQueryDatasetPdao;
+  @Autowired private DatasetRelationshipDao relationshipDao;
   @MockBean private IamProviderInterface samService;
 
   private BillingProfileModel billingProfile;
@@ -101,6 +107,7 @@ public class DatasetSchemaUpdateConnectedTest {
         .defaultProfileId(billingProfile.getId());
     summaryModel = connectedOperations.createDataset(datasetRequest);
     datasetId = summaryModel.getId();
+    relationshipDao = spy(relationshipDao);
     logger.info("--------begin test---------");
   }
 
@@ -479,6 +486,42 @@ public class DatasetSchemaUpdateConnectedTest {
           String.format("the new table %s does not exist in BigQuery", postUndoBigQueryTable),
           bigQueryDatasetPdao.tableExists(postUpdateDataset, postUndoBigQueryTable));
     }
+  }
+
+  private RelationshipModel testRelationshipModel(String relationshipName) {
+    return new RelationshipModel()
+        .name(relationshipName)
+        .from(new RelationshipTermModel().table("thetable").column("thecolumn"))
+        .to(new RelationshipTermModel().table("anothertable").column("anothercolumn"));
+  }
+
+  @Test
+  public void testRelationshipAdditionSteps() throws Exception {
+    String relationshipName = UUID.randomUUID().toString();
+    DatasetSchemaUpdateModel updateModel =
+        new DatasetSchemaUpdateModel()
+            .description("Connected test relationship addition")
+            .changes(
+                new DatasetSchemaUpdateModelChanges()
+                    .addRelationships(List.of(testRelationshipModel(relationshipName))));
+
+    FlightContext flightContext = mock(FlightContext.class);
+    DatasetSchemaUpdateAddRelationshipsPostgresStep postgresStep =
+        new DatasetSchemaUpdateAddRelationshipsPostgresStep(
+            datasetDao, datasetTableDao, datasetId, relationshipDao, updateModel);
+
+    postgresStep.doStep(flightContext);
+
+    Dataset postUpdateDataset = datasetDao.retrieve(datasetId);
+    List<String> postUpdateRelationships =
+        postUpdateDataset.getRelationships().stream().map(Relationship::getName).toList();
+    assertTrue("New relationship was created", postUpdateRelationships.contains(relationshipName));
+
+    postgresStep.undoStep(flightContext);
+    Dataset postUndoDataset = datasetDao.retrieve(datasetId);
+    List<String> postUndoRelationships =
+        postUndoDataset.getRelationships().stream().map(Relationship::getName).toList();
+    assertFalse("New relationship was deleted", postUndoRelationships.contains(relationshipName));
   }
 
   private Map<String, Field> getBigQueryFieldsMap(

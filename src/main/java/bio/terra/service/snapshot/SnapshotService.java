@@ -4,6 +4,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
@@ -13,6 +14,7 @@ import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
 import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.grammar.Query;
+import bio.terra.model.AccessInfoModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
@@ -49,6 +51,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -97,6 +100,8 @@ public class SnapshotService {
   private final IamService iamService;
   private final EcmService ecmService;
 
+  private final AzureSynapsePdao azureSynapsePdao;
+
   @Autowired
   public SnapshotService(
       JobService jobService,
@@ -107,7 +112,8 @@ public class SnapshotService {
       SnapshotTableDao snapshotTableDao,
       MetadataDataAccessUtils metadataDataAccessUtils,
       IamService iamService,
-      EcmService ecmService) {
+      EcmService ecmService,
+      AzureSynapsePdao azureSynapsePdao) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -117,6 +123,7 @@ public class SnapshotService {
     this.metadataDataAccessUtils = metadataDataAccessUtils;
     this.iamService = iamService;
     this.ecmService = ecmService;
+    this.azureSynapsePdao = azureSynapsePdao;
   }
 
   /**
@@ -568,6 +575,7 @@ public class SnapshotService {
   }
 
   public SnapshotPreviewModel retrievePreview(
+      AuthenticatedUserRequest userRequest,
       UUID snapshotId,
       String tableName,
       int limit,
@@ -594,19 +602,48 @@ public class SnapshotService {
                       "No snapshot table column exists with the name: " + sort));
     }
 
-    List<String> columns =
-        snapshotTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(
+            snapshot.getFirstSnapshotSource().getDataset().getDatasetSummary().getCloudPlatform());
 
-    try {
-      List<Map<String, Object>> values =
-          bigQuerySnapshotPdao.getSnapshotTable(
-              snapshot, tableName, columns, limit, offset, sort, direction, filter);
+    if (cloudPlatformWrapper.isGcp()) {
+      try {
+        List<String> columns =
+            snapshotTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
 
+        List<Map<String, Object>> values =
+            bigQuerySnapshotPdao.getSnapshotTable(
+                snapshot, tableName, columns, limit, offset, sort, direction, filter);
+
+        return new SnapshotPreviewModel().result(List.copyOf(values));
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new SnapshotPreviewException(
+            "Error retrieving preview for snapshot " + snapshot.getName(), e);
+      }
+    } else if (cloudPlatformWrapper.isAzure()) {
+      AccessInfoModel accessInfoModel =
+          metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest, tableName);
+      String credName = AzureSynapsePdao.getCredentialName(snapshot, userRequest.getEmail());
+      String datasourceName = AzureSynapsePdao.getDataSourceName(snapshot, userRequest.getEmail());
+      String metadataUrl =
+          "%s?%s"
+              .formatted(
+                  accessInfoModel.getParquet().getUrl(),
+                  accessInfoModel.getParquet().getSasToken());
+
+      try {
+        azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
+      } catch (Exception e) {
+        throw new RuntimeException("Could not configure external datasource", e);
+      }
+
+      List<Map<String, Optional<Object>>> values =
+          azureSynapsePdao.getSnapshotTableData(
+              userRequest, snapshot, tableName, limit, offset, sort, direction, filter);
       return new SnapshotPreviewModel().result(List.copyOf(values));
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new SnapshotPreviewException(
-          "Error retrieving preview for snapshot " + snapshot.getName(), e);
+    } else {
+      throw new SnapshotPreviewException("Cloud not supported");
     }
   }
 

@@ -229,7 +229,8 @@ public class FileIngestBulkFlight extends Flight {
               datasetUuid,
               loadTag,
               loadHistoryWaitSeconds,
-              loadHistoryChunkSize));
+              loadHistoryChunkSize),
+          randomBackoffRetry);
     } else if (platform.isAzure()) {
       addStep(
           new IngestCopyLoadHistoryToStorageTableStep(

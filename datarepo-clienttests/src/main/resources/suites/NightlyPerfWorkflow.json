@@ -11,6 +11,7 @@
     "profiling/BuildSnapshotWithFiles1000_50.json",
     "profiling/BulkLoadScale200_20.json",
     "functional/CreateSnapshot.json",
-    "functional/AzureCreateSnapshot.json"
+    "functional/AzureCreateSnapshot.json",
+    "profiling/CombinedIngestLoadScale50.json"
   ]
 }

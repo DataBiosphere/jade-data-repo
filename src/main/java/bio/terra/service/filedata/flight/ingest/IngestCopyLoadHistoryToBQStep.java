@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
@@ -66,6 +67,8 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
       bigQueryDatasetPdao.deleteStagingLoadHistoryTable(resources.dataset, tableNameFlightId);
 
       return StepResult.getStepResultSuccess();
+    } catch (TooManyDmlStatementsOutstandingException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     } catch (InterruptedException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }

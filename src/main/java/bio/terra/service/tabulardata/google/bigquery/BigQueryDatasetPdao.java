@@ -33,6 +33,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.tabulardata.LoadHistoryUtil;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
@@ -392,7 +393,7 @@ public class BigQueryDatasetPdao {
     bigQueryProject.query(sqlTemplate.render());
   }
 
-  private static final String mergeLoadHistoryStagingTableTemplate =
+  public static final String mergeLoadHistoryStagingTableTemplate =
       "MERGE `<project>.<dataset>.<loadTable>` L"
           + " USING `<project>.<dataset>.<stagingTable>` S"
           + " ON S.load_tag = L.load_tag AND S.load_time = L.load_time"
@@ -420,7 +421,14 @@ public class BigQueryDatasetPdao {
     sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
     sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
 
-    bigQueryProject.query(sqlTemplate.render());
+    try {
+      bigQueryProject.query(sqlTemplate.render());
+    } catch (PdaoException ex) {
+      if (BigQueryPdao.tooManyDmlStatementsOutstanding(ex)) {
+        throw new TooManyDmlStatementsOutstandingException(ex);
+      }
+      throw ex;
+    }
   }
 
   private static final String getLoadHistoryTemplate =

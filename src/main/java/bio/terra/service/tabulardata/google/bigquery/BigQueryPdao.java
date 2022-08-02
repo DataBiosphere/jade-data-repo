@@ -6,9 +6,11 @@ import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
+import bio.terra.common.exception.PdaoException;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Acl;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
 import java.util.Collection;
@@ -83,5 +85,11 @@ public abstract class BigQueryPdao {
   static long getSingleLongValue(TableResult result) {
     FieldValueList fieldValues = result.getValues().iterator().next();
     return fieldValues.get(0).getLongValue();
+  }
+
+  public static boolean tooManyDmlStatementsOutstanding(PdaoException ex) {
+    return ex.getCause() instanceof BigQueryException
+        && (ex.getCause().getMessage().contains("Too many DML statements outstanding against table")
+            || ((BigQueryException) ex.getCause()).getReason().contains("jobRateLimitExceeded"));
   }
 }

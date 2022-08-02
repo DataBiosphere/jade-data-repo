@@ -1,5 +1,8 @@
 package bio.terra.service.dataset.flight.transactions;
 
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
+
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -9,6 +12,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRule;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
@@ -19,6 +23,7 @@ public class TransactionCommitFlight extends Flight {
 
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryTransactionPdao bigQueryTransactionPdao =
         appContext.getBean(BigQueryTransactionPdao.class);
@@ -33,6 +38,9 @@ public class TransactionCommitFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
+    RetryRule randomBackoffRetry =
+        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+
     if (cloudPlatform.isGcp()) {
       addStep(
           new TransactionLockStep(
@@ -40,7 +48,8 @@ public class TransactionCommitFlight extends Flight {
       addStep(new TransactionVerifyStep(datasetService, bigQueryTransactionPdao, transactionId));
       addStep(
           new TransactionCommitStep(
-              datasetService, bigQueryTransactionPdao, userReq, true, transactionId));
+              datasetService, bigQueryTransactionPdao, userReq, true, transactionId),
+          randomBackoffRetry);
       addStep(
           new TransactionUnlockStep(
               datasetService, bigQueryTransactionPdao, transactionId, userReq));

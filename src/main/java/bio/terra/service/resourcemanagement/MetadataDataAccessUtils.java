@@ -19,6 +19,7 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import java.time.Duration;
@@ -84,6 +85,11 @@ public final class MetadataDataAccessUtils {
   /** Generate an {@link AccessInfoModel} from a Snapshot */
   public AccessInfoModel accessInfoFromSnapshot(
       final Snapshot snapshot, final AuthenticatedUserRequest userRequest) {
+    return accessInfoFromSnapshot(snapshot, userRequest, null);
+  }
+  /** Generate an {@link AccessInfoModel} from a Snapshot */
+  public AccessInfoModel accessInfoFromSnapshot(
+      final Snapshot snapshot, final AuthenticatedUserRequest userRequest, String forTable) {
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(
             snapshot
@@ -100,8 +106,17 @@ public final class MetadataDataAccessUtils {
       BillingProfileModel profileModel =
           profileService.getProfileByIdNoCheck(snapshot.getProfileId());
       AzureStorageAccountResource storageAccountResource = snapshot.getStorageAccountResource();
+      List<SnapshotTable> tables;
+      if (forTable == null) {
+        tables = snapshot.getTables();
+      } else {
+        tables =
+            snapshot.getTables().stream()
+                .filter(t -> t.getName().equalsIgnoreCase(forTable))
+                .collect(Collectors.toList());
+      }
       return makeAccessInfoAzure(
-          snapshot, storageAccountResource, snapshot.getTables(), profileModel, userRequest);
+          snapshot, storageAccountResource, tables, profileModel, userRequest);
     } else {
       throw new InvalidCloudPlatformException();
     }

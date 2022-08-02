@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SqlSortDirection;
@@ -43,6 +44,12 @@ import org.springframework.test.web.servlet.MockMvc;
 @Category(Unit.class)
 public class SearchApiControllerTest {
 
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
   private static final String GET_PREVIEW_ENDPOINT =
       "/api/repository/v1/snapshots/{id}/data/{table}";
   private static final String UPSERT_DELETE_ENDPOINT = "/api/repository/v1/search/{id}/metadata";
@@ -63,7 +70,8 @@ public class SearchApiControllerTest {
       throws Exception {
     var list = List.of("hello", "world");
     var result = new SnapshotPreviewModel().result(List.copyOf(list));
-    when(snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
+    when(snapshotService.retrievePreview(
+            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER)))
         .thenReturn(result);
     mvc.perform(
             get(GET_PREVIEW_ENDPOINT, id, table)
@@ -76,7 +84,8 @@ public class SearchApiControllerTest {
   }
 
   private void mockSnapshotPreviewByIdError(UUID id, String table, String column) throws Exception {
-    when(snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER))
+    when(snapshotService.retrievePreview(
+            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER)))
         .thenThrow(SnapshotPreviewException.class);
     mvc.perform(
             get(GET_PREVIEW_ENDPOINT, id, table)
@@ -94,7 +103,9 @@ public class SearchApiControllerTest {
     var column = "good_column";
     mockSnapshotPreviewByIdSuccess(id, table, column);
     verify(snapshotService).verifySnapshotAccessible(eq(id), any());
-    verify(snapshotService).retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+    verify(snapshotService)
+        .retrievePreview(
+            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER));
   }
 
   @Test
@@ -104,7 +115,9 @@ public class SearchApiControllerTest {
     var column = "datarepo_row_id";
     mockSnapshotPreviewByIdSuccess(id, table, column);
     verify(snapshotService).verifySnapshotAccessible(eq(id), any());
-    verify(snapshotService).retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+    verify(snapshotService)
+        .retrievePreview(
+            any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER));
   }
 
   @Test(expected = SnapshotPreviewException.class)
@@ -114,7 +127,7 @@ public class SearchApiControllerTest {
     var column = "bad_column";
     mockSnapshotPreviewByIdError(id, table, column);
     verify(snapshotService).verifySnapshotAccessible(eq(id), any());
-    snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+    snapshotService.retrievePreview(TEST_USER, id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
   }
 
   @Test(expected = SnapshotPreviewException.class)
@@ -124,7 +137,7 @@ public class SearchApiControllerTest {
     var column = "good_column";
     mockSnapshotPreviewByIdError(id, table, column);
     verify(snapshotService).verifySnapshotAccessible(eq(id), any());
-    snapshotService.retrievePreview(id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
+    snapshotService.retrievePreview(TEST_USER, id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
   }
 
   @Test

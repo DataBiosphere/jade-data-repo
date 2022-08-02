@@ -61,6 +61,7 @@ import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -496,8 +497,8 @@ public class SnapshotService {
   /**
    * @param snapshotSummary
    * @param passports RAS passports as JWT tokens
-   * @return ValidatePassportResult indicating whether the snapshot's contents are accessible via a
-   *     supplied RAS passports
+   * @return ValidatePassportResult indicating whether the snapshot's contents are accessible via
+   *     one of the supplied RAS passports
    */
   public ValidatePassportResult verifyPassportAuth(
       SnapshotSummaryModel snapshotSummary, List<String> passports) {
@@ -516,6 +517,12 @@ public class SnapshotService {
         new ValidatePassportRequest().passports(passports).criteria(List.of(criterion));
 
     return ecmService.validatePassport(validatePassportRequest);
+  }
+
+  @VisibleForTesting
+  public String passportInvalidForSnapshotErrorMsg(String userEmail) {
+    return String.format(
+        "Snapshot's passport criteria do not match %s's linked RAS passport", userEmail);
   }
 
   /**
@@ -546,11 +553,7 @@ public class SnapshotService {
           if (verifyPassportAuth(snapshotSummary, List.of(passport)).isValid()) {
             authorized = true;
           } else {
-            String cause =
-                String.format(
-                    "Snapshot's passport criteria do not match %s's linked RAS passport",
-                    userEmail);
-            causes.add(cause);
+            causes.add(passportInvalidForSnapshotErrorMsg(userEmail));
           }
         }
       } catch (Exception ecmEx) {

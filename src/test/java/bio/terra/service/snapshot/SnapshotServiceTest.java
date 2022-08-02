@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -10,6 +11,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,7 +22,9 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
+import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
@@ -40,6 +44,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
@@ -90,6 +95,9 @@ public class SnapshotServiceTest {
   private static final String SNAPSHOT_DATA_PROJECT = "tdrdataproject";
   private static final String SNAPSHOT_TABLE_NAME = "tableA";
   private static final String SNAPSHOT_COLUMN_NAME = "columnA";
+  private static final String PHS_ID = "phs123456";
+  private static final String CONSENT_CODE = "c99";
+  private static final String PASSPORT = "passportJwt";
 
   @MockBean private JobService jobService;
   @MockBean private DatasetService datasetService;
@@ -389,9 +397,7 @@ public class SnapshotServiceTest {
 
   @Test
   public void listRasAuthorizedSnapshots() throws Exception {
-    String consentCode = "c01";
-    String phsId = "phs123456";
-    List<RasDbgapPermissions> perms = List.of(new RasDbgapPermissions(consentCode, phsId));
+    List<RasDbgapPermissions> perms = List.of(new RasDbgapPermissions(CONSENT_CODE, PHS_ID));
     List<UUID> uuids = List.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
 
     // First attempt: No linked passport.
@@ -453,9 +459,9 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void verifyPassportAuthNoPhsId() {
+  public void verifyPassportAuthNoPassports() {
     SnapshotSummaryModel snapshotSummaryModel =
-        new SnapshotSummaryModel().id(snapshotId).consentCode("c99");
+        new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID).consentCode(CONSENT_CODE);
     assertThrows(
         InvalidAuthorizationMethod.class,
         () -> service.verifyPassportAuth(snapshotSummaryModel, List.of()));
@@ -463,12 +469,176 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void verifyPassportAuthNoConsentCode() {
+  public void verifyPassportAuthNoPhsId() {
     SnapshotSummaryModel snapshotSummaryModel =
-        new SnapshotSummaryModel().id(snapshotId).phsId("phs1240343");
+        new SnapshotSummaryModel().id(snapshotId).consentCode(CONSENT_CODE);
     assertThrows(
         InvalidAuthorizationMethod.class,
-        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of()));
+        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt")));
     verify(ecmService, never()).validatePassport(any());
+  }
+
+  @Test
+  public void verifyPassportAuthNoConsentCode() {
+    SnapshotSummaryModel snapshotSummaryModel =
+        new SnapshotSummaryModel().id(snapshotId).phsId(PHS_ID);
+    assertThrows(
+        InvalidAuthorizationMethod.class,
+        () -> service.verifyPassportAuth(snapshotSummaryModel, List.of("passportJwt")));
+    verify(ecmService, never()).validatePassport(any());
+  }
+
+  @Test
+  public void verifySnapshotAccessibleBySam() {
+    when(ecmService.getRasProviderPassport(TEST_USER))
+        .thenThrow(new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT));
+
+    service.verifySnapshotAccessible(snapshotId, TEST_USER);
+
+    verify(iamService, times(1))
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+    verify(ecmService, never()).getRasProviderPassport(TEST_USER);
+    verify(ecmService, never()).validatePassport(any());
+  }
+
+  private void mockSnapshotSummaryWithPassportCriteria() {
+    SnapshotSummary snapshotSummary =
+        new SnapshotSummary()
+            .id(snapshotId)
+            .createdDate(createdDate)
+            .storage(List.of())
+            .phsId(PHS_ID)
+            .consentCode(CONSENT_CODE);
+    when(snapshotDao.retrieveSummaryById(snapshotId)).thenReturn(snapshotSummary);
+  }
+
+  /**
+   * @return exception thrown when attempting to verify snapshot authorization via SAM
+   */
+  private IamForbiddenException mockSnapshotInaccessibleViaSam() {
+    IamForbiddenException samEx = new IamForbiddenException("Snapshot inaccessible via SAM");
+    doThrow(samEx)
+        .when(iamService)
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+    return samEx;
+  }
+
+  @Test
+  public void verifySnapshotInaccessibleWithoutSamAndNoEcmLinkedPassport() {
+    mockSnapshotSummaryWithPassportCriteria();
+    IamForbiddenException samEx = mockSnapshotInaccessibleViaSam();
+
+    when(ecmService.getRasProviderPassport(TEST_USER)).thenReturn(null);
+
+    Throwable thrown =
+        assertThrows(
+            UnauthorizedException.class,
+            () -> service.verifySnapshotAccessible(snapshotId, TEST_USER));
+    assertThat(
+        "Only SAM error returned as cause when no linked passport",
+        ((UnauthorizedException) thrown).getCauses(),
+        contains(samEx.getMessage()));
+
+    verify(iamService, times(1))
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+    verify(ecmService, times(1)).getRasProviderPassport(TEST_USER);
+    verify(ecmService, never()).validatePassport(any());
+  }
+
+  @Test
+  public void verifySnapshotInaccessibleWithoutSamAndEcmPassportThrowable() {
+    mockSnapshotSummaryWithPassportCriteria();
+    IamForbiddenException samEx = mockSnapshotInaccessibleViaSam();
+
+    HttpClientErrorException ecmEx =
+        new HttpClientErrorException(
+            HttpStatus.I_AM_A_TEAPOT, "ecmService.getRasProviderPassport threw");
+    when(ecmService.getRasProviderPassport(TEST_USER)).thenThrow(ecmEx);
+
+    Throwable thrown =
+        assertThrows(
+            UnauthorizedException.class,
+            () -> service.verifySnapshotAccessible(snapshotId, TEST_USER));
+    assertThat(
+        "SAM and ECM exception messages returned when ECM passport fetch throws",
+        ((UnauthorizedException) thrown).getCauses(),
+        contains(samEx.getMessage(), ecmEx.getMessage()));
+
+    verify(iamService, times(1))
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+    verify(ecmService, times(1)).getRasProviderPassport(TEST_USER);
+    verify(ecmService, never()).validatePassport(any());
+  }
+
+  @Test
+  public void verifySnapshotInaccessibleWithoutSamAndEcmPassportValidationThrowable() {
+    mockSnapshotSummaryWithPassportCriteria();
+    IamForbiddenException samEx = mockSnapshotInaccessibleViaSam();
+
+    when(ecmService.getRasProviderPassport(TEST_USER)).thenReturn(PASSPORT);
+    HttpClientErrorException ecmEx =
+        new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT, "ecmService.validatePassport threw");
+    when(ecmService.validatePassport(any())).thenThrow(ecmEx);
+
+    Throwable thrown =
+        assertThrows(
+            UnauthorizedException.class,
+            () -> service.verifySnapshotAccessible(snapshotId, TEST_USER));
+    assertThat(
+        "SAM and ECM exception messages returned when ECM passport validation throws",
+        ((UnauthorizedException) thrown).getCauses(),
+        contains(samEx.getMessage(), ecmEx.getMessage()));
+
+    verify(iamService, times(1))
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+    verify(ecmService, times(1)).getRasProviderPassport(TEST_USER);
+    verify(ecmService, times(1)).validatePassport(any());
+  }
+
+  @Test
+  public void verifySnapshotInaccessibleWithoutSamAndEcmPassportInvalid() {
+    mockSnapshotSummaryWithPassportCriteria();
+    IamForbiddenException samEx = mockSnapshotInaccessibleViaSam();
+
+    when(ecmService.getRasProviderPassport(TEST_USER)).thenReturn(PASSPORT);
+    when(ecmService.validatePassport(any())).thenReturn(new ValidatePassportResult().valid(false));
+
+    Throwable thrown =
+        assertThrows(
+            UnauthorizedException.class,
+            () -> service.verifySnapshotAccessible(snapshotId, TEST_USER));
+    assertThat(
+        "SAM and ECM exception messages returned when ECM passport is invalid",
+        ((UnauthorizedException) thrown).getCauses(),
+        contains(
+            samEx.getMessage(), service.passportInvalidForSnapshotErrorMsg(TEST_USER.getEmail())));
+
+    verify(iamService, times(1))
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+    verify(ecmService, times(1)).getRasProviderPassport(TEST_USER);
+    verify(ecmService, times(1)).validatePassport(any());
+  }
+
+  @Test
+  public void verifySnapshotAccessibleByEcm() {
+    mockSnapshotSummaryWithPassportCriteria();
+    mockSnapshotInaccessibleViaSam();
+
+    when(ecmService.getRasProviderPassport(TEST_USER)).thenReturn(PASSPORT);
+    when(ecmService.validatePassport(any())).thenReturn(new ValidatePassportResult().valid(true));
+
+    service.verifySnapshotAccessible(snapshotId, TEST_USER);
+
+    verify(iamService, times(1))
+        .verifyAuthorization(
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+    verify(ecmService, times(1)).getRasProviderPassport(TEST_USER);
+    verify(ecmService, times(1)).validatePassport(any());
   }
 }

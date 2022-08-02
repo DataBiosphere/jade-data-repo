@@ -104,6 +104,9 @@ public class DatasetIngestFlight extends Flight {
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
+    RetryRule randomBackoffRetry =
+        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+
     // Add these steps to clear out scratch file if the flight has failed
     if (cloudPlatform.isGcp()) {
       addStep(new PerformPayloadIngestStep(new IngestLandingFileDeleteGcpStep(true, gcsPdao)));
@@ -130,7 +133,8 @@ public class DatasetIngestFlight extends Flight {
         String transactionDesc = "Autocommit transaction";
         addStep(
             new TransactionOpenStep(
-                datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false));
+                datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false),
+            randomBackoffRetry);
         autocommit = true;
       } else {
         addStep(
@@ -154,8 +158,6 @@ public class DatasetIngestFlight extends Flight {
           configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS);
       int loadHistoryChunkSize =
           configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE);
-      RetryRule randomBackoffRetry =
-          getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
       RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
 
       var profileId =
@@ -271,7 +273,8 @@ public class DatasetIngestFlight extends Flight {
       } else {
         addStep(
             new TransactionCommitStep(
-                datasetService, bigQueryTransactionPdao, userReq, false, null));
+                datasetService, bigQueryTransactionPdao, userReq, false, null),
+            randomBackoffRetry);
       }
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
@@ -417,7 +420,8 @@ public class DatasetIngestFlight extends Flight {
             dataset.getId(),
             ingestRequest.getLoadTag(),
             loadHistoryWaitSeconds,
-            loadHistoryChunkSize));
+            loadHistoryChunkSize),
+        randomBackoffRetry);
 
     // Clean up the load table.
     addOptionalCombinedIngestStep(new IngestCleanFileStateStep(loadService));

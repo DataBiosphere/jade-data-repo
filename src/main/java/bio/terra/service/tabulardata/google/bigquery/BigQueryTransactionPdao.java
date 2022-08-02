@@ -19,6 +19,7 @@ import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.TransactionLockException;
+import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValueList;
@@ -82,23 +83,28 @@ public class BigQueryTransactionPdao {
             .status(TransactionModel.StatusEnum.ACTIVE)
             .createdAt(DateTimeUtils.toMicrosString(filterBefore))
             .createdBy(authedUser.getEmail());
-
-    bigQueryProject.query(
-        sqlTemplate.render(),
-        Map.of(
-            "transactId",
-            QueryParameterValue.string(transaction.getId().toString()),
-            "transactLock",
-            QueryParameterValue.string(transaction.getLock()),
-            "transactDescription",
-            QueryParameterValue.string(transaction.getDescription()),
-            "transactStatus",
-            QueryParameterValue.string(transaction.getStatus().toString()),
-            "transactCreatedAt",
-            QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore)),
-            "transactCreatedBy",
-            QueryParameterValue.string(transaction.getCreatedBy())));
-
+    try {
+      bigQueryProject.query(
+          sqlTemplate.render(),
+          Map.of(
+              "transactId",
+              QueryParameterValue.string(transaction.getId().toString()),
+              "transactLock",
+              QueryParameterValue.string(transaction.getLock()),
+              "transactDescription",
+              QueryParameterValue.string(transaction.getDescription()),
+              "transactStatus",
+              QueryParameterValue.string(transaction.getStatus().toString()),
+              "transactCreatedAt",
+              QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore)),
+              "transactCreatedBy",
+              QueryParameterValue.string(transaction.getCreatedBy())));
+    } catch (PdaoException ex) {
+      if (BigQueryPdao.tooManyDmlStatementsOutstanding(ex)) {
+        throw new TooManyDmlStatementsOutstandingException(ex);
+      }
+      throw ex;
+    }
     return transaction;
   }
 
@@ -200,18 +206,24 @@ public class BigQueryTransactionPdao {
 
     Instant terminatedAt = Instant.now();
 
-    bigQueryProject.query(
-        sqlTemplate.render(),
-        Map.of(
-            "transactId",
-            QueryParameterValue.string(transactId.toString()),
-            "transactStatus",
-            QueryParameterValue.string(status.toString()),
-            "transactTerminatedAt",
-            QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(terminatedAt)),
-            "transactTerminatedBy",
-            QueryParameterValue.string(authedUser.getEmail())));
-
+    try {
+      bigQueryProject.query(
+          sqlTemplate.render(),
+          Map.of(
+              "transactId",
+              QueryParameterValue.string(transactId.toString()),
+              "transactStatus",
+              QueryParameterValue.string(status.toString()),
+              "transactTerminatedAt",
+              QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(terminatedAt)),
+              "transactTerminatedBy",
+              QueryParameterValue.string(authedUser.getEmail())));
+    } catch (PdaoException ex) {
+      if (BigQueryPdao.tooManyDmlStatementsOutstanding(ex)) {
+        throw new TooManyDmlStatementsOutstandingException(ex);
+      }
+      throw ex;
+    }
     return retrieveTransaction(dataset, transactId);
   }
 

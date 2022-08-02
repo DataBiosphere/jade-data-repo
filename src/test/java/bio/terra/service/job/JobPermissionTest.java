@@ -2,6 +2,7 @@ package bio.terra.service.job;
 
 import bio.terra.common.GcsUtils;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
@@ -43,6 +44,7 @@ public class JobPermissionTest extends UsersBase {
   @Autowired private GcsUtils gcsUtils;
   @Autowired private DataRepoClient dataRepoClient;
 
+  private TestConfiguration.User custodian;
   private UUID datasetId;
   private UUID profileId;
 
@@ -51,8 +53,12 @@ public class JobPermissionTest extends UsersBase {
     super.setup();
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    // Change the default subject id in order to verify that a user with a different subject id
+    // than the one who launched the flight can access job details
+    custodian = custodian("mcgonagall");
+    custodian.setSubjectId("custodianUser");
     dataRepoFixtures.addPolicyMemberRaw(
-        steward(), profileId, IamRole.OWNER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+        steward(), profileId, IamRole.OWNER, custodian.getEmail(), IamResourceType.SPEND_PROFILE);
   }
 
   @After
@@ -81,7 +87,7 @@ public class JobPermissionTest extends UsersBase {
 
     datasetId = datasetSummaryModel.getId();
     dataRepoFixtures.addPolicyMemberRaw(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail(), IamResourceType.DATASET);
+        steward(), datasetId, IamRole.CUSTODIAN, custodian.getEmail(), IamResourceType.DATASET);
 
     // Ingest single file
     String ingestBucket = "jade-testdata-useastregion";
@@ -149,7 +155,7 @@ public class JobPermissionTest extends UsersBase {
             .table("sample_vcf")
             .addRecordsItem(Map.of("sample_name", "sample1", "data_type", "vcf"))
             .addRecordsItem(Map.of("sample_name", "sample2", "data_type", "vcf"));
-    ;
+
     DataRepoResponse<JobModel> metadataIngestJobResponse =
         dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, metadataIngestRequest);
     assert (metadataIngestJobResponse.getStatusCode().is2xxSuccessful());
@@ -170,18 +176,18 @@ public class JobPermissionTest extends UsersBase {
 
     // Verify custodian can view jobs
     String datasetCreateJobId = jobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(datasetCreateJobId, custodian());
+    dataRepoFixtures.getJobSuccess(datasetCreateJobId, custodian);
 
     String fileIngestJobId = fileIngestJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(fileIngestJobId, custodian());
+    dataRepoFixtures.getJobSuccess(fileIngestJobId, custodian);
 
     String bulkLoadJobId = bulkLoadJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(bulkLoadJobId, custodian());
+    dataRepoFixtures.getJobSuccess(bulkLoadJobId, custodian);
 
     String metadataIngestJobId = metadataIngestJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(metadataIngestJobId, custodian());
+    dataRepoFixtures.getJobSuccess(metadataIngestJobId, custodian);
 
     String combinedIngestJobId = combinedIngestJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(combinedIngestJobId, custodian());
+    dataRepoFixtures.getJobSuccess(combinedIngestJobId, custodian);
   }
 }

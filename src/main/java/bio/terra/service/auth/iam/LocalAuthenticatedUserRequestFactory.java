@@ -5,6 +5,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +41,10 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
     String email =
         Optional.ofNullable(req.getHeader("From")).orElse(applicationConfiguration.getUserEmail());
 
-    String userId = applicationConfiguration.getUserId();
+    String userId =
+        StringUtils.isNotEmpty(req.getHeader("UserId"))
+            ? req.getHeader("UserId")
+            : applicationConfiguration.getUserId();
 
     return AuthenticatedUserRequest.builder()
         .setEmail(email)

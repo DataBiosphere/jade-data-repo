@@ -43,6 +43,7 @@ import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.TermsOfServiceApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
@@ -50,6 +51,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +64,9 @@ public class SamIam implements IamProviderInterface {
 
   private final SamConfiguration samConfig;
   private final ConfigurationService configurationService;
+
+  // This value is the same for all environments which is why this is hardcoded instead of config
+  static final String TOS_URL = "app.terra.bio/#terms-of-service";
 
   @Autowired
   public SamIam(SamConfiguration samConfig, ConfigurationService configurationService) {
@@ -105,6 +110,11 @@ public class SamIam implements IamProviderInterface {
   @VisibleForTesting
   UsersApi samUsersApi(String accessToken) {
     return new UsersApi(getApiClient(accessToken));
+  }
+
+  @VisibleForTesting
+  TermsOfServiceApi samTosApi(String accessToken) {
+    return new TermsOfServiceApi(getApiClient(accessToken));
   }
 
   /**
@@ -550,6 +560,31 @@ public class SamIam implements IamProviderInterface {
           .ok(false)
           .message(errorMsg + ": " + ExceptionUtils.formatException(ex));
     }
+  }
+
+  @Override
+  public UserStatus registerUser(String accessToken) throws InterruptedException {
+    logger.info("Registering the ingest service account into Terra");
+    SamRetry.retry(
+        configurationService,
+        () -> {
+          try {
+            logger.info("Running the registration process");
+            samUsersApi(accessToken).createUserV2();
+          } catch (ApiException e) {
+            // This conflict could happen if the request timed out originally.
+            // In that case, it's ok to assume that this is a success and move on
+            if (e.getCode() == 409) {
+              logger.warn("User already exists - skipping", e);
+            } else {
+              throw e;
+            }
+          }
+        });
+
+    logger.info("Accepting terms of service for the ingest service account in Terra");
+    return SamRetry.retry(
+        configurationService, () -> samTosApi(accessToken).acceptTermsOfService(TOS_URL));
   }
 
   @Override

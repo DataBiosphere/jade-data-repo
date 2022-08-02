@@ -10,6 +10,11 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
+import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -19,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +46,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class IamService {
   private final Logger logger = LoggerFactory.getLogger(IamService.class);
+  private static final List<String> SAM_SCOPES = List.of("openid", "email", "profile");
+  private static final Duration TOKEN_LENGTH = Duration.ofMinutes(5);
 
   private static final int AUTH_CACHE_TIMEOUT_SECONDS_DEFAULT = 60;
 
@@ -297,5 +305,29 @@ public class IamService {
 
   public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) {
     return iamProvider.getUserInfo(userReq);
+  }
+
+  public UserStatus registerUser(String serviceAccountEmail) {
+    logger.info("Registering user %s in Terra".formatted(serviceAccountEmail));
+    ImpersonatedCredentials impersonatedCredentials;
+    try {
+      impersonatedCredentials =
+          ImpersonatedCredentials.create(
+              GoogleCredentials.getApplicationDefault(),
+              serviceAccountEmail,
+              null,
+              SAM_SCOPES,
+              (int) TOKEN_LENGTH.toSeconds());
+    } catch (IOException e) {
+      throw new GoogleResourceException("Could not generate Google credentials", e);
+    }
+
+    String accessToken;
+    try {
+      accessToken = impersonatedCredentials.refreshAccessToken().getTokenValue();
+    } catch (IOException e) {
+      throw new GoogleResourceException("Could not generate Google access token", e);
+    }
+    return callProvider(() -> iamProvider.registerUser(accessToken));
   }
 }

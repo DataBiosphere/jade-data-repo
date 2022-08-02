@@ -17,6 +17,7 @@ import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.SamFixtures;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -77,6 +78,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   @Autowired private DataRepoClient dataRepoClient;
   @Autowired private AuthService authService;
   @Autowired private GcsUtils gcsUtils;
+  @Autowired private SamFixtures samFixtures;
   @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String stewardToken;
@@ -84,7 +86,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   private UUID snapshotId;
   private UUID profileId;
   private List<String> uploadedFiles;
-  private String serviceAccount;
+  private String ingestServiceAccount;
   private String ingestBucket;
 
   @Before
@@ -104,6 +106,10 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
       dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
     }
 
+    if (ingestServiceAccount != null) {
+      samFixtures.deleteServiceAccountFromTerra(steward(), ingestServiceAccount);
+    }
+
     if (datasetId != null) {
       dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
@@ -116,9 +122,9 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
       gcsUtils.deleteTestFile(path);
     }
 
-    if (serviceAccount != null && ingestBucket != null) {
+    if (ingestServiceAccount != null && ingestBucket != null) {
       DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
-          ingestBucket, serviceAccount, StorageRoles.objectViewer());
+          ingestBucket, ingestServiceAccount, StorageRoles.objectViewer());
     }
   }
 
@@ -150,11 +156,11 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     // Authorize the ingest source bucket
     if (dedicatedServiceAccount) {
-      serviceAccount = dataset.getIngestServiceAccount();
+      ingestServiceAccount = dataset.getIngestServiceAccount();
       this.ingestBucket = ingestBucket;
       // Note: this role gets removed in teardown
       DatasetIntegrationTest.addServiceAccountRoleToBucket(
-          ingestBucket, serviceAccount, StorageRoles.objectViewer());
+          ingestBucket, ingestServiceAccount, StorageRoles.objectViewer());
     }
 
     // Ingest a single file

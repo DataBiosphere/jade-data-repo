@@ -13,6 +13,8 @@ import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.FileModelType;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -88,6 +90,9 @@ public class FileService {
         .newJob(description, FileDeleteFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(JobMapKeys.FILE_ID.getKeyName(), fileId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 
@@ -100,6 +105,9 @@ public class FileService {
         .newJob(description, FileIngestFlight.class, fileLoad, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 
@@ -127,6 +135,9 @@ public class FileService {
         .addParameter(
             LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS,
             configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS))
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 
@@ -163,6 +174,9 @@ public class FileService {
         .addParameter(
             LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS,
             configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS))
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 

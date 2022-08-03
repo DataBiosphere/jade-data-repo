@@ -26,6 +26,7 @@ import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
 import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
@@ -129,10 +130,13 @@ public class DatasetService {
   public String createDataset(
       DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
     String description = "Create dataset " + datasetRequest.getName();
-    loggingMetrics.set(
-        BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, datasetRequest.getDefaultProfileId());
+    UUID defaultProfileId = datasetRequest.getDefaultProfileId();
+    loggingMetrics.set(BardEventProperties.BILLING_PROFILE_ID_FIELD_NAME, defaultProfileId);
     return jobService
         .newJob(description, DatasetCreateFlight.class, datasetRequest, userReq)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), defaultProfileId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK)
         .submit();
   }
 
@@ -255,6 +259,9 @@ public class DatasetService {
         .newJob(description, DatasetDeleteFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.DELETE)
         .submit();
   }
 
@@ -304,6 +311,9 @@ public class DatasetService {
               .addParameter(JobMapKeys.BILLING_ID.getKeyName(), ingestRequestModel.getProfileId())
               .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
               .addParameter(IngestMapKeys.TABLE_NAME, ingestRequestModel.getTable())
+              .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+              .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+              .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
               .submitAndWait(String.class);
 
       CloudPlatformWrapper cloudPlatform =
@@ -340,6 +350,9 @@ public class DatasetService {
         .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 
@@ -349,6 +362,9 @@ public class DatasetService {
     return jobService
         .newJob(description, AddAssetSpecFlight.class, assetModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.MANAGE_SCHEMA)
         .submit();
   }
 
@@ -370,6 +386,9 @@ public class DatasetService {
         .newJob(description, RemoveAssetSpecFlight.class, assetId, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(JobMapKeys.ASSET_ID.getKeyName(), assetId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.MANAGE_SCHEMA)
         .submit();
   }
 
@@ -379,6 +398,9 @@ public class DatasetService {
     return jobService
         .newJob(description, DatasetDataDeleteFlight.class, dataDeletionRequest, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SOFT_DELETE)
         .submit();
   }
 
@@ -388,6 +410,9 @@ public class DatasetService {
     return jobService
         .newJob(description, DatasetSchemaUpdateFlight.class, updateModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.MANAGE_SCHEMA)
         .submit();
   }
 
@@ -433,6 +458,9 @@ public class DatasetService {
     return jobService
         .newJob(description, TransactionOpenFlight.class, transactionRequest, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 
@@ -472,6 +500,9 @@ public class DatasetService {
         .newJob(description, TransactionCommitFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(JobMapKeys.TRANSACTION_ID.getKeyName(), transactionId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 
@@ -482,6 +513,9 @@ public class DatasetService {
         .newJob(description, TransactionRollbackFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(JobMapKeys.TRANSACTION_ID.getKeyName(), transactionId)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
   }
 

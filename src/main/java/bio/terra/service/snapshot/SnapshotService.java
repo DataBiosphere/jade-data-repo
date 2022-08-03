@@ -130,9 +130,14 @@ public class SnapshotService {
   public String createSnapshot(
       SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
     String description = "Create snapshot " + snapshotRequestModel.getName();
+    String sourceDatasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
+    Dataset dataset = datasetService.retrieveByName(sourceDatasetName);
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), dataset.getId())
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.LINK_SNAPSHOT)
         .submit();
   }
 
@@ -158,6 +163,10 @@ public class SnapshotService {
     return jobService
         .newJob(description, SnapshotDeleteFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
+        .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASNAPSHOT)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.DELETE)
         .submit();
   }
 
@@ -190,6 +199,7 @@ public class SnapshotService {
       boolean exportGsPaths,
       boolean validatePrimaryKeyUniqueness) {
     String description = "Export snapshot " + id;
+    // TODO: add parameters to share job status using a new SAM role to export data
     return jobService
         .newJob(description, SnapshotExportFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())

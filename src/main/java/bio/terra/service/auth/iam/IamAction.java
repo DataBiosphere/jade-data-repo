@@ -29,6 +29,7 @@ public enum IamAction {
   UPDATE_SNAPSHOT,
   READ_DATA,
   DISCOVER_DATA,
+  EXPORT_SNAPSHOT,
   // billing profiles
   UPDATE_BILLING_ACCOUNT,
   LINK;

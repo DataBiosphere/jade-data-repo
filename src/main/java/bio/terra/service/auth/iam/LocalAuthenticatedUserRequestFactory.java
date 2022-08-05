@@ -3,9 +3,11 @@ package bio.terra.service.auth.iam;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.service.auth.oauth2.GoogleOauthUtils;
+import com.google.api.services.oauth2.model.Tokeninfo;
+import io.micrometer.core.instrument.util.StringUtils;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,13 +40,13 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
             .map(header -> header.substring("Bearer ".length()))
             .orElse("");
 
-    String email =
-        Optional.ofNullable(req.getHeader("From")).orElse(applicationConfiguration.getUserEmail());
-
-    String userId =
-        StringUtils.isNotEmpty(req.getHeader("UserId"))
-            ? req.getHeader("UserId")
-            : applicationConfiguration.getUserId();
+    String email = applicationConfiguration.getUserEmail();
+    String userId = applicationConfiguration.getUserId();
+    if (StringUtils.isNotEmpty(token)) {
+      Tokeninfo tokenInfo = GoogleOauthUtils.getOauth2TokenInfo(token);
+      email = tokenInfo.getEmail();
+      userId = tokenInfo.getUserId();
+    }
 
     return AuthenticatedUserRequest.builder()
         .setEmail(email)

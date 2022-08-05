@@ -271,16 +271,12 @@ public class DataRepoClient {
   private HttpHeaders getHeaders(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
     copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
-    copy.set("From", user.getEmail());
-    copy.set("UserId", user.getSubjectId());
     return copy;
   }
 
   private HttpHeaders getHeadersForPet(TestConfiguration.User user) {
     HttpHeaders copy = new HttpHeaders(headers);
     copy.setBearerAuth(authService.getPetAccountAuthToken(user.getEmail()));
-    copy.set("From", user.getEmail());
-    copy.set("UserId", user.getSubjectId());
     return copy;
   }
 }

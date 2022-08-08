@@ -1,5 +1,6 @@
 package bio.terra.service.auth.ras;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.api.PassportApi;
@@ -18,8 +19,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Stream;
-import liquibase.util.StringUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,7 +84,7 @@ public class EcmService {
               """,
           auditInfo.getOrDefault("external_user_id", "not found"),
           auditInfo.getOrDefault("txn", "not found"),
-          "TDR",
+          ApplicationConfiguration.APPLICATION_NAME,
           ((RASv1Dot1VisaCriterion) result.getMatchedCriterion()).getPhsId(),
           df.format(new Date(System.currentTimeMillis())));
     }
@@ -103,7 +104,7 @@ public class EcmService {
       // otherwise the passport will not be considered valid JWT.
       // This stopgap can be removed when the client is fixed:
       // https://broadworkbench.atlassian.net/browse/ID-128
-      return passport.replace("\"", "");
+      return StringUtils.strip(passport, "\"");
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
         return null;

@@ -8,7 +8,11 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
+import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
+import bio.terra.externalcreds.model.ValidatePassportRequest;
+import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.grammar.Query;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.ColumnModel;
@@ -37,6 +41,7 @@ import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
+import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
@@ -59,6 +64,7 @@ import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -221,7 +227,9 @@ public class SnapshotService {
       // In the absence of robust ECM retries / nuanced error handling,
       // do not fail snapshot enumeration because of an ECM error.
       // Ticket for further investment: https://broadworkbench.atlassian.net/browse/DR-2674
-      logger.error("Error listing RAS-authorized snapshots", ex);
+      logger.error(
+          String.format("Error listing RAS-authorized snapshots for user %s", userReq.getEmail()),
+          ex);
     }
 
     return combineIdsAndRoles(
@@ -501,6 +509,79 @@ public class SnapshotService {
         .map(s -> s.getDataset().getId())
         .findFirst()
         .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
+  }
+
+  /**
+   * @param snapshotSummary
+   * @param passports RAS passports as JWT tokens
+   * @return ValidatePassportResult indicating whether the snapshot's contents are accessible via
+   *     one of the supplied RAS passports
+   */
+  public ValidatePassportResult verifyPassportAuth(
+      SnapshotSummaryModel snapshotSummary, List<String> passports) {
+    if (passports.isEmpty()) {
+      throw new InvalidAuthorizationMethod("No RAS Passports supplied for accessing snapshot");
+    }
+    if (!SnapshotSummary.passportAuthorizationAvailable(snapshotSummary)) {
+      throw new InvalidAuthorizationMethod("Snapshot cannot be accessed by RAS Passports");
+    }
+    String phsId = snapshotSummary.getPhsId();
+    String consentCode = snapshotSummary.getConsentCode();
+    var criterion = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
+    ecmService.addRasIssuerAndType(criterion);
+
+    var validatePassportRequest =
+        new ValidatePassportRequest().passports(passports).criteria(List.of(criterion));
+
+    return ecmService.validatePassport(validatePassportRequest);
+  }
+
+  @VisibleForTesting
+  public String passportInvalidForSnapshotErrorMsg(String userEmail) {
+    return String.format(
+        "Snapshot's passport criteria do not match %s's linked RAS passport", userEmail);
+  }
+
+  /**
+   * Throw if the user cannot access the snapshot via SAM permissions or linked RAS passports.
+   *
+   * @param snapshotId snapshot UUID
+   * @param userReq authenticated user
+   */
+  public void verifySnapshotAccessible(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    boolean authorized = false;
+    List<String> causes = new ArrayList<>();
+    String userEmail = userReq.getEmail();
+    try {
+      iamService.verifyAuthorization(
+          userReq, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+      authorized = true;
+    } catch (Exception iamEx) {
+      logger.warn(
+          String.format(
+              "Snapshot %s inaccessible via SAM for %s, checking for linked RAS passport",
+              snapshotId, userEmail),
+          iamEx);
+      causes.add(iamEx.getMessage());
+      SnapshotSummaryModel snapshotSummary = snapshotDao.retrieveSummaryById(snapshotId).toModel();
+      try {
+        String passport = ecmService.getRasProviderPassport(userReq);
+        if (passport != null) {
+          if (verifyPassportAuth(snapshotSummary, List.of(passport)).isValid()) {
+            authorized = true;
+          } else {
+            causes.add(passportInvalidForSnapshotErrorMsg(userEmail));
+          }
+        }
+      } catch (Exception ecmEx) {
+        logger.warn("Error fetching linked RAS passport", ecmEx);
+        causes.add(ecmEx.getMessage());
+      }
+    } finally {
+      if (!authorized) {
+        throw new UnauthorizedException("Error accessing snapshot: see errorDetails", causes);
+      }
+    }
   }
 
   public SnapshotPreviewModel retrievePreview(

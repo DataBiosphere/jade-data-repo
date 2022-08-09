@@ -1,9 +1,11 @@
 package bio.terra.service.auth.ras;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.api.PassportApi;
 import bio.terra.externalcreds.client.ApiClient;
+import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
 import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,11 +13,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.stream.Stream;
-import liquibase.util.StringUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +40,7 @@ public class EcmService {
   private static final String RAS_PROVIDER = "ras";
   @VisibleForTesting public static final String GA4GH_PASSPORT_V1_CLAIM = "ga4gh_passport_v1";
   private static final String RAS_DBGAP_PERMISSIONS_CLAIM = "ras_dbgap_permissions";
+  private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
 
   @Autowired
   public EcmService(
@@ -55,17 +61,50 @@ public class EcmService {
     return new PassportApi(client);
   }
 
+  public void addRasIssuerAndType(RASv1Dot1VisaCriterion criterion) {
+    criterion.issuer(ecmConfiguration.getRasIssuer()).type(RAS_CRITERIA_TYPE);
+  }
+
   public ValidatePassportResult validatePassport(ValidatePassportRequest validatePassportRequest) {
     var passportApi = getPassportApi();
-    return passportApi.validatePassport(validatePassportRequest);
+    var result = passportApi.validatePassport(validatePassportRequest);
+
+    if (result.isValid()) {
+      var auditInfo = result.getAuditInfo();
+      var df = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss z");
+      df.setTimeZone(TimeZone.getTimeZone("UTC"));
+      logger.info(
+          """
+              [Validate Passport Audit]:
+              NIH User ID: {},
+              Transaction Number: {},
+              Data Repository accessed: {},
+              Study/Data set accessed: {},
+              Date/Time of access: {}
+              """,
+          auditInfo.getOrDefault("external_user_id", "not found"),
+          auditInfo.getOrDefault("txn", "not found"),
+          ApplicationConfiguration.APPLICATION_NAME,
+          ((RASv1Dot1VisaCriterion) result.getMatchedCriterion()).getPhsId(),
+          df.format(new Date(System.currentTimeMillis())));
+    }
+
+    return result;
   }
+
   /**
    * @param userReq authenticated user
    * @return the user's linked RAS passport as a JWT, or null if none exists.
    */
   public String getRasProviderPassport(AuthenticatedUserRequest userReq) {
     try {
-      return oidcApiService.getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
+      String passport = oidcApiService.getOidcApi(userReq).getProviderPassport(RAS_PROVIDER);
+      // Passports returned by OidcApi have a bug in their formatting:
+      // double quotes must be stripped if passing back to PassportApi for validation,
+      // otherwise the passport will not be considered valid JWT.
+      // This stopgap can be removed when the client is fixed:
+      // https://broadworkbench.atlassian.net/browse/ID-128
+      return StringUtils.strip(passport, "\"");
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
         return null;

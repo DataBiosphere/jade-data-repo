@@ -9,8 +9,6 @@ import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
-import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
@@ -23,8 +21,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.ras.EcmService;
-import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -52,14 +48,11 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -83,7 +76,6 @@ public class DrsService {
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
   private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
-  private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
   private static final String DRS_OBJECT_VERSION = "0";
   private static final Duration URL_TTL = Duration.ofMinutes(15);
   // atomic counter that we incr on request arrival and decr on request response
@@ -99,7 +91,6 @@ public class DrsService {
   private final PerformanceLogger performanceLogger;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
-  private final EcmService ecmService;
   private final EcmConfiguration ecmConfiguration;
 
   private final Map<UUID, SnapshotProject> snapshotProjectsCache =
@@ -121,7 +112,6 @@ public class DrsService {
       PerformanceLogger performanceLogger,
       AzureBlobStorePdao azureBlobStorePdao,
       GcsProjectFactory gcsProjectFactory,
-      EcmService ecmService,
       EcmConfiguration ecmConfiguration) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
@@ -133,7 +123,6 @@ public class DrsService {
     this.performanceLogger = performanceLogger;
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.gcsProjectFactory = gcsProjectFactory;
-    this.ecmService = ecmService;
     this.ecmConfiguration = ecmConfiguration;
   }
 
@@ -272,30 +261,8 @@ public class DrsService {
 
   void verifyPassportAuth(UUID snapshotId, DRSPassportRequestModel drsPassportRequestModel) {
     SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshotId);
-    if (!SnapshotSummary.passportAuthorizationAvailable(snapshotSummary)) {
-      throw new InvalidAuthorizationMethod("Snapshot cannot use Ras Passport authorization");
-    }
-    // Pass the passport + phs id + consent code to ECM
-    String phsId = snapshotSummary.getPhsId();
-    String consentCode = snapshotSummary.getConsentCode();
-    var criteria = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
-    criteria.issuer(ecmConfiguration.getRasIssuer()).type(RAS_CRITERIA_TYPE);
-    var request =
-        new ValidatePassportRequest()
-            .passports(drsPassportRequestModel.getPassports())
-            .criteria(List.of(criteria));
-    var result = ecmService.validatePassport(request);
-
-    var df = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss z");
-    df.setTimeZone(TimeZone.getTimeZone("UTC"));
-    logger.info(
-        "[Validate Passport Audit]: Data Repository accessed: {}, Study/Data set accessed: {}, Date/Time of access: {}, ECM Audit Info: {}",
-        "TDR",
-        phsId,
-        df.format(new Date(System.currentTimeMillis())),
-        result.getAuditInfo());
-
-    if (!result.isValid()) {
+    List<String> passports = drsPassportRequestModel.getPassports();
+    if (!snapshotService.verifyPassportAuth(snapshotSummary, passports).isValid()) {
       throw new UnauthorizedException("User is not authorized to see drs object.");
     }
   }

@@ -66,7 +66,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Api(tags = {"snapshots"})
 public class SnapshotsApiController implements SnapshotsApi {
 
-  private Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
+  private final Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
 
   // We do not include Access_Information since it can get expensive, and for backwards compat
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE =
@@ -226,8 +226,7 @@ public class SnapshotsApiController implements SnapshotsApi {
           List<SnapshotRetrieveIncludeModel> include) {
     logger.info("Verifying user access");
     AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        authenticatedInfo, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    snapshotService.verifySnapshotAccessible(id, authenticatedInfo);
     logger.info("Retrieving snapshot");
     SnapshotModel snapshotModel =
         snapshotService.retrieveAvailableSnapshotModel(id, include, authenticatedInfo);
@@ -271,8 +270,7 @@ public class SnapshotsApiController implements SnapshotsApi {
       SqlSortDirection direction,
       String filter) {
     logger.info("Verifying user access");
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    snapshotService.verifySnapshotAccessible(id, getAuthenticatedInfo());
     logger.info("Retrieving snapshot id {}", id);
     // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
     SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);

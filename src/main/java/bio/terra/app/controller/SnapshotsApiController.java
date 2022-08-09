@@ -333,8 +333,7 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<List<String>> retrieveUserSnapshotRoles(UUID id) {
-    List<String> roles =
-        iamService.retrieveUserRoles(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id);
+    List<String> roles = snapshotService.retrieveUserSnapshotRoles(id, getAuthenticatedInfo());
     return new ResponseEntity<>(roles, HttpStatus.OK);
   }
 }

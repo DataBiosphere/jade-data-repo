@@ -512,6 +512,22 @@ public class SnapshotService {
   }
 
   /**
+   * @param snapshotId snapshot UUID
+   * @param userReq authenticated user
+   * @return SAM-derived roles held by the user and, if not redundant, any roles derived from the
+   *     user's linked RAS passport.
+   */
+  public List<String> retrieveUserSnapshotRoles(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    List<String> roles =
+        iamService.retrieveUserRoles(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+    if (!roles.contains(IamRole.READER.toString())
+        && snapshotAccessibleByPassport(snapshotId, userReq).accessible()) {
+      roles.add(IamRole.READER.toString());
+    }
+    return roles;
+  }
+
+  /**
    * @param snapshotSummary
    * @param passports RAS passports as JWT tokens
    * @return ValidatePassportResult indicating whether the snapshot's contents are accessible via
@@ -542,6 +558,35 @@ public class SnapshotService {
         "Snapshot's passport criteria do not match %s's linked RAS passport", userEmail);
   }
 
+  public record SnapshotAccessibleResult(boolean accessible, List<String> causes) {}
+
+  /**
+   * @param snapshotId snapshot UUID
+   * @param userReq authenticated user
+   * @return a SnapshotAccessibleResult indicating whether the snapshot is accessible to the user
+   *     via a linked passport, and if not, any throwable causes of that inaccessibility.
+   */
+  public SnapshotAccessibleResult snapshotAccessibleByPassport(
+      UUID snapshotId, AuthenticatedUserRequest userReq) {
+    SnapshotSummaryModel snapshotSummary = snapshotDao.retrieveSummaryById(snapshotId).toModel();
+    boolean accessible = false;
+    List<String> causes = new ArrayList<>();
+    try {
+      String passport = ecmService.getRasProviderPassport(userReq);
+      if (passport != null) {
+        if (verifyPassportAuth(snapshotSummary, List.of(passport)).isValid()) {
+          accessible = true;
+        } else {
+          causes.add(passportInvalidForSnapshotErrorMsg(userReq.getEmail()));
+        }
+      }
+    } catch (Exception ecmEx) {
+      logger.warn("Error fetching linked RAS passport", ecmEx);
+      causes.add(ecmEx.getMessage());
+    }
+    return new SnapshotAccessibleResult(accessible, causes);
+  }
+
   /**
    * Throw if the user cannot access the snapshot via SAM permissions or linked RAS passports.
    *
@@ -549,36 +594,25 @@ public class SnapshotService {
    * @param userReq authenticated user
    */
   public void verifySnapshotAccessible(UUID snapshotId, AuthenticatedUserRequest userReq) {
-    boolean authorized = false;
+    boolean iamAuthorized = false;
+    boolean ecmAuthorized = false;
     List<String> causes = new ArrayList<>();
-    String userEmail = userReq.getEmail();
     try {
       iamService.verifyAuthorization(
           userReq, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
-      authorized = true;
+      iamAuthorized = true;
     } catch (Exception iamEx) {
       logger.warn(
           String.format(
               "Snapshot %s inaccessible via SAM for %s, checking for linked RAS passport",
-              snapshotId, userEmail),
+              snapshotId, userReq.getEmail()),
           iamEx);
       causes.add(iamEx.getMessage());
-      SnapshotSummaryModel snapshotSummary = snapshotDao.retrieveSummaryById(snapshotId).toModel();
-      try {
-        String passport = ecmService.getRasProviderPassport(userReq);
-        if (passport != null) {
-          if (verifyPassportAuth(snapshotSummary, List.of(passport)).isValid()) {
-            authorized = true;
-          } else {
-            causes.add(passportInvalidForSnapshotErrorMsg(userEmail));
-          }
-        }
-      } catch (Exception ecmEx) {
-        logger.warn("Error fetching linked RAS passport", ecmEx);
-        causes.add(ecmEx.getMessage());
-      }
+      SnapshotAccessibleResult byPassport = snapshotAccessibleByPassport(snapshotId, userReq);
+      ecmAuthorized = byPassport.accessible;
+      causes.addAll(byPassport.causes);
     } finally {
-      if (!authorized) {
+      if (!(iamAuthorized || ecmAuthorized)) {
         throw new UnauthorizedException("Error accessing snapshot: see errorDetails", causes);
       }
     }

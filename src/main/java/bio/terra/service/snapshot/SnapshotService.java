@@ -518,8 +518,8 @@ public class SnapshotService {
    *     user's linked RAS passport.
    */
   public List<String> retrieveUserSnapshotRoles(UUID snapshotId, AuthenticatedUserRequest userReq) {
-    List<String> roles =
-        iamService.retrieveUserRoles(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+    List<String> roles = new ArrayList<>();
+    roles.addAll(iamService.retrieveUserRoles(userReq, IamResourceType.DATASNAPSHOT, snapshotId));
     if (!roles.contains(IamRole.READER.toString())
         && snapshotAccessibleByPassport(snapshotId, userReq).accessible()) {
       roles.add(IamRole.READER.toString());

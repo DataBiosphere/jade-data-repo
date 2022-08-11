@@ -1444,6 +1444,7 @@ public class BigQuerySnapshotPdao {
       logger.info("Retry number {} of a maximum {}", retryNum, maxRetries);
     }
     try {
+      logQuery(queryConfig);
       return bigQuery.query(queryConfig);
     } catch (final BigQueryException qe) {
       if (qe.getError() != null
@@ -1470,5 +1471,12 @@ public class BigQuerySnapshotPdao {
     fieldList.add(Field.of(PDAO_TABLE_ID_COLUMN, LegacySQLTypeName.STRING));
     fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
     return Schema.of(fieldList);
+  }
+
+  public static void logQuery(QueryJobConfiguration queryConfig) {
+    logger.info(
+        "Running query:\n#########\n{}\n#########\nwith parameters {}",
+        queryConfig.getQuery(),
+        queryConfig.getNamedParameters());
   }
 }

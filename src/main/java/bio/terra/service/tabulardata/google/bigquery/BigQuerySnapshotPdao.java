@@ -986,8 +986,8 @@ public class BigQuerySnapshotPdao {
           + ", "
           + "T."
           + PDAO_ROW_ID_COLUMN
-          + " FROM (<liveViewSqlTo>) T, "
-          + "(<liveViewSqlFrom>) F, `<snapshotProject>.<snapshot>."
+          + " FROM (<toTableTableSelect>) T, "
+          + "(<fromTableTableSelect>) F, `<snapshotProject>.<snapshot>."
           + PDAO_ROW_ID_TABLE
           + "` R "
           + "WHERE R."
@@ -997,7 +997,7 @@ public class BigQuerySnapshotPdao {
           + PDAO_ROW_ID_COLUMN
           + " = F."
           + PDAO_ROW_ID_COLUMN
-          + " AND <joinClause>) "
+          + " AND F.<fromCol> = T.<toCol>) "
           + "SELECT "
           + PDAO_TABLE_ID_COLUMN
           + ","
@@ -1011,18 +1011,11 @@ public class BigQuerySnapshotPdao {
           + PDAO_ROW_ID_TABLE
           + "`)";
 
-  private static final String matchNonArrayTemplate = "T.<toColumn> = F.<fromColumn>";
-
-  private static final String matchFromArrayTemplate =
-      "EXISTS (SELECT 1 FROM UNNEST(F.<fromColumn>) AS flat_from "
-          + "WHERE flat_from = T.<toColumn>)";
-
-  private static final String matchToArrayTemplate =
-      "EXISTS (SELECT 1 FROM UNNEST(T.<toColumn>) AS flat_to " + "WHERE flat_to = F.<fromColumn>)";
-
-  private static final String matchCrossArraysTemplate =
-      "EXISTS (SELECT 1 FROM UNNEST(F.<fromColumn>) AS flat_from "
-          + "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
+  private static final String tableSelectNonArray = "(<tableSelect>)";
+  private static final String tableSelectArray =
+      "(SELECT <toOrFrom>0.*, FLAT_<toOrFrom> "
+          + "FROM (<tableSelect>) <toOrFrom>0, "
+          + "     UNNEST(<toOrFrom>0.<field>) AS FLAT_<toOrFrom>)";
 
   private static final String joinTablesToTestForMissingRowIds =
       "SELECT COUNT(*) FROM `<snapshotProject>.<snapshotDatasetName>.<tempTable>` AS T "
@@ -1069,19 +1062,6 @@ public class BigQuerySnapshotPdao {
       Instant filterBefore)
       throws InterruptedException {
 
-    ST joinClauseTemplate;
-    if (relationship.getFromColumnIsArray() && relationship.getToColumnIsArray()) {
-      joinClauseTemplate = new ST(matchCrossArraysTemplate);
-    } else if (relationship.getFromColumnIsArray()) {
-      joinClauseTemplate = new ST(matchFromArrayTemplate);
-    } else if (relationship.getToColumnIsArray()) {
-      joinClauseTemplate = new ST(matchToArrayTemplate);
-    } else {
-      joinClauseTemplate = new ST(matchNonArrayTemplate);
-    }
-    joinClauseTemplate.add("fromColumn", relationship.getFromColumnName());
-    joinClauseTemplate.add("toColumn", relationship.getToColumnName());
-
     DatasetTable fromTable =
         getTable(snapshot.getFirstSnapshotSource(), relationship.getFromTableName());
     DatasetTable toTable =
@@ -1092,16 +1072,58 @@ public class BigQuerySnapshotPdao {
     String liveViewSqlTo =
         BigQueryDatasetPdao.renderDatasetLiveViewSql(
             datasetProjectId, datasetBqDatasetName, toTable, null, filterBefore);
+
+    ST fromTableTableSelect;
+    ST toTableTableSelect;
+    String fromCol;
+    String toCol;
+    if (relationship.getFromColumnIsArray() && relationship.getToColumnIsArray()) {
+      fromTableTableSelect =
+          new ST(tableSelectArray)
+              .add("toOrFrom", "FROM")
+              .add("field", relationship.getFromColumnName());
+      toTableTableSelect =
+          new ST(tableSelectArray)
+              .add("toOrFrom", "TO")
+              .add("field", relationship.getToColumnName());
+      fromCol = "FLAT_FROM";
+      toCol = "FLAT_TO";
+    } else if (relationship.getFromColumnIsArray()) {
+      fromTableTableSelect =
+          new ST(tableSelectArray)
+              .add("toOrFrom", "FROM")
+              .add("field", relationship.getFromColumnName());
+      toTableTableSelect = new ST(tableSelectNonArray);
+      fromCol = "FLAT_FROM";
+      toCol = relationship.getToColumnName();
+    } else if (relationship.getToColumnIsArray()) {
+      fromTableTableSelect = new ST(tableSelectNonArray);
+      toTableTableSelect =
+          new ST(tableSelectArray)
+              .add("toOrFrom", "TO")
+              .add("field", relationship.getToColumnName());
+      fromCol = relationship.getFromColumnName();
+      toCol = "FLAT_TO";
+    } else {
+      fromTableTableSelect = new ST(tableSelectNonArray);
+      toTableTableSelect = new ST(tableSelectNonArray);
+      fromCol = relationship.getFromColumnName();
+      toCol = relationship.getToColumnName();
+    }
+    fromTableTableSelect.add("tableSelect", liveViewSqlFrom);
+    toTableTableSelect.add("tableSelect", liveViewSqlTo);
+
     ST sqlTemplate = new ST(storeRowIdsForRelatedTableTemplate);
     sqlTemplate.add("snapshotProject", snapshotProjectId);
     sqlTemplate.add("datasetProject", datasetProjectId);
     sqlTemplate.add("dataset", datasetBqDatasetName);
     sqlTemplate.add("snapshot", snapshot.getName());
     sqlTemplate.add("fromTableId", relationship.getFromTableId());
-    sqlTemplate.add("liveViewSqlFrom", liveViewSqlFrom);
     sqlTemplate.add("toTableId", relationship.getToTableId());
-    sqlTemplate.add("liveViewSqlTo", liveViewSqlTo);
-    sqlTemplate.add("joinClause", joinClauseTemplate.render());
+    sqlTemplate.add("fromTableTableSelect", fromTableTableSelect.render());
+    sqlTemplate.add("toTableTableSelect", toTableTableSelect.render());
+    sqlTemplate.add("fromCol", fromCol);
+    sqlTemplate.add("toCol", toCol);
 
     QueryJobConfiguration queryConfig =
         QueryJobConfiguration.newBuilder(sqlTemplate.render())

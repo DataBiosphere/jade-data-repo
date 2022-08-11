@@ -113,6 +113,12 @@ public class GrammarTest {
   }
 
   @Test
+  public void testBetween() {
+    // test for DR-2703 Fix ANTLR error when parsing between clause
+    Query.parse("SELECT foo.bar.datarepo_row_id FROM foo.bar WHERE foo.bar.x BETWEEN 1 and 2");
+  }
+
+  @Test
   public void test1000Genomes() {
     // test for DR-2143 Fix validating dataset names that start with a number
     Query.parse("SELECT * FROM 1000GenomesDataset.sample_info");

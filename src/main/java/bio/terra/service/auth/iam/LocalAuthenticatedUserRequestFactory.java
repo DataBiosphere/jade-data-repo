@@ -4,6 +4,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.service.auth.oauth2.GoogleOauthUtils;
+import bio.terra.service.auth.oauth2.exceptions.OauthTokeninfoRetrieveException;
 import com.google.api.services.oauth2.model.Tokeninfo;
 import io.micrometer.core.instrument.util.StringUtils;
 import java.util.Optional;
@@ -39,13 +40,18 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
         Optional.ofNullable(req.getHeader("Authorization"))
             .map(header -> header.substring("Bearer ".length()))
             .orElse("");
-
-    String email = applicationConfiguration.getUserEmail();
+    String email =
+        Optional.ofNullable(req.getHeader("From")).orElse(applicationConfiguration.getUserEmail());
     String userId = applicationConfiguration.getUserId();
+
     if (StringUtils.isNotEmpty(token)) {
-      Tokeninfo tokenInfo = GoogleOauthUtils.getOauth2TokenInfo(token);
-      email = tokenInfo.getEmail();
-      userId = tokenInfo.getUserId();
+      try {
+        Tokeninfo tokenInfo = GoogleOauthUtils.getOauth2TokenInfo(token);
+        email = tokenInfo.getEmail();
+        userId = tokenInfo.getUserId();
+      } catch (OauthTokeninfoRetrieveException ex) {
+        logger.info("Error parsing auth token");
+      }
     }
 
     return AuthenticatedUserRequest.builder()

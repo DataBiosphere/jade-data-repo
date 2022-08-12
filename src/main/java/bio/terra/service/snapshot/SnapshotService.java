@@ -530,13 +530,16 @@ public class SnapshotService {
     List<SamPolicyModel> samPolicyModels =
         iamService.retrievePolicies(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
 
-    var workspacePolicyModels =
-        samPolicyModels.stream().map(pm -> rawlsService.resolvePolicyEmails(pm, userReq));
+    List<WorkspacePolicyModel> accessibleWorkspaces = new ArrayList<>();
+    List<InaccessibleWorkspacePolicyModel> inaccessibleWorkspaces = new ArrayList<>();
 
-    List<WorkspacePolicyModel> accessibleWorkspaces =
-        workspacePolicyModels.flatMap(wpms -> wpms.accessible().stream()).toList();
-    List<InaccessibleWorkspacePolicyModel> inaccessibleWorkspaces =
-        workspacePolicyModels.flatMap(wpms -> wpms.inaccessible().stream()).toList();
+    samPolicyModels.stream()
+        .map(pm -> rawlsService.resolvePolicyEmails(pm, userReq))
+        .forEach(
+            wpms -> {
+              accessibleWorkspaces.addAll(wpms.accessible());
+              inaccessibleWorkspaces.addAll(wpms.inaccessible());
+            });
 
     return new PolicyResponse()
         .policies(PolicyUtils.samToTdrPolicyModels(samPolicyModels))

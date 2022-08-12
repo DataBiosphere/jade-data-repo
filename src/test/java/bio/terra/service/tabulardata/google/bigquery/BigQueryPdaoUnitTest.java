@@ -462,14 +462,14 @@ public class BigQueryPdaoUnitTest {
                         + TABLE_2_ID
                         + "' AS datarepo_table_id, "
                         + "T.datarepo_row_id "
-                        + "FROM ("
+                        + "FROM (("
                         + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                             DATASET_PROJECT_ID, prefixName(DATASET_NAME), table2, null, CREATED_AT)
-                        + ") T, "
-                        + "("
+                        + ")) T, "
+                        + "(("
                         + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                             DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
-                        + ") F, "
+                        + ")) F, "
                         + "`"
                         + SNAPSHOT_PROJECT_ID
                         + "."
@@ -478,11 +478,11 @@ public class BigQueryPdaoUnitTest {
                         + "WHERE R.datarepo_table_id = '"
                         + TABLE_1_ID
                         + "' AND "
-                        + "R.datarepo_row_id = F.datarepo_row_id AND T."
-                        + TABLE_2_COL1_NAME
-                        + " = "
-                        + "F."
+                        + "R.datarepo_row_id = F.datarepo_row_id AND F."
                         + TABLE_1_COL1_NAME
+                        + " = "
+                        + "T."
+                        + TABLE_2_COL1_NAME
                         + ") "
                         + "SELECT datarepo_table_id,datarepo_row_id FROM merged_table WHERE "
                         + "datarepo_row_id NOT IN (SELECT datarepo_row_id "

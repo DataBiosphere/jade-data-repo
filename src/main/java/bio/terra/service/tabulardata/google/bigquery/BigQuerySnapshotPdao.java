@@ -1077,39 +1077,28 @@ public class BigQuerySnapshotPdao {
     ST toTableTableSelect;
     String fromCol;
     String toCol;
-    if (relationship.getFromColumnIsArray() && relationship.getToColumnIsArray()) {
+    if (relationship.getFromColumnIsArray()) {
       fromTableTableSelect =
           new ST(tableSelectArray)
               .add("toOrFrom", "FROM")
               .add("field", relationship.getFromColumnName());
-      toTableTableSelect =
-          new ST(tableSelectArray)
-              .add("toOrFrom", "TO")
-              .add("field", relationship.getToColumnName());
       fromCol = "FLAT_FROM";
-      toCol = "FLAT_TO";
-    } else if (relationship.getFromColumnIsArray()) {
-      fromTableTableSelect =
-          new ST(tableSelectArray)
-              .add("toOrFrom", "FROM")
-              .add("field", relationship.getFromColumnName());
-      toTableTableSelect = new ST(tableSelectNonArray);
-      fromCol = "FLAT_FROM";
-      toCol = relationship.getToColumnName();
-    } else if (relationship.getToColumnIsArray()) {
-      fromTableTableSelect = new ST(tableSelectNonArray);
-      toTableTableSelect =
-          new ST(tableSelectArray)
-              .add("toOrFrom", "TO")
-              .add("field", relationship.getToColumnName());
-      fromCol = relationship.getFromColumnName();
-      toCol = "FLAT_TO";
     } else {
       fromTableTableSelect = new ST(tableSelectNonArray);
-      toTableTableSelect = new ST(tableSelectNonArray);
       fromCol = relationship.getFromColumnName();
+    }
+
+    if (relationship.getToColumnIsArray()) {
+      toTableTableSelect =
+          new ST(tableSelectArray)
+              .add("toOrFrom", "TO")
+              .add("field", relationship.getToColumnName());
+      toCol = "FLAT_TO";
+    } else {
+      toTableTableSelect = new ST(tableSelectNonArray);
       toCol = relationship.getToColumnName();
     }
+
     fromTableTableSelect.add("tableSelect", liveViewSqlFrom);
     toTableTableSelect.add("tableSelect", liveViewSqlTo);
 

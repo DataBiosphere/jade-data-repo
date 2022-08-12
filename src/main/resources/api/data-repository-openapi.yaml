@@ -4785,6 +4785,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PolicyModel'
+    InaccessibleWorkspacePolicyModel:
+      type: object
+      properties:
+        workspaceId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        workspacePolicies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyModel'
+        error:
+          $ref: "#/components/schemas/ErrorModel"
     PolicyResponse:
       type: object
       properties:
@@ -4796,6 +4807,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/WorkspacePolicyModel'
+        inaccessibleWorkspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/InaccessibleWorkspacePolicyModel'
       description: >
         email of user or group to add to policy
     DataDeletionRequest:

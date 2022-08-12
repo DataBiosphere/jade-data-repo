@@ -38,6 +38,7 @@ public class RawlsClient {
   public WorkspaceResponse getWorkspace(UUID workspaceId, AuthenticatedUserRequest userRequest) {
     HttpHeaders authedHeaders = new HttpHeaders(headers);
     authedHeaders.setBearerAuth(userRequest.getToken());
+    String userEmail = userRequest.getEmail();
     try {
       ResponseEntity<WorkspaceResponse> workspaceCall =
           restTemplate.exchange(
@@ -47,11 +48,11 @@ public class RawlsClient {
               new HttpEntity<>(headers),
               WorkspaceResponse.class);
       if (!workspaceCall.getStatusCode().is2xxSuccessful()) {
-        logger.warn("Unsuccessful response retrieving workspace{}", workspaceId);
+        logger.warn("Unsuccessful response retrieving workspace {} by {}", workspaceId, userEmail);
       }
       return workspaceCall.getBody();
     } catch (Exception e) {
-      logger.error("Error retrieving workspace {}", workspaceId);
+      logger.warn("Error retrieving workspace {} by {}", workspaceId, userEmail);
       throw e;
     }
   }

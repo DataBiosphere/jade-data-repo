@@ -4,6 +4,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
@@ -19,8 +20,11 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.InaccessibleWorkspacePolicyModel;
+import bio.terra.model.PolicyResponse;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotPreviewModel;
@@ -35,6 +39,7 @@ import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableModel;
+import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -55,6 +60,7 @@ import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -99,8 +105,8 @@ public class SnapshotService {
   private final MetadataDataAccessUtils metadataDataAccessUtils;
   private final IamService iamService;
   private final EcmService ecmService;
-
   private final AzureSynapsePdao azureSynapsePdao;
+  private final RawlsService rawlsService;
 
   @Autowired
   public SnapshotService(
@@ -113,7 +119,8 @@ public class SnapshotService {
       MetadataDataAccessUtils metadataDataAccessUtils,
       IamService iamService,
       EcmService ecmService,
-      AzureSynapsePdao azureSynapsePdao) {
+      AzureSynapsePdao azureSynapsePdao,
+      RawlsService rawlsService) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -124,6 +131,7 @@ public class SnapshotService {
     this.iamService = iamService;
     this.ecmService = ecmService;
     this.azureSynapsePdao = azureSynapsePdao;
+    this.rawlsService = rawlsService;
   }
 
   /**
@@ -509,6 +517,31 @@ public class SnapshotService {
         .map(s -> s.getDataset().getId())
         .findFirst()
         .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
+  }
+
+  /**
+   * @param snapshotId snapshot UUID
+   * @param userReq authenticated user
+   * @return SAM-derived snapshot policies attributed to the user, including workspace resolution
+   *     where applicable.
+   */
+  public PolicyResponse retrieveSnapshotPolicies(
+      UUID snapshotId, AuthenticatedUserRequest userReq) {
+    List<SamPolicyModel> samPolicyModels =
+        iamService.retrievePolicies(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
+
+    var workspacePolicyModels =
+        samPolicyModels.stream().map(pm -> rawlsService.resolvePolicyEmails(pm, userReq));
+
+    List<WorkspacePolicyModel> accessibleWorkspaces =
+        workspacePolicyModels.flatMap(wpms -> wpms.accessible().stream()).toList();
+    List<InaccessibleWorkspacePolicyModel> inaccessibleWorkspaces =
+        workspacePolicyModels.flatMap(wpms -> wpms.inaccessible().stream()).toList();
+
+    return new PolicyResponse()
+        .policies(PolicyUtils.samToTdrPolicyModels(samPolicyModels))
+        .workspaces(accessibleWorkspaces)
+        .inaccessibleWorkspaces(inaccessibleWorkspaces);
   }
 
   /**

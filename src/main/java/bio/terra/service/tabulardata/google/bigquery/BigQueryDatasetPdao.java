@@ -15,6 +15,7 @@ import static bio.terra.common.PdaoConstant.PDAO_TRANSACTIONS_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_STATUS_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_TERMINATED_AT_COLUMN;
+import static bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao.logQuery;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -457,6 +458,7 @@ public class BigQueryDatasetPdao {
             .build();
 
     try {
+      logQuery(queryConfig);
       var results = bigQueryProject.getBigQuery().query(queryConfig);
       return StreamSupport.stream(results.iterateAll().spliterator(), true)
           .map(BigQueryDatasetPdao::bigQueryResultToBulkLoadHistoryModel)

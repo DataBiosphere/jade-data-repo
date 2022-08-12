@@ -1,5 +1,7 @@
 package bio.terra.service.tabulardata.google;
 
+import static bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao.logQuery;
+
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.AclUtils;
 import bio.terra.common.exception.PdaoException;
@@ -217,6 +219,7 @@ public final class BigQueryProject {
     try {
       QueryJobConfiguration queryConfig =
           QueryJobConfiguration.newBuilder(sql).setNamedParameters(values).build();
+      logQuery(queryConfig);
       return bigQuery.query(queryConfig);
     } catch (BigQueryException e) {
       throw new PdaoException("Failure executing query...\n" + sql, e);

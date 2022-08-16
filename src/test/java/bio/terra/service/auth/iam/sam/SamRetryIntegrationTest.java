@@ -10,6 +10,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -83,7 +84,7 @@ public class SamRetryIntegrationTest extends UsersBase {
 
   @Test
   public void retrySyncDatasetPolicies() throws InterruptedException, ApiException {
-    iam.createDatasetResource(userRequest, fakeDatasetId);
+    iam.createDatasetResource(userRequest, fakeDatasetId, new DatasetRequestModelPolicies());
 
     // Should be able to re-run syncDatasetResourcePolicies without an error being thrown
     // Otherwise, need to break up each "SamIam.syncOnePolicy" into own retry loop

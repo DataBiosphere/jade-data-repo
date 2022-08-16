@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight.create;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -20,18 +21,23 @@ public class CreateDatasetAuthzIamStep implements Step {
 
   private final IamProviderInterface iamClient;
   private final AuthenticatedUserRequest userReq;
+  private final DatasetRequestModel datasetRequest;
 
   public CreateDatasetAuthzIamStep(
-      IamProviderInterface iamClient, AuthenticatedUserRequest userReq) {
+      IamProviderInterface iamClient,
+      AuthenticatedUserRequest userReq,
+      DatasetRequestModel datasetRequest) {
     this.iamClient = iamClient;
     this.userReq = userReq;
+    this.datasetRequest = datasetRequest;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    Map<IamRole, String> policyEmails = iamClient.createDatasetResource(userReq, datasetId);
+    Map<IamRole, String> policyEmails =
+        iamClient.createDatasetResource(userReq, datasetId, datasetRequest.getPolicies());
     workingMap.put(DatasetWorkingMapKeys.POLICY_EMAILS, policyEmails);
     return StepResult.getStepResultSuccess();
   }

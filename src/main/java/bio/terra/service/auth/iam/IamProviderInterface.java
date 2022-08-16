@@ -1,6 +1,7 @@
 package bio.terra.service.auth.iam;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SamPolicyModel;
@@ -109,9 +110,11 @@ public interface IamProviderInterface {
    *
    * @param userReq authenticated user
    * @param datasetId id of the dataset
+   * @param policies user emails to add as dataset policy members
    * @return Map of policy group emails for the dataset policies
    */
-  Map<IamRole, String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
+  Map<IamRole, String> createDatasetResource(
+      AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies)
       throws InterruptedException;
 
   /**

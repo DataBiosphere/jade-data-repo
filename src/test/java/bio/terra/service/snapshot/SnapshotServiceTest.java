@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,6 +33,9 @@ import bio.terra.model.AccessInfoModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.InaccessibleWorkspacePolicyModel;
+import bio.terra.model.PolicyResponse;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -41,6 +45,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
+import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -58,6 +63,7 @@ import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileService;
+import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -116,6 +122,7 @@ public class SnapshotServiceTest {
   @MockBean private IamService iamService;
   @MockBean private AzureSynapsePdao synapsePdao;
   @MockBean private EcmService ecmService;
+  @MockBean private RawlsService rawlsService;
 
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();
@@ -550,6 +557,45 @@ public class SnapshotServiceTest {
         service.retrieveUserSnapshotRoles(snapshotId, TEST_USER),
         contains(samRolesAndReader.toArray()));
     verify(ecmService, times(1)).getRasProviderPassport(TEST_USER);
+  }
+
+  @Test
+  public void retrieveSnapshotPolicies() {
+    SamPolicyModel spm1 = mock(SamPolicyModel.class);
+    SamPolicyModel spm2 = mock(SamPolicyModel.class);
+    when(iamService.retrievePolicies(TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId))
+        .thenReturn(List.of(spm1, spm2));
+
+    List<WorkspacePolicyModel> accessible =
+        List.of(
+            mock(WorkspacePolicyModel.class),
+            mock(WorkspacePolicyModel.class),
+            mock(WorkspacePolicyModel.class));
+    List<InaccessibleWorkspacePolicyModel> inaccessible =
+        List.of(
+            mock(InaccessibleWorkspacePolicyModel.class),
+            mock(InaccessibleWorkspacePolicyModel.class),
+            mock(InaccessibleWorkspacePolicyModel.class));
+
+    when(rawlsService.resolvePolicyEmails(spm1, TEST_USER))
+        .thenReturn(
+            new RawlsService.WorkspacePolicyModels(
+                accessible.subList(0, 1), inaccessible.subList(0, 2)));
+    when(rawlsService.resolvePolicyEmails(spm2, TEST_USER))
+        .thenReturn(
+            new RawlsService.WorkspacePolicyModels(
+                accessible.subList(1, 3), inaccessible.subList(2, 3)));
+
+    PolicyResponse response = service.retrieveSnapshotPolicies(snapshotId, TEST_USER);
+
+    assertThat(
+        "All accessible workspaces from SAM policy models are returned",
+        response.getWorkspaces(),
+        is(accessible));
+    assertThat(
+        "All inaccessible workspaces from SAM policy models are returned",
+        response.getInaccessibleWorkspaces(),
+        is(inaccessible));
   }
 
   @Test

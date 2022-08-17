@@ -239,10 +239,18 @@ public class SamIam implements IamProviderInterface {
   private void createDatasetResourceInnerV2(
       AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies)
       throws ApiException {
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    CreateResourceRequestV2 req = createDatasetResourceRequest(userReq, datasetId, policies);
+    samResourceApi.createResourceV2(IamResourceType.DATASET.toString(), req);
+  }
+
+  @VisibleForTesting
+  public CreateResourceRequestV2 createDatasetResourceRequest(
+      AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies) {
     policies = Optional.ofNullable(policies).orElse(new DatasetRequestModelPolicies());
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
-    CreateResourceRequestV2 req = new CreateResourceRequestV2();
-    req.setResourceId(datasetId.toString());
+
+    CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(datasetId.toString());
 
     req.putPoliciesItem(
         IamRole.ADMIN.toString(),
@@ -262,10 +270,8 @@ public class SamIam implements IamProviderInterface {
         IamRole.SNAPSHOT_CREATOR.toString(),
         createAccessPolicyV2(IamRole.SNAPSHOT_CREATOR, policies.getSnapshotCreators()));
 
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     logger.debug("SAM request: " + req);
-
-    samResourceApi.createResourceV2(IamResourceType.DATASET.toString(), req);
+    return req;
   }
 
   private Map<IamRole, String> syncDatasetResourcePoliciesInner(

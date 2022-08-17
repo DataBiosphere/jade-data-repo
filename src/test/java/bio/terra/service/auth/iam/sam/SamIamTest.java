@@ -74,7 +74,7 @@ public class SamIamTest {
   @Mock private AuthenticatedUserRequest userReq;
 
   private SamIam samIam;
-  private final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
+  private static final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
 
   @Before
   public void setUp() throws Exception {

@@ -17,7 +17,6 @@ import static org.mockito.Mockito.when;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SamPolicyModel;
@@ -284,7 +283,7 @@ public class SamIamTest {
     }
 
     assertThat(
-        samIam.createDatasetResource(userReq, datasetId, new DatasetRequestModelPolicies()),
+        samIam.createDatasetResource(userReq, datasetId, null),
         is(
             syncedPolicies.stream()
                 .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));

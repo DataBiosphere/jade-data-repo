@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -238,6 +239,7 @@ public class SamIam implements IamProviderInterface {
   private void createDatasetResourceInnerV2(
       AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies)
       throws ApiException {
+    policies = Optional.ofNullable(policies).orElse(new DatasetRequestModelPolicies());
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
     CreateResourceRequestV2 req = new CreateResourceRequestV2();
     req.setResourceId(datasetId.toString());

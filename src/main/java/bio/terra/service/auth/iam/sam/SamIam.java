@@ -254,11 +254,9 @@ public class SamIam implements IamProviderInterface {
     req.putPoliciesItem(
         IamRole.STEWARD.toString(), createAccessPolicyV2(IamRole.STEWARD, stewards));
 
-    List<String> custodians = new ArrayList<>();
-    custodians.add(userStatusInfo.getUserEmail());
-    custodians.addAll(ListUtils.emptyIfNull(policies.getCustodians()));
     req.putPoliciesItem(
-        IamRole.CUSTODIAN.toString(), createAccessPolicyV2(IamRole.CUSTODIAN, custodians));
+        IamRole.CUSTODIAN.toString(),
+        createAccessPolicyV2(IamRole.CUSTODIAN, policies.getCustodians()));
 
     req.putPoliciesItem(
         IamRole.SNAPSHOT_CREATOR.toString(),

@@ -270,7 +270,8 @@ public class SamIam implements IamProviderInterface {
         IamRole.SNAPSHOT_CREATOR.toString(),
         createAccessPolicyV2(IamRole.SNAPSHOT_CREATOR, policies.getSnapshotCreators()));
 
-    logger.debug("SAM request: " + req);
+    logger.info("DR-2660 SAM request: " + req);
+    logger.info("DR-2660 " + Arrays.toString(Thread.currentThread().getStackTrace()));
     return req;
   }
 

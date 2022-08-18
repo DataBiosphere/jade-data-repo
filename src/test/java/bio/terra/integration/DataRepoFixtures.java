@@ -34,6 +34,7 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
@@ -46,6 +47,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
+import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -174,7 +176,8 @@ public class DataRepoFixtures {
       CloudPlatform cloudPlatform,
       boolean usePetAccount,
       boolean selfHosted,
-      boolean dedicatedServiceAccount)
+      boolean dedicatedServiceAccount,
+      DatasetRequestModelPolicies policies)
       throws Exception {
     DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
     requestModel.setDefaultProfileId(profileId);
@@ -184,6 +187,7 @@ public class DataRepoFixtures {
     }
     requestModel.experimentalSelfHosted(selfHosted);
     requestModel.dedicatedIngestServiceAccount(dedicatedServiceAccount);
+    requestModel.policies(policies);
     String json = TestUtils.mapToJson(requestModel);
 
     return dataRepoClient.post(
@@ -216,14 +220,21 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         createDatasetRaw(
-            user, profileId, fileName, CloudPlatform.GCP, false, true, dedicatedServiceAccount);
+            user,
+            profileId,
+            fileName,
+            CloudPlatform.GCP,
+            false,
+            true,
+            dedicatedServiceAccount,
+            null);
     return waitForDatasetCreate(user, jobResponse);
   }
 
   public DatasetSummaryModel createDatasetWithOwnServiceAccount(
       TestConfiguration.User user, UUID profileId, String fileName) throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, fileName, CloudPlatform.GCP, false, false, true);
+        createDatasetRaw(user, profileId, fileName, CloudPlatform.GCP, false, false, true, null);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -235,7 +246,20 @@ public class DataRepoFixtures {
       boolean usePetAccount)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, filename, cloudPlatform, usePetAccount, false, false);
+        createDatasetRaw(
+            user, profileId, filename, cloudPlatform, usePetAccount, false, false, null);
+    return waitForDatasetCreate(user, jobResponse);
+  }
+
+  public DatasetSummaryModel createDatasetWithPolicies(
+      TestConfiguration.User user,
+      UUID profileId,
+      String filename,
+      DatasetRequestModelPolicies policies)
+      throws Exception {
+    DataRepoResponse<JobModel> jobResponse =
+        createDatasetRaw(
+            user, profileId, filename, CloudPlatform.GCP, false, false, false, policies);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -264,7 +288,7 @@ public class DataRepoFixtures {
       CloudPlatform cloudPlatform)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, filename, cloudPlatform, false, false, false);
+        createDatasetRaw(user, profileId, filename, cloudPlatform, false, false, false, null);
     assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "dataset create launch response is present", jobResponse.getResponseObject().isPresent());
@@ -447,6 +471,34 @@ public class DataRepoFixtures {
     DataRepoResponse<List<String>> response =
         retrieveUserRolesRaw(user, datasetId, IamResourceType.DATASET);
     return validateResponse(response, "retrieving dataset roles", HttpStatus.OK, null);
+  }
+
+  // getting a resource's policies
+  public DataRepoResponse<PolicyResponse> retrievePoliciesRaw(
+      TestConfiguration.User user, UUID resourceId, IamResourceType iamResourceType)
+      throws Exception {
+    String pathPrefix;
+    switch (iamResourceType) {
+      case DATASET:
+        pathPrefix = "/api/repository/v1/datasets/";
+        break;
+      case DATASNAPSHOT:
+        pathPrefix = "/api/repository/v1/snapshots/";
+        break;
+      default:
+        throw new IllegalArgumentException(
+            "No path prefix defined for IamResourceType " + iamResourceType);
+    }
+    String path = pathPrefix + resourceId + "/policies/";
+
+    return dataRepoClient.get(user, path, new TypeReference<>() {});
+  }
+
+  public PolicyResponse retrieveDatasetPolicies(TestConfiguration.User user, UUID datasetId)
+      throws Exception {
+    DataRepoResponse<PolicyResponse> response =
+        retrievePoliciesRaw(user, datasetId, IamResourceType.DATASET);
+    return validateResponse(response, "retrieving dataset policies", HttpStatus.OK, null);
   }
 
   // adding dataset asset

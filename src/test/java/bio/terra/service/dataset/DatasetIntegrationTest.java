@@ -1,6 +1,8 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -29,11 +31,13 @@ import bio.terra.model.DataDeletionJsonArrayModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.PolicyModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.configuration.ConfigEnum;
@@ -381,6 +385,42 @@ public class DatasetIntegrationTest extends UsersBase {
 
     // assert that the asset isn't there
     assertThat("Additional asset specification has never been added", assetList.size(), equalTo(1));
+  }
+
+  @Test
+  public void testCreateDatasetWithPolicies() throws Exception {
+    List<String> stewards = List.of(steward().getEmail(), admin().getEmail());
+    String custodianEmail = custodian().getEmail();
+    String snapshotCreatorEmail = reader().getEmail();
+    DatasetRequestModelPolicies policiesRequest =
+        new DatasetRequestModelPolicies()
+            .stewards(stewards)
+            .addCustodiansItem(custodianEmail)
+            .addSnapshotCreatorsItem(snapshotCreatorEmail);
+
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDatasetWithPolicies(
+            steward(), profileId, "it-dataset-omop.json", policiesRequest);
+    datasetId = summaryModel.getId();
+
+    Map<String, List<String>> rolesToPolicies =
+        dataRepoFixtures.retrieveDatasetPolicies(steward(), datasetId).getPolicies().stream()
+            .collect(Collectors.toMap(PolicyModel::getName, PolicyModel::getMembers));
+
+    assertThat(
+        "All specified stewards added on dataset creation",
+        rolesToPolicies.get(IamRole.STEWARD.toString()),
+        containsInAnyOrder(stewards.toArray()));
+
+    assertThat(
+        "Custodian added on dataset creation",
+        rolesToPolicies.get(IamRole.CUSTODIAN.toString()),
+        contains(custodianEmail));
+
+    assertThat(
+        "Snapshot creator added on dataset creation",
+        rolesToPolicies.get(IamRole.SNAPSHOT_CREATOR.toString()),
+        contains(snapshotCreatorEmail));
   }
 
   static DataDeletionTableModel deletionTableFile(String tableName, String path) {

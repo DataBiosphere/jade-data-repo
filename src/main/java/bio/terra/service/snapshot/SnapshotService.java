@@ -960,7 +960,8 @@ public class SnapshotService {
             .name(snapshot.getName())
             .description(snapshot.getDescription())
             .createdDate(snapshot.getCreatedDate().toString())
-            .consentCode(snapshot.getConsentCode());
+            .consentCode(snapshot.getConsentCode())
+            .cloudPlatform(snapshot.getCloudPlatform());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRetrieveIncludeModel.NONE)) {

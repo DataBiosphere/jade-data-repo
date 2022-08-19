@@ -323,6 +323,9 @@ public class DatasetDaoTest {
           "dataset default Billing Profile matches default profile id",
           fromDB.getDatasetSummary().getDefaultBillingProfile().getId(),
           equalTo(fromDB.getDatasetSummary().getDefaultProfileId()));
+
+      assertThat(
+          "Cloud platform is returned", fromDB.getCloudPlatform(), equalTo(CloudPlatform.GCP));
     } finally {
       datasetDao.delete(datasetId);
     }

@@ -105,10 +105,12 @@ public class SnapshotExportFlight extends Flight {
               profileService,
               userReq));
     }
-    if (exportGsPaths && platform.isGcp()) {
+    if (platform.isGcp()) {
       addStep(new SnapshotExportGrantPermissionsStep(gcsPdao, userReq));
-      addStep(
-          new CleanUpExportGsPathsStep(bigQueryExportPdao, gcsPdao, snapshotService, snapshotId));
+      if (exportGsPaths) {
+        addStep(
+            new CleanUpExportGsPathsStep(bigQueryExportPdao, gcsPdao, snapshotService, snapshotId));
+      }
     }
   }
 }

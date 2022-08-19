@@ -223,9 +223,7 @@ public class SnapshotService {
     return jobService
         .newJob(description, SnapshotExportFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
-        .addParameter(
-            JobMapKeys.CLOUD_PLATFORM.getKeyName(),
-            snapshot.getSourceDataset().getDatasetSummary().getCloudPlatform())
+        .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), snapshot.getCloudPlatform())
         .addParameter(ExportMapKeys.EXPORT_GSPATHS, exportGsPaths)
         .addParameter(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, validatePrimaryKeyUniqueness)
         .submit();

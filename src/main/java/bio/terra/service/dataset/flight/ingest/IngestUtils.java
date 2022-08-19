@@ -32,7 +32,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.StorageException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -91,41 +90,41 @@ public final class IngestUtils {
    * strict. There are valid blob urls that do not match this specification and we may be able to
    * expand this definition with more testing/requirement gathering
    *
-   * @param URL
+   * @param url
    * @return
    */
-  public static BlobUrlParts validateBlobAzureBlobFileURL(String URL) {
+  public static BlobUrlParts validateBlobAzureBlobFileURL(String url) {
     BlobUrlParts blobUrlParts;
     try {
-      blobUrlParts = BlobUrlParts.parse(URL);
+      blobUrlParts = BlobUrlParts.parse(url);
     } catch (IllegalArgumentException ex) {
-      throw new InvalidBlobURLException("Blob URL parse failed due to malformed URL.", ex);
+      throw new InvalidBlobURLException("Blob url parse failed due to malformed url.", ex);
     }
-    validateScheme(blobUrlParts.getScheme(), URL);
-    validateHost(blobUrlParts.getHost(), URL);
+    validateScheme(blobUrlParts.getScheme(), url);
+    validateHost(blobUrlParts.getHost(), url);
     validateContainerAndBlobNames(
-        blobUrlParts.getBlobContainerName(), blobUrlParts.getBlobName(), URL);
+        blobUrlParts.getBlobContainerName(), blobUrlParts.getBlobName(), url);
     return blobUrlParts;
   }
 
-  private static void validateScheme(String scheme, String URL) {
+  private static void validateScheme(String scheme, String url) {
     String expectedScheme = "https";
     if (!expectedScheme.equals(scheme)) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'."
               + "The url is required to use 'https'");
     }
   }
 
-  private static void validateHost(String host, String URL) {
+  private static void validateHost(String host, String url) {
     int separator = StringUtils.indexOf(host, ".");
     String storageAccountName = StringUtils.substring(host, 0, separator);
     if (!storageAccountName.matches("^[a-z0-9]{3,24}")) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'. "
               + "The host is expected to take the following format: {storageAccountName}.blob.core.windows.net, "
               + "where the storageAccountName must be between 3 and 24 characters in length and "
@@ -137,40 +136,36 @@ public final class IngestUtils {
     if (!actualHostURL.equals(expectedHostURL)) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'. "
               + "The host is expected to take the following format: {storageAccountName}.blob.core.windows.net");
     }
   }
 
   private static void validateContainerAndBlobNames(
-      String containerName, String blobName, String URL) {
+      String containerName, String blobName, String url) {
+
+    String azureContainerRegex = "^[a-z0-9](?!.*--)[a-z0-9-]{1,61}[a-z0-9]$";
+
+    if (!containerName.matches(azureContainerRegex)) {
+      throw new InvalidBlobURLException(
+          "Ingest source is not a valid blob url: '"
+              + url
+              + "'. "
+              + " The container and each blob name must meet the following requirements: "
+              + "They must start and end with a letter or number. Valid characters include "
+              + "letters, numbers, and the dash (-) character. "
+              + "Every dash (-) character must be immediately preceded and followed by a letter or number; "
+              + "consecutive dashes are not permitted in container names.");
+    }
+
     if (!blobName.endsWith(".csv") && !blobName.endsWith(".json")) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'. "
               + "The url must include a file name with an extension of either csv or json.");
     }
-    String blobNameNoExtension = blobName.substring(0, blobName.lastIndexOf("."));
-    List<String> blobNamesToCheck = new ArrayList<>();
-    blobNamesToCheck.addAll(Arrays.asList(blobNameNoExtension.split("/")));
-    blobNamesToCheck.add(containerName);
-    String azureContainerRegex = "^[a-z0-9](?!.*--)[a-z0-9-]{1,61}[a-z0-9]$";
-    blobNamesToCheck.forEach(
-        b -> {
-          if (!b.matches(azureContainerRegex)) {
-            throw new InvalidBlobURLException(
-                "Ingest source is not a valid blob url: '"
-                    + URL
-                    + "'. "
-                    + " The container and each blob name must meet the following requirements: "
-                    + "They must start and end with a letter or number. Valid characters include "
-                    + "letters, numbers, and the dash (-) character. "
-                    + "Every dash (-) character must be immediately preceded and followed by a letter or number; "
-                    + "consecutive dashes are not permitted in container names.");
-          }
-        });
   }
 
   public static void putStagingTableName(FlightContext context, String name) {

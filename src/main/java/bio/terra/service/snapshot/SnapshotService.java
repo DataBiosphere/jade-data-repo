@@ -57,6 +57,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -107,9 +108,11 @@ public class SnapshotService {
   private final EcmService ecmService;
   private final AzureSynapsePdao azureSynapsePdao;
   private final RawlsService rawlsService;
+  private final AzureBlobStorePdao deletePDAO;
 
   @Autowired
   public SnapshotService(
+      AzureBlobStorePdao deletePDAO,
       JobService jobService,
       DatasetService datasetService,
       FireStoreDependencyDao dependencyDao,
@@ -121,6 +124,7 @@ public class SnapshotService {
       EcmService ecmService,
       AzureSynapsePdao azureSynapsePdao,
       RawlsService rawlsService) {
+    this.deletePDAO = deletePDAO;
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -213,10 +217,15 @@ public class SnapshotService {
       boolean exportGsPaths,
       boolean validatePrimaryKeyUniqueness) {
     String description = "Export snapshot " + id;
+    Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
+
     // TODO: add parameters to share job status using a new SAM role to export data
     return jobService
         .newJob(description, SnapshotExportFlight.class, null, userReq)
         .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
+        .addParameter(
+            JobMapKeys.CLOUD_PLATFORM.getKeyName(),
+            snapshot.getSourceDataset().getDatasetSummary().getCloudPlatform())
         .addParameter(ExportMapKeys.EXPORT_GSPATHS, exportGsPaths)
         .addParameter(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, validatePrimaryKeyUniqueness)
         .submit();

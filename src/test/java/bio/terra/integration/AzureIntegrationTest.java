@@ -1,4 +1,4 @@
-package bio.terra.service.dataset;
+package bio.terra.integration;
 
 import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,10 +26,6 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
-import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.TestJobWatcher;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.AccessInfoParquetModelTable;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -105,7 +101,7 @@ import org.springframework.util.ResourceUtils;
 @ActiveProfiles({"google", "integrationtest"})
 @AutoConfigureMockMvc
 @Category(Integration.class)
-public class DatasetAzureIntegrationTest extends UsersBase {
+public class AzureIntegrationTest extends UsersBase {
 
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
@@ -113,7 +109,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private static final String omopDatasetRegionName = AzureRegion.DEFAULT_AZURE_REGION.toString();
   private static final String omopDatasetGcpRegionName =
       GoogleRegion.DEFAULT_GOOGLE_REGION.toString();
-  private static Logger logger = LoggerFactory.getLogger(DatasetAzureIntegrationTest.class);
+  private static Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;

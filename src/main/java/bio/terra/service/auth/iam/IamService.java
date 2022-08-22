@@ -182,6 +182,11 @@ public class IamService {
     }
   }
 
+  public List<String> listActions(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
+    return callProvider(() -> iamProvider.listActions(userReq, iamResourceType, resourceId));
+  }
+
   /**
    * If user has any action on a resource than we allow that user to list the resource, rather than
    * have a specific action for listing. That is the Sam convention.

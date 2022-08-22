@@ -177,7 +177,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     logger.info("Verifying user access");
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+        userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.EXPORT_SNAPSHOT);
     String jobId =
         snapshotService.exportSnapshot(id, userReq, exportGsPaths, validatePrimaryKeyUniqueness);
     // we can retrieve the job we just created

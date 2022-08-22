@@ -43,15 +43,12 @@ public class IngestUtilsTest {
         equalTo("test/azure-simple-dataset-ingest-request.csv"));
   }
 
-  public void testValidURLWithSpecialCharaterBlobPaths() {
-    IngestUtils.validateBlobAzureBlobFileURL(
-        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure_simple_dataset_ingest_request.csv");
-    IngestUtils.validateBlobAzureBlobFileURL(
-        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/AZURE_SIMPLE_DATASET_INGEST_REQUEST.CSV");
-    IngestUtils.validateBlobAzureBlobFileURL(
-        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/----.json");
-    IngestUtils.validateBlobAzureBlobFileURL(
-        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/nested/0_o.json");
+  public void testValidURLWithSpecialCharacterBlobPaths() {
+    String urlPrefix = "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata";
+    IngestUtils.validateBlobAzureBlobFileURL(urlPrefix + "/test/azure_simple_dataset_ingest.csv");
+    IngestUtils.validateBlobAzureBlobFileURL(urlPrefix + "/test/AZURE_SIMPLE_DATASET_INGEST.CSV");
+    IngestUtils.validateBlobAzureBlobFileURL(urlPrefix + "/test/----.json");
+    IngestUtils.validateBlobAzureBlobFileURL(urlPrefix + "/test/nested/0_o.json");
   }
 
   @Test(expected = InvalidBlobURLException.class)

@@ -152,8 +152,8 @@ public final class IngestUtils {
           "Ingest source is not a valid blob url: '"
               + url
               + "'. "
-              + " The container and each blob name must meet the following requirements: "
-              + "They must start and end with a letter or number. Valid characters include "
+              + "The container must meet the following requirements: "
+              + "It must start and end with a letter or number. Valid characters include "
               + "letters, numbers, and the dash (-) character. "
               + "Every dash (-) character must be immediately preceded and followed by a letter or number; "
               + "consecutive dashes are not permitted in container names.");

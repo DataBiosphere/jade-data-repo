@@ -57,7 +57,6 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -108,11 +107,9 @@ public class SnapshotService {
   private final EcmService ecmService;
   private final AzureSynapsePdao azureSynapsePdao;
   private final RawlsService rawlsService;
-  private final AzureBlobStorePdao deletePDAO;
 
   @Autowired
   public SnapshotService(
-      AzureBlobStorePdao deletePDAO,
       JobService jobService,
       DatasetService datasetService,
       FireStoreDependencyDao dependencyDao,
@@ -124,7 +121,6 @@ public class SnapshotService {
       EcmService ecmService,
       AzureSynapsePdao azureSynapsePdao,
       RawlsService rawlsService) {
-    this.deletePDAO = deletePDAO;
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;

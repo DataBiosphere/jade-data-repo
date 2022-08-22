@@ -355,7 +355,6 @@ public class JobService {
                 if (userRoles.contains(action.toString())) {
                   flightStateList.add(flightState);
                 }
-                ;
               }
             }
           });

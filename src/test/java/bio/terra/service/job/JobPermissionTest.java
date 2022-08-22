@@ -1,5 +1,7 @@
 package bio.terra.service.job;
 
+import static org.junit.Assert.assertEquals;
+
 import bio.terra.common.GcsUtils;
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoClient;
@@ -183,5 +185,10 @@ public class JobPermissionTest extends UsersBase {
 
     String combinedIngestJobId = combinedIngestJobResponse.getResponseObject().get().getId();
     dataRepoFixtures.getJobSuccess(combinedIngestJobId, custodian());
+
+    assertEquals(dataRepoFixtures.enumerateJobs(admin()).size(), 10);
+    assertEquals(dataRepoFixtures.enumerateJobs(steward()).size(), 10);
+    assertEquals(dataRepoFixtures.enumerateJobs(custodian()).size(), 10);
+    assertEquals(dataRepoFixtures.enumerateJobs(reader()).size(), 0);
   }
 }

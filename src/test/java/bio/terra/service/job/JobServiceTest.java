@@ -6,19 +6,27 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.usermetrics.BardClient;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.exception.StairwayException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.hamcrest.Matcher;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -27,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -47,9 +56,40 @@ public class JobServiceTest {
           .setToken("token")
           .build();
 
+  private AuthenticatedUserRequest testUser2 =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("StairwayUnit2")
+          .setEmail("stairway@unit2.com")
+          .setToken("token")
+          .build();
+
+  private AuthenticatedUserRequest adminUser =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("StairwayUnit3")
+          .setEmail("stairway@unit3.com")
+          .setToken("token")
+          .build();
+
   @Autowired private JobService jobService;
 
   @Autowired private ApplicationConfiguration appConfig;
+
+  @MockBean private IamService samService;
+
+  @MockBean private BardClient bardClient;
+
+  @Before
+  public void setUp() throws Exception {
+    when(samService.isAuthorized(
+            testUser, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.LIST_JOBS))
+        .thenReturn(false);
+    when(samService.isAuthorized(
+            testUser2, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.LIST_JOBS))
+        .thenReturn(false);
+    when(samService.isAuthorized(
+            adminUser, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.LIST_JOBS))
+        .thenReturn(true);
+  }
 
   @Test
   public void retrieveTest() throws Exception {
@@ -59,7 +99,7 @@ public class JobServiceTest {
     List<JobModel> expectedJobs = new ArrayList<>();
 
     for (int i = 0; i < 7; i++) {
-      String jobId = runFlight(makeDescription(i), makeFlightClass(i));
+      String jobId = runFlight(makeDescription(i), makeFlightClass(i), testUser);
       expectedJobs.add(
           new JobModel()
               .id(jobId)
@@ -78,13 +118,13 @@ public class JobServiceTest {
     // Retrieve everything
     assertThat(
         "retrieve everything",
-        jobService.enumerateJobs(0, 100, null, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(0, 100, testUser, SqlSortDirection.ASC, ""),
         contains(getJobMatchers(expectedJobs)));
 
     // Retrieve the middle 3; offset means skip 2 rows
     assertThat(
         "retrieve the middle three",
-        jobService.enumerateJobs(2, 3, null, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(2, 3, testUser, SqlSortDirection.ASC, ""),
         contains(getJobMatchers(expectedJobs.subList(2, 5))));
 
     // Retrieve in descending order and filtering to the even (JobServiceTestFlight) flights
@@ -101,14 +141,108 @@ public class JobServiceTest {
     // Retrieve from the end; should only get the last one back
     assertThat(
         "retrieve from the end",
-        jobService.enumerateJobs(6, 3, null, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(6, 3, testUser, SqlSortDirection.ASC, ""),
         contains(getJobMatcher((expectedJobs.get(6)))));
 
     // Retrieve past the end; should get nothing
     assertThat(
         "retrieve from the end",
-        jobService.enumerateJobs(22, 3, null, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(22, 3, testUser, SqlSortDirection.ASC, ""),
         is(List.of()));
+  }
+
+  @Test
+  public void enumerateJobsPermissionTest() throws Exception {
+    // We perform 9 flights of alternating classes and then retrieve and enumerate them.
+    // The fids list should be in exactly the same order as the database ordered by submit time.
+
+    // Launch 2 jobs that are not visible to the test user
+    UUID privateDatasetId = UUID.randomUUID();
+    for (int i = 0; i < 2; i++) {
+      runFlightWithParameters(
+          makeDescription(i), makeFlightClass(i), testUser, String.valueOf(privateDatasetId));
+    }
+    when(samService.listActions(
+            testUser2, IamResourceType.DATASET, String.valueOf(privateDatasetId)))
+        .thenReturn(List.of());
+
+    assertEquals(
+        "no jobs are visible",
+        jobService.enumerateJobs(0, 100, testUser2, SqlSortDirection.ASC, "").size(),
+        0);
+
+    // Launch 2 jobs that are visible to the test user
+    List<JobModel> accessibleJobs = new ArrayList<>();
+    UUID sharedDatasetId = UUID.randomUUID();
+    for (int i = 0; i < 2; i++) {
+      String jobId =
+          runFlightWithParameters(
+              makeDescription(i), makeFlightClass(i), testUser, String.valueOf(sharedDatasetId));
+      accessibleJobs.add(
+          new JobModel()
+              .id(jobId)
+              .jobStatus(JobStatusEnum.SUCCEEDED)
+              .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
+              .description(makeDescription(i))
+              .className(makeFlightClass(i).getName()));
+    }
+
+    when(samService.listActions(
+            testUser2, IamResourceType.DATASET, String.valueOf(sharedDatasetId)))
+        .thenReturn(List.of("ingest_data"));
+
+    // Launch 5 jobs as the test user
+    for (int i = 0; i < 5; i++) {
+      String jobId =
+          runFlightWithParameters(
+              makeDescription(i), makeFlightClass(i), testUser2, String.valueOf(sharedDatasetId));
+      accessibleJobs.add(
+          new JobModel()
+              .id(jobId)
+              .jobStatus(JobStatusEnum.SUCCEEDED)
+              .statusCode(HttpStatus.I_AM_A_TEAPOT.value())
+              .description(makeDescription(i))
+              .className(makeFlightClass(i).getName()));
+    }
+
+    assertThat(
+        "shared and user-launched jobs are visible",
+        jobService.enumerateJobs(0, 100, testUser2, SqlSortDirection.ASC, ""),
+        contains(getJobMatchers(accessibleJobs)));
+
+    // Retrieve the middle 3; offset means skip 2 rows
+    assertThat(
+        "retrieve the middle three",
+        jobService.enumerateJobs(2, 3, testUser2, SqlSortDirection.ASC, ""),
+        contains(getJobMatchers(accessibleJobs.subList(2, 5))));
+
+    // Retrieve in descending order and filtering to the even (JobServiceTestFlight) flights
+    assertThat(
+        "retrieve descending and alternating",
+        jobService.enumerateJobs(
+            0, 4, testUser2, SqlSortDirection.DESC, JobServiceTestFlight.class.getName()),
+        contains(
+            getJobMatcher(accessibleJobs.get(6)),
+            getJobMatcher(accessibleJobs.get(4)),
+            getJobMatcher(accessibleJobs.get(2)),
+            getJobMatcher(accessibleJobs.get(0))));
+
+    // Retrieve from the end; should only get the last one back
+    assertThat(
+        "retrieve from the end",
+        jobService.enumerateJobs(6, 3, testUser2, SqlSortDirection.ASC, ""),
+        contains(getJobMatcher((accessibleJobs.get(6)))));
+
+    // Retrieve past the end; should get nothing
+    assertThat(
+        "retrieve from the end",
+        jobService.enumerateJobs(22, 3, testUser2, SqlSortDirection.ASC, ""),
+        is(List.of()));
+
+    assertEquals(
+        "admin user can list all jobs",
+        jobService.enumerateJobs(0, 100, adminUser, SqlSortDirection.ASC, "").size(),
+        9);
   }
 
   private void testSingleRetrieval(JobModel job) throws InterruptedException {
@@ -144,8 +278,25 @@ public class JobServiceTest {
   }
 
   // Submit a flight; wait for it to finish; return the flight id
-  private String runFlight(String description, Class<? extends Flight> clazz) {
+  private String runFlight(
+      String description, Class<? extends Flight> clazz, AuthenticatedUserRequest testUser) {
     String jobId = jobService.newJob(description, clazz, null, testUser).submit();
+    jobService.waitForJob(jobId);
+    return jobId;
+  }
+
+  private String runFlightWithParameters(
+      String description,
+      Class<? extends Flight> clazz,
+      AuthenticatedUserRequest testUser,
+      String resourceId) {
+    String jobId =
+        jobService
+            .newJob(description, clazz, null, testUser)
+            .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASET)
+            .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), resourceId)
+            .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
+            .submit();
     jobService.waitForJob(jobId);
     return jobId;
   }

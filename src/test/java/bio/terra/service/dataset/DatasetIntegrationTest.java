@@ -391,11 +391,12 @@ public class DatasetIntegrationTest extends UsersBase {
   public void testCreateDatasetWithPolicies() throws Exception {
     List<String> stewards = List.of(steward().getEmail(), admin().getEmail());
     String custodianEmail = custodian().getEmail();
+    List<String> custodiansWithDuplicates = List.of(custodianEmail, custodianEmail);
     String snapshotCreatorEmail = reader().getEmail();
     DatasetRequestModelPolicies policiesRequest =
         new DatasetRequestModelPolicies()
             .stewards(stewards)
-            .addCustodiansItem(custodianEmail)
+            .custodians(custodiansWithDuplicates)
             .addSnapshotCreatorsItem(snapshotCreatorEmail);
 
     DatasetSummaryModel summaryModel =
@@ -413,7 +414,7 @@ public class DatasetIntegrationTest extends UsersBase {
         containsInAnyOrder(stewards.toArray()));
 
     assertThat(
-        "Custodian added on dataset creation",
+        "Custodian added on dataset creation, duplicates removed without error",
         rolesToPolicies.get(IamRole.CUSTODIAN.toString()),
         contains(custodianEmail));
 

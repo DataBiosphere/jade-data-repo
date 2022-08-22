@@ -485,6 +485,9 @@ public class DataRepoFixtures {
       case DATASNAPSHOT:
         pathPrefix = "/api/repository/v1/snapshots/";
         break;
+      case SPEND_PROFILE:
+        pathPrefix = "/api/resources/v1/profiles/";
+        break;
       default:
         throw new IllegalArgumentException(
             "No path prefix defined for IamResourceType " + iamResourceType);

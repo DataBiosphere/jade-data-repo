@@ -403,23 +403,21 @@ public class DataRepoFixtures {
       IamResourceType iamResourceType)
       throws Exception {
     PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-    String pathPrefix;
-    switch (iamResourceType) {
-      case DATASET:
-        pathPrefix = "/api/repository/v1/datasets/";
-        break;
-      case DATASNAPSHOT:
-        pathPrefix = "/api/repository/v1/snapshots/";
-        break;
-      case SPEND_PROFILE:
-        pathPrefix = "/api/resources/v1/profiles/";
-        break;
-      default:
-        throw new IllegalArgumentException(
-            "No path prefix defined for IamResourceType " + iamResourceType);
-    }
-    String path = pathPrefix + resourceId + "/policies/" + role.toString() + "/members";
 
+    String resourceType =
+        switch (iamResourceType) {
+          case DATASET -> "datasets";
+          case DATASNAPSHOT -> "snapshots";
+          case SPEND_PROFILE -> "profiles";
+          default -> throw new IllegalArgumentException(
+              "Policy member addition undefined for IamResourceType " + iamResourceType);
+        };
+    String path =
+        String.format(
+            "/api/repository/v1/{}/{}/policies/{}/members",
+            resourceType,
+            resourceId,
+            role.toString());
     return dataRepoClient.post(user, path, TestUtils.mapToJson(req), new TypeReference<>() {});
   }
 
@@ -445,23 +443,18 @@ public class DataRepoFixtures {
     addPolicyMember(user, datasetId, role, newMemberEmail, IamResourceType.DATASET);
   }
 
-  // getting a users roles on a resource
+  // getting a user's roles on a resource
   public DataRepoResponse<List<String>> retrieveUserRolesRaw(
       TestConfiguration.User user, UUID resourceId, IamResourceType iamResourceType)
       throws Exception {
-    String pathPrefix;
-    switch (iamResourceType) {
-      case DATASET:
-        pathPrefix = "/api/repository/v1/datasets/";
-        break;
-      case DATASNAPSHOT:
-        pathPrefix = "/api/repository/v1/snapshots/";
-        break;
-      default:
-        throw new IllegalArgumentException(
-            "No path prefix defined for IamResourceType " + iamResourceType);
-    }
-    String path = pathPrefix + resourceId + "/roles/";
+    String resourceType =
+        switch (iamResourceType) {
+          case DATASET -> "datasets";
+          case DATASNAPSHOT -> "snapshots";
+          default -> throw new IllegalArgumentException(
+              "Role fetch undefined for IamResourceType " + iamResourceType);
+        };
+    String path = String.format("/api/repository/v1/{}/{}/roles", resourceType, resourceId);
 
     return dataRepoClient.get(user, path, new TypeReference<>() {});
   }
@@ -477,22 +470,15 @@ public class DataRepoFixtures {
   public DataRepoResponse<PolicyResponse> retrievePoliciesRaw(
       TestConfiguration.User user, UUID resourceId, IamResourceType iamResourceType)
       throws Exception {
-    String pathPrefix;
-    switch (iamResourceType) {
-      case DATASET:
-        pathPrefix = "/api/repository/v1/datasets/";
-        break;
-      case DATASNAPSHOT:
-        pathPrefix = "/api/repository/v1/snapshots/";
-        break;
-      case SPEND_PROFILE:
-        pathPrefix = "/api/resources/v1/profiles/";
-        break;
-      default:
-        throw new IllegalArgumentException(
-            "No path prefix defined for IamResourceType " + iamResourceType);
-    }
-    String path = pathPrefix + resourceId + "/policies/";
+    String resourceType =
+        switch (iamResourceType) {
+          case DATASET -> "datasets";
+          case DATASNAPSHOT -> "snapshots";
+          case SPEND_PROFILE -> "profiles";
+          default -> throw new IllegalArgumentException(
+              "Policy fetch undefined for IamResourceType " + iamResourceType);
+        };
+    String path = String.format("/api/repository/v1/{}/{}/policies", resourceType, resourceId);
 
     return dataRepoClient.get(user, path, new TypeReference<>() {});
   }

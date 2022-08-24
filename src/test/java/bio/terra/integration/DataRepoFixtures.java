@@ -414,10 +414,8 @@ public class DataRepoFixtures {
         };
     String path =
         String.format(
-            "/api/repository/v1/{}/{}/policies/{}/members",
-            resourceType,
-            resourceId,
-            role.toString());
+            "/api/repository/v1/%s/%s/policies/%s/members",
+            resourceType, resourceId, role.toString());
     return dataRepoClient.post(user, path, TestUtils.mapToJson(req), new TypeReference<>() {});
   }
 
@@ -454,7 +452,7 @@ public class DataRepoFixtures {
           default -> throw new IllegalArgumentException(
               "Role fetch undefined for IamResourceType " + iamResourceType);
         };
-    String path = String.format("/api/repository/v1/{}/{}/roles", resourceType, resourceId);
+    String path = String.format("/api/repository/v1/%s/%s/roles", resourceType, resourceId);
 
     return dataRepoClient.get(user, path, new TypeReference<>() {});
   }
@@ -478,7 +476,7 @@ public class DataRepoFixtures {
           default -> throw new IllegalArgumentException(
               "Policy fetch undefined for IamResourceType " + iamResourceType);
         };
-    String path = String.format("/api/repository/v1/{}/{}/policies", resourceType, resourceId);
+    String path = String.format("/api/repository/v1/%s/%s/policies", resourceType, resourceId);
 
     return dataRepoClient.get(user, path, new TypeReference<>() {});
   }

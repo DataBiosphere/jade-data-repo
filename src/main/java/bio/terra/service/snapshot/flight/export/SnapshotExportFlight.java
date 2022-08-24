@@ -2,7 +2,6 @@ package bio.terra.service.snapshot.flight.export;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
@@ -48,13 +47,8 @@ public class SnapshotExportFlight extends Flight {
         Objects.requireNonNullElse(
             inputParameters.get(ExportMapKeys.EXPORT_VALIDATE_PK_UNIQUENESS, Boolean.class), true);
 
-    if (validatePrimaryKeyUniqueness) {
-      if (platform.isGcp()) {
-        addStep(new SnapshotExportValidatePrimaryKeysStep(snapshotService, snapshotId));
-      } else {
-        throw new FeatureNotImplementedException(
-            "Key uniqueness validation not implemented in Azure.");
-      }
+    if (validatePrimaryKeyUniqueness && platform.isGcp()) {
+      addStep(new SnapshotExportValidatePrimaryKeysStep(snapshotService, snapshotId));
     }
 
     addStep(new SnapshotExportValidateExportParametersStep(snapshotService, snapshotId));
@@ -65,18 +59,12 @@ public class SnapshotExportFlight extends Flight {
     boolean exportGsPaths =
         Objects.requireNonNullElse(
             inputParameters.get(ExportMapKeys.EXPORT_GSPATHS, Boolean.class), false);
-    if (exportGsPaths) {
-      if (platform.isGcp()) {
-        addStep(
-            new SnapshotExportDumpFirestoreStep(
-                snapshotService, fireStoreDao, gcsPdao, snapshotId, objectMapper));
-        addStep(
-            new SnapshotExportLoadMappingTableStep(
-                snapshotId, snapshotService, bigQueryExportPdao));
-      } else {
-        throw new FeatureNotImplementedException(
-            "GCS path pre-resolution from DRS not implemented in Azure.");
-      }
+    if (exportGsPaths && platform.isGcp()) {
+      addStep(
+          new SnapshotExportDumpFirestoreStep(
+              snapshotService, fireStoreDao, gcsPdao, snapshotId, objectMapper));
+      addStep(
+          new SnapshotExportLoadMappingTableStep(snapshotId, snapshotService, bigQueryExportPdao));
     }
 
     if (platform.isGcp()) {

@@ -9,6 +9,7 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
+import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
@@ -212,9 +213,20 @@ public class SnapshotService {
       AuthenticatedUserRequest userReq,
       boolean exportGsPaths,
       boolean validatePrimaryKeyUniqueness) {
-    String description = "Export snapshot " + id;
     Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
+    String description = "Export snapshot %s".formatted(snapshot.toLogString());
 
+    var cloudPlatformWrapper = CloudPlatformWrapper.of(snapshot.getCloudPlatform());
+    if (cloudPlatformWrapper.isAzure()) {
+      if (validatePrimaryKeyUniqueness) {
+        throw new FeatureNotImplementedException(
+            "Key uniqueness validation not implemented in Azure.");
+      }
+      if (exportGsPaths) {
+        throw new FeatureNotImplementedException(
+            "GCS path pre-resolution from DRS not implemented in Azure.");
+      }
+    }
     // TODO: add parameters to share job status using a new SAM role to export data
     return jobService
         .newJob(description, SnapshotExportFlight.class, null, userReq)
@@ -685,9 +697,7 @@ public class SnapshotService {
                       "No snapshot table column exists with the name: " + sort));
     }
 
-    CloudPlatformWrapper cloudPlatformWrapper =
-        CloudPlatformWrapper.of(
-            snapshot.getFirstSnapshotSource().getDataset().getDatasetSummary().getCloudPlatform());
+    var cloudPlatformWrapper = CloudPlatformWrapper.of(snapshot.getCloudPlatform());
 
     if (cloudPlatformWrapper.isGcp()) {
       try {

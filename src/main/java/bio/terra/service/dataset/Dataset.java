@@ -7,6 +7,7 @@ import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
 import bio.terra.model.AssetModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
@@ -321,6 +322,11 @@ public class Dataset implements FSContainerInterface, LogPrintable {
 
   public Object getProperties() {
     return datasetSummary.getProperties();
+  }
+
+  @Override
+  public CloudPlatform getCloudPlatform() {
+    return datasetSummary.getCloudPlatform();
   }
 
   @Override

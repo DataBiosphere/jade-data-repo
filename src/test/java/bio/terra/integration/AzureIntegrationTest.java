@@ -1,4 +1,4 @@
-package bio.terra.service.dataset;
+package bio.terra.integration;
 
 import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,10 +26,6 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
-import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.TestJobWatcher;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.AccessInfoParquetModelTable;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -53,6 +49,8 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotExportResponseModel;
+import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -72,6 +70,7 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -84,6 +83,11 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -105,7 +109,7 @@ import org.springframework.util.ResourceUtils;
 @ActiveProfiles({"google", "integrationtest"})
 @AutoConfigureMockMvc
 @Category(Integration.class)
-public class DatasetAzureIntegrationTest extends UsersBase {
+public class AzureIntegrationTest extends UsersBase {
 
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
@@ -113,7 +117,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private static final String omopDatasetRegionName = AzureRegion.DEFAULT_AZURE_REGION.toString();
   private static final String omopDatasetGcpRegionName =
       GoogleRegion.DEFAULT_GOOGLE_REGION.toString();
-  private static Logger logger = LoggerFactory.getLogger(DatasetAzureIntegrationTest.class);
+  private static Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
@@ -571,6 +575,21 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             steward(), summaryModel.getName(), profileId, requestModelAll);
     snapshotId = snapshotSummaryAll.getId();
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
+
+    // Ensure that export works
+    DataRepoResponse<SnapshotExportResponseModel> snapshotExport =
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false);
+
+    assertThat(
+        "snapshotExport is present", snapshotExport.getResponseObject().isPresent(), is(true));
+    // Verify that the manifest is accessible
+    SnapshotExportResponseModelFormatParquet manifest =
+        snapshotExport.getResponseObject().get().getFormat().getParquet();
+    verifyUrlIsAccessible(manifest.getManifest());
+    // Verify that all files referenced in manifest are accessible
+    manifest.getLocation().getTables().stream()
+        .flatMap(t -> t.getPaths().stream())
+        .forEach(this::verifyUrlIsAccessible);
 
     // Read the ingested metadata
     AccessInfoParquetModel snapshotParquetAccessInfo =
@@ -1183,5 +1202,21 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         "Signed url only contains expected permissions",
         blobUrlParts.getCommonSasQueryParameters().getPermissions(),
         equalTo(expectedPermissions));
+    verifyUrlIsAccessible(signedUrl);
+  }
+
+  private void verifyUrlIsAccessible(String signedUrl) {
+    logger.info("Verifying url %s".formatted(signedUrl));
+    try (CloseableHttpClient client = HttpClients.createDefault()) {
+      HttpUriRequest request = new HttpHead(signedUrl);
+      try (CloseableHttpResponse response = client.execute(request); ) {
+        assertThat(
+            "URL can be accessed",
+            response.getStatusLine().getStatusCode(),
+            equalTo(HttpStatus.OK.value()));
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

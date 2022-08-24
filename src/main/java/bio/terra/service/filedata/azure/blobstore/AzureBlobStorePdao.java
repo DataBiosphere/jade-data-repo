@@ -24,7 +24,9 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.Co
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobUrlParts;
+import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
@@ -37,6 +39,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
@@ -297,6 +300,27 @@ public class AzureBlobStorePdao implements CloudFileReader {
     BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
 
     return blobCrl.deleteBlobsWithPrefix(blobName);
+  }
+
+  /**
+   * Given a signed Url, return all children of the path if it is a directory
+   *
+   * @return A list of signed URLs to the child blobs
+   */
+  public List<String> listChildren(String signedUrl) {
+    var blobName = BlobUrlParts.parse(signedUrl).getBlobName();
+    return getSourceClientFactory(signedUrl)
+        .getBlobContainerClient()
+        // List children of the parquet directory
+        .listBlobs(new ListBlobsOptions().setPrefix(blobName + "/"), Duration.ofMinutes(5))
+        .stream()
+        // Extract the name
+        .map(BlobItem::getName)
+        // Ignore the empty placeholder file
+        .filter(n -> !n.endsWith("/_"))
+        // Fully qualify the name by poor-man cloning the original URL and modifying the blob name
+        .map(n -> BlobUrlParts.parse(signedUrl).setBlobName(n).toUrl().toString())
+        .collect(Collectors.toList());
   }
 
   public String signFile(

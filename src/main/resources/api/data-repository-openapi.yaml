@@ -3409,6 +3409,8 @@ components:
           $ref: '#/components/schemas/PhsId'
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
         selfHosted:
           type: boolean
           default: false
@@ -4486,6 +4488,8 @@ components:
           $ref: '#/components/schemas/AccessInfoModel'
         creationInformation:
           $ref: '#/components/schemas/SnapshotRequestContentsModel'
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
         properties:
           type: object
           description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)

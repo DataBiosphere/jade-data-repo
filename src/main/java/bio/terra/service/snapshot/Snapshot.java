@@ -5,6 +5,7 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -226,6 +227,11 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public boolean isSelfHosted() {
     return getSourceDataset().isSelfHosted();
+  }
+
+  @Override
+  public CloudPlatform getCloudPlatform() {
+    return getSourceDataset().getCloudPlatform();
   }
 
   @Override

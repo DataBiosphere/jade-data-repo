@@ -403,19 +403,15 @@ public class DataRepoFixtures {
       IamResourceType iamResourceType)
       throws Exception {
     PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-
-    String resourceType =
+    String pathPrefix =
         switch (iamResourceType) {
-          case DATASET -> "datasets";
-          case DATASNAPSHOT -> "snapshots";
-          case SPEND_PROFILE -> "profiles";
+          case DATASET -> "/api/repository/v1/datasets/";
+          case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
+          case SPEND_PROFILE -> "/api/resources/v1/profiles/";
           default -> throw new IllegalArgumentException(
               "Policy member addition undefined for IamResourceType " + iamResourceType);
         };
-    String path =
-        String.format(
-            "/api/repository/v1/%s/%s/policies/%s/members",
-            resourceType, resourceId, role.toString());
+    String path = pathPrefix + resourceId + "/policies/" + role.toString() + "/members";
     return dataRepoClient.post(user, path, TestUtils.mapToJson(req), new TypeReference<>() {});
   }
 
@@ -445,14 +441,14 @@ public class DataRepoFixtures {
   public DataRepoResponse<List<String>> retrieveUserRolesRaw(
       TestConfiguration.User user, UUID resourceId, IamResourceType iamResourceType)
       throws Exception {
-    String resourceType =
+    String pathPrefix =
         switch (iamResourceType) {
-          case DATASET -> "datasets";
-          case DATASNAPSHOT -> "snapshots";
+          case DATASET -> "/api/repository/v1/datasets/";
+          case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
           default -> throw new IllegalArgumentException(
               "Role fetch undefined for IamResourceType " + iamResourceType);
         };
-    String path = String.format("/api/repository/v1/%s/%s/roles", resourceType, resourceId);
+    String path = pathPrefix + resourceId + "/roles";
 
     return dataRepoClient.get(user, path, new TypeReference<>() {});
   }
@@ -468,15 +464,15 @@ public class DataRepoFixtures {
   public DataRepoResponse<PolicyResponse> retrievePoliciesRaw(
       TestConfiguration.User user, UUID resourceId, IamResourceType iamResourceType)
       throws Exception {
-    String resourceType =
+    String pathPrefix =
         switch (iamResourceType) {
-          case DATASET -> "datasets";
-          case DATASNAPSHOT -> "snapshots";
-          case SPEND_PROFILE -> "profiles";
+          case DATASET -> "/api/repository/v1/datasets/";
+          case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
+          case SPEND_PROFILE -> "/api/resources/v1/profiles/";
           default -> throw new IllegalArgumentException(
               "Policy fetch undefined for IamResourceType " + iamResourceType);
         };
-    String path = String.format("/api/repository/v1/%s/%s/policies", resourceType, resourceId);
+    String path = pathPrefix + resourceId + "/policies";
 
     return dataRepoClient.get(user, path, new TypeReference<>() {});
   }

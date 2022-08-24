@@ -5,6 +5,7 @@ import bio.terra.common.ExceptionUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.ErrorReportException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.ResourcePolicyModel;
@@ -33,10 +34,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -225,33 +228,50 @@ public class SamIam implements IamProviderInterface {
 
   @Override
   public Map<IamRole, String> createDatasetResource(
-      AuthenticatedUserRequest userReq, UUID datasetId) throws InterruptedException {
-    SamRetry.retry(configurationService, () -> createDatasetResourceInnerV2(userReq, datasetId));
+      AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService, () -> createDatasetResourceInnerV2(userReq, datasetId, policies));
     return SamRetry.retry(
         configurationService, () -> syncDatasetResourcePoliciesInner(userReq, datasetId));
   }
 
-  private void createDatasetResourceInnerV2(AuthenticatedUserRequest userReq, UUID datasetId)
+  private void createDatasetResourceInnerV2(
+      AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies)
       throws ApiException {
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    CreateResourceRequestV2 req = createDatasetResourceRequest(userReq, datasetId, policies);
+    samResourceApi.createResourceV2(IamResourceType.DATASET.toString(), req);
+  }
+
+  @VisibleForTesting
+  public CreateResourceRequestV2 createDatasetResourceRequest(
+      AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies) {
+    policies = Optional.ofNullable(policies).orElse(new DatasetRequestModelPolicies());
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
-    CreateResourceRequestV2 req = new CreateResourceRequestV2();
-    req.setResourceId(datasetId.toString());
+
+    CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(datasetId.toString());
+
     req.putPoliciesItem(
         IamRole.ADMIN.toString(),
         createAccessPolicyOneV2(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
+
+    List<String> stewards = new ArrayList<>();
+    stewards.add(userStatusInfo.getUserEmail());
+    stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));
     req.putPoliciesItem(
-        IamRole.STEWARD.toString(),
-        createAccessPolicyOneV2(IamRole.STEWARD, userStatusInfo.getUserEmail()));
+        IamRole.STEWARD.toString(), createAccessPolicyV2(IamRole.STEWARD, stewards));
+
     req.putPoliciesItem(
         IamRole.CUSTODIAN.toString(),
-        createAccessPolicyOneV2(IamRole.CUSTODIAN, userStatusInfo.getUserEmail()));
+        createAccessPolicyV2(IamRole.CUSTODIAN, policies.getCustodians()));
+
     req.putPoliciesItem(
-        IamRole.SNAPSHOT_CREATOR.toString(), createAccessPolicyV2(IamRole.SNAPSHOT_CREATOR, null));
+        IamRole.SNAPSHOT_CREATOR.toString(),
+        createAccessPolicyV2(IamRole.SNAPSHOT_CREATOR, policies.getSnapshotCreators()));
 
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
     logger.debug("SAM request: " + req);
-
-    samResourceApi.createResourceV2(IamResourceType.DATASET.toString(), req);
+    return req;
   }
 
   private Map<IamRole, String> syncDatasetResourcePoliciesInner(

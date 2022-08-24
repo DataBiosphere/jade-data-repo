@@ -135,7 +135,7 @@ public class ConnectedOperations {
 
     when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
     when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
-    when(samService.createDatasetResource(any(), any())).thenReturn(datasetPolicies);
+    when(samService.createDatasetResource(any(), any(), any())).thenReturn(datasetPolicies);
 
     when(samService.retrievePolicyEmails(any(), eq(IamResourceType.DATASET), any()))
         .thenReturn(datasetPolicies);

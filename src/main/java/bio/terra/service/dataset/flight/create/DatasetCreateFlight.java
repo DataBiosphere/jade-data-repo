@@ -125,8 +125,9 @@ public class DatasetCreateFlight extends Flight {
           new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao, datasetRequest));
     }
 
+    // Create the IAM resource for the dataset with any specified policy members.
     // The underlying service provides retries so we do not need to retry for IAM step
-    addStep(new CreateDatasetAuthzIamStep(iamClient, userReq));
+    addStep(new CreateDatasetAuthzIamStep(iamClient, userReq, datasetRequest));
 
     if (platform.isGcp()) {
       addStep(new CreateDatasetPrimaryDataStep(bigQueryDatasetPdao, datasetDao));

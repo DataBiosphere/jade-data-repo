@@ -3,6 +3,8 @@ package bio.terra.service.auth.iam.sam;
 import static bio.terra.service.auth.iam.sam.SamIam.TOS_URL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -17,6 +19,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SamPolicyModel;
@@ -41,6 +44,7 @@ import org.broadinstitute.dsde.workbench.client.sam.api.TermsOfServiceApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
+import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
@@ -70,10 +74,12 @@ public class SamIamTest {
   @Mock private AuthenticatedUserRequest userReq;
 
   private SamIam samIam;
+  private static final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
 
   @Before
   public void setUp() throws Exception {
     MockitoAnnotations.initMocks(this);
+    when(samConfig.getAdminsGroupEmail()).thenReturn(ADMIN_EMAIL);
     samIam = spy(new SamIam(samConfig, configurationService));
     final String userToken = "some_token";
     when(userReq.getToken()).thenReturn(userToken);
@@ -283,10 +289,99 @@ public class SamIamTest {
     }
 
     assertThat(
-        samIam.createDatasetResource(userReq, datasetId),
+        samIam.createDatasetResource(userReq, datasetId, null),
         is(
             syncedPolicies.stream()
                 .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));
+  }
+
+  @Test
+  public void testCreateDatasetResourceRequestWithoutPolicySpecifications() throws ApiException {
+    final String userSubjectId = "userid";
+    final String userEmail = "a@a.com";
+    mockUserInfo(userSubjectId, userEmail);
+
+    final UUID datasetId = UUID.randomUUID();
+
+    CreateResourceRequestV2 reqNullPolicies =
+        samIam.createDatasetResourceRequest(userReq, datasetId, null);
+    CreateResourceRequestV2 reqEmptyPolicies =
+        samIam.createDatasetResourceRequest(userReq, datasetId, new DatasetRequestModelPolicies());
+
+    for (CreateResourceRequestV2 req : List.of(reqNullPolicies, reqEmptyPolicies)) {
+      assertThat(req.getResourceId(), is(datasetId.toString()));
+
+      List<IamRole> policyKeys =
+          req.getPolicies().keySet().stream().map(IamRole::fromValue).toList();
+      assertThat(
+          policyKeys,
+          containsInAnyOrder(
+              IamRole.ADMIN, IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.SNAPSHOT_CREATOR));
+
+      AccessPolicyMembershipV2 admin = req.getPolicies().get(IamRole.ADMIN.toString());
+      assertThat(admin.getRoles(), contains(IamRole.ADMIN.toString()));
+      assertThat(admin.getMemberEmails(), contains(ADMIN_EMAIL));
+
+      AccessPolicyMembershipV2 steward = req.getPolicies().get(IamRole.STEWARD.toString());
+      assertThat(steward.getRoles(), contains(IamRole.STEWARD.toString()));
+      assertThat(steward.getMemberEmails(), contains(userEmail));
+
+      AccessPolicyMembershipV2 custodian = req.getPolicies().get(IamRole.CUSTODIAN.toString());
+      assertThat(custodian.getRoles(), contains(IamRole.CUSTODIAN.toString()));
+      assertThat(custodian.getMemberEmails(), empty());
+
+      AccessPolicyMembershipV2 snapshotCreator =
+          req.getPolicies().get(IamRole.SNAPSHOT_CREATOR.toString());
+      assertThat(snapshotCreator.getRoles(), contains(IamRole.SNAPSHOT_CREATOR.toString()));
+      assertThat(snapshotCreator.getMemberEmails(), empty());
+    }
+  }
+
+  @Test
+  public void testCreateDatasetResourceRequestWithPolicySpecifications() throws ApiException {
+    final String userSubjectId = "userid";
+    final String userEmail = "a@a.com";
+    mockUserInfo(userSubjectId, userEmail);
+
+    final UUID datasetId = UUID.randomUUID();
+
+    String stewardEmail1 = "steward1@a.com";
+    String stewardEmail2 = "steward3@a.com";
+    String custodianEmail = "custodian@a.com";
+    String snapshotCreatorEmail = "snapshotCreator@a.com";
+    DatasetRequestModelPolicies policySpecs =
+        new DatasetRequestModelPolicies()
+            .addStewardsItem(stewardEmail1)
+            .addStewardsItem(stewardEmail2)
+            .addCustodiansItem(custodianEmail)
+            .addSnapshotCreatorsItem(snapshotCreatorEmail);
+    CreateResourceRequestV2 req =
+        samIam.createDatasetResourceRequest(userReq, datasetId, policySpecs);
+
+    assertThat(req.getResourceId(), is(datasetId.toString()));
+
+    List<IamRole> policyKeys = req.getPolicies().keySet().stream().map(IamRole::fromValue).toList();
+    assertThat(
+        policyKeys,
+        containsInAnyOrder(
+            IamRole.ADMIN, IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.SNAPSHOT_CREATOR));
+
+    AccessPolicyMembershipV2 admin = req.getPolicies().get(IamRole.ADMIN.toString());
+    assertThat(admin.getRoles(), contains(IamRole.ADMIN.toString()));
+    assertThat(admin.getMemberEmails(), contains(ADMIN_EMAIL));
+
+    AccessPolicyMembershipV2 steward = req.getPolicies().get(IamRole.STEWARD.toString());
+    assertThat(steward.getRoles(), contains(IamRole.STEWARD.toString()));
+    assertThat(steward.getMemberEmails(), contains(userEmail, stewardEmail1, stewardEmail2));
+
+    AccessPolicyMembershipV2 custodian = req.getPolicies().get(IamRole.CUSTODIAN.toString());
+    assertThat(custodian.getRoles(), contains(IamRole.CUSTODIAN.toString()));
+    assertThat(custodian.getMemberEmails(), contains(custodianEmail));
+
+    AccessPolicyMembershipV2 snapshotCreator =
+        req.getPolicies().get(IamRole.SNAPSHOT_CREATOR.toString());
+    assertThat(snapshotCreator.getRoles(), contains(IamRole.SNAPSHOT_CREATOR.toString()));
+    assertThat(snapshotCreator.getMemberEmails(), contains(snapshotCreatorEmail));
   }
 
   @Test

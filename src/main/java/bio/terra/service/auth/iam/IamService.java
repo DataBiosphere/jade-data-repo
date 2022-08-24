@@ -3,6 +3,7 @@ package bio.terra.service.auth.iam;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.UserStatusInfo;
@@ -221,11 +222,12 @@ public class IamService {
    *
    * @param userReq authenticated user
    * @param datasetId id of the dataset
+   * @param policies user emails to add as dataset policy members
    * @return List of policy group emails for the dataset policies
    */
   public Map<IamRole, String> createDatasetResource(
-      AuthenticatedUserRequest userReq, UUID datasetId) {
-    return callProvider(() -> iamProvider.createDatasetResource(userReq, datasetId));
+      AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies) {
+    return callProvider(() -> iamProvider.createDatasetResource(userReq, datasetId, policies));
   }
 
   /**

@@ -83,7 +83,7 @@ public class SamRetryIntegrationTest extends UsersBase {
 
   @Test
   public void retrySyncDatasetPolicies() throws InterruptedException, ApiException {
-    iam.createDatasetResource(userRequest, fakeDatasetId);
+    iam.createDatasetResource(userRequest, fakeDatasetId, null);
 
     // Should be able to re-run syncDatasetResourcePolicies without an error being thrown
     // Otherwise, need to break up each "SamIam.syncOnePolicy" into own retry loop

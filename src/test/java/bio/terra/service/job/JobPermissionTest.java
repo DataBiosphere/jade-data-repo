@@ -10,6 +10,7 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
@@ -75,13 +76,12 @@ public class JobPermissionTest extends UsersBase {
             CloudPlatform.GCP,
             false,
             false,
-            false);
+            false,
+            new DatasetRequestModelPolicies().addCustodiansItem(custodian().getEmail()));
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.waitForDatasetCreate(steward(), jobResponse);
 
     datasetId = datasetSummaryModel.getId();
-    dataRepoFixtures.addPolicyMemberRaw(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail(), IamResourceType.DATASET);
 
     // Ingest single file
     String ingestBucket = "jade-testdata-useastregion";

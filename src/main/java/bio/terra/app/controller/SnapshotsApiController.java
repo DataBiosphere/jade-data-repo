@@ -24,7 +24,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.dataset.AssetModelValidator;
@@ -37,7 +36,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -194,16 +192,13 @@ public class SnapshotsApiController implements SnapshotsApi {
       String region,
       List<String> datasetIds) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    Map<UUID, Set<IamRole>> idsAndRoles =
-        snapshotService.listAuthorizedSnapshots(getAuthenticatedInfo());
-
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
             .map(UUID::fromString)
             .collect(Collectors.toList());
     var esm =
         snapshotService.enumerateSnapshots(
-            offset, limit, sort, direction, filter, region, datasetUUIDs, idsAndRoles);
+            getAuthenticatedInfo(), offset, limit, sort, direction, filter, region, datasetUUIDs);
     return ResponseEntity.ok(esm);
   }
 

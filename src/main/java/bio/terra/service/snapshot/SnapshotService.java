@@ -20,6 +20,7 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.RelationshipModel;
@@ -224,20 +225,19 @@ public class SnapshotService {
 
   /**
    * @param userReq authenticated user
+   * @param errors list to store any exceptions encountered
    * @return accessible snapshot UUIDs and the IamRoles dictating their accessibility, established
    *     directly by SAM and indirectly by any linked RAS passport
    */
-  public Map<UUID, Set<IamRole>> listAuthorizedSnapshots(AuthenticatedUserRequest userReq) {
+  public Map<UUID, Set<IamRole>> listAuthorizedSnapshots(
+      AuthenticatedUserRequest userReq, List<ErrorModel> errors) {
     Map<UUID, Set<IamRole>> rasAuthorizedSnapshots = new HashMap<>();
     try {
       rasAuthorizedSnapshots = listRasAuthorizedSnapshots(userReq);
     } catch (Exception ex) {
-      // In the absence of robust ECM retries / nuanced error handling,
-      // do not fail snapshot enumeration because of an ECM error.
-      // Ticket for further investment: https://broadworkbench.atlassian.net/browse/DR-2674
-      logger.error(
-          String.format("Error listing RAS-authorized snapshots for user %s", userReq.getEmail()),
-          ex);
+      String message = "Error listing RAS-authorized snapshots for user " + userReq.getEmail();
+      logger.warn(message, ex);
+      errors.add(new ErrorModel().message(message).addErrorDetailItem(ex.getMessage()));
     }
 
     return combineIdsAndRoles(
@@ -249,17 +249,14 @@ public class SnapshotService {
    * @param userReq authenticated user
    * @return accessible snapshot UUIDs and the IamRoles dictating their accessibility, established
    *     indirectly by any linked RAS passport
+   * @throws ParseException
    */
-  public Map<UUID, Set<IamRole>> listRasAuthorizedSnapshots(AuthenticatedUserRequest userReq) {
+  public Map<UUID, Set<IamRole>> listRasAuthorizedSnapshots(AuthenticatedUserRequest userReq)
+      throws ParseException {
     Map<UUID, Set<IamRole>> idsAndRoles = new HashMap<>();
-    try {
-      List<RasDbgapPermissions> permissions = ecmService.getRasDbgapPermissions(userReq);
-      List<UUID> uuids = snapshotDao.getAccessibleSnapshots(permissions);
-      Set<IamRole> roles = Set.of(IamRole.READER);
-      uuids.forEach(uuid -> idsAndRoles.put(uuid, roles));
-    } catch (ParseException ex) {
-      logger.error("Error parsing RAS passport", ex);
-    }
+    List<RasDbgapPermissions> permissions = ecmService.getRasDbgapPermissions(userReq);
+    List<UUID> snapshotIds = snapshotDao.getAccessibleSnapshots(permissions);
+    snapshotIds.forEach(snapshotId -> idsAndRoles.put(snapshotId, Set.of(IamRole.READER)));
     return idsAndRoles;
   }
 
@@ -286,16 +283,18 @@ public class SnapshotService {
    * @return list of summary models of snapshot
    */
   public EnumerateSnapshotModel enumerateSnapshots(
+      AuthenticatedUserRequest userReq,
       int offset,
       int limit,
       EnumerateSortByParam sort,
       SqlSortDirection direction,
       String filter,
       String region,
-      List<UUID> datasetIds,
-      Map<UUID, Set<IamRole>> idsAndRoles) {
+      List<UUID> datasetIds) {
+    List<ErrorModel> errors = new ArrayList<>();
+    Map<UUID, Set<IamRole>> idsAndRoles = listAuthorizedSnapshots(userReq, errors);
     if (idsAndRoles.isEmpty()) {
-      return new EnumerateSnapshotModel().total(0).items(List.of());
+      return new EnumerateSnapshotModel().total(0).items(List.of()).errors(errors);
     }
     var enumeration =
         snapshotDao.retrieveSnapshots(
@@ -315,7 +314,8 @@ public class SnapshotService {
         .items(models)
         .total(enumeration.getTotal())
         .filteredTotal(enumeration.getFilteredTotal())
-        .roleMap(roleMap);
+        .roleMap(roleMap)
+        .errors(errors);
   }
 
   /**

@@ -33,6 +33,7 @@ import bio.terra.model.AccessInfoModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
@@ -357,9 +358,12 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void enumerateSnapshots() {
+  public void enumerateSnapshots() throws Exception {
     IamRole role = IamRole.DISCOVERER;
     Map<UUID, Set<IamRole>> resourcesAndRoles = Map.of(snapshotId, Set.of(role));
+    when(iamService.listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT))
+        .thenReturn(resourcesAndRoles);
+    when(ecmService.getRasDbgapPermissions(TEST_USER)).thenReturn(List.of());
     SnapshotSummary summary =
         new SnapshotSummary().id(snapshotId).createdDate(Instant.now()).storage(List.of());
     MetadataEnumeration<SnapshotSummary> metadataEnumeration = new MetadataEnumeration<>();
@@ -367,8 +371,7 @@ public class SnapshotServiceTest {
     when(snapshotDao.retrieveSnapshots(
             anyInt(), anyInt(), any(), any(), any(), any(), any(), eq(resourcesAndRoles.keySet())))
         .thenReturn(metadataEnumeration);
-    var snapshots =
-        service.enumerateSnapshots(0, 10, null, null, null, null, List.of(), resourcesAndRoles);
+    var snapshots = service.enumerateSnapshots(TEST_USER, 0, 10, null, null, null, null, List.of());
     assertThat(snapshots.getItems().get(0).getId(), equalTo(snapshotId));
     assertThat(snapshots.getRoleMap(), hasEntry(snapshotId.toString(), List.of(role.toString())));
   }
@@ -392,19 +395,56 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void listAuthorizedSnapshots() throws Exception {
-    Map<UUID, Set<IamRole>> samAuthorizedSnapshots =
-        Map.of(UUID.randomUUID(), Set.of(IamRole.STEWARD));
-    when(ecmService.getRasDbgapPermissions(TEST_USER))
-        .thenThrow(new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT));
+  public void listAuthorizedSnapshotsWhenEcmReturns() throws Exception {
+    UUID snapshotId = UUID.randomUUID();
+
+    IamRole samAuthorizedRole = IamRole.STEWARD;
+    Map<UUID, Set<IamRole>> samAuthorizedSnapshots = Map.of(snapshotId, Set.of(samAuthorizedRole));
     when(iamService.listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT))
         .thenReturn(samAuthorizedSnapshots);
 
+    List<RasDbgapPermissions> permissions = List.of(new RasDbgapPermissions("c99", "phs123456"));
+    when(ecmService.getRasDbgapPermissions(TEST_USER)).thenReturn(permissions);
+    when(snapshotDao.getAccessibleSnapshots(permissions)).thenReturn(List.of(snapshotId));
+
+    List<ErrorModel> errors = new ArrayList<>();
+
+    Map<UUID, Set<IamRole>> authorizedSnapshots =
+        service.listAuthorizedSnapshots(TEST_USER, errors);
+    verify(ecmService, times(1)).getRasDbgapPermissions(TEST_USER);
+    verify(snapshotDao, times(1)).getAccessibleSnapshots(permissions);
+
+    assertThat(
+        "Expected snapshot is authorized", authorizedSnapshots.keySet(), contains(snapshotId));
+    assertThat(
+        "User can access snapshot via SAM and RAS roles",
+        authorizedSnapshots.get(snapshotId),
+        containsInAnyOrder(samAuthorizedRole, IamRole.READER));
+
+    assertThat("No ECM errors encountered", errors, empty());
+  }
+
+  @Test
+  public void listAuthorizedSnapshotsWhenEcmThrows() throws Exception {
+    Map<UUID, Set<IamRole>> samAuthorizedSnapshots =
+        Map.of(UUID.randomUUID(), Set.of(IamRole.STEWARD));
+    HttpClientErrorException ecmException = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
+    when(ecmService.getRasDbgapPermissions(TEST_USER)).thenThrow(ecmException);
+    when(iamService.listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT))
+        .thenReturn(samAuthorizedSnapshots);
+
+    List<ErrorModel> errors = new ArrayList<>();
     assertThat(
         "ECM exception should not block snapshot enumeration",
-        service.listAuthorizedSnapshots(TEST_USER),
+        service.listAuthorizedSnapshots(TEST_USER, errors),
         equalTo(samAuthorizedSnapshots));
     verify(ecmService, times(1)).getRasDbgapPermissions(TEST_USER);
+
+    assertThat("ECM error added to error list", errors.size(), equalTo(1));
+    assertThat(
+        "ECM error contents match expectations",
+        errors.get(0).getErrorDetail().get(0),
+        equalTo(ecmException.getMessage()));
   }
 
   @Test

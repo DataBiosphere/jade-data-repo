@@ -4432,6 +4432,11 @@ components:
             type: array
             items:
               type: string
+        errors:
+          type: array
+          description: Errors encountered which may result in a partial enumeration returned.
+          items:
+            $ref: '#/components/schemas/ErrorModel'
       description: >
         The total number of snapshots available that match the criteria and a page of summaries
     SnapshotModel:

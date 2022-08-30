@@ -229,7 +229,8 @@ public class SnapshotService {
    * @return accessible snapshot UUIDs and the IamRoles dictating their accessibility, established
    *     directly by SAM and indirectly by any linked RAS passport
    */
-  public Map<UUID, Set<IamRole>> listAuthorizedSnapshots(
+  @VisibleForTesting
+  Map<UUID, Set<IamRole>> listAuthorizedSnapshots(
       AuthenticatedUserRequest userReq, List<ErrorModel> errors) {
     Map<UUID, Set<IamRole>> rasAuthorizedSnapshots = new HashMap<>();
     try {
@@ -237,7 +238,7 @@ public class SnapshotService {
     } catch (Exception ex) {
       String message = "Error listing RAS-authorized snapshots for user " + userReq.getEmail();
       logger.warn(message, ex);
-      errors.add(new ErrorModel().message(message).addErrorDetailItem(ex.getMessage()));
+      errors.add(new ErrorModel().message(message));
     }
 
     return combineIdsAndRoles(
@@ -249,15 +250,12 @@ public class SnapshotService {
    * @param userReq authenticated user
    * @return accessible snapshot UUIDs and the IamRoles dictating their accessibility, established
    *     indirectly by any linked RAS passport
-   * @throws ParseException
    */
   public Map<UUID, Set<IamRole>> listRasAuthorizedSnapshots(AuthenticatedUserRequest userReq)
       throws ParseException {
-    Map<UUID, Set<IamRole>> idsAndRoles = new HashMap<>();
     List<RasDbgapPermissions> permissions = ecmService.getRasDbgapPermissions(userReq);
-    List<UUID> snapshotIds = snapshotDao.getAccessibleSnapshots(permissions);
-    snapshotIds.forEach(snapshotId -> idsAndRoles.put(snapshotId, Set.of(IamRole.READER)));
-    return idsAndRoles;
+    return snapshotDao.getAccessibleSnapshots(permissions).stream()
+        .collect(Collectors.toMap(Function.identity(), id -> Set.of(IamRole.READER)));
   }
 
   /**

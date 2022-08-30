@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
@@ -443,8 +444,8 @@ public class SnapshotServiceTest {
     assertThat("ECM error added to error list", errors.size(), equalTo(1));
     assertThat(
         "ECM error contents match expectations",
-        errors.get(0).getErrorDetail().get(0),
-        equalTo(ecmException.getMessage()));
+        errors.get(0).getMessage(),
+        containsString("Error listing RAS-authorized snapshots"));
   }
 
   @Test

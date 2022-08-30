@@ -552,8 +552,10 @@ public class SnapshotDaoTest {
   }
 
   @Test
-  public void testPatchSnapshotConsentCode() throws Exception {
+  public void testPatchSnapshotConsentCodeAndDescription() throws Exception {
+    String defaultSnapshotDescription = "A meaningful description of a snapshot.";
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    snapshotRequest.description(defaultSnapshotDescription);
 
     Snapshot snapshot =
         snapshotService
@@ -569,6 +571,11 @@ public class SnapshotDaoTest {
         snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
         equalTo(null));
 
+    assertThat(
+        "snapshot's default description is correct before any patch",
+        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        equalTo(defaultSnapshotDescription));
+
     String consentCodeSet = "c01";
     SnapshotPatchRequestModel patchRequestSet =
         new SnapshotPatchRequestModel().consentCode(consentCodeSet);
@@ -577,6 +584,11 @@ public class SnapshotDaoTest {
         "snapshot's consent code is set from patch",
         snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
         equalTo(consentCodeSet));
+
+    assertThat(
+        "snapshot's description remains unmodified when updating consent code.",
+        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        equalTo(defaultSnapshotDescription));
 
     String consentCodeOverride = "c99";
     SnapshotPatchRequestModel patchRequestOverride =
@@ -592,12 +604,46 @@ public class SnapshotDaoTest {
         "snapshot's consent code is unchanged when unspecified in patch request",
         snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
         equalTo(consentCodeOverride));
-
+    assertThat(
+        "snapshot's description is unchanged when unspecified in patch request",
+        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        equalTo(defaultSnapshotDescription));
     SnapshotPatchRequestModel patchRequestBlank = new SnapshotPatchRequestModel().consentCode("");
     snapshotDao.patch(snapshotId, patchRequestBlank);
     assertThat(
         "snapshot's consent code is set to empty string from patch",
         snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        equalTo(""));
+
+    SnapshotPatchRequestModel patchDescription =
+        new SnapshotPatchRequestModel().description("A new description");
+    snapshotDao.patch(snapshotId, patchDescription);
+    assertThat(
+        "snapshot's description is updated",
+        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        equalTo("A new description"));
+    assertThat(
+        "snapshot's consent code is still set to empty string from last consent code patch",
+        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        equalTo(""));
+
+    SnapshotPatchRequestModel patchDescAndCode =
+        new SnapshotPatchRequestModel().consentCode("c99").description("Another new description");
+    snapshotDao.patch(snapshotId, patchDescAndCode);
+    assertThat(
+        "snapshot's description is updated",
+        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        equalTo("Another new description"));
+    assertThat(
+        "snapshot's consent code is updated",
+        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        equalTo("c99"));
+
+    SnapshotPatchRequestModel patchZeroLenStrDesc = new SnapshotPatchRequestModel().description("");
+    snapshotDao.patch(snapshotId, patchZeroLenStrDesc);
+    assertThat(
+        "snapshot's description is updated to empty string",
+        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
         equalTo(""));
   }
 

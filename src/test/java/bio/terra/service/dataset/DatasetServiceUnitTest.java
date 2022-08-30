@@ -98,5 +98,11 @@ public class DatasetServiceUnitTest {
         "Patch with PHS ID update requires passport identifier update permissions",
         datasetService.patchDatasetIamActions(new DatasetPatchRequestModel().phsId("phs123456")),
         containsInAnyOrder(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+
+    assertThat(
+        "Patch with description update requires manage schema update permissions",
+        datasetService.patchDatasetIamActions(
+            new DatasetPatchRequestModel().description("an updated description")),
+        containsInAnyOrder(IamAction.MANAGE_SCHEMA));
   }
 }

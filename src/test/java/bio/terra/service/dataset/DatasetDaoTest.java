@@ -898,6 +898,7 @@ public class DatasetDaoTest {
   @Test
   public void patchDatasetProperties() throws Exception {
     UUID datasetId = createDataset("dataset-create-test.json");
+    String defaultDesc = datasetDao.retrieve(datasetId).getDescription();
     assertThat(
         "dataset properties is null before patch",
         datasetDao.retrieve(datasetId).getProperties(),
@@ -913,6 +914,10 @@ public class DatasetDaoTest {
         "dataset properties is set from patch",
         datasetDao.retrieve(datasetId).getProperties(),
         equalTo(updatedDatasetProperties));
+    assertThat(
+        "description remains unchanged after the patch",
+        datasetDao.retrieve(datasetId).getDescription(),
+        equalTo(defaultDesc));
 
     DatasetPatchRequestModel patchRequestNull = new DatasetPatchRequestModel().phsId("phs123");
     datasetDao.patch(datasetId, patchRequestNull);
@@ -920,6 +925,10 @@ public class DatasetDaoTest {
         "dataset properties is unchanged when not in request",
         datasetDao.retrieve(datasetId).getProperties(),
         equalTo(updatedDatasetProperties));
+    assertThat(
+        "dataset description is unchanged when not in request",
+        datasetDao.retrieve(datasetId).getDescription(),
+        equalTo(defaultDesc));
 
     DatasetPatchRequestModel patchRequestExplicitNull =
         new DatasetPatchRequestModel().properties(null);
@@ -928,6 +937,32 @@ public class DatasetDaoTest {
         "dataset properties is unchanged if set to null",
         datasetDao.retrieve(datasetId).getProperties(),
         equalTo(updatedDatasetProperties));
+
+    DatasetPatchRequestModel patchRequestDescNull =
+        new DatasetPatchRequestModel().description(null);
+    datasetDao.patch(datasetId, patchRequestDescNull);
+    assertThat(
+        "dataset description is unchanged if set to null",
+        datasetDao.retrieve(datasetId).getDescription(),
+        equalTo(defaultDesc));
+
+    String originalPhsID = datasetDao.retrieve(datasetId).getPhsId();
+    Object originalProperties = datasetDao.retrieve(datasetId).getProperties();
+    DatasetPatchRequestModel patchRequestDesc =
+        new DatasetPatchRequestModel().description("A new description");
+    datasetDao.patch(datasetId, patchRequestDesc);
+    assertThat(
+        "dataset description is updated",
+        datasetDao.retrieve(datasetId).getDescription(),
+        equalTo("A new description"));
+    assertThat(
+        "dataset phs_id is not modified when changing description",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(originalPhsID));
+    assertThat(
+        "dataset properties are not modified when changing description",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(originalProperties));
 
     Object unsetDatasetProperties = jsonLoader.loadJson("{}", new TypeReference<>() {});
     DatasetPatchRequestModel patchRequestUnset =

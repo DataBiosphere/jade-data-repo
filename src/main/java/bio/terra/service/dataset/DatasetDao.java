@@ -730,11 +730,13 @@ public class DatasetDao {
   public boolean patch(UUID id, DatasetPatchRequestModel patchRequest) {
     String sql =
         "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id), "
+            + "description = COALESCE(:description, description), "
             + "properties = COALESCE(cast(:properties as jsonb), properties) WHERE id = :id";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("phs_id", patchRequest.getPhsId())
+            .addValue("description", patchRequest.getDescription())
             .addValue(
                 "properties",
                 DaoUtils.propertiesToString(objectMapper, patchRequest.getProperties()))

@@ -393,6 +393,12 @@ public class SnapshotServiceTest {
         "Patch with consent code update requires passport identifier update permissions",
         service.patchSnapshotIamActions(new SnapshotPatchRequestModel().consentCode("c99")),
         containsInAnyOrder(IamAction.UPDATE_SNAPSHOT, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+
+    assertThat(
+        "Patch with description update requires UPDATE_SNAPSHOT",
+        service.patchSnapshotIamActions(
+            new SnapshotPatchRequestModel().description("a description")),
+        containsInAnyOrder(IamAction.UPDATE_SNAPSHOT));
   }
 
   @Test

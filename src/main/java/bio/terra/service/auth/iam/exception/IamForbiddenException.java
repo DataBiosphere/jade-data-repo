@@ -1,9 +1,10 @@
 package bio.terra.service.auth.iam.exception;
 
 import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.common.exception.ForbiddenException;
 import java.util.List;
 
-public class IamForbiddenException extends UnauthorizedException {
+public class IamForbiddenException extends ForbiddenException {
   public IamForbiddenException(String message) {
     super(message);
   }

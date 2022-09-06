@@ -85,7 +85,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(ForbiddenException.class)
   @ResponseStatus(HttpStatus.FORBIDDEN)
-  public ErrorModel serviceUnavailableHandler(ErrorReportException ex) {
+  public ErrorModel forbiddenHandler(ErrorReportException ex) {
     return buildErrorModel(ex, ex.getCauses());
   }
 

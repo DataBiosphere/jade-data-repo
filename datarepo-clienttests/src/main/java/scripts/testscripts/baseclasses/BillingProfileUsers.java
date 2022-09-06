@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.utils.tdrwrapper.DataRepoWrap;
+import scripts.utils.tdrwrapper.exception.DataRepoForbiddenClientException;
 import scripts.utils.tdrwrapper.exception.DataRepoNotFoundClientException;
 import scripts.utils.tdrwrapper.exception.DataRepoUnauthorizedClientException;
 
@@ -94,7 +95,7 @@ public class BillingProfileUsers extends runner.TestScript {
       try {
         wrap.deleteProfilePolicyMember(profileId, "user", userUser.userEmail);
         deleteUserSuccess = true;
-      } catch (DataRepoNotFoundClientException | DataRepoUnauthorizedClientException ex) {
+      } catch (DataRepoNotFoundClientException | DataRepoForbiddenClientException ex) {
         deleteUserSuccess = false;
       }
     }

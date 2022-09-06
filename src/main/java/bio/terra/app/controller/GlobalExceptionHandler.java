@@ -3,6 +3,7 @@ package bio.terra.app.controller;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.ConflictException;
 import bio.terra.common.exception.ErrorReportException;
+import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
@@ -80,6 +81,12 @@ public class GlobalExceptionHandler {
   @ResponseStatus(HttpStatus.UNAUTHORIZED)
   public ErrorModel samAuthorizationException(UnauthorizedException ex) {
     return buildErrorModel(ex, Collections.emptyList());
+  }
+
+  @ExceptionHandler(ForbiddenException.class)
+  @ResponseStatus(HttpStatus.FORBIDDEN)
+  public ErrorModel serviceUnavailableHandler(ErrorReportException ex) {
+    return buildErrorModel(ex, ex.getCauses());
   }
 
   // -- job response exception -- we use the JobResponseException to wrap non-runtime exceptions

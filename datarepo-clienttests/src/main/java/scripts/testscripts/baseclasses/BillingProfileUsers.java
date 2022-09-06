@@ -74,7 +74,7 @@ public class BillingProfileUsers extends runner.TestScript {
           wrap.createDataset(profileId, "dataset-simple.json", true);
       wrap.deleteDataset(datasetSummaryModel.getId());
       datasetSuccess = true;
-    } catch (DataRepoUnauthorizedClientException ex) {
+    } catch (DataRepoForbiddenClientException ex) {
       datasetSuccess = false;
     }
     logger.info("Role {} dataset {}", role, datasetSuccess);

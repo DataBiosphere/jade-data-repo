@@ -84,7 +84,7 @@ public class BillingProfileUsers extends runner.TestScript {
     try {
       wrap.addProfilePolicyMember(profileId, "user", userUser.userEmail);
       addUserSuccess = true;
-    } catch (DataRepoNotFoundClientException | DataRepoUnauthorizedClientException ex) {
+    } catch (DataRepoNotFoundClientException | DataRepoForbiddenClientException ex) {
       addUserSuccess = false;
     }
     logger.info("Role {} addUser {}", role, addUserSuccess);
@@ -106,7 +106,7 @@ public class BillingProfileUsers extends runner.TestScript {
     try {
       wrap.retrieveProfilePolicies(profileId);
       retrievePolicySuccess = true;
-    } catch (DataRepoNotFoundClientException | DataRepoUnauthorizedClientException ex) {
+    } catch (DataRepoNotFoundClientException | DataRepoForbiddenClientException ex) {
       retrievePolicySuccess = false;
     }
     logger.info("Role {} retrievePolicies {}", role, retrievePolicySuccess);

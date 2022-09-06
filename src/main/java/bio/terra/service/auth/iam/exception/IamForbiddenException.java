@@ -1,6 +1,5 @@
 package bio.terra.service.auth.iam.exception;
 
-import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.exception.ForbiddenException;
 import java.util.List;
 

@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -155,6 +156,7 @@ public class GoogleBillingServiceTest {
         profile,
         roleToStewardMap,
         GoogleRegion.DEFAULT_GOOGLE_REGION,
-        Map.of("test-name", "google-billing-service-test"));
+        Map.of("test-name", "google-billing-service-test"),
+        CollectionType.DATASET);
   }
 }

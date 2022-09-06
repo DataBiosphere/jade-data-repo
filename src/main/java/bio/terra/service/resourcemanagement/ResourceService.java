@@ -103,7 +103,8 @@ public class ResourceService {
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
     // Every bucket needs to live in a project, so we get or create a project first
-    return projectService.initializeGoogleProject(projectId, billingProfile, null, region, labels);
+    return projectService.initializeGoogleProject(
+        projectId, billingProfile, null, region, labels, CollectionType.DATASET);
   }
 
   /**
@@ -468,7 +469,8 @@ public class ResourceService {
             "project-usage", "snapshot");
 
     GoogleProjectResource googleProjectResource =
-        projectService.initializeGoogleProject(projectId, billingProfile, null, region, labels);
+        projectService.initializeGoogleProject(
+            projectId, billingProfile, null, region, labels, CollectionType.SNAPSHOT);
 
     return googleProjectResource.getId();
   }
@@ -495,7 +497,7 @@ public class ResourceService {
 
     GoogleProjectResource googleProjectResource =
         projectService.initializeGoogleProject(
-            projectId, billingProfile, getStewardPolicy(), region, labels);
+            projectId, billingProfile, getStewardPolicy(), region, labels, CollectionType.DATASET);
 
     return googleProjectResource.getId();
   }

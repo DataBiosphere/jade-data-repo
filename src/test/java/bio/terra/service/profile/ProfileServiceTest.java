@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.ResourceInfo;
+import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -189,6 +190,7 @@ public class ProfileServiceTest {
         profile,
         roleToStewardMap,
         GoogleRegion.DEFAULT_GOOGLE_REGION,
-        Map.of("test-name", "profile-service-test"));
+        Map.of("test-name", "profile-service-test"),
+        CollectionType.DATASET);
   }
 }

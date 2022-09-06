@@ -168,6 +168,19 @@ public class GoogleResourceManagerService {
         });
   }
 
+  public void addOrEditNameOfProject(String googleProjectId, String googleProjectName) {
+    try {
+      CloudResourceManager resourceManager = cloudResourceManager();
+      Project project = resourceManager.projects().get(googleProjectId).execute();
+      project.setName(googleProjectName);
+      logger.info("Setting name for project {}", googleProjectId);
+      resourceManager.projects().update(googleProjectId, project).execute();
+    } catch (Exception ex) {
+      // only a soft failure - we do not want to fail project create just on adding project labels
+      logger.warn("Encountered error while updating project name", ex);
+    }
+  }
+
   public void addLabelsToProject(String googleProjectId, Map<String, String> labels) {
     final Stream<Map.Entry<String, String>> additionalLabels;
     if (Arrays.stream(environment.getActiveProfiles())

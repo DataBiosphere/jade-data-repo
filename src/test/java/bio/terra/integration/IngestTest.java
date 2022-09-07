@@ -268,7 +268,7 @@ public class IngestTest extends UsersBase {
     assertThat(
         "Reader is not authorized to ingest data",
         ingestReadResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
   }
 
   @Test

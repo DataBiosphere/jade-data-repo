@@ -260,9 +260,9 @@ public class DatasetIntegrationTest extends UsersBase {
   public void datasetUnauthorizedPermissionsTest() throws Exception {
     // These should fail because they don't have access to the billing profile
     dataRepoFixtures.createDatasetError(
-        custodian(), profileId, "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
+        custodian(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
     dataRepoFixtures.createDatasetError(
-        reader(), profileId, "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
+        reader(), profileId, "dataset-minimal.json", HttpStatus.FORBIDDEN);
 
     EnumerateDatasetModel enumDatasetsResp = dataRepoFixtures.enumerateDatasets(reader());
     List<DatasetSummaryModel> items = enumDatasetsResp.getItems();
@@ -286,7 +286,7 @@ public class DatasetIntegrationTest extends UsersBase {
     assertThat(
         "Reader is not authorized to get dataset",
         getDatasetResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     // make sure reader cannot delete dataset
     DataRepoResponse<JobModel> deleteResp1 =
@@ -294,7 +294,7 @@ public class DatasetIntegrationTest extends UsersBase {
     assertThat(
         "Reader is not authorized to delete datasets",
         deleteResp1.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     // right now the authorization for dataset delete is done directly in the controller.
     // so we need to check the response to the delete request for the unauthorized failure
@@ -319,7 +319,7 @@ public class DatasetIntegrationTest extends UsersBase {
     assertThat(
         "Custodian is not authorized to delete datasets",
         deleteResp2.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     // same comment as above for the reader() delete
     //            DataRepoResponse<JobModel> jobResp2 = dataRepoFixtures.deleteDatasetLaunch(

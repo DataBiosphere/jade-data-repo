@@ -9,6 +9,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
+import org.springframework.transaction.TransactionSystemException;
 
 public class UnlockDatasetStep extends DefaultUndoStep {
 
@@ -46,7 +47,7 @@ public class UnlockDatasetStep extends DefaultUndoStep {
 
     try {
       datasetService.unlock(datasetId, context.getFlightId(), sharedLock);
-    } catch (RetryQueryException retryQueryException) {
+    } catch (RetryQueryException | TransactionSystemException retryQueryException) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
     }
     return StepResult.getStepResultSuccess();

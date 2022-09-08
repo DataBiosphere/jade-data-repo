@@ -27,12 +27,6 @@ public class AssetModelValidator implements Validator {
     return true;
   }
 
-  private void validateAssetName(String assetName, Errors errors) {
-    if (assetName == null) {
-      errors.rejectValue("name", "AssetNameMissing");
-    }
-  }
-
   private void validateTables(List<AssetTableModel> assetTables, Errors errors) {
     if (assetTables != null) {
       for (AssetTableModel assetTable : assetTables) {
@@ -41,11 +35,10 @@ public class AssetModelValidator implements Validator {
 
         if (tableName != null && columns != null) {
           if (ValidationUtils.hasDuplicates(columns)) {
-            errors.rejectValue("columns", "DuplicateColumnNames");
+            errors.rejectValue("tables", "DuplicateColumnNames");
           }
         }
       }
-      // errors.rejectValue("rootTable", "NoRootTable"); // breaking here!
     }
   }
 
@@ -54,7 +47,6 @@ public class AssetModelValidator implements Validator {
   public void validate(@NotNull Object target, Errors errors) {
     if (target != null && target instanceof AssetModel) {
       AssetModel assetModel = (AssetModel) target;
-      validateAssetName(assetModel.getName(), errors);
       validateTables(assetModel.getTables(), errors);
     }
   }

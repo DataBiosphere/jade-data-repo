@@ -23,6 +23,7 @@ import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotExportResponseModelFormatParquetLocationTables;
@@ -61,6 +62,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -143,6 +145,14 @@ public class SnapshotExportIntegrationTest extends UsersBase {
 
     UUID snapshotId = snapshotSummary.getId();
     createdSnapshotIds.add(snapshotId);
+
+    DataRepoResponse<JobModel> failedExportResponse =
+        dataRepoFixtures.exportSnapshot(reader(), snapshotSummary.getId(), false, false);
+    assertThat(
+        "Reader is not authorized to export a snapshot",
+        failedExportResponse.getStatusCode(),
+        equalTo(HttpStatus.UNAUTHORIZED));
+
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
         dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);
 

@@ -113,15 +113,22 @@ public class GrammarTest {
   }
 
   @Test
+  public void testBetween() {
+    // test for DR-2703 Fix ANTLR error when parsing between clause
+    Query.parse("SELECT foo.bar.datarepo_row_id FROM foo.bar WHERE foo.bar.x BETWEEN 1 and 2");
+  }
+
+  @Test
   public void test1000Genomes() {
     // test for DR-2143 Fix validating dataset names that start with a number
     Query.parse("SELECT * FROM 1000GenomesDataset.sample_info");
   }
 
-  @Test(expected = InvalidQueryException.class)
+  @Test
   public void testColumnNotFullyQualifiedName() {
-    // note that the col `datarepo_row_id` does not have a table or dataset attached
+    // allow non-fully qualified column names to support preview filtering
     Query.parse("SELECT datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
+    Query.parse("SELECT * FROM snapshot.table WHERE column = val");
   }
 
   @Test

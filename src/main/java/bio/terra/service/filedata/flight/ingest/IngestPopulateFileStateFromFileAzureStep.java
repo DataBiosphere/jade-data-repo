@@ -62,7 +62,7 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
 
     // Stream from control file and build list of files to be ingested
     try (BufferedReader reader = new AzureBlobStoreBufferedReader(ingestRequestSignedUrl)) {
-      readFile(reader, context);
+      readFile(reader, null, context);
 
     } catch (IOException ex) {
       throw new BulkLoadControlFileException(

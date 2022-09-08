@@ -28,6 +28,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.EnumerateSortByParam;
@@ -39,6 +40,7 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -321,6 +323,9 @@ public class DatasetDaoTest {
           "dataset default Billing Profile matches default profile id",
           fromDB.getDatasetSummary().getDefaultBillingProfile().getId(),
           equalTo(fromDB.getDatasetSummary().getDefaultProfileId()));
+
+      assertThat(
+          "Cloud platform is returned", fromDB.getCloudPlatform(), equalTo(CloudPlatform.GCP));
     } finally {
       datasetDao.delete(datasetId);
     }
@@ -833,5 +838,140 @@ public class DatasetDaoTest {
 
     datasetDao.delete(dataset1Id);
     datasetDao.delete(dataset2Id);
+  }
+
+  @Test
+  public void patchDatasetPhsId() throws Exception {
+    UUID datasetId = createDataset("dataset-create-test.json");
+
+    assertThat(
+        "dataset's PHS ID is null before patch",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(null));
+
+    String phsIdSet = "phs000000";
+    DatasetPatchRequestModel patchRequestSet = new DatasetPatchRequestModel().phsId(phsIdSet);
+    datasetDao.patch(datasetId, patchRequestSet);
+    assertThat(
+        "dataset's PHS ID is set from patch",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(phsIdSet));
+
+    String phsIdOverride = "phs111111";
+    DatasetPatchRequestModel patchRequestOverride =
+        new DatasetPatchRequestModel().phsId(phsIdOverride);
+    datasetDao.patch(datasetId, patchRequestOverride);
+    assertThat(
+        "dataset's PHS ID is overridden from patch",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(phsIdOverride));
+
+    datasetDao.patch(datasetId, new DatasetPatchRequestModel());
+    assertThat(
+        "dataset's PHS ID is unchanged when unspecified in patch request",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(phsIdOverride));
+
+    DatasetPatchRequestModel patchRequestBlank = new DatasetPatchRequestModel().phsId("");
+    datasetDao.patch(datasetId, patchRequestBlank);
+    assertThat(
+        "dataset's PHS ID is set to empty string from patch",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(""));
+
+    datasetDao.delete(datasetId);
+  }
+
+  @Test
+  public void createDatasetWithProperties() throws Exception {
+    DatasetRequestModel request =
+        jsonLoader.loadObject("dataset-create-with-properties.json", DatasetRequestModel.class);
+    String expectedName = request.getName() + UUID.randomUUID().toString();
+    UUID datasetId = createDataset(request, expectedName, null);
+    assertThat(
+        "dataset properties are set",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(request.getProperties()));
+    datasetDao.delete(datasetId);
+  }
+
+  @Test
+  public void patchDatasetProperties() throws Exception {
+    UUID datasetId = createDataset("dataset-create-test.json");
+    String defaultDesc = datasetDao.retrieve(datasetId).getDescription();
+    assertThat(
+        "dataset properties is null before patch",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(null));
+
+    String updatedProperties = "{\"projectName\":\"updatedProject\"}";
+    Object updatedDatasetProperties =
+        jsonLoader.loadJson(updatedProperties, new TypeReference<>() {});
+    DatasetPatchRequestModel patchRequestSet =
+        new DatasetPatchRequestModel().properties(updatedDatasetProperties);
+    datasetDao.patch(datasetId, patchRequestSet);
+    assertThat(
+        "dataset properties is set from patch",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(updatedDatasetProperties));
+    assertThat(
+        "description remains unchanged after the patch",
+        datasetDao.retrieve(datasetId).getDescription(),
+        equalTo(defaultDesc));
+
+    DatasetPatchRequestModel patchRequestNull = new DatasetPatchRequestModel().phsId("phs123");
+    datasetDao.patch(datasetId, patchRequestNull);
+    assertThat(
+        "dataset properties is unchanged when not in request",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(updatedDatasetProperties));
+    assertThat(
+        "dataset description is unchanged when not in request",
+        datasetDao.retrieve(datasetId).getDescription(),
+        equalTo(defaultDesc));
+
+    DatasetPatchRequestModel patchRequestExplicitNull =
+        new DatasetPatchRequestModel().properties(null);
+    datasetDao.patch(datasetId, patchRequestExplicitNull);
+    assertThat(
+        "dataset properties is unchanged if set to null",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(updatedDatasetProperties));
+
+    DatasetPatchRequestModel patchRequestDescNull =
+        new DatasetPatchRequestModel().description(null);
+    datasetDao.patch(datasetId, patchRequestDescNull);
+    assertThat(
+        "dataset description is unchanged if set to null",
+        datasetDao.retrieve(datasetId).getDescription(),
+        equalTo(defaultDesc));
+
+    String originalPhsID = datasetDao.retrieve(datasetId).getPhsId();
+    Object originalProperties = datasetDao.retrieve(datasetId).getProperties();
+    DatasetPatchRequestModel patchRequestDesc =
+        new DatasetPatchRequestModel().description("A new description");
+    datasetDao.patch(datasetId, patchRequestDesc);
+    assertThat(
+        "dataset description is updated",
+        datasetDao.retrieve(datasetId).getDescription(),
+        equalTo("A new description"));
+    assertThat(
+        "dataset phs_id is not modified when changing description",
+        datasetDao.retrieve(datasetId).getPhsId(),
+        equalTo(originalPhsID));
+    assertThat(
+        "dataset properties are not modified when changing description",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(originalProperties));
+
+    Object unsetDatasetProperties = jsonLoader.loadJson("{}", new TypeReference<>() {});
+    DatasetPatchRequestModel patchRequestUnset =
+        new DatasetPatchRequestModel().properties(unsetDatasetProperties);
+    datasetDao.patch(datasetId, patchRequestUnset);
+    assertThat(
+        "dataset properties is set to empty",
+        datasetDao.retrieve(datasetId).getProperties(),
+        equalTo(unsetDatasetProperties));
+    datasetDao.delete(datasetId);
   }
 }

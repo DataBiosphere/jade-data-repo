@@ -5,12 +5,14 @@ import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,17 +49,23 @@ public class TransactionOpenStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
-    TransactionModel transaction =
-        bigQueryTransactionPdao.insertIntoTransactionTable(
-            userReq, dataset, context.getFlightId(), transactionDescription);
-    FlightMap workingMap = context.getWorkingMap();
-    if (returnTransaction) {
-      workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
-      workingMap.put(JobMapKeys.RESPONSE.getKeyName(), transaction);
+    try {
+      TransactionModel transaction =
+          bigQueryTransactionPdao.insertIntoTransactionTable(
+              userReq, dataset, context.getFlightId(), transactionDescription);
+      FlightMap workingMap = context.getWorkingMap();
+      if (returnTransaction) {
+        workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
+        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), transaction);
+      }
+      // Placing ID explicitly so be used UnlockTransaction step
+      TransactionUtils.putTransactionId(context, transaction.getId());
+    } catch (TooManyDmlStatementsOutstandingException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+    } catch (InterruptedException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
 
-    // Placing ID explicitly so be used UnlockTransaction step
-    TransactionUtils.putTransactionId(context, transaction.getId());
     return StepResult.getStepResultSuccess();
   }
 

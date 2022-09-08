@@ -356,7 +356,10 @@ paths:
       tags:
         - profiles
         - resources
-      description: Adds a member to the specified policy for the snapshot
+      description: >
+        Adds a member to the specified policy for the profile.
+
+        NOTE: Change may take up to 60 seconds to take effect.
       operationId: addProfilePolicyMember
       requestBody:
         content:
@@ -398,7 +401,10 @@ paths:
       tags:
         - profiles
         - resources
-      description: Removes a member from the specified policy for the profile
+      description: >
+        Removes a member from the specified policy for the profile.
+
+        NOTE: Change may take up to 60 seconds to take effect.
       operationId: deleteProfilePolicyMember
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -449,7 +455,10 @@ paths:
         - snapshots
         - repository
       description: >
-        Returns a list of all of the snapshots the caller has access to
+        Returns a list of all of the snapshots to which the caller has access.
+        Access may be granted directly via SAM and/or indirectly via a user's linked RAS passport
+        in Terra.  Snapshot accessibility derived from a linked RAS passport will be attributed to
+        the "reader" role.
       operationId: enumerateSnapshots
       parameters:
         - name: offset
@@ -662,6 +671,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+    patch:
+      tags:
+        - snapshots
+        - repository
+      description: Update supported fields of the specified snapshot.
+      operationId: patchSnapshot
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        description: >-
+          A 'lite' snapshot definition (used to modify supported fields of a snapshot).
+          Null assignments will be ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotPatchRequestModel'
+      responses:
+        200:
+          description: Summary of updated snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotSummaryModel'
+        400:
+          description: Bad request - invalid id, badly formed modification instructions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - snapshot does not exist, missing permissions to modify.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - snapshot was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/snapshots/{id}/data/{table}:
     get:
       tags:
@@ -693,6 +749,23 @@ paths:
             default: 30
             minimum: 1
             maximum: 1000
+        - name: sort
+          in: query
+          description: The table column to sort by
+          schema:
+            type: string
+            default: "datarepo_row_id"
+        - name: direction
+          in: query
+          description: The direction to sort.
+          schema:
+            default: asc
+            $ref: '#/components/schemas/SqlSortDirection'
+        - name: filter
+          in: query
+          description: A SQL WHERE clause to filter the table results.
+          schema:
+            type: string
       responses:
         200:
           description: Returns the table data from a snapshot
@@ -1223,6 +1296,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+    patch:
+      tags:
+        - datasets
+        - repository
+      description: Update supported fields of the specified dataset.
+      operationId: patchDataset
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        description: >-
+          A 'lite' dataset definition (used to modify supported fields of a dataset).
+          Null assignments will be ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetPatchRequestModel'
+      responses:
+        200:
+          description: Summary of updated dataset.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetSummaryModel'
+        400:
+          description: Bad request - invalid id, badly formed modification instructions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - dataset does not exist, missing permissions to modify.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - dataset does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets/{id}/policies:
     get:
       tags:
@@ -1442,6 +1562,65 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: ingest
+  /api/repository/v1/datasets/{id}/updateSchema:
+    post:
+      tags:
+        - datasets
+        - repository
+      description:
+        Modify a dataset's schema with additive changes
+      operationId: updateSchema
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        description: Update dataset schema
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetSchemaUpdateModel'
+        required: true
+      responses:
+        200:
+          description: Redirect for schema update complete
+          headers:
+            location:
+              description: url for the job result
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        202:
+          description: Job status of schema update job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        400:
+          description: Bad request - invalid schema update request, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to update schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - dataset id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets/{id}/transactions:
     post:
       tags:
@@ -2582,22 +2761,6 @@ paths:
 ##############################################################################
 ## SEARCH API STANDARD ENDPOINTS
 ##############################################################################
-  /api/repository/v1/search/metadata:
-    get:
-      tags:
-        - search
-        - snapshots
-        - repository
-      description: >
-        Returns metadata for all snapshots a user has access to
-      operationId: enumerateSnapshotSearch
-      responses:
-        200:
-          description: List of snapshot metadata
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SearchMetadataResponse'
 
   /api/repository/v1/search/{id}/index:
     post:
@@ -2628,79 +2791,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchIndexModel'
-        400:
-          description: Bad request - invalid id, badly formed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        403:
-          description: No permission to see snapshot
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        404:
-          description: Not found - snapshot id does not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/search/{id}/metadata:
-    put:
-      tags:
-        - search
-        - snapshots
-        - repository
-      description: Insert or update search metadata for a snapshot
-      operationId: upsertSearchMetadata
-      parameters:
-        - $ref: '#/components/parameters/Id'
-      requestBody:
-        description: Search metadata to upsert on a snapshot
-        content:
-          application/json:
-            schema:
-              type: string
-        required: true
-      responses:
-        200:
-          description: Return metadata result
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SearchMetadataModel'
-        400:
-          description: Bad request - invalid id, badly formed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        403:
-          description: No permission to see snapshot
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        404:
-          description: Not found - snapshot id does not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-    delete:
-      tags:
-        - search
-        - snapshots
-        - repository
-      description: Delete search metadata for a snapshot
-      operationId: deleteSearchMetadata
-      parameters:
-        - $ref: '#/components/parameters/Id'
-      responses:
-        204:
-          description: Search metadata was successfully deleted
-          content: {}
         400:
           description: Bad request - invalid id, badly formed
           content:
@@ -2796,12 +2886,62 @@ paths:
               schema:
                 $ref: '#/components/schemas/DRSServiceInfo'
   /ga4gh/drs/v1/objects/{object_id}:
+    options:
+      tags:
+        - DataRepositoryService
+      summary: Get Authorization info about a DRS Object.
+      description: >
+        Returns `DRSAuthorizations` that can be used to determine
+        how to authorize requests to GET or POST a `DRSObject`.
+
+        NOTE: Changes to the object's dataset or snapshot may take up to 15 minutes
+        to be reflected in this response.
+      operationId: OptionsObject
+      parameters:
+        - name: object_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: "`DRSAuthorizations` were found successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DRSAuthorizations'
+        204:
+          description: "`DRSAuthorizations` are not supported for this object. Default to `None`."
+        400:
+          description: The request is malformed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DRSError'
+        404:
+          description: The requested `Object` wasn't found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DRSError'
+        405:
+          description: "`DRSAuthorizations` are not supported for this object. Default to `None`."
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DRSError'
     get:
       tags:
         - DataRepositoryService
       summary: Get info about an `Object`.
-      description: Returns object metadata, and a list of access methods that can
+      description: >
+        Returns object metadata, and a list of access methods that can
         be used to fetch object bytes.
+
+        NOTE: Changes to the object's dataset or snapshot may take up to 15 minutes
+        to be reflected in this response.
       operationId: GetObject
       parameters:
         - name: object_id
@@ -2870,7 +3010,12 @@ paths:
       tags:
         - DataRepositoryService
       summary:  Get info about a DrsObject through POST'ing a Passport.
-      description:  Returns object metadata, and a list of access methods that can be used to fetch object bytes.  Method is a POST to accomodate a JWT GA4GH Passport sent in the formData in order to authorize access.
+      description:  >
+        Returns object metadata, and a list of access methods that can be used to fetch object bytes.
+        Method is a POST to accommodate a JWT GA4GH Passport sent in the formData in order to authorize access.
+
+        NOTE: Changes to the object's dataset or snapshot may take up to 15 minutes
+        to be reflected in this response.
       operationId: PostObject
       parameters:
         - name: object_id
@@ -2938,10 +3083,14 @@ paths:
       tags:
         - DataRepositoryService
       summary: Get a URL for fetching bytes.
-      description: Returns a URL that can be used to fetch the object bytes. This
+      description: >
+        Returns a URL that can be used to fetch the object bytes. This
         method only needs to be called when using an `AccessMethod` that contains
         an `access_id` (e.g., for servers that use signed URLs for fetching object
         bytes).
+
+        NOTE: Changes to the object's dataset or snapshot may take up to 15 minutes
+        to be reflected in this response.
       operationId: GetAccessURL
       parameters:
         - name: object_id
@@ -3008,13 +3157,16 @@ paths:
       tags:
         - DataRepositoryService
       summary: Get a URL for fetching bytes through POST'ing a Passport
-      description: >-
+      description: >
         Returns a URL that can be used to fetch the bytes of a `DrsObject`.
 
         This method only needs to be called when using an `AccessMethod` that contains an `access_id`
         (e.g., for servers that use signed URLs for fetching object bytes).
 
-        Method is a POST to accomodate a JWT GA4GH Passport sent in the formData in order to authorize access.
+        Method is a POST to accommodate a JWT GA4GH Passport sent in the formData in order to authorize access.
+
+        NOTE: Changes to the object's dataset or snapshot may take up to 15 minutes
+        to be reflected in this response.
       operationId: PostAccessURL
       parameters:
         - name: object_id
@@ -3254,14 +3406,22 @@ components:
           type: boolean
           default: false
         phsId:
-          type: string
-          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+          $ref: '#/components/schemas/PhsId'
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
         selfHosted:
           type: boolean
           default: false
           description: denotes whether data files in the dataset are self-hosted or not
+        properties:
+          type: object
+          description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
+        ingestServiceAccount:
+          type: string
+          description: >
+            Google service account to grant storage.object.get access on source Google storage buckets to in order to ingest files
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -3295,8 +3455,7 @@ components:
           type: string
           description: The azure storage account of this dataset
         phsId:
-          type: string
-          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+          $ref: '#/components/schemas/PhsId'
         selfHosted:
           type: boolean
           default: false
@@ -3327,20 +3486,67 @@ components:
           type: boolean
           default: false
         phsId:
-          type: string
-          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+          $ref: '#/components/schemas/PhsId'
         experimentalSelfHosted:
           type: boolean
           default: false
           description: Create the dataset in self-hosted mode, where TDR does not ingest files, but rather points to
             files in their original location.
+        properties:
+          type: object
+          description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
+        dedicatedIngestServiceAccount:
+          type: boolean
+          default: false
+          description: >
+            If true, for GCP-backed datasets, a service account will be created in the dataset's primary GCP project.
+            This service account must be granted `storage.objects.get` permissions on any source buckets that TDR will ingest data from.
+            The service account can be obtained when retrieving the dataset.  If this value is false and the dataset
+            is a GCP-backed dataset, then the global service account must be granted `storage.objects.get` permissions to source buckets.
+
+            Note: this can be done by granting the "Storage Object Viewer", "Storage Legacy Object Reader", or "Storage Legacy Object Owner"
+            role to the source buckets
+
+            This might be useful to set as a security improvement since this provides a dedicated account that explicitly
+            does not have access to any other buckets.  It's also recommended if you need to authorize a large number of buckets
+            since the main service account could run into Google group membership quota violations.
+        policies:
+          description: User emails to add as dataset policy members.
+          type: object
+          properties:
+            stewards:
+              type: array
+              items:
+                type: string
+            custodians:
+              type: array
+              items:
+                type: string
+            snapshotCreators:
+              type: array
+              items:
+                type: string
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
+    DatasetPatchRequestModel:
+      type: object
+      properties:
+        phsId:
+          $ref: '#/components/schemas/PhsId'
+        properties:
+          type: object
+          description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
+        description:
+          type: string
+          description: Description of the dataset
+      description: >
+        A 'lite' dataset definition (used to modify supported fields of a dataset).
+        Null assignments will be ignored.
     DatasetRequestAccessIncludeModel:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, DATA_PROJECT, STORAGE ]
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, STORAGE ]
     EnumerateDatasetModel:
       type: object
       properties:
@@ -3551,6 +3757,41 @@ components:
           items:
             $ref: '#/components/schemas/AssetModel'
       description: data model definition
+    DatasetSchemaUpdateModel:
+      type: object
+      properties:
+        description:
+          type: string
+        changes:
+          nullable: false
+          type: object
+          properties:
+            addTables:
+              type: array
+              nullable: false
+              items:
+                $ref: '#/components/schemas/TableModel'
+            addColumns:
+              type: array
+              nullable: false
+              items:
+                $ref: '#/components/schemas/DatasetSchemaColumnUpdateModel'
+            addRelationships:
+              type: array
+              nullable: false
+              items:
+                $ref: '#/components/schemas/RelationshipModel'
+    DatasetSchemaColumnUpdateModel:
+      type: object
+      properties:
+        tableName:
+          type: string
+          nullable: false
+        columns:
+          type: array
+          nullable: false
+          items:
+            $ref: '#/components/schemas/ColumnModel'
     IngestRequestModel:
       required:
         - format
@@ -3634,12 +3875,18 @@ components:
           enum:
             - append
             - replace
+            - merge
           description: >
             Approach for how to treat updates to the target table:
              * `append` - Default: only ever insert rows, regardless of whether or not the primary key value exists
              * `replace` - If a primary key is present on the table, treat rows with matching primary keys
-                         as updates. If duplicates IDs are found in your ingest, the ingest job
+                         as updates. If duplicate IDs are found in your ingest, the ingest job
                          will fail. Note: the full new record must be specified.
+             * `merge` - If a primary key is present on the table, treat rows with matching primary keys
+                         as partial updates. Any fields specified will overwrite their current values
+                         in the matching table row.  Each ingest row must match exactly one table row,
+                         and no duplicate IDs should be found in your ingest, otherwise the ingest job
+                         will fail.
       description: >
         Request to ingest data from a file in GCS into a table in a dataset.
         The ingest source must be readable by the DR manager.
@@ -4025,8 +4272,7 @@ components:
           type: string
           description: Description of the snapshot
         consentCode:
-          type: string
-          description: Consent code together with PHS Id that will determine user access
+          $ref: '#/components/schemas/ConsentCode'
         contents:
           type: array
           items:
@@ -4037,6 +4283,9 @@ components:
             type: string
         profileId:
           $ref: '#/components/schemas/UniqueIdProperty'
+        properties:
+          type: object
+          description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
       description: >
         Request for creating a snapshot.
         For now, the API only supports snapshots defined as a single dataset asset and
@@ -4127,11 +4376,25 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
+    SnapshotPatchRequestModel:
+      type: object
+      properties:
+        consentCode:
+          $ref: '#/components/schemas/ConsentCode'
+        description:
+          type: string
+          description: Description of the snapshot
+        properties:
+          type: object
+          description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
+      description: >
+        A 'lite' snapshot definition (used to modify supported fields of a snapshot).
+        Null assignments will be ignored.
     SnapshotRetrieveIncludeModel:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT, CREATION_INFORMATION ]
+      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, CREATION_INFORMATION ]
     SnapshotSummaryModel:
       type: object
       properties:
@@ -4155,11 +4418,9 @@ components:
           type: boolean
           default: false
         consentCode:
-          type: string
-          description: Consent code together with PHS Id that will determine user access
+          $ref: '#/components/schemas/ConsentCode'
         phsId:
-          type: string
-          description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+          $ref: '#/components/schemas/PhsId'
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
         dataProject:
@@ -4195,6 +4456,11 @@ components:
             type: array
             items:
               type: string
+        errors:
+          type: array
+          description: Errors encountered which may result in a partial enumeration returned.
+          items:
+            $ref: '#/components/schemas/ErrorModel'
       description: >
         The total number of snapshots available that match the criteria and a page of summaries
     SnapshotModel:
@@ -4211,8 +4477,7 @@ components:
           type: string
           description: Date the snapshot was created
         consentCode:
-          type: string
-          description: Consent code together with PHS Id that will determine user access
+          $ref: '#/components/schemas/ConsentCode'
         source:
           type: array
           items:
@@ -4234,6 +4499,11 @@ components:
           $ref: '#/components/schemas/AccessInfoModel'
         creationInformation:
           $ref: '#/components/schemas/SnapshotRequestContentsModel'
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
+        properties:
+          type: object
+          description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:
@@ -4418,6 +4688,9 @@ components:
       properties:
         dataset:
           $ref: '#/components/schemas/DatasetSummaryModel'
+        datasetProperties:
+          type: object
+          description: Additional JSON metadata about the source dataset
         asset:
           $ref: '#/components/schemas/ObjectNameProperty'
       description: >
@@ -4491,6 +4764,21 @@ components:
           type: string
       description: >
         email of user or group to add to policy
+    SamPolicyModel:
+      type: object
+      properties:
+        name:
+          type: string
+        members:
+          type: array
+          items:
+            type: string
+        memberPolicies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourcePolicyModel'
+      description: >
+        Describes a policy from Sam, with member policies
     PolicyModel:
       type: object
       properties:
@@ -4502,6 +4790,43 @@ components:
             type: string
       description: >
         Describes a policy
+    ResourcePolicyModel:
+      type: object
+      properties:
+        policyEmail:
+          type: string
+        policyName:
+          type: string
+        resourceId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        resourceTypeName:
+          type: string
+    WorkspacePolicyModel:
+      type: object
+      properties:
+        workspaceId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        workspaceName:
+          type: string
+        workspaceNamespace:
+          type: string
+        workspaceLink:
+          type: string
+        workspacePolicies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyModel'
+    InaccessibleWorkspacePolicyModel:
+      type: object
+      properties:
+        workspaceId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        workspacePolicies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicyModel'
+        error:
+          $ref: "#/components/schemas/ErrorModel"
     PolicyResponse:
       type: object
       properties:
@@ -4509,6 +4834,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PolicyModel'
+        workspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspacePolicyModel'
+        inaccessibleWorkspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/InaccessibleWorkspacePolicyModel'
       description: >
         email of user or group to add to policy
     DataDeletionRequest:
@@ -4814,6 +5147,16 @@ components:
       default: gcp
       description: Cloud platforms supported by TDR.
 
+    PhsId:
+      type: string
+      description: PHS ID (DbGap Phenotype Study Identifer) associated with dataset
+      example: phs123456
+
+    ConsentCode:
+      type: string
+      description: Consent code together with PHS ID that will determine user access
+      example: c99
+
     ##############################################################################
     ## SEARCH API STANDARD MODELS
     ##############################################################################
@@ -5032,6 +5375,8 @@ components:
           description: Name of the region in the cloud service provider that the object
             belongs to.
           example: us-east-1
+        authorizations:
+          $ref: '#/components/schemas/DRSAuthorizations'
     DRSError:
       type: object
       properties:
@@ -5123,6 +5468,41 @@ components:
             type: string
             example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJnYTRnaF9wYXNzcG9ydF92MSI6W119.JJ5rN0ktP0qwyZmIPpxmF_p7JsxAZH6L6brUxtad3CM
           description: the encoded JWT GA4GH Passport that contains embedded Visas.  The overall JWT is signed as are the individual Passport Visas.
+    DRSAuthorizations:
+      type: object
+      properties:
+        supported_types:
+          type: array
+          items:
+            type: string
+            enum:
+              - None
+              - BasicAuth
+              - BearerAuth
+              - PassportAuth
+          description: >-
+            An Optional list of supported authorization types. More than one can be supported and tried in sequence.
+            Defaults to `None` if empty or missing.
+        passport_auth_issuers:
+          type: array
+          items:
+            type: string
+          description: >-
+            If authorizations contain `PassportAuth`, this is a required list of visa issuers
+            (as found in a visa's `iss` claim) that may authorize access to this object. The caller must
+            only provide passports that contain visas from this list. It is strongly recommended that the caller
+            validate that it is appropriate to send the requested passport/visa to the DRS server to mitigate attacks
+            by malicious DRS servers requesting credentials they should not have.
+        bearer_auth_issuers:
+          type: array
+          items:
+            type: string
+          description: >-
+            If authorizations contain `BearerAuth`, this is an optional list of issuers that may authorize access to this object.
+            The caller must provide a token from one of these issuers. If this is empty or missing it is assumed that the caller knows
+            which token to send via other means. It is strongly recommended that the caller
+            validate that it is appropriate to send the requested token to the DRS server to mitigate attacks
+            by malicious DRS servers requesting credentials they should not have.
   parameters:
     Id:
       name: id

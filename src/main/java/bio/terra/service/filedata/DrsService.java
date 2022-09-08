@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
@@ -8,11 +9,10 @@ import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
-import bio.terra.externalcreds.model.ValidatePassportRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSAuthorizations;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
@@ -21,8 +21,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.ras.ECMService;
-import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -40,6 +38,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.cloud.storage.BlobId;
@@ -49,14 +48,11 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,8 +76,6 @@ public class DrsService {
   private static final String ACCESS_ID_PREFIX_GCP = "gcp-";
   private static final String ACCESS_ID_PREFIX_AZURE = "az-";
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
-  private static final String RAS_ISSUER = "https://stsstg.nih.gov";
-  private static final String RAS_CRITERIA_TYPE = "RASv1Dot1VisaCriterion";
   private static final String DRS_OBJECT_VERSION = "0";
   private static final Duration URL_TTL = Duration.ofMinutes(15);
   // atomic counter that we incr on request arrival and decr on request response
@@ -97,13 +91,13 @@ public class DrsService {
   private final PerformanceLogger performanceLogger;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final GcsProjectFactory gcsProjectFactory;
-  private final ECMService ecmService;
+  private final EcmConfiguration ecmConfiguration;
 
-  private final Map<UUID, SnapshotProject> snapshotProjects =
+  private final Map<UUID, SnapshotProject> snapshotProjectsCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
   private final Map<UUID, SnapshotCacheResult> snapshotCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
-  private final Map<UUID, SnapshotSummaryModel> snapshotSummaries =
+  private final Map<UUID, SnapshotSummaryModel> snapshotSummariesCache =
       Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
 
   @Autowired
@@ -118,7 +112,7 @@ public class DrsService {
       PerformanceLogger performanceLogger,
       AzureBlobStorePdao azureBlobStorePdao,
       GcsProjectFactory gcsProjectFactory,
-      ECMService ecmService) {
+      EcmConfiguration ecmConfiguration) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -129,7 +123,7 @@ public class DrsService {
     this.performanceLogger = performanceLogger;
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.gcsProjectFactory = gcsProjectFactory;
-    this.ecmService = ecmService;
+    this.ecmConfiguration = ecmConfiguration;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -153,6 +147,35 @@ public class DrsService {
     public void close() {
       currentDRSRequests.decrementAndGet();
     }
+  }
+
+  /**
+   * Determine the acceptable means of authentication for a given DRS ID, including the passport
+   * issuers when supported.
+   *
+   * @param drsObjectId the object ID for which to look up authorizations
+   * @return the `DrsAuthorizations` for this ID
+   * @throws IllegalArgumentException if there is an issue with the object id
+   * @throws SnapshotNotFoundException if the snapshot for the DRS object cannot be found
+   * @throws TooManyRequestsException if there are too many concurrent DRS lookup requests
+   */
+  public DRSAuthorizations lookupAuthorizationsByDrsId(String drsObjectId) {
+    try (DrsRequestResource r = new DrsRequestResource()) {
+      SnapshotCacheResult snapshot = lookupSnapshotForDRSObject(drsObjectId);
+      SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshot.id);
+
+      return buildDRSAuth(SnapshotSummary.passportAuthorizationAvailable(snapshotSummary));
+    }
+  }
+
+  private DRSAuthorizations buildDRSAuth(boolean passportAuthorizationAvailable) {
+    DRSAuthorizations auths = new DRSAuthorizations();
+    if (passportAuthorizationAvailable) {
+      auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.PASSPORTAUTH);
+      auths.addPassportAuthIssuersItem(ecmConfiguration.getRasIssuer());
+    }
+    auths.addSupportedTypesItem(DRSAuthorizations.SupportedTypesEnum.BEARERAUTH);
+    return auths;
   }
 
   /**
@@ -238,30 +261,8 @@ public class DrsService {
 
   void verifyPassportAuth(UUID snapshotId, DRSPassportRequestModel drsPassportRequestModel) {
     SnapshotSummaryModel snapshotSummary = getSnapshotSummary(snapshotId);
-    String phsId = snapshotSummary.getPhsId();
-    String consentCode = snapshotSummary.getConsentCode();
-    if (phsId == null || consentCode == null) {
-      throw new InvalidAuthorizationMethod("Snapshot cannot use Ras Passport authorization");
-    }
-    // Pass the passport + phs id + consent code to ECM
-    var criteria = new RASv1Dot1VisaCriterion().consentCode(consentCode).phsId(phsId);
-    criteria.issuer(RAS_ISSUER).type(RAS_CRITERIA_TYPE);
-    var request =
-        new ValidatePassportRequest()
-            .passports(drsPassportRequestModel.getPassports())
-            .criteria(List.of(criteria));
-    var result = ecmService.validatePassport(request);
-
-    var df = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss z");
-    df.setTimeZone(TimeZone.getTimeZone("UTC"));
-    logger.info(
-        "[Validate Passport Audit]: Data Repository accessed: {}, Study/Data set accessed: {}, Date/Time of access: {}, ECM Audit Info: {}",
-        "TDR",
-        phsId,
-        df.format(new Date(System.currentTimeMillis())),
-        result.getAuditInfo());
-
-    if (!result.isValid()) {
+    List<String> passports = drsPassportRequestModel.getPassports();
+    if (!snapshotService.verifyPassportAuth(snapshotSummary, passports).isValid()) {
       throw new UnauthorizedException("User is not authorized to see drs object.");
     }
   }
@@ -405,7 +406,7 @@ public class DrsService {
       if (passportAuth) {
         accessMethods =
             getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT, gcpRegion);
+                ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT, gcpRegion, passportAuth);
       } else {
         accessMethods = getDrsAccessMethodsOnGcp(fsFile, authUser, gcpRegion);
       }
@@ -414,9 +415,10 @@ public class DrsService {
       if (passportAuth) {
         accessMethods =
             getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT, azureRegion);
+                ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT, azureRegion, passportAuth);
       } else {
-        accessMethods = getDrsSignedURLAccessMethods(ACCESS_ID_PREFIX_AZURE, azureRegion);
+        accessMethods =
+            getDrsSignedURLAccessMethods(ACCESS_ID_PREFIX_AZURE, azureRegion, passportAuth);
       }
     } else {
       throw new InvalidCloudPlatformException();
@@ -456,6 +458,7 @@ public class DrsService {
   private List<DRSAccessMethod> getDrsAccessMethodsOnGcp(
       FSFile fsFile, AuthenticatedUserRequest authUser, String region) {
     DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getCloudPath());
+    DRSAuthorizations authorizationsBearerOnly = buildDRSAuth(false);
 
     String accessId = ACCESS_ID_PREFIX_GCP + region;
     DRSAccessMethod gsAccessMethod =
@@ -463,7 +466,8 @@ public class DrsService {
             .type(DRSAccessMethod.TypeEnum.GS)
             .accessUrl(gsAccessURL)
             .accessId(accessId)
-            .region(region);
+            .region(region)
+            .authorizations(authorizationsBearerOnly);
 
     DRSAccessURL httpsAccessURL =
         new DRSAccessURL()
@@ -474,18 +478,22 @@ public class DrsService {
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessUrl(httpsAccessURL)
-            .region(region);
+            .region(region)
+            .authorizations(authorizationsBearerOnly);
 
     return List.of(gsAccessMethod, httpsAccessMethod);
   }
 
-  private List<DRSAccessMethod> getDrsSignedURLAccessMethods(String prefix, String region) {
+  private List<DRSAccessMethod> getDrsSignedURLAccessMethods(
+      String prefix, String region, boolean passportAuth) {
     String accessId = prefix + region;
+    DRSAuthorizations authorizations = buildDRSAuth(passportAuth);
     DRSAccessMethod httpsAccessMethod =
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessId(accessId)
-            .region(region);
+            .region(region)
+            .authorizations(authorizations);
 
     return List.of(httpsAccessMethod);
   }
@@ -567,7 +575,7 @@ public class DrsService {
   }
 
   private SnapshotProject getSnapshotProject(UUID snapshotId) {
-    return snapshotProjects.computeIfAbsent(
+    return snapshotProjectsCache.computeIfAbsent(
         snapshotId, snapshotService::retrieveAvailableSnapshotProject);
   }
 
@@ -577,7 +585,8 @@ public class DrsService {
   }
 
   private SnapshotSummaryModel getSnapshotSummary(UUID snapshotId) {
-    return snapshotSummaries.computeIfAbsent(snapshotId, snapshotService::retrieveSnapshotSummary);
+    return snapshotSummariesCache.computeIfAbsent(
+        snapshotId, snapshotService::retrieveSnapshotSummary);
   }
 
   @VisibleForTesting

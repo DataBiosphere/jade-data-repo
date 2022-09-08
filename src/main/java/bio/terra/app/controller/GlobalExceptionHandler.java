@@ -12,7 +12,6 @@ import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.auth.iam.sam.SamIam;
 import bio.terra.service.job.exception.JobResponseException;
-import java.util.Collections;
 import java.util.List;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -80,7 +79,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(UnauthorizedException.class)
   @ResponseStatus(HttpStatus.UNAUTHORIZED)
   public ErrorModel samAuthorizationException(UnauthorizedException ex) {
-    return buildErrorModel(ex, Collections.emptyList());
+    return buildErrorModel(ex, ex.getCauses());
   }
 
   @ExceptionHandler(ForbiddenException.class)

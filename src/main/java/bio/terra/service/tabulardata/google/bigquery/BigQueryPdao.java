@@ -1,13 +1,16 @@
 package bio.terra.service.tabulardata.google.bigquery;
 
+import static bio.terra.common.PdaoConstant.PDAO_COUNT_ALIAS;
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
+import bio.terra.common.exception.PdaoException;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Acl;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
 import java.util.Collection;
@@ -28,7 +31,7 @@ public abstract class BigQueryPdao {
   }
 
   private static final String selectHasDuplicateStagingIdsTemplate =
-      "SELECT <pkColumns:{c|<c.name>}; separator=\",\">,COUNT(*) "
+      "SELECT <pkColumns:{c|<c.name>}; separator=\",\">,COUNT(*) AS <count> "
           + "FROM `<project>.<dataset>.<tableName>` "
           + "GROUP BY <pkColumns:{c|<c.name>}; separator=\",\"> "
           + "HAVING COUNT(*) > 1";
@@ -37,7 +40,7 @@ public abstract class BigQueryPdao {
    * Returns true is any duplicate IDs are present in a BigQuery table TODO: add support for
    * returning top few instances
    */
-  public static boolean hasDuplicatePrimaryKeys(
+  public static TableResult duplicatePrimaryKeys(
       FSContainerInterface container, List<Column> pkColumns, String tableName)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(container);
@@ -45,13 +48,13 @@ public abstract class BigQueryPdao {
     String bqDatasetName = prefixContainerName(container);
 
     ST sqlTemplate = new ST(selectHasDuplicateStagingIdsTemplate);
+    sqlTemplate.add("count", PDAO_COUNT_ALIAS);
     sqlTemplate.add("project", bigQueryProject.getProjectId());
     sqlTemplate.add("dataset", bqDatasetName);
     sqlTemplate.add("tableName", tableName);
     sqlTemplate.add("pkColumns", pkColumns);
 
-    TableResult result = bigQueryProject.query(sqlTemplate.render());
-    return result.getTotalRows() > 0;
+    return bigQueryProject.query(sqlTemplate.render());
   }
 
   public static String prefixName(String name) {
@@ -82,5 +85,11 @@ public abstract class BigQueryPdao {
   static long getSingleLongValue(TableResult result) {
     FieldValueList fieldValues = result.getValues().iterator().next();
     return fieldValues.get(0).getLongValue();
+  }
+
+  public static boolean tooManyDmlStatementsOutstanding(PdaoException ex) {
+    return ex.getCause() instanceof BigQueryException
+        && (ex.getCause().getMessage().contains("Too many DML statements outstanding against table")
+            || ((BigQueryException) ex.getCause()).getReason().contains("jobRateLimitExceeded"));
   }
 }

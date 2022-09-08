@@ -135,7 +135,7 @@ public class ConnectedOperations {
 
     when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
     when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
-    when(samService.createDatasetResource(any(), any())).thenReturn(datasetPolicies);
+    when(samService.createDatasetResource(any(), any(), any())).thenReturn(datasetPolicies);
 
     when(samService.retrievePolicyEmails(any(), eq(IamResourceType.DATASET), any()))
         .thenReturn(datasetPolicies);
@@ -153,7 +153,8 @@ public class ConnectedOperations {
     // Mock the billing profile calls
     when(samService.listAuthorizedResources(any(), eq(IamResourceType.SPEND_PROFILE)))
         .thenAnswer(invocation -> uuidsToAuthMap(createdProfileIds));
-    when(samService.hasActions(any(), eq(IamResourceType.SPEND_PROFILE), any())).thenReturn(true);
+    when(samService.hasAnyActions(any(), eq(IamResourceType.SPEND_PROFILE), any()))
+        .thenReturn(true);
 
     doNothing().when(samService).createProfileResource(any(), any());
     doNothing().when(samService).deleteProfileResource(any(), any());
@@ -833,24 +834,38 @@ public class ConnectedOperations {
   }
 
   public MockHttpServletResponse retrieveSnapshotPreviewByIdRaw(
-      UUID snapshotId, String tableName, int limit, int offset) throws Exception {
+      UUID snapshotId, String tableName, int limit, int offset, String filter) throws Exception {
     String url = "/api/repository/v1/snapshots/{id}/data/{table}";
-    MvcResult result =
-        mvc.perform(
-                get(url, snapshotId, tableName)
-                    .param("limit", String.valueOf(limit))
-                    .param("offset", String.valueOf(offset)))
-            .andReturn();
-
+    MockHttpServletRequestBuilder request =
+        get(url, snapshotId, tableName)
+            .param("limit", String.valueOf(limit))
+            .param("offset", String.valueOf(offset));
+    if (filter != null) {
+      request.param("filter", filter);
+    }
+    MvcResult result = mvc.perform(request).andReturn();
     return result.getResponse();
   }
 
   public SnapshotPreviewModel retrieveSnapshotPreviewByIdSuccess(
-      UUID snapshotId, String tableName, int limit, int offset) throws Exception {
+      UUID snapshotId, String tableName, int limit, int offset, String filter) throws Exception {
     MockHttpServletResponse response =
-        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset);
+        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset, filter);
     assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
     return TestUtils.mapFromJson(response.getContentAsString(), SnapshotPreviewModel.class);
+  }
+
+  public ErrorModel retrieveSnapshotPreviewByIdFailure(
+      UUID snapshotId,
+      String tableName,
+      int limit,
+      int offset,
+      String filter,
+      HttpStatus expectedStatus)
+      throws Exception {
+    MockHttpServletResponse response =
+        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset, filter);
+    return handleFailureCase(response, expectedStatus);
   }
 
   /*

@@ -3,8 +3,12 @@ package bio.terra.service.auth.iam;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
+import bio.terra.service.auth.oauth2.GoogleOauthUtils;
+import bio.terra.service.auth.oauth2.exceptions.OauthTokeninfoRetrieveException;
+import com.google.api.services.oauth2.model.Tokeninfo;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,11 +40,19 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
         Optional.ofNullable(req.getHeader("Authorization"))
             .map(header -> header.substring("Bearer ".length()))
             .orElse("");
-
     String email =
         Optional.ofNullable(req.getHeader("From")).orElse(applicationConfiguration.getUserEmail());
-
     String userId = applicationConfiguration.getUserId();
+
+    if (StringUtils.isNotEmpty(token)) {
+      try {
+        Tokeninfo tokenInfo = GoogleOauthUtils.getOauth2TokenInfo(token);
+        email = tokenInfo.getEmail();
+        userId = tokenInfo.getUserId();
+      } catch (OauthTokeninfoRetrieveException ex) {
+        logger.info("Error parsing auth token");
+      }
+    }
 
     return AuthenticatedUserRequest.builder()
         .setEmail(email)

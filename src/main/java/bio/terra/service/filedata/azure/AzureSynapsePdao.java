@@ -8,10 +8,17 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
+import bio.terra.common.exception.PdaoException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.grammar.Query;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.exception.InvalidColumnException;
+import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.DrsId;
@@ -23,6 +30,9 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -39,6 +49,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -62,115 +73,149 @@ public class AzureSynapsePdao {
   private static final String DEFAULT_CSV_QUOTE = "\"";
 
   private static final String scopedCredentialCreateTemplate =
-      "CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]\n"
-          + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
-          + "SECRET = '<secret>';";
+      """
+          IF EXISTS (SELECT * FROM sys.database_scoped_credentials WHERE name = '<scopedCredentialName>')
+              ALTER DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]
+              WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
+                   SECRET = '<secret>' ;
+          ELSE
+              CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]
+              WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
+                   SECRET = '<secret>' ;""";
 
   private static final String dataSourceCreateTemplate =
-      "CREATE EXTERNAL DATA SOURCE [<dataSourceName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<scheme>://<host>/<container>',\n"
-          + "    CREDENTIAL = [<credential>]\n"
-          + ");";
+      """
+      IF NOT EXISTS (SELECT * FROM sys.external_data_sources WHERE name = '<dataSourceName>')
+      CREATE EXTERNAL DATA SOURCE [<dataSourceName>]
+          WITH (
+              LOCATION = '<scheme>://<host>/<container>',
+              CREDENTIAL = [<credential>]
+          );""";
 
   private static final String createSnapshotTableTemplate =
-      "CREATE EXTERNAL TABLE [<tableName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<destinationParquetFile>',\n"
-          + "    DATA_SOURCE = [<destinationDataSourceName>],\n" // metadata container
-          + "    FILE_FORMAT = [<fileFormat>]\n"
-          + ") AS SELECT    datarepo_row_id,\n"
-          + "       <columns:{c|"
-          + "          <if(c.isFileType)>"
-          + "             <if(c.arrayOf)>"
-          + "               (SELECT '[' + STRING_AGG('\"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '\"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]"
-          + "             <else>"
-          + "               'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]"
-          + "             <endif>"
-          + "          <else>"
-          + "             <c.name> AS [<c.name>]"
-          + "          <endif>"
-          + "          }; separator=\",\n\">\n"
-          + "    FROM OPENROWSET(\n"
-          + "       BULK '<ingestFileName>',\n"
-          + "       DATA_SOURCE = '<ingestFileDataSourceName>',\n"
-          + "       FORMAT = 'parquet') AS rows \n";
+      """
+      CREATE EXTERNAL TABLE [<tableName>]
+          WITH (
+              LOCATION = '<destinationParquetFile>',
+              DATA_SOURCE = [<destinationDataSourceName>], /* metadata container */
+              FILE_FORMAT = [<fileFormat>]
+          ) AS SELECT    datarepo_row_id,
+                 <columns:{c|
+                    <if(c.isFileType)>
+                       <if(c.arrayOf)>
+                         (SELECT '[' + STRING_AGG('"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                       <else>
+                         'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]
+                       <endif>
+                    <else>
+                       <c.name> AS [<c.name>]
+                    <endif>
+                    }; separator=",\n">
+              FROM OPENROWSET(
+                 BULK '<ingestFileName>',
+                 DATA_SOURCE = '<ingestFileDataSourceName>',
+                 FORMAT = 'parquet') AS rows """;
 
   private static final String createSnapshotTableByRowIdTemplate =
-      createSnapshotTableTemplate + "WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
+      createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
   private static final String createSnapshotRowIdTableTemplate =
-      "CREATE EXTERNAL TABLE [<tableName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<destinationParquetFile>',\n"
-          + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
-          + "    FILE_FORMAT = [<fileFormat>]) AS  <selectStatements>";
+      """
+      CREATE EXTERNAL TABLE [<tableName>]
+          WITH (
+              LOCATION = '<destinationParquetFile>',
+              DATA_SOURCE = [<destinationDataSourceName>],
+              FILE_FORMAT = [<fileFormat>]) AS  <selectStatements>""";
 
   private static final String getLiveViewTableTemplate =
-      "SELECT '<tableId>' as "
-          + PDAO_TABLE_ID_COLUMN
-          + ", <dataRepoRowId> FROM\n"
-          + "    OPENROWSET(\n"
-          + "       BULK '<datasetParquetFileName>',\n"
-          + "       DATA_SOURCE = '<datasetDataSourceName>',\n"
-          + "       FORMAT = 'parquet') AS rows";
+      """
+      SELECT '<tableId>' as <tableIdColumn>, <dataRepoRowIdColumn>
+        FROM OPENROWSET(
+                 BULK '<datasetParquetFileName>',
+                 DATA_SOURCE = '<datasetDataSourceName>',
+                 FORMAT = 'parquet') AS rows""";
 
   private static final String mergeLiveViewTablesTemplate =
       "<selectStatements; separator=\" UNION ALL \">;";
 
   private static final String createTableTemplate =
-      "CREATE EXTERNAL TABLE [<tableName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<destinationParquetFile>',\n"
-          + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
-          + "    FILE_FORMAT = [<fileFormat>]\n"
-          + ") AS SELECT "
-          + "<if(isCSV)>newid() as datarepo_row_id,\n       "
-          + "<columns:{c|[<c.name>]}; separator=\",\n       \">"
-          + "<else>"
-          + "newid() as datarepo_row_id,\n       "
-          + "<columns:{c|"
-          + "<if(c.requiresJSONCast)>"
-          + "cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]"
-          + "<elseif (c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(8000)) [<c.name>]"
-          + "<else>JSON_VALUE(doc, '$.<c.name>') [<c.name>]"
-          + "<endif>"
-          + "}; separator=\",\n       \">\n"
-          + "<endif>"
-          + " FROM\n"
-          + "    OPENROWSET(\n"
-          + "       BULK '<ingestFileName>',\n"
-          + "       DATA_SOURCE = '<controlFileDataSourceName>',\n"
-          + "       FORMAT = 'CSV',\n"
-          + "<if(isCSV)>"
-          + "       PARSER_VERSION = '<parserVersion>',\n"
-          + "       FIRSTROW = <firstRow>,\n"
-          + "       FIELDTERMINATOR = '<fieldTerminator>',\n"
-          + "       FIELDQUOTE = '<csvQuote>'\n"
-          + "<else>"
-          + "       FIELDTERMINATOR ='0x0b',\n"
-          + "       FIELDQUOTE = '0x0b'\n"
-          + "<endif>"
-          + "    ) WITH (\n"
-          + "      <if(isCSV)>"
-          + "<columns:{c|[<c.name>] <c.synapseDataType>"
-          + "<if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>"
-          + "}; separator=\",\n\">"
-          + "<else>doc nvarchar(max)"
-          + "<endif>\n"
-          + ") AS rows;";
+      """
+      CREATE EXTERNAL TABLE [<tableName>]
+          WITH (
+              LOCATION = '<destinationParquetFile>',
+              DATA_SOURCE = [<destinationDataSourceName>],
+              FILE_FORMAT = [<fileFormat>]
+          ) AS SELECT
+          <if(isCSV)>newid() as datarepo_row_id,
+          <columns:{c|[<c.name>]}; separator=",">
+          <else>
+          newid() as datarepo_row_id,
+          <columns:{c|
+          <if(c.requiresJSONCast)>cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) [<c.name>]
+          <elseif (c.arrayOf)>cast(JSON_QUERY(doc, '$.<c.name>') as VARCHAR(8000)) [<c.name>]
+          <else>JSON_VALUE(doc, '$.<c.name>') [<c.name>]
+          <endif>
+          }; separator=", ">
+          <endif>
+           FROM
+              OPENROWSET(
+                 BULK '<ingestFileName>',
+                 DATA_SOURCE = '<controlFileDataSourceName>',
+                 FORMAT = 'CSV',
+          <if(isCSV)>
+                 PARSER_VERSION = '<parserVersion>',
+                 FIRSTROW = <firstRow>,
+                 FIELDTERMINATOR = '<fieldTerminator>',
+                 FIELDQUOTE = '<csvQuote>'
+          <else>
+                 FIELDTERMINATOR ='0x0b',
+                 FIELDQUOTE = '0x0b'
+          <endif>
+              ) WITH (
+                <if(isCSV)>
+          <columns:{c|[<c.name>] <c.synapseDataType>
+          <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>
+          }; separator=", ">
+          <else>doc nvarchar(max)
+          <endif>
+          ) AS rows;""";
+
+  private static final String countNullsInTableTemplate =
+      "SELECT COUNT(DISTINCT(datarepo_row_id)) AS rows_with_nulls FROM [<tableName>] WHERE <nullChecks>;";
+
+  private static final String createFinalParquetFilesTemplate =
+      """
+      CREATE EXTERNAL TABLE [<finalTableName>]
+          WITH (
+              LOCATION = '<destinationParquetFile>',
+              DATA_SOURCE = [<destinationDataSourceName>],
+              FILE_FORMAT = [<fileFormat>]
+          ) AS SELECT datarepo_row_id, <columns> FROM [<scratchTableName>] <where> <nullChecks>;""";
 
   private static final String queryColumnsFromExternalTableTemplate =
       "SELECT DISTINCT [<refCol>] FROM [<tableName>] WHERE [<refCol>] IS NOT NULL;";
 
   private static final String queryArrayColumnsFromExternalTableTemplate =
-      "SELECT DISTINCT [Element] AS [<refCol>] "
-          + "FROM [<tableName>] "
-          // Note, refIds can be either UUIDs or drs ids, which is why we are extracting Element as
-          // a large value
-          + "CROSS APPLY OPENJSON([<refCol>]) WITH (Element VARCHAR(8000) '$') AS ARRAY_VALUES "
-          + "WHERE [<refCol>] IS NOT NULL "
-          + "AND [Element] IS NOT NULL;";
+      """
+      SELECT DISTINCT [Element] AS [<refCol>]
+          FROM [<tableName>]
+          /* Note, refIds can be either UUIDs or drs ids, which is why we are extracting Element as a large value */
+          CROSS APPLY OPENJSON([<refCol>]) WITH (Element VARCHAR(8000) '$') AS ARRAY_VALUES
+          WHERE [<refCol>] IS NOT NULL
+          AND [Element] IS NOT NULL;""";
+
+  private static final String queryFromDatasourceTemplate =
+      """
+      SELECT <columns:{c|tbl.[<c>]}; separator=",">
+        FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
+                     <columns:{c|rows.[<c>]}; separator=",">
+                FROM OPENROWSET(BULK 'parquet/*/<tableName>.parquet/*',
+                                DATA_SOURCE = '<datasource>',
+                                FORMAT='PARQUET') AS rows
+                WHERE (<userFilter>)
+             ) AS tbl
+       WHERE tbl.datarepo_row_number >= :offset
+         AND tbl.datarepo_row_number \\< :offset + :limit;""";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
@@ -182,16 +227,19 @@ public class AzureSynapsePdao {
 
   private final ApplicationConfiguration applicationConfiguration;
   private final DrsIdService drsIdService;
+  private final ObjectMapper objectMapper;
 
   @Autowired
   public AzureSynapsePdao(
       AzureResourceConfiguration azureResourceConfiguration,
       ApplicationConfiguration applicationConfiguration,
       DrsIdService drsIdService,
+      ObjectMapper objectMapper,
       @Qualifier("synapseJdbcTemplate") NamedParameterJdbcTemplate synapseJdbcTemplate) {
     this.azureResourceConfiguration = azureResourceConfiguration;
     this.applicationConfiguration = applicationConfiguration;
     this.drsIdService = drsIdService;
+    this.objectMapper = objectMapper;
     this.synapseJdbcTemplate = synapseJdbcTemplate;
   }
 
@@ -261,34 +309,42 @@ public class AzureSynapsePdao {
         .collect(Collectors.toList());
   }
 
-  public void createExternalDataSource(
+  public void getOrCreateExternalDataSource(
+      String blobUrl, String scopedCredentialName, String dataSourceName) throws SQLException {
+    getOrCreateExternalDataSource(
+        BlobUrlParts.parse(blobUrl), scopedCredentialName, dataSourceName);
+  }
+
+  public void getOrCreateExternalDataSource(
       BlobUrlParts signedBlobUrl, String scopedCredentialName, String dataSourceName)
       throws NotImplementedException, SQLException {
     AzureSasCredential blobContainerSasTokenCreds =
         new AzureSasCredential(signedBlobUrl.getCommonSasQueryParameters().encode());
 
+    String credentialName = sanitizeStringForSql(scopedCredentialName);
+    String dsName = sanitizeStringForSql(dataSourceName);
     ST sqlScopedCredentialCreateTemplate = new ST(scopedCredentialCreateTemplate);
-    sqlScopedCredentialCreateTemplate.add("scopedCredentialName", scopedCredentialName);
+    sqlScopedCredentialCreateTemplate.add("scopedCredentialName", credentialName);
     sqlScopedCredentialCreateTemplate.add("secret", blobContainerSasTokenCreds.getSignature());
     executeSynapseQuery(sqlScopedCredentialCreateTemplate.render());
 
     ST sqlDataSourceCreateTemplate = new ST(dataSourceCreateTemplate);
-    sqlDataSourceCreateTemplate.add("dataSourceName", dataSourceName);
+    sqlDataSourceCreateTemplate.add("dataSourceName", dsName);
     sqlDataSourceCreateTemplate.add("scheme", signedBlobUrl.getScheme());
     sqlDataSourceCreateTemplate.add("host", signedBlobUrl.getHost());
     sqlDataSourceCreateTemplate.add("container", signedBlobUrl.getBlobContainerName());
-    sqlDataSourceCreateTemplate.add("credential", scopedCredentialName);
+    sqlDataSourceCreateTemplate.add("credential", credentialName);
     executeSynapseQuery(sqlDataSourceCreateTemplate.render());
   }
 
-  public int createParquetFiles(
+  public int createScratchParquetFiles(
       FormatEnum ingestType,
       DatasetTable datasetTable,
       String ingestFileName,
-      String destinationParquetFile,
-      String destinationDataSourceName,
+      String scratchParquetFile,
+      String scratchDataSourceName,
       String controlFileDataSourceName,
-      String ingestTableName,
+      String scratchTableName,
       Integer csvSkipLeadingRows,
       String csvFieldTerminator,
       String csvStringDelimiter)
@@ -311,15 +367,76 @@ public class AzureSynapsePdao {
       sqlCreateTableTemplate.add(
           "csvQuote", Objects.requireNonNullElse(csvStringDelimiter, DEFAULT_CSV_QUOTE));
     }
-    sqlCreateTableTemplate.add("tableName", ingestTableName);
-    sqlCreateTableTemplate.add("destinationParquetFile", destinationParquetFile);
-    sqlCreateTableTemplate.add("destinationDataSourceName", destinationDataSourceName);
+    sqlCreateTableTemplate.add("tableName", scratchTableName);
+    sqlCreateTableTemplate.add("destinationParquetFile", scratchParquetFile);
+    sqlCreateTableTemplate.add("destinationDataSourceName", scratchDataSourceName);
     sqlCreateTableTemplate.add(
         "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
     sqlCreateTableTemplate.add("columns", columns);
     return executeSynapseQuery(sqlCreateTableTemplate.render());
+  }
+
+  public int validateScratchParquetFiles(DatasetTable datasetTable, String scratchTableName)
+      throws SQLException {
+
+    String nullChecks =
+        datasetTable.getColumns().stream()
+            .filter(Column::isRequired)
+            .map(column -> String.format("%s IS NULL", column.getName()))
+            .collect(Collectors.joining(" OR "));
+
+    if (StringUtils.isBlank(nullChecks)) {
+      return 0;
+    }
+
+    ST sqlCountNullsTemplate = new ST(countNullsInTableTemplate);
+    sqlCountNullsTemplate.add("tableName", scratchTableName);
+    sqlCountNullsTemplate.add("nullChecks", nullChecks);
+
+    return executeCountQuery(sqlCountNullsTemplate.render());
+  }
+
+  public long createFinalParquetFiles(
+      String finalTableName,
+      String destinationParquetFile,
+      String destinationDataSourceName,
+      String scratchTableName,
+      DatasetTable datasetTable)
+      throws SQLException {
+
+    ST sqlCreateFinalParquetFilesTemplate = new ST(createFinalParquetFilesTemplate);
+    sqlCreateFinalParquetFilesTemplate.add("finalTableName", finalTableName);
+    sqlCreateFinalParquetFilesTemplate.add("destinationParquetFile", destinationParquetFile);
+    sqlCreateFinalParquetFilesTemplate.add("destinationDataSourceName", destinationDataSourceName);
+    sqlCreateFinalParquetFilesTemplate.add(
+        "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
+    sqlCreateFinalParquetFilesTemplate.add("scratchTableName", scratchTableName);
+
+    String columns =
+        datasetTable.getColumns().stream()
+            .map(Column::getName)
+            .map(s -> String.format("[%s]", s))
+            .collect(Collectors.joining(", "));
+
+    sqlCreateFinalParquetFilesTemplate.add("columns", columns);
+
+    String nullChecks =
+        datasetTable.getColumns().stream()
+            .filter(Column::isRequired)
+            .map(column -> String.format("%s IS NOT NULL", column.getName()))
+            .collect(Collectors.joining(" AND "));
+
+    if (StringUtils.isBlank(nullChecks)) {
+      sqlCreateFinalParquetFilesTemplate.add("where", "");
+      sqlCreateFinalParquetFilesTemplate.add("nullChecks", "");
+    } else {
+      sqlCreateFinalParquetFilesTemplate.add("where", "WHERE");
+      sqlCreateFinalParquetFilesTemplate.add("nullChecks", nullChecks);
+    }
+
+    return executeSynapseQuery(sqlCreateFinalParquetFilesTemplate.render());
   }
 
   public void createSnapshotRowIdsParquetFile(
@@ -345,7 +462,8 @@ public class AzureSynapsePdao {
         ST sqlTableTemplate =
             new ST(getLiveViewTableTemplate)
                 .add("tableId", table.getId().toString())
-                .add("dataRepoRowId", PDAO_ROW_ID_COLUMN)
+                .add("tableIdColumn", PDAO_TABLE_ID_COLUMN)
+                .add("dataRepoRowIdColumn", PDAO_ROW_ID_COLUMN)
                 .add("datasetParquetFileName", datasetParquetFileName)
                 .add("datasetDataSourceName", datasetDataSourceName);
         selectStatements.add(sqlTableTemplate.render());
@@ -498,12 +616,84 @@ public class AzureSynapsePdao {
     cleanup(credentialNames, dropScopedCredentialTemplate);
   }
 
+  public List<Map<String, Optional<Object>>> getSnapshotTableData(
+      AuthenticatedUserRequest userRequest,
+      Snapshot snapshot,
+      String tableName,
+      int limit,
+      int offset,
+      String sort,
+      SqlSortDirection direction,
+      String filter) {
+
+    // Ensure that the table is a valid table
+    SnapshotTable table =
+        snapshot
+            .getTableByName(tableName)
+            .orElseThrow(
+                () ->
+                    new InvalidTableException(
+                        "Table %s was not found in the snapshot".formatted(tableName)));
+
+    // Ensure that the sort column is a valid column
+    if (!sort.equals(PDAO_ROW_ID_COLUMN)) {
+      table
+          .getColumnByName(sort)
+          .orElseThrow(
+              () ->
+                  new InvalidColumnException(
+                      "Column %s was not found in the snapshot table %s"
+                          .formatted(sort, tableName)));
+    }
+    String userFilter = StringUtils.defaultIfBlank(filter, "1=1");
+
+    // Parse a Sql skeleton with the filter
+    Query.parse("select * from schema.table where (" + userFilter + ")");
+
+    List<Column> columns =
+        ListUtils.union(
+            List.of(new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING)),
+            table.getColumns());
+
+    final String sql =
+        new ST(queryFromDatasourceTemplate)
+            .add("columns", columns.stream().map(Column::getName).toList())
+            .add("datasource", getDataSourceName(snapshot, userRequest.getEmail()))
+            .add("tableName", tableName)
+            .add("sort", sort)
+            .add("direction", direction)
+            .add("userFilter", userFilter)
+            .render();
+
+    return synapseJdbcTemplate.query(
+        sql,
+        Map.of(
+            "offset", offset,
+            "limit", limit),
+        (rs, rowNum) ->
+            columns.stream()
+                .collect(
+                    Collectors.toMap(
+                        Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))));
+  }
+
   public int executeSynapseQuery(String query) throws SQLException {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute(query);
       return statement.getUpdateCount();
+    }
+  }
+
+  public int executeCountQuery(String query) throws SQLException {
+    SQLServerDataSource ds = getDatasource();
+    try (Connection connection = ds.getConnection();
+        Statement statement = connection.createStatement()) {
+      try (ResultSet resultSet = statement.executeQuery(query)) {
+        resultSet.next();
+        return resultSet.getInt(1);
+      }
     }
   }
 
@@ -529,5 +719,74 @@ public class AzureSynapsePdao {
                 logger.warn("Unable to clean up synapse resource {}.", resource, ex);
               }
             });
+  }
+
+  public static String getCredentialName(Snapshot snapshot, String email) {
+    return "cred-%s-%s".formatted(snapshot.getId(), email);
+  }
+
+  public static String getDataSourceName(Snapshot snapshot, String email) {
+    return "ds-%s-%s".formatted(snapshot.getId(), email);
+  }
+
+  private String sanitizeStringForSql(String value) {
+    return value.replaceAll("['\\[\\]]", "");
+  }
+
+  private Object extractValue(ResultSet resultSet, Column column) {
+    if (!column.isArrayOf()) {
+      try {
+        return switch (column.getType()) {
+          case BOOLEAN -> resultSet.getBoolean(column.getName());
+          case BYTES -> resultSet.getBytes(column.getName());
+          case DATE -> resultSet.getDate(column.getName());
+          case DIRREF, FILEREF, STRING, TEXT -> resultSet.getString(column.getName());
+          case FLOAT -> resultSet.getFloat(column.getName());
+          case FLOAT64 -> resultSet.getDouble(column.getName());
+          case INTEGER -> resultSet.getInt(column.getName());
+          case INT64 -> resultSet.getLong(column.getName());
+          case NUMERIC -> resultSet.getFloat(column.getName());
+          case TIME -> resultSet.getTime(column.getName());
+          case DATETIME, TIMESTAMP -> resultSet.getTimestamp(column.getName());
+          default -> throw new IllegalArgumentException(
+              "Unknown datatype '" + column.getType() + "'");
+        };
+      } catch (SQLException e) {
+        throw new PdaoException("Error reading data", e);
+      }
+    } else {
+      String rawValue = null;
+      try {
+        rawValue = resultSet.getString(column.getName());
+      } catch (SQLException e) {
+        throw new PdaoException("Error reading data", e);
+      }
+      if (rawValue == null) {
+        return null;
+      }
+      if (StringUtils.isBlank(rawValue)) {
+        return "";
+      }
+      TypeReference<?> targetType =
+          switch (column.getType()) {
+            case BOOLEAN -> new TypeReference<List<Boolean>>() {};
+            case DATE,
+                DATETIME,
+                DIRREF,
+                FILEREF,
+                STRING,
+                TEXT,
+                TIME,
+                TIMESTAMP -> new TypeReference<List<String>>() {};
+            case FLOAT, FLOAT64, INTEGER, INT64, NUMERIC -> new TypeReference<List<Number>>() {};
+            default -> throw new IllegalArgumentException(
+                "Unknown datatype '" + column.getType() + "'");
+          };
+      try {
+        return objectMapper.readValue(rawValue, targetType);
+      } catch (JsonProcessingException e) {
+        throw new PdaoException("Could not deserialize value %s".formatted(rawValue), e);
+      }
+    }
   }
 }

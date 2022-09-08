@@ -42,7 +42,7 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
             CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
     String snapshotParquetTargetLocation =
-        IngestUtils.getParquetTargetLocationURL(snapshotAzureStorageAccountResource);
+        snapshotAzureStorageAccountResource.getStorageAccountUrl();
     BlobUrlParts snapshotSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
             snapshotParquetTargetLocation,
@@ -51,7 +51,7 @@ public class CreateSnapshotTargetDataSourceAzureStep implements Step {
             AzureStorageAccountResource.ContainerType.METADATA,
             userRequest);
     try {
-      azureSynapsePdao.createExternalDataSource(
+      azureSynapsePdao.getOrCreateExternalDataSource(
           snapshotSignUrlBlob,
           IngestUtils.getTargetScopedCredentialName(context.getFlightId()),
           IngestUtils.getTargetDataSourceName(context.getFlightId()));

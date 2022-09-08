@@ -9,6 +9,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSAuthorizations;
 import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSPassportRequestModel;
@@ -156,6 +157,12 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   }
 
   @Override
+  public ResponseEntity<DRSAuthorizations> optionsObject(String objectId) {
+    DRSAuthorizations auths = drsService.lookupAuthorizationsByDrsId(objectId);
+    return new ResponseEntity<>(auths, HttpStatus.OK);
+  }
+
+  @Override
   public ResponseEntity<DRSObject> postObject(
       @PathVariable("object_id") String objectId,
       @RequestBody DRSPassportRequestModel drsPassportRequestModel) {
@@ -172,7 +179,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     DRSServiceInfo info =
         new DRSServiceInfo()
             .version("0.0.1")
-            .title("Terra Data Repository")
+            .title(ApplicationConfiguration.APPLICATION_NAME)
             .description(
                 "Terra Data Repository (Jade) - a Broad/Verily/Microsoft open source project")
             .contact("cbernard@broadinstitute.org")

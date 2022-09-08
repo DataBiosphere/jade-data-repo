@@ -3,6 +3,8 @@ package bio.terra.common;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,6 +21,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 public final class DaoUtils {
@@ -112,5 +115,42 @@ public final class DaoUtils {
   public static boolean retryQuery(DataAccessException dataAccessException) {
     return ExceptionUtils.hasCause(dataAccessException, RecoverableDataAccessException.class)
         || ExceptionUtils.hasCause(dataAccessException, TransientDataAccessException.class);
+  }
+
+  public static String propertiesToString(ObjectMapper objectMapper, Object properties) {
+    if (properties != null) {
+      try {
+        return objectMapper.writeValueAsString(properties);
+      } catch (JsonProcessingException ex) {
+        throw new InvalidDatasetException("Invalid dataset properties: " + properties, ex);
+      }
+    } else {
+      return null;
+    }
+  }
+
+  public static Object stringToProperties(ObjectMapper objectMapper, String properties) {
+    if (properties != null) {
+      try {
+        return objectMapper.readValue(properties, new TypeReference<>() {});
+      } catch (JsonProcessingException e) {
+        throw new CorruptMetadataException("Invalid properties field");
+      }
+    } else {
+      return null;
+    }
+  }
+
+  public static class UuidMapper implements RowMapper<UUID> {
+    private final String columnLabel;
+
+    public UuidMapper(String columnLabel) {
+      this.columnLabel = columnLabel;
+    }
+
+    @Override
+    public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
+      return rs.getObject(this.columnLabel, UUID.class);
+    }
   }
 }

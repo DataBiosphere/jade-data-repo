@@ -16,13 +16,14 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.dataset.AssetModelValidator;
@@ -35,7 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -59,7 +60,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Api(tags = {"snapshots"})
 public class SnapshotsApiController implements SnapshotsApi {
 
-  private Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
+  private final Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
 
   // We do not include Access_Information since it can get expensive, and for backwards compat
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE =
@@ -160,12 +161,21 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
+  public ResponseEntity<SnapshotSummaryModel> patchSnapshot(
+      UUID id, SnapshotPatchRequestModel patchRequest) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    Set<IamAction> actions = snapshotService.patchSnapshotIamActions(patchRequest);
+    iamService.verifyAuthorizations(userReq, IamResourceType.DATASNAPSHOT, id.toString(), actions);
+    return new ResponseEntity<>(snapshotService.patch(id, patchRequest), HttpStatus.OK);
+  }
+
+  @Override
   public ResponseEntity<JobModel> exportSnapshot(
       @PathVariable("id") UUID id, Boolean exportGsPaths, Boolean validatePrimaryKeyUniqueness) {
     logger.info("Verifying user access");
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
-        userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+        userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.EXPORT_SNAPSHOT);
     String jobId =
         snapshotService.exportSnapshot(id, userReq, exportGsPaths, validatePrimaryKeyUniqueness);
     // we can retrieve the job we just created
@@ -182,15 +192,13 @@ public class SnapshotsApiController implements SnapshotsApi {
       String region,
       List<String> datasetIds) {
     ControllerUtils.validateEnumerateParams(offset, limit);
-    Map<UUID, Set<IamRole>> idsAndRoles =
-        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
             .map(UUID::fromString)
             .collect(Collectors.toList());
     var esm =
         snapshotService.enumerateSnapshots(
-            offset, limit, sort, direction, filter, region, datasetUUIDs, idsAndRoles);
+            getAuthenticatedInfo(), offset, limit, sort, direction, filter, region, datasetUUIDs);
     return ResponseEntity.ok(esm);
   }
 
@@ -205,8 +213,7 @@ public class SnapshotsApiController implements SnapshotsApi {
           List<SnapshotRetrieveIncludeModel> include) {
     logger.info("Verifying user access");
     AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
-    iamService.verifyAuthorization(
-        authenticatedInfo, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    snapshotService.verifySnapshotAccessible(id, authenticatedInfo);
     logger.info("Retrieving snapshot");
     SnapshotModel snapshotModel =
         snapshotService.retrieveAvailableSnapshotModel(id, include, authenticatedInfo);
@@ -242,12 +249,21 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<SnapshotPreviewModel> lookupSnapshotPreviewById(
-      UUID id, String table, Integer offset, Integer limit) {
+      UUID id,
+      String table,
+      Integer offset,
+      Integer limit,
+      String sort,
+      SqlSortDirection direction,
+      String filter) {
     logger.info("Verifying user access");
-    iamService.verifyAuthorization(
-        getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    snapshotService.verifySnapshotAccessible(id, getAuthenticatedInfo());
     logger.info("Retrieving snapshot id {}", id);
-    SnapshotPreviewModel previewModel = snapshotService.retrievePreview(id, table, limit, offset);
+    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
+    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
+    SnapshotPreviewModel previewModel =
+        snapshotService.retrievePreview(
+            getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
     return new ResponseEntity<>(previewModel, HttpStatus.OK);
   }
 
@@ -269,12 +285,8 @@ public class SnapshotsApiController implements SnapshotsApi {
   }
 
   @Override
-  public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(@PathVariable("id") UUID id) {
-    PolicyResponse response =
-        new PolicyResponse()
-            .policies(
-                iamService.retrievePolicies(
-                    getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id));
+  public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(UUID id) {
+    PolicyResponse response = snapshotService.retrieveSnapshotPolicies(id, getAuthenticatedInfo());
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
@@ -297,8 +309,7 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<List<String>> retrieveUserSnapshotRoles(UUID id) {
-    List<String> roles =
-        iamService.retrieveUserRoles(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id);
+    List<String> roles = snapshotService.retrieveUserSnapshotRoles(id, getAuthenticatedInfo());
     return new ResponseEntity<>(roles, HttpStatus.OK);
   }
 }

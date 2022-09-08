@@ -4,6 +4,7 @@ import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -16,8 +17,11 @@ import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSchemaUpdateModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
@@ -28,6 +32,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
@@ -39,6 +44,7 @@ import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DataDeletionRequestValidator;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetRequestValidator;
+import bio.terra.service.dataset.DatasetSchemaUpdateValidator;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
@@ -50,6 +56,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -85,6 +92,8 @@ public class DatasetsApiController implements DatasetsApi {
   private final IngestRequestValidator ingestRequestValidator;
   private final DataDeletionRequestValidator dataDeletionRequestValidator;
 
+  private final DatasetSchemaUpdateValidator datasetSchemaUpdateValidator;
+
   @Autowired
   public DatasetsApiController(
       ObjectMapper objectMapper,
@@ -97,7 +106,8 @@ public class DatasetsApiController implements DatasetsApi {
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator,
       IngestRequestValidator ingestRequestValidator,
-      DataDeletionRequestValidator dataDeletionRequestValidator) {
+      DataDeletionRequestValidator dataDeletionRequestValidator,
+      DatasetSchemaUpdateValidator datasetSchemaUpdateValidator) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.jobService = jobService;
@@ -109,6 +119,7 @@ public class DatasetsApiController implements DatasetsApi {
     this.assetModelValidator = assetModelValidator;
     this.ingestRequestValidator = ingestRequestValidator;
     this.dataDeletionRequestValidator = dataDeletionRequestValidator;
+    this.datasetSchemaUpdateValidator = datasetSchemaUpdateValidator;
   }
 
   @InitBinder
@@ -117,6 +128,7 @@ public class DatasetsApiController implements DatasetsApi {
     binder.addValidators(datasetRequestValidator);
     binder.addValidators(assetModelValidator);
     binder.addValidators(dataDeletionRequestValidator);
+    binder.addValidators(datasetSchemaUpdateValidator);
   }
 
   @Override
@@ -166,6 +178,15 @@ public class DatasetsApiController implements DatasetsApi {
     String jobId = datasetService.delete(id.toString(), userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
+  public ResponseEntity<DatasetSummaryModel> patchDataset(
+      UUID id, DatasetPatchRequestModel patchRequest) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    Set<IamAction> actions = datasetService.patchDatasetIamActions(patchRequest);
+    iamService.verifyAuthorizations(userReq, IamResourceType.DATASET, id.toString(), actions);
+    return new ResponseEntity<>(datasetService.patch(id, patchRequest), HttpStatus.OK);
   }
 
   @Override
@@ -323,9 +344,10 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<PolicyResponse> retrieveDatasetPolicies(@PathVariable("id") UUID id) {
-    List<PolicyModel> policies =
+    List<SamPolicyModel> policies =
         iamService.retrievePolicies(getAuthenticatedInfo(), IamResourceType.DATASET, id);
-    PolicyResponse response = new PolicyResponse().policies(policies);
+    PolicyResponse response =
+        new PolicyResponse().policies(PolicyUtils.samToTdrPolicyModels(policies));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
@@ -350,6 +372,15 @@ public class DatasetsApiController implements DatasetsApi {
     List<String> roles =
         iamService.retrieveUserRoles(getAuthenticatedInfo(), IamResourceType.DATASET, id);
     return new ResponseEntity<>(roles, HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<JobModel> updateSchema(UUID id, DatasetSchemaUpdateModel body) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
+    String jobId = datasetService.updateDatasetSchema(id, body, userReq);
+    return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
 
   @Override

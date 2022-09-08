@@ -343,4 +343,221 @@ public class IngestTest extends UsersBase {
         ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getErrorDetail(),
         hasItem(containsString("too many errors")));
   }
+
+  @Test
+  public void ingestMergeHappyPathTest() throws Exception {
+    IngestRequestModel ingestRequest =
+        dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+
+    IngestRequestModel mergeIngestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest("sample", "ingest-test/merge/ingest-test-sample-merge.json")
+            .updateStrategy(UpdateStrategyEnum.MERGE);
+    IngestResponseModel mergeIngestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, mergeIngestRequest);
+    assertThat("correct merge sample row count", mergeIngestResponse.getRowCount(), equalTo(2L));
+
+    // Rows ingested via merge should not increase the existing live row count.
+    // TODO: once the preview API GA and works for datasets, we should use that here
+    DatasetModel dataset =
+        dataRepoFixtures.getDataset(
+            steward(), datasetId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
+    BigQueryProject bigQueryProject =
+        BigQueryProject.get(dataset.getAccessInformation().getBigQuery().getProjectId());
+    AccessInfoBigQueryModelTable bqTableInfo =
+        dataset.getAccessInformation().getBigQuery().getTables().stream()
+            .filter(t -> t.getName().equals("sample"))
+            .findFirst()
+            .orElseThrow();
+    // Note: the sample query is just a formatted select * query against the table
+    TableResult bqQueryResult = bigQueryProject.query(bqTableInfo.getSampleQuery());
+    assertThat("Expected number of rows are present", bqQueryResult.getTotalRows(), equalTo(7L));
+
+    List<Map<String, Object>> results =
+        BQTestUtils.mapToList(
+            bqQueryResult, "id", "participant_ids", "date_collected", "derived_from");
+
+    List<Map<String, Object>> dataPostMerge =
+        jsonLoader.loadObjectAsStream(
+            "ingest-test/merge/ingest-test-sample-merge-expected.json", new TypeReference<>() {});
+    List<Map<String, Object>> dataOriginal =
+        jsonLoader.loadObjectAsStream("ingest-test-sample.json", new TypeReference<>() {});
+
+    assertThat(
+        "Only specified records and fields updated by first merge ingest",
+        results,
+        containsInAnyOrder(
+            // Updated rows
+            dataPostMerge.get(0), // ID = sample1
+            dataPostMerge.get(1), // ID = sample2
+            // Untouched rows
+            dataOriginal.get(2), // ID = sample3
+            dataOriginal.get(3), // ID = sample4
+            dataOriginal.get(4), // ID = sample5
+            dataOriginal.get(5), // ID = sample6
+            dataOriginal.get(6) // ID = sample7
+            ));
+
+    // Updating the same row again via merge ingest should succeed
+    IngestRequestModel mergeAgainIngestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest("sample", "ingest-test/merge/ingest-test-sample-merge-again.json")
+            .updateStrategy(UpdateStrategyEnum.MERGE);
+    IngestResponseModel mergeAgainIngestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, mergeAgainIngestRequest);
+    assertThat(
+        "correct merge again sample row count",
+        mergeAgainIngestResponse.getRowCount(),
+        equalTo(1L));
+
+    bqQueryResult = bigQueryProject.query(bqTableInfo.getSampleQuery());
+    assertThat("Expected number of rows are present", bqQueryResult.getTotalRows(), equalTo(7L));
+
+    results =
+        BQTestUtils.mapToList(
+            bqQueryResult, "id", "participant_ids", "date_collected", "derived_from");
+
+    List<Map<String, Object>> dataPostMergeAgain =
+        jsonLoader.loadObjectAsStream(
+            "ingest-test/merge/ingest-test-sample-merge-again-expected.json",
+            new TypeReference<>() {});
+
+    assertThat(
+        "Only specified records and fields updated by second merge ingest",
+        results,
+        containsInAnyOrder(
+            // Newly updated row
+            dataPostMergeAgain.get(0), // ID = sample1
+            // Prior updated row
+            dataPostMerge.get(1), // ID = sample2
+            // Untouched rows
+            dataOriginal.get(2), // ID = sample3
+            dataOriginal.get(3), // ID = sample4
+            dataOriginal.get(4), // ID = sample5
+            dataOriginal.get(5), // ID = sample6
+            dataOriginal.get(6) // ID = sample7
+            ));
+  }
+
+  @Test
+  public void ingestMergeNoTargetPKTest() throws Exception {
+    IngestRequestModel mergeIngestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest("file", "ingest-test/ingest-test-file.json")
+            .updateStrategy(UpdateStrategyEnum.MERGE);
+
+    DataRepoResponse<JobModel> mergeIngestJobResponse =
+        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);
+    DataRepoResponse<IngestResponseModel> mergeIngestResponse =
+        dataRepoClient.waitForResponse(steward(), mergeIngestJobResponse, new TypeReference<>() {});
+
+    assertThat(
+        "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+    assertThat(
+        "failure is explained",
+        mergeIngestResponse.getErrorObject().get().getMessage(),
+        equalTo("Cannot ingest to a table without a primary key defined."));
+  }
+
+  @Test
+  public void ingestMergeRowsMissingPKsTest() throws Exception {
+    IngestRequestModel ingestRequest =
+        dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+
+    IngestRequestModel mergeIngestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest(
+                "sample", "ingest-test/merge/ingest-test-sample-merge-missing-pks.json")
+            .updateStrategy(UpdateStrategyEnum.MERGE);
+    DataRepoResponse<JobModel> mergeIngestJobResponse =
+        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);
+    DataRepoResponse<IngestResponseModel> mergeIngestResponse =
+        dataRepoClient.waitForResponse(steward(), mergeIngestJobResponse, new TypeReference<>() {});
+
+    assertThat(
+        "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+    assertThat(
+        "failure is explained",
+        mergeIngestResponse.getErrorObject().get().getMessage(),
+        containsString("Ingest failed"));
+    assertThat(
+        "primary key specification is enforced",
+        mergeIngestResponse.getErrorObject().get().getErrorDetail(),
+        hasItem(containsString("Missing required field: id")));
+  }
+
+  @Test
+  public void ingestMergeRowsDuplicatePKsTest() throws Exception {
+    IngestRequestModel ingestRequest =
+        dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+
+    IngestRequestModel mergeIngestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest(
+                "sample", "ingest-test/merge/ingest-test-sample-merge-duplicate-pks.json")
+            .updateStrategy(UpdateStrategyEnum.MERGE);
+    DataRepoResponse<JobModel> mergeIngestJobResponse =
+        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);
+    DataRepoResponse<IngestResponseModel> mergeIngestResponse =
+        dataRepoClient.waitForResponse(steward(), mergeIngestJobResponse, new TypeReference<>() {});
+
+    assertThat(
+        "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+    assertThat(
+        "failure is explained",
+        mergeIngestResponse.getErrorObject().get().getMessage(),
+        containsString("Duplicate primary keys identified"));
+    assertThat(
+        "all duplicate primary keys are found in error details",
+        mergeIngestResponse.getErrorObject().get().getErrorDetail(),
+        containsInAnyOrder(containsString("sample1")));
+  }
+
+  @Test
+  public void ingestMergeMismatchedWithTargetTest() throws Exception {
+    IngestRequestModel ingestRequest =
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json");
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
+
+    IngestRequestModel ingestWithDupesRequest =
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-update-participant.json");
+    IngestResponseModel ingestWithDupesResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestWithDupesRequest);
+    assertThat(
+        "correct participant new row count", ingestWithDupesResponse.getRowCount(), equalTo(3L));
+
+    IngestRequestModel mergeIngestRequest =
+        dataRepoFixtures
+            .buildSimpleIngest(
+                "participant", "ingest-test/merge/ingest-test-participant-merge-mismatched.json")
+            .updateStrategy(UpdateStrategyEnum.MERGE);
+    DataRepoResponse<JobModel> mergeIngestJobResponse =
+        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, mergeIngestRequest);
+    DataRepoResponse<IngestResponseModel> mergeIngestResponse =
+        dataRepoClient.waitForResponse(steward(), mergeIngestJobResponse, new TypeReference<>() {});
+
+    assertThat(
+        "ingest failed", mergeIngestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+    assertThat(
+        "failure is explained",
+        mergeIngestResponse.getErrorObject().get().getMessage(),
+        containsString("merge record(s) did not resolve to a single target record"));
+    assertThat(
+        "all primary keys without single target table matches are found in error details",
+        mergeIngestResponse.getErrorObject().get().getErrorDetail(),
+        containsInAnyOrder(containsString("participant_4"), containsString("participant_100")));
+  }
 }

@@ -7,9 +7,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "ecm")
-public class ECMConfiguration {
+public class EcmConfiguration {
 
   private String basePath;
+  private String rasIssuer;
 
   public String getBasePath() {
     return basePath;
@@ -17,5 +18,13 @@ public class ECMConfiguration {
 
   public void setBasePath(String basePath) {
     this.basePath = basePath;
+  }
+
+  public String getRasIssuer() {
+    return rasIssuer;
+  }
+
+  public void setRasIssuer(String rasIssuer) {
+    this.rasIssuer = rasIssuer;
   }
 }

@@ -15,6 +15,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableResult;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -31,6 +32,14 @@ public final class BQTestUtils {
     try {
       when(mockBQProject.query(eq(sql))).thenAnswer(mockAnswer(schema, results));
       when(mockBQProject.query(eq(sql), any())).thenAnswer(mockAnswer(schema, results));
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Error mocking query execution");
+    }
+  }
+
+  public static void mockBQQueryError(BigQueryProject mockBQProject, String sql, Throwable ex) {
+    try {
+      when(mockBQProject.query(eq(sql))).thenThrow(ex);
     } catch (InterruptedException e) {
       throw new RuntimeException("Error mocking query execution");
     }
@@ -76,16 +85,14 @@ public final class BQTestUtils {
         tableResult.getSchema().getFields().stream()
             .filter(f -> fields.length == 0 || List.of(fields).contains(f.getName()))
             .collect(Collectors.toList());
-    tableResult
-        .getValues()
-        .forEach(
-            r ->
-                returnVal.add(
-                    fieldsToProcess.stream()
-                        .collect(
-                            Collectors.toMap(
-                                Field::getName, f -> mapFieldValueToPojo(f, r.get(f.getName()))))));
+    tableResult.getValues().forEach(r -> returnVal.add(toMap(fieldsToProcess, r)));
+    return returnVal;
+  }
 
+  // We previously used Collectors.toMap but its implementation does not permit null values.
+  private static Map<String, Object> toMap(List<Field> fields, FieldValueList row) {
+    Map<String, Object> returnVal = new HashMap<>();
+    fields.forEach(f -> returnVal.put(f.getName(), mapFieldValueToPojo(f, row.get(f.getName()))));
     return returnVal;
   }
 

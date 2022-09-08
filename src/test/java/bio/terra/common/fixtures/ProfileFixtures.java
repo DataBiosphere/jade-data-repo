@@ -3,22 +3,24 @@ package bio.terra.common.fixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
-import java.security.SecureRandom;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
+@SuppressFBWarnings(
+    value = "DMI_RANDOM_USED_ONLY_ONCE",
+    justification = "False positive introduced in 4.2.3, fixed in 4.4.2")
 public final class ProfileFixtures {
   private ProfileFixtures() {}
 
-  private static SecureRandom randomGenerator = new SecureRandom();
+  private static Random randomGenerator = new Random();
 
   public static String randomHex(int n) {
-    Random r = new Random();
     StringBuffer sb = new StringBuffer();
     while (sb.length() < n) {
-      sb.append(Integer.toHexString(r.nextInt(16)));
+      sb.append(Integer.toHexString(randomGenerator.nextInt(16)));
     }
     return sb.toString();
   }

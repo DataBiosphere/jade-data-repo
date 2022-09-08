@@ -3,9 +3,11 @@ package bio.terra.service.dataset;
 import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
 import bio.terra.common.Table;
+import com.google.cloud.bigquery.FieldValueList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Specific class for modeling dataset tables.
@@ -92,6 +94,38 @@ public class DatasetTable implements Table, LogPrintable {
     return this;
   }
 
+  /**
+   * @param column with name as key
+   * @param row expected to contain a value associated with `column`
+   * @return value associated with `column`
+   */
+  private String columnValueFromRow(Column column, FieldValueList row) {
+    if (!row.hasSchema()) {
+      return "unknown";
+    }
+    try {
+      return row.get(column.getName()).getStringValue();
+    } catch (IllegalArgumentException e) {
+      return "unknown";
+    } catch (NullPointerException e) {
+      return "null";
+    }
+  }
+
+  /**
+   * @param row expected to contain values associated with the table's primary key
+   * @return a string representation of the table's primary key and its values
+   */
+  public String primaryKeyToString(FieldValueList row) {
+    if (primaryKey == null || primaryKey.isEmpty()) {
+      return "undefined";
+    } else {
+      return primaryKey.stream()
+          .map(c -> c.getName() + "=" + columnValueFromRow(c, row))
+          .collect(Collectors.joining(","));
+    }
+  }
+
   public BigQueryPartitionConfigV1 getBigQueryPartitionConfig() {
     return bqPartitionConfig;
   }
@@ -114,5 +148,10 @@ public class DatasetTable implements Table, LogPrintable {
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());
+  }
+
+  public List<String> getBigQueryTableNames() {
+    return List.of(
+        this.name, this.rawTableName, this.softDeleteTableName, this.rowMetadataTableName);
   }
 }

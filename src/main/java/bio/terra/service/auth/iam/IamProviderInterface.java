@@ -1,14 +1,17 @@
 package bio.terra.service.auth.iam;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.model.SamPolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 
 /**
  * This is the interface to IAM used in the main body of the repository code. Right now, the only
@@ -62,6 +65,16 @@ public interface IamProviderInterface {
       throws InterruptedException;
 
   /**
+   * @param userReq authenticated user
+   * @param iamResourceType resource type
+   * @param resourceId resource in question
+   * @return the user's available actions on that resource
+   */
+  List<String> listActions(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
+      throws InterruptedException;
+
+  /**
    * If user has any action on a resource than we allow that user to list the resource, rather than
    * have a specific action for listing. That is the Sam convention.
    *
@@ -70,7 +83,7 @@ public interface IamProviderInterface {
    * @param resourceId resource in question
    * @return true if the user has any actions on that resource
    */
-  boolean hasActions(
+  boolean hasAnyActions(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws InterruptedException;
 
@@ -97,9 +110,11 @@ public interface IamProviderInterface {
    *
    * @param userReq authenticated user
    * @param datasetId id of the dataset
+   * @param policies user emails to add as dataset policy members
    * @return Map of policy group emails for the dataset policies
    */
-  Map<IamRole, String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
+  Map<IamRole, String> createDatasetResource(
+      AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies)
       throws InterruptedException;
 
   /**
@@ -136,7 +151,7 @@ public interface IamProviderInterface {
 
   // -- policy membership support --
 
-  List<PolicyModel> retrievePolicies(
+  List<SamPolicyModel> retrievePolicies(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws InterruptedException;
 
@@ -184,6 +199,15 @@ public interface IamProviderInterface {
    * @return The google proxy group of a given user
    */
   String getProxyGroup(AuthenticatedUserRequest userReq) throws InterruptedException;
+
+  /**
+   * Register a user in Sam and make it usable (e.g. accept the ToS) using the specified access
+   * token
+   *
+   * @param accessToken valid oauth token for user that is being registered in Terra
+   * @return the fully registered user
+   */
+  UserStatus registerUser(String accessToken) throws InterruptedException;
 
   /**
    * Get Sam Status

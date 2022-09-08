@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -52,6 +53,7 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -102,6 +104,9 @@ public class DatasetIngestFlight extends Flight {
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
+    RetryRule randomBackoffRetry =
+        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+
     // Add these steps to clear out scratch file if the flight has failed
     if (cloudPlatform.isGcp()) {
       addStep(new PerformPayloadIngestStep(new IngestLandingFileDeleteGcpStep(true, gcsPdao)));
@@ -128,7 +133,8 @@ public class DatasetIngestFlight extends Flight {
         String transactionDesc = "Autocommit transaction";
         addStep(
             new TransactionOpenStep(
-                datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false));
+                datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false),
+            randomBackoffRetry);
         autocommit = true;
       } else {
         addStep(
@@ -152,8 +158,6 @@ public class DatasetIngestFlight extends Flight {
           configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS);
       int loadHistoryChunkSize =
           configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE);
-      RetryRule randomBackoffRetry =
-          getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
       RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
 
       var profileId =
@@ -208,9 +212,19 @@ public class DatasetIngestFlight extends Flight {
           new NonCombinedFileIngestOptionalStep(
               new IngestCopyControlFileStep(datasetService, gcsPdao)));
       addStep(new IngestLoadTableStep(datasetService, bigQueryDatasetPdao));
-      if (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE) {
+
+      boolean replaceIngest =
+          (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.REPLACE);
+      boolean mergeIngest =
+          (ingestRequestModel.getUpdateStrategy() == IngestRequestModel.UpdateStrategyEnum.MERGE);
+      if (replaceIngest || mergeIngest) {
         // Ensure that no duplicate IDs are being loaded in
         addStep(new IngestValidateIngestRowsStep(datasetService));
+        if (mergeIngest) {
+          addStep(new IngestValidatePrimaryKeyDefinedStep(datasetService));
+          addStep(new IngestValidateTargetRowsStep(datasetService, bigQueryDatasetPdao));
+          addStep(new IngestMergeStagingWithTargetStep(datasetService, bigQueryDatasetPdao));
+        }
         // Soft deletes rows from the target table
         addStep(
             new IngestSoftDeleteExistingRowsStep(
@@ -229,12 +243,21 @@ public class DatasetIngestFlight extends Flight {
       addStep(
           new IngestCreateIngestRequestDataSourceStep(
               azureSynapsePdao, azureBlobStorePdao, userReq));
-      addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao, userReq));
+      addStep(
+          new IngestCreateTargetDataSourceStep(
+              azureSynapsePdao, azureBlobStorePdao, ContainerType.METADATA, userReq));
+      addStep(
+          new IngestCreateTargetDataSourceStep(
+              azureSynapsePdao, azureBlobStorePdao, ContainerType.SCRATCH, userReq));
+      addStep(
+          new IngestCreateScratchParquetFilesStep(
+              azureSynapsePdao, azureBlobStorePdao, datasetService, userReq));
+      addStep(new IngestValidateScratchTableStep(azureSynapsePdao, datasetService));
       addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
       addStep(
           new IngestValidateAzureRefsStep(
               azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
-      addStep(new IngestCleanSynapseStep(azureSynapsePdao));
+      addStep(new IngestCleanAzureStep(azureSynapsePdao, azureBlobStorePdao, userReq));
       addStep(
           new PerformPayloadIngestStep(
               new IngestLandingFileDeleteAzureStep(false, azureContainerPdao)));
@@ -250,7 +273,8 @@ public class DatasetIngestFlight extends Flight {
       } else {
         addStep(
             new TransactionCommitStep(
-                datasetService, bigQueryTransactionPdao, userReq, false, null));
+                datasetService, bigQueryTransactionPdao, userReq, false, null),
+            randomBackoffRetry);
       }
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
@@ -299,7 +323,10 @@ public class DatasetIngestFlight extends Flight {
     var platform = CloudPlatform.GCP;
 
     // Verify that the user is allowed to access the bucket where the control file lives
-    addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
+    addStep(
+        new ValidateBucketAccessStep(
+            gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq),
+        getDefaultExponentialBackoffRetryRule());
 
     // Parse the JSON file and see if there's actually any files to load.
     // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`
@@ -393,7 +420,8 @@ public class DatasetIngestFlight extends Flight {
             dataset.getId(),
             ingestRequest.getLoadTag(),
             loadHistoryWaitSeconds,
-            loadHistoryChunkSize));
+            loadHistoryChunkSize),
+        randomBackoffRetry);
 
     // Clean up the load table.
     addOptionalCombinedIngestStep(new IngestCleanFileStateStep(loadService));

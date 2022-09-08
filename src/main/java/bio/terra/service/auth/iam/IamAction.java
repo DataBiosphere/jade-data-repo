@@ -9,10 +9,10 @@ public enum IamAction {
   // common
   CREATE,
   DELETE,
-  SHARE_POLICY,
   READ_POLICY,
   READ_POLICIES,
   ALTER_POLICIES,
+  UPDATE_PASSPORT_IDENTIFIER,
   // datarepo
   LIST_JOBS,
   DELETE_JOBS,
@@ -29,20 +29,27 @@ public enum IamAction {
   UPDATE_SNAPSHOT,
   READ_DATA,
   DISCOVER_DATA,
+  EXPORT_SNAPSHOT,
   // billing profiles
   UPDATE_BILLING_ACCOUNT,
   LINK;
 
+  private final String samActionName;
+
+  IamAction() {
+    this.samActionName = name().toLowerCase();
+  }
+
   @Override
   @JsonValue
   public String toString() {
-    return StringUtils.lowerCase(name());
+    return samActionName;
   }
 
   @JsonCreator
   public static IamAction fromValue(String text) {
     for (IamAction b : IamAction.values()) {
-      if (String.valueOf(b.name()).equals(StringUtils.upperCase(text))) {
+      if (b.name().equals(StringUtils.upperCase(text))) {
         return b;
       }
     }

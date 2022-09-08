@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
@@ -385,11 +386,12 @@ public class DatasetConnectedTest {
         connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel);
 
     // Retrieve list of projects associated with dataset/bucket
-    // only one bucket b/c we didn't ingest anything with the first billing profile
+    // there will be two buckets: the primary one and the one where we performed the ingest
     List<UUID> projectResourceIds =
         datasetBucketDao.getProjectResourceIdsForBucketPerDataset(summaryModel.getId());
+    assertThat("There are two buckets", projectResourceIds, hasSize(2));
     String ingestGoogleProjectId =
-        googleResourceDao.retrieveProjectById(projectResourceIds.get(0)).getGoogleProjectId();
+        googleResourceDao.retrieveProjectById(projectResourceIds.get(1)).getGoogleProjectId();
     assertThat(
         "The dataset google project is different from ingest bucket google project that used a different billing profile",
         ingestGoogleProjectId,

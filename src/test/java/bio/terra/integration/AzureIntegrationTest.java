@@ -1,4 +1,4 @@
-package bio.terra.service.dataset;
+package bio.terra.integration;
 
 import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,10 +26,6 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
-import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.DataRepoResponse;
-import bio.terra.integration.TestJobWatcher;
-import bio.terra.integration.UsersBase;
 import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.AccessInfoParquetModelTable;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -49,9 +45,12 @@ import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.SnapshotExportResponseModel;
+import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -71,6 +70,7 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -83,6 +83,11 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -104,7 +109,7 @@ import org.springframework.util.ResourceUtils;
 @ActiveProfiles({"google", "integrationtest"})
 @AutoConfigureMockMvc
 @Category(Integration.class)
-public class DatasetAzureIntegrationTest extends UsersBase {
+public class AzureIntegrationTest extends UsersBase {
 
   private static final String omopDatasetName = "it_dataset_omop";
   private static final String omopDatasetDesc =
@@ -112,7 +117,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private static final String omopDatasetRegionName = AzureRegion.DEFAULT_AZURE_REGION.toString();
   private static final String omopDatasetGcpRegionName =
       GoogleRegion.DEFAULT_GOOGLE_REGION.toString();
-  private static Logger logger = LoggerFactory.getLogger(DatasetAzureIntegrationTest.class);
+  private static Logger logger = LoggerFactory.getLogger(AzureIntegrationTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
@@ -367,19 +372,19 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     // lookup file
     List<BulkLoadFileResultModel> loadedFiles = result.getLoadFileResults();
     BulkLoadFileResultModel file1 = loadedFiles.get(0);
-    FileModel file1Model = dataRepoFixtures.getFileById(steward(), datasetId, file1.getFileId());
+    FileModel file1Model = dataRepoFixtures.getFileById(steward, datasetId, file1.getFileId());
     assertThat("Test retrieve file by ID", file1Model.getFileId(), equalTo(file1.getFileId()));
 
     FileModel file2Model =
-        dataRepoFixtures.getFileById(steward(), datasetId, loadedFiles.get(1).getFileId());
+        dataRepoFixtures.getFileById(steward, datasetId, loadedFiles.get(1).getFileId());
 
     BulkLoadFileResultModel file3 = loadedFiles.get(2);
     FileModel file3Model =
-        dataRepoFixtures.getFileByName(steward(), datasetId, file3.getTargetPath());
+        dataRepoFixtures.getFileByName(steward, datasetId, file3.getTargetPath());
     assertThat("Test retrieve file by path", file3Model.getFileId(), equalTo(file3.getFileId()));
 
     FileModel file4Model =
-        dataRepoFixtures.getFileById(steward(), datasetId, loadedFiles.get(3).getFileId());
+        dataRepoFixtures.getFileById(steward, datasetId, loadedFiles.get(3).getFileId());
 
     // ingest via control file
     String flightId = UUID.randomUUID().toString();
@@ -570,6 +575,21 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             steward(), summaryModel.getName(), profileId, requestModelAll);
     snapshotId = snapshotSummaryAll.getId();
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
+
+    // Ensure that export works
+    DataRepoResponse<SnapshotExportResponseModel> snapshotExport =
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false);
+
+    assertThat(
+        "snapshotExport is present", snapshotExport.getResponseObject().isPresent(), is(true));
+    // Verify that the manifest is accessible
+    SnapshotExportResponseModelFormatParquet manifest =
+        snapshotExport.getResponseObject().get().getFormat().getParquet();
+    verifyUrlIsAccessible(manifest.getManifest());
+    // Verify that all files referenced in manifest are accessible
+    manifest.getLocation().getTables().stream()
+        .flatMap(t -> t.getPaths().stream())
+        .forEach(this::verifyUrlIsAccessible);
 
     // Read the ingested metadata
     AccessInfoParquetModel snapshotParquetAccessInfo =
@@ -1023,6 +1043,71 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   }
 
   @Test
+  public void testRequiredColumnsIngest() throws Exception {
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward,
+            profileId,
+            "dataset-ingest-combined-azure-required-columns.json",
+            CloudPlatform.AZURE);
+    datasetId = summaryModel.getId();
+
+    String controlFileContents;
+    try (var resourceStream =
+        this.getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
+      controlFileContents = new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    String controlFile =
+        blobIOTestUtility.uploadFileWithContents(
+            "dataset-files-ingest-combined.json", controlFileContents);
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .profileId(profileId)
+            .path(controlFile)
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .loadTag(Names.randomizeName("azureCombinedIngestTest"));
+
+    DataRepoResponse<IngestResponseModel> ingestResponseFail =
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, ingestRequest);
+
+    assertThat(
+        "ingesting null values into required columns results in failure",
+        ingestResponseFail.getErrorObject().isPresent());
+
+    ErrorModel errorResponse = ingestResponseFail.getErrorObject().orElseThrow();
+
+    assertThat(
+        "ingest failure due to missing required values has the correct message",
+        errorResponse.getMessage(),
+        equalTo(String.format("Failed to load data into dataset %s", datasetId)));
+
+    ingestRequest.maxBadRecords(1);
+
+    DataRepoResponse<IngestResponseModel> dataRepoResponseSuccess =
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, ingestRequest);
+
+    IngestResponseModel ingestResponseSuccess =
+        dataRepoResponseSuccess.getResponseObject().orElseThrow();
+
+    assertThat(
+        "allowing 1 bad record means 1 bad record is allowed",
+        ingestResponseSuccess.getBadRowCount(),
+        equalTo(1L));
+
+    assertThat(
+        "allowing a bad row means 2 rows still succeeded",
+        ingestResponseSuccess.getRowCount(),
+        equalTo(2L));
+
+    clearEnvironment();
+  }
+
+  @Test
   public void testDatasetCombinedIngest() throws Exception {
     testDatasetCombinedIngest(true);
   }
@@ -1117,5 +1202,21 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         "Signed url only contains expected permissions",
         blobUrlParts.getCommonSasQueryParameters().getPermissions(),
         equalTo(expectedPermissions));
+    verifyUrlIsAccessible(signedUrl);
+  }
+
+  private void verifyUrlIsAccessible(String signedUrl) {
+    logger.info("Verifying url %s".formatted(signedUrl));
+    try (CloseableHttpClient client = HttpClients.createDefault()) {
+      HttpUriRequest request = new HttpHead(signedUrl);
+      try (CloseableHttpResponse response = client.execute(request); ) {
+        assertThat(
+            "URL can be accessed",
+            response.getStatusLine().getStatusCode(),
+            equalTo(HttpStatus.OK.value()));
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

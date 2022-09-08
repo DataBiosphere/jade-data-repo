@@ -82,7 +82,7 @@ public class FileIngestWorkerFlight extends Flight {
     if (platform.isGcp()) {
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
       addStep(new IngestFileDirectoryStep(fileDao, dataset), fileSystemRetry);
-      addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
+      addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), fileSystemRetry);
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);

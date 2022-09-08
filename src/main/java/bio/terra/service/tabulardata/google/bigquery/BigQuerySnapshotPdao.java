@@ -13,10 +13,12 @@ import bio.terra.common.DateTimeUtils;
 import bio.terra.common.Table;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.grammar.Query;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
@@ -814,27 +816,56 @@ public class BigQuerySnapshotPdao {
   }
 
   private static final String SNAPSHOT_DATA_TEMPLATE =
-      "SELECT * FROM `<project>.<snapshot>.<table>` ORDER BY datarepo_row_id"
-          + " LIMIT <limit> OFFSET <offset>";
+      "SELECT <columns> FROM <table> <filterParams>";
+
+  private static final String SNAPSHOT_DATA_FILTER_TEMPLATE =
+      "<whereClause> ORDER BY <sort> <direction> LIMIT <limit> OFFSET <offset>";
 
   /*
    * WARNING: Ensure input parameters are validated before executing this method!
    */
   public List<Map<String, Object>> getSnapshotTable(
-      Snapshot snapshot, String tableName, int limit, int offset) throws InterruptedException {
+      Snapshot snapshot,
+      String tableName,
+      List<String> columnNames,
+      int limit,
+      int offset,
+      String sort,
+      SqlSortDirection direction,
+      String filter)
+      throws InterruptedException {
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final String snapshotProjectId = bigQueryProject.getProjectId();
+    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
+
+    String table = snapshot.getName() + "." + tableName;
+    String columns = String.join(",", columnNames);
+    // Parse before querying because the where clause is user-provided
     final String sql =
         new ST(SNAPSHOT_DATA_TEMPLATE)
-            .add("project", snapshotProjectId)
-            .add("snapshot", snapshot.getName())
-            .add("table", tableName)
+            .add("columns", columns)
+            .add("table", table)
+            .add("filterParams", whereClause)
+            .render();
+    Query.parse(sql);
+
+    // The bigquery sql table name must be enclosed in backticks
+    String bigQueryTable = "`" + snapshotProjectId + "." + table + "`";
+    final String filterParams =
+        new ST(SNAPSHOT_DATA_FILTER_TEMPLATE)
+            .add("whereClause", whereClause)
+            .add("sort", sort)
+            .add("direction", direction)
             .add("limit", limit)
             .add("offset", offset)
             .render();
-
-    final TableResult result = bigQueryProject.query(sql);
-
+    final String bigQuerySQL =
+        new ST(SNAPSHOT_DATA_TEMPLATE)
+            .add("columns", columns)
+            .add("table", bigQueryTable)
+            .add("filterParams", filterParams)
+            .render();
+    final TableResult result = bigQueryProject.query(bigQuerySQL);
     return aggregateSnapshotTable(result);
   }
 
@@ -955,8 +986,8 @@ public class BigQuerySnapshotPdao {
           + ", "
           + "T."
           + PDAO_ROW_ID_COLUMN
-          + " FROM (<liveViewSqlTo>) T, "
-          + "(<liveViewSqlFrom>) F, `<snapshotProject>.<snapshot>."
+          + " FROM (<toTableTableSelect>) T, "
+          + "(<fromTableTableSelect>) F, `<snapshotProject>.<snapshot>."
           + PDAO_ROW_ID_TABLE
           + "` R "
           + "WHERE R."
@@ -966,7 +997,7 @@ public class BigQuerySnapshotPdao {
           + PDAO_ROW_ID_COLUMN
           + " = F."
           + PDAO_ROW_ID_COLUMN
-          + " AND <joinClause>) "
+          + " AND F.<fromCol> = T.<toCol>) "
           + "SELECT "
           + PDAO_TABLE_ID_COLUMN
           + ","
@@ -980,18 +1011,11 @@ public class BigQuerySnapshotPdao {
           + PDAO_ROW_ID_TABLE
           + "`)";
 
-  private static final String matchNonArrayTemplate = "T.<toColumn> = F.<fromColumn>";
-
-  private static final String matchFromArrayTemplate =
-      "EXISTS (SELECT 1 FROM UNNEST(F.<fromColumn>) AS flat_from "
-          + "WHERE flat_from = T.<toColumn>)";
-
-  private static final String matchToArrayTemplate =
-      "EXISTS (SELECT 1 FROM UNNEST(T.<toColumn>) AS flat_to " + "WHERE flat_to = F.<fromColumn>)";
-
-  private static final String matchCrossArraysTemplate =
-      "EXISTS (SELECT 1 FROM UNNEST(F.<fromColumn>) AS flat_from "
-          + "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
+  private static final String tableSelectNonArray = "(<tableSelect>)";
+  private static final String tableSelectArray =
+      "(SELECT <toOrFrom>0.*, FLAT_<toOrFrom> "
+          + "FROM (<tableSelect>) <toOrFrom>0, "
+          + "     UNNEST(<toOrFrom>0.<field>) AS FLAT_<toOrFrom>)";
 
   private static final String joinTablesToTestForMissingRowIds =
       "SELECT COUNT(*) FROM `<snapshotProject>.<snapshotDatasetName>.<tempTable>` AS T "
@@ -1038,19 +1062,6 @@ public class BigQuerySnapshotPdao {
       Instant filterBefore)
       throws InterruptedException {
 
-    ST joinClauseTemplate;
-    if (relationship.getFromColumnIsArray() && relationship.getToColumnIsArray()) {
-      joinClauseTemplate = new ST(matchCrossArraysTemplate);
-    } else if (relationship.getFromColumnIsArray()) {
-      joinClauseTemplate = new ST(matchFromArrayTemplate);
-    } else if (relationship.getToColumnIsArray()) {
-      joinClauseTemplate = new ST(matchToArrayTemplate);
-    } else {
-      joinClauseTemplate = new ST(matchNonArrayTemplate);
-    }
-    joinClauseTemplate.add("fromColumn", relationship.getFromColumnName());
-    joinClauseTemplate.add("toColumn", relationship.getToColumnName());
-
     DatasetTable fromTable =
         getTable(snapshot.getFirstSnapshotSource(), relationship.getFromTableName());
     DatasetTable toTable =
@@ -1061,16 +1072,47 @@ public class BigQuerySnapshotPdao {
     String liveViewSqlTo =
         BigQueryDatasetPdao.renderDatasetLiveViewSql(
             datasetProjectId, datasetBqDatasetName, toTable, null, filterBefore);
+
+    ST fromTableTableSelect;
+    ST toTableTableSelect;
+    String fromCol;
+    String toCol;
+    if (relationship.getFromColumnIsArray()) {
+      fromTableTableSelect =
+          new ST(tableSelectArray)
+              .add("toOrFrom", "FROM")
+              .add("field", relationship.getFromColumnName());
+      fromCol = "FLAT_FROM";
+    } else {
+      fromTableTableSelect = new ST(tableSelectNonArray);
+      fromCol = relationship.getFromColumnName();
+    }
+
+    if (relationship.getToColumnIsArray()) {
+      toTableTableSelect =
+          new ST(tableSelectArray)
+              .add("toOrFrom", "TO")
+              .add("field", relationship.getToColumnName());
+      toCol = "FLAT_TO";
+    } else {
+      toTableTableSelect = new ST(tableSelectNonArray);
+      toCol = relationship.getToColumnName();
+    }
+
+    fromTableTableSelect.add("tableSelect", liveViewSqlFrom);
+    toTableTableSelect.add("tableSelect", liveViewSqlTo);
+
     ST sqlTemplate = new ST(storeRowIdsForRelatedTableTemplate);
     sqlTemplate.add("snapshotProject", snapshotProjectId);
     sqlTemplate.add("datasetProject", datasetProjectId);
     sqlTemplate.add("dataset", datasetBqDatasetName);
     sqlTemplate.add("snapshot", snapshot.getName());
     sqlTemplate.add("fromTableId", relationship.getFromTableId());
-    sqlTemplate.add("liveViewSqlFrom", liveViewSqlFrom);
     sqlTemplate.add("toTableId", relationship.getToTableId());
-    sqlTemplate.add("liveViewSqlTo", liveViewSqlTo);
-    sqlTemplate.add("joinClause", joinClauseTemplate.render());
+    sqlTemplate.add("fromTableTableSelect", fromTableTableSelect.render());
+    sqlTemplate.add("toTableTableSelect", toTableTableSelect.render());
+    sqlTemplate.add("fromCol", fromCol);
+    sqlTemplate.add("toCol", toCol);
 
     QueryJobConfiguration queryConfig =
         QueryJobConfiguration.newBuilder(sqlTemplate.render())
@@ -1413,6 +1455,7 @@ public class BigQuerySnapshotPdao {
       logger.info("Retry number {} of a maximum {}", retryNum, maxRetries);
     }
     try {
+      logQuery(queryConfig);
       return bigQuery.query(queryConfig);
     } catch (final BigQueryException qe) {
       if (qe.getError() != null
@@ -1439,5 +1482,12 @@ public class BigQuerySnapshotPdao {
     fieldList.add(Field.of(PDAO_TABLE_ID_COLUMN, LegacySQLTypeName.STRING));
     fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
     return Schema.of(fieldList);
+  }
+
+  public static void logQuery(QueryJobConfiguration queryConfig) {
+    logger.info(
+        "Running query:\n#########\n{}\n#########\nwith parameters {}",
+        queryConfig.getQuery(),
+        queryConfig.getNamedParameters());
   }
 }

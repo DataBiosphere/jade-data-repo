@@ -1,5 +1,6 @@
 package bio.terra.service.tabulardata.google.bigquery;
 
+import static bio.terra.common.PdaoConstant.PDAO_COUNT_ALIAS;
 import static bio.terra.common.PdaoConstant.PDAO_DELETED_AT_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_DELETED_BY_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_FLIGHT_ID_COLUMN;
@@ -14,6 +15,7 @@ import static bio.terra.common.PdaoConstant.PDAO_TRANSACTIONS_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_STATUS_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_TERMINATED_AT_COLUMN;
+import static bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao.logQuery;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -32,6 +34,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.ControlFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.tabulardata.LoadHistoryUtil;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
@@ -43,6 +46,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
@@ -53,6 +57,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
@@ -104,22 +109,85 @@ public class BigQueryDatasetPdao {
           datasetName,
           PDAO_TRANSACTIONS_TABLE,
           BigQueryTransactionPdao.buildTransactionsTableSchema());
+
       for (DatasetTable table : dataset.getTables()) {
-        bigQueryProject.createTable(
-            datasetName,
-            table.getRawTableName(),
-            buildSchema(table, true, true),
-            table.getBigQueryPartitionConfig());
-        bigQueryProject.createTable(
-            datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
-        bigQueryProject.createTable(
-            datasetName, table.getRowMetadataTableName(), buildRowMetadataSchema());
-        bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
+        createTable(bigQueryProject, bigQuery, datasetName, table);
       }
+
       // TODO: don't catch generic exceptions
     } catch (Exception ex) {
       throw new PdaoException("create dataset failed for " + datasetName, ex);
     }
+  }
+
+  public void createTable(
+      BigQueryProject bigQueryProject, BigQuery bigQuery, String datasetName, DatasetTable table) {
+    bigQueryProject.createTable(
+        datasetName,
+        table.getRawTableName(),
+        buildSchema(table, true, true, true),
+        table.getBigQueryPartitionConfig());
+    bigQueryProject.createTable(
+        datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
+    bigQueryProject.createTable(
+        datasetName, table.getRowMetadataTableName(), buildRowMetadataSchema());
+    bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
+  }
+
+  public void createColumn(
+      String datasetName, BigQuery bigQuery, DatasetTable table, Column column) {
+    // Shamelessly pulled from the BigQuery documentation
+    Table bigQueryTable = bigQuery.getTable(TableId.of(datasetName, table.getRawTableName()));
+    Schema schema = bigQueryTable.getDefinition().getSchema();
+    FieldList fields = schema.getFields();
+    Optional<Field> existingField =
+        fields.stream()
+            .filter(field -> field.getName().equalsIgnoreCase(column.getName()))
+            .findFirst();
+
+    if (existingField.isEmpty()) {
+      // Create the new field/column
+      Field.Mode mode = column.isArrayOf() ? Field.Mode.REPEATED : Field.Mode.NULLABLE;
+      Field newField =
+          Field.newBuilder(column.getName(), translateType(column.getType())).setMode(mode).build();
+      // Create a new schema adding the current fields, plus the new one
+      List<Field> newFields = new ArrayList<>(fields);
+      newFields.add(newField);
+      Schema newSchema = Schema.of(newFields);
+
+      // Update the table with the new schema
+      Table updatedTable =
+          bigQueryTable.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
+      updatedTable.update();
+    } else {
+      String message =
+          String.format(
+              "Column %s with type %s already exists in table %s",
+              column.getName(), column.getType(), table.getRawTableName());
+      logger.warn("Skipping schema update: {}", message);
+
+      // Only fail if the existing column has a different type
+      if (!existingField.get().getType().equals(translateType(column.getType()))) {
+        throw new PdaoException(String.format("Schema update failed: %s", message));
+      }
+    }
+  }
+
+  public void deleteColumn(
+      String datasetName, BigQuery bigQuery, DatasetTable table, String columnName) {
+    Table bigQueryTable = bigQuery.getTable(TableId.of(datasetName, table.getRawTableName()));
+    Schema schema = bigQueryTable.getDefinition().getSchema();
+    FieldList fields = schema.getFields();
+
+    // Create a new schema adding the current fields, plus the new one
+    List<Field> updatedFields =
+        fields.stream().filter(f -> !f.getName().equals(columnName)).collect(Collectors.toList());
+    Schema newSchema = Schema.of(updatedFields);
+
+    // Update the table with the new schema
+    Table updatedTable =
+        bigQueryTable.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
+    updatedTable.update();
   }
 
   public boolean deleteDataset(Dataset dataset) throws InterruptedException {
@@ -165,11 +233,19 @@ public class BigQueryDatasetPdao {
     }
     Job loadJob;
 
-    Schema schemaWithRowId = buildSchema(targetTable, true, false); // Source does not have row_id
+    // When staging merge records, we will not enforce that required columns outside of the primary
+    // key be specified as they could be derived from an earlier full row ingest.
+    // Full row ingests enforce that required columns are set, and merge ingests cannot unset
+    // values.
+    boolean enforceRequiredCols =
+        (ingestRequest.getUpdateStrategy() != IngestRequestModel.UpdateStrategyEnum.MERGE);
+
+    Schema schemaWithRowId =
+        buildSchema(targetTable, true, false, enforceRequiredCols); // Source does not have row_id
     if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV
         && ingestRequest.isCsvGenerateRowIds()) {
       // Ingest without the datarepo_row_id column
-      Schema noRowId = buildSchema(targetTable, false, false);
+      Schema noRowId = buildSchema(targetTable, false, false, enforceRequiredCols);
       loadBuilder.setSchema(noRowId);
       loadJob = ingestData(bigQuery, path, loadBuilder.build());
       // Then add the datarepo_row_id column to the schema
@@ -197,20 +273,16 @@ public class BigQueryDatasetPdao {
         throw new PdaoException("Staging table load failed to complete within timeout - canceled");
       }
     }
-    loadJob = loadJob.reload();
-
-    BigQueryError loadJobError = loadJob.getStatus().getError();
-    if (loadJobError == null) {
-      logger.info("Staging table load job " + loadJob.getJobId().getJob() + " succeeded");
-    } else {
-      logger.info(
-          "Staging table load job " + loadJob.getJobId().getJob() + " failed: " + loadJobError);
-      if ("notFound".equals(loadJobError.getReason())) {
+    try {
+      loadJob = loadJob.reload();
+    } catch (BigQueryException ex) {
+      logger.info("Staging table load job " + loadJob.getJobId().getJob() + " failed: " + ex);
+      if ("notFound".equals(ex.getReason())) {
         throw new ControlFileNotFoundException("Ingest source file not found: " + path);
       }
 
       List<String> loadErrors = new ArrayList<>();
-      List<BigQueryError> bigQueryErrors = loadJob.getStatus().getExecutionErrors();
+      List<BigQueryError> bigQueryErrors = ex.getErrors();
       for (BigQueryError bigQueryError : bigQueryErrors) {
         loadErrors.add(
             "BigQueryError: reason="
@@ -221,6 +293,7 @@ public class BigQueryDatasetPdao {
       throw new IngestFailureException(
           "Ingest failed with " + loadErrors.size() + " errors - see error details", loadErrors);
     }
+    logger.info("Staging table load job " + loadJob.getJobId().getJob() + " succeeded");
     return loadJob;
   }
 
@@ -321,7 +394,7 @@ public class BigQueryDatasetPdao {
     bigQueryProject.query(sqlTemplate.render());
   }
 
-  private static final String mergeLoadHistoryStagingTableTemplate =
+  public static final String mergeLoadHistoryStagingTableTemplate =
       "MERGE `<project>.<dataset>.<loadTable>` L"
           + " USING `<project>.<dataset>.<stagingTable>` S"
           + " ON S.load_tag = L.load_tag AND S.load_time = L.load_time"
@@ -349,7 +422,14 @@ public class BigQueryDatasetPdao {
     sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
     sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
 
-    bigQueryProject.query(sqlTemplate.render());
+    try {
+      bigQueryProject.query(sqlTemplate.render());
+    } catch (PdaoException ex) {
+      if (BigQueryPdao.tooManyDmlStatementsOutstanding(ex)) {
+        throw new TooManyDmlStatementsOutstandingException(ex);
+      }
+      throw ex;
+    }
   }
 
   private static final String getLoadHistoryTemplate =
@@ -378,6 +458,7 @@ public class BigQueryDatasetPdao {
             .build();
 
     try {
+      logQuery(queryConfig);
       var results = bigQueryProject.getBigQuery().query(queryConfig);
       return StreamSupport.stream(results.iterateAll().spliterator(), true)
           .map(BigQueryDatasetPdao::bigQueryResultToBulkLoadHistoryModel)
@@ -738,6 +819,122 @@ public class BigQueryDatasetPdao {
         BigQueryProject.from(dataset), BigQueryPdao.prefixName(dataset.getName()), policies);
   }
 
+  // MERGE INGEST
+
+  /**
+   * This join counts the number of occurrences of each staging primary key within the target
+   * table's active records. Only primary keys which do not resolve to a single target record will
+   * be returned.
+   *
+   * @param datasetLiveViewSql SQL representing the target table's active records
+   * @return The SQL for obtaining irresolvable merge records
+   */
+  private static final String stagingRowsWithoutSingleTargetRowMatchTemplate(
+      String datasetLiveViewSql) {
+    return "SELECT COUNT(T.<rowIdColumn>) AS <count>, "
+        + "<pkColumns:{c|S.<c.name>}; separator=\",\"> "
+        + "FROM ("
+        + datasetLiveViewSql
+        + ") T "
+        + "RIGHT JOIN `<project>.<dataset>.<stagingTable>` S "
+        + "ON <pkColumns:{c|T.<c.name> = S.<c.name>}; separator=\" AND \"> "
+        + "GROUP BY <pkColumns:{c|S.<c.name>}; separator=\",\"> "
+        + "HAVING COUNT(T.<rowIdColumn>) != 1";
+  }
+
+  /**
+   * @param dataset repo dataset
+   * @param targetTable eventual destination for ingest in progress
+   * @param stagingTableName name of the temporary table containing partial merge records
+   * @param transactionId the transaction associated with the ingest
+   * @return a `TableResult` with `stagingTableName` primary keys and the number of matching
+   *     occurrences in `targetTable` when a single match cannot be found.
+   * @throws InterruptedException
+   */
+  public TableResult stagingRowsWithoutSingleTargetRowMatch(
+      Dataset dataset, DatasetTable targetTable, String stagingTableName, UUID transactionId)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    String projectId = bigQueryProject.getProjectId();
+    String datasetName = BigQueryPdao.prefixName(dataset.getName());
+
+    String datasetLiveViewSql =
+        renderDatasetLiveViewSql(projectId, datasetName, targetTable, transactionId, null);
+
+    ST sqlTemplate = new ST(stagingRowsWithoutSingleTargetRowMatchTemplate(datasetLiveViewSql));
+    sqlTemplate.add("count", PDAO_COUNT_ALIAS);
+    sqlTemplate.add("project", projectId);
+    sqlTemplate.add("dataset", datasetName);
+    sqlTemplate.add("targetTable", targetTable.getRawTableName());
+    sqlTemplate.add("stagingTable", stagingTableName);
+    sqlTemplate.add("pkColumns", targetTable.getPrimaryKey());
+    sqlTemplate.add("rowIdColumn", PDAO_ROW_ID_COLUMN);
+
+    return bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of(
+            "transactId",
+            QueryParameterValue.string(
+                Optional.ofNullable(transactionId).map(UUID::toString).orElse(null))));
+  }
+
+  /**
+   * When applying a merge ingest, we take any values defined by the merge record and fall back to
+   * the target table's values otherwise.
+   *
+   * <p>Array-type fields require special handling: BigQuery does not allow a field to be both
+   * NULLABLE and REPEATED. Unspecified arrays default to [] and incorrectly override the target
+   * value if COALESCE-ing.
+   *
+   * @param datasetLiveViewSql SQL representing the target table's active records
+   * @return the SQL for applying a merge ingest
+   */
+  private static String mergeIngestTemplate(String datasetLiveViewSql) {
+    return "UPDATE `<project>.<dataset>.<stagingTable>` S "
+        + "SET <columns:{c|S.<c.name> = "
+        + "<if(c.arrayOf)>IF(ARRAY_LENGTH(S.<c.name>) > 0, S.<c.name>, T.<c.name>)"
+        + "<else>COALESCE(S.<c.name>, T.<c.name>)<endif>}; separator=\",\"> "
+        + "FROM ("
+        + datasetLiveViewSql
+        + ") T "
+        + "WHERE <pkColumns:{c|T.<c.name> = S.<c.name>}; separator=\" AND \">";
+  }
+
+  /**
+   * Apply a merge ingest in `stagingTableName`.
+   *
+   * @param dataset repo dataset
+   * @param targetTable eventual destination for ingest in progress
+   * @param stagingTableName name of the temporary table containing partial merge records
+   * @param transactionId the transaction associated with the ingest
+   * @throws InterruptedException
+   */
+  public void mergeIngest(
+      Dataset dataset, DatasetTable targetTable, String stagingTableName, UUID transactionId)
+      throws InterruptedException {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    String projectId = bigQueryProject.getProjectId();
+    String datasetName = BigQueryPdao.prefixName(dataset.getName());
+
+    String datasetLiveViewSql =
+        renderDatasetLiveViewSql(projectId, datasetName, targetTable, transactionId, null);
+
+    ST sqlTemplate = new ST(mergeIngestTemplate(datasetLiveViewSql));
+    sqlTemplate.add("project", projectId);
+    sqlTemplate.add("dataset", datasetName);
+    sqlTemplate.add("targetTable", targetTable.getRawTableName());
+    sqlTemplate.add("stagingTable", stagingTableName);
+    sqlTemplate.add("columns", targetTable.getColumns());
+    sqlTemplate.add("pkColumns", targetTable.getPrimaryKey());
+
+    bigQueryProject.query(
+        sqlTemplate.render(),
+        Map.of(
+            "transactId",
+            QueryParameterValue.string(
+                Optional.ofNullable(transactionId).map(UUID::toString).orElse(null))));
+  }
+
   // UTILITY METHODS
 
   public boolean datasetExists(Dataset dataset) throws InterruptedException {
@@ -756,6 +953,20 @@ public class BigQueryDatasetPdao {
   public boolean deleteDatasetTable(Dataset dataset, String tableName) throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
     return bigQueryProject.deleteTable(BigQueryPdao.prefixName(dataset.getName()), tableName);
+  }
+
+  public void undoDatasetTableCreate(Dataset dataset, DatasetTable table)
+      throws InterruptedException {
+    List<String> tableNames = table.getBigQueryTableNames();
+    for (String tableName : tableNames) {
+      boolean success = deleteDatasetTable(dataset, tableName);
+      if (!success) {
+        logger.warn(
+            "Could not delete table '{}' from dataset '{}' in BigQuery",
+            tableName,
+            dataset.getName());
+      }
+    }
   }
 
   @VisibleForTesting
@@ -879,7 +1090,10 @@ public class BigQueryDatasetPdao {
   }
 
   private Schema buildSchema(
-      DatasetTable table, boolean addRowIdColumn, boolean addTransactionIdColumn) {
+      DatasetTable table,
+      boolean addRowIdColumn,
+      boolean addTransactionIdColumn,
+      boolean enforceRequiredCols) {
     List<Field> fieldList = new ArrayList<>();
     List<String> primaryKeys =
         table.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList());
@@ -894,7 +1108,7 @@ public class BigQueryDatasetPdao {
 
     for (Column column : table.getColumns()) {
       Field.Mode mode;
-      if (primaryKeys.contains(column.getName()) || column.isRequired()) {
+      if (primaryKeys.contains(column.getName()) || (enforceRequiredCols && column.isRequired())) {
         mode = Field.Mode.REQUIRED;
       } else if (column.isArrayOf()) {
         mode = Field.Mode.REPEATED;
@@ -939,7 +1153,8 @@ public class BigQueryDatasetPdao {
             Field.of(PDAO_DELETED_BY_COLUMN, LegacySQLTypeName.STRING)));
   }
 
-  private TableInfo buildLiveView(String bigQueryProject, String datasetName, DatasetTable table) {
+  public static TableInfo buildLiveView(
+      String bigQueryProject, String datasetName, DatasetTable table) {
     TableId liveViewId = TableId.of(datasetName, table.getName());
     return TableInfo.of(
         liveViewId,
@@ -1000,7 +1215,7 @@ public class BigQueryDatasetPdao {
             bigQuery,
             bqDatasetId,
             datasetTable.getRawTableName(),
-            buildSchema(datasetTable, true, true),
+            buildSchema(datasetTable, true, true, true),
             false);
         logger.info("......Soft delete table");
         updateSchema(

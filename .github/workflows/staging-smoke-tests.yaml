@@ -16,6 +16,12 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      - name: "Setup Java 17"
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
       - name: "Fetch current staging version from /configuration endpoint"
         id: configuration
         run: |
@@ -28,7 +34,7 @@ jobs:
           git checkout ${{ steps.configuration.outputs.staging_version }}
           echo "Current branch is ${{ github.ref }}"
       - name: "Import Vault staging secrets"
-        uses: hashicorp/vault-action@v2.1.0
+        uses: hashicorp/vault-action@v2.2.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -45,7 +51,7 @@ jobs:
 
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.1.0
+        uses: hashicorp/vault-action@v2.2.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle

@@ -3,11 +3,14 @@ package bio.terra.service.snapshot;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.common.DaoUtils.UuidMapper;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
@@ -168,8 +171,8 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb) ";
+        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties) "
+            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb) ";
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
@@ -186,7 +189,9 @@ public class SnapshotDao {
             .addValue("id", snapshot.getId())
             .addValue("consent_code", snapshot.getConsentCode())
             .addValue("flightid", flightId)
-            .addValue("creation_information", creationInfo);
+            .addValue("creation_information", creationInfo)
+            .addValue(
+                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()));
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {
@@ -398,7 +403,9 @@ public class SnapshotDao {
                       .creationInformation(
                           stringToSnapshotRequestContentsModel(
                               rs.getString("creation_information")))
-                      .consentCode(rs.getString("consent_code")));
+                      .consentCode(rs.getString("consent_code"))
+                      .properties(
+                          DaoUtils.stringToProperties(objectMapper, rs.getString("properties"))));
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
         // retrieve the snapshot tables and relationships
@@ -506,6 +513,38 @@ public class SnapshotDao {
     }
 
     return snapshotSources;
+  }
+
+  /**
+   * @param permissions RAS dbGaP permissions held by the caller (derived from the caller's linked
+   *     RAS passports)
+   * @return snapshot UUIDs accessible under the permissions
+   */
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public List<UUID> getAccessibleSnapshots(List<RasDbgapPermissions> permissions) {
+    List<UUID> accessibleSnapshots = List.of();
+    if (!permissions.isEmpty()) {
+      String sql =
+          """
+          SELECT snapshot.id FROM snapshot
+          JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id
+          JOIN dataset ON dataset.id = snapshot_source.dataset_id
+          WHERE snapshot.consent_code IS NOT NULL AND dataset.phs_id IS NOT NULL
+          AND (snapshot.consent_code, dataset.phs_id) IN (:permissions)
+          """;
+      MapSqlParameterSource params =
+          new MapSqlParameterSource()
+              .addValue(
+                  "permissions",
+                  permissions.stream()
+                      .map(c -> new String[] {c.consent_group(), c.phs_id()})
+                      .toList());
+      accessibleSnapshots = jdbcTemplate.query(sql, params, new UuidMapper("id"));
+    }
+    return accessibleSnapshots;
   }
 
   /**
@@ -673,6 +712,39 @@ public class SnapshotDao {
               .addValue("tableName", tableName);
       jdbcTemplate.update(sql, params);
     }
+  }
+
+  /**
+   * Update a snapshot according to specified fields in the patch request. Any fields unspecified in
+   * the request will remain unaltered.
+   *
+   * @param id snapshot UUID
+   * @param patchRequest updates to merge with existing snapshot
+   * @return whether the snapshot record was updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean patch(UUID id, SnapshotPatchRequestModel patchRequest) {
+    String sql =
+        "UPDATE snapshot SET consent_code = COALESCE(:consent_code, consent_code), "
+            + "description = COALESCE(:description, description), "
+            + "properties = COALESCE(:properties::jsonb, properties) WHERE id = :id";
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("consent_code", patchRequest.getConsentCode())
+            .addValue("description", patchRequest.getDescription())
+            .addValue("id", id)
+            .addValue(
+                "properties",
+                DaoUtils.propertiesToString(objectMapper, patchRequest.getProperties()));
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    boolean patchSucceeded = (rowsAffected == 1);
+
+    if (patchSucceeded) {
+      logger.info("Snapshot {} patched with {}", id, patchRequest.toString());
+    }
+    return patchSucceeded;
   }
 
   private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {

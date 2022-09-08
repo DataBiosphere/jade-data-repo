@@ -6,10 +6,10 @@ import static bio.terra.common.fixtures.DatasetFixtures.buildAssetSampleTable;
 import static bio.terra.common.fixtures.DatasetFixtures.buildDatasetRequest;
 import static bio.terra.common.fixtures.DatasetFixtures.buildParticipantSampleRelationship;
 import static bio.terra.common.fixtures.DatasetFixtures.buildSampleTerm;
+import static bio.terra.service.dataset.ValidatorTestUtils.checkValidationErrorModel;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.CloudPlatform;
@@ -42,9 +43,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -71,6 +70,8 @@ public class DatasetRequestValidatorTest {
   @Autowired private ObjectMapper objectMapper;
 
   @MockBean private DatasetService datasetService;
+
+  @Autowired private JsonLoader jsonLoader;
 
   private ErrorModel expectBadDatasetCreateRequest(DatasetRequestModel datasetRequest)
       throws Exception {
@@ -174,8 +175,8 @@ public class DatasetRequestValidatorTest {
         errorModel,
         new String[] {
           "DuplicateTableNames",
-          "InvalidRelationshipTermTableColumn",
-          "InvalidRelationshipTermTableColumn",
+          "InvalidRelationshipTermTable",
+          "InvalidRelationshipTermTable",
           "InvalidAssetTable",
           "InvalidAssetTableColumn",
           "InvalidAssetTableColumn",
@@ -195,8 +196,8 @@ public class DatasetRequestValidatorTest {
         errorModel,
         new String[] {
           "DuplicateColumnNames",
-          "InvalidRelationshipTermTableColumn",
-          "InvalidRelationshipTermTableColumn",
+          "InvalidRelationshipTermTable",
+          "InvalidRelationshipTermTable",
           "InvalidAssetTable",
           "InvalidAssetTableColumn",
           "InvalidAssetTableColumn",
@@ -221,8 +222,31 @@ public class DatasetRequestValidatorTest {
     checkValidationErrorModel(
         errorModel,
         new String[] {
-          "InvalidPrimaryKey", "InvalidPrimaryKey", "InvalidPrimaryKey", "InvalidForeignKey"
+          "InvalidPrimaryKey",
+          "InvalidPrimaryKey",
+          "InvalidPrimaryKey",
+          "InvalidRelationshipColumnType"
         });
+  }
+
+  @Test
+  public void testInvalidColumnMode() throws Exception {
+    DatasetRequestModel req = buildDatasetRequest();
+    TableModel testTable = req.getSchema().getTables().get(0);
+    // Test that a required, array_of column causes a validation error
+    // whether it is also a primary key
+    ColumnModel badPrimaryKey = testTable.getColumns().get(0);
+    testTable.setPrimaryKey(List.of(badPrimaryKey.getName()));
+    badPrimaryKey.setArrayOf(true);
+    badPrimaryKey.setRequired(true);
+
+    ColumnModel badRequiredKey = testTable.getColumns().get(1);
+    badRequiredKey.setArrayOf(true);
+    badRequiredKey.setRequired(true);
+
+    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+    checkValidationErrorModel(
+        errorModel, new String[] {"InvalidPrimaryKey", "InvalidColumnMode", "InvalidColumnMode"});
   }
 
   @Test
@@ -366,13 +390,7 @@ public class DatasetRequestValidatorTest {
 
   @Test
   public void testTableSchemaInvalidDataType() throws Exception {
-    String invalidSchema =
-        "{\"name\":\"no_response\","
-            + "\"description\":\"Invalid datatype in dataset schema leads to no response body\","
-            + "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\","
-            + "\"schema\":{\"tables\":[{\"name\":\"table\",\"columns\":"
-            + "[{\"name\":\"bad_column1\",\"datatype\":\"bad_datatype\"}, "
-            + "{\"name\":\"bad_column2\",\"datatype\":\"FILEREF\"}]}]}}";
+    String invalidSchema = jsonLoader.loadJson("./dataset/create/invalid-schema.json");
     MvcResult result =
         mvc.perform(
                 post("/api/repository/v1/datasets")
@@ -386,7 +404,7 @@ public class DatasetRequestValidatorTest {
     assertTrue(
         "Invalid DataTypes are logged and returned",
         responseBody.contains(
-            "invalid datatype in table column(s): bad_column1, bad_column2, "
+            "invalid datatype in table column(s): bad_column, "
                 + "DataTypes must be lowercase, valid DataTypes are [string, boolean, bytes, date, datetime, dirref, fileref, "
                 + "float, float64, integer, int64, numeric, record, text, time, timestamp]"));
   }
@@ -843,26 +861,6 @@ public class DatasetRequestValidatorTest {
         "Validator catches invalid 'records' and 'format' combo",
         payloadIsPresentError,
         containsString("Records should not be specified when ingesting from a path"));
-  }
-
-  private void checkValidationErrorModel(ErrorModel errorModel, String[] messageCodes) {
-    List<String> details = errorModel.getErrorDetail();
-    assertThat(
-        "Main message is right",
-        errorModel.getMessage(),
-        containsString("Validation errors - see error details"));
-    /*
-     * The global exception handler logs in this format:
-     *
-     * <fieldName>: '<messageCode>' (<defaultMessage>)
-     *
-     * We check to see if the code is wrapped in quotes to prevent matching on substrings.
-     */
-    List<Matcher<? super String>> expectedMatches =
-        Arrays.stream(messageCodes)
-            .map(code -> containsString("'" + code + "'"))
-            .collect(Collectors.toList());
-    assertThat("Detail codes are right", details, containsInAnyOrder(expectedMatches));
   }
 
   @Test

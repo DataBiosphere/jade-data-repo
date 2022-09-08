@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -174,7 +175,10 @@ public class FileIngestBulkFlight extends Flight {
       addStep(new IngestPopulateFileStateFromArrayStep(loadService));
     } else {
       if (platform.isGcp()) {
-        addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
+        addStep(
+            new ValidateBucketAccessStep(
+                gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq),
+            getDefaultExponentialBackoffRetryRule());
         addStep(
             new IngestPopulateFileStateFromFileGcpStep(
                 loadService,
@@ -225,7 +229,8 @@ public class FileIngestBulkFlight extends Flight {
               datasetUuid,
               loadTag,
               loadHistoryWaitSeconds,
-              loadHistoryChunkSize));
+              loadHistoryChunkSize),
+          randomBackoffRetry);
     } else if (platform.isAzure()) {
       addStep(
           new IngestCopyLoadHistoryToStorageTableStep(

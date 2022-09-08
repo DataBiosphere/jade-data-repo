@@ -253,6 +253,8 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
         "We should be back to the same number of Acls on the dataset after snapshot delete",
         datasetAclCount,
         datasetMinusSnapshotAclCount);
+    // Don't need to tear down snashot
+    createdSnapshotIds.remove(snapshotSummary.getId());
   }
 
   private List<Acl> fetchSourceDatasetAcls(String datasetName) throws Exception {

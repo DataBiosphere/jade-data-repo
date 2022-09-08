@@ -91,6 +91,15 @@ public class ProfileServiceUnitTest {
     billingProfileUpdateModel.setId(updateId);
 
     var jobBuilder = mock(JobBuilder.class);
+    when(jobBuilder.addParameter(
+            eq(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName()), eq(IamResourceType.SPEND_PROFILE)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(
+            eq(JobMapKeys.IAM_RESOURCE_ID.getKeyName()), eq(updateId.toString())))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(
+            eq(JobMapKeys.IAM_ACTION.getKeyName()), eq(IamAction.UPDATE_BILLING_ACCOUNT)))
+        .thenReturn(jobBuilder);
 
     String jobId = "jobId";
     when(jobBuilder.submit()).thenReturn(jobId);
@@ -135,6 +144,13 @@ public class ProfileServiceUnitTest {
         .thenReturn(jobBuilder);
     when(jobBuilder.addParameter(
             eq(JobMapKeys.CLOUD_PLATFORM.getKeyName()), eq(CloudPlatform.GCP.name())))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(
+            eq(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName()), eq(IamResourceType.SPEND_PROFILE)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(eq(JobMapKeys.IAM_RESOURCE_ID.getKeyName()), eq(deleteId)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(eq(JobMapKeys.IAM_ACTION.getKeyName()), eq(IamAction.DELETE)))
         .thenReturn(jobBuilder);
 
     var billingProfileModel = new BillingProfileModel();

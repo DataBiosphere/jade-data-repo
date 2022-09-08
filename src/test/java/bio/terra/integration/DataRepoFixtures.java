@@ -34,6 +34,8 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetRequestModelPolicies;
+import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
@@ -45,6 +47,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
+import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -166,13 +169,15 @@ public class DataRepoFixtures {
 
   // datasets
 
-  private DataRepoResponse<JobModel> createDatasetRaw(
+  public DataRepoResponse<JobModel> createDatasetRaw(
       TestConfiguration.User user,
       UUID profileId,
       String filename,
       CloudPlatform cloudPlatform,
       boolean usePetAccount,
-      boolean selfHosted)
+      boolean selfHosted,
+      boolean dedicatedServiceAccount,
+      DatasetRequestModelPolicies policies)
       throws Exception {
     DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
     requestModel.setDefaultProfileId(profileId);
@@ -181,6 +186,8 @@ public class DataRepoFixtures {
       requestModel.setCloudPlatform(cloudPlatform);
     }
     requestModel.experimentalSelfHosted(selfHosted);
+    requestModel.dedicatedIngestServiceAccount(dedicatedServiceAccount);
+    requestModel.policies(policies);
     String json = TestUtils.mapToJson(requestModel);
 
     return dataRepoClient.post(
@@ -209,9 +216,25 @@ public class DataRepoFixtures {
   }
 
   public DatasetSummaryModel createSelfHostedDataset(
+      TestConfiguration.User user, UUID profileId, String fileName, boolean dedicatedServiceAccount)
+      throws Exception {
+    DataRepoResponse<JobModel> jobResponse =
+        createDatasetRaw(
+            user,
+            profileId,
+            fileName,
+            CloudPlatform.GCP,
+            false,
+            true,
+            dedicatedServiceAccount,
+            null);
+    return waitForDatasetCreate(user, jobResponse);
+  }
+
+  public DatasetSummaryModel createDatasetWithOwnServiceAccount(
       TestConfiguration.User user, UUID profileId, String fileName) throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, fileName, CloudPlatform.GCP, false, true);
+        createDatasetRaw(user, profileId, fileName, CloudPlatform.GCP, false, false, true, null);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -223,11 +246,24 @@ public class DataRepoFixtures {
       boolean usePetAccount)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, filename, cloudPlatform, usePetAccount, false);
+        createDatasetRaw(
+            user, profileId, filename, cloudPlatform, usePetAccount, false, false, null);
     return waitForDatasetCreate(user, jobResponse);
   }
 
-  private DatasetSummaryModel waitForDatasetCreate(
+  public DatasetSummaryModel createDatasetWithPolicies(
+      TestConfiguration.User user,
+      UUID profileId,
+      String filename,
+      DatasetRequestModelPolicies policies)
+      throws Exception {
+    DataRepoResponse<JobModel> jobResponse =
+        createDatasetRaw(
+            user, profileId, filename, CloudPlatform.GCP, false, false, false, policies);
+    return waitForDatasetCreate(user, jobResponse);
+  }
+
+  public DatasetSummaryModel waitForDatasetCreate(
       TestConfiguration.User user, DataRepoResponse<JobModel> jobResponse) throws Exception {
     assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
@@ -252,7 +288,7 @@ public class DataRepoFixtures {
       CloudPlatform cloudPlatform)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, filename, cloudPlatform, false, false);
+        createDatasetRaw(user, profileId, filename, cloudPlatform, false, false, false, null);
     assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "dataset create launch response is present", jobResponse.getResponseObject().isPresent());
@@ -367,23 +403,15 @@ public class DataRepoFixtures {
       IamResourceType iamResourceType)
       throws Exception {
     PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-    String pathPrefix;
-    switch (iamResourceType) {
-      case DATASET:
-        pathPrefix = "/api/repository/v1/datasets/";
-        break;
-      case DATASNAPSHOT:
-        pathPrefix = "/api/repository/v1/snapshots/";
-        break;
-      case SPEND_PROFILE:
-        pathPrefix = "/api/resources/v1/profiles/";
-        break;
-      default:
-        throw new IllegalArgumentException(
-            "No path prefix defined for IamResourceType " + iamResourceType);
-    }
+    String pathPrefix =
+        switch (iamResourceType) {
+          case DATASET -> "/api/repository/v1/datasets/";
+          case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
+          case SPEND_PROFILE -> "/api/resources/v1/profiles/";
+          default -> throw new IllegalArgumentException(
+              "Policy member addition undefined for IamResourceType " + iamResourceType);
+        };
     String path = pathPrefix + resourceId + "/policies/" + role.toString() + "/members";
-
     return dataRepoClient.post(user, path, TestUtils.mapToJson(req), new TypeReference<>() {});
   }
 
@@ -409,23 +437,18 @@ public class DataRepoFixtures {
     addPolicyMember(user, datasetId, role, newMemberEmail, IamResourceType.DATASET);
   }
 
-  // getting a users roles on a resource
+  // getting a user's roles on a resource
   public DataRepoResponse<List<String>> retrieveUserRolesRaw(
       TestConfiguration.User user, UUID resourceId, IamResourceType iamResourceType)
       throws Exception {
-    String pathPrefix;
-    switch (iamResourceType) {
-      case DATASET:
-        pathPrefix = "/api/repository/v1/datasets/";
-        break;
-      case DATASNAPSHOT:
-        pathPrefix = "/api/repository/v1/snapshots/";
-        break;
-      default:
-        throw new IllegalArgumentException(
-            "No path prefix defined for IamResourceType " + iamResourceType);
-    }
-    String path = pathPrefix + resourceId + "/roles/";
+    String pathPrefix =
+        switch (iamResourceType) {
+          case DATASET -> "/api/repository/v1/datasets/";
+          case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
+          default -> throw new IllegalArgumentException(
+              "Role fetch undefined for IamResourceType " + iamResourceType);
+        };
+    String path = pathPrefix + resourceId + "/roles";
 
     return dataRepoClient.get(user, path, new TypeReference<>() {});
   }
@@ -435,6 +458,30 @@ public class DataRepoFixtures {
     DataRepoResponse<List<String>> response =
         retrieveUserRolesRaw(user, datasetId, IamResourceType.DATASET);
     return validateResponse(response, "retrieving dataset roles", HttpStatus.OK, null);
+  }
+
+  // getting a resource's policies
+  public DataRepoResponse<PolicyResponse> retrievePoliciesRaw(
+      TestConfiguration.User user, UUID resourceId, IamResourceType iamResourceType)
+      throws Exception {
+    String pathPrefix =
+        switch (iamResourceType) {
+          case DATASET -> "/api/repository/v1/datasets/";
+          case DATASNAPSHOT -> "/api/repository/v1/snapshots/";
+          case SPEND_PROFILE -> "/api/resources/v1/profiles/";
+          default -> throw new IllegalArgumentException(
+              "Policy fetch undefined for IamResourceType " + iamResourceType);
+        };
+    String path = pathPrefix + resourceId + "/policies";
+
+    return dataRepoClient.get(user, path, new TypeReference<>() {});
+  }
+
+  public PolicyResponse retrieveDatasetPolicies(TestConfiguration.User user, UUID datasetId)
+      throws Exception {
+    DataRepoResponse<PolicyResponse> response =
+        retrievePoliciesRaw(user, datasetId, IamResourceType.DATASET);
+    return validateResponse(response, "retrieving dataset policies", HttpStatus.OK, null);
   }
 
   // adding dataset asset
@@ -454,6 +501,45 @@ public class DataRepoFixtures {
     assertTrue(
         assetModel + " asset specification is successfully added",
         response.getStatusCode().is2xxSuccessful());
+  }
+
+  public ErrorModel addDatasetAssetExpectFailure(
+      TestConfiguration.User user, UUID datasetId, AssetModel assetModel) throws Exception {
+    DataRepoResponse<JobModel> response = addDatasetAssetRaw(user, datasetId, assetModel);
+    assertTrue(
+        assetModel + " job is successfully kicked off", response.getStatusCode().is2xxSuccessful());
+    DataRepoResponse<ErrorModel> errorModel =
+        dataRepoClient.waitForResponse(user, response, new TypeReference<>() {});
+    assertTrue("dataset asset error response is present", errorModel.getErrorObject().isPresent());
+    return errorModel.getErrorObject().get();
+  }
+
+  public DataRepoResponse<JobModel> deleteDatasetAssetRaw(
+      TestConfiguration.User user, UUID datasetId, String assetName) throws Exception {
+    return dataRepoClient.delete(
+        user,
+        "/api/repository/v1/datasets/" + datasetId + "/assets/" + assetName,
+        new TypeReference<>() {});
+  }
+
+  public void deleteDatasetAsset(TestConfiguration.User user, UUID datasetId, String assetName)
+      throws Exception {
+    DataRepoResponse<JobModel> response = deleteDatasetAssetRaw(user, datasetId, assetName);
+    assertTrue(
+        assetName + " asset specification is successfully deleted",
+        response.getStatusCode().is2xxSuccessful());
+  }
+
+  public ErrorModel deleteDatasetAssetExpectFailure(
+      TestConfiguration.User user, UUID datasetId, String assetName) throws Exception {
+    DataRepoResponse<JobModel> response = deleteDatasetAssetRaw(user, datasetId, assetName);
+    assertTrue(
+        assetName + " delete job is successfully kicked off",
+        response.getStatusCode().is2xxSuccessful());
+    DataRepoResponse<ErrorModel> errorModel =
+        dataRepoClient.waitForResponse(user, response, new TypeReference<>() {});
+    assertTrue("dataset asset error response is present", errorModel.getErrorObject().isPresent());
+    return errorModel.getErrorObject().get();
   }
 
   // snapshots
@@ -707,6 +793,28 @@ public class DataRepoFixtures {
         new TypeReference<>() {});
   }
 
+  public DatasetModel updateSchema(
+      TestConfiguration.User user, UUID datasetId, DatasetSchemaUpdateModel request)
+      throws Exception {
+    DataRepoResponse<JobModel> jobResponse = updateSchemaRaw(user, datasetId, request);
+    assertTrue("update schema succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+    assertTrue("update schema response is present", jobResponse.getResponseObject().isPresent());
+    DataRepoResponse<DatasetModel> updateResponse =
+        dataRepoClient.waitForResponse(user, jobResponse, new TypeReference<>() {});
+    return validateResponse(updateResponse, "update schema", HttpStatus.OK, jobResponse);
+  }
+
+  public DataRepoResponse<JobModel> updateSchemaRaw(
+      TestConfiguration.User user, UUID datasetId, DatasetSchemaUpdateModel request)
+      throws Exception {
+    String ingestBody = TestUtils.mapToJson(request);
+    return dataRepoClient.post(
+        user,
+        "/api/repository/v1/datasets/" + datasetId + "/updateSchema",
+        ingestBody,
+        new TypeReference<>() {});
+  }
+
   public DataRepoResponse<JobModel> ingestJsonDataLaunch(
       TestConfiguration.User user, UUID datasetId, IngestRequestModel request) throws Exception {
     String ingestBody = TestUtils.mapToJson(request);
@@ -794,7 +902,7 @@ public class DataRepoFixtures {
     return assertSuccessful(response, "ingestFile failed");
   }
 
-  public BulkLoadArrayResultModel bulkLoadArray(
+  public DataRepoResponse<JobModel> bulkLoadArrayRaw(
       TestConfiguration.User user, UUID datasetId, BulkLoadArrayRequestModel requestModel)
       throws Exception {
 
@@ -809,18 +917,24 @@ public class DataRepoFixtures {
     assertTrue("bulkLoadArray launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "bulkloadArray launch response is present", launchResponse.getResponseObject().isPresent());
+    return launchResponse;
+  }
+
+  public BulkLoadArrayResultModel bulkLoadArray(
+      TestConfiguration.User user, UUID datasetId, BulkLoadArrayRequestModel requestModel)
+      throws Exception {
+
+    DataRepoResponse<JobModel> launchResponse = bulkLoadArrayRaw(user, datasetId, requestModel);
 
     DataRepoResponse<BulkLoadArrayResultModel> response =
         dataRepoClient.waitForResponse(user, launchResponse, new TypeReference<>() {});
     return assertSuccessful(response, "bulkLoadArray failed");
   }
 
-  public BulkLoadResultModel bulkLoad(
+  public DataRepoResponse<JobModel> bulkLoadRaw(
       TestConfiguration.User user, UUID datasetId, BulkLoadRequestModel requestModel)
       throws Exception {
-
     String json = TestUtils.mapToJson(requestModel);
-
     DataRepoResponse<JobModel> launchResponse =
         dataRepoClient.post(
             user,
@@ -830,6 +944,14 @@ public class DataRepoFixtures {
     assertTrue("bulkLoad launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "bulkload launch response is present", launchResponse.getResponseObject().isPresent());
+    return launchResponse;
+  }
+
+  public BulkLoadResultModel bulkLoad(
+      TestConfiguration.User user, UUID datasetId, BulkLoadRequestModel requestModel)
+      throws Exception {
+
+    DataRepoResponse<JobModel> launchResponse = bulkLoadRaw(user, datasetId, requestModel);
 
     DataRepoResponse<BulkLoadResultModel> response =
         dataRepoClient.waitForResponse(user, launchResponse, new TypeReference<>() {});
@@ -1206,5 +1328,22 @@ public class DataRepoFixtures {
         + Instant.now().minus(Duration.ofSeconds(30)).toString()
         + "?project="
         + testConfig.getGoogleProjectId();
+  }
+
+  // Jobs
+
+  public void getJobSuccess(String jobId, TestConfiguration.User user) throws Exception {
+    DataRepoResponse<JobModel> jobIdResponse = getJobIdRaw(jobId, user);
+    try {
+      assertTrue("job launch succeeded", jobIdResponse.getStatusCode().is2xxSuccessful());
+      assertTrue("job launch response is present", jobIdResponse.getResponseObject().isPresent());
+    } catch (AssertionError e) {
+      throw new AssertionError(String.format("Job launch failed. Got response: %s", jobIdResponse));
+    }
+  }
+
+  public DataRepoResponse<JobModel> getJobIdRaw(String jobId, TestConfiguration.User user)
+      throws Exception {
+    return dataRepoClient.get(user, "/api/repository/v1/jobs/" + jobId, new TypeReference<>() {});
   }
 }

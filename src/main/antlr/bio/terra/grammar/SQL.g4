@@ -40,6 +40,7 @@ expr : number
     | expr '&' expr
     | expr '^' expr
     | expr '|' expr
+    | expr NOT? BETWEEN expr AND expr
     | expr ( '='
         | '<'
         | '>'
@@ -48,7 +49,6 @@ expr : number
         | '!='
         | '<>'
         | NOT? LIKE
-        | NOT? BETWEEN expr AND expr
         )  expr
     | expr   IS NOT? S_NULL
         | IS NOT? TRUE
@@ -68,6 +68,7 @@ expr : number
 
 column_expr : dataset_name '.' table_name '.' column_name
     | alias_name '.' column_name
+    | column_name
     ;
 
 join_type : INNER

@@ -21,12 +21,12 @@ public abstract class IngestValidateRefsStep implements Step {
       List<String> errorDetails = new ArrayList<>();
       int count = 0;
       for (InvalidRefId badId : invalidRefIds) {
-        errorDetails.add(badId.toString());
-        count++;
-        if (count > MAX_ERROR_REF_IDS) {
+        if (count >= MAX_ERROR_REF_IDS) {
           errorMessage.append(MAX_ERROR_REF_IDS + "out of ");
           break;
         }
+        errorDetails.add(badId.toString());
+        count++;
       }
       errorMessage.append(invalidIdCount + " returned in details)");
       throw new InvalidFileRefException(errorMessage.toString(), errorDetails);

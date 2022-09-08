@@ -53,7 +53,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.1.0
+        uses: hashicorp/vault-action@v2.2.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -69,7 +69,7 @@ jobs:
           # write vault token
           base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
       - name: "Run Connected test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -84,7 +84,7 @@ jobs:
           path: build/reports
           retention-days: 10
   deploy_test_integration:
-    timeout-minutes: 180
+    timeout-minutes: 210
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -106,7 +106,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.1.0
+        uses: hashicorp/vault-action@v2.2.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -115,29 +115,29 @@ jobs:
           secrets: |
             secret/dsde/datarepo/integration/helm-azure-integration applicationsecret | AZURE_CREDENTIALS_SECRET
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         with:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Check for an available namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-1,integration-2,integration-3,integration-6'
       - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         with:
           actions_subcommand: 'gradlebuild'
       - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.339
-          helm_datarepo_ui_chart_version: 0.0.148
-          helm_gcloud_sqlproxy_chart_version: 0.19.7
-          helm_oidc_proxy_chart_version: 0.0.32
+          helm_datarepo_api_chart_version: 0.0.404
+          helm_datarepo_ui_chart_version: 0.0.166
+          helm_gcloud_sqlproxy_chart_version: 0.19.8
+          helm_oidc_proxy_chart_version: 0.0.38
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |
@@ -145,17 +145,17 @@ jobs:
           echo "::set-output name=git_hash::$git_hash"
           echo "Latest git hash for this branch: $git_hash"
       - name: "Wait for deployment to come back online"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.62.0
         timeout-minutes: 20
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
       - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run Integration test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -175,12 +175,12 @@ jobs:
           retention-days: 10
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         with:
           actions_subcommand: 'k8_checknamespace_clean'
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         with:
           actions_subcommand: 'gcp_whitelist_clean'
       - name: "Notify Jade Slack on nightly test run"

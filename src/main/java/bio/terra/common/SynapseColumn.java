@@ -1,6 +1,7 @@
 package bio.terra.common;
 
 import bio.terra.model.TableDataType;
+import java.util.Objects;
 import java.util.Set;
 import javax.ws.rs.NotSupportedException;
 
@@ -70,13 +71,13 @@ public class SynapseColumn extends Column {
       case FLOAT:
         return "float";
       case FLOAT64:
-        return "real";
+        return "float";
       case INTEGER:
         return "int";
       case INT64:
         return "bigint";
       case NUMERIC:
-        return "numeric";
+        return "real";
       case TEXT:
       case STRING:
         return "varchar(8000)";
@@ -119,5 +120,21 @@ public class SynapseColumn extends Column {
       default:
         return true;
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
+    SynapseColumn that = (SynapseColumn) o;
+    return requiresCollate == that.requiresCollate
+        && requiresJSONCast == that.requiresJSONCast
+        && synapseDataType.equals(that.synapseDataType);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), synapseDataType, requiresCollate, requiresJSONCast);
   }
 }

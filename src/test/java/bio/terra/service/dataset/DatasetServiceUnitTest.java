@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
@@ -8,8 +9,11 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
+import bio.terra.model.DatasetPatchRequestModel;
+import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -59,6 +63,7 @@ public class DatasetServiceUnitTest {
   @MockBean private ObjectMapper objectMapper;
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockBean private ProfileService profileService;
+  @MockBean private UserLoggingMetrics loggingMetrics;
 
   @Test
   public void enumerate() {
@@ -75,5 +80,29 @@ public class DatasetServiceUnitTest {
     var datasets = datasetService.enumerate(0, 10, null, null, null, null, resourcesAndRoles);
     assertThat(datasets.getItems().get(0).getId(), equalTo(uuid));
     assertThat(datasets.getRoleMap(), hasEntry(uuid.toString(), List.of(role.toString())));
+  }
+
+  @Test
+  public void patchDatasetIamActions() {
+    assertThat(
+        "Patch without PHS ID update does not require passport identifier update permissions",
+        datasetService.patchDatasetIamActions(new DatasetPatchRequestModel()),
+        containsInAnyOrder(IamAction.MANAGE_SCHEMA));
+
+    assertThat(
+        "Patch with PHS ID update to empty string requires passport identifier update permissions",
+        datasetService.patchDatasetIamActions(new DatasetPatchRequestModel().phsId("")),
+        containsInAnyOrder(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+
+    assertThat(
+        "Patch with PHS ID update requires passport identifier update permissions",
+        datasetService.patchDatasetIamActions(new DatasetPatchRequestModel().phsId("phs123456")),
+        containsInAnyOrder(IamAction.MANAGE_SCHEMA, IamAction.UPDATE_PASSPORT_IDENTIFIER));
+
+    assertThat(
+        "Patch with description update requires manage schema update permissions",
+        datasetService.patchDatasetIamActions(
+            new DatasetPatchRequestModel().description("an updated description")),
+        containsInAnyOrder(IamAction.MANAGE_SCHEMA));
   }
 }

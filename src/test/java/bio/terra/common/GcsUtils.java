@@ -23,8 +23,8 @@ public class GcsUtils {
   private String projectId = StorageOptions.getDefaultProjectId();
   private Storage storage = StorageOptions.getDefaultInstance().getService();
 
-  public String uploadTestFile(String name, Stream<String> lines) {
-    String path = String.format("gs://%s/%s", testConfig.getIngestbucket(), name);
+  public String uploadTestFile(String ingestBucket, String name, Stream<String> lines) {
+    String path = String.format("gs://%s/%s", ingestBucket, name);
     logger.info("Uploading test file to {}", path);
     gcsPdao.createGcsFile(path, projectId);
     gcsPdao.writeStreamToCloudFile(path, lines, projectId);

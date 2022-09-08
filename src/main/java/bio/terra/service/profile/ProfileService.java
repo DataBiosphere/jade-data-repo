@@ -1,6 +1,7 @@
 package bio.terra.service.profile;
 
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidationUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -110,6 +111,10 @@ public class ProfileService {
         String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
     return jobService
         .newJob(description, ProfileUpdateFlight.class, billingProfileRequest, user)
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
+        .addParameter(
+            JobMapKeys.IAM_RESOURCE_ID.getKeyName(), billingProfileRequest.getId().toString())
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.UPDATE_BILLING_ACCOUNT)
         .submit();
   }
 
@@ -145,6 +150,9 @@ public class ProfileService {
         .newJob(description, ProfileDeleteFlight.class, null, user)
         .addParameter(ProfileMapKeys.PROFILE_ID, id)
         .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.SPEND_PROFILE)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.DELETE)
         .submit();
   }
 
@@ -176,7 +184,7 @@ public class ProfileService {
    * @throws IamUnauthorizedException when the caller does not have access to the billing profile
    */
   public BillingProfileModel getProfileById(UUID id, AuthenticatedUserRequest user) {
-    if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id.toString())) {
+    if (!iamService.hasAnyActions(user, IamResourceType.SPEND_PROFILE, id.toString())) {
       throw new IamUnauthorizedException("unauthorized");
     }
     return getProfileByIdNoCheck(id);
@@ -240,7 +248,8 @@ public class ProfileService {
   }
 
   public List<PolicyModel> retrieveProfilePolicies(UUID profileId, AuthenticatedUserRequest user) {
-    return iamService.retrievePolicies(user, IamResourceType.SPEND_PROFILE, profileId);
+    return PolicyUtils.samToTdrPolicyModels(
+        iamService.retrievePolicies(user, IamResourceType.SPEND_PROFILE, profileId));
   }
 
   // -- methods invoked from billing profile flights --

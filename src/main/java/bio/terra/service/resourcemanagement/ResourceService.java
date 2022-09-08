@@ -7,6 +7,7 @@ import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CollectionType;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
@@ -123,14 +124,42 @@ public class ResourceService {
       String flightId,
       Callable<List<String>> getReaderGroups)
       throws InterruptedException, GoogleResourceNamingException {
+    return getOrCreateBucketForFile(
+        (GoogleRegion)
+            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+        projectResource,
+        flightId,
+        getReaderGroups,
+        dataset.getProjectResource().getServiceAccount());
+  }
+
+  /**
+   * Fetch/create a project, then use that to fetch/create a bucket.
+   *
+   * @param flightId used to lock the bucket metadata during possible creation
+   * @return a reference to the bucket as a POJO GoogleBucketResource
+   * @throws CorruptMetadataException in two cases.
+   *     <ul>
+   *       <li>if the bucket already exists, but the metadata does not AND the application property
+   *           allowReuseExistingBuckets=false.
+   *       <li>if the metadata exists, but the bucket does not
+   *     </ul>
+   */
+  public GoogleBucketResource getOrCreateBucketForFile(
+      GoogleRegion region,
+      GoogleProjectResource projectResource,
+      String flightId,
+      Callable<List<String>> getReaderGroups,
+      String dedicatedServiceAccount)
+      throws InterruptedException, GoogleResourceNamingException {
     return bucketService.getOrCreateBucket(
         projectService.bucketForFile(projectResource.getGoogleProjectId()),
         projectResource,
-        (GoogleRegion)
-            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+        region,
         flightId,
         null,
-        getReaderGroups);
+        getReaderGroups,
+        dedicatedServiceAccount);
   }
 
   /**
@@ -155,7 +184,8 @@ public class ResourceService {
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId,
         null,
-        null);
+        null,
+        dataset.getProjectResource().getServiceAccount());
   }
 
   /**
@@ -184,6 +214,7 @@ public class ResourceService {
                 .getStorageResourceRegion(GoogleCloudResource.BIGQUERY),
         flightId,
         Duration.ofDays(1),
+        null,
         null);
   }
 
@@ -467,6 +498,19 @@ public class ResourceService {
             projectId, billingProfile, getStewardPolicy(), region, labels);
 
     return googleProjectResource.getId();
+  }
+
+  /**
+   * Create a new service account for a dataset to be used to ingest.
+   *
+   * @param projectId the Google id of the project to create the SA for
+   * @param datasetName the name of the dataset the SA is being created for
+   * @return email of the created service account
+   */
+  public String createDatasetServiceAccount(String projectId, String datasetName) {
+
+    return projectService.createProjectServiceAccount(
+        projectId, CollectionType.DATASET, datasetName);
   }
 
   /**

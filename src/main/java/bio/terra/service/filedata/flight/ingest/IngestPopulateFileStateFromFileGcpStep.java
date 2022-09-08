@@ -50,7 +50,7 @@ public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileSt
     // Stream from control file and build list of files to be ingested
     try (BufferedReader reader =
         new GcsBufferedReader(storage, projectId, loadRequest.getLoadControlFile())) {
-      readFile(reader, context);
+      readFile(reader, projectId, context);
 
     } catch (IOException ex) {
       throw new BulkLoadControlFileException("Failure accessing the load control file in GCS", ex);

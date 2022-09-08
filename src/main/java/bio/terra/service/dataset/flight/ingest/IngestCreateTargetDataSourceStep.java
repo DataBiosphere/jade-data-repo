@@ -16,19 +16,22 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.storage.blob.BlobUrlParts;
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.util.List;
 
 public class IngestCreateTargetDataSourceStep implements Step {
   private final AzureSynapsePdao azureSynapsePdao;
   private final AzureBlobStorePdao azureBlobStorePdao;
+  private final ContainerType containerType;
   private final AuthenticatedUserRequest userRequest;
 
   public IngestCreateTargetDataSourceStep(
       AzureSynapsePdao azureSynapsePdao,
       AzureBlobStorePdao azureBlobStorePdao,
+      ContainerType containerType,
       AuthenticatedUserRequest userRequest) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.azureBlobStorePdao = azureBlobStorePdao;
+    this.containerType = containerType;
     this.userRequest = userRequest;
   }
 
@@ -43,20 +46,19 @@ public class IngestCreateTargetDataSourceStep implements Step {
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
-    String parquetDestinationLocation =
-        IngestUtils.getParquetTargetLocationURL(storageAccountResource);
+    String parquetDestinationLocation = storageAccountResource.getStorageAccountUrl();
     BlobUrlParts targetSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
             parquetDestinationLocation,
             billingProfile,
             storageAccountResource,
-            ContainerType.METADATA,
+            containerType,
             userRequest);
     try {
-      azureSynapsePdao.createExternalDataSource(
+      azureSynapsePdao.getOrCreateExternalDataSource(
           targetSignUrlBlob,
-          IngestUtils.getTargetScopedCredentialName(flightId),
-          IngestUtils.getTargetDataSourceName(flightId));
+          IngestUtils.getScopedCredentialName(containerType, flightId),
+          IngestUtils.getDataSourceName(containerType, flightId));
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
@@ -66,8 +68,10 @@ public class IngestCreateTargetDataSourceStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    azureSynapsePdao.dropTables(
-        Arrays.asList(IngestUtils.getSynapseTableName(context.getFlightId())));
+    azureSynapsePdao.dropDataSources(
+        List.of(IngestUtils.getDataSourceName(containerType, context.getFlightId())));
+    azureSynapsePdao.dropScopedCredentials(
+        List.of(IngestUtils.getScopedCredentialName(containerType, context.getFlightId())));
 
     return StepResult.getStepResultSuccess();
   }

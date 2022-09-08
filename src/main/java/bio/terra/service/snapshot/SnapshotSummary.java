@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.lang.StringUtils;
 
 public class SnapshotSummary {
   private UUID id;
@@ -160,5 +161,13 @@ public class SnapshotSummary {
 
   private List<StorageResourceModel> toStorageResourceModel() {
     return getStorage().stream().map(StorageResource::toModel).collect(Collectors.toList());
+  }
+
+  /**
+   * @param model a `SnapshotSummaryModel`
+   * @return whether the underlying snapshot can be accessed via RAS passport authorization
+   */
+  public static boolean passportAuthorizationAvailable(SnapshotSummaryModel model) {
+    return !StringUtils.isBlank(model.getPhsId()) && !StringUtils.isBlank(model.getConsentCode());
   }
 }

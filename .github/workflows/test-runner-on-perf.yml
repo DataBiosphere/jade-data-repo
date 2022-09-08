@@ -33,8 +33,14 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
+      - name: "Setup Java 17"
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
       - name: "Import Vault perf secrets"
-        uses: hashicorp/vault-action@v2.1.0
+        uses: hashicorp/vault-action@v2.2.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -52,7 +58,7 @@ jobs:
 
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.1.0
+        uses: hashicorp/vault-action@v2.2.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -76,7 +82,7 @@ jobs:
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
@@ -98,7 +104,7 @@ jobs:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/datarepo-actions/actions/merger@0.60.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.62.0
         env:
           COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
           GITHUB_REPO: datarepo-helm-definitions
@@ -116,7 +122,7 @@ jobs:
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "[Clear Perf Database] Import Perf Database Secret"
-        uses: hashicorp/vault-action@v2.1.0
+        uses: hashicorp/vault-action@v2.2.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -146,7 +152,7 @@ jobs:
           echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
           sleep 45
       - name: "Wait for Perf Cluster to come back up with correct version"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.60.0
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.62.0
         env:
           NAMESPACEINUSE: perf
           IT_JADE_API_URL: "https://jade-perf.datarepo-perf.broadinstitute.org"
@@ -174,7 +180,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:

@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.datadelete;
 
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -56,6 +57,9 @@ public class DatasetDataDeleteFlight extends Flight {
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
+    RetryRule randomBackoffRetry =
+        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+
     DataDeletionRequest request =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DataDeletionRequest.class);
 
@@ -64,7 +68,10 @@ public class DatasetDataDeleteFlight extends Flight {
             iamClient, IamResourceType.DATASET, datasetId, IamAction.SOFT_DELETE));
 
     if (request.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
-      addStep(new ValidateBucketAccessStep(gcsPdao, userReq));
+      addStep(
+          new ValidateBucketAccessStep(
+              gcsPdao, UUID.fromString(datasetId), datasetService, userReq),
+          getDefaultExponentialBackoffRetryRule());
     }
 
     // need to lock, need dataset name and flight id
@@ -79,7 +86,8 @@ public class DatasetDataDeleteFlight extends Flight {
       String transactionDesc = "Autocommit transaction";
       addStep(
           new TransactionOpenStep(
-              datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false));
+              datasetService, bigQueryTransactionPdao, userReq, transactionDesc, false, false),
+          randomBackoffRetry);
       autocommit = true;
     } else {
       addStep(
@@ -115,7 +123,8 @@ public class DatasetDataDeleteFlight extends Flight {
               datasetService, bigQueryTransactionPdao, request.getTransactionId(), userReq));
     } else {
       addStep(
-          new TransactionCommitStep(datasetService, bigQueryTransactionPdao, userReq, false, null));
+          new TransactionCommitStep(datasetService, bigQueryTransactionPdao, userReq, false, null),
+          randomBackoffRetry);
     }
 
     // unlock

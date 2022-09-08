@@ -5,6 +5,7 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -36,6 +37,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private List<Relationship> relationships = Collections.emptyList();
   private SnapshotRequestContentsModel creationInformation;
   private String consentCode;
+  private Object properties;
 
   @Override
   public CollectionType getCollectionType() {
@@ -86,6 +88,10 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   public Snapshot snapshotTables(List<SnapshotTable> tables) {
     this.tables = tables;
     return this;
+  }
+
+  public Optional<SnapshotTable> getTableByName(String tableName) {
+    return this.getTables().stream().filter(t -> t.getName().equals(tableName)).findFirst();
   }
 
   public List<SnapshotSource> getSnapshotSources() {
@@ -167,6 +173,15 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
     return this;
   }
 
+  public Object getProperties() {
+    return properties;
+  }
+
+  public Snapshot properties(Object properties) {
+    this.properties = properties;
+    return this;
+  }
+
   public List<Relationship> getRelationships() {
     return relationships;
   }
@@ -212,6 +227,11 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public boolean isSelfHosted() {
     return getSourceDataset().isSelfHosted();
+  }
+
+  @Override
+  public CloudPlatform getCloudPlatform() {
+    return getSourceDataset().getCloudPlatform();
   }
 
   @Override

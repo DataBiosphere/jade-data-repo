@@ -30,8 +30,8 @@ import com.azure.storage.blob.BlobUrlParts;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.storage.StorageException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,7 +41,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.lang3.StringUtils;
-import org.stringtemplate.v4.ST;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // Common code for the ingest steps
 public final class IngestUtils {
@@ -49,10 +50,15 @@ public final class IngestUtils {
       "source_dataset_scoped_credential_";
   private static final String SOURCE_SCOPED_CREDENTIAL_PREFIX = "source_scoped_credential_";
   private static final String TARGET_SCOPED_CREDENTIAL_PREFIX = "target_scoped_credential_";
+  private static final String SCRATCH_SCOPED_CREDENTIAL_PREFIX = "scratch_scoped_credential_";
   private static final String SOURCE_DATASET_DATA_SOURCE_PREFIX = "source_dataset_data_source_";
   private static final String SOURCE_DATA_SOURCE_PREFIX = "source_data_source_";
   private static final String TARGET_DATA_SOURCE_PREFIX = "target_data_source_";
-  private static final String TABLE_NAME_PREFIX = "ingest_";
+  private static final String SCRATCH_DATA_SOURCE_PREFIX = "scratch_data_source_";
+  private static final String INGEST_TABLE_NAME_PREFIX = "ingest_";
+  private static final String SCRATCH_TABLE_NAME_PREFIX = "scratch_";
+
+  private static final Logger logger = LoggerFactory.getLogger(IngestUtils.class);
 
   private IngestUtils() {}
 
@@ -84,41 +90,41 @@ public final class IngestUtils {
    * strict. There are valid blob urls that do not match this specification and we may be able to
    * expand this definition with more testing/requirement gathering
    *
-   * @param URL
+   * @param url
    * @return
    */
-  public static BlobUrlParts validateBlobAzureBlobFileURL(String URL) {
+  public static BlobUrlParts validateBlobAzureBlobFileURL(String url) {
     BlobUrlParts blobUrlParts;
     try {
-      blobUrlParts = BlobUrlParts.parse(URL);
+      blobUrlParts = BlobUrlParts.parse(url);
     } catch (IllegalArgumentException ex) {
-      throw new InvalidBlobURLException("Blob URL parse failed due to malformed URL.", ex);
+      throw new InvalidBlobURLException("Blob url parse failed due to malformed url.", ex);
     }
-    validateScheme(blobUrlParts.getScheme(), URL);
-    validateHost(blobUrlParts.getHost(), URL);
+    validateScheme(blobUrlParts.getScheme(), url);
+    validateHost(blobUrlParts.getHost(), url);
     validateContainerAndBlobNames(
-        blobUrlParts.getBlobContainerName(), blobUrlParts.getBlobName(), URL);
+        blobUrlParts.getBlobContainerName(), blobUrlParts.getBlobName(), url);
     return blobUrlParts;
   }
 
-  private static void validateScheme(String scheme, String URL) {
+  private static void validateScheme(String scheme, String url) {
     String expectedScheme = "https";
     if (!expectedScheme.equals(scheme)) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'."
               + "The url is required to use 'https'");
     }
   }
 
-  private static void validateHost(String host, String URL) {
+  private static void validateHost(String host, String url) {
     int separator = StringUtils.indexOf(host, ".");
     String storageAccountName = StringUtils.substring(host, 0, separator);
     if (!storageAccountName.matches("^[a-z0-9]{3,24}")) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'. "
               + "The host is expected to take the following format: {storageAccountName}.blob.core.windows.net, "
               + "where the storageAccountName must be between 3 and 24 characters in length and "
@@ -130,40 +136,36 @@ public final class IngestUtils {
     if (!actualHostURL.equals(expectedHostURL)) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'. "
               + "The host is expected to take the following format: {storageAccountName}.blob.core.windows.net");
     }
   }
 
   private static void validateContainerAndBlobNames(
-      String containerName, String blobName, String URL) {
+      String containerName, String blobName, String url) {
+
+    String azureContainerRegex = "^[a-z0-9](?!.*--)[a-z0-9-]{1,61}[a-z0-9]$";
+
+    if (!containerName.matches(azureContainerRegex)) {
+      throw new InvalidBlobURLException(
+          "Ingest source is not a valid blob url: '"
+              + url
+              + "'. "
+              + "The container must meet the following requirements: "
+              + "It must start and end with a letter or number. Valid characters include "
+              + "letters, numbers, and the dash (-) character. "
+              + "Every dash (-) character must be immediately preceded and followed by a letter or number; "
+              + "consecutive dashes are not permitted in container names.");
+    }
+
     if (!blobName.endsWith(".csv") && !blobName.endsWith(".json")) {
       throw new InvalidBlobURLException(
           "Ingest source is not a valid blob url: '"
-              + URL
+              + url
               + "'. "
               + "The url must include a file name with an extension of either csv or json.");
     }
-    String blobNameNoExtension = blobName.substring(0, blobName.lastIndexOf("."));
-    List<String> blobNamesToCheck = new ArrayList<>();
-    blobNamesToCheck.addAll(Arrays.asList(blobNameNoExtension.split("/")));
-    blobNamesToCheck.add(containerName);
-    String azureContainerRegex = "^[a-z0-9](?!.*--)[a-z0-9-]{1,61}[a-z0-9]$";
-    blobNamesToCheck.forEach(
-        b -> {
-          if (!b.matches(azureContainerRegex)) {
-            throw new InvalidBlobURLException(
-                "Ingest source is not a valid blob url: '"
-                    + URL
-                    + "'. "
-                    + " The container and each blob name must meet the following requirements: "
-                    + "They must start and end with a letter or number. Valid characters include "
-                    + "letters, numbers, and the dash (-) character. "
-                    + "Every dash (-) character must be immediately preceded and followed by a letter or number; "
-                    + "consecutive dashes are not permitted in container names.");
-          }
-        });
   }
 
   public static void putStagingTableName(FlightContext context, String name) {
@@ -261,10 +263,11 @@ public final class IngestUtils {
                 try {
                   validateBulkLoadFileModel(loadFileModel);
                   cloudFileReader.validateUserCanRead(
-                      List.of(loadFileModel.getSourcePath()), userRequest);
+                      List.of(loadFileModel.getSourcePath()), cloudEncapsulationId, userRequest);
                 } catch (BlobAccessNotAuthorizedException
                     | BadRequestException
-                    | IllegalArgumentException ex) {
+                    | IllegalArgumentException
+                    | StorageException ex) {
                   errorCollector.record("Error: %s", ex.getMessage());
                 }
               })
@@ -335,14 +338,15 @@ public final class IngestUtils {
     }
   }
 
-  public static String getParquetTargetLocationURL(
-      AzureStorageAccountResource storageAccountResource) {
-    String storageAccount = storageAccountResource.getName();
-    String storageAccountURLTemplate = "https://<storageAccount>.blob.core.windows.net";
-
-    ST storageAccountURL = new ST(storageAccountURLTemplate);
-    storageAccountURL.add("storageAccount", storageAccount);
-    return storageAccountURL.render();
+  public static String getParquetBlobUrl(
+      AzureStorageAccountResource storageAccountResource,
+      AzureStorageAccountResource.ContainerType containerType,
+      String path) {
+    return String.format(
+        "%s/%s/%s",
+        storageAccountResource.getStorageAccountUrl(),
+        storageAccountResource.determineContainer(containerType),
+        path);
   }
 
   public static String getParquetFilePath(String targetTableName, String flightId) {
@@ -384,12 +388,24 @@ public final class IngestUtils {
     return TARGET_DATA_SOURCE_PREFIX + flightId;
   }
 
+  public static String getScratchDataSourceName(String flightId) {
+    return SCRATCH_DATA_SOURCE_PREFIX + flightId;
+  }
+
   public static String getTargetScopedCredentialName(String flightId) {
     return TARGET_SCOPED_CREDENTIAL_PREFIX + flightId;
   }
 
-  public static String getSynapseTableName(String flightId) {
-    return TABLE_NAME_PREFIX + flightId;
+  public static String getScratchScopedCredentialName(String flightId) {
+    return SCRATCH_SCOPED_CREDENTIAL_PREFIX + flightId;
+  }
+
+  public static String getSynapseIngestTableName(String flightId) {
+    return INGEST_TABLE_NAME_PREFIX + flightId;
+  }
+
+  public static String getSynapseScratchTableName(String flightId) {
+    return SCRATCH_TABLE_NAME_PREFIX + flightId;
   }
 
   public static BillingProfileModel getIngestBillingProfileFromDataset(
@@ -412,10 +428,17 @@ public final class IngestUtils {
     FlightMap workingMap = context.getWorkingMap();
     GoogleBucketResource bucketResource =
         FlightUtils.getTyped(workingMap, CommonFlightKeys.SCRATCH_BUCKET_INFO);
-    IngestRequestModel ingestRequestModel =
-        context.getInputParameters().get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
-    String pathToLandingFile = ingestRequestModel.getPath();
-    gcsPdao.deleteFileByGspath(pathToLandingFile, bucketResource.projectIdForBucket());
+    if (bucketResource != null) {
+      IngestRequestModel ingestRequestModel =
+          context
+              .getInputParameters()
+              .get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
+      String pathToLandingFile = ingestRequestModel.getPath();
+      gcsPdao.deleteFileByGspath(pathToLandingFile, bucketResource.projectIdForBucket());
+    } else {
+      // Occurs when there is an "array" combined ingest
+      logger.info("No scratch bucket to delete");
+    }
   }
 
   public static void validateBulkLoadFileModel(BulkLoadFileModel loadFile) {
@@ -431,6 +454,34 @@ public final class IngestUtils {
           String.format(
               "The following required field(s) were not defined: %s",
               itemsNotDefined.stream().collect(Collectors.joining(", "))));
+    }
+  }
+
+  public static String getDataSourceName(
+      AzureStorageAccountResource.ContainerType containerType, String flightId) {
+    switch (containerType) {
+      case METADATA:
+        return IngestUtils.getTargetDataSourceName(flightId);
+      case SCRATCH:
+        return IngestUtils.getScratchDataSourceName(flightId);
+      default:
+        throw new IllegalArgumentException(
+            String.format(
+                "Cannot get data source name for %s ContainerType", containerType.name()));
+    }
+  }
+
+  public static String getScopedCredentialName(
+      AzureStorageAccountResource.ContainerType containerType, String flightId) {
+    switch (containerType) {
+      case METADATA:
+        return IngestUtils.getTargetScopedCredentialName(flightId);
+      case SCRATCH:
+        return IngestUtils.getScratchScopedCredentialName(flightId);
+      default:
+        throw new IllegalArgumentException(
+            String.format(
+                "Cannot get data source name for %s ContainerType", containerType.name()));
     }
   }
 }

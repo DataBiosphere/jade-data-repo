@@ -6,6 +6,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
@@ -26,6 +28,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
+import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.DrsId;
@@ -80,6 +83,7 @@ public class SnapshotFileLookupConnectedTest {
   @Autowired private JsonLoader jsonLoader;
 
   @MockBean private IamProviderInterface samService;
+  @MockBean private EcmService ecmService;
 
   private BillingProfileModel billingProfile;
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
@@ -88,6 +92,7 @@ public class SnapshotFileLookupConnectedTest {
   @Before
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
+    when(ecmService.getRasDbgapPermissions(any())).thenReturn(List.of());
     configService.reset();
     billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());

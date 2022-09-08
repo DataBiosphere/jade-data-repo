@@ -24,7 +24,9 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.Co
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobUrlParts;
+import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
@@ -37,14 +39,19 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AzureBlobStorePdao implements CloudFileReader {
+
+  private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
 
   private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
 
@@ -152,7 +159,8 @@ public class AzureBlobStorePdao implements CloudFileReader {
   }
 
   @Override
-  public void validateUserCanRead(List<String> sourcePaths, AuthenticatedUserRequest user) {
+  public void validateUserCanRead(
+      List<String> sourcePaths, String cloudEncapsulationId, AuthenticatedUserRequest user) {
     // This checked is not needed for Azure because we use signed URLS that by default check
     // permissions
     // Keeping this method because we do need to do this check for GCP in code that is shared
@@ -258,6 +266,61 @@ public class AzureBlobStorePdao implements CloudFileReader {
       blobCrl.deleteBlobQuietFailure(parentBlob.toString());
     }
     return success;
+  }
+
+  public boolean deleteScratchParquet(
+      String blobPath,
+      AzureStorageAccountResource storageAccountResource,
+      AuthenticatedUserRequest userRequest) {
+
+    String blobUrl =
+        String.format(
+            "%s/%s/%s",
+            storageAccountResource.getStorageAccountUrl(),
+            storageAccountResource.determineContainer(ContainerType.SCRATCH),
+            blobPath);
+    BlobUrlParts blobParts = BlobUrlParts.parse(blobUrl);
+
+    BillingProfileModel profileModel =
+        profileDao.getBillingProfileById(storageAccountResource.getProfileId());
+    BlobContainerClientFactory destinationClientFactory =
+        getTargetDataClientFactory(
+            profileModel,
+            storageAccountResource,
+            ContainerType.SCRATCH,
+            new BlobSasTokenOptions(
+                DEFAULT_SAS_TOKEN_EXPIRATION,
+                new BlobSasPermission()
+                    .setReadPermission(true)
+                    .setDeletePermission(true)
+                    .setListPermission(true),
+                userRequest.getEmail()));
+
+    String blobName = blobParts.getBlobName();
+    BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
+
+    return blobCrl.deleteBlobsWithPrefix(blobName);
+  }
+
+  /**
+   * Given a signed Url, return all children of the path if it is a directory
+   *
+   * @return A list of signed URLs to the child blobs
+   */
+  public List<String> listChildren(String signedUrl) {
+    var blobName = BlobUrlParts.parse(signedUrl).getBlobName();
+    return getSourceClientFactory(signedUrl)
+        .getBlobContainerClient()
+        // List children of the parquet directory
+        .listBlobs(new ListBlobsOptions().setPrefix(blobName + "/"), Duration.ofMinutes(5))
+        .stream()
+        // Extract the name
+        .map(BlobItem::getName)
+        // Ignore the empty placeholder file
+        .filter(n -> !n.endsWith("/_"))
+        // Fully qualify the name by poor-man cloning the original URL and modifying the blob name
+        .map(n -> BlobUrlParts.parse(signedUrl).setBlobName(n).toUrl().toString())
+        .collect(Collectors.toList());
   }
 
   public String signFile(

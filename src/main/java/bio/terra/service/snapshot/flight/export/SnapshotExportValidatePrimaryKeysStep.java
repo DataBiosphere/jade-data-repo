@@ -56,8 +56,9 @@ public class SnapshotExportValidatePrimaryKeysStep implements Step {
                   boolean hasDuplicates;
                   try {
                     hasDuplicates =
-                        BigQueryPdao.hasDuplicatePrimaryKeys(
-                            snapshot, primaryKeyColumns, tableName);
+                        (BigQueryPdao.duplicatePrimaryKeys(snapshot, primaryKeyColumns, tableName)
+                                .getTotalRows()
+                            > 0);
                   } catch (InterruptedException e) {
                     throw new GoogleResourceException(
                         String.format(

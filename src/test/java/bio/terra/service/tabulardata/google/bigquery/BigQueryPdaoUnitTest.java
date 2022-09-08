@@ -1,5 +1,7 @@
 package bio.terra.service.tabulardata.google.bigquery;
 
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.prefixName;
@@ -34,6 +36,7 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.GoogleStorageResource;
+import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.RowIdMatch;
@@ -46,6 +49,7 @@ import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FieldValue;
@@ -72,7 +76,9 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
+import org.stringtemplate.v4.ST;
 
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
@@ -140,6 +146,29 @@ public class BigQueryPdaoUnitTest {
     bigQuerySnapshotPdao =
         new BigQuerySnapshotPdao(applicationConfiguration, bigQueryConfiguration);
     snapshot = mockSnapshot();
+  }
+
+  @Test
+  public void testMergeStagingHistoryError() throws InterruptedException {
+    Dataset dataset = mockDataset();
+    String flightId = "flightId";
+    ST sqlTemplate = new ST(BigQueryDatasetPdao.mergeLoadHistoryStagingTableTemplate);
+    sqlTemplate.add("project", bigQueryProjectDataset.getProjectId());
+    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
+    sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
+    sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
+    String query = sqlTemplate.render();
+
+    when(bigQueryProjectDataset.tableExists(dataset.getName(), PDAO_LOAD_HISTORY_TABLE))
+        .thenReturn(true);
+    Throwable cause =
+        new BigQueryException(
+            HttpStatus.BAD_REQUEST.value(), "Too many DML statements outstanding against table");
+    BQTestUtils.mockBQQueryError(
+        bigQueryProjectDataset, query, new PdaoException("Failure executing query", cause));
+    assertThrows(
+        TooManyDmlStatementsOutstandingException.class,
+        () -> bigQueryDatasetPdao.mergeStagingLoadHistoryTable(dataset, flightId));
   }
 
   @Test
@@ -433,14 +462,14 @@ public class BigQueryPdaoUnitTest {
                         + TABLE_2_ID
                         + "' AS datarepo_table_id, "
                         + "T.datarepo_row_id "
-                        + "FROM ("
+                        + "FROM (("
                         + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                             DATASET_PROJECT_ID, prefixName(DATASET_NAME), table2, null, CREATED_AT)
-                        + ") T, "
-                        + "("
+                        + ")) T, "
+                        + "(("
                         + BigQueryDatasetPdao.renderDatasetLiveViewSql(
                             DATASET_PROJECT_ID, prefixName(DATASET_NAME), table1, null, CREATED_AT)
-                        + ") F, "
+                        + ")) F, "
                         + "`"
                         + SNAPSHOT_PROJECT_ID
                         + "."
@@ -449,11 +478,11 @@ public class BigQueryPdaoUnitTest {
                         + "WHERE R.datarepo_table_id = '"
                         + TABLE_1_ID
                         + "' AND "
-                        + "R.datarepo_row_id = F.datarepo_row_id AND T."
-                        + TABLE_2_COL1_NAME
-                        + " = "
-                        + "F."
+                        + "R.datarepo_row_id = F.datarepo_row_id AND F."
                         + TABLE_1_COL1_NAME
+                        + " = "
+                        + "T."
+                        + TABLE_2_COL1_NAME
                         + ") "
                         + "SELECT datarepo_table_id,datarepo_row_id FROM merged_table WHERE "
                         + "datarepo_row_id NOT IN (SELECT datarepo_row_id "
@@ -1049,7 +1078,7 @@ public class BigQueryPdaoUnitTest {
     assertEquals(listTest, result.get(0).get("ARRAY"));
   }
 
-  private Snapshot mockSnapshot() {
+  private Dataset mockDataset() {
     DatasetTable tbl1 =
         DatasetFixtures.generateDatasetTable(
                 TABLE_1_NAME, TableDataType.STRING, List.of(TABLE_1_COL1_NAME, TABLE_1_COL2_NAME))
@@ -1066,6 +1095,26 @@ public class BigQueryPdaoUnitTest {
     tbl2.getColumns().get(0).id(TABLE_2_COL1_ID);
     tbl2.getColumns().get(1).id(TABLE_2_COL2_ID);
     tbl2.getColumns().get(2).id(TABLE_2_COL3_ID);
+
+    return new Dataset()
+        .id(DATASET_ID)
+        .name(DATASET_NAME)
+        .projectResource(
+            new GoogleProjectResource().profileId(PROFILE_1_ID).googleProjectId(DATASET_PROJECT_ID))
+        .tables(List.of(tbl1, tbl2))
+        .storage(
+            List.of(
+                new GoogleStorageResource(
+                    DATASET_ID,
+                    GoogleCloudResource.BIGQUERY,
+                    GoogleRegion.NORTHAMERICA_NORTHEAST1)));
+  }
+
+  private Snapshot mockSnapshot() {
+    Dataset dataset = mockDataset();
+    List<DatasetTable> tables = dataset.getTables();
+    DatasetTable tbl1 = tables.get(0);
+    DatasetTable tbl2 = tables.get(1);
 
     SnapshotTable snpTbl1 =
         new SnapshotTable().id(SNAPSHOT_TABLE_1_ID).name(tbl1.getName()).columns(tbl1.getColumns());
@@ -1092,21 +1141,7 @@ public class BigQueryPdaoUnitTest {
         .snapshotSources(
             List.of(
                 new SnapshotSource()
-                    .dataset(
-                        new Dataset()
-                            .id(DATASET_ID)
-                            .name(DATASET_NAME)
-                            .projectResource(
-                                new GoogleProjectResource()
-                                    .profileId(PROFILE_1_ID)
-                                    .googleProjectId(DATASET_PROJECT_ID))
-                            .tables(List.of(tbl1, tbl2))
-                            .storage(
-                                List.of(
-                                    new GoogleStorageResource(
-                                        DATASET_ID,
-                                        GoogleCloudResource.BIGQUERY,
-                                        GoogleRegion.NORTHAMERICA_NORTHEAST1))))
+                    .dataset(mockDataset())
                     .assetSpecification(
                         new AssetSpecification()
                             .rootTable(new AssetTable().datasetTable(tbl1))

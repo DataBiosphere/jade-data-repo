@@ -16,6 +16,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
@@ -117,18 +118,18 @@ public class JobsApiController implements JobsApi {
   }
 
   private void validateOffsetAndLimit(Integer offset, Integer limit) {
-    String errors = "";
+    List<String> errors = new ArrayList<>();
     offset = (offset == null) ? offset = 0 : offset;
     if (offset < 0) {
-      errors = "Offset must be greater than or equal to 0.";
+      errors.add("Offset must be greater than or equal to 0.");
     }
 
     limit = (limit == null) ? limit = 10 : limit;
     if (limit < 1) {
-      errors += " Limit must be greater than or equal to 1.";
+      errors.add("Limit must be greater than or equal to 1.");
     }
     if (!errors.isEmpty()) {
-      throw new ValidationException(errors);
+      throw new ValidationException(String.join(" ", errors));
     }
   }
 }

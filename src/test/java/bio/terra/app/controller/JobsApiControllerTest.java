@@ -76,6 +76,24 @@ public class JobsApiControllerTest {
   }
 
   @Test
+  public void testEnumerateJobsBadOffsetAndLimit() throws Exception {
+    mvc.perform(get(ENUMERATE_JOBS_ENDPOINT).param("offset", "-1"))
+        .andExpect(status().is4xxClientError())
+        .andExpect(jsonPath("$.message").value("Offset must be greater than or equal to 0."));
+
+    mvc.perform(get(ENUMERATE_JOBS_ENDPOINT).param("limit", "-1"))
+        .andExpect(status().is4xxClientError())
+        .andExpect(jsonPath("$.message").value("Limit must be greater than or equal to 1."));
+
+    mvc.perform(get(ENUMERATE_JOBS_ENDPOINT).param("offset", "-1").param("limit", "-1"))
+        .andExpect(status().is4xxClientError())
+        .andExpect(
+            jsonPath("$.message")
+                .value(
+                    "Offset must be greater than or equal to 0. Limit must be greater than or equal to 1."));
+  }
+
+  @Test
   public void testRetrieveJob() throws Exception {
     when(jobService.retrieveJob(anyString(), any())).thenReturn(JOB_1);
     mvc.perform(get(RETRIEVE_JOB_ENDPOINT, JOB_1.getId()))

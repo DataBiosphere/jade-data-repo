@@ -27,7 +27,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
@@ -94,32 +93,30 @@ public class JobsApiController implements JobsApi {
   // -- jobs --
   @Override
   public ResponseEntity<List<JobModel>> enumerateJobs(
-      @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-      @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-      @RequestParam(value = "direction", required = false, defaultValue = "desc")
-          SqlSortDirection direction,
-      @RequestParam(value = "flightClass", required = false, defaultValue = "")
-          String flightClass) {
-    validiateOffsetAndLimit(offset, limit);
+      Integer offset,
+      Integer limit,
+      @RequestParam(defaultValue = "desc") SqlSortDirection direction,
+      String className) {
+    validateOffsetAndLimit(offset, limit);
     List<JobModel> results =
-        jobService.enumerateJobs(offset, limit, getAuthenticatedInfo(), direction, flightClass);
+        jobService.enumerateJobs(offset, limit, getAuthenticatedInfo(), direction, className);
     return new ResponseEntity<>(results, HttpStatus.OK);
   }
 
   @Override
-  public ResponseEntity<JobModel> retrieveJob(@PathVariable("id") String id) {
+  public ResponseEntity<JobModel> retrieveJob(String id) {
     JobModel job = jobService.retrieveJob(id, getAuthenticatedInfo());
     return jobToResponse(job);
   }
 
   @Override
-  public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
+  public ResponseEntity<Object> retrieveJobResult(String id) {
     JobService.JobResultWithStatus<Object> resultHolder =
         jobService.retrieveJobResult(id, Object.class, getAuthenticatedInfo());
     return ResponseEntity.status(resultHolder.getStatusCode()).body(resultHolder.getResult());
   }
 
-  private void validiateOffsetAndLimit(Integer offset, Integer limit) {
+  private void validateOffsetAndLimit(Integer offset, Integer limit) {
     String errors = "";
     offset = (offset == null) ? offset = 0 : offset;
     if (offset < 0) {

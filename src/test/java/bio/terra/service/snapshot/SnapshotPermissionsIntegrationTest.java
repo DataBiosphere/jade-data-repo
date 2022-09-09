@@ -127,7 +127,7 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
     assertThat(
         "Reader is not authorized on the billing profile to create a dataSnapshot",
         createSnapLaunchResp.getStatusCode(),
-        equalTo(HttpStatus.FORBIDDEN));
+        equalTo(HttpStatus.UNAUTHORIZED));
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(

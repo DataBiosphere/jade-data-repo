@@ -45,6 +45,7 @@ import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.logging.v2.LifecycleState;
@@ -58,7 +59,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -391,14 +391,18 @@ public class SnapshotConnectedTest {
     String googleProjectId = snapshotModel.getDataProject();
 
     // ensure that google project exists
-    Assert.assertNotNull(googleResourceManagerService.getProject(googleProjectId));
+    Project project = googleResourceManagerService.getProject(googleProjectId);
+    assertNotNull(project);
+
+    // Ensure that the name is correct
+    assertEquals("TDR Snapshot Project", project.getName());
 
     // delete snapshot
     connectedOperations.deleteTestSnapshot(snapshotModel.getId());
     connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
 
     // check that google project doesn't exist
-    Assert.assertEquals(
+    assertEquals(
         LifecycleState.DELETE_REQUESTED.toString(),
         googleResourceManagerService.getProject(googleProjectId).getLifecycleState());
   }

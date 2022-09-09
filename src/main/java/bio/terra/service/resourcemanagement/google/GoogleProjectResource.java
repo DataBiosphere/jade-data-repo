@@ -5,8 +5,8 @@ import java.util.UUID;
 public class GoogleProjectResource {
   private UUID id; // id of the project resource in the datarepo metadata
   private UUID profileId; // id of the associated billing profile
-  private String googleProjectId; // google's name of the project
-  private String googleProjectNumber; // google's id of the project
+  private String googleProjectId; // google's user specified, globally unique id of the project
+  private String googleProjectNumber; // google's auto generated numeric id of the project
   private String serviceAccount; // service account associated with this project
 
   // Default constructor for JSON serdes

@@ -170,7 +170,8 @@ public class GoogleProjectService {
       BillingProfileModel billingProfile,
       Map<String, List<String>> roleIdentityMapping,
       GoogleRegion region,
-      Map<String, String> labels)
+      Map<String, String> labels,
+      CollectionType collectionType)
       throws InterruptedException {
 
     try {
@@ -199,7 +200,8 @@ public class GoogleProjectService {
     if (project == null) {
       throw new GoogleResourceException("Could not get project after handout");
     }
-    return initializeProject(project, billingProfile, roleIdentityMapping, region, labels);
+    return initializeProject(
+        project, billingProfile, roleIdentityMapping, region, labels, collectionType);
   }
 
   public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -231,7 +233,8 @@ public class GoogleProjectService {
       BillingProfileModel billingProfile,
       Map<String, List<String>> roleIdentityMapping,
       GoogleRegion region,
-      Map<String, String> labels)
+      Map<String, String> labels,
+      CollectionType collectionType)
       throws InterruptedException {
 
     String googleProjectNumber = project.getProjectNumber().toString();
@@ -251,6 +254,15 @@ public class GoogleProjectService {
     resourceManagerService.updateIamPermissions(
         roleIdentityMapping, googleProjectId, PermissionOp.ENABLE_PERMISSIONS);
     resourceManagerService.addLabelsToProject(googleProjectResource.getGoogleProjectId(), labels);
+
+    String projectName;
+    switch (collectionType) {
+      case DATASET -> projectName = "TDR Dataset Project";
+      case SNAPSHOT -> projectName = "TDR Snapshot Project";
+      default -> throw new IllegalArgumentException("Invalid collection type");
+    }
+    resourceManagerService.addOrEditNameOfProject(
+        googleProjectResource.getGoogleProjectId(), projectName);
 
     UUID id = resourceDao.createProject(googleProjectResource);
     googleProjectResource.id(id);

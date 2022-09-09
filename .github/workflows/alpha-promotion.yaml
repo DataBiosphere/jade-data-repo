@@ -8,7 +8,7 @@ on:
     - cron: '0 17 * * 5' # Fridays at 12PM EST or 1PM EDT; 5PM UTC
     - cron: '0 1 * * 1-5' # Sun - Thurs 8PM EST or 9PM EDT; 1AM UTC
 env:
-  chartVersion: 0.1.519
+  chartVersion: 0.1.520
 jobs:
   alpha_promotion:
     strategy:

@@ -26,7 +26,6 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
-import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;

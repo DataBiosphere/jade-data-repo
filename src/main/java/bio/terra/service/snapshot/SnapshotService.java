@@ -10,7 +10,7 @@ import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.common.exception.FeatureNotImplementedException;
-import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.model.RASv1Dot1VisaCriterion;
 import bio.terra.externalcreds.model.ValidatePassportRequest;
@@ -665,7 +665,7 @@ public class SnapshotService {
       causes.addAll(byPassport.causes);
     } finally {
       if (!(iamAuthorized || ecmAuthorized)) {
-        throw new UnauthorizedException("Error accessing snapshot: see errorDetails", causes);
+        throw new ForbiddenException("Error accessing snapshot: see errorDetails", causes);
       }
     }
   }

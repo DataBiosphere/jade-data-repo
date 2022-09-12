@@ -31,6 +31,7 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +39,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -281,7 +283,8 @@ public class JobService {
       int limit,
       AuthenticatedUserRequest userReq,
       SqlSortDirection direction,
-      String className) {
+      String className,
+      List<String> jobIds) {
 
     // if the user has access to all jobs, then fetch everything
     // otherwise, filter the jobs on the user
@@ -313,6 +316,15 @@ public class JobService {
       }
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
+    }
+
+    // Filter on job ids if specified
+    HashSet<String> jobIdSet = new HashSet<>(ListUtils.emptyIfNull(jobIds));
+    if (!jobIdSet.isEmpty()) {
+      flightStateList =
+          flightStateList.stream()
+              .filter(flightState -> jobIdSet.contains(flightState.getFlightId()))
+              .collect(Collectors.toList());
     }
 
     return flightStateList.stream()

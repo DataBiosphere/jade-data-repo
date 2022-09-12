@@ -97,10 +97,12 @@ public class JobsApiController implements JobsApi {
       Integer offset,
       Integer limit,
       @RequestParam(defaultValue = "desc") SqlSortDirection direction,
-      String className) {
+      String className,
+      List<String> jobIds) {
     validateOffsetAndLimit(offset, limit);
     List<JobModel> results =
-        jobService.enumerateJobs(offset, limit, getAuthenticatedInfo(), direction, className);
+        jobService.enumerateJobs(
+            offset, limit, getAuthenticatedInfo(), direction, className, jobIds);
     return new ResponseEntity<>(results, HttpStatus.OK);
   }
 

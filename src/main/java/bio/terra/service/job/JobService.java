@@ -31,6 +31,8 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -281,36 +283,34 @@ public class JobService {
       SqlSortDirection direction,
       String className) {
 
-    boolean canListAnyJob = checkUserCanListAnyJob(userReq);
-
     // if the user has access to all jobs, then fetch everything
     // otherwise, filter the jobs on the user
+    FlightFilter filter = new FlightFilter();
+    // Set the order to use to return values
+    switch (direction) {
+      case ASC:
+        filter.submittedTimeSortDirection(FlightFilterSortDirection.ASC);
+        break;
+      case DESC:
+        filter.submittedTimeSortDirection(FlightFilterSortDirection.DESC);
+        break;
+      default:
+        throw new IllegalArgumentException(String.format("Unrecognized direction %s", direction));
+    }
+
+    // Filter on FQ class name if specified
+    if (!StringUtils.isEmpty(className)) {
+      filter.addFilterFlightClass(FlightFilterOp.EQUAL, className);
+    }
+
     List<FlightState> flightStateList;
+    boolean canListAnyJob = checkUserCanListAnyJob(userReq);
     try {
-      FlightFilter filter = new FlightFilter();
-
-      if (!canListAnyJob) {
-        filter.addFilterInputParameter(
-            JobMapKeys.SUBJECT_ID.getKeyName(), FlightFilterOp.EQUAL, userReq.getSubjectId());
+      if (canListAnyJob) {
+        flightStateList = stairway.getFlights(offset, limit, filter);
+      } else {
+        flightStateList = getAccessibleFlights(offset, limit, filter, userReq);
       }
-
-      // Set the order to use to return values
-      switch (direction) {
-        case ASC:
-          filter.submittedTimeSortDirection(FlightFilterSortDirection.ASC);
-          break;
-        case DESC:
-          filter.submittedTimeSortDirection(FlightFilterSortDirection.DESC);
-          break;
-        default:
-          throw new IllegalArgumentException(String.format("Unrecognized direction %s", direction));
-      }
-      // Filter on FQ class name if specified
-      if (!StringUtils.isEmpty(className)) {
-        filter.addFilterFlightClass(FlightFilterOp.EQUAL, className);
-      }
-
-      flightStateList = stairway.getFlights(offset, limit, filter);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -318,6 +318,61 @@ public class JobService {
     return flightStateList.stream()
         .map(this::mapFlightStateToJobModel)
         .collect(Collectors.toList());
+  }
+
+  private List<FlightState> getAccessibleFlights(
+      int offset, int limit, FlightFilter filter, AuthenticatedUserRequest userReq)
+      throws InterruptedException {
+    int start = 0;
+    int end = offset + limit;
+    HashMap<String, List<String>> roleMap = new HashMap<>();
+    ArrayList<FlightState> flightStateList = new ArrayList<>();
+    while (flightStateList.size() < offset + limit) {
+      List<FlightState> filterResults = stairway.getFlights(start, end, filter);
+      if (filterResults.size() == 0) {
+        break;
+      }
+      filterResults.forEach(
+          flightState -> {
+            if (userLaunchedFlight(flightState, userReq)) {
+              flightStateList.add(flightState);
+            } else {
+              FlightMap inputParameters = flightState.getInputParameters();
+              IamResourceType resourceType =
+                  inputParameters.get(
+                      JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
+              String resourceId =
+                  inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
+              IamAction action =
+                  inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
+              if (resourceType != null & resourceId != null && action != null) {
+                String key = String.format("%s-%s", resourceType, resourceId);
+                List<String> userRoles = roleMap.get(key);
+                if (userRoles == null) {
+                  userRoles = samService.listActions(userReq, resourceType, resourceId);
+                  roleMap.put(key, userRoles);
+                }
+                if (userRoles.contains(action.toString())) {
+                  flightStateList.add(flightState);
+                }
+              }
+            }
+          });
+      start = end;
+      end += offset + limit;
+    }
+    if (flightStateList.size() <= offset) {
+      return new ArrayList<>();
+    } else if (flightStateList.size() < offset + limit) {
+      return flightStateList.subList(offset, flightStateList.size());
+    }
+    return flightStateList.subList(offset, offset + limit);
+  }
+
+  private boolean userLaunchedFlight(FlightState flightState, AuthenticatedUserRequest userReq) {
+    FlightMap inputParameters = flightState.getInputParameters();
+    String flightSubjectId = inputParameters.get(JobMapKeys.SUBJECT_ID.getKeyName(), String.class);
+    return StringUtils.equals(flightSubjectId, userReq.getSubjectId());
   }
 
   public JobModel retrieveJob(String jobId, AuthenticatedUserRequest userReq) {

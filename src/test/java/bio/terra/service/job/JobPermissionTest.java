@@ -1,5 +1,8 @@
 package bio.terra.service.job;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import bio.terra.common.GcsUtils;
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoClient;
@@ -183,5 +186,28 @@ public class JobPermissionTest extends UsersBase {
 
     String combinedIngestJobId = combinedIngestJobResponse.getResponseObject().get().getId();
     dataRepoFixtures.getJobSuccess(combinedIngestJobId, custodian());
+
+    List<String> jobIds =
+        List.of(
+            datasetCreateJobId,
+            fileIngestJobId,
+            bulkLoadJobId,
+            metadataIngestJobId,
+            combinedIngestJobId);
+
+    assertTrue(
+        "Admin can list jobs", containsJobIds(dataRepoFixtures.enumerateJobs(admin()), jobIds));
+    assertTrue(
+        "Steward can list jobs", containsJobIds(dataRepoFixtures.enumerateJobs(steward()), jobIds));
+    assertTrue(
+        "Custodian can list jobs",
+        containsJobIds(dataRepoFixtures.enumerateJobs(custodian()), jobIds));
+    assertFalse(
+        "Reader cannot list jobs",
+        containsJobIds(dataRepoFixtures.enumerateJobs(reader()), jobIds));
+  }
+
+  private boolean containsJobIds(List<JobModel> jobs, List<String> jobIds) {
+    return jobs.stream().map(JobModel::getId).toList().containsAll(jobIds);
   }
 }

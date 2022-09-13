@@ -14,7 +14,6 @@ import runner.config.TestUserSpecification;
 import scripts.utils.tdrwrapper.DataRepoWrap;
 import scripts.utils.tdrwrapper.exception.DataRepoForbiddenClientException;
 import scripts.utils.tdrwrapper.exception.DataRepoNotFoundClientException;
-import scripts.utils.tdrwrapper.exception.DataRepoUnauthorizedClientException;
 
 public class BillingProfileUsers extends runner.TestScript {
   private static final Logger logger = LoggerFactory.getLogger(BillingProfileUsers.class);
@@ -62,7 +61,7 @@ public class BillingProfileUsers extends runner.TestScript {
     try {
       wrap.retrieveProfile(profileId);
       retrieveSuccess = true;
-    } catch (DataRepoUnauthorizedClientException ex) {
+    } catch (DataRepoForbiddenClientException ex) {
       retrieveSuccess = false;
     }
     logger.info("Role {} retrieve {}", role, retrieveSuccess);

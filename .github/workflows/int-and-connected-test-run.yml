@@ -134,7 +134,7 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.405
+          helm_datarepo_api_chart_version: 0.0.406
           helm_datarepo_ui_chart_version: 0.0.167
           helm_gcloud_sqlproxy_chart_version: 0.19.8
           helm_oidc_proxy_chart_version: 0.0.38

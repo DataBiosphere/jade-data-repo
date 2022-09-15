@@ -234,7 +234,7 @@ public class FileTest extends UsersBase {
     assertThat(
         "Reader is not authorized to get a file from a dataset",
         readerResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     // get file by id
     DataRepoResponse<FileModel> discovererResp =
@@ -242,7 +242,7 @@ public class FileTest extends UsersBase {
     assertThat(
         "Discoverer is not authorized to get a file from a dataset",
         discovererResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     // get file by name validates success
     dataRepoFixtures.getFileByName(steward(), datasetId, filePath);
@@ -252,20 +252,20 @@ public class FileTest extends UsersBase {
     assertThat(
         "Reader is not authorized to get a file from a dataset",
         readerResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     discovererResp = dataRepoFixtures.getFileByNameRaw(discoverer(), datasetId, filePath);
     assertThat(
         "Discoverer is not authorized to get file",
         discovererResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     // delete
     DataRepoResponse<JobModel> job = dataRepoFixtures.deleteFileLaunch(reader(), datasetId, fileId);
     assertThat(
         "Reader is not authorized to delete file",
         job.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     // validates success
     dataRepoFixtures.deleteFile(custodian(), datasetId, fileId);

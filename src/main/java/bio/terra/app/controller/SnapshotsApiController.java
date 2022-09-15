@@ -25,7 +25,7 @@ import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
@@ -146,7 +146,7 @@ public class SnapshotsApiController implements SnapshotsApi {
       // we can retrieve the job we just created
       return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
-    throw new IamUnauthorizedException(
+    throw new IamForbiddenException(
         "User is not authorized to create snapshots for these datasets " + unauthorized);
   }
 

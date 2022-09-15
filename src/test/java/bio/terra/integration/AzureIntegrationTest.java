@@ -305,8 +305,8 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(
         "New dataset was deleted",
         dataRepoFixtures.getDatasetRaw(steward, summaryModel2.getId()).getStatusCode().value(),
-        // TODO: fix bug where this shows up as a 401 and not a 404 since it's not longer in Sam
-        equalTo(401));
+        // TODO: fix bug where this shows up as a 403 and not a 404 since it's not longer in Sam
+        equalTo(403));
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
 
     // Make sure that any failure in tearing down is presented as a test failure

@@ -127,7 +127,7 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
     assertThat(
         "Reader is not authorized on the billing profile to create a dataSnapshot",
         createSnapLaunchResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshot(
@@ -138,14 +138,14 @@ public class SnapshotPermissionsIntegrationTest extends UsersBase {
     assertThat(
         "Reader is not authorized to delete a dataSnapshot",
         deleteSnapResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     DataRepoResponse<SnapshotModel> getSnapResp =
         dataRepoFixtures.getSnapshotRaw(discoverer(), snapshotSummary.getId(), null);
     assertThat(
         "Discoverer is not authorized to get a dataSnapshot",
         getSnapResp.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     EnumerateSnapshotModel enumSnap = dataRepoFixtures.enumerateSnapshots(discoverer());
     assertThat("Discoverer does not have access to dataSnapshots", enumSnap.getTotal(), equalTo(0));

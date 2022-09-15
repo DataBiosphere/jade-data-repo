@@ -3,6 +3,7 @@ package bio.terra.app.controller;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.ConflictException;
 import bio.terra.common.exception.ErrorReportException;
+import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
@@ -78,6 +79,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(UnauthorizedException.class)
   @ResponseStatus(HttpStatus.UNAUTHORIZED)
   public ErrorModel samAuthorizationException(UnauthorizedException ex) {
+    return buildErrorModel(ex, ex.getCauses());
+  }
+
+  @ExceptionHandler(ForbiddenException.class)
+  @ResponseStatus(HttpStatus.FORBIDDEN)
+  public ErrorModel forbiddenHandler(ErrorReportException ex) {
     return buildErrorModel(ex, ex.getCauses());
   }
 

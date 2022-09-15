@@ -25,7 +25,7 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
-import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.model.AccessInfoBigQueryModel;
@@ -754,13 +754,13 @@ public class SnapshotServiceTest {
     // No SAM access and an invalid passport = inaccessible snapshot
     when(ecmService.validatePassport(any())).thenReturn(new ValidatePassportResult().valid(false));
 
-    Throwable thrown =
+    ForbiddenException thrown =
         assertThrows(
-            UnauthorizedException.class,
+            ForbiddenException.class,
             () -> service.verifySnapshotAccessible(snapshotId, TEST_USER));
     assertThat(
         "SAM and ECM exception messages returned when ECM passport is invalid",
-        ((UnauthorizedException) thrown).getCauses(),
+        thrown.getCauses(),
         contains(
             samEx.getMessage(), service.passportInvalidForSnapshotErrorMsg(TEST_USER.getEmail())));
 

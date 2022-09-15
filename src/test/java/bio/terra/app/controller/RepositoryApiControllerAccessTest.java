@@ -50,7 +50,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
 
     // This call should be unsuccessful
     assertThat(dataRepoFixtures.getConfigListRaw(reader()).getStatusCode())
-        .isEqualTo(HttpStatus.UNAUTHORIZED);
+        .isEqualTo(HttpStatus.FORBIDDEN);
   }
 
   @Test
@@ -70,7 +70,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
 
     // This call should be unsuccessful
     assertThat(dataRepoFixtures.setConfigListRaw(reader(), configGroup).getStatusCode())
-        .isEqualTo(HttpStatus.UNAUTHORIZED);
+        .isEqualTo(HttpStatus.FORBIDDEN);
 
     // Reset config changes
     dataRepoFixtures.resetConfig(admin());
@@ -88,7 +88,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
             dataRepoFixtures
                 .getConfig(reader(), SAM_RETRY_INITIAL_WAIT_SECONDS.name())
                 .getStatusCode())
-        .isEqualTo(HttpStatus.UNAUTHORIZED);
+        .isEqualTo(HttpStatus.FORBIDDEN);
   }
 
   @Test
@@ -97,7 +97,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
         .isEqualTo(HttpStatus.NO_CONTENT);
 
     assertThat(dataRepoFixtures.setFault(reader(), SAM_TIMEOUT_FAULT.name(), false).getStatusCode())
-        .isEqualTo(HttpStatus.UNAUTHORIZED);
+        .isEqualTo(HttpStatus.FORBIDDEN);
 
     // Reset config changes
     dataRepoFixtures.resetConfig(admin());
@@ -109,6 +109,6 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
         .isEqualTo(HttpStatus.NO_CONTENT);
 
     assertThat(dataRepoFixtures.resetConfig(reader()).getStatusCode())
-        .isEqualTo(HttpStatus.UNAUTHORIZED);
+        .isEqualTo(HttpStatus.FORBIDDEN);
   }
 }

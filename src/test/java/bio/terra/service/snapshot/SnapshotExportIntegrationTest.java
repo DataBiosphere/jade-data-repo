@@ -151,7 +151,7 @@ public class SnapshotExportIntegrationTest extends UsersBase {
     assertThat(
         "Reader is not authorized to export a snapshot",
         failedExportResponse.getStatusCode(),
-        equalTo(HttpStatus.UNAUTHORIZED));
+        equalTo(HttpStatus.FORBIDDEN));
 
     DataRepoResponse<SnapshotExportResponseModel> exportResponse =
         dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, true);

@@ -686,7 +686,7 @@ public class DataRepoFixtures {
     assertThat(
         "snapshot is not successfully retrieved",
         response.getStatusCode(),
-        oneOf(HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND));
+        oneOf(HttpStatus.FORBIDDEN, HttpStatus.NOT_FOUND));
   }
 
   public DataRepoResponse<EnumerateSnapshotModel> enumerateSnapshotsByDatasetIdsRaw(

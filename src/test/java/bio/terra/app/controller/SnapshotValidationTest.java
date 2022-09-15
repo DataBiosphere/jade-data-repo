@@ -293,13 +293,6 @@ public class SnapshotValidationTest {
     checkValidationErrorModel(errorModel, new String[] {"SnapshotNameMissing", "NotNull"});
   }
 
-  @Test
-  public void testMissingProfileId() throws Exception {
-    snapshotByAssetRequest.profileId(null);
-    ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
-    checkValidationErrorModel(errorModel, new String[] {"SnapshotMissingProfileId"});
-  }
-
   private void checkValidationErrorModel(ErrorModel errorModel, String[] messageCodes) {
     List<String> details = errorModel.getErrorDetail();
     assertThat(

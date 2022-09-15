@@ -137,7 +137,6 @@ public class SnapshotRequestValidator implements Validator {
     if (target != null && target instanceof SnapshotRequestModel) {
       SnapshotRequestModel snapshotRequestModel = (SnapshotRequestModel) target;
       validateSnapshotName(snapshotRequestModel.getName(), errors);
-      validateSnapshotProfileId(snapshotRequestModel.getProfileId(), errors);
       validateSnapshotDescription(snapshotRequestModel.getDescription(), errors);
       validateSnapshotContents(snapshotRequestModel.getContents(), errors);
     }

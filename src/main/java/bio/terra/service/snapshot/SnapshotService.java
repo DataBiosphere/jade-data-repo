@@ -148,6 +148,9 @@ public class SnapshotService {
     String description = "Create snapshot " + snapshotRequestModel.getName();
     String sourceDatasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
     Dataset dataset = datasetService.retrieveByName(sourceDatasetName);
+    if (snapshotRequestModel.getProfileId() == null) {
+      snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
+    }
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())

@@ -8,6 +8,7 @@ import bio.terra.stairway.StairwayHook;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -52,7 +53,7 @@ public class StairwayLoggingHooks implements StairwayHook {
     MDC.put(FLIGHT_ID_KEY, context.getFlightId());
     MDC.put(FLIGHT_CLASS_KEY, context.getFlightClassName());
     MDC.put(FLIGHT_OPERATION_KEY, FLIGHT_OPERATION_START);
-    MDC.put(FLIGHT_PARENT_ID_KEY, getParentFlightId(context));
+    getParentFlightId(context).ifPresent(pfid -> MDC.put(FLIGHT_PARENT_ID_KEY, pfid));
     logger.info(
         FLIGHT_LOG_FORMAT,
         FLIGHT_OPERATION_START,
@@ -73,7 +74,7 @@ public class StairwayLoggingHooks implements StairwayHook {
     MDC.put(FLIGHT_STEP_DIRECTION_KEY, context.getDirection().toString());
     MDC.put(FLIGHT_STEP_NUMBER_KEY, Integer.toString(context.getStepIndex()));
     MDC.put(FLIGHT_OPERATION_KEY, FLIGHT_STEP_OPERATION_START);
-    MDC.put(FLIGHT_PARENT_ID_KEY, getParentFlightId(context));
+    getParentFlightId(context).ifPresent(pfid -> MDC.put(FLIGHT_PARENT_ID_KEY, pfid));
     logger.info(
         STEP_LOG_FORMAT,
         FLIGHT_STEP_OPERATION_START,
@@ -139,8 +140,8 @@ public class StairwayLoggingHooks implements StairwayHook {
     return String.format("stairwayStep%s", flightId);
   }
 
-  private String getParentFlightId(FlightContext context) {
+  private Optional<String> getParentFlightId(FlightContext context) {
     FlightMap parameterMap = context.getInputParameters();
-    return parameterMap.get(FLIGHT_PARENT_ID_KEY, String.class);
+    return Optional.ofNullable(parameterMap.get(FLIGHT_PARENT_ID_KEY, String.class));
   }
 }

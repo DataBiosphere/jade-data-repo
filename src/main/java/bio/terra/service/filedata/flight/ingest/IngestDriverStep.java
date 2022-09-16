@@ -347,6 +347,7 @@ public class IngestDriverStep extends DefaultUndoStep {
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
       inputParameters.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
       inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
+      inputParameters.put(JobMapKeys.PARENT_FLIGHT_ID.getKeyName(), context.getFlightId());
 
       if (platform == CloudPlatform.AZURE) {
         AzureStorageAuthInfo storageAuthInfo =

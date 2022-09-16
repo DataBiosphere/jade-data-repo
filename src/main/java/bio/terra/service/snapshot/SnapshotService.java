@@ -151,9 +151,10 @@ public class SnapshotService {
     if (snapshotRequestModel.getProfileId() == null) {
       snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
       logger.warn(
-          String.format(
-              "Enriching %s snapshot %s request with dataset default profileId %s",
-              userReq.getEmail(), snapshotRequestModel.getName(), dataset.getDefaultProfileId()));
+          "Enriching {} snapshot {} request with dataset default profileId {}",
+          userReq.getEmail(),
+          snapshotRequestModel.getName(),
+          dataset.getDefaultProfileId());
     }
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)

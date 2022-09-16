@@ -99,7 +99,7 @@ public class SnapshotMinimalConnectedTest {
 
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json", false);
+            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json", null);
     assertThat(
         "SnapshotRequestModel profileId is empty", snapshotRequest.getProfileId(), equalTo(null));
     MockHttpServletResponse response =
@@ -167,7 +167,10 @@ public class SnapshotMinimalConnectedTest {
     UUID datasetMinimalSummaryProfileId = datasetMinimalSummary.getDefaultProfileId();
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json", true);
+            jsonLoader,
+            datasetMinimalSummary,
+            "dataset-minimal-snapshot.json",
+            datasetMinimalSummary.getDefaultProfileId());
 
     assertThat(
         "dataset default profile Id was included in snapshot request",
@@ -221,7 +224,10 @@ public class SnapshotMinimalConnectedTest {
     DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot-bad-asset.json", true);
+            jsonLoader,
+            datasetMinimalSummary,
+            "dataset-minimal-snapshot-bad-asset.json",
+            datasetMinimalSummary.getDefaultProfileId());
     MvcResult result = SnapshotConnectedTestUtils.launchCreateSnapshot(mvc, snapshotRequest, "");
     MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
     assertThat(response.getStatus(), equalTo(HttpStatus.NOT_FOUND.value()));

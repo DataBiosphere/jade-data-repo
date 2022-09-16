@@ -100,18 +100,7 @@ public class IngestDriverStepTest extends TestCase {
         .when(loadService)
         .setLoadFileRunning(loadUuid, null, CHILD_FLIGHT_ID);
 
-    StepResult stepResult = step.doStep(flightContext);
-
-    verify(stairway)
-        .submitToQueue(
-            eq(CHILD_FLIGHT_ID), eq(FileIngestWorkerFlight.class), inputParamsCaptor.capture());
-
-    assertThat(
-        "Parent flight ID was passed as an input parameter to child flight",
-        inputParamsCaptor.getValue().get(JobMapKeys.PARENT_FLIGHT_ID.getKeyName(), String.class),
-        equalTo(PARENT_FLIGHT_ID));
-
-    return stepResult;
+    return step.doStep(flightContext);
   }
 
   @Test
@@ -123,6 +112,15 @@ public class IngestDriverStepTest extends TestCase {
 
     // Verify that the step started the candidate file.
     verify(loadService).setLoadFileRunning(loadUuid, null, CHILD_FLIGHT_ID);
+
+    // Verify that the step launched a downstream child job.
+    verify(stairway)
+        .submitToQueue(
+            eq(CHILD_FLIGHT_ID), eq(FileIngestWorkerFlight.class), inputParamsCaptor.capture());
+    assertThat(
+        "Parent flight ID was passed as an input parameter to child flight",
+        inputParamsCaptor.getValue().get(JobMapKeys.PARENT_FLIGHT_ID.getKeyName(), String.class),
+        equalTo(PARENT_FLIGHT_ID));
   }
 
   @Test
@@ -134,5 +132,10 @@ public class IngestDriverStepTest extends TestCase {
 
     // Verify that the step never started the candidate file.
     verify(loadService, never()).setLoadFileRunning(loadUuid, null, CHILD_FLIGHT_ID);
+
+    // Verify that the step never launched a downstream child job.
+    verify(stairway, never())
+        .submitToQueue(
+            eq(CHILD_FLIGHT_ID), eq(FileIngestWorkerFlight.class), inputParamsCaptor.capture());
   }
 }

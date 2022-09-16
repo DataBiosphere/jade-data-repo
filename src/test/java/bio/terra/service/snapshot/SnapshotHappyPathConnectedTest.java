@@ -107,7 +107,7 @@ public class SnapshotHappyPathConnectedTest {
 
   private void snapshotHappyPathTestingHelper(String path) throws Exception {
     SnapshotRequestModel snapshotRequest =
-        SnapshotConnectedTestUtils.makeSnapshotTestRequest(jsonLoader, datasetSummary, path);
+        SnapshotConnectedTestUtils.makeSnapshotTestRequest(jsonLoader, datasetSummary, path, true);
     MockHttpServletResponse response =
         SnapshotConnectedTestUtils.performCreateSnapshot(
             connectedOperations, mvc, snapshotRequest, "_thp_");

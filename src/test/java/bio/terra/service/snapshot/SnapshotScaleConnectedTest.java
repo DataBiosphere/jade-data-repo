@@ -95,7 +95,7 @@ public class SnapshotScaleConnectedTest {
     // TODO put big snapshot request into a GCS bucket
     SnapshotRequestModel snapshotRequestScale =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetSummary, "hca-mvp-analysis-file-row-ids-snapshot.json");
+            jsonLoader, datasetSummary, "hca-mvp-analysis-file-row-ids-snapshot.json", true);
 
     MockHttpServletResponse response =
         SnapshotConnectedTestUtils.performCreateSnapshot(

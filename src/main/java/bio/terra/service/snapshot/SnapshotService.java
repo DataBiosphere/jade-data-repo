@@ -663,9 +663,9 @@ public class SnapshotService {
       iamAuthorized = true;
     } catch (Exception iamEx) {
       logger.warn(
-          String.format(
-              "Snapshot %s inaccessible via SAM for %s, checking for linked RAS passport",
-              snapshotId, userReq.getEmail()),
+          "Snapshot {} inaccessible via SAM for {}, checking for linked RAS passport",
+          snapshotId,
+          userReq.getEmail(),
           iamEx);
       causes.add(iamEx.getMessage());
       SnapshotAccessibleResult byPassport = snapshotAccessibleByPassport(snapshotId, userReq);

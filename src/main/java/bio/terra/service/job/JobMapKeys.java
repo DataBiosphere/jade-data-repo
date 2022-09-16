@@ -13,6 +13,7 @@ public enum JobMapKeys {
   IAM_ACTION("iamAction"),
   IAM_RESOURCE_TYPE("iamResourceType"),
   IAM_RESOURCE_ID("iamResourceId"),
+  PARENT_FLIGHT_ID("parentFlightId"),
 
   // parameters for specific flight types
   BILLING_ID("billingId"),

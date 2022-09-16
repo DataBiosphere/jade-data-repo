@@ -2,6 +2,7 @@ package bio.terra.service.job;
 
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.HookAction;
 import bio.terra.stairway.StairwayHook;
 import java.time.Instant;
@@ -19,6 +20,8 @@ public class StairwayLoggingHooks implements StairwayHook {
           + "stepIndex: {}, direction: {}, timestamp: {}";
   /** Id of the flight */
   private static final String FLIGHT_ID_KEY = "flightId";
+  /** Id of the upstream parent flight, if one exists */
+  private static final String FLIGHT_PARENT_ID_KEY = JobMapKeys.PARENT_FLIGHT_ID.getKeyName();
   /** Class of the flight */
   private static final String FLIGHT_CLASS_KEY = "flightClass";
   /** Class of the flight step */
@@ -49,6 +52,7 @@ public class StairwayLoggingHooks implements StairwayHook {
     MDC.put(FLIGHT_ID_KEY, context.getFlightId());
     MDC.put(FLIGHT_CLASS_KEY, context.getFlightClassName());
     MDC.put(FLIGHT_OPERATION_KEY, FLIGHT_OPERATION_START);
+    MDC.put(FLIGHT_PARENT_ID_KEY, getParentFlightId(context));
     logger.info(
         FLIGHT_LOG_FORMAT,
         FLIGHT_OPERATION_START,
@@ -69,6 +73,7 @@ public class StairwayLoggingHooks implements StairwayHook {
     MDC.put(FLIGHT_STEP_DIRECTION_KEY, context.getDirection().toString());
     MDC.put(FLIGHT_STEP_NUMBER_KEY, Integer.toString(context.getStepIndex()));
     MDC.put(FLIGHT_OPERATION_KEY, FLIGHT_STEP_OPERATION_START);
+    MDC.put(FLIGHT_PARENT_ID_KEY, getParentFlightId(context));
     logger.info(
         STEP_LOG_FORMAT,
         FLIGHT_STEP_OPERATION_START,
@@ -127,9 +132,15 @@ public class StairwayLoggingHooks implements StairwayHook {
     MDC.remove(FLIGHT_STEP_DIRECTION_KEY);
     MDC.remove(FLIGHT_STEP_NUMBER_KEY);
     MDC.remove(FLIGHT_OPERATION_KEY);
+    MDC.remove(FLIGHT_PARENT_ID_KEY);
   }
 
   private String getStepTimerName(final String flightId) {
     return String.format("stairwayStep%s", flightId);
+  }
+
+  private String getParentFlightId(FlightContext context) {
+    FlightMap parameterMap = context.getInputParameters();
+    return parameterMap.get(FLIGHT_PARENT_ID_KEY, String.class);
   }
 }

@@ -153,7 +153,10 @@ public class SnapshotConnectedTest {
 
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetArraySummary, "snapshot-array-struct.json");
+            jsonLoader,
+            datasetArraySummary,
+            "snapshot-array-struct.json",
+            datasetArraySummary.getDefaultProfileId());
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
     SnapshotConnectedTestUtils.getTestSnapshot(
@@ -184,7 +187,10 @@ public class SnapshotConnectedTest {
     // Create three snapshots with consent code -- authorized indirectly via a linked RAS passport.
     SnapshotRequestModel rasSnapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-                jsonLoader, datasetSummary, "snapshot-test-snapshot.json")
+                jsonLoader,
+                datasetSummary,
+                "snapshot-test-snapshot.json",
+                datasetSummary.getDefaultProfileId())
             .consentCode(CONSENT_CODE);
     List<UUID> rasSnapshotIds = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
@@ -198,7 +204,10 @@ public class SnapshotConnectedTest {
     // Create two snapshots without consent code -- not authorized via a linked RAS passport.
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetSummary, "snapshot-test-snapshot.json");
+            jsonLoader,
+            datasetSummary,
+            "snapshot-test-snapshot.json",
+            datasetSummary.getDefaultProfileId());
     List<UUID> samSnapshotIds = new ArrayList<>();
     for (int i = 0; i < 2; i++) {
       MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_en_");
@@ -268,7 +277,10 @@ public class SnapshotConnectedTest {
   public void testBadData() throws Exception {
     SnapshotRequestModel badDataRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetSummary, "snapshot-test-snapshot-baddata.json");
+            jsonLoader,
+            datasetSummary,
+            "snapshot-test-snapshot-baddata.json",
+            datasetSummary.getDefaultProfileId());
 
     MockHttpServletResponse response = performCreateSnapshot(badDataRequest, "_baddata_");
     ErrorModel errorModel = handleCreateSnapshotFailureCase(response);
@@ -280,7 +292,10 @@ public class SnapshotConnectedTest {
     // create a snapshot
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetSummary, "snapshot-test-snapshot.json");
+            jsonLoader,
+            datasetSummary,
+            "snapshot-test-snapshot.json",
+            datasetSummary.getDefaultProfileId());
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
@@ -333,7 +348,10 @@ public class SnapshotConnectedTest {
     // create a snapshot
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetSummary, "snapshot-test-snapshot.json");
+            jsonLoader,
+            datasetSummary,
+            "snapshot-test-snapshot.json",
+            datasetSummary.getDefaultProfileId());
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
@@ -379,7 +397,10 @@ public class SnapshotConnectedTest {
     // create a snapshot
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetSummary, "snapshot-test-snapshot.json");
+            jsonLoader,
+            datasetSummary,
+            "snapshot-test-snapshot.json",
+            datasetSummary.getDefaultProfileId());
     MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 

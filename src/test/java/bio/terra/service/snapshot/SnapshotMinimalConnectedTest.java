@@ -30,6 +30,7 @@ import com.google.cloud.storage.StorageOptions;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,6 +87,7 @@ public class SnapshotMinimalConnectedTest {
   public void testMinimal() throws Exception {
     DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
     String datasetName = PDAO_PREFIX + datasetMinimalSummary.getName();
+    UUID datasetMinimalSummaryDefaultProfileId = datasetMinimalSummary.getDefaultProfileId();
     BigQueryProject bigQueryProject =
         TestUtils.bigQueryProjectForDatasetName(datasetDao, datasetMinimalSummary.getName());
     long datasetParticipants =
@@ -97,7 +99,9 @@ public class SnapshotMinimalConnectedTest {
 
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json");
+            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json", null);
+    assertThat(
+        "SnapshotRequestModel profileId is empty", snapshotRequest.getProfileId(), equalTo(null));
     MockHttpServletResponse response =
         SnapshotConnectedTestUtils.performCreateSnapshot(
             connectedOperations, mvc, snapshotRequest, "");
@@ -114,6 +118,10 @@ public class SnapshotMinimalConnectedTest {
         tables.stream().filter(t -> t.getName().equals("sample")).findFirst();
     assertThat("participant table exists", participantTable.isPresent(), equalTo(true));
     assertThat("sample table exists", sampleTable.isPresent(), equalTo(true));
+    assertThat(
+        "defaultProfileId from dataset was used for snapshot",
+        snapshotModel.getProfileId(),
+        equalTo(datasetMinimalSummaryDefaultProfileId));
 
     BigQueryProject bigQuerySnapshotProject =
         TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshotModel.getName());
@@ -156,9 +164,19 @@ public class SnapshotMinimalConnectedTest {
   @Test
   public void testPreview() throws Exception {
     DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
+    UUID datasetMinimalSummaryProfileId = datasetMinimalSummary.getDefaultProfileId();
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot.json");
+            jsonLoader,
+            datasetMinimalSummary,
+            "dataset-minimal-snapshot.json",
+            datasetMinimalSummary.getDefaultProfileId());
+
+    assertThat(
+        "dataset default profile Id was included in snapshot request",
+        snapshotRequest.getProfileId(),
+        equalTo(datasetMinimalSummaryProfileId));
+
     MockHttpServletResponse response =
         SnapshotConnectedTestUtils.performCreateSnapshot(
             connectedOperations, mvc, snapshotRequest, "");
@@ -179,6 +197,11 @@ public class SnapshotMinimalConnectedTest {
 
     assertThat(
         "participant preview is empty", snapshotEmptyPreviewModel.getResult().size(), equalTo(0));
+
+    assertThat(
+        "preview model uses provided id",
+        summaryModel.getProfileId(),
+        equalTo(datasetMinimalSummaryProfileId));
 
     String joinClause = "JOIN " + summaryModel.getName() + ".sample ON sample.participant_id = id";
     ErrorModel snapshotPreviewError =
@@ -201,7 +224,10 @@ public class SnapshotMinimalConnectedTest {
     DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
-            jsonLoader, datasetMinimalSummary, "dataset-minimal-snapshot-bad-asset.json");
+            jsonLoader,
+            datasetMinimalSummary,
+            "dataset-minimal-snapshot-bad-asset.json",
+            datasetMinimalSummary.getDefaultProfileId());
     MvcResult result = SnapshotConnectedTestUtils.launchCreateSnapshot(mvc, snapshotRequest, "");
     MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
     assertThat(response.getStatus(), equalTo(HttpStatus.NOT_FOUND.value()));

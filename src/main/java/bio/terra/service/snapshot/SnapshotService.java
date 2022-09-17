@@ -148,6 +148,14 @@ public class SnapshotService {
     String description = "Create snapshot " + snapshotRequestModel.getName();
     String sourceDatasetName = snapshotRequestModel.getContents().get(0).getDatasetName();
     Dataset dataset = datasetService.retrieveByName(sourceDatasetName);
+    if (snapshotRequestModel.getProfileId() == null) {
+      snapshotRequestModel.setProfileId(dataset.getDefaultProfileId());
+      logger.warn(
+          "Enriching {} snapshot {} request with dataset default profileId {}",
+          userReq.getEmail(),
+          snapshotRequestModel.getName(),
+          dataset.getDefaultProfileId());
+    }
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
@@ -655,9 +663,9 @@ public class SnapshotService {
       iamAuthorized = true;
     } catch (Exception iamEx) {
       logger.warn(
-          String.format(
-              "Snapshot %s inaccessible via SAM for %s, checking for linked RAS passport",
-              snapshotId, userReq.getEmail()),
+          "Snapshot {} inaccessible via SAM for {}, checking for linked RAS passport",
+          snapshotId,
+          userReq.getEmail(),
           iamEx);
       causes.add(iamEx.getMessage());
       SnapshotAccessibleResult byPassport = snapshotAccessibleByPassport(snapshotId, userReq);

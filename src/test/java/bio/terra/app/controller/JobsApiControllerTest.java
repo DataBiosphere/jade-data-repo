@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.app.usermetrics.BardClient;
 import bio.terra.common.category.Unit;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
@@ -52,6 +53,8 @@ public class JobsApiControllerTest {
   @Autowired private MockMvc mvc;
 
   @MockBean private JobService jobService;
+
+  @MockBean private BardClient bardClient;
 
   @Test
   public void testEnumerateJobs() throws Exception {

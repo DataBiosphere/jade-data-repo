@@ -1,4 +1,4 @@
-name: Integration test and Connected tests
+name: Unit, Smoke, Connected and Integration tests
 env:
   K8_CLUSTER: 'integration-master'
   # This must be defined for the bash redirection
@@ -30,8 +30,46 @@ on:
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
 jobs:
+  test_check:
+    name: "Checkout, verify and run unit tests"
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
+    runs-on: ${{ matrix.os }}
+    ## skips if pr label is 'skip-ci'
+    # run a local Postgres container in Docker for the basic check tests
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v2
+      - name: "Cache build"
+        uses: actions/cache@v2
+        with:
+          path: ~/build
+          key: ${{ runner.os }}-build }}
+      - name: "Run unit tests via Gradle"
+        uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
+        with:
+          actions_subcommand: 'gradleinttest'
+          pgport: ${{ job.services.postgres.ports[5432] }}
+          test_to_run: 'check'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
   test_connected:
+    name: "Run connected tests"
     timeout-minutes: 180
+    needs: test_check
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -52,6 +90,11 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
+      - name: "Cache build"
+        uses: actions/cache@v2
+        with:
+          path: ~/build
+          key: ${{ runner.os }}-build
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.2.0
         with:
@@ -68,23 +111,18 @@ jobs:
         run: |
           # write vault token
           base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
-      - name: "Run Connected test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
+      - name: "Run connected tests via Gradle"
+        uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testConnected'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Archive connected junit test reports"
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: junit-test-report-connected
-          path: build/reports
-          retention-days: 10
   deploy_test_integration:
+    name: "Deploy an run smoke and integration tests"
     timeout-minutes: 210
+    needs: test_check
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -105,6 +143,11 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
+      - name: "Cache build"
+        uses: actions/cache@v2
+        with:
+          path: ~/build
+          key: ${{ runner.os }}-build
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.2.0
         with:
@@ -115,22 +158,22 @@ jobs:
           secrets: |
             secret/dsde/datarepo/integration/helm-azure-integration applicationsecret | AZURE_CREDENTIALS_SECRET
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
+        uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
         with:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Check for an available namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
+        uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-1,integration-2,integration-3,integration-6'
       - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
+        uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
         with:
           actions_subcommand: 'gradlebuild'
       - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
+        uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
@@ -145,44 +188,63 @@ jobs:
           echo "::set-output name=git_hash::$git_hash"
           echo "Latest git hash for this branch: $git_hash"
       - name: "Wait for deployment to come back online"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.62.0
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@dr-2757-nm-better-unit
         timeout-minutes: 20
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
       - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
+        uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
-      - name: "Run Integration test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
+      - name: "Run integration tests via Gradle"
+        uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
+      - name: "Clean state lock from used Namespace on API deploy"
+        if: always()
+        uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
+        with:
+          actions_subcommand: 'k8_checknamespace_clean'
+      - name: "Clean whitelisted Runner IP"
+        if: always()
+        uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
+        with:
+          actions_subcommand: 'gcp_whitelist_clean'
+  publish_test_reports:
+    name: "Save execution reports and notify"
+    timeout-minutes: 60
+    needs:
+      - test_connected
+      - deploy_test_integration
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
+    runs-on: ${{ matrix.os }}
+    ## skips if pr label is 'skip-ci'
+    # run a local Postgres container in Docker for the basic check tests
+    steps:
+      - name: "Cache build"
+        uses: actions/cache@v2
+        with:
+          path: ~/build
+          key: ${{ runner.os }}-build
       - name: "Archive code coverage results"
         uses: actions/upload-artifact@v2
         with:
           name: code-coverage-report
           path: build/jacocoHtml
           retention-days: 10
-      - name: "Archive junit test reports"
+      - name: "Archive all junit test reports"
         uses: actions/upload-artifact@v2
         if: always()
         with:
-          name: junit-test-report
+          name: junit-test-report-integration
           path: build/reports
           retention-days: 10
-      - name: "Clean state lock from used Namespace on API deploy"
-        if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
-        with:
-          actions_subcommand: 'k8_checknamespace_clean'
-      - name: "Clean whitelisted Runner IP"
-        if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.62.0
-        with:
-          actions_subcommand: 'gcp_whitelist_clean'
       - name: "Notify Jade Slack on nightly test run"
         if: ${{ github.event_name == 'schedule' && always() }}
         uses: broadinstitute/action-slack@v3.8.0

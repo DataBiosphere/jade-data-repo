@@ -38,6 +38,7 @@ plugins {
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
     id "jacoco"
     id "com.diffplug.spotless" version "6.7.1"
+    id "com.dorongold.task-tree" version "2.1.0"
 }
 
 allprojects {

@@ -493,11 +493,6 @@ test {
         includeCategories 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
-    retry {
-        if (isCiServer) {
-           maxRetries = 3
-        }
-    }
     maxParallelForks = 2
 }
 
@@ -546,11 +541,6 @@ task testUnit(type: Test) {
         includeCategories 'bio.terra.common.category.Unit'
     }
     maxParallelForks = 2
-    retry {
-        if (isCiServer) {
-            maxRetries = 3
-        }
-    }
     outputs.upToDateWhen { false }
 }
 

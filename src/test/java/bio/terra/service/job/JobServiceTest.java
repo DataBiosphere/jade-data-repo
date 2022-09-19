@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.usermetrics.BardClient;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -26,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.hamcrest.Matcher;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -37,6 +39,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -70,6 +74,10 @@ public class JobServiceTest {
           .setToken("token")
           .build();
 
+  private final List<String> jobIds = new ArrayList<>();
+
+  @Autowired private StairwayJdbcConfiguration stairwayJdbcConfiguration;
+
   @Autowired private JobService jobService;
 
   @Autowired private ApplicationConfiguration appConfig;
@@ -89,6 +97,13 @@ public class JobServiceTest {
     when(samService.isAuthorized(
             adminUser, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.LIST_JOBS))
         .thenReturn(true);
+    jobIds.clear();
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    logger.info("Deleting {} jobs", jobIds.size());
+    jobIds.forEach(this::deleteJob);
   }
 
   @Test
@@ -282,6 +297,7 @@ public class JobServiceTest {
       String description, Class<? extends Flight> clazz, AuthenticatedUserRequest testUser) {
     String jobId = jobService.newJob(description, clazz, null, testUser).submit();
     jobService.waitForJob(jobId);
+    jobIds.add(jobId);
     return jobId;
   }
 
@@ -298,6 +314,7 @@ public class JobServiceTest {
             .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
             .submit();
     jobService.waitForJob(jobId);
+    jobIds.add(jobId);
     return jobId;
   }
 
@@ -307,5 +324,26 @@ public class JobServiceTest {
 
   private Class<? extends Flight> makeFlightClass(int ii) {
     return ii % 2 == 0 ? JobServiceTestFlight.class : JobServiceTestFlightAlt.class;
+  }
+
+  /**
+   * Would be great to have a method in stairway for this but in the meantime, adding this to the
+   * test code since we don't want this to ever run against a running instance
+   */
+  private void deleteJob(String jobId) {
+    logger.info("- Removing job {}", jobId);
+    NamedParameterJdbcTemplate jdbcTemplate =
+        new NamedParameterJdbcTemplate(stairwayJdbcConfiguration.getDataSource());
+
+    String sql =
+        """
+delete from flightworking where flightlog_id in (select id from flightlog where flightid=:id);
+delete from flightlog where flightid=:id;
+delete from flightinput where flightid=:id;
+delete from flight where flightid=:id;
+""";
+
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", jobId);
+    jdbcTemplate.update(sql, params);
   }
 }

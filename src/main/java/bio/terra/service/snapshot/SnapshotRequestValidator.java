@@ -126,18 +126,11 @@ public class SnapshotRequestValidator implements Validator {
     }
   }
 
-  private void validateSnapshotProfileId(UUID profileId, Errors errors) {
-    if (profileId == null) {
-      errors.rejectValue("profileId", "SnapshotMissingProfileId");
-    }
-  }
-
   @Override
   public void validate(@NotNull Object target, Errors errors) {
     if (target != null && target instanceof SnapshotRequestModel) {
       SnapshotRequestModel snapshotRequestModel = (SnapshotRequestModel) target;
       validateSnapshotName(snapshotRequestModel.getName(), errors);
-      validateSnapshotProfileId(snapshotRequestModel.getProfileId(), errors);
       validateSnapshotDescription(snapshotRequestModel.getDescription(), errors);
       validateSnapshotContents(snapshotRequestModel.getContents(), errors);
     }

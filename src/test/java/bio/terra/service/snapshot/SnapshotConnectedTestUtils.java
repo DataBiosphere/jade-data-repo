@@ -42,7 +42,10 @@ import org.stringtemplate.v4.ST;
 public class SnapshotConnectedTestUtils {
 
   static SnapshotRequestModel makeSnapshotTestRequest(
-      JsonLoader jsonLoader, DatasetSummaryModel datasetSummaryModel, String resourcePath)
+      JsonLoader jsonLoader,
+      DatasetSummaryModel datasetSummaryModel,
+      String resourcePath,
+      UUID profileId)
       throws Exception {
     SnapshotRequestModel snapshotRequest =
         jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
@@ -52,7 +55,8 @@ public class SnapshotConnectedTestUtils {
     String origDatasetName = content.getDatasetName();
     // swap in the correct dataset name (with the id at the end)
     content.setDatasetName(newDatasetName);
-    snapshotRequest.profileId(datasetSummaryModel.getDefaultProfileId());
+    // provide the profileId for the request.  The API does not require this value.
+    snapshotRequest.profileId(profileId);
     if (content.getMode().equals(SnapshotRequestContentsModel.ModeEnum.BYQUERY)) {
       // if its by query, also set swap in the correct dataset name in the query
       String query = content.getQuerySpec().getQuery();

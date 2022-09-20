@@ -57,7 +57,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/build
-          key: ${{ runner.os }}-build }}
+          key: ${{ runner.os }}-build-unit }}
       - name: "Run unit tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
         with:
@@ -94,7 +94,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/build
-          key: ${{ runner.os }}-build
+          key: ${{ runner.os }}-build-connected
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.2.0
         with:
@@ -120,7 +120,7 @@ jobs:
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_integration:
-    name: "Deploy an run smoke and integration tests"
+    name: "Run integration and smoke tests"
     timeout-minutes: 300
     needs: test_check
     strategy:
@@ -147,7 +147,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/build
-          key: ${{ runner.os }}-build
+          key: ${{ runner.os }}-build-integration
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.2.0
         with:
@@ -224,14 +224,22 @@ jobs:
         os: [ ubuntu-latest ]
     if: always()
     runs-on: ${{ matrix.os }}
-    ## skips if pr label is 'skip-ci'
-    # run a local Postgres container in Docker for the basic check tests
     steps:
-      - name: "Cache build"
+      - name: "Load unit test cache"
         uses: actions/cache@v2
         with:
           path: ~/build
-          key: ${{ runner.os }}-build
+          key: ${{ runner.os }}-build-unit
+      - name: "Load connected test cache"
+        uses: actions/cache@v2
+        with:
+          path: ~/build
+          key: ${{ runner.os }}-build-connected
+      - name: "Load integration test cache"
+        uses: actions/cache@v2
+        with:
+          path: ~/build
+          key: ${{ runner.os }}-build-integration
       - name: "Archive code coverage results"
         uses: actions/upload-artifact@v2
         with:

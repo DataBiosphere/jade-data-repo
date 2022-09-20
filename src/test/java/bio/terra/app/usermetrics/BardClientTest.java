@@ -141,9 +141,10 @@ public class BardClientTest {
         .thenReturn(responseEntity);
     when(bardClient.getSyncRestTemplate()).thenReturn(restTemplate);
 
-    // if the remote service returns something but a 2XX error, call sync on each request.
+    // if the remote service returns something other than a 2XX response, call sync on each request.
     assertFalse(bardClient.syncUser(user1));
     assertFalse(bardClient.syncUser(user2));
+
 
     // even when the calls continue to fail.
     assertFalse(bardClient.syncUser(user1));

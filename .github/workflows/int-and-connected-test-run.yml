@@ -121,7 +121,7 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_integration:
     name: "Deploy an run smoke and integration tests"
-    timeout-minutes: 210
+    timeout-minutes: 300
     needs: test_check
     strategy:
       matrix:
@@ -222,7 +222,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
+    if: always()
     runs-on: ${{ matrix.os }}
     ## skips if pr label is 'skip-ci'
     # run a local Postgres container in Docker for the basic check tests

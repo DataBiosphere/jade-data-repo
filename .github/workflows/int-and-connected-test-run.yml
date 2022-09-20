@@ -54,9 +54,9 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Cache build"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
-          path: ~/build
+          path: build
           key: ${{ runner.os }}-build-unit }}
       - name: "Run unit tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
@@ -91,9 +91,9 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Cache build"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
-          path: ~/build
+          path: build
           key: ${{ runner.os }}-build-connected
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.2.0
@@ -144,9 +144,9 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Cache build"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
-          path: ~/build
+          path: build
           key: ${{ runner.os }}-build-integration
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.2.0
@@ -226,19 +226,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: "Load unit test cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
-          path: ~/build
+          path: build
           key: ${{ runner.os }}-build-unit
       - name: "Load connected test cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
-          path: ~/build
+          path: build
           key: ${{ runner.os }}-build-connected
       - name: "Load integration test cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
-          path: ~/build
+          path: build
           key: ${{ runner.os }}-build-integration
       - name: "Archive code coverage results"
         uses: actions/upload-artifact@v2

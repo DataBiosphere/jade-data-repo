@@ -38,7 +38,6 @@ import bio.terra.stairway.exception.StairwayExecutionException;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -317,16 +316,16 @@ public class IngestDriverStep extends DefaultUndoStep {
 
   /** Add existing `key`-val pair from `context`'s input parameters to `flightMap`. */
   @VisibleForTesting
-  <T> void propagateContextToFlightMap(
+  static <T> void propagateContextToFlightMap(
       FlightContext context, FlightMap flightMap, String key, Class<T> paramType) {
-    Optional<T> maybeParam;
     try {
-      maybeParam = Optional.ofNullable(context.getInputParameters().get(key, paramType));
+      T param = context.getInputParameters().get(key, paramType);
+      if (param != null) {
+        flightMap.put(key, param);
+      }
     } catch (Exception ex) {
       logger.error("Unable to deserialize context input parameter value", ex);
-      maybeParam = Optional.empty();
     }
-    maybeParam.ifPresent(param -> flightMap.put(key, param));
   }
 
   private void launchLoads(

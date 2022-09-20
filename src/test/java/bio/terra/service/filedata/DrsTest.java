@@ -59,6 +59,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -159,6 +160,7 @@ public class DrsTest extends UsersBase {
   }
 
   @Test
+  @Ignore
   public void drsHackyTest() throws Exception {
     // Get a DRS ID from the dataset using the custodianToken.
     // Note: the reader does not have permission to run big query jobs anywhere.
@@ -268,6 +270,7 @@ public class DrsTest extends UsersBase {
   }
 
   @Test
+  @Ignore
   public void drsScaleTest() throws Exception {
     String failureMaxValue = "0";
     dataRepoFixtures.resetConfig(steward());
@@ -309,6 +312,7 @@ public class DrsTest extends UsersBase {
   }
 
   @Test
+  @Ignore
   public void testDrsErrorResponses() throws Exception {
     dataRepoFixtures.resetConfig(steward());
 

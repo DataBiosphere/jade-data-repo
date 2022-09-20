@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -87,8 +86,8 @@ public class BardClientTest {
     when(syncRestTemplate.exchange(
             eq(SYNC_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(responseEntity);
-    doReturn(apiRestTemplate).when(bardClient).getApiRestTemplate();
-    doReturn(syncRestTemplate).when(bardClient).getSyncRestTemplate();
+    when(bardClient.getApiRestTemplate()).thenReturn(apiRestTemplate);
+    when(bardClient.getSyncRestTemplate()).thenReturn(syncRestTemplate);
 
     logEventForUser(bardClient, user1);
 
@@ -115,7 +114,7 @@ public class BardClientTest {
     when(restTemplate.exchange(
             anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(responseEntity);
-    doReturn(restTemplate).when(bardClient).getSyncRestTemplate();
+    when(bardClient.getSyncRestTemplate()).thenReturn(restTemplate);
 
     // new users should be added to the cache.
     assertTrue(bardClient.syncUser(user1));
@@ -140,7 +139,7 @@ public class BardClientTest {
     when(restTemplate.exchange(
             anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(responseEntity);
-    doReturn(restTemplate).when(bardClient).getSyncRestTemplate();
+    when(bardClient.getSyncRestTemplate()).thenReturn(restTemplate);
 
     // if the remote service returns something but a 2XX error, call sync on each request.
     assertFalse(bardClient.syncUser(user1));

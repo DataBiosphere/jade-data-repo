@@ -145,7 +145,6 @@ public class BardClientTest {
     assertFalse(bardClient.syncUser(user1));
     assertFalse(bardClient.syncUser(user2));
 
-
     // even when the calls continue to fail.
     assertFalse(bardClient.syncUser(user1));
     assertFalse(bardClient.syncUser(user2));

@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.job.JobMapKeys;
@@ -59,6 +61,10 @@ public class IngestDriverStepTest extends TestCase {
 
   private static final String CHILD_FLIGHT_ID = "childFlightId";
 
+  private static final IamResourceType PARENT_RESOURCE_TYPE = IamResourceType.DATASET;
+  private static final String PARENT_RESOURCE_ID = UUID.randomUUID().toString();
+  private static final IamAction PARENT_RESOURCE_ACTION = IamAction.INGEST_DATA;
+
   private StepResult runTest(int maxFailedFileLoads) throws Exception {
     given(jobService.getActivePodCount()).willReturn(1);
     given(configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES)).willReturn(1);
@@ -88,8 +94,14 @@ public class IngestDriverStepTest extends TestCase {
     FlightMap workingMap = new FlightMap();
     workingMap.put(LoadMapKeys.LOAD_ID, loadUuid.toString());
 
+    FlightMap inputParameters = new FlightMap();
+    inputParameters.put(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), PARENT_RESOURCE_TYPE);
+    inputParameters.put(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), PARENT_RESOURCE_ID);
+    inputParameters.put(JobMapKeys.IAM_ACTION.getKeyName(), PARENT_RESOURCE_ACTION);
+
     when(flightContext.getFlightId()).thenReturn(PARENT_FLIGHT_ID);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    when(flightContext.getInputParameters()).thenReturn(inputParameters);
     when(flightContext.getStairway()).thenReturn(stairway);
 
     when(stairway.createFlightId()).thenReturn(CHILD_FLIGHT_ID);
@@ -117,10 +129,25 @@ public class IngestDriverStepTest extends TestCase {
     verify(stairway)
         .submitToQueue(
             eq(CHILD_FLIGHT_ID), eq(FileIngestWorkerFlight.class), inputParamsCaptor.capture());
+
+    // Verify that expected parent input parameters were propagated to the child flight.
+    FlightMap childInputParameters = inputParamsCaptor.getValue();
     assertThat(
         "Parent flight ID was passed as an input parameter to child flight",
-        inputParamsCaptor.getValue().get(JobMapKeys.PARENT_FLIGHT_ID.getKeyName(), String.class),
+        childInputParameters.get(JobMapKeys.PARENT_FLIGHT_ID.getKeyName(), String.class),
         equalTo(PARENT_FLIGHT_ID));
+    assertThat(
+        "Parent IamResourceType was passed as an input parameter to child flight",
+        childInputParameters.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class),
+        equalTo(PARENT_RESOURCE_TYPE));
+    assertThat(
+        "Parent resource ID was passed as an input parameter to child flight",
+        childInputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class),
+        equalTo(PARENT_RESOURCE_ID));
+    assertThat(
+        "Parent IamAction was passed as an input parameter to child flight",
+        childInputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class),
+        equalTo(PARENT_RESOURCE_ACTION));
   }
 
   @Test

@@ -315,11 +315,17 @@ public class IngestDriverStep extends DefaultUndoStep {
     return candidates;
   }
 
-  /** Add existing `key`-val pair from `context`'s input parameters to `flightMap`XS. */
+  /** Add existing `key`-val pair from `context`'s input parameters to `flightMap`. */
   @VisibleForTesting
   <T> void propagateContextToFlightMap(
       FlightContext context, FlightMap flightMap, String key, Class<T> paramType) {
-    Optional<T> maybeParam = Optional.ofNullable(context.getInputParameters().get(key, paramType));
+    Optional<T> maybeParam;
+    try {
+      maybeParam = Optional.ofNullable(context.getInputParameters().get(key, paramType));
+    } catch (Exception ex) {
+      logger.error("Unable to deserialize context input parameter value", ex);
+      maybeParam = Optional.empty();
+    }
     maybeParam.ifPresent(param -> flightMap.put(key, param));
   }
 

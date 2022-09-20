@@ -165,4 +165,44 @@ public class IngestDriverStepTest extends TestCase {
         .submitToQueue(
             eq(CHILD_FLIGHT_ID), eq(FileIngestWorkerFlight.class), inputParamsCaptor.capture());
   }
+
+  @Test
+  public void testPropagateContextToFlightMap() {
+    IngestDriverStep step =
+        new IngestDriverStep(
+            loadService,
+            configurationService,
+            jobService,
+            null,
+            null,
+            -1,
+            0,
+            null,
+            CloudPlatform.GCP,
+            null);
+
+    FlightContext flightContext = mock(FlightContext.class);
+    FlightMap inputParameters = new FlightMap();
+    inputParameters.put(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), PARENT_RESOURCE_TYPE);
+    when(flightContext.getInputParameters()).thenReturn(inputParameters);
+
+    FlightMap flightMap = new FlightMap();
+
+    step.propagateContextToFlightMap(
+        flightContext, flightMap, "not a key in flightContext.inputParameters", String.class);
+    assertThat("Missing value leaves new flight map unchanged", flightMap.isEmpty());
+
+    step.propagateContextToFlightMap(
+        flightContext, flightMap, JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamAction.class);
+    assertThat(
+        "Inability to deserialize value leaves new flight map unchanged", flightMap.isEmpty());
+
+    step.propagateContextToFlightMap(
+        flightContext, flightMap, JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
+    assertThat(flightMap.getMap().size(), equalTo(1));
+    assertThat(
+        "Value from context successfully propagated to new flight map",
+        flightMap.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class),
+        equalTo(PARENT_RESOURCE_TYPE));
+  }
 }

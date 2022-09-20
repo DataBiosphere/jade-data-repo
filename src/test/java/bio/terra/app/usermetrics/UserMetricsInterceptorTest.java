@@ -61,7 +61,7 @@ public class UserMetricsInterceptorTest {
   public void testSendEvent() throws Exception {
     mockRequestAuth(request);
 
-    runAnWait(request, response);
+    runAndWait(request, response);
 
     verify(bardClient, times(1))
         .logEvent(
@@ -85,7 +85,7 @@ public class UserMetricsInterceptorTest {
 
     mockRequestAuth(request);
 
-    runAnWait(request, response);
+    runAndWait(request, response);
 
     verify(bardClient, times(1))
         .logEvent(
@@ -109,7 +109,7 @@ public class UserMetricsInterceptorTest {
         .when(authenticatedUserRequestFactory)
         .from(any());
 
-    runAnWait(request, response);
+    runAndWait(request, response);
 
     verify(bardClient, times(0)).logEvent(any(), any());
   }
@@ -119,7 +119,7 @@ public class UserMetricsInterceptorTest {
     metricsConfig.setIgnorePaths(List.of("/foo/bar"));
     mockRequestAuth(request);
 
-    runAnWait(request, response);
+    runAndWait(request, response);
 
     verify(bardClient, times(0)).logEvent(any(), any());
   }
@@ -129,7 +129,7 @@ public class UserMetricsInterceptorTest {
     metricsConfig.setIgnorePaths(List.of("/foo/*"));
     mockRequestAuth(request);
 
-    runAnWait(request, response);
+    runAndWait(request, response);
 
     verify(bardClient, times(0)).logEvent(any(), any());
   }
@@ -139,7 +139,7 @@ public class UserMetricsInterceptorTest {
     when(request.getHeader("From")).thenReturn("me@me.me");
   }
 
-  private void runAnWait(HttpServletRequest request, HttpServletResponse response)
+  private void runAndWait(HttpServletRequest request, HttpServletResponse response)
       throws Exception {
     metricsInterceptor.afterCompletion(request, response, new Object(), null);
     // This waits for the threadpool to wrap up so that we can examine the results

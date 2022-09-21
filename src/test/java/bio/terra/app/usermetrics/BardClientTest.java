@@ -5,11 +5,10 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 import bio.terra.app.configuration.UserMetricsConfiguration;
 import bio.terra.common.category.Unit;
@@ -70,12 +69,7 @@ public class BardClientTest {
 
   @Test
   public void testBardClientLogEvent() {
-    BardClient bardClient =
-        mock(
-            BardClient.class,
-            withSettings()
-                .useConstructor(userMetricsConfiguration)
-                .defaultAnswer(CALLS_REAL_METHODS));
+    BardClient bardClient = spy(new BardClient(userMetricsConfiguration));
     RestTemplate apiRestTemplate = mock(RestTemplate.class);
     RestTemplate syncRestTemplate = mock(RestTemplate.class);
     ResponseEntity responseEntity = mock(ResponseEntity.class);
@@ -102,12 +96,7 @@ public class BardClientTest {
 
   @Test
   public void testBardClientSyncProfile_happy() {
-    BardClient bardClient =
-        mock(
-            BardClient.class,
-            withSettings()
-                .useConstructor(userMetricsConfiguration)
-                .defaultAnswer(CALLS_REAL_METHODS));
+    BardClient bardClient = spy(new BardClient(userMetricsConfiguration));
     RestTemplate restTemplate = mock(RestTemplate.class);
     ResponseEntity responseEntity = mock(ResponseEntity.class);
     when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
@@ -127,12 +116,7 @@ public class BardClientTest {
 
   @Test
   public void testBardClientSyncProfile_sad() {
-    BardClient bardClient =
-        mock(
-            BardClient.class,
-            withSettings()
-                .useConstructor(userMetricsConfiguration)
-                .defaultAnswer(CALLS_REAL_METHODS));
+    BardClient bardClient = spy(new BardClient(userMetricsConfiguration));
     RestTemplate restTemplate = mock(RestTemplate.class);
     ResponseEntity responseEntity = mock(ResponseEntity.class);
     when(responseEntity.getStatusCode()).thenReturn(HttpStatus.FORBIDDEN);

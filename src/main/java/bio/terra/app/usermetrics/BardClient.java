@@ -85,6 +85,7 @@ public class BardClient {
    * expired.
    *
    * @param userReq - the AuthenticatedUserRequest that represents the current user.
+   * @return boolean - Returns true if the cache was updated.  Only consumed by tests at this time.
    */
   boolean syncUser(AuthenticatedUserRequest userReq) {
     boolean updatedEntry = false;

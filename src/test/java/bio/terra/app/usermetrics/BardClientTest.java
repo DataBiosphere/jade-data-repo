@@ -65,37 +65,35 @@ public class BardClientTest {
   }
 
   @Test
-  public void testBardClientLogEvent_one_user_happy() {
+  public void testBardClientLogEvent_happy() {
     BardClient bardClient = spy(new BardClient(userMetricsConfiguration));
     RestTemplate apiRestTemplate = mock(RestTemplate.class);
-    RestTemplate syncRestTemplate = mock(RestTemplate.class);
     when(apiRestTemplate.exchange(
             eq(API_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(new ResponseEntity(HttpStatus.OK));
-    when(syncRestTemplate.exchange(
+    when(apiRestTemplate.exchange(
             eq(SYNC_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(new ResponseEntity(HttpStatus.OK));
-    when(bardClient.getApiRestTemplate()).thenReturn(apiRestTemplate);
-    when(bardClient.getSyncRestTemplate()).thenReturn(syncRestTemplate);
+    when(bardClient.getRestTemplate()).thenReturn(apiRestTemplate);
 
     logEventForUser(bardClient, user1);
 
-    verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 1);
+    verifyRestTemplatePathAndCount(apiRestTemplate, SYNC_PATH, 1);
     verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 1);
 
     logEventForUser(bardClient, user1);
 
-    verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 1);
+    verifyRestTemplatePathAndCount(apiRestTemplate, SYNC_PATH, 1);
     verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 2);
 
     logEventForUser(bardClient, user2);
 
-    verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 2);
+    verifyRestTemplatePathAndCount(apiRestTemplate, SYNC_PATH, 2);
     verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 3);
 
     logEventForUser(bardClient, user2);
 
-    verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 2);
+    verifyRestTemplatePathAndCount(apiRestTemplate, SYNC_PATH, 2);
     verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 4);
   }
 
@@ -103,24 +101,22 @@ public class BardClientTest {
   public void testBardClientLogEvent_sad_sync() {
     BardClient bardClient = spy(new BardClient(userMetricsConfiguration));
     RestTemplate apiRestTemplate = mock(RestTemplate.class);
-    RestTemplate syncRestTemplate = mock(RestTemplate.class);
     when(apiRestTemplate.exchange(
             eq(API_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(new ResponseEntity(HttpStatus.OK));
-    when(syncRestTemplate.exchange(
+    when(apiRestTemplate.exchange(
             eq(SYNC_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(new ResponseEntity(HttpStatus.FORBIDDEN));
-    when(bardClient.getApiRestTemplate()).thenReturn(apiRestTemplate);
-    when(bardClient.getSyncRestTemplate()).thenReturn(syncRestTemplate);
+    when(bardClient.getRestTemplate()).thenReturn(apiRestTemplate);
 
     logEventForUser(bardClient, user1);
 
-    verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 1);
+    verifyRestTemplatePathAndCount(apiRestTemplate, SYNC_PATH, 1);
     verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 1);
 
     logEventForUser(bardClient, user1);
 
-    verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 2);
+    verifyRestTemplatePathAndCount(apiRestTemplate, SYNC_PATH, 2);
     verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 2);
   }
 

@@ -31,7 +31,7 @@ public class BardClient {
 
   private final RestTemplate apiRestTemplate;
 
-  private final RestTemplate syncRestTemplate;
+  // private final RestTemplate syncRestTemplate;
   private final HttpHeaders headers;
 
   private static final int DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS = 3600;
@@ -42,8 +42,6 @@ public class BardClient {
   public BardClient(UserMetricsConfiguration metricsConfig) {
     this.apiRestTemplate = new RestTemplate();
     apiRestTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-    this.syncRestTemplate = new RestTemplate();
-    syncRestTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
 
     this.headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
@@ -64,7 +62,7 @@ public class BardClient {
     syncUser(userReq);
     try {
       ResponseEntity<Void> eventCall =
-          getApiRestTemplate()
+          getRestTemplate()
               .exchange(
                   metricsConfig.getBardBasePath() + "/api/event",
                   HttpMethod.POST,
@@ -104,7 +102,7 @@ public class BardClient {
     authedHeaders.setBearerAuth(userReq.getToken());
     try {
       ResponseEntity<Void> syncCall =
-          getSyncRestTemplate()
+          getRestTemplate()
               .exchange(
                   metricsConfig.getBardBasePath() + "/api/syncProfile",
                   HttpMethod.POST,
@@ -128,12 +126,7 @@ public class BardClient {
   }
 
   @VisibleForTesting
-  RestTemplate getApiRestTemplate() {
+  RestTemplate getRestTemplate() {
     return apiRestTemplate;
-  }
-
-  @VisibleForTesting
-  RestTemplate getSyncRestTemplate() {
-    return syncRestTemplate;
   }
 }

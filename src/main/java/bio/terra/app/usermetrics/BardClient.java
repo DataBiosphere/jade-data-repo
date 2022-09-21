@@ -29,9 +29,8 @@ public class BardClient {
 
   private final UserMetricsConfiguration metricsConfig;
 
-  private final RestTemplate apiRestTemplate;
+  private final RestTemplate restTemplate;
 
-  // private final RestTemplate syncRestTemplate;
   private final HttpHeaders headers;
 
   private static final int DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS = 3600;
@@ -40,8 +39,8 @@ public class BardClient {
 
   @Autowired
   public BardClient(UserMetricsConfiguration metricsConfig) {
-    this.apiRestTemplate = new RestTemplate();
-    apiRestTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+    this.restTemplate = new RestTemplate();
+    restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
 
     this.headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
@@ -127,6 +126,6 @@ public class BardClient {
 
   @VisibleForTesting
   RestTemplate getRestTemplate() {
-    return apiRestTemplate;
+    return restTemplate;
   }
 }

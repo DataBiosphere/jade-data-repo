@@ -4,6 +4,8 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.auth.iam.IamAction;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -33,6 +35,7 @@ import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DuplicateFlightIdException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayExecutionException;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -311,6 +314,20 @@ public class IngestDriverStep extends DefaultUndoStep {
     return candidates;
   }
 
+  /** Add existing `key`-val pair from `context`'s input parameters to `flightMap`. */
+  @VisibleForTesting
+  static <T> void propagateContextToFlightMap(
+      FlightContext context, FlightMap flightMap, String key, Class<T> paramType) {
+    try {
+      T param = context.getInputParameters().get(key, paramType);
+      if (param != null) {
+        flightMap.put(key, param);
+      }
+    } catch (Exception ex) {
+      logger.error("Unable to deserialize context input parameter value", ex);
+    }
+  }
+
   private void launchLoads(
       FlightContext context,
       AuthenticatedUserRequest userReq,
@@ -348,6 +365,17 @@ public class IngestDriverStep extends DefaultUndoStep {
       inputParameters.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
       inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
       inputParameters.put(JobMapKeys.PARENT_FLIGHT_ID.getKeyName(), context.getFlightId());
+
+      // Permissions to view child jobs are inherited from the parent:
+      propagateContextToFlightMap(
+          context,
+          inputParameters,
+          JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(),
+          IamResourceType.class);
+      propagateContextToFlightMap(
+          context, inputParameters, JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
+      propagateContextToFlightMap(
+          context, inputParameters, JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
 
       if (platform == CloudPlatform.AZURE) {
         AzureStorageAuthInfo storageAuthInfo =

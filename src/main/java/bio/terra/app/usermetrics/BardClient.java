@@ -34,7 +34,7 @@ public class BardClient {
   private final RestTemplate syncRestTemplate;
   private final HttpHeaders headers;
 
-  private static final int BEARER_TOKEN_CACHE_TIMEOUT_SECONDS = 3600;
+  private static final int DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS = 3600;
 
   private final Map<String, Object> bearerCache;
 
@@ -51,7 +51,8 @@ public class BardClient {
 
     int ttl =
         Objects.requireNonNullElse(
-            metricsConfig.getSyncRefreshInterval(), BEARER_TOKEN_CACHE_TIMEOUT_SECONDS);
+            metricsConfig.getSyncRefreshIntervalSeconds(),
+            DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS);
     this.bearerCache = Collections.synchronizedMap(new PassiveExpiringMap<>(ttl, TimeUnit.SECONDS));
 
     this.metricsConfig = metricsConfig;
@@ -88,11 +89,13 @@ public class BardClient {
   boolean syncUser(AuthenticatedUserRequest userReq) {
     boolean updatedEntry = false;
     String key = userReq.getToken();
-    if (!bearerCache.containsKey(key)) {
-      if (syncProfile(userReq)) {
-        // only cache the key if the sync request was successful.
-        bearerCache.put(key, null);
-        updatedEntry = true;
+    synchronized (bearerCache) {
+      if (!bearerCache.containsKey(key)) {
+        if (syncProfile(userReq)) {
+          // only cache the key if the sync request was successful.
+          bearerCache.put(key, null);
+          updatedEntry = true;
+        }
       }
     }
     return updatedEntry;

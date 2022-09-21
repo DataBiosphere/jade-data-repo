@@ -19,7 +19,7 @@ public class UserMetricsConfiguration {
   private String bardBasePath;
   private Integer metricsReportingPoolSize;
 
-  private Integer syncRefreshInterval;
+  private Integer syncRefreshIntervalSeconds;
   private List<String> ignorePaths;
 
   public String getAppId() {
@@ -42,16 +42,16 @@ public class UserMetricsConfiguration {
     return metricsReportingPoolSize;
   }
 
-  public Integer getSyncRefreshInterval() {
-    return syncRefreshInterval;
+  public Integer getSyncRefreshIntervalSeconds() {
+    return syncRefreshIntervalSeconds;
   }
 
   public void setMetricsReportingPoolSize(Integer metricsReportingPoolSize) {
     this.metricsReportingPoolSize = metricsReportingPoolSize;
   }
 
-  public void setSyncRefreshInterval(Integer syncRefreshInterval) {
-    this.syncRefreshInterval = syncRefreshInterval;
+  public void setSyncRefreshIntervalSeconds(Integer syncRefreshIntervalSeconds) {
+    this.syncRefreshIntervalSeconds = syncRefreshIntervalSeconds;
   }
 
   public List<String> getIgnorePaths() {

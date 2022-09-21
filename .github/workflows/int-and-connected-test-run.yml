@@ -12,6 +12,12 @@ env:
   AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
   JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
   RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
+  CACHE_PATHS: |
+    build/jacoco
+    build/reports
+    build/spotless
+    build/test-results
+    build/jacocoHtml
 on:
   pull_request:
     branches:
@@ -56,11 +62,7 @@ jobs:
       - name: "Cache build"
         uses: actions/cache@v3
         with:
-          path: |
-            build/jacoco
-            build/reports
-            build/spotless
-            build/test-results
+          path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-unit }}
       - name: "Run unit tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@dr-2757-nm-better-unit
@@ -97,11 +99,7 @@ jobs:
       - name: "Cache build"
         uses: actions/cache@v3
         with:
-          path: |
-            build/jacoco
-            build/reports
-            build/spotless
-            build/test-results
+          path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-connected
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.2.0
@@ -154,11 +152,7 @@ jobs:
       - name: "Cache build"
         uses: actions/cache@v3
         with:
-          path: |
-            build/jacoco
-            build/reports
-            build/spotless
-            build/test-results
+          path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-integration
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.2.0
@@ -240,29 +234,17 @@ jobs:
       - name: "Load unit test cache"
         uses: actions/cache@v3
         with:
-          path: |
-            build/jacoco
-            build/reports
-            build/spotless
-            build/test-results
+          path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-unit
       - name: "Load connected test cache"
         uses: actions/cache@v3
         with:
-          path: |
-            build/jacoco
-            build/reports
-            build/spotless
-            build/test-results
+          path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-connected
       - name: "Load integration test cache"
         uses: actions/cache@v3
         with:
-          path: |
-            build/jacoco
-            build/reports
-            build/spotless
-            build/test-results
+          path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-build-integration
       - name: "Archive code coverage results"
         uses: actions/upload-artifact@v2
@@ -274,7 +256,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: always()
         with:
-          name: junit-test-report-integration
+          name: junit-test-reports
           path: build/reports
           retention-days: 10
       - name: "Notify Jade Slack on nightly test run"

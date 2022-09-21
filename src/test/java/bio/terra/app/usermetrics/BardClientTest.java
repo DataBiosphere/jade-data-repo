@@ -1,9 +1,6 @@
 package bio.terra.app.usermetrics;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -68,18 +65,16 @@ public class BardClientTest {
   }
 
   @Test
-  public void testBardClientLogEvent() {
+  public void testBardClientLogEvent_one_user_happy() {
     BardClient bardClient = spy(new BardClient(userMetricsConfiguration));
     RestTemplate apiRestTemplate = mock(RestTemplate.class);
     RestTemplate syncRestTemplate = mock(RestTemplate.class);
-    ResponseEntity responseEntity = mock(ResponseEntity.class);
-    when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
     when(apiRestTemplate.exchange(
             eq(API_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
-        .thenReturn(responseEntity);
+        .thenReturn(new ResponseEntity(HttpStatus.OK));
     when(syncRestTemplate.exchange(
             eq(SYNC_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
-        .thenReturn(responseEntity);
+        .thenReturn(new ResponseEntity(HttpStatus.OK));
     when(bardClient.getApiRestTemplate()).thenReturn(apiRestTemplate);
     when(bardClient.getSyncRestTemplate()).thenReturn(syncRestTemplate);
 
@@ -92,46 +87,41 @@ public class BardClientTest {
 
     verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 1);
     verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 2);
+
+    logEventForUser(bardClient, user2);
+
+    verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 2);
+    verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 3);
+
+    logEventForUser(bardClient, user2);
+
+    verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 2);
+    verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 4);
   }
 
   @Test
-  public void testBardClientSyncProfile_happy() {
+  public void testBardClientLogEvent_sad_sync() {
     BardClient bardClient = spy(new BardClient(userMetricsConfiguration));
-    RestTemplate restTemplate = mock(RestTemplate.class);
-    ResponseEntity responseEntity = mock(ResponseEntity.class);
-    when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
-    when(restTemplate.exchange(
-            anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
-        .thenReturn(responseEntity);
-    when(bardClient.getSyncRestTemplate()).thenReturn(restTemplate);
+    RestTemplate apiRestTemplate = mock(RestTemplate.class);
+    RestTemplate syncRestTemplate = mock(RestTemplate.class);
+    when(apiRestTemplate.exchange(
+            eq(API_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
+        .thenReturn(new ResponseEntity(HttpStatus.OK));
+    when(syncRestTemplate.exchange(
+            eq(SYNC_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
+        .thenReturn(new ResponseEntity(HttpStatus.FORBIDDEN));
+    when(bardClient.getApiRestTemplate()).thenReturn(apiRestTemplate);
+    when(bardClient.getSyncRestTemplate()).thenReturn(syncRestTemplate);
 
-    // new users should be added to the cache.
-    assertTrue(bardClient.syncUser(user1));
-    assertTrue(bardClient.syncUser(user2));
+    logEventForUser(bardClient, user1);
 
-    // if the users are in the cache, they shouldn't be added again.
-    assertFalse(bardClient.syncUser(user1));
-    assertFalse(bardClient.syncUser(user2));
-  }
+    verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 1);
+    verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 1);
 
-  @Test
-  public void testBardClientSyncProfile_sad() {
-    BardClient bardClient = spy(new BardClient(userMetricsConfiguration));
-    RestTemplate restTemplate = mock(RestTemplate.class);
-    ResponseEntity responseEntity = mock(ResponseEntity.class);
-    when(responseEntity.getStatusCode()).thenReturn(HttpStatus.FORBIDDEN);
-    when(restTemplate.exchange(
-            anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
-        .thenReturn(responseEntity);
-    when(bardClient.getSyncRestTemplate()).thenReturn(restTemplate);
+    logEventForUser(bardClient, user1);
 
-    // if the remote service returns something other than a 2XX response, call sync on each request.
-    assertFalse(bardClient.syncUser(user1));
-    assertFalse(bardClient.syncUser(user2));
-
-    // even when the calls continue to fail.
-    assertFalse(bardClient.syncUser(user1));
-    assertFalse(bardClient.syncUser(user2));
+    verifyRestTemplatePathAndCount(syncRestTemplate, SYNC_PATH, 2);
+    verifyRestTemplatePathAndCount(apiRestTemplate, API_PATH, 2);
   }
 
   private void verifyRestTemplatePathAndCount(RestTemplate template, String path, int count) {

@@ -36,7 +36,7 @@ public class BardClient {
 
   private static final int DEFAULT_BEARER_TOKEN_CACHE_TIMEOUT_SECONDS = 3600;
 
-  private final Map<String, Object> bearerCache;
+  private final Map<String, String> bearerCache;
 
   @Autowired
   public BardClient(UserMetricsConfiguration metricsConfig) {
@@ -85,21 +85,10 @@ public class BardClient {
    * expired.
    *
    * @param userReq - the AuthenticatedUserRequest that represents the current user.
-   * @return boolean - Returns true if the cache was updated. Only consumed by tests at this time.
    */
-  boolean syncUser(AuthenticatedUserRequest userReq) {
-    boolean updatedEntry = false;
+  private void syncUser(AuthenticatedUserRequest userReq) {
     String key = userReq.getToken();
-    synchronized (bearerCache) {
-      if (!bearerCache.containsKey(key)) {
-        if (syncProfile(userReq)) {
-          // only cache the key if the sync request was successful.
-          bearerCache.put(key, null);
-          updatedEntry = true;
-        }
-      }
-    }
-    return updatedEntry;
+    bearerCache.computeIfAbsent(key, k -> syncProfile(userReq) ? "" : null);
   }
 
   /**

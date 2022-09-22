@@ -58,24 +58,24 @@ public class JobsApiControllerTest {
 
   @Test
   public void testEnumerateJobs() throws Exception {
-    when(jobService.enumerateJobs(anyInt(), anyInt(), any(), any(), any()))
+    when(jobService.enumerateJobs(anyInt(), anyInt(), any(), any(), any(), any()))
         .thenReturn(List.of(JOB_1, JOB_2));
     mvc.perform(get(ENUMERATE_JOBS_ENDPOINT))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2));
     verify(jobService, times(1))
-        .enumerateJobs(eq(0), eq(10), any(), eq(SqlSortDirection.DESC), isNull());
+        .enumerateJobs(eq(0), eq(10), any(), eq(SqlSortDirection.DESC), isNull(), any());
   }
 
   @Test
   public void testEnumerateJobsWithFilter() throws Exception {
-    when(jobService.enumerateJobs(anyInt(), anyInt(), any(), any(), any()))
+    when(jobService.enumerateJobs(anyInt(), anyInt(), any(), any(), any(), any()))
         .thenReturn(List.of(JOB_1, JOB_2));
     mvc.perform(get(ENUMERATE_JOBS_ENDPOINT).queryParam("className", FLIGHT_CLASS))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2));
     verify(jobService, times(1))
-        .enumerateJobs(eq(0), eq(10), any(), eq(SqlSortDirection.DESC), eq(FLIGHT_CLASS));
+        .enumerateJobs(eq(0), eq(10), any(), eq(SqlSortDirection.DESC), eq(FLIGHT_CLASS), any());
   }
 
   @Test

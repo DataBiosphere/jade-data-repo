@@ -118,20 +118,20 @@ public class JobServiceTest {
     // Retrieve everything
     assertThat(
         "retrieve everything",
-        jobService.enumerateJobs(0, 100, testUser, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(0, 100, testUser, SqlSortDirection.ASC, "", null),
         contains(getJobMatchers(expectedJobs)));
 
     // Retrieve the middle 3; offset means skip 2 rows
     assertThat(
         "retrieve the middle three",
-        jobService.enumerateJobs(2, 3, testUser, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(2, 3, testUser, SqlSortDirection.ASC, "", null),
         contains(getJobMatchers(expectedJobs.subList(2, 5))));
 
     // Retrieve in descending order and filtering to the even (JobServiceTestFlight) flights
     assertThat(
         "retrieve descending and alternating",
         jobService.enumerateJobs(
-            0, 4, null, SqlSortDirection.DESC, JobServiceTestFlight.class.getName()),
+            0, 4, null, SqlSortDirection.DESC, JobServiceTestFlight.class.getName(), null),
         contains(
             getJobMatcher(expectedJobs.get(6)),
             getJobMatcher(expectedJobs.get(4)),
@@ -141,13 +141,13 @@ public class JobServiceTest {
     // Retrieve from the end; should only get the last one back
     assertThat(
         "retrieve from the end",
-        jobService.enumerateJobs(6, 3, testUser, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(6, 3, testUser, SqlSortDirection.ASC, "", null),
         contains(getJobMatcher((expectedJobs.get(6)))));
 
     // Retrieve past the end; should get nothing
     assertThat(
         "retrieve from the end",
-        jobService.enumerateJobs(22, 3, testUser, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(22, 3, testUser, SqlSortDirection.ASC, "", null),
         is(List.of()));
   }
 
@@ -157,10 +157,13 @@ public class JobServiceTest {
     // The fids list should be in exactly the same order as the database ordered by submit time.
 
     // Launch 2 jobs that are not visible to the test user
+    List<String> privateJobIds = new ArrayList<>();
     UUID privateDatasetId = UUID.randomUUID();
     for (int i = 0; i < 2; i++) {
-      runFlightWithParameters(
-          makeDescription(i), makeFlightClass(i), testUser, String.valueOf(privateDatasetId));
+      String jobId =
+          runFlightWithParameters(
+              makeDescription(i), makeFlightClass(i), testUser, String.valueOf(privateDatasetId));
+      privateJobIds.add(jobId);
     }
     when(samService.listActions(
             testUser2, IamResourceType.DATASET, String.valueOf(privateDatasetId)))
@@ -168,7 +171,7 @@ public class JobServiceTest {
 
     assertEquals(
         "no jobs are visible",
-        jobService.enumerateJobs(0, 100, testUser2, SqlSortDirection.ASC, "").size(),
+        jobService.enumerateJobs(0, 100, testUser2, SqlSortDirection.ASC, "", null).size(),
         0);
 
     // Launch 2 jobs that are visible to the test user
@@ -207,41 +210,50 @@ public class JobServiceTest {
 
     assertThat(
         "shared and user-launched jobs are visible",
-        jobService.enumerateJobs(0, 100, testUser2, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(0, 100, testUser2, SqlSortDirection.ASC, "", null),
         contains(getJobMatchers(accessibleJobs)));
 
     // Retrieve the middle 3; offset means skip 2 rows
     assertThat(
         "retrieve the middle three",
-        jobService.enumerateJobs(2, 3, testUser2, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(2, 3, testUser2, SqlSortDirection.ASC, "", null),
         contains(getJobMatchers(accessibleJobs.subList(2, 5))));
 
     // Retrieve in descending order and filtering to the even (JobServiceTestFlight) flights
     assertThat(
         "retrieve descending and alternating",
         jobService.enumerateJobs(
-            0, 4, testUser2, SqlSortDirection.DESC, JobServiceTestFlight.class.getName()),
+            0, 4, testUser2, SqlSortDirection.DESC, JobServiceTestFlight.class.getName(), null),
         contains(
             getJobMatcher(accessibleJobs.get(6)),
             getJobMatcher(accessibleJobs.get(4)),
             getJobMatcher(accessibleJobs.get(2)),
             getJobMatcher(accessibleJobs.get(0))));
 
+    // Filter by jobIds
+    List<String> jobIds =
+        List.of(privateJobIds.get(0), accessibleJobs.get(0).getId(), accessibleJobs.get(2).getId());
+    assertThat(
+        "filter by jobIds only returns accessible jobs",
+        jobService.enumerateJobs(
+            0, 100, testUser2, SqlSortDirection.ASC, JobServiceTestFlight.class.getName(), jobIds),
+        contains(getJobMatcher(accessibleJobs.get(0)), getJobMatcher(accessibleJobs.get(2))));
+
     // Retrieve from the end; should only get the last one back
     assertThat(
         "retrieve from the end",
-        jobService.enumerateJobs(6, 3, testUser2, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(6, 3, testUser2, SqlSortDirection.ASC, "", null),
         contains(getJobMatcher((accessibleJobs.get(6)))));
 
     // Retrieve past the end; should get nothing
     assertThat(
         "retrieve from the end",
-        jobService.enumerateJobs(22, 3, testUser2, SqlSortDirection.ASC, ""),
+        jobService.enumerateJobs(22, 3, testUser2, SqlSortDirection.ASC, "", null),
         is(List.of()));
 
     assertEquals(
         "admin user can list all jobs",
-        jobService.enumerateJobs(0, 100, adminUser, SqlSortDirection.ASC, "").size(),
+        jobService.enumerateJobs(0, 100, adminUser, SqlSortDirection.ASC, "", null).size(),
         9);
   }
 

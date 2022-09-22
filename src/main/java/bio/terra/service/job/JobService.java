@@ -31,9 +31,9 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -306,25 +306,23 @@ public class JobService {
       filter.addFilterFlightClass(FlightFilterOp.EQUAL, className);
     }
 
+    HashSet<String> jobIdSet = new HashSet<>(ListUtils.emptyIfNull(jobIds));
     List<FlightState> flightStateList;
     boolean canListAnyJob = checkUserCanListAnyJob(userReq);
     try {
       if (canListAnyJob) {
         flightStateList = stairway.getFlights(offset, limit, filter);
+        if (!jobIdSet.isEmpty()) {
+          flightStateList =
+              flightStateList.stream()
+                  .filter(flightState -> jobIdSet.contains(flightState.getFlightId()))
+                  .collect(Collectors.toList());
+        }
       } else {
-        flightStateList = getAccessibleFlights(offset, limit, filter, userReq);
+        flightStateList = getAccessibleFlights(offset, limit, filter, userReq, jobIdSet);
       }
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
-    }
-
-    // Filter on job ids if specified
-    HashSet<String> jobIdSet = new HashSet<>(ListUtils.emptyIfNull(jobIds));
-    if (!jobIdSet.isEmpty()) {
-      flightStateList =
-          flightStateList.stream()
-              .filter(flightState -> jobIdSet.contains(flightState.getFlightId()))
-              .collect(Collectors.toList());
     }
 
     return flightStateList.stream()
@@ -333,7 +331,11 @@ public class JobService {
   }
 
   private List<FlightState> getAccessibleFlights(
-      int offset, int limit, FlightFilter filter, AuthenticatedUserRequest userReq)
+      int offset,
+      int limit,
+      FlightFilter filter,
+      AuthenticatedUserRequest userReq,
+      HashSet<String> jobIdSet)
       throws InterruptedException {
     int start = 0;
     int end = offset + limit;
@@ -346,7 +348,7 @@ public class JobService {
       }
       filterResults.forEach(
           flightState -> {
-            if (userLaunchedFlight(flightState, userReq)) {
+            if (userLaunchedFlight(flightState, userReq) && includeFlight(flightState, jobIdSet)) {
               flightStateList.add(flightState);
             } else {
               FlightMap inputParameters = flightState.getInputParameters();
@@ -364,7 +366,7 @@ public class JobService {
                   userRoles = samService.listActions(userReq, resourceType, resourceId);
                   roleMap.put(key, userRoles);
                 }
-                if (userRoles.contains(action.toString())) {
+                if (userRoles.contains(action.toString()) && includeFlight(flightState, jobIdSet)) {
                   flightStateList.add(flightState);
                 }
               }
@@ -379,6 +381,10 @@ public class JobService {
       return flightStateList.subList(offset, flightStateList.size());
     }
     return flightStateList.subList(offset, offset + limit);
+  }
+
+  private boolean includeFlight(FlightState flightState, HashSet<String> jobIdSet) {
+    return jobIdSet.isEmpty() || jobIdSet.contains(flightState.getFlightId());
   }
 
   private boolean userLaunchedFlight(FlightState flightState, AuthenticatedUserRequest userReq) {

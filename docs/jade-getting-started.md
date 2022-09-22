@@ -248,7 +248,7 @@ helm list --namespace ZZ
    `https://jade-ZZ.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
 
 6. Connect to your new dev postgres database instance:
-   Note that this is a different instance than the local one you will configure in [step 10](#10-install-postgres-12).
+   Note that this is a different instance than the local one you will configure in [step 10](#10-install-postgres-11).
    The following command connects to the database via a proxy.
 
 ```
@@ -263,7 +263,7 @@ DB=datarepo-ZZ SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
 create extension pgcrypto;
 ```
 
-## 10. Install Postgres 12
+## 10. Install Postgres 11
 
 [Postgres](https://www.postgresql.org/) is an advanced open-source database.
 **Postgres.app** is used to manage a local installation of Postgres.
@@ -271,10 +271,10 @@ The latest release can be found on the [GitHub releases](https://github.com/Post
 page.
 For compatibility, make sure to select a version which supports
 all the older versions of Postgres including 9.6.
-After launching the application, create a new version 12 database as follows:
+After launching the application, create a new version 11 database as follows:
 
 1. Click the sidebar icon (bottom left-hand corner) and then click the plus sign
-2. Name the new server, making sure to select version **12**, and then
+2. Name the new server, making sure to select version **11**, and then
 **Initialize** it
 3. Add `/Applications/Postgres.app/Contents/Versions/latest/bin` to your path
 (there are multiple ways to achieve this)

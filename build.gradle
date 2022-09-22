@@ -511,7 +511,7 @@ task testConnected(type: Test) {
             maxRetries = 2
         }
     }
-    maxParallelForks = 2
+    maxParallelForks = 4
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"
 }
@@ -532,7 +532,7 @@ task testIntegration(type: Test) {
             maxRetries = 2
         }
     }
-    maxParallelForks = 2
+    maxParallelForks = 8
     outputs.upToDateWhen { false }
 }
 

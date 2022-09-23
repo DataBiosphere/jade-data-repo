@@ -134,6 +134,7 @@ public class BardClient {
     return metricsConfig.getBardBasePath() + API_PATH;
   }
 
+  @VisibleForTesting
   String getSyncPathURL() {
     return metricsConfig.getBardBasePath() + SYNC_PATH;
   }

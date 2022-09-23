@@ -37,6 +37,9 @@ public class BardClient {
 
   private final Map<String, String> bearerCache;
 
+  private static final String API_PATH = "/api/event";
+  private static final String SYNC_PATH = "/api/syncProfile";
+
   @Autowired
   public BardClient(UserMetricsConfiguration metricsConfig) {
     this.restTemplate = new RestTemplate();
@@ -63,10 +66,7 @@ public class BardClient {
       ResponseEntity<Void> eventCall =
           getRestTemplate()
               .exchange(
-                  metricsConfig.getBardBasePath() + "/api/event",
-                  HttpMethod.POST,
-                  new HttpEntity<>(event, authedHeaders),
-                  Void.class);
+                  getApiURL(), HttpMethod.POST, new HttpEntity<>(event, authedHeaders), Void.class);
       if (!eventCall.getStatusCode().is2xxSuccessful()) {
         logger.warn(
             "Error logging event {}%n{}",
@@ -103,7 +103,7 @@ public class BardClient {
       ResponseEntity<Void> syncCall =
           getRestTemplate()
               .exchange(
-                  metricsConfig.getBardBasePath() + "/api/syncProfile",
+                  getSyncPathURL(),
                   HttpMethod.POST,
                   new HttpEntity<>(null, authedHeaders),
                   Void.class);
@@ -127,5 +127,14 @@ public class BardClient {
   @VisibleForTesting
   RestTemplate getRestTemplate() {
     return restTemplate;
+  }
+
+  @VisibleForTesting
+  String getApiURL() {
+    return metricsConfig.getBardBasePath() + API_PATH;
+  }
+
+  String getSyncPathURL() {
+    return metricsConfig.getBardBasePath() + SYNC_PATH;
   }
 }

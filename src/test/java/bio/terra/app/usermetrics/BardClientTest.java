@@ -45,10 +45,23 @@ public class BardClientTest {
 
   private String API_PATH;
 
+  private BardClient bardClient;
+
+  private RestTemplate restTemplate;
+
   @Before
   public void setup() {
-    SYNC_PATH = userMetricsConfiguration.getBardBasePath() + "/api/syncProfile";
-    API_PATH = userMetricsConfiguration.getBardBasePath() + "/api/event";
+    bardClient = spy(new BardClient(userMetricsConfiguration));
+    restTemplate = mock(RestTemplate.class);
+
+    when(restTemplate.exchange(
+            eq(bardClient.getApiURL()), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
+        .thenReturn(new ResponseEntity(HttpStatus.OK));
+    when(bardClient.getRestTemplate()).thenReturn(restTemplate);
+
+    API_PATH = bardClient.getApiURL();
+    SYNC_PATH = bardClient.getSyncPathURL();
+
     user1 =
         AuthenticatedUserRequest.builder()
             .setSubjectId("Bob")
@@ -66,15 +79,9 @@ public class BardClientTest {
 
   @Test
   public void testBardClientLogEvent_happy() {
-    BardClient bardClient = spy(new BardClient(userMetricsConfiguration));
-    RestTemplate restTemplate = mock(RestTemplate.class);
-    when(restTemplate.exchange(
-            eq(API_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
-        .thenReturn(new ResponseEntity(HttpStatus.OK));
     when(restTemplate.exchange(
             eq(SYNC_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(new ResponseEntity(HttpStatus.OK));
-    when(bardClient.getRestTemplate()).thenReturn(restTemplate);
 
     logEventForUser(bardClient, user1);
 
@@ -99,15 +106,9 @@ public class BardClientTest {
 
   @Test
   public void testBardClientLogEvent_sad_sync() {
-    BardClient bardClient = spy(new BardClient(userMetricsConfiguration));
-    RestTemplate restTemplate = mock(RestTemplate.class);
-    when(restTemplate.exchange(
-            eq(API_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
-        .thenReturn(new ResponseEntity(HttpStatus.OK));
     when(restTemplate.exchange(
             eq(SYNC_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(new ResponseEntity(HttpStatus.FORBIDDEN));
-    when(bardClient.getRestTemplate()).thenReturn(restTemplate);
 
     logEventForUser(bardClient, user1);
 

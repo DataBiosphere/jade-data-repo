@@ -38,6 +38,7 @@ plugins {
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
     id "jacoco"
     id "com.diffplug.spotless" version "6.7.1"
+    id "com.dorongold.task-tree" version "2.1.0"
 }
 
 allprojects {
@@ -492,11 +493,6 @@ test {
         includeCategories 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
-    retry {
-        if (isCiServer) {
-           maxRetries = 3
-        }
-    }
     maxParallelForks = 2
 }
 
@@ -515,7 +511,7 @@ task testConnected(type: Test) {
             maxRetries = 2
         }
     }
-    maxParallelForks = 2
+    maxParallelForks = 4
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"
 }
@@ -536,7 +532,7 @@ task testIntegration(type: Test) {
             maxRetries = 2
         }
     }
-    maxParallelForks = 2
+    maxParallelForks = 8
     outputs.upToDateWhen { false }
 }
 
@@ -545,11 +541,6 @@ task testUnit(type: Test) {
         includeCategories 'bio.terra.common.category.Unit'
     }
     maxParallelForks = 2
-    retry {
-        if (isCiServer) {
-            maxRetries = 3
-        }
-    }
     outputs.upToDateWhen { false }
 }
 

@@ -33,14 +33,12 @@ import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -338,8 +336,8 @@ public class JobService {
       }
       filterResults.forEach(
           flightState -> {
-            if ((canListAnyJob || userLaunchedFlight(flightState, userReq)) &&
-                jobIdSet.contains(flightState.getFlightId())) {
+            if ((canListAnyJob || userLaunchedFlight(flightState, userReq))
+                && jobIdSet.contains(flightState.getFlightId())) {
               flightStateList.add(flightState);
             } else {
               FlightMap inputParameters = flightState.getInputParameters();
@@ -357,8 +355,8 @@ public class JobService {
                   userRoles = samService.listActions(userReq, resourceType, resourceId);
                   roleMap.put(key, userRoles);
                 }
-                if (userRoles.contains(action.toString()) &&
-                    jobIdSet.contains(flightState.getFlightId())) {
+                if (userRoles.contains(action.toString())
+                    && jobIdSet.contains(flightState.getFlightId())) {
                   flightStateList.add(flightState);
                 }
               }

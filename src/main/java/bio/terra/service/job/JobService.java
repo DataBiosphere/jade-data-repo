@@ -348,7 +348,8 @@ public class JobService {
       }
       filterResults.forEach(
           flightState -> {
-            if (userLaunchedFlight(flightState, userReq) && includeFlight(flightState, jobIdSet)) {
+            if (userLaunchedFlight(flightState, userReq) &&
+                jobIdSet.contains(flightState.getFlightId())) {
               flightStateList.add(flightState);
             } else {
               FlightMap inputParameters = flightState.getInputParameters();
@@ -366,7 +367,8 @@ public class JobService {
                   userRoles = samService.listActions(userReq, resourceType, resourceId);
                   roleMap.put(key, userRoles);
                 }
-                if (userRoles.contains(action.toString()) && includeFlight(flightState, jobIdSet)) {
+                if (userRoles.contains(action.toString()) &&
+                    jobIdSet.contains(flightState.getFlightId())) {
                   flightStateList.add(flightState);
                 }
               }
@@ -381,10 +383,6 @@ public class JobService {
       return flightStateList.subList(offset, flightStateList.size());
     }
     return flightStateList.subList(offset, offset + limit);
-  }
-
-  private boolean includeFlight(FlightState flightState, Set<String> jobIdSet) {
-    return jobIdSet.contains(flightState.getFlightId());
   }
 
   private boolean userLaunchedFlight(FlightState flightState, AuthenticatedUserRequest userReq) {

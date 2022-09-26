@@ -308,19 +308,8 @@ public class JobService {
     }
 
     List<FlightState> flightStateList;
-    boolean canListAnyJob = checkUserCanListAnyJob(userReq);
     try {
-      if (canListAnyJob) {
-        flightStateList = stairway.getFlights(offset, limit, filter);
-        if (!jobIdSet.isEmpty()) {
-          flightStateList =
-              flightStateList.stream()
-                  .filter(flightState -> jobIdSet.contains(flightState.getFlightId()))
-                  .collect(Collectors.toList());
-        }
-      } else {
-        flightStateList = getAccessibleFlights(offset, limit, filter, userReq, jobIdSet);
-      }
+      flightStateList = getAccessibleFlights(offset, limit, filter, userReq, jobIdSet);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -339,6 +328,7 @@ public class JobService {
       throws InterruptedException {
     int start = 0;
     int end = offset + limit;
+    boolean canListAnyJob = checkUserCanListAnyJob(userReq);
     HashMap<String, List<String>> roleMap = new HashMap<>();
     ArrayList<FlightState> flightStateList = new ArrayList<>();
     while (flightStateList.size() < offset + limit) {
@@ -348,7 +338,7 @@ public class JobService {
       }
       filterResults.forEach(
           flightState -> {
-            if (userLaunchedFlight(flightState, userReq) &&
+            if ((canListAnyJob || userLaunchedFlight(flightState, userReq)) &&
                 jobIdSet.contains(flightState.getFlightId())) {
               flightStateList.add(flightState);
             } else {

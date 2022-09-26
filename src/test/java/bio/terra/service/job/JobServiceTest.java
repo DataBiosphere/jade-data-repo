@@ -24,6 +24,7 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.exception.StairwayException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.hamcrest.Matcher;
 import org.junit.Before;
@@ -231,8 +232,8 @@ public class JobServiceTest {
             getJobMatcher(accessibleJobs.get(0))));
 
     // Filter by jobIds
-    List<String> jobIds =
-        List.of(privateJobIds.get(0), accessibleJobs.get(0).getId(), accessibleJobs.get(2).getId());
+    Set<String> jobIds =
+        Set.of(privateJobIds.get(0), accessibleJobs.get(0).getId(), accessibleJobs.get(2).getId());
     assertThat(
         "filter by jobIds only returns accessible jobs",
         jobService.enumerateJobs(

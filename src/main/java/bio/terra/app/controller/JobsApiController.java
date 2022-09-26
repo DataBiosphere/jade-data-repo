@@ -17,9 +17,13 @@ import bio.terra.service.snapshot.SnapshotRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
+import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,9 +104,10 @@ public class JobsApiController implements JobsApi {
       String className,
       List<String> jobIds) {
     validateOffsetAndLimit(offset, limit);
+    Set<String> jobIdSet = new HashSet<>(Objects.requireNonNullElse(jobIds, List.of()));
     List<JobModel> results =
         jobService.enumerateJobs(
-            offset, limit, getAuthenticatedInfo(), direction, className, jobIds);
+            offset, limit, getAuthenticatedInfo(), direction, className, jobIdSet);
     return new ResponseEntity<>(results, HttpStatus.OK);
   }
 

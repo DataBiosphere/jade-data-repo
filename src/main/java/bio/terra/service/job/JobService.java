@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -284,7 +285,7 @@ public class JobService {
       AuthenticatedUserRequest userReq,
       SqlSortDirection direction,
       String className,
-      List<String> jobIds) {
+      Set<String> jobIdSet) {
 
     // if the user has access to all jobs, then fetch everything
     // otherwise, filter the jobs on the user
@@ -306,7 +307,6 @@ public class JobService {
       filter.addFilterFlightClass(FlightFilterOp.EQUAL, className);
     }
 
-    HashSet<String> jobIdSet = new HashSet<>(ListUtils.emptyIfNull(jobIds));
     List<FlightState> flightStateList;
     boolean canListAnyJob = checkUserCanListAnyJob(userReq);
     try {
@@ -335,7 +335,7 @@ public class JobService {
       int limit,
       FlightFilter filter,
       AuthenticatedUserRequest userReq,
-      HashSet<String> jobIdSet)
+      Set<String> jobIdSet)
       throws InterruptedException {
     int start = 0;
     int end = offset + limit;
@@ -383,8 +383,8 @@ public class JobService {
     return flightStateList.subList(offset, offset + limit);
   }
 
-  private boolean includeFlight(FlightState flightState, HashSet<String> jobIdSet) {
-    return jobIdSet.isEmpty() || jobIdSet.contains(flightState.getFlightId());
+  private boolean includeFlight(FlightState flightState, Set<String> jobIdSet) {
+    return jobIdSet.contains(flightState.getFlightId());
   }
 
   private boolean userLaunchedFlight(FlightState flightState, AuthenticatedUserRequest userReq) {

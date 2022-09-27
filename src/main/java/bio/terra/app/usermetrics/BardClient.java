@@ -116,10 +116,7 @@ public class BardClient {
       }
     } catch (Exception e) {
       logger.warn(
-          "Unable to sync profile for user {} token {} because {}",
-          userReq.getEmail(),
-          userReq.getToken(),
-          e.getMessage());
+          "Unable to sync profile for user {} because {}", userReq.getEmail(), e.getMessage());
     }
     return result;
   }

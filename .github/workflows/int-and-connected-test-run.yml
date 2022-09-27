@@ -41,7 +41,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ubuntu-latest]
     if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
     runs-on: ${{ matrix.os }}
     ## skips if pr label is 'skip-ci'
@@ -183,7 +183,7 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.412
+          helm_datarepo_api_chart_version: 0.0.413
           helm_datarepo_ui_chart_version: 0.0.172
           helm_gcloud_sqlproxy_chart_version: 0.19.8
           helm_oidc_proxy_chart_version: 0.0.38
@@ -227,7 +227,7 @@ jobs:
       - deploy_test_integration
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ubuntu-latest]
     if: always()
     runs-on: ${{ matrix.os }}
     steps:

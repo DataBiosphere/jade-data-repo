@@ -74,6 +74,7 @@ import org.stringtemplate.v4.ST;
 public class BigQuerySnapshotPdao {
   private static final Logger logger = LoggerFactory.getLogger(BigQuerySnapshotPdao.class);
 
+  private static final int TABLE_UNION_BATCH_SIZE = 10;
   private final String datarepoDnsName;
   private final BigQueryConfiguration bigQueryConfiguration;
 
@@ -301,23 +302,26 @@ public class BigQuerySnapshotPdao {
     List<DatasetTable> tables = dataset.getTables();
 
     // create a snapshot table based on the live view data row ids
-    String liveViewTables =
-        createSnapshotTableFromLiveViews(
-            datasetBigQueryProject, tables, datasetBqDatasetName, filterBefore);
+    // Batch into smaller groups of tables to avoid BQ complexity errors
+    for (var tablesBatch : ListUtils.partition(tables, TABLE_UNION_BATCH_SIZE)) {
+      String liveViewTables =
+          createSnapshotTableFromLiveViews(
+              datasetBigQueryProject, tablesBatch, datasetBqDatasetName, filterBefore);
 
-    ST sqlTemplate = new ST(insertAllLiveViewDataTemplate);
-    sqlTemplate.add("snapshotProject", snapshotProjectId);
-    sqlTemplate.add("snapshot", snapshotName);
-    sqlTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
-    sqlTemplate.add("dataRepoTableId", PDAO_TABLE_ID_COLUMN);
-    sqlTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
-    sqlTemplate.add("liveViewTables", liveViewTables);
+      ST sqlTemplate = new ST(insertAllLiveViewDataTemplate);
+      sqlTemplate.add("snapshotProject", snapshotProjectId);
+      sqlTemplate.add("snapshot", snapshotName);
+      sqlTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
+      sqlTemplate.add("dataRepoTableId", PDAO_TABLE_ID_COLUMN);
+      sqlTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
+      sqlTemplate.add("liveViewTables", liveViewTables);
 
-    snapshotBigQueryProject.query(
-        sqlTemplate.render(),
-        Map.of(
-            "transactionTerminatedAt",
-            QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
+      snapshotBigQueryProject.query(
+          sqlTemplate.render(),
+          Map.of(
+              "transactionTerminatedAt",
+              QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
+    }
 
     ST sqlValidateSnapshotTemplate = new ST(validateSnapshotSizeTemplate);
     sqlValidateSnapshotTemplate.add("rowId", PDAO_ROW_ID_COLUMN);

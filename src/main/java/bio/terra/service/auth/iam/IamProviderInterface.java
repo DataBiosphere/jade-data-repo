@@ -5,6 +5,7 @@ import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import java.util.List;
@@ -122,11 +123,11 @@ public interface IamProviderInterface {
    *
    * @param userReq authenticated user
    * @param snapshotId id of the snapshot
-   * @param readersList list of emails of users to add as readers of the snapshot
-   * @return Policy group email for the snapshot reader policy
+   * @param policies user emails to add as snapshot policy members
+   * @return Map of policy group emails for the snapshot policies
    */
   Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, List<String> readersList)
+      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
       throws InterruptedException;
 
   // -- billing profile resource support --

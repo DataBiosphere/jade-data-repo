@@ -4480,6 +4480,8 @@ components:
           $ref: '#/components/schemas/ConsentCode'
         source:
           type: array
+          description: >
+            A singleton collection whose sole element represents the snapshot's source dataset.
           items:
             $ref: '#/components/schemas/SnapshotSourceModel'
         tables:

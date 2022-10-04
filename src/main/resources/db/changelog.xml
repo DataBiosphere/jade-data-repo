@@ -10,6 +10,9 @@
 
     <property name="identifier_type" value="varchar(63)"/>
     <property name="description_type" value="varchar(2047)"/>
+    <property name="long_description_type" value="text" dbms="postgresql"/>
+    <property name="long_description_type" value="clob" dbms="oracle"/>
+    <property name="long_description_type" value="varchar(max)" dbms="mssql"/>
     <property name="dataset_snapshot_identifier_type" value="varchar(511)"/>
 
     <include file="changesets/20181203_datasettable.yaml" relativeToChangelogFile="true"/>
@@ -58,4 +61,5 @@
     <include file="changesets/20220526_datasetproperties.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220615_snapshotproperties.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220617_addprojectsa.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/2022104_description_to_text.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: allowlongdescriptions
+      author: otchet
+      changes:
+        - modifyDataType:
+            tableName: dataset
+            columnName: description
+            newDataType: ${long_description_type}
+        - modifyDataType:
+            tableName: snapshot
+            columnName: description
+            newDataType: ${long_description_type}

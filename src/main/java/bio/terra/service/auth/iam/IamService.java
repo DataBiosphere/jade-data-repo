@@ -261,6 +261,8 @@ public class IamService {
     SnapshotRequestModelPolicies policies =
         Optional.ofNullable(request.getPolicies()).orElseGet(SnapshotRequestModelPolicies::new);
 
+    // While duplicate readers are possible in this combination, we do not need to deduplicate:
+    // SAM handles duplicate policy members without issue.
     List<String> combinedReaders = new ArrayList<>();
     combinedReaders.addAll(ListUtils.emptyIfNull(policies.getReaders()));
     combinedReaders.addAll(ListUtils.emptyIfNull(request.getReaders()));

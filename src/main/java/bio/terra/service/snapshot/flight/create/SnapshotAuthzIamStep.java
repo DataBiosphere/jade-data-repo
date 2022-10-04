@@ -39,10 +39,9 @@ public class SnapshotAuthzIamStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-
-    // This returns the policy email created by Google to correspond to the readers list in SAM
     Map<IamRole, String> policies =
-        sam.createSnapshotResource(userReq, snapshotId, snapshotRequestModel.getReaders());
+        sam.createSnapshotResource(
+            userReq, snapshotId, sam.deriveSnapshotPolicies(snapshotRequestModel));
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policies);
     return StepResult.getStepResultSuccess();
   }

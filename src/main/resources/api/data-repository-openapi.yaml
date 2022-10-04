@@ -4278,6 +4278,10 @@ components:
           items:
             $ref: '#/components/schemas/SnapshotRequestContentsModel'
         readers:
+          description: >
+            Deprecated -- use `policies.readers` instead. Any readers specified here will supplement
+            those set in `policies.readers`.
+          deprecated: true
           type: array
           items:
             type: string
@@ -4286,6 +4290,22 @@ components:
         properties:
           type: object
           description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
+        policies:
+          description: User emails to add as snapshot policy members.
+          type: object
+          properties:
+            stewards:
+              type: array
+              items:
+                type: string
+            readers:
+              type: array
+              items:
+                type: string
+            discoverers:
+              type: array
+              items:
+                type: string
       description: >
         Request for creating a snapshot.
         For now, the API only supports snapshots defined as a single dataset asset and

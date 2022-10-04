@@ -10,6 +10,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.ResourcePolicyModel;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
@@ -245,7 +246,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   @VisibleForTesting
-  public CreateResourceRequestV2 createDatasetResourceRequest(
+  CreateResourceRequestV2 createDatasetResourceRequest(
       AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies) {
     policies = Optional.ofNullable(policies).orElse(new DatasetRequestModelPolicies());
     UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
@@ -296,49 +297,58 @@ public class SamIam implements IamProviderInterface {
 
   @Override
   public Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, List<String> readersList)
+      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
       throws InterruptedException {
     SamRetry.retry(
-        configurationService,
-        () -> createSnapshotResourceInnerV2(userReq, snapshotId, readersList));
+        configurationService, () -> createSnapshotResourceInnerV2(userReq, snapshotId, policies));
     return SamRetry.retry(
-        configurationService,
-        () -> syncSnapshotResourcePoliciesInner(userReq, snapshotId, readersList));
+        configurationService, () -> syncSnapshotResourcePoliciesInner(userReq, snapshotId));
   }
 
   private void createSnapshotResourceInnerV2(
-      AuthenticatedUserRequest userReq, UUID snapshotId, List<String> readersList)
+      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
       throws ApiException {
-    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
-    CreateResourceRequestV2 req = new CreateResourceRequestV2();
-    req.setResourceId(snapshotId.toString());
-    req.putPoliciesItem(
-        IamRole.ADMIN.toString(),
-        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
-    req.putPoliciesItem(
-        IamRole.STEWARD.toString(),
-        createAccessPolicyOneV2(IamRole.STEWARD, userStatusInfo.getUserEmail()));
-    req.putPoliciesItem(
-        IamRole.READER.toString(), createAccessPolicyV2(IamRole.READER, readersList));
-    req.putPoliciesItem(
-        IamRole.DISCOVERER.toString(), createAccessPolicyV2(IamRole.DISCOVERER, null));
-
     ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-    logger.debug("SAM request: " + req);
-
+    CreateResourceRequestV2 req = createSnapshotResourceRequest(userReq, snapshotId, policies);
     samResourceApi.createResourceV2(IamResourceType.DATASNAPSHOT.toString(), req);
   }
 
+  @VisibleForTesting
+  CreateResourceRequestV2 createSnapshotResourceRequest(
+      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies) {
+    policies = Optional.ofNullable(policies).orElse(new SnapshotRequestModelPolicies());
+    UserStatusInfo userStatusInfo = getUserInfoAndVerify(userReq);
+    CreateResourceRequestV2 req = new CreateResourceRequestV2().resourceId(snapshotId.toString());
+
+    req.putPoliciesItem(
+        IamRole.ADMIN.toString(),
+        createAccessPolicyOneV2(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
+
+    List<String> stewards = new ArrayList<>();
+    stewards.add(userStatusInfo.getUserEmail());
+    stewards.addAll(ListUtils.emptyIfNull(policies.getStewards()));
+    req.putPoliciesItem(
+        IamRole.STEWARD.toString(), createAccessPolicyV2(IamRole.STEWARD, stewards));
+
+    req.putPoliciesItem(
+        IamRole.READER.toString(), createAccessPolicyV2(IamRole.READER, policies.getReaders()));
+
+    req.putPoliciesItem(
+        IamRole.DISCOVERER.toString(),
+        createAccessPolicyV2(IamRole.DISCOVERER, policies.getDiscoverers()));
+
+    logger.debug("SAM request: " + req);
+    return req;
+  }
+
   private Map<IamRole, String> syncSnapshotResourcePoliciesInner(
-      AuthenticatedUserRequest userReq, UUID snapshotId, List<String> readersList)
-      throws ApiException {
-    // sync the policies for all roles that have read data action
+      AuthenticatedUserRequest userReq, UUID snapshotId) throws ApiException {
     Map<IamRole, String> policies = new HashMap<>();
-    String policy =
-        syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.READER);
-    policies.put(IamRole.READER, policy);
-    policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.STEWARD);
-    policies.put(IamRole.STEWARD, policy);
+    // sync the policies for all roles that have IamAction.READ_DATA
+    for (IamRole role : Arrays.asList(IamRole.STEWARD, IamRole.READER)) {
+      String policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, role);
+      policies.put(role, policy);
+    }
     return policies;
   }
 

@@ -6,6 +6,8 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
@@ -16,14 +18,17 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ImpersonatedCredentials;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
@@ -240,12 +245,29 @@ public class IamService {
    *
    * @param userReq authenticated user
    * @param snapshotId id of the snapshot
-   * @param readersList list of emails of users to add as readers of the snapshot
-   * @return Policy group map
+   * @param policies user emails to add as snapshot policy members
+   * @return Map of policy group emails for the snapshot policies
    */
   public Map<IamRole, String> createSnapshotResource(
-      AuthenticatedUserRequest userReq, UUID snapshotId, List<String> readersList) {
-    return callProvider(() -> iamProvider.createSnapshotResource(userReq, snapshotId, readersList));
+      AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies) {
+    return callProvider(() -> iamProvider.createSnapshotResource(userReq, snapshotId, policies));
+  }
+
+  /**
+   * @param request snapshot creation request
+   * @return user-defined snapshot policy object, supplemented with readers from deprecated input
+   */
+  public SnapshotRequestModelPolicies deriveSnapshotPolicies(SnapshotRequestModel request) {
+    SnapshotRequestModelPolicies policies =
+        Optional.ofNullable(request.getPolicies()).orElseGet(SnapshotRequestModelPolicies::new);
+
+    // While duplicate readers are possible in this combination, we do not need to deduplicate:
+    // SAM handles duplicate policy members without issue.
+    List<String> combinedReaders = new ArrayList<>();
+    combinedReaders.addAll(ListUtils.emptyIfNull(policies.getReaders()));
+    combinedReaders.addAll(ListUtils.emptyIfNull(request.getReaders()));
+
+    return policies.readers(combinedReaders);
   }
 
   // -- billing profile resource support --

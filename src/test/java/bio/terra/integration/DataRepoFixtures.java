@@ -484,6 +484,13 @@ public class DataRepoFixtures {
     return validateResponse(response, "retrieving dataset policies", HttpStatus.OK, null);
   }
 
+  public PolicyResponse retrieveSnapshotPolicies(TestConfiguration.User user, UUID snapshotId)
+      throws Exception {
+    DataRepoResponse<PolicyResponse> response =
+        retrievePoliciesRaw(user, snapshotId, IamResourceType.DATASNAPSHOT);
+    return validateResponse(response, "retrieving snapshot policies", HttpStatus.OK, null);
+  }
+
   // adding dataset asset
   public DataRepoResponse<JobModel> addDatasetAssetRaw(
       TestConfiguration.User user, UUID datasetId, AssetModel assetModel) throws Exception {

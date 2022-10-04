@@ -1,6 +1,8 @@
 package bio.terra.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -20,8 +22,10 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.PolicyModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -29,6 +33,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -275,5 +280,51 @@ public class SnapshotIntegrationTest extends UsersBase {
                 + datasetName
                 + ".sample.id ='sample6'");
     return requestModel;
+  }
+
+  @Test
+  public void testCreateSnapshotWithPolicies() throws Exception {
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    String datasetName = dataset.getName();
+    SnapshotRequestModel requestModel =
+        jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
+    // swap in the correct dataset name (with the id at the end)
+    requestModel.getContents().get(0).setDatasetName(datasetName);
+
+    List<String> stewards = List.of(steward().getEmail(), admin().getEmail());
+    String readerEmail = reader().getEmail();
+    List<String> readersWithDuplicates = List.of(readerEmail, readerEmail);
+    String discovererEmail = discoverer().getEmail();
+    SnapshotRequestModelPolicies policiesRequest =
+        new SnapshotRequestModelPolicies()
+            .stewards(stewards)
+            .readers(readersWithDuplicates)
+            .addDiscoverersItem(discovererEmail);
+    requestModel.setPolicies(policiesRequest);
+
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
+    TimeUnit.SECONDS.sleep(10);
+    UUID snapshotId = snapshotSummary.getId();
+    createdSnapshotIds.add(snapshotId);
+
+    Map<String, List<String>> rolesToPolicies =
+        dataRepoFixtures.retrieveSnapshotPolicies(steward(), snapshotId).getPolicies().stream()
+            .collect(Collectors.toMap(PolicyModel::getName, PolicyModel::getMembers));
+
+    assertThat(
+        "All specified stewards added on snapshot creation",
+        rolesToPolicies.get(IamRole.STEWARD.toString()),
+        containsInAnyOrder(stewards.toArray()));
+
+    assertThat(
+        "Reader added on snapshot creation, duplicates removed without error",
+        rolesToPolicies.get(IamRole.READER.toString()),
+        contains(readerEmail));
+
+    assertThat(
+        "Discoverer added on snapshot creation",
+        rolesToPolicies.get(IamRole.DISCOVERER.toString()),
+        contains(discovererEmail));
   }
 }

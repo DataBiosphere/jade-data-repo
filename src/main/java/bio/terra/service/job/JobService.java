@@ -12,6 +12,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.common.CommonMapKeys;
+import bio.terra.service.filedata.flight.ingest.FileIngestWorkerFlight;
 import bio.terra.service.job.exception.InvalidResultStateException;
 import bio.terra.service.job.exception.JobNotFoundException;
 import bio.terra.service.job.exception.JobResponseException;
@@ -20,6 +21,7 @@ import bio.terra.service.job.exception.JobUnauthorizedException;
 import bio.terra.service.upgrade.Migrate;
 import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
+import bio.terra.stairway.FlightEnumeration;
 import bio.terra.stairway.FlightFilter;
 import bio.terra.stairway.FlightFilterOp;
 import bio.terra.stairway.FlightFilterSortDirection;
@@ -52,6 +54,9 @@ public class JobService {
   private static final Logger logger = LoggerFactory.getLogger(JobService.class);
   private static final int MIN_SHUTDOWN_TIMEOUT = 14;
   private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
+  // Maximum number of times that the flight sql DB will be searched while enumeratin
+  private static final int MAX_FLIGHT_SEARCH_QUERIES = 10;
+  private static final int FLIGHT_SEARCH_BATCH_SIZE = 1_000;
 
   private final IamService samService;
   private final ApplicationConfiguration appConfig;
@@ -309,12 +314,14 @@ public class JobService {
       if (canListAnyJob) {
         flightStateList = stairway.getFlights(offset, limit, filter);
       } else {
+        // Filter out sub-flights
+        filter.addFilterFlightClass(FlightFilterOp.NOT_EQUAL, FileIngestWorkerFlight.class);
+
         flightStateList = getAccessibleFlights(offset, limit, filter, userReq);
       }
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
-
     return flightStateList.stream()
         .map(this::mapFlightStateToJobModel)
         .collect(Collectors.toList());
@@ -323,43 +330,48 @@ public class JobService {
   private List<FlightState> getAccessibleFlights(
       int offset, int limit, FlightFilter filter, AuthenticatedUserRequest userReq)
       throws InterruptedException {
-    int start = 0;
-    int end = offset + limit;
+
+    String nextPageToken = null;
     HashMap<String, List<String>> roleMap = new HashMap<>();
     ArrayList<FlightState> flightStateList = new ArrayList<>();
-    while (flightStateList.size() < offset + limit) {
-      List<FlightState> filterResults = stairway.getFlights(start, end, filter);
-      if (filterResults.size() == 0) {
+    int numTimesQueried = 0;
+    while (flightStateList.size() < offset + limit && numTimesQueried < MAX_FLIGHT_SEARCH_QUERIES) {
+      logger.info("Getting flight batch {} with npt {}", numTimesQueried, nextPageToken);
+      FlightEnumeration filterResults =
+          stairway.getFlights(nextPageToken, FLIGHT_SEARCH_BATCH_SIZE, filter);
+      if (filterResults.getFlightStateList().size() == 0) {
         break;
       }
-      filterResults.forEach(
-          flightState -> {
-            if (userLaunchedFlight(flightState, userReq)) {
-              flightStateList.add(flightState);
-            } else {
-              FlightMap inputParameters = flightState.getInputParameters();
-              IamResourceType resourceType =
-                  inputParameters.get(
-                      JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
-              String resourceId =
-                  inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
-              IamAction action =
-                  inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
-              if (resourceType != null & resourceId != null && action != null) {
-                String key = String.format("%s-%s", resourceType, resourceId);
-                List<String> userRoles = roleMap.get(key);
-                if (userRoles == null) {
-                  userRoles = samService.listActions(userReq, resourceType, resourceId);
-                  roleMap.put(key, userRoles);
-                }
-                if (userRoles.contains(action.toString())) {
+      filterResults
+          .getFlightStateList()
+          .forEach(
+              flightState -> {
+                if (userLaunchedFlight(flightState, userReq)) {
                   flightStateList.add(flightState);
+                } else {
+                  FlightMap inputParameters = flightState.getInputParameters();
+                  IamResourceType resourceType =
+                      inputParameters.get(
+                          JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
+                  String resourceId =
+                      inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
+                  IamAction action =
+                      inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
+                  if (resourceType != null & resourceId != null && action != null) {
+                    String key = String.format("%s-%s", resourceType, resourceId);
+                    List<String> userRoles = roleMap.get(key);
+                    if (userRoles == null) {
+                      userRoles = samService.listActions(userReq, resourceType, resourceId);
+                      roleMap.put(key, userRoles);
+                    }
+                    if (userRoles.contains(action.toString())) {
+                      flightStateList.add(flightState);
+                    }
+                  }
                 }
-              }
-            }
-          });
-      start = end;
-      end += offset + limit;
+              });
+      numTimesQueried++;
+      nextPageToken = filterResults.getNextPageToken();
     }
     if (flightStateList.size() <= offset) {
       return new ArrayList<>();

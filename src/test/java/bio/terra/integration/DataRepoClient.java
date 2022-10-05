@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -41,7 +42,11 @@ public class DataRepoClient {
   private final HttpHeaders headers;
 
   public DataRepoClient() {
-    restTemplate = new RestTemplate();
+    restTemplate =
+        new RestTemplateBuilder()
+            .setConnectTimeout(Duration.ofMinutes(5))
+            .setReadTimeout(Duration.ofMinutes(5))
+            .build();
     restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
     restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
 

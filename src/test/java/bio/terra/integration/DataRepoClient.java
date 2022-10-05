@@ -53,16 +53,20 @@ public class DataRepoClient {
   // -- RepositoryController Client --
 
   private <T> DataRepoResponse<T> makeDataRepoRequest(
-      String path, HttpMethod method, HttpEntity entity, TypeReference<T> responseClass)
+      String path,
+      HttpMethod method,
+      HttpEntity entity,
+      TestConfiguration.User user,
+      TypeReference<T> responseClass)
       throws Exception {
     return new DataRepoResponse<T>(
-        makeRequest(path, method, entity, responseClass, ErrorModel.class));
+        makeRequest(path, method, entity, user, responseClass, ErrorModel.class));
   }
 
   public <T> DataRepoResponse<T> get(
       TestConfiguration.User user, String path, TypeReference<T> responseClass) throws Exception {
     HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
-    return makeDataRepoRequest(path, HttpMethod.GET, entity, responseClass);
+    return makeDataRepoRequest(path, HttpMethod.GET, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> post(
@@ -84,20 +88,20 @@ public class DataRepoClient {
     } else {
       entity = new HttpEntity<>(json, getHeaders(user));
     }
-    return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
+    return makeDataRepoRequest(path, HttpMethod.POST, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> put(
       TestConfiguration.User user, String path, String json, TypeReference<T> responseClass)
       throws Exception {
     HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(user));
-    return makeDataRepoRequest(path, HttpMethod.PUT, entity, responseClass);
+    return makeDataRepoRequest(path, HttpMethod.PUT, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> delete(
       TestConfiguration.User user, String path, TypeReference<T> responseClass) throws Exception {
     HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
-    return makeDataRepoRequest(path, HttpMethod.DELETE, entity, responseClass);
+    return makeDataRepoRequest(path, HttpMethod.DELETE, entity, user, responseClass);
   }
 
   public <T> DataRepoResponse<T> waitForResponseLog(
@@ -209,7 +213,7 @@ public class DataRepoClient {
   public <T> DrsResponse<T> drsGet(
       TestConfiguration.User user, String path, TypeReference<T> responseClass) throws Exception {
     HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
-    return makeDrsRequest(path, HttpMethod.GET, entity, responseClass);
+    return makeDrsRequest(path, HttpMethod.GET, entity, user, responseClass);
   }
 
   public ResponseEntity<String> makeUnauthenticatedDrsRequest(String path, HttpMethod method) {
@@ -222,9 +226,14 @@ public class DataRepoClient {
    * any consequences downstream to DRS clients.
    */
   private <T> DrsResponse<T> makeDrsRequest(
-      String path, HttpMethod method, HttpEntity entity, TypeReference<T> responseClass)
+      String path,
+      HttpMethod method,
+      HttpEntity entity,
+      TestConfiguration.User user,
+      TypeReference<T> responseClass)
       throws Exception {
-    return new DrsResponse<T>(makeRequest(path, method, entity, responseClass, DRSError.class));
+    return new DrsResponse<T>(
+        makeRequest(path, method, entity, user, responseClass, DRSError.class));
   }
 
   // -- Common Client Code --
@@ -233,11 +242,16 @@ public class DataRepoClient {
       String path,
       HttpMethod method,
       HttpEntity entity,
+      TestConfiguration.User user,
       TypeReference<T> responseClass,
       Class<S> errorClass)
       throws Exception {
     logger.info(
-        "api request: method={} path={} body={}", method.toString(), path, entity.getBody());
+        "api request: method={} path={} user={} body={}",
+        method.toString(),
+        path,
+        user.getName(),
+        entity.getBody());
 
     ResponseEntity<String> response =
         restTemplate.exchange(testConfig.getJadeApiUrl() + path, method, entity, String.class);

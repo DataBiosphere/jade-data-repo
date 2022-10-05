@@ -24,12 +24,15 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,6 +45,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @Category(Integration.class)
 public class JobPermissionTest extends UsersBase {
+  private static final Logger logger = LoggerFactory.getLogger(JobPermissionTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private GcsUtils gcsUtils;
@@ -172,28 +176,23 @@ public class JobPermissionTest extends UsersBase {
     assert (combinedIngestJobResponse.getStatusCode().is2xxSuccessful());
 
     // Verify custodian can view jobs
-    String datasetCreateJobId = jobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(datasetCreateJobId, custodian());
+    JobModel datasetCreateJob = jobResponse.getResponseObject().get();
+    dataRepoFixtures.getJobSuccess(datasetCreateJob.getId(), custodian());
 
-    String fileIngestJobId = fileIngestJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(fileIngestJobId, custodian());
+    JobModel fileIngestJob = fileIngestJobResponse.getResponseObject().get();
+    dataRepoFixtures.getJobSuccess(fileIngestJob.getId(), custodian());
 
-    String bulkLoadJobId = bulkLoadJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(bulkLoadJobId, custodian());
+    JobModel bulkLoadJob = bulkLoadJobResponse.getResponseObject().get();
+    dataRepoFixtures.getJobSuccess(bulkLoadJob.getId(), custodian());
 
-    String metadataIngestJobId = metadataIngestJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(metadataIngestJobId, custodian());
+    JobModel metadataIngestJob = metadataIngestJobResponse.getResponseObject().get();
+    dataRepoFixtures.getJobSuccess(metadataIngestJob.getId(), custodian());
 
-    String combinedIngestJobId = combinedIngestJobResponse.getResponseObject().get().getId();
-    dataRepoFixtures.getJobSuccess(combinedIngestJobId, custodian());
+    JobModel combinedIngestJob = combinedIngestJobResponse.getResponseObject().get();
+    dataRepoFixtures.getJobSuccess(combinedIngestJob.getId(), custodian());
 
-    List<String> jobIds =
-        List.of(
-            datasetCreateJobId,
-            fileIngestJobId,
-            bulkLoadJobId,
-            metadataIngestJobId,
-            combinedIngestJobId);
+    List<JobModel> jobIds =
+        List.of(datasetCreateJob, fileIngestJob, bulkLoadJob, metadataIngestJob, combinedIngestJob);
 
     assertTrue(
         "Admin can list jobs", containsJobIds(dataRepoFixtures.enumerateJobs(admin()), jobIds));
@@ -207,7 +206,22 @@ public class JobPermissionTest extends UsersBase {
         containsJobIds(dataRepoFixtures.enumerateJobs(reader()), jobIds));
   }
 
-  private boolean containsJobIds(List<JobModel> jobs, List<String> jobIds) {
-    return jobs.stream().map(JobModel::getId).toList().containsAll(jobIds);
+  private boolean containsJobIds(List<JobModel> jobs, List<JobModel> expectedJobIds) {
+    boolean containsJobIds = true;
+
+    Map<String, JobModel> jobsById;
+    try {
+      jobsById = jobs.stream().collect(Collectors.toMap(JobModel::getId, j -> j));
+    } catch (IllegalStateException e) {
+      logger.error("There appear to be duplicate jobs in the response:\n{}", jobs);
+      throw e;
+    }
+    for (var job : expectedJobIds) {
+      if (!jobsById.containsKey(job.getId())) {
+        logger.error("Job {} was expected and not found", job);
+        containsJobIds = false;
+      }
+    }
+    return containsJobIds;
   }
 }

@@ -336,40 +336,41 @@ public class JobService {
     ArrayList<FlightState> flightStateList = new ArrayList<>();
     int numTimesQueried = 0;
     while (flightStateList.size() < offset + limit && numTimesQueried < MAX_FLIGHT_SEARCH_QUERIES) {
-      logger.info("Getting flight batch {} with npt {}", numTimesQueried, nextPageToken);
+      logger.info("Getting flight batch {} with nextPageToken {}", numTimesQueried, nextPageToken);
       FlightEnumeration filterResults =
           stairway.getFlights(nextPageToken, FLIGHT_SEARCH_BATCH_SIZE, filter);
       if (filterResults.getFlightStateList().size() == 0) {
         break;
       }
-      filterResults
-          .getFlightStateList()
-          .forEach(
-              flightState -> {
-                if (userLaunchedFlight(flightState, userReq)) {
-                  flightStateList.add(flightState);
-                } else {
-                  FlightMap inputParameters = flightState.getInputParameters();
-                  IamResourceType resourceType =
-                      inputParameters.get(
-                          JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
-                  String resourceId =
-                      inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
-                  IamAction action =
-                      inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
-                  if (resourceType != null & resourceId != null && action != null) {
-                    String key = String.format("%s-%s", resourceType, resourceId);
-                    List<String> userRoles = roleMap.get(key);
-                    if (userRoles == null) {
-                      userRoles = samService.listActions(userReq, resourceType, resourceId);
-                      roleMap.put(key, userRoles);
-                    }
-                    if (userRoles.contains(action.toString())) {
-                      flightStateList.add(flightState);
-                    }
-                  }
-                }
-              });
+
+      for (var flightState : filterResults.getFlightStateList()) {
+        if (userLaunchedFlight(flightState, userReq)) {
+          flightStateList.add(flightState);
+        } else {
+          FlightMap inputParameters = flightState.getInputParameters();
+          IamResourceType resourceType =
+              inputParameters.get(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.class);
+          String resourceId =
+              inputParameters.get(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), String.class);
+          IamAction action =
+              inputParameters.get(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.class);
+          if (resourceType != null & resourceId != null && action != null) {
+            String key = String.format("%s-%s", resourceType, resourceId);
+            List<String> userRoles = roleMap.get(key);
+            if (userRoles == null) {
+              userRoles = samService.listActions(userReq, resourceType, resourceId);
+              roleMap.put(key, userRoles);
+            }
+            if (userRoles.contains(action.toString())) {
+              flightStateList.add(flightState);
+            }
+          }
+        }
+        // Stop processing as soon as we've got enough to return
+        if (flightStateList.size() == offset + limit) {
+          break;
+        }
+      }
       numTimesQueried++;
       nextPageToken = filterResults.getNextPageToken();
     }

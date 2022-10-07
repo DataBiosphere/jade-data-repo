@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: duosfirecloudgroup
+      author: okotsopo
+      changes:
+        - createTable:
+            tableName: duos_firecloud_group
+            columns:
+              - column:
+                  name: duos_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: firecloud_group_name
+                  type: varchar(100)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: firecloud_group_email
+                  type: varchar(256)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_synced_date
+                  type: timestamptz
+                  constraints:
+                    nullable: true
+
+        - addColumn:
+            tableName: snapshot
+            columns:
+              name: duos_id
+              type: varchar(36)
+              constraints:
+                nullable: true
+                foreignKeyName: fk_snapshot_duos_firecloud_group
+                references: duos_firecloud_group(duos_id)
+                deleteCascade: false

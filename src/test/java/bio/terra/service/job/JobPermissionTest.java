@@ -220,7 +220,7 @@ public class JobPermissionTest extends UsersBase {
     }
     for (var job : expectedJobIds) {
       if (!jobsById.containsKey(job.getId())) {
-        logger.error("Job {} was expected and not found", job);
+        logger.error("Job {} was expected and not found in the jobs response:\n{}", job, jobs);
         containsJobIds = false;
       }
     }

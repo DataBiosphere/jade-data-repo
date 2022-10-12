@@ -197,15 +197,17 @@ public class JobPermissionTest extends UsersBase {
         List.of(datasetCreateJob, fileIngestJob, bulkLoadJob, metadataIngestJob, combinedIngestJob);
 
     assertTrue(
-        "Admin can list jobs", containsJobIds(dataRepoFixtures.enumerateJobs(admin()), jobIds));
+        "Admin can list jobs",
+        containsJobIds(dataRepoFixtures.enumerateJobs(admin(), 0, 20), jobIds));
     assertTrue(
-        "Steward can list jobs", containsJobIds(dataRepoFixtures.enumerateJobs(steward()), jobIds));
+        "Steward can list jobs",
+        containsJobIds(dataRepoFixtures.enumerateJobs(steward(), 0, 20), jobIds));
     assertTrue(
         "Custodian can list jobs",
-        containsJobIds(dataRepoFixtures.enumerateJobs(custodian()), jobIds));
+        containsJobIds(dataRepoFixtures.enumerateJobs(custodian(), 0, 20), jobIds));
     assertFalse(
         "Reader cannot list jobs",
-        containsJobIds(dataRepoFixtures.enumerateJobs(reader()), jobIds));
+        containsJobIds(dataRepoFixtures.enumerateJobs(reader(), 0, 10), jobIds));
   }
 
   private boolean containsJobIds(List<JobModel> jobs, List<JobModel> expectedJobIds) {

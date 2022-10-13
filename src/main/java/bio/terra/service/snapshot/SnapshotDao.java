@@ -171,8 +171,8 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb) ";
+        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties, duos_id) "
+            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb, :duos_id) ";
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
@@ -191,7 +191,8 @@ public class SnapshotDao {
             .addValue("flightid", flightId)
             .addValue("creation_information", creationInfo)
             .addValue(
-                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()));
+                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
+            .addValue("duos_id", snapshot.getDuosId());
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {
@@ -405,7 +406,8 @@ public class SnapshotDao {
                               rs.getString("creation_information")))
                       .consentCode(rs.getString("consent_code"))
                       .properties(
-                          DaoUtils.stringToProperties(objectMapper, rs.getString("properties"))));
+                          DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
+                      .duosId(rs.getString("duos_id")));
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
         // retrieve the snapshot tables and relationships
@@ -632,7 +634,7 @@ public class SnapshotDao {
 
     String sql =
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-            + "snapshot_source.id, dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
+            + "snapshot_source.id, dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted, snapshot.duos_id, "
             + summaryCloudPlatformQuery
             + snapshotSourceStorageQuery
             + "FROM snapshot "
@@ -680,7 +682,7 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-              + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
+              + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted, snapshot.duos_id, "
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
@@ -779,7 +781,8 @@ public class SnapshotDao {
           .storageAccount(rs.getString("storage_account_name"))
           .consentCode(rs.getString("consent_code"))
           .phsId(rs.getString("phs_id"))
-          .selfHosted(rs.getBoolean("self_hosted"));
+          .selfHosted(rs.getBoolean("self_hosted"))
+          .duosId(rs.getString("duos_id"));
     }
   }
 }

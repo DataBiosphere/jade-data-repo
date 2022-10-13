@@ -38,6 +38,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private SnapshotRequestContentsModel creationInformation;
   private String consentCode;
   private Object properties;
+  private String duosId;
 
   @Override
   public CollectionType getCollectionType() {
@@ -179,6 +180,15 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public Snapshot properties(Object properties) {
     this.properties = properties;
+    return this;
+  }
+
+  public String getDuosId() {
+    return duosId;
+  }
+
+  public Snapshot duosId(String duosId) {
+    this.duosId = duosId;
     return this;
   }
 

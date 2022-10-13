@@ -4432,6 +4432,8 @@ components:
         selfHosted:
           type: boolean
           description: Denotes whether the data files in this snapshot are self hosted or not
+        duosId:
+          $ref: '#/components/schemas/DuosId'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -4504,6 +4506,8 @@ components:
         properties:
           type: object
           description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
+        duosId:
+          $ref: '#/components/schemas/DuosId'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:
@@ -5156,6 +5160,11 @@ components:
       type: string
       description: Consent code together with PHS ID that will determine user access
       example: c99
+
+    DuosId:
+      type: string
+      description: DUOS dataset identifier
+      example: DUOS-123456
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

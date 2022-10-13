@@ -24,6 +24,7 @@ public class SnapshotSummary {
   private String consentCode;
   private String phsId;
   private boolean selfHosted;
+  private String duosId;
 
   public UUID getId() {
     return id;
@@ -142,6 +143,15 @@ public class SnapshotSummary {
     return this;
   }
 
+  public String getDuosId() {
+    return duosId;
+  }
+
+  public SnapshotSummary duosId(String duosId) {
+    this.duosId = duosId;
+    return this;
+  }
+
   public SnapshotSummaryModel toModel() {
     return new SnapshotSummaryModel()
         .id(getId())
@@ -156,7 +166,8 @@ public class SnapshotSummary {
         .storageAccount(getStorageAccount())
         .consentCode(getConsentCode())
         .phsId(getPhsId())
-        .selfHosted(isSelfHosted());
+        .selfHosted(isSelfHosted())
+        .duosId(getDuosId());
   }
 
   private List<StorageResourceModel> toStorageResourceModel() {

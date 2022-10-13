@@ -28,9 +28,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "integrationtest"})
 @AutoConfigureMockMvc
 @Category(Integration.class)
-@Isolated
 public class JobPermissionTest extends UsersBase {
   private static final Logger logger = LoggerFactory.getLogger(JobPermissionTest.class);
 
@@ -75,6 +74,7 @@ public class JobPermissionTest extends UsersBase {
   }
 
   @Test
+  @Ignore("Ignoring until DR-2723 is in so that we can pin job enumeration")
   public void testJobPermissions() throws Exception {
     // Create dataset
     DataRepoResponse<JobModel> jobResponse =

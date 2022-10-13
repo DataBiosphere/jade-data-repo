@@ -216,4 +216,42 @@ public interface IamProviderInterface {
    *     statuses
    */
   RepositoryStatusModelSystems samStatus();
+
+  /**
+   * @param accessToken
+   * @param groupName
+   * @return
+   */
+  String getGroupEmail(String accessToken, String groupName) throws InterruptedException;
+
+  /**
+   * @param accessToken
+   * @param groupName
+   */
+  void createGroup(String accessToken, String groupName) throws InterruptedException;
+
+  /**
+   * @param accessToken
+   * @param groupName
+   */
+  void deleteGroup(String accessToken, String groupName) throws InterruptedException;
+
+  /**
+   * @param accessToken
+   * @param groupName
+   * @param policyName
+   * @param emailAddresses
+   */
+  void overwriteGroupPolicyEmails(
+      String accessToken, String groupName, String policyName, List<String> emailAddresses)
+      throws InterruptedException;
+
+  /**
+   * @param accessToken
+   * @param groupName
+   * @param policyName
+   * @param emailAddress
+   */
+  void addEmailToGroup(String accessToken, String groupName, String policyName, String emailAddress)
+      throws InterruptedException;
 }

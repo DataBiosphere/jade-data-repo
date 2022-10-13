@@ -44,6 +44,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.TermsOfServiceApi;
@@ -118,6 +119,11 @@ public class SamIam implements IamProviderInterface {
   @VisibleForTesting
   TermsOfServiceApi samTosApi(String accessToken) {
     return new TermsOfServiceApi(getApiClient(accessToken));
+  }
+
+  @VisibleForTesting
+  GroupApi samGroupApi(String accessToken) {
+    return new GroupApi(getApiClient(accessToken));
   }
 
   /**
@@ -654,6 +660,63 @@ public class SamIam implements IamProviderInterface {
           "Expecting syncPolicyResponse to be an object with one key");
     }
     return syncPolicyResponse.keySet().iterator().next();
+  }
+
+  @Override
+  public String getGroupEmail(String accessToken, String groupName) throws InterruptedException {
+    return SamRetry.retry(configurationService, () -> getGroupEmailInner(accessToken, groupName));
+  }
+
+  private String getGroupEmailInner(String accessToken, String groupName) throws ApiException {
+    return samGroupApi(accessToken).getGroup(groupName);
+  }
+
+  @Override
+  public void createGroup(String accessToken, String groupName) throws InterruptedException {
+    SamRetry.retry(configurationService, () -> createGroupInner(accessToken, groupName));
+  }
+
+  private void createGroupInner(String accessToken, String groupName) throws ApiException {
+    samGroupApi(accessToken).postGroup(groupName);
+  }
+
+  @Override
+  public void deleteGroup(String accessToken, String groupName) throws InterruptedException {
+    SamRetry.retry(configurationService, () -> deleteGroupInner(accessToken, groupName));
+  }
+
+  private void deleteGroupInner(String accessToken, String groupName) throws ApiException {
+    samGroupApi(accessToken).deleteGroup(groupName);
+  }
+
+  @Override
+  public void overwriteGroupPolicyEmails(
+      String accessToken, String groupName, String policyName, List<String> emailAddresses)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> overwriteGroupPolicyEmailsInner(accessToken, groupName, policyName, emailAddresses));
+  }
+
+  private void overwriteGroupPolicyEmailsInner(
+      String accessToken, String groupName, String policyName, List<String> emailAddresses)
+      throws ApiException {
+    samGroupApi(accessToken).overwriteGroupPolicyEmails(groupName, policyName, emailAddresses);
+  }
+
+  @Override
+  public void addEmailToGroup(
+      String accessToken, String groupName, String policyName, String emailAddress)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> addEmailToGroupInner(accessToken, groupName, policyName, emailAddress));
+  }
+
+  private void addEmailToGroupInner(
+      String accessToken, String groupName, String policyName, String emailAddress)
+      throws ApiException {
+    samGroupApi(accessToken).addEmailToGroup(groupName, policyName, emailAddress);
   }
 
   /**

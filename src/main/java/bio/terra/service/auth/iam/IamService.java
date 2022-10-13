@@ -328,13 +328,60 @@ public class IamService {
     } catch (IOException e) {
       throw new GoogleResourceException("Could not generate Google credentials", e);
     }
+    return callProvider(() -> iamProvider.registerUser(getAccessToken(impersonatedCredentials)));
+  }
 
-    String accessToken;
+  private GoogleCredentials getGoogleCredentialsApplicationDefault() {
     try {
-      accessToken = impersonatedCredentials.refreshAccessToken().getTokenValue();
+      return GoogleCredentials.getApplicationDefault();
+    } catch (IOException e) {
+      throw new GoogleResourceException("Could not generate Google credentials", e);
+    }
+  }
+
+  private String getAccessToken(GoogleCredentials credentials) {
+    try {
+      if (credentials.createScopedRequired()) {
+        credentials = credentials.createScoped(SAM_SCOPES);
+      }
+      return credentials.refreshAccessToken().getTokenValue();
     } catch (IOException e) {
       throw new GoogleResourceException("Could not generate Google access token", e);
     }
-    return callProvider(() -> iamProvider.registerUser(accessToken));
+  }
+
+  // -- managed group support --
+  // Note: within this POC, we interact with managed groups as the TDR SA.
+  public String getGroupEmail(String groupName) {
+    GoogleCredentials credentials = getGoogleCredentialsApplicationDefault();
+    return callProvider(() -> iamProvider.getGroupEmail(getAccessToken(credentials), groupName));
+  }
+
+  public void createGroup(String groupName) {
+    GoogleCredentials credentials = getGoogleCredentialsApplicationDefault();
+    callProvider(() -> iamProvider.createGroup(getAccessToken(credentials), groupName));
+  }
+
+  // Not currently used, but may be used in tests down the road.
+  public void deleteGroup(String groupName) {
+    GoogleCredentials credentials = getGoogleCredentialsApplicationDefault();
+    callProvider(() -> iamProvider.deleteGroup(getAccessToken(credentials), groupName));
+  }
+
+  public void overwriteGroupPolicyEmails(
+      String groupName, String policyName, List<String> emailAddresses) {
+    GoogleCredentials credentials = getGoogleCredentialsApplicationDefault();
+    callProvider(
+        () ->
+            iamProvider.overwriteGroupPolicyEmails(
+                getAccessToken(credentials), groupName, policyName, emailAddresses));
+  }
+
+  public void addEmailToGroup(String groupName, String policyName, String emailAddress) {
+    GoogleCredentials credentials = getGoogleCredentialsApplicationDefault();
+    callProvider(
+        () ->
+            iamProvider.addEmailToGroup(
+                getAccessToken(credentials), groupName, policyName, emailAddress));
   }
 }

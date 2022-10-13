@@ -749,6 +749,22 @@ public class SnapshotDao {
     return patchSucceeded;
   }
 
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean setDuosId(UUID id, String duosId) {
+    String sql = "UPDATE snapshot SET duos_id = duos_id WHERE id = :id";
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("duos_id", duosId).addValue("id", id);
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    boolean updateSucceeded = (rowsAffected == 1);
+
+    if (updateSucceeded) {
+      logger.info("Snapshot {} DUOS ID updated to {}", id, duosId);
+    }
+    return updateSucceeded;
+  }
+
   private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
 
     public SnapshotSummary mapRow(ResultSet rs, int rowNum) throws SQLException {

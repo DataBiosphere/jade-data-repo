@@ -60,6 +60,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.GoogleStorageResource;
+import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
@@ -125,6 +126,7 @@ public class SnapshotServiceTest {
   @MockBean private AzureSynapsePdao synapsePdao;
   @MockBean private EcmService ecmService;
   @MockBean private RawlsService rawlsService;
+  @MockBean private DuosService duosService;
 
   private final UUID snapshotId = UUID.randomUUID();
   private final UUID datasetId = UUID.randomUUID();

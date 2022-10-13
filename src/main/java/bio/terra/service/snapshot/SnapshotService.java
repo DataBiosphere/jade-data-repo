@@ -19,10 +19,12 @@ import bio.terra.grammar.Query;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
+import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
@@ -58,6 +60,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
@@ -109,6 +112,7 @@ public class SnapshotService {
   private final EcmService ecmService;
   private final AzureSynapsePdao azureSynapsePdao;
   private final RawlsService rawlsService;
+  private final DuosService duosService;
 
   @Autowired
   public SnapshotService(
@@ -122,7 +126,8 @@ public class SnapshotService {
       IamService iamService,
       EcmService ecmService,
       AzureSynapsePdao azureSynapsePdao,
-      RawlsService rawlsService) {
+      RawlsService rawlsService,
+      DuosService duosService) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -134,6 +139,7 @@ public class SnapshotService {
     this.ecmService = ecmService;
     this.azureSynapsePdao = azureSynapsePdao;
     this.rawlsService = rawlsService;
+    this.duosService = duosService;
   }
 
   /**
@@ -215,6 +221,31 @@ public class SnapshotService {
       throw new RuntimeException("Snapshot was not updated");
     }
     return snapshotDao.retrieveSummaryById(id).toModel();
+  }
+
+  public Optional<PolicyModel> setSnapshotDuosId(
+      UUID snapshotId, String duosId, AuthenticatedUserRequest userRequest) {
+    // Verify that the new DUOS ID can be resolved to a DUOS dataset. TODO DuosService
+    // Undo: no-op
+
+    // If the snapshot already has a DUOS ID, remove its Firecloud user group from its readers.
+    // Undo: requires checking explicitly that the snapshot had it as a reader, then readd.
+    removeDuosFirecloudGroupFromSnapshot(snapshotId, userRequest);
+
+    // Could get a FK constraint if we don't do this!
+    // Undo: hmmm... need to know that this was created, not gotten.
+    DuosFirecloudGroupModel firecloudGroup = duosService.getOrCreateFirecloudGroup(duosId);
+
+    // Update the snapshot to use the new DUOS ID.
+    // Undo: requires storing the old DUOS ID and reupdate.
+    if (!snapshotDao.setDuosId(snapshotId, duosId)) {
+      throw new RuntimeException(
+          "Could not update " + snapshotId + " record with DUOS ID " + duosId);
+    }
+
+    // Add the DUOS ID's Firecloud user group as a snapshot reader.
+    // Undo: remove from readers.
+    return addDuosFirecloudGroupToSnapshot(snapshotId, userRequest);
   }
 
   public String exportSnapshot(
@@ -1090,5 +1121,45 @@ public class SnapshotService {
             StringUtils.split(SnapshotsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
         .map(SnapshotRetrieveIncludeModel::fromValue)
         .collect(Collectors.toList());
+  }
+
+  // TODO maybe not optional and just fetch readers?
+  public Optional<PolicyModel> addDuosFirecloudGroupToSnapshot(
+      UUID snapshotId, AuthenticatedUserRequest userRequest) {
+    Snapshot snapshot = snapshotDao.retrieveSnapshot(snapshotId);
+    String duosId = snapshot.getDuosId();
+    if (!StringUtils.isEmpty(duosId)) {
+      logger.info(
+          "Adding {}'s Firecloud user group as snapshot {} reader...", duosId, snapshot.getId());
+      DuosFirecloudGroupModel group = duosService.getOrCreateFirecloudGroup(duosId);
+      return Optional.of(
+          iamService.addPolicyMember(
+              userRequest,
+              IamResourceType.DATASNAPSHOT,
+              snapshot.getId(),
+              IamRole.READER.toString(),
+              group.getFirecloudGroupEmail()));
+    }
+    return Optional.empty();
+  }
+
+  // TODO maybe not optional and just fetch readers?
+  public Optional<PolicyModel> removeDuosFirecloudGroupFromSnapshot(
+      UUID snapshotId, AuthenticatedUserRequest userRequest) {
+    Snapshot snapshot = snapshotDao.retrieveSnapshot(snapshotId);
+    String duosId = snapshot.getDuosId();
+    if (!StringUtils.isEmpty(duosId)) {
+      logger.info(
+          "Removing {}'s Firecloud user group as snapshot {} reader...", duosId, snapshot.getId());
+      DuosFirecloudGroupModel group = duosService.getOrCreateFirecloudGroup(duosId);
+      return Optional.of(
+          iamService.deletePolicyMember(
+              userRequest,
+              IamResourceType.DATASNAPSHOT,
+              snapshot.getId(),
+              IamRole.READER.toString(),
+              group.getFirecloudGroupEmail()));
+    }
+    return Optional.empty();
   }
 }

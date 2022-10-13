@@ -312,4 +312,15 @@ public class SnapshotsApiController implements SnapshotsApi {
     List<String> roles = snapshotService.retrieveUserSnapshotRoles(id, getAuthenticatedInfo());
     return new ResponseEntity<>(roles, HttpStatus.OK);
   }
+
+  @Override
+  public ResponseEntity<PolicyModel> setSnapshotDuosId(UUID id, String duosId) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.SHARE_POLICY_READER);
+
+    PolicyModel policy =
+        snapshotService.setSnapshotDuosId(id, duosId, userRequest).orElseGet(PolicyModel::new);
+    return new ResponseEntity<>(policy, HttpStatus.OK);
+  }
 }

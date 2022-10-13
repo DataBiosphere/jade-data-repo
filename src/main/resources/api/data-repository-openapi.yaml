@@ -1094,6 +1094,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/duosId/{duosId}:
+    put:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Associate the snapshot with the DUOS ID:
+        - Verify that the new DUOS ID can be resolved to a DUOS dataset.
+        - If the snapshot already has a DUOS ID, remove its Firecloud user group from its readers.
+        - Create or get a Firecloud user group for the new DUOS ID.
+        - Add the Firecloud user group as a snapshot reader.
+      operationId: setSnapshotDuosId
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: duosId
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DuosId'
+      responses:
+        200:
+          description: The snapshot readers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to update policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - TDR snapshot does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets:
     get:
       tags:
@@ -2758,9 +2802,9 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: upgrade
 
-##############################################################################
-## SEARCH API STANDARD ENDPOINTS
-##############################################################################
+  ##############################################################################
+  ## SEARCH API STANDARD ENDPOINTS
+  ##############################################################################
 
   /api/repository/v1/search/{id}/index:
     post:
@@ -2865,9 +2909,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-##############################################################################
-## DRS STANDARD ENDPOINTS
-##############################################################################
+  ##############################################################################
+  ## DRS STANDARD ENDPOINTS
+  ##############################################################################
   /ga4gh/drs/v1/service-info:
     get:
       tags:
@@ -3568,7 +3612,7 @@ components:
           additionalProperties:
             type: array
             items:
-             type: string
+              type: string
       description: >
         The total number of datasets available that match the filter criteria and a page of summaries
     ColumnModel:

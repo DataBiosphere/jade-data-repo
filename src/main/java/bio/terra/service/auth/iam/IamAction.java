@@ -11,6 +11,8 @@ public enum IamAction {
   DELETE,
   READ_POLICY,
   READ_POLICIES,
+  SHARE_POLICY_READER("share_policy::reader"),
+
   ALTER_POLICIES,
   UPDATE_PASSPORT_IDENTIFIER,
   // datarepo
@@ -29,6 +31,7 @@ public enum IamAction {
   UPDATE_SNAPSHOT,
   READ_DATA,
   DISCOVER_DATA,
+
   EXPORT_SNAPSHOT,
   // billing profiles
   UPDATE_BILLING_ACCOUNT,
@@ -40,6 +43,10 @@ public enum IamAction {
     this.samActionName = name().toLowerCase();
   }
 
+  IamAction(String samActionName) {
+    this.samActionName = samActionName;
+  }
+
   @Override
   @JsonValue
   public String toString() {
@@ -49,6 +56,7 @@ public enum IamAction {
   @JsonCreator
   public static IamAction fromValue(String text) {
     for (IamAction b : IamAction.values()) {
+      // TODO does this break?
       if (b.name().equals(StringUtils.upperCase(text))) {
         return b;
       }

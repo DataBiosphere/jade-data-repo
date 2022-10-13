@@ -12,7 +12,8 @@ public enum IamRole {
   DISCOVERER,
   OWNER,
   USER,
-  SNAPSHOT_CREATOR;
+  SNAPSHOT_CREATOR,
+  MEMBER;
 
   @Override
   @JsonValue

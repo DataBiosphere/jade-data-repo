@@ -1138,6 +1138,69 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  ### TODO - get Firecloud mappings for all DUOS IDs.
+  ### TODO - get Firecloud mapping for DUOS ID.
+  /api/repository/v1/duos/syncAllFirecloudGroupContents:
+    put:
+      tags:
+        - duos
+        - repository
+      description: >
+        Sync authorized users for all TDR-registered DUOS datasets to their associated Firecloud groups
+      operationId: syncAllFirecloudGroupContents
+      responses:
+        200:
+          description: DUOS IDs and their authorized users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Missing required permission to facilitate sync
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/duos/{duosId}/syncFirecloudGroupContents:
+    put:
+      tags:
+        - duos
+        - repository
+      description: Sync authorized users for the DUOS dataset to its associated Firecloud group
+      operationId: syncFirecloudGroupContents
+      parameters:
+        - name: duosId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/DuosId'
+      responses:
+        200:
+          description: Updated state of DUOS group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Missing required permission to facilitate sync
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets:
     get:
       tags:
@@ -4598,6 +4661,29 @@ components:
                 link:
                   type: string
                   description: "Link to the workspace the snapshot was exported to"
+    DuosFirecloudGroupModel:
+      type: object
+      description: Firecloud managed group for authorized users of TDR-registered DUOS dataset
+      properties:
+        duosId:
+          $ref: '#/components/schemas/DuosId'
+        firecloudGroupName:
+          description: Name of Firecloud managed group
+          type: string
+        firecloudGroupEmail:
+          description: Email of Firecloud managed group
+          type: string
+        created:
+          description: Time when TDR created Firecloud managed group
+          type: string
+        lastSynced:
+          description: Last time TDR queried DUOS for its dataset's authorized users
+          type: string
+        users:
+          description: Members of Firecloud managed group
+          type: array
+          items:
+            type: string
     AccessInfoModel:
       type: object
       description: >

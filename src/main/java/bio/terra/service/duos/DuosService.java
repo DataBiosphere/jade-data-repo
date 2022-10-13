@@ -3,6 +3,8 @@ package bio.terra.service.duos;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -25,6 +27,19 @@ public class DuosService {
     this.duosClient = duosClient;
     this.duosDao = duosDao;
     this.iamService = iamService;
+  }
+
+  // TODO: get DUOS dataset or internal DUOS ID, to determine existence / eventually link out
+
+  public List<DuosFirecloudGroupModel> syncAllFirecloudGroupContents() {
+    return duosDao.retrieveDuosFirecloudGroups().stream()
+        .map(record -> syncFirecloudGroupContents(record.getDuosId()))
+        .toList();
+  }
+
+  public DuosFirecloudGroupModel syncFirecloudGroupContents(String duosId) {
+    DuosFirecloudGroupModel firecloudGroup = getOrCreateFirecloudGroup(duosId);
+    return updateFirecloudGroupUsers(firecloudGroup);
   }
 
   public DuosFirecloudGroupModel getOrCreateFirecloudGroup(String duosId) {
@@ -84,5 +99,45 @@ public class DuosService {
 
   private String constructUniqueFirecloudGroupName(String duosId) {
     return String.format("%s-%s", constructFirecloudGroupName(duosId), UUID.randomUUID());
+  }
+
+  public DuosFirecloudGroupModel updateFirecloudGroupUsers(DuosFirecloudGroupModel firecloudGroup) {
+    String duosId = firecloudGroup.getDuosId();
+    logger.info(
+        "Updating Firecloud group {} for {} users...",
+        firecloudGroup.getFirecloudGroupName(),
+        duosId);
+    List<String> authorizedUsers = getAuthorizedUsers(duosId);
+    // TODO: should last synced represent the last time we got state from DUOS,
+    // or the last time we updated the group membership?
+    Instant lastSyncedDate = Instant.now();
+    logger.info(
+        "Updating Firecloud group {} for {} users with {}...",
+        firecloudGroup,
+        duosId,
+        authorizedUsers);
+    iamService.overwriteGroupPolicyEmails(
+        firecloudGroup.getFirecloudGroupName(), IamRole.MEMBER.toString(), authorizedUsers);
+    supplementGroupAdmin(firecloudGroup, "okotsopo.broad.test@gmail.com");
+    try {
+      logger.info(
+          "Updated {} {} last_synced_date to {}? {}",
+          duosId,
+          firecloudGroup,
+          lastSyncedDate,
+          duosDao.updateLastSyncedDate(duosId, lastSyncedDate));
+    } catch (Exception ex) {
+      logger.error("Error updating duos_firecloud_group.last_synced_date", ex);
+    }
+    return duosDao.retrieveDuosFirecloudGroup(duosId).get().users(authorizedUsers);
+  }
+
+  private List<String> getAuthorizedUsers(String duosId) {
+    // TODO: error handling. Very important that if the DUOS ID does not exist, that
+    // we remove the existing users!  (But probably don't want to do this for a transient server
+    // issue, for ex.)
+    return duosClient.getApprovedUsers(duosId).approvedUsers().stream()
+        .map(DuosClient.ApprovedUser::email)
+        .toList();
   }
 }

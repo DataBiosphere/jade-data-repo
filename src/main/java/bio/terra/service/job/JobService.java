@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -281,7 +282,8 @@ public class JobService {
       int limit,
       AuthenticatedUserRequest userReq,
       SqlSortDirection direction,
-      String className) {
+      String className,
+      Set<String> jobIdSet) {
 
     // if the user has access to all jobs, then fetch everything
     // otherwise, filter the jobs on the user
@@ -304,13 +306,8 @@ public class JobService {
     }
 
     List<FlightState> flightStateList;
-    boolean canListAnyJob = checkUserCanListAnyJob(userReq);
     try {
-      if (canListAnyJob) {
-        flightStateList = stairway.getFlights(offset, limit, filter);
-      } else {
-        flightStateList = getAccessibleFlights(offset, limit, filter, userReq);
-      }
+      flightStateList = getAccessibleFlights(offset, limit, filter, userReq, jobIdSet);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }
@@ -321,10 +318,15 @@ public class JobService {
   }
 
   private List<FlightState> getAccessibleFlights(
-      int offset, int limit, FlightFilter filter, AuthenticatedUserRequest userReq)
+      int offset,
+      int limit,
+      FlightFilter filter,
+      AuthenticatedUserRequest userReq,
+      Set<String> jobIdSet)
       throws InterruptedException {
     int start = 0;
     int end = offset + limit;
+    boolean canListAnyJob = checkUserCanListAnyJob(userReq);
     HashMap<String, List<String>> roleMap = new HashMap<>();
     ArrayList<FlightState> flightStateList = new ArrayList<>();
     while (flightStateList.size() < offset + limit) {
@@ -334,7 +336,8 @@ public class JobService {
       }
       filterResults.forEach(
           flightState -> {
-            if (userLaunchedFlight(flightState, userReq)) {
+            if ((canListAnyJob || userLaunchedFlight(flightState, userReq))
+                && jobIdSet.contains(flightState.getFlightId())) {
               flightStateList.add(flightState);
             } else {
               FlightMap inputParameters = flightState.getInputParameters();
@@ -352,7 +355,8 @@ public class JobService {
                   userRoles = samService.listActions(userReq, resourceType, resourceId);
                   roleMap.put(key, userRoles);
                 }
-                if (userRoles.contains(action.toString())) {
+                if (userRoles.contains(action.toString())
+                    && jobIdSet.contains(flightState.getFlightId())) {
                   flightStateList.add(flightState);
                 }
               }

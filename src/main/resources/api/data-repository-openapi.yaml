@@ -2490,6 +2490,16 @@ paths:
           description: Filter by the flight's class
           schema:
             type: string
+        - name: jobIds
+          in: query
+          description: Filter the results to include the specified jobIds.
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         200:
           description: List of jobs

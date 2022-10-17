@@ -7,10 +7,13 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -28,9 +31,12 @@ import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.exception.IamConflictException;
+import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import com.google.api.client.http.HttpStatusCodes;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +45,7 @@ import java.util.stream.Collectors;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.TermsOfServiceApi;
@@ -70,8 +77,8 @@ public class SamIamTest {
   @Mock private StatusApi samStatusApi;
   @Mock private GoogleApi samGoogleApi;
   @Mock private UsersApi samUsersApi;
-
   @Mock private TermsOfServiceApi samTosApi;
+  @Mock private GroupApi samGroupApi;
   @Mock private AuthenticatedUserRequest userReq;
 
   private SamIam samIam;
@@ -90,11 +97,13 @@ public class SamIamTest {
         .thenReturn(0);
     when(configurationService.getParameterValue(ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS))
         .thenReturn(0);
-    // Mock out samApi, samStatusApi, samGoogleApi, and samUsersApi in individual tests as needed
+    // Mock out samApi, samStatusApi, samGoogleApi, samUsersApi, and samGroupApi
+    // in individual tests as needed
     doAnswer(a -> samResourceApi).when(samIam).samResourcesApi(userToken);
     doAnswer(a -> samStatusApi).when(samIam).samStatusApi();
     doAnswer(a -> samGoogleApi).when(samIam).samGoogleApi(userToken);
     doAnswer(a -> samUsersApi).when(samIam).samUsersApi(userToken);
+    doAnswer(a -> samGroupApi).when(samIam).samGroupApi(userToken);
     // Mock out the lower level client in individual as needed
     when(samResourceApi.getApiClient()).thenAnswer(a -> apiClient);
   }
@@ -624,5 +633,46 @@ public class SamIamTest {
     verify(samTosApi, times(1)).acceptTermsOfService(eq(TOS_URL));
 
     assertThat("expected user is returned", returnedUserStatus, is(userStatus));
+  }
+
+  @Test
+  public void testGetGroupEmail() throws ApiException, InterruptedException {
+    String accessToken = userReq.getToken();
+    String groupName = "firecloud_group_name";
+    String groupEmail = String.format("%s@dev.test.firecloud.org", groupName);
+
+    when(samGroupApi.getGroup(groupName)).thenReturn(groupEmail);
+    assertThat(
+        "Firecloud group email is returned when returned by SAM",
+        samIam.getGroupEmail(accessToken, groupName),
+        is(groupEmail));
+    verify(samGroupApi, times(1)).getGroup(groupName);
+
+    ApiException samEx = new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
+    when(samGroupApi.getGroup(groupName)).thenThrow(samEx);
+    assertThrows(
+        "IamNotFoundException is thrown when the user cannot access the group",
+        IamNotFoundException.class,
+        () -> samIam.getGroupEmail(accessToken, groupName));
+    verify(samGroupApi, times(2)).getGroup(groupName);
+  }
+
+  @Test
+  public void testCreateGroup() throws ApiException, InterruptedException {
+    String accessToken = userReq.getToken();
+    String groupName = "firecloud_group_name";
+
+    doNothing().when(samGroupApi).postGroup(groupName);
+    samIam.createGroup(accessToken, groupName);
+    verify(samGroupApi, times(1)).postGroup(groupName);
+
+    ApiException samEx =
+        new ApiException(HttpStatusCodes.STATUS_CODE_CONFLICT, "Group already exists");
+    doThrow(samEx).when(samGroupApi).postGroup(groupName);
+    assertThrows(
+        "IamConflictException is thrown when the group already exists",
+        IamConflictException.class,
+        () -> samIam.createGroup(accessToken, groupName));
+    verify(samGroupApi, times(2)).postGroup(groupName);
   }
 }

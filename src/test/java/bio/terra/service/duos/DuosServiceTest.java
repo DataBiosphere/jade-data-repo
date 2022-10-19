@@ -18,6 +18,7 @@ import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamConflictException;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
+import bio.terra.service.duos.exception.DuosFirecloudGroupInsertException;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -120,7 +121,8 @@ public class DuosServiceTest {
     when(duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
         .thenReturn(false);
 
-    assertThrows(RuntimeException.class, () -> duosService.createFirecloudGroup(DUOS_ID));
+    assertThrows(
+        DuosFirecloudGroupInsertException.class, () -> duosService.createFirecloudGroup(DUOS_ID));
     verify(iamService, times(1)).createGroup(FIRECLOUD_GROUP_NAME);
     verify(iamService, times(1)).deleteGroup(FIRECLOUD_GROUP_NAME);
     verify(duosDao, never()).retrieveFirecloudGroup(DUOS_ID);

@@ -7,6 +7,13 @@ databaseChangeLog:
             tableName: duos_firecloud_group
             columns:
               - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
                   name: duos_id
                   type: varchar(36)
                   constraints:

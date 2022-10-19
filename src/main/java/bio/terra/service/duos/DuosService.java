@@ -3,6 +3,7 @@ package bio.terra.service.duos;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamConflictException;
+import bio.terra.service.duos.exception.DuosFirecloudGroupInsertException;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Optional;
 import java.util.UUID;
@@ -44,13 +45,17 @@ public class DuosService {
     }
     logger.info("Successfully created Firecloud group {} for {} users", groupName, duosId);
 
+    // TODO: when we add a flight to set / unset a snapshot's DUOS ID,
+    // this DB insertion should be handled in its own step to allow for
+    // teardown of resources created earlier, rather than having to
+    // introduce a fallback behavior flow.
+    // https://broadworkbench.atlassian.net/browse/DR-2787
     boolean inserted = duosDao.insertFirecloudGroup(duosId, groupName, groupEmail);
     if (!inserted) {
       iamService.deleteGroup(groupName);
-      throw new RuntimeException(
+      throw new DuosFirecloudGroupInsertException(
           "Firecloud group " + groupName + " was not inserted into the DB and has been deleted");
     }
-
     return duosDao.retrieveFirecloudGroup(duosId);
   }
 

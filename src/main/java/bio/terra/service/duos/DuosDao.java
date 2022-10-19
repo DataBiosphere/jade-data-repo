@@ -68,7 +68,13 @@ public class DuosDao {
       readOnly = true)
   public DuosFirecloudGroupModel retrieveFirecloudGroup(String duosId) {
     try {
-      String sql = "SELECT * FROM duos_firecloud_group WHERE duos_id = :duos_id";
+      String sql =
+          """
+          SELECT duos_id, firecloud_group_name, firecloud_group_email, created_by, created_date,
+            last_synced_date
+          FROM duos_firecloud_group
+          WHERE duos_id = :duos_id
+          """;
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("duos_id", duosId);
       return jdbcTemplate.queryForObject(sql, params, new DuosFirecloudGroupMapper());
     } catch (EmptyResultDataAccessException ex) {

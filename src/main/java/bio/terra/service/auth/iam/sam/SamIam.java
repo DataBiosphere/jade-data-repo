@@ -624,21 +624,17 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public String getGroupEmail(String accessToken, String groupName) throws InterruptedException {
-    return SamRetry.retry(configurationService, () -> getGroupEmailInner(accessToken, groupName));
-  }
-
-  private String getGroupEmailInner(String accessToken, String groupName) throws ApiException {
-    return samGroupApi(accessToken).getGroup(groupName);
-  }
-
-  @Override
-  public void createGroup(String accessToken, String groupName) throws InterruptedException {
+  public String createGroup(String accessToken, String groupName) throws InterruptedException {
     SamRetry.retry(configurationService, () -> createGroupInner(accessToken, groupName));
+    return SamRetry.retry(configurationService, () -> getGroupEmail(accessToken, groupName));
   }
 
   private void createGroupInner(String accessToken, String groupName) throws ApiException {
     samGroupApi(accessToken).postGroup(groupName);
+  }
+
+  private String getGroupEmail(String accessToken, String groupName) throws ApiException {
+    return samGroupApi(accessToken).getGroup(groupName);
   }
 
   @Override

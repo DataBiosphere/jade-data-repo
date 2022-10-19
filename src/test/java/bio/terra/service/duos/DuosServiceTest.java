@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -66,7 +65,7 @@ public class DuosServiceTest {
 
   @Test
   public void testCreateFirecloudGroup() {
-    when(iamService.getGroupEmail(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
+    when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
     when(duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
         .thenReturn(true);
     DuosFirecloudGroupModel group = new DuosFirecloudGroupModel().duosId(DUOS_ID);
@@ -81,15 +80,13 @@ public class DuosServiceTest {
   public void testCreateFirecloudGroupWithNamingConflict() {
     String groupEmailNew = firecloudGroupEmail(FIRECLOUD_GROUP_NAME + "-new");
 
-    IamConflictException iamConflictEx =
-        new IamConflictException("Group already existed", List.of());
-    doThrow(iamConflictEx).when(iamService).createGroup(FIRECLOUD_GROUP_NAME);
-
     // If we encounter a naming collision when trying to create a Firecloud group,
     // we don't know exactly what our backstop name will be as it will be suffixed by a new UUID,
     // but we know that it will start with our more readable group name.
-    when(iamService.getGroupEmail(startsWith(FIRECLOUD_GROUP_NAME))).thenReturn(groupEmailNew);
-    when(iamService.getGroupEmail(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
+    when(iamService.createGroup(startsWith(FIRECLOUD_GROUP_NAME))).thenReturn(groupEmailNew);
+    IamConflictException iamConflictEx =
+        new IamConflictException("Group already existed", List.of());
+    doThrow(iamConflictEx).when(iamService).createGroup(FIRECLOUD_GROUP_NAME);
 
     when(duosDao.insertFirecloudGroup(
             eq(DUOS_ID), startsWith(FIRECLOUD_GROUP_NAME), eq(groupEmailNew)))
@@ -100,12 +97,8 @@ public class DuosServiceTest {
     assertThat(duosService.createFirecloudGroup(DUOS_ID), equalTo(group));
     // Our first creation attempt failed, so we tried to create again with our unique group name.
     verify(iamService, times(2)).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
-
-    verify(iamService, never()).getGroupEmail(firecloudGroupEmail);
     verify(duosDao, never())
         .insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail);
-
-    verify(iamService, times(1)).getGroupEmail(startsWith(FIRECLOUD_GROUP_NAME));
     verify(duosDao, times(1))
         .insertFirecloudGroup(eq(DUOS_ID), startsWith(FIRECLOUD_GROUP_NAME), eq(groupEmailNew));
   }
@@ -123,8 +116,7 @@ public class DuosServiceTest {
 
   @Test
   public void testCreateFirecloudGroupWithDbInsertionFailure() {
-    doNothing().when(iamService).createGroup(FIRECLOUD_GROUP_NAME);
-    when(iamService.getGroupEmail(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
+    when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
     when(duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
         .thenReturn(false);
 
@@ -136,7 +128,7 @@ public class DuosServiceTest {
 
   @Test
   public void testRetrieveOrCreateFirecloudGroup() {
-    when(iamService.getGroupEmail(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
+    when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
     when(duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
         .thenReturn(true);
     DuosFirecloudGroupModel group = new DuosFirecloudGroupModel().duosId(DUOS_ID);

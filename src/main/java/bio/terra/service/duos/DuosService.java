@@ -33,15 +33,15 @@ public class DuosService {
 
     // First try with the more readable group name.
     String groupName = constructFirecloudGroupName(duosId);
+    String groupEmail;
     try {
-      iamService.createGroup(groupName);
+      groupEmail = iamService.createGroup(groupName);
     } catch (IamConflictException ex) {
       logger.warn(
           "Firecloud group {} already exists: trying creation with a unique name", groupName);
       groupName = constructUniqueFirecloudGroupName(duosId);
-      iamService.createGroup(groupName);
+      groupEmail = iamService.createGroup(groupName);
     }
-    String groupEmail = iamService.getGroupEmail(groupName);
     logger.info("Successfully created Firecloud group {} for {} users", groupName, duosId);
 
     boolean inserted = duosDao.insertFirecloudGroup(duosId, groupName, groupEmail);

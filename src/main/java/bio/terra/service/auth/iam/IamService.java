@@ -354,16 +354,19 @@ public class IamService {
   }
 
   // -- managed group support --
-  public String getGroupEmail(String groupName) {
+
+  /**
+   * @param groupName Firecloud managed group to create as the TDR SA
+   * @return the email for the newly created group
+   */
+  public String createGroup(String groupName) {
     GoogleCredentials tdrSaCreds = getGoogleCredentialsApplicationDefault();
-    return callProvider(() -> iamProvider.getGroupEmail(getAccessToken(tdrSaCreds), groupName));
+    return callProvider(() -> iamProvider.createGroup(getAccessToken(tdrSaCreds), groupName));
   }
 
-  public void createGroup(String groupName) {
-    GoogleCredentials tdrSaCreds = getGoogleCredentialsApplicationDefault();
-    callProvider(() -> iamProvider.createGroup(getAccessToken(tdrSaCreds), groupName));
-  }
-
+  /**
+   * @param groupName Firecloud managed group to delete as the TDR SA
+   */
   public void deleteGroup(String groupName) {
     GoogleCredentials tdrSaCreds = getGoogleCredentialsApplicationDefault();
     callProvider(() -> iamProvider.deleteGroup(getAccessToken(tdrSaCreds), groupName));

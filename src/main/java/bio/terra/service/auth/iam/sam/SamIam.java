@@ -642,6 +642,15 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
+  public void deleteGroup(String accessToken, String groupName) throws InterruptedException {
+    SamRetry.retry(configurationService, () -> deleteGroupInner(accessToken, groupName));
+  }
+
+  private void deleteGroupInner(String accessToken, String groupName) throws ApiException {
+    samGroupApi(accessToken).deleteGroup(groupName);
+  }
+
+  @Override
   public String getPetToken(AuthenticatedUserRequest userReq, List<String> scopes)
       throws InterruptedException {
     return SamRetry.retry(configurationService, () -> getPetTokenInner(userReq, scopes));

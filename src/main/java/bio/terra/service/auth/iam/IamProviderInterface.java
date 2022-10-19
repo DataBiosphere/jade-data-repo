@@ -230,4 +230,10 @@ public interface IamProviderInterface {
    * @param groupName name of Firecloud managed group to create
    */
   void createGroup(String accessToken, String groupName) throws InterruptedException;
+
+  /**
+   * @param accessToken valid oauth token for the account creating the group
+   * @param groupName name of Firecloud managed group to delete
+   */
+  void deleteGroup(String accessToken, String groupName) throws InterruptedException;
 }

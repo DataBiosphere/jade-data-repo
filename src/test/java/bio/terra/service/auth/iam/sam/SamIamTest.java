@@ -675,4 +675,22 @@ public class SamIamTest {
         () -> samIam.createGroup(accessToken, groupName));
     verify(samGroupApi, times(2)).postGroup(groupName);
   }
+
+  @Test
+  public void testDeleteGroup() throws ApiException, InterruptedException {
+    String accessToken = userReq.getToken();
+    String groupName = "firecloud_group_name";
+
+    doNothing().when(samGroupApi).deleteGroup(groupName);
+    samIam.deleteGroup(accessToken, groupName);
+    verify(samGroupApi, times(1)).deleteGroup(groupName);
+
+    ApiException samEx = new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
+    doThrow(samEx).when(samGroupApi).deleteGroup(groupName);
+    assertThrows(
+        "IamNotFoundException is thrown when the user cannot access the group",
+        IamNotFoundException.class,
+        () -> samIam.deleteGroup(accessToken, groupName));
+    verify(samGroupApi, times(2)).deleteGroup(groupName);
+  }
 }

@@ -364,6 +364,11 @@ public class IamService {
     callProvider(() -> iamProvider.createGroup(getAccessToken(tdrSaCreds), groupName));
   }
 
+  public void deleteGroup(String groupName) {
+    GoogleCredentials tdrSaCreds = getGoogleCredentialsApplicationDefault();
+    callProvider(() -> iamProvider.deleteGroup(getAccessToken(tdrSaCreds), groupName));
+  }
+
   // -- credential utilities --
   private GoogleCredentials getGoogleCredentialsApplicationDefault() {
     try {

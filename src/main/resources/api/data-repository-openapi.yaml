@@ -5177,7 +5177,11 @@ components:
     ConsentCode:
       type: string
       description: Consent code together with PHS ID that will determine user access
-      example: c99
+
+    DuosId:
+      type: string
+      description: DUOS dataset identifier
+      example: DUOS-123456
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS
@@ -5236,6 +5240,33 @@ components:
           items:
             type: object
       description: List of snapshot metadata
+    DuosFirecloudGroupModel:
+      type: object
+      description: >
+        A Firecloud managed group for the authorized users of a DUOS dataset.
+        This group has a TDR service account as its sole administrator.
+        Only those DUOS datasets known to TDR will have Firecloud groups for their users.
+      properties:
+        duosId:
+          $ref: '#/components/schemas/DuosId'
+        firecloudGroupName:
+          description: Name of Firecloud managed group
+          type: string
+          example: DUOS-123456-users
+        firecloudGroupEmail:
+          description: Email of Firecloud managed group
+          type: string
+          example: DUOS-123456-users@dev.test.firecloud.org
+        createdBy:
+          description: The TDR service account which created this group
+          type: string
+          example: jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com
+        created:
+          description: Time when TDR created this group
+          type: string
+        lastSynced:
+          description: Last time TDR queried DUOS for its dataset's authorized users
+          type: string
 
     ##############################################################################
     ## DRS STANDARD MODELS

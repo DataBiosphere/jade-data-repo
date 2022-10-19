@@ -47,9 +47,12 @@ public class DuosDaoTest {
     DuosFirecloudGroupModel retrieveBeforeInsert = duosDao.retrieveFirecloudGroup(DUOS_ID);
     assertThat(retrieveBeforeInsert, nullValue());
 
-    duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, FIRECLOUD_GROUP_EMAIL);
-
+    DuosFirecloudGroupModel retrieveOnCreate =
+        duosDao.insertAndRetrieveFirecloudGroup(
+            DUOS_ID, FIRECLOUD_GROUP_NAME, FIRECLOUD_GROUP_EMAIL);
     DuosFirecloudGroupModel retrieveAfterInsert = duosDao.retrieveFirecloudGroup(DUOS_ID);
+
+    assertThat(retrieveOnCreate, equalTo(retrieveAfterInsert));
 
     assertThat(retrieveAfterInsert, notNullValue());
     assertThat(retrieveAfterInsert.getFirecloudGroupName(), equalTo(FIRECLOUD_GROUP_NAME));

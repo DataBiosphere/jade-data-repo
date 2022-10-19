@@ -39,13 +39,13 @@ public class DuosDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean insertFirecloudGroup(
+  public DuosFirecloudGroupModel insertAndRetrieveFirecloudGroup(
       String duosId, String firecloudGroupName, String firecloudGroupEmail) {
     String sql =
         """
         INSERT INTO duos_firecloud_group
-        (duos_id, firecloud_group_name, firecloud_group_email, created_by) VALUES
-        (:duos_id, :firecloud_group_name, :firecloud_group_email, :created_by)
+        (duos_id, firecloud_group_name, firecloud_group_email, created_by)
+        VALUES (:duos_id, :firecloud_group_name, :firecloud_group_email, :created_by)
         """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -53,13 +53,9 @@ public class DuosDao {
             .addValue("firecloud_group_name", firecloudGroupName)
             .addValue("firecloud_group_email", firecloudGroupEmail)
             .addValue("created_by", tdrServiceAccountEmail);
-    int rowsAffected = jdbcTemplate.update(sql, params);
-    boolean insertSucceeded = (rowsAffected == 1);
-
-    if (insertSucceeded) {
-      logger.info("Inserted {} -> {} into duos_firecloud_group", duosId, firecloudGroupName);
-    }
-    return insertSucceeded;
+    jdbcTemplate.update(sql, params);
+    logger.info("Inserted {} -> {} into duos_firecloud_group", duosId, firecloudGroupName);
+    return retrieveFirecloudGroup(duosId);
   }
 
   @Transactional(

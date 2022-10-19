@@ -50,13 +50,13 @@ public class DuosService {
     // teardown of resources created earlier, rather than having to
     // introduce a fallback behavior flow.
     // https://broadworkbench.atlassian.net/browse/DR-2787
-    boolean inserted = duosDao.insertFirecloudGroup(duosId, groupName, groupEmail);
-    if (!inserted) {
+    try {
+      return duosDao.insertAndRetrieveFirecloudGroup(duosId, groupName, groupEmail);
+    } catch (Exception ex) {
       iamService.deleteGroup(groupName);
       throw new DuosFirecloudGroupInsertException(
           "Firecloud group " + groupName + " was not inserted into the DB and has been deleted");
     }
-    return duosDao.retrieveFirecloudGroup(duosId);
   }
 
   public DuosFirecloudGroupModel retrieveOrCreateFirecloudGroup(String duosId) {

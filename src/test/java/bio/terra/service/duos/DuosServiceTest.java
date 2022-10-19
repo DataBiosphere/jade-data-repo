@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -67,10 +68,10 @@ public class DuosServiceTest {
   @Test
   public void testCreateFirecloudGroup() {
     when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
-    when(duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
-        .thenReturn(true);
     DuosFirecloudGroupModel group = new DuosFirecloudGroupModel().duosId(DUOS_ID);
-    when(duosDao.retrieveFirecloudGroup(DUOS_ID)).thenReturn(group);
+    when(duosDao.insertAndRetrieveFirecloudGroup(
+            DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
+        .thenReturn(group);
 
     assertThat(duosService.createFirecloudGroup(DUOS_ID), equalTo(group));
     verify(iamService, times(1)).createGroup(FIRECLOUD_GROUP_NAME);
@@ -89,19 +90,19 @@ public class DuosServiceTest {
         new IamConflictException("Group already existed", List.of());
     doThrow(iamConflictEx).when(iamService).createGroup(FIRECLOUD_GROUP_NAME);
 
-    when(duosDao.insertFirecloudGroup(
-            eq(DUOS_ID), startsWith(FIRECLOUD_GROUP_NAME), eq(groupEmailNew)))
-        .thenReturn(true);
     DuosFirecloudGroupModel group = new DuosFirecloudGroupModel().duosId(DUOS_ID);
-    when(duosDao.retrieveFirecloudGroup(DUOS_ID)).thenReturn(group);
+    when(duosDao.insertAndRetrieveFirecloudGroup(
+            eq(DUOS_ID), startsWith(FIRECLOUD_GROUP_NAME), eq(groupEmailNew)))
+        .thenReturn(group);
 
     assertThat(duosService.createFirecloudGroup(DUOS_ID), equalTo(group));
     // Our first creation attempt failed, so we tried to create again with our unique group name.
     verify(iamService, times(2)).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
     verify(duosDao, never())
-        .insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail);
+        .insertAndRetrieveFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail);
     verify(duosDao, times(1))
-        .insertFirecloudGroup(eq(DUOS_ID), startsWith(FIRECLOUD_GROUP_NAME), eq(groupEmailNew));
+        .insertAndRetrieveFirecloudGroup(
+            eq(DUOS_ID), startsWith(FIRECLOUD_GROUP_NAME), eq(groupEmailNew));
   }
 
   @Test
@@ -112,14 +113,15 @@ public class DuosServiceTest {
 
     assertThrows(IamForbiddenException.class, () -> duosService.createFirecloudGroup(DUOS_ID));
     verify(duosDao, never())
-        .insertFirecloudGroup(eq(DUOS_ID), eq(FIRECLOUD_GROUP_NAME), anyString());
+        .insertAndRetrieveFirecloudGroup(eq(DUOS_ID), eq(FIRECLOUD_GROUP_NAME), anyString());
   }
 
   @Test
   public void testCreateFirecloudGroupWithDbInsertionFailure() {
     when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
-    when(duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
-        .thenReturn(false);
+    when(duosDao.insertAndRetrieveFirecloudGroup(
+            DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
+        .thenThrow(new DuplicateKeyException("Firecloud group already exists for DUOS ID"));
 
     assertThrows(
         DuosFirecloudGroupInsertException.class, () -> duosService.createFirecloudGroup(DUOS_ID));
@@ -131,9 +133,10 @@ public class DuosServiceTest {
   @Test
   public void testRetrieveOrCreateFirecloudGroup() {
     when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
-    when(duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
-        .thenReturn(true);
     DuosFirecloudGroupModel group = new DuosFirecloudGroupModel().duosId(DUOS_ID);
+    when(duosDao.insertAndRetrieveFirecloudGroup(
+            DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
+        .thenReturn(group);
     when(duosDao.retrieveFirecloudGroup(DUOS_ID)).thenReturn(null).thenReturn(group);
 
     // First invocation: we create

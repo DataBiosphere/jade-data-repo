@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -15,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -55,5 +57,11 @@ public class DuosDaoTest {
     assertThat(retrieveAfterInsert.getCreatedBy(), equalTo(tdrServiceAccountEmail));
     assertThat(retrieveAfterInsert.getCreated(), notNullValue());
     assertThat(retrieveAfterInsert.getLastSynced(), nullValue());
+
+    assertThrows(
+        DuplicateKeyException.class,
+        () ->
+            duosDao.insertAndRetrieveFirecloudGroup(
+                DUOS_ID, "different_firecloud_group_name", "different_firecloud_group_email"));
   }
 }

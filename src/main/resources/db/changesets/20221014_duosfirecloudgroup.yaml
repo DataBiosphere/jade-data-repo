@@ -11,7 +11,6 @@ databaseChangeLog:
                   type: ${uuid_type}
                   defaultValueComputed: ${uuid_function}
                   constraints:
-                    primaryKey: true
                     nullable: false
               - column:
                   name: duos_id

@@ -229,6 +229,7 @@ jobs:
     name: "Save execution reports and notify"
     timeout-minutes: 60
     needs:
+      - test_check
       - test_connected
       - deploy_test_integration
     strategy:
@@ -275,4 +276,4 @@ jobs:
           status: ${{ (needs.test_check.outputs.job-status == 'success' && needs.test_connected.outputs.job-status == 'success' && needs.deploy_test_integration.outputs.job-status == 'success') && 'success' || 'failure' }}
           channel: "#jade-alerts"
           username: "Data Repo tests"
-          text: "Integration and Connected tests"
+          text: "Nightly Unit, Connected and Integration tests"

@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: duosfirecloudgroupprimarykey
+      author: okotsopo
+      remarks: |
+        On table creation, we made the DUOS dataset ID our sole primary key, and got uniqueness
+        protection for free as a result.
+        But we prefer to mint a surrogate primary key to guard against the possibility that
+        DUOS IDs could be renamed or otherwise represented differently in the future.
+        As we still want to guard against having multiple rows with the same DUOS ID,
+        we must add a uniqueness constraint to the duos_id column.
+      changes:
+        - dropPrimaryKey:
+            tableName: duos_firecloud_group
+            constraintName: duos_firecloud_group_pkey
+        - addPrimaryKey:
+            tableName: duos_firecloud_group
+            columnNames: id
+        - addUniqueConstraint:
+            tableName: duos_firecloud_group
+            columnNames: duos_id
+

@@ -62,4 +62,5 @@
     <include file="changesets/20220615_snapshotproperties.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20220617_addprojectsa.yaml" relativeToChangelogFile="true" />
     <include file="changesets/2022104_description_to_text.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221014_duosfirecloudgroup.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

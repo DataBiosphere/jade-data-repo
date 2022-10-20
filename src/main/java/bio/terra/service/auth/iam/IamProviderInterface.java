@@ -217,4 +217,17 @@ public interface IamProviderInterface {
    *     statuses
    */
   RepositoryStatusModelSystems samStatus();
+
+  /**
+   * @param accessToken valid oauth token for the account creating the group
+   * @param groupName name of Firecloud managed group to create
+   * @return the new group's email address
+   */
+  String createGroup(String accessToken, String groupName) throws InterruptedException;
+
+  /**
+   * @param accessToken valid oauth token for the account creating the group
+   * @param groupName name of Firecloud managed group to delete
+   */
+  void deleteGroup(String accessToken, String groupName) throws InterruptedException;
 }

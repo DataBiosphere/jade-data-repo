@@ -19,4 +19,3 @@ databaseChangeLog:
         - addUniqueConstraint:
             tableName: duos_firecloud_group
             columnNames: duos_id
-

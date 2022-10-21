@@ -31,7 +31,7 @@ public class JournalService {
       @NotNull UUID key,
       @NotNull IamResourceType resourceType,
       String note,
-      Map<String, Object> changeMap) {
+      Map changeMap) {
     journal(EntryType.CREATE, user, key, resourceType, note, changeMap, false);
   }
 
@@ -40,7 +40,7 @@ public class JournalService {
       @NotNull UUID key,
       @NotNull IamResourceType resourceType,
       String note,
-      Map<String, Object> changeMap,
+      Map changeMap,
       boolean clearHistory) {
     journal(EntryType.CREATE, user, key, resourceType, note, changeMap, clearHistory);
   }
@@ -50,7 +50,7 @@ public class JournalService {
       @NotNull UUID key,
       @NotNull IamResourceType resourceType,
       String note,
-      Map<String, Object> changeMap) {
+      Map changeMap) {
     journal(EntryType.UPDATE, user, key, resourceType, note, changeMap, false);
   }
 
@@ -59,7 +59,7 @@ public class JournalService {
       @NotNull UUID key,
       @NotNull IamResourceType resourceType,
       String note,
-      Map<String, Object> changeMap) {
+      Map changeMap) {
     journal(EntryType.DELETE, user, key, resourceType, note, changeMap, false);
   }
 
@@ -74,16 +74,13 @@ public class JournalService {
       UUID key,
       IamResourceType resourceType,
       String note,
-      Map<String, Object> changeMap,
+      Map changeMap,
       boolean clearHistory) {
     StackWalker.StackFrame frame = getCallerFrame(3);
     Map nonNullValuesMap = null;
     String mapJson = null;
     if (changeMap != null) {
-      nonNullValuesMap =
-          changeMap.entrySet().stream()
-              .filter(entry -> entry.getValue() != null)
-              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      nonNullValuesMap = filterNullValuesFromMap(changeMap);
     }
     try {
       if (nonNullValuesMap != null && !nonNullValuesMap.isEmpty()) {
@@ -122,6 +119,12 @@ public class JournalService {
     return walker.walk(stream1 -> stream1.skip(n).findFirst().orElse(null));
   }
 
+  private static <K, V> Map<K, V> filterNullValuesFromMap(Map<K, V> changeMap) {
+    return changeMap.entrySet().stream()
+        .filter(entry -> entry.getValue() != null)
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
   public enum EntryType {
     CREATE("CREATE"),
     UPDATE("UPDATE"),
@@ -129,7 +132,7 @@ public class JournalService {
 
     public final String label;
 
-    private EntryType(String label) {
+    EntryType(String label) {
       this.label = label;
     }
   }

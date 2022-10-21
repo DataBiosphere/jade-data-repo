@@ -15,7 +15,7 @@ public class JournalEntry {
   private IamResourceType resourceType;
   private String className;
   private String methodName;
-  private Map<String, Object> mutations;
+  private Map mutations;
 
   private String note;
   private Instant when;

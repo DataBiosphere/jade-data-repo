@@ -136,7 +136,7 @@ public class JournalDao {
     @Override
     public JournalEntryModel mapRow(ResultSet rs, int rowNum) throws SQLException {
       UUID journalId = rs.getObject("id", UUID.class);
-      Map<String, Object> mutation = null;
+      Map mutation = null;
       String rsMutation = rs.getString("mutation");
       if (rsMutation != null) {
         try {

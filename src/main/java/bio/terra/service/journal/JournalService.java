@@ -119,7 +119,7 @@ public class JournalService {
     return walker.walk(stream1 -> stream1.skip(n).findFirst().orElse(null));
   }
 
-  private static <K, V> Map<K, V> filterNullValuesFromMap(Map<K, V> changeMap) {
+  private static <K, V> Map<K, V> filterNullValuesFromMap(@NotNull Map<K, V> changeMap) {
     return changeMap.entrySet().stream()
         .filter(entry -> entry.getValue() != null)
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

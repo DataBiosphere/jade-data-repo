@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.snapshot.Snapshot;
@@ -27,12 +28,17 @@ public class CreateSnapshotMetadataStep implements Step {
   private final SnapshotRequestModel snapshotReq;
 
   private static final Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
+  private final AuthenticatedUserRequest userReq;
 
   public CreateSnapshotMetadataStep(
-      SnapshotDao snapshotDao, SnapshotService snapshotService, SnapshotRequestModel snapshotReq) {
+      SnapshotDao snapshotDao,
+      SnapshotService snapshotService,
+      SnapshotRequestModel snapshotReq,
+      AuthenticatedUserRequest userReq) {
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
+    this.userReq = userReq;
   }
 
   @Override
@@ -48,7 +54,7 @@ public class CreateSnapshotMetadataStep implements Step {
               .makeSnapshotFromSnapshotRequest(snapshotReq)
               .id(snapshotId)
               .projectResourceId(projectResourceId);
-      snapshotDao.createAndLock(snapshot, context.getFlightId());
+      snapshotDao.createAndLock(snapshot, context.getFlightId(), userReq);
 
       SnapshotSummaryModel response = snapshotService.retrieveSnapshotSummary(snapshotId);
 
@@ -70,7 +76,7 @@ public class CreateSnapshotMetadataStep implements Step {
     logger.debug("Snapshot creation failed. Deleting metadata.");
     FlightMap workingMap = context.getWorkingMap();
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-    snapshotDao.delete(snapshotId);
+    snapshotDao.delete(snapshotId, userReq);
     return StepResult.getStepResultSuccess();
   }
 }

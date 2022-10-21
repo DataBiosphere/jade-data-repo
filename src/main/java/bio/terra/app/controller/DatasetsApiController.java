@@ -186,7 +186,7 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     Set<IamAction> actions = datasetService.patchDatasetIamActions(patchRequest);
     iamService.verifyAuthorizations(userReq, IamResourceType.DATASET, id.toString(), actions);
-    return new ResponseEntity<>(datasetService.patch(id, patchRequest), HttpStatus.OK);
+    return new ResponseEntity<>(datasetService.patch(id, patchRequest, userReq), HttpStatus.OK);
   }
 
   @Override

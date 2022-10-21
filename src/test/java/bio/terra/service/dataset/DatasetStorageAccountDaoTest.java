@@ -9,6 +9,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
@@ -65,6 +66,12 @@ public class DatasetStorageAccountDaoTest {
   private Dataset dataset;
   private BillingProfileModel billingProfile;
   private AzureApplicationDeploymentResource applicationResource;
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
 
   @Before
   public void setUp() throws Exception {
@@ -87,7 +94,7 @@ public class DatasetStorageAccountDaoTest {
       datasetStorageAccountDao.deleteDatasetStorageAccountLink(
           datasetId, storageAccountResourceIds.get(0));
 
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
 
     azureResourceDao.deleteApplicationDeploymentMetadata(List.of(applicationId));
@@ -125,7 +132,7 @@ public class DatasetStorageAccountDaoTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId);
+    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     return datasetId;
   }

@@ -120,6 +120,13 @@ public class DatasetServiceTest {
   private ArrayList<String> flightIdsList;
   private ArrayList<UUID> datasetIdList;
 
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
+
   private UUID createDataset(DatasetRequestModel datasetRequest, String newName)
       throws IOException, SQLException {
     datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
@@ -130,7 +137,7 @@ public class DatasetServiceTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId);
+    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
     datasetDao.unlockExclusive(datasetId, createFlightId);
     datasetIdList.add(datasetId);
     return datasetId;
@@ -167,7 +174,7 @@ public class DatasetServiceTest {
   @After
   public void teardown() {
     for (UUID datasetId : datasetIdList) {
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(billingProfile.getId());
@@ -181,7 +188,8 @@ public class DatasetServiceTest {
   @Test(expected = DatasetNotFoundException.class)
   public void datasetDeleteTest() throws IOException, SQLException {
     UUID datasetId = createDataset("dataset-create-test.json");
-    assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
+    assertThat(
+        "dataset delete signals success", datasetDao.delete(datasetId, TEST_USER), equalTo(true));
     datasetDao.retrieve(datasetId);
   }
 
@@ -235,7 +243,7 @@ public class DatasetServiceTest {
         dataset.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId);
+    datasetDao.delete(datasetId, TEST_USER);
   }
 
   @Test
@@ -328,7 +336,7 @@ public class DatasetServiceTest {
         dataset.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId);
+    datasetDao.delete(datasetId, TEST_USER);
   }
 
   @Test
@@ -413,8 +421,8 @@ public class DatasetServiceTest {
         dataset2.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId1);
-    datasetDao.delete(datasetId2);
+    datasetDao.delete(datasetId1, TEST_USER);
+    datasetDao.delete(datasetId2, TEST_USER);
   }
 
   @Test
@@ -473,7 +481,7 @@ public class DatasetServiceTest {
             equalTo(2));
       }
     } finally {
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
   }
 
@@ -517,7 +525,7 @@ public class DatasetServiceTest {
     assertThat(
         "dataset has one less asset spec", dataset.getAssetSpecifications().size(), equalTo(1));
 
-    datasetDao.delete(datasetId);
+    datasetDao.delete(datasetId, TEST_USER);
   }
 
   @Test

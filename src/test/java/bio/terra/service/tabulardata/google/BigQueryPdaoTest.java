@@ -17,6 +17,7 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
@@ -99,6 +100,12 @@ public class BigQueryPdaoTest {
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
 
   @Rule public ExpectedException exceptionGrabber = ExpectedException.none();
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
 
   @Before
   public void setup() throws Exception {
@@ -162,7 +169,7 @@ public class BigQueryPdaoTest {
       bigQueryDatasetPdao.deleteDataset(dataset);
       assertThatDatasetAndTablesShouldExist(dataset, false);
     } finally {
-      datasetDao.delete(dataset.getId());
+      datasetDao.delete(dataset.getId(), TEST_USER);
     }
   }
 
@@ -255,7 +262,7 @@ public class BigQueryPdaoTest {
       bigQueryDatasetPdao.deleteDataset(dataset);
       // Need to manually clean up the DAO because `readDataset` bypasses the
       // `connectedOperations` object, so we can't rely on its auto-teardown logic.
-      datasetDao.delete(dataset.getId());
+      datasetDao.delete(dataset.getId(), TEST_USER);
     }
   }
 
@@ -339,7 +346,7 @@ public class BigQueryPdaoTest {
       bigQueryDatasetPdao.deleteDataset(dataset);
       // Need to manually clean up the DAO because `readDataset` bypasses the
       // `connectedOperations` object, so we can't rely on its auto-teardown logic.
-      datasetDao.delete(dataset.getId());
+      datasetDao.delete(dataset.getId(), TEST_USER);
     }
   }
 
@@ -460,7 +467,7 @@ public class BigQueryPdaoTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId);
+    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     return dataset;
   }

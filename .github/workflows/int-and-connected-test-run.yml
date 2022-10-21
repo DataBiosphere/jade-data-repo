@@ -38,6 +38,8 @@ on:
 jobs:
   test_check:
     name: "Checkout, verify and run unit tests"
+    outputs:
+      job-status: ${{ job.status }}
     timeout-minutes: 60
     strategy:
       matrix:
@@ -74,6 +76,8 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
   test_connected:
     name: "Run connected tests"
+    outputs:
+      job-status: ${{ job.status }}
     timeout-minutes: 180
     needs: test_check
     strategy:
@@ -127,6 +131,8 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_integration:
     name: "Run integration and smoke tests"
+    outputs:
+      job-status: ${{ job.status }}
     timeout-minutes: 300
     needs: test_check
     strategy:
@@ -183,10 +189,10 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.418
-          helm_datarepo_ui_chart_version: 0.0.179
+          helm_datarepo_api_chart_version: 0.0.421
+          helm_datarepo_ui_chart_version: 0.0.187
           helm_gcloud_sqlproxy_chart_version: 0.19.8
-          helm_oidc_proxy_chart_version: 0.0.38
+          helm_oidc_proxy_chart_version: 0.0.39
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |
@@ -223,6 +229,7 @@ jobs:
     name: "Save execution reports and notify"
     timeout-minutes: 60
     needs:
+      - test_check
       - test_connected
       - deploy_test_integration
     strategy:
@@ -266,7 +273,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
-          status: ${{ job.status }}
+          status: ${{ (needs.test_check.outputs.job-status == 'success' && needs.test_connected.outputs.job-status == 'success' && needs.deploy_test_integration.outputs.job-status == 'success') && 'success' || 'failure' }}
           channel: "#jade-alerts"
           username: "Data Repo tests"
-          text: "Integration and Connected tests"
+          text: "Nightly Unit, Connected and Integration tests"

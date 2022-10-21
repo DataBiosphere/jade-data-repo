@@ -350,13 +350,45 @@ public class IamService {
     } catch (IOException e) {
       throw new GoogleResourceException("Could not generate Google credentials", e);
     }
+    return callProvider(() -> iamProvider.registerUser(getAccessToken(impersonatedCredentials)));
+  }
 
-    String accessToken;
+  // -- managed group support --
+
+  /**
+   * @param groupName Firecloud managed group to create as the TDR SA
+   * @return the email for the newly created group
+   */
+  public String createGroup(String groupName) {
+    GoogleCredentials tdrSaCreds = getGoogleCredentialsApplicationDefault();
+    return callProvider(() -> iamProvider.createGroup(getAccessToken(tdrSaCreds), groupName));
+  }
+
+  /**
+   * @param groupName Firecloud managed group to delete as the TDR SA
+   */
+  public void deleteGroup(String groupName) {
+    GoogleCredentials tdrSaCreds = getGoogleCredentialsApplicationDefault();
+    callProvider(() -> iamProvider.deleteGroup(getAccessToken(tdrSaCreds), groupName));
+  }
+
+  // -- credential utilities --
+  private GoogleCredentials getGoogleCredentialsApplicationDefault() {
     try {
-      accessToken = impersonatedCredentials.refreshAccessToken().getTokenValue();
+      return GoogleCredentials.getApplicationDefault();
+    } catch (IOException e) {
+      throw new GoogleResourceException("Could not generate Google credentials", e);
+    }
+  }
+
+  private String getAccessToken(GoogleCredentials credentials) {
+    try {
+      if (credentials.createScopedRequired()) {
+        credentials = credentials.createScoped(SAM_SCOPES);
+      }
+      return credentials.refreshAccessToken().getTokenValue();
     } catch (IOException e) {
       throw new GoogleResourceException("Could not generate Google access token", e);
     }
-    return callProvider(() -> iamProvider.registerUser(accessToken));
   }
 }

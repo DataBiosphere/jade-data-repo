@@ -1354,15 +1354,21 @@ public class DataRepoFixtures {
     return dataRepoClient.get(user, "/api/repository/v1/jobs/" + jobId, new TypeReference<>() {});
   }
 
-  public List<JobModel> enumerateJobs(TestConfiguration.User user) throws Exception {
-    DataRepoResponse<List<JobModel>> response = enumerateJobsRaw(user);
+  public List<JobModel> enumerateJobs(TestConfiguration.User user, Integer offset, Integer limit)
+      throws Exception {
+    DataRepoResponse<List<JobModel>> response = enumerateJobsRaw(user, offset, limit);
     assertThat("enumerate jobs is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("enumerate jobs response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
   }
 
-  public DataRepoResponse<List<JobModel>> enumerateJobsRaw(TestConfiguration.User user)
-      throws Exception {
-    return dataRepoClient.get(user, "/api/repository/v1/jobs/", new TypeReference<>() {});
+  public DataRepoResponse<List<JobModel>> enumerateJobsRaw(
+      TestConfiguration.User user, Integer offset, Integer limit) throws Exception {
+    String queryParams =
+        "?offset=%s&limit=%s"
+            .formatted(
+                Objects.requireNonNullElse(offset, 0), Objects.requireNonNullElse(limit, 10));
+    return dataRepoClient.get(
+        user, "/api/repository/v1/jobs" + queryParams, new TypeReference<>() {});
   }
 }

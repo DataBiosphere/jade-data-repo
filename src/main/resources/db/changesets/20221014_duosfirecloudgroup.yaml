@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: duosfirecloudgroup
+      author: okotsopo
+      changes:
+        - createTable:
+            tableName: duos_firecloud_group
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    nullable: false
+              - column:
+                  name: duos_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: firecloud_group_name
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: firecloud_group_email
+                  type: varchar(256)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: varchar(256)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_synced_date
+                  type: timestamptz

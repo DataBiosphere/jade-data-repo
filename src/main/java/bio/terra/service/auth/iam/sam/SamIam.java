@@ -45,6 +45,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.TermsOfServiceApi;
@@ -119,6 +120,11 @@ public class SamIam implements IamProviderInterface {
   @VisibleForTesting
   TermsOfServiceApi samTosApi(String accessToken) {
     return new TermsOfServiceApi(getApiClient(accessToken));
+  }
+
+  @VisibleForTesting
+  GroupApi samGroupApi(String accessToken) {
+    return new GroupApi(getApiClient(accessToken));
   }
 
   /**
@@ -615,6 +621,29 @@ public class SamIam implements IamProviderInterface {
     logger.info("Accepting terms of service for the ingest service account in Terra");
     return SamRetry.retry(
         configurationService, () -> samTosApi(accessToken).acceptTermsOfService(TOS_URL));
+  }
+
+  @Override
+  public String createGroup(String accessToken, String groupName) throws InterruptedException {
+    SamRetry.retry(configurationService, () -> createGroupInner(accessToken, groupName));
+    return SamRetry.retry(configurationService, () -> getGroupEmail(accessToken, groupName));
+  }
+
+  private void createGroupInner(String accessToken, String groupName) throws ApiException {
+    samGroupApi(accessToken).postGroup(groupName);
+  }
+
+  private String getGroupEmail(String accessToken, String groupName) throws ApiException {
+    return samGroupApi(accessToken).getGroup(groupName);
+  }
+
+  @Override
+  public void deleteGroup(String accessToken, String groupName) throws InterruptedException {
+    SamRetry.retry(configurationService, () -> deleteGroupInner(accessToken, groupName));
+  }
+
+  private void deleteGroupInner(String accessToken, String groupName) throws ApiException {
+    samGroupApi(accessToken).deleteGroup(groupName);
   }
 
   @Override

@@ -43,7 +43,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.413.0-SNAPSHOT'
+    version '1.416.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -226,7 +226,7 @@ dependencies {
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
         implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.2'
     } else {
-        implementation 'bio.terra:stairway:0.0.69-SNAPSHOT'
+        implementation 'bio.terra:stairway:0.0.75-SNAPSHOT'
     }
 
     // Similar development mode for pointing to terra common library

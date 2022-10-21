@@ -63,4 +63,6 @@
     <include file="changesets/20220617_addprojectsa.yaml" relativeToChangelogFile="true" />
     <include file="changesets/2022104_description_to_text.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20221019_journal.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221014_duosfirecloudgroup.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221020_duosfirecloudgroupprimarykey.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

@@ -3311,56 +3311,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-
 components:
   schemas:
-    JournalEntryModel:
-      required:
-        - id
-        - resourceKey
-        - user
-        - entryType
-        - resourceType
-        - className
-        - methodName
-        - when
-      type: object
-      properties:
-        id:
-          $ref: '#/components/schemas/UniqueIdProperty'
-          description: unique identifier of the Journal Entry
-        resourceKey:
-          $ref: '#/components/schemas/UniqueIdProperty'
-          description: unique identifier of the resource the journal entry pertains to
-        user:
-          type: string
-          description: the email address of the user who performed this action
-        resourceType:
-          $ref: '#/components/schemas/IamResourceTypeEnum'
-        className:
-          type: string
-          description: the class name that made this journal entry
-        methodName:
-          type: string
-          description: the method name that made this journal entry
-        entryType:
-          type: string
-          enum: [ CREATE, UPDATE, DELETE ]
-          description: the type of journal entry created
-        when:
-          type: string
-          description: timestamp of journal entry creation
-        mutation:
-          type: object
-          description: an optional map included with the journal entry
-        note:
-          type: string
-          description: A note about the journal entry
-    IamResourceTypeEnum:
-      type: string
-      enum: [ DATAREPO, DATASET, DATASNAPSHOT, SPEND_PROFILE, WORKSPACE ]
-      description: >
-        The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile
     TableDataType:
       type: string
       enum: [ string, boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, numeric, record, text, time, timestamp ]
@@ -5680,6 +5632,56 @@ components:
             which token to send via other means. It is strongly recommended that the caller
             validate that it is appropriate to send the requested token to the DRS server to mitigate attacks
             by malicious DRS servers requesting credentials they should not have.
+#################################################################
+#####                  JOURNAL MODELS
+#################################################################
+    JournalEntryModel:
+      required:
+        - id
+        - resourceKey
+        - user
+        - entryType
+        - resourceType
+        - className
+        - methodName
+        - when
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
+          description: unique identifier of the Journal Entry
+        resourceKey:
+          $ref: '#/components/schemas/UniqueIdProperty'
+          description: unique identifier of the resource the journal entry pertains to
+        user:
+          type: string
+          description: the email address of the user who performed this action
+        resourceType:
+          $ref: '#/components/schemas/IamResourceTypeEnum'
+        className:
+          type: string
+          description: the class name that made this journal entry
+        methodName:
+          type: string
+          description: the method name that made this journal entry
+        entryType:
+          type: string
+          enum: [ CREATE, UPDATE, DELETE ]
+          description: the type of journal entry created
+        when:
+          type: string
+          description: timestamp of journal entry creation
+        mutation:
+          type: object
+          description: an optional map included with the journal entry
+        note:
+          type: string
+          description: A note about the journal entry
+    IamResourceTypeEnum:
+      type: string
+      enum: [ DATAREPO, DATASET, DATASNAPSHOT, SPEND_PROFILE, WORKSPACE ]
+      description: >
+        The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile
   parameters:
     Id:
       name: id

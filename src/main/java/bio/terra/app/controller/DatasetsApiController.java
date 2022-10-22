@@ -50,6 +50,7 @@ import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
+import bio.terra.service.journal.JournalService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.ArrayList;
@@ -86,6 +87,7 @@ public class DatasetsApiController implements DatasetsApi {
   private final DatasetRequestValidator datasetRequestValidator;
   private final DatasetService datasetService;
   private final IamService iamService;
+  private final JournalService journalService;
   private final FileService fileService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
@@ -102,6 +104,7 @@ public class DatasetsApiController implements DatasetsApi {
       DatasetRequestValidator datasetRequestValidator,
       DatasetService datasetService,
       IamService iamService,
+      JournalService journalService,
       FileService fileService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator,
@@ -110,6 +113,7 @@ public class DatasetsApiController implements DatasetsApi {
       DatasetSchemaUpdateValidator datasetSchemaUpdateValidator) {
     this.objectMapper = objectMapper;
     this.request = request;
+    this.journalService = journalService;
     this.jobService = jobService;
     this.datasetRequestValidator = datasetRequestValidator;
     this.datasetService = datasetService;
@@ -331,13 +335,16 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("id") UUID id,
       @PathVariable("policyName") String policyName,
       @Valid @RequestBody PolicyMemberRequest policyMember) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     PolicyModel policy =
         iamService.addPolicyMember(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASET,
-            id,
-            policyName,
-            policyMember.getEmail());
+            userReq, IamResourceType.DATASET, id, policyName, policyMember.getEmail());
+    journalService.journalUpdate(
+        userReq,
+        id,
+        IamResourceType.DATASET,
+        String.format("Added %s to %s", policyMember.getEmail(), policyName),
+        null);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
@@ -356,13 +363,20 @@ public class DatasetsApiController implements DatasetsApi {
       @PathVariable("id") UUID id,
       @PathVariable("policyName") String policyName,
       @PathVariable("memberEmail") String memberEmail) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     // member email can't be null since it is part of the URL
     if (!ValidationUtils.isValidEmail(memberEmail)) {
       throw new ValidationException("InvalidMemberEmail");
     }
     PolicyModel policy =
         iamService.deletePolicyMember(
-            getAuthenticatedInfo(), IamResourceType.DATASET, id, policyName, memberEmail);
+            userReq, IamResourceType.DATASET, id, policyName, memberEmail);
+    journalService.journalUpdate(
+        userReq,
+        id,
+        IamResourceType.DATASET,
+        String.format("Removed %s from %s", memberEmail, policyName),
+        null);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }

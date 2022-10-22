@@ -26,43 +26,98 @@ public class JournalService {
     this.journalDao = journalDao;
   }
 
+  /**
+   * Create a journal entry that indicates a resource was created
+   *
+   * @param user The user performing the action being journaled
+   * @param resourceKey The UUID of the resource (domain object) the journal entry pertains to
+   * @param resourceType The {@code IamResourceType} that maps to the domain object the journal
+   *     entry pertains to
+   * @param note An optional message describing the event
+   * @param changeMap An optional map of changes to store with the event
+   */
   public void journalCreate(
       @NotNull AuthenticatedUserRequest user,
-      @NotNull UUID key,
+      @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
       Map changeMap) {
-    journal(EntryType.CREATE, user, key, resourceType, note, changeMap, false);
+    journal(EntryType.CREATE, user, resourceKey, resourceType, note, changeMap, false);
   }
 
+  /**
+   * Create a journal entry that indicates a resource was created and optionally deletes matching
+   * journal entries that may have existed. Billing profiles are an example of a domain object that
+   * supports UUID reuse.
+   *
+   * @param user The user performing the action being journaled
+   * @param resourceKey The UUID of the domain object the journal entry pertains to
+   * @param resourceType The {@code IamResourceType} that maps to the domain object the journal
+   *     entry pertains to
+   * @param note An optional message describing the event
+   * @param changeMap An optional map of changes to store with the event
+   * @param clearHistory A boolean to indicate that any prior journal entries should be removed on
+   *     this create.
+   */
   public void journalCreate(
       @NotNull AuthenticatedUserRequest user,
-      @NotNull UUID key,
+      @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
       Map changeMap,
       boolean clearHistory) {
-    journal(EntryType.CREATE, user, key, resourceType, note, changeMap, clearHistory);
+    journal(EntryType.CREATE, user, resourceKey, resourceType, note, changeMap, clearHistory);
   }
 
+  /**
+   * Create a journal entry that indicates a resource was updated or had an action performed that
+   * was worth noting.
+   *
+   * @param user The user performing the action being journaled
+   * @param resourceKey The UUID of the domain object the journal entry pertains to
+   * @param resourceType The {@code IamResourceType} that maps to the domain object the journal
+   *     entry pertains to
+   * @param note An optional message describing the event
+   * @param changeMap An optional map of changes to store with the event
+   */
   public void journalUpdate(
       @NotNull AuthenticatedUserRequest user,
-      @NotNull UUID key,
+      @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
       Map changeMap) {
-    journal(EntryType.UPDATE, user, key, resourceType, note, changeMap, false);
+    journal(EntryType.UPDATE, user, resourceKey, resourceType, note, changeMap, false);
   }
 
+  /**
+   * Create a journal entry that indicates a resource was deleted.
+   *
+   * @param user The user performing the action being journaled
+   * @param resourceKey The UUID of the domain object the journal entry pertains to
+   * @param resourceType The {@code IamResourceType} that maps to the domain object the journal
+   *     entry pertains to
+   * @param note An optional message describing the event
+   * @param changeMap An optional map of changes to store with the event
+   */
   public void journalDelete(
       @NotNull AuthenticatedUserRequest user,
-      @NotNull UUID key,
+      @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
       Map changeMap) {
-    journal(EntryType.DELETE, user, key, resourceType, note, changeMap, false);
+    journal(EntryType.DELETE, user, resourceKey, resourceType, note, changeMap, false);
   }
 
+  /**
+   * Return an ordered list of {@code JournalEntryModel}s sorted ascending by when they were created
+   *
+   * @param resourceKey The domain object key of the resource
+   * @param resourceType The {@code IamResourceType} that maps to the domain object the journal
+   *     entry pertains to
+   * @param offset The zero based location to begin returning the list of Journal Entries
+   * @param limit The limit of entries to be returned
+   * @return {@code List<JournalEntryModel>}
+   */
   public List<JournalEntryModel> getJournalEntries(
       UUID resourceKey, IamResourceType resourceType, long offset, int limit) {
     return journalDao.retrieveEntriesByIdAndType(resourceKey, resourceType, offset, limit);

@@ -112,6 +112,14 @@ public class JournalServiceTest {
     validateEntries(
         3, key, JournalService.EntryType.DELETE, IamResourceType.DATASET, TEST_USER1, note2, null);
 
+    List<JournalEntryModel> queryResult =
+        journalService.getJournalEntries(key, IamResourceType.DATASET, 1, 1);
+    assertThat("The query result should only have one entry", queryResult.size(), equalTo(1));
+    assertThat(
+        "The query result should be the update entry",
+        queryResult.get(0).getEntryType(),
+        equalTo(JournalEntryModel.EntryTypeEnum.UPDATE));
+
     journalService.journalCreate(TEST_USER2, key, IamResourceType.DATASET, null, simpleMap, true);
     validateEntries(
         1,

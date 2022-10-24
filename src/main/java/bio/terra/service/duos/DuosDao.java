@@ -1,10 +1,12 @@
 package bio.terra.service.duos;
 
+import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.DuosFirecloudGroupModel;
 import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,13 @@ public class DuosDao {
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final String tdrServiceAccountEmail;
 
+  private static final String duosFirecloudGroupQuery =
+      """
+      SELECT duos_id, firecloud_group_name, firecloud_group_email, created_by, created_date,
+        last_synced_date
+      FROM duos_firecloud_group
+      """;
+
   @Autowired
   public DuosDao(
       NamedParameterJdbcTemplate jdbcTemplate,
@@ -39,7 +48,7 @@ public class DuosDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public DuosFirecloudGroupModel insertAndRetrieveFirecloudGroup(
+  public UUID insertFirecloudGroup(
       String duosId, String firecloudGroupName, String firecloudGroupEmail) {
     String sql =
         """
@@ -53,29 +62,47 @@ public class DuosDao {
             .addValue("firecloud_group_name", firecloudGroupName)
             .addValue("firecloud_group_email", firecloudGroupEmail)
             .addValue("created_by", tdrServiceAccountEmail);
-    jdbcTemplate.update(sql, params);
+    DaoKeyHolder keyHolder = new DaoKeyHolder();
+
+    jdbcTemplate.update(sql, params, keyHolder);
     logger.info("Inserted {} -> {} into duos_firecloud_group", duosId, firecloudGroupName);
-    return retrieveFirecloudGroup(duosId);
+    return keyHolder.getId();
   }
 
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
-  public DuosFirecloudGroupModel retrieveFirecloudGroup(String duosId) {
+  public DuosFirecloudGroupModel retrieveFirecloudGroupByDuosId(String duosId) {
     try {
-      String sql =
-          """
-          SELECT duos_id, firecloud_group_name, firecloud_group_email, created_by, created_date,
-            last_synced_date
-          FROM duos_firecloud_group
-          WHERE duos_id = :duos_id
-          """;
+      String sql = duosFirecloudGroupQuery + " WHERE duos_id = :duos_id";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("duos_id", duosId);
       return jdbcTemplate.queryForObject(sql, params, new DuosFirecloudGroupMapper());
     } catch (EmptyResultDataAccessException ex) {
       return null;
     }
+  }
+
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public DuosFirecloudGroupModel retrieveFirecloudGroupById(UUID id) {
+    try {
+      String sql = duosFirecloudGroupQuery + " WHERE id = :id";
+      MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+      return jdbcTemplate.queryForObject(sql, params, new DuosFirecloudGroupMapper());
+    } catch (EmptyResultDataAccessException ex) {
+      return null;
+    }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean deleteFirecloudGroup(UUID id) {
+    String sql = "DELETE FROM duos_firecloud_group WHERE id = :id";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    return rowsAffected > 0;
   }
 
   private static class DuosFirecloudGroupMapper implements RowMapper<DuosFirecloudGroupModel> {

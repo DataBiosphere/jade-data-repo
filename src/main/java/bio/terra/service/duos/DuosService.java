@@ -26,7 +26,7 @@ public class DuosService {
   }
 
   public Optional<DuosFirecloudGroupModel> retrieveFirecloudGroup(String duosId) {
-    return Optional.ofNullable(duosDao.retrieveFirecloudGroup(duosId));
+    return Optional.ofNullable(duosDao.retrieveFirecloudGroupByDuosId(duosId));
   }
 
   public DuosFirecloudGroupModel createFirecloudGroup(String duosId) {
@@ -50,13 +50,15 @@ public class DuosService {
     // teardown of resources created earlier, rather than having to
     // introduce a fallback behavior flow.
     // https://broadworkbench.atlassian.net/browse/DR-2787
+    UUID duosFirecloudGroupId;
     try {
-      return duosDao.insertAndRetrieveFirecloudGroup(duosId, groupName, groupEmail);
+      duosFirecloudGroupId = duosDao.insertFirecloudGroup(duosId, groupName, groupEmail);
     } catch (Exception ex) {
       iamService.deleteGroup(groupName);
       throw new DuosFirecloudGroupInsertException(
           "Firecloud group " + groupName + " was not inserted into the DB and has been deleted");
     }
+    return duosDao.retrieveFirecloudGroupById(duosFirecloudGroupId);
   }
 
   public DuosFirecloudGroupModel retrieveOrCreateFirecloudGroup(String duosId) {

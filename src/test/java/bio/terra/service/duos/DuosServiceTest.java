@@ -21,6 +21,7 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.duos.exception.DuosFirecloudGroupInsertException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -41,20 +42,23 @@ public class DuosServiceTest {
 
   private static final String DUOS_ID = "DUOS-123456";
   private static final String FIRECLOUD_GROUP_NAME = String.format("%s-users", DUOS_ID);
+  private static final DuosFirecloudGroupModel group =
+      new DuosFirecloudGroupModel().duosId(DUOS_ID);
   private String firecloudGroupEmail;
+  private UUID duosFirecloudGroupId;
 
   @Before
   public void before() {
     duosService = new DuosService(duosDao, iamService);
     firecloudGroupEmail = firecloudGroupEmail(FIRECLOUD_GROUP_NAME);
+    duosFirecloudGroupId = UUID.randomUUID();
   }
 
   @Test
   public void testRetrieveFirecloudGroup() {
     assertTrue(duosService.retrieveFirecloudGroup(DUOS_ID).isEmpty());
 
-    DuosFirecloudGroupModel group = new DuosFirecloudGroupModel().duosId(DUOS_ID);
-    when(duosDao.retrieveFirecloudGroup(DUOS_ID)).thenReturn(group);
+    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(group);
     Optional<DuosFirecloudGroupModel> retrieved = duosService.retrieveFirecloudGroup(DUOS_ID);
 
     assertTrue(retrieved.isPresent());
@@ -68,10 +72,9 @@ public class DuosServiceTest {
   @Test
   public void testCreateFirecloudGroup() {
     when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
-    DuosFirecloudGroupModel group = new DuosFirecloudGroupModel().duosId(DUOS_ID);
-    when(duosDao.insertAndRetrieveFirecloudGroup(
-            DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
-        .thenReturn(group);
+    when(duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
+        .thenReturn(duosFirecloudGroupId);
+    when(duosDao.retrieveFirecloudGroupById(duosFirecloudGroupId)).thenReturn(group);
 
     assertThat(duosService.createFirecloudGroup(DUOS_ID), equalTo(group));
     verify(iamService, times(1)).createGroup(FIRECLOUD_GROUP_NAME);
@@ -90,19 +93,18 @@ public class DuosServiceTest {
         new IamConflictException("Group already existed", List.of());
     doThrow(iamConflictEx).when(iamService).createGroup(FIRECLOUD_GROUP_NAME);
 
-    DuosFirecloudGroupModel group = new DuosFirecloudGroupModel().duosId(DUOS_ID);
-    when(duosDao.insertAndRetrieveFirecloudGroup(
+    when(duosDao.insertFirecloudGroup(
             eq(DUOS_ID), startsWith(FIRECLOUD_GROUP_NAME), eq(groupEmailNew)))
-        .thenReturn(group);
+        .thenReturn(duosFirecloudGroupId);
+    when(duosDao.retrieveFirecloudGroupById(duosFirecloudGroupId)).thenReturn(group);
 
     assertThat(duosService.createFirecloudGroup(DUOS_ID), equalTo(group));
     // Our first creation attempt failed, so we tried to create again with our unique group name.
     verify(iamService, times(2)).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
     verify(duosDao, never())
-        .insertAndRetrieveFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail);
+        .insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail);
     verify(duosDao, times(1))
-        .insertAndRetrieveFirecloudGroup(
-            eq(DUOS_ID), startsWith(FIRECLOUD_GROUP_NAME), eq(groupEmailNew));
+        .insertFirecloudGroup(eq(DUOS_ID), startsWith(FIRECLOUD_GROUP_NAME), eq(groupEmailNew));
   }
 
   @Test
@@ -113,31 +115,29 @@ public class DuosServiceTest {
 
     assertThrows(IamForbiddenException.class, () -> duosService.createFirecloudGroup(DUOS_ID));
     verify(duosDao, never())
-        .insertAndRetrieveFirecloudGroup(eq(DUOS_ID), eq(FIRECLOUD_GROUP_NAME), anyString());
+        .insertFirecloudGroup(eq(DUOS_ID), eq(FIRECLOUD_GROUP_NAME), anyString());
   }
 
   @Test
   public void testCreateFirecloudGroupWithDbInsertionFailure() {
     when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
-    when(duosDao.insertAndRetrieveFirecloudGroup(
-            DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
+    when(duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
         .thenThrow(new DuplicateKeyException("Firecloud group already exists for DUOS ID"));
 
     assertThrows(
         DuosFirecloudGroupInsertException.class, () -> duosService.createFirecloudGroup(DUOS_ID));
     verify(iamService, times(1)).createGroup(FIRECLOUD_GROUP_NAME);
     verify(iamService, times(1)).deleteGroup(FIRECLOUD_GROUP_NAME);
-    verify(duosDao, never()).retrieveFirecloudGroup(DUOS_ID);
+    verify(duosDao, never()).retrieveFirecloudGroupByDuosId(DUOS_ID);
   }
 
   @Test
   public void testRetrieveOrCreateFirecloudGroup() {
     when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
-    DuosFirecloudGroupModel group = new DuosFirecloudGroupModel().duosId(DUOS_ID);
-    when(duosDao.insertAndRetrieveFirecloudGroup(
-            DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
-        .thenReturn(group);
-    when(duosDao.retrieveFirecloudGroup(DUOS_ID)).thenReturn(null).thenReturn(group);
+    when(duosDao.insertFirecloudGroup(DUOS_ID, FIRECLOUD_GROUP_NAME, firecloudGroupEmail))
+        .thenReturn(duosFirecloudGroupId);
+    when(duosDao.retrieveFirecloudGroupById(duosFirecloudGroupId)).thenReturn(group);
+    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(null).thenReturn(group);
 
     // First invocation: we create
     assertThat(duosService.retrieveOrCreateFirecloudGroup(DUOS_ID), equalTo(group));

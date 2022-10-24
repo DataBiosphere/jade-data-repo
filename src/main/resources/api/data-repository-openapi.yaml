@@ -4526,6 +4526,8 @@ components:
         properties:
           type: object
           description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
+        duosFirecloudGroup:
+          $ref: '#/components/schemas/DuosFirecloudGroupModel'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:

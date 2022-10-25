@@ -2,8 +2,10 @@ package bio.terra.flight;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.stairway.FlightMap;
 import java.util.List;
@@ -22,10 +24,14 @@ import org.springframework.test.context.ActiveProfiles;
 public class ProfileUpdateFlightTest {
 
   @Mock private ApplicationContext context;
+  @Mock private FlightMap map;
+  @Mock private bio.terra.model.BillingProfileUpdateModel profileMock;
 
   @Test
   public void testConstructFlight() {
-    var flight = new ProfileUpdateFlight(new FlightMap(), context);
+    when(map.get(JobMapKeys.REQUEST.getKeyName(), bio.terra.model.BillingProfileUpdateModel.class))
+        .thenReturn(profileMock);
+    var flight = new ProfileUpdateFlight(map, context);
     var steps =
         flight.getSteps().stream()
             .map(step -> step.getClass().getSimpleName())
@@ -37,6 +43,7 @@ public class ProfileUpdateFlightTest {
                 "UpdateProfileRetrieveExistingProfileStep",
                 "UpdateProfileMetadataStep",
                 "UpdateProfileVerifyAccountStep",
-                "UpdateProfileUpdateGCloudProject")));
+                "UpdateProfileUpdateGCloudProject",
+                "JournalCreateUpdateEntryStep")));
   }
 }

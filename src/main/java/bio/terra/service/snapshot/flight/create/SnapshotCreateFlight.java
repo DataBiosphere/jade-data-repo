@@ -8,7 +8,9 @@ import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.common.JournalCreateUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -20,6 +22,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
@@ -70,6 +73,7 @@ public class SnapshotCreateFlight extends Flight {
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     GoogleResourceManagerService googleResourceManagerService =
         appContext.getBean(GoogleResourceManagerService.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -269,5 +273,13 @@ public class SnapshotCreateFlight extends Flight {
 
     // unlock the snapshot metadata row
     addStep(new UnlockSnapshotStep(snapshotDao, null));
+    addStep(new CreateSnapshotJournalEntryStep(journalService, userReq));
+    addStep(
+        new JournalCreateUpdateEntryStep(
+            journalService,
+            userReq,
+            datasetId,
+            IamResourceType.DATASET,
+            "A snapshot was created from this dataset."));
   }
 }

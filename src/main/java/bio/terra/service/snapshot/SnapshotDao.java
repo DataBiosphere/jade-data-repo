@@ -200,12 +200,6 @@ public class SnapshotDao {
                 "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()));
     try {
       jdbcTemplate.update(sql, params);
-      journalService.journalCreate(
-          userReq,
-          snapshot.getId(),
-          IamResourceType.DATASNAPSHOT,
-          "Snapshot created.",
-          params.getValues());
     } catch (DuplicateKeyException dkEx) {
       throw new InvalidSnapshotException(
           "Snapshot name or id already exists: " + snapshot.getName() + ", " + snapshot.getId(),
@@ -262,8 +256,6 @@ public class SnapshotDao {
     int rowsAffected =
         jdbcTemplate.update(
             "DELETE FROM snapshot WHERE id = :id", new MapSqlParameterSource().addValue("id", id));
-    journalService.journalDelete(
-        userReq, id, IamResourceType.DATASNAPSHOT, "Snapshot deleted", null);
     return rowsAffected > 0;
   }
 

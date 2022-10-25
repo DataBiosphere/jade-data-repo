@@ -2,7 +2,10 @@ package bio.terra.service.profile.flight.delete;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.common.JournalCreateDeleteEntryStep;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -19,6 +22,7 @@ public class ProfileDeleteFlight extends Flight {
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     ProfileService profileService = appContext.getBean(ProfileService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
 
     UUID profileId = inputParameters.get(ProfileMapKeys.PROFILE_ID, UUID.class);
 
@@ -75,5 +79,8 @@ public class ProfileDeleteFlight extends Flight {
 
     addStep(new DeleteProfileMetadataStep(profileService, profileId));
     addStep(new DeleteProfileAuthzIamStep(profileService, profileId));
+    addStep(
+        new JournalCreateDeleteEntryStep(
+            journalService, user, profileId, IamResourceType.SPEND_PROFILE, "Deleted profile."));
   }
 }

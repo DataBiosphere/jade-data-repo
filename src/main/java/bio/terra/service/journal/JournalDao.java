@@ -2,7 +2,6 @@ package bio.terra.service.journal;
 
 import bio.terra.model.JournalEntryModel;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.journal.exception.JournalEntryNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,7 +14,6 @@ import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -103,33 +101,32 @@ public class JournalDao {
     logger.warn("{} journal entries removed for {} {}", entriesRemoved, resource_key, resourceType);
   }
 
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
   public List<JournalEntryModel> retrieveEntriesByIdAndType(
       UUID resource_key, @NotNull IamResourceType resourceType, long offset, int limit) {
-    try {
-      String sql =
-          "SELECT "
-              + summaryQueryColumns
-              + "FROM "
-              + TABLE_NAME
-              + " "
-              + "WHERE "
-              + "resource_key = :resource_key "
-              + "AND "
-              + "resource_type = :resourceType "
-              + "ORDER BY entry_timestamp ASC "
-              + "OFFSET :offset LIMIT :limit";
+    String sql =
+        "SELECT "
+            + summaryQueryColumns
+            + "FROM "
+            + TABLE_NAME
+            + " "
+            + "WHERE "
+            + "resource_key = :resource_key "
+            + "AND "
+            + "resource_type = :resourceType "
+            + "ORDER BY entry_timestamp ASC "
+            + "OFFSET :offset LIMIT :limit";
 
-      MapSqlParameterSource params =
-          new MapSqlParameterSource()
-              .addValue("resource_key", resource_key)
-              .addValue("resourceType", resourceType.toString())
-              .addValue("offset", offset)
-              .addValue("limit", limit);
-      return jdbcTemplate.query(sql, params, new JournalDao.JournalEntryMapper());
-    } catch (EmptyResultDataAccessException ex) {
-      throw new JournalEntryNotFoundException(
-          "Journal Entries not found for id " + resource_key.toString());
-    }
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("resource_key", resource_key)
+            .addValue("resourceType", resourceType.toString())
+            .addValue("offset", offset)
+            .addValue("limit", limit);
+    return jdbcTemplate.query(sql, params, new JournalDao.JournalEntryMapper());
   }
 
   private class JournalEntryMapper implements RowMapper<JournalEntryModel> {

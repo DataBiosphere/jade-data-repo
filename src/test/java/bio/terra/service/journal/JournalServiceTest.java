@@ -2,7 +2,9 @@ package bio.terra.service.journal;
 
 import static bio.terra.service.journal.JournalService.getCallerFrame;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
@@ -20,6 +22,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -48,7 +51,7 @@ public class JournalServiceTest {
   @Autowired private JournalService journalService;
 
   @Test
-  public void auditCreateTest_EmptyMap() {
+  public void journalCreateTest_EmptyMap() {
     UUID key = UUID.randomUUID();
     Map<String, Object> emptyMap = new LinkedHashMap<>();
     String note = "create note1";
@@ -58,7 +61,7 @@ public class JournalServiceTest {
   }
 
   @Test
-  public void auditCreateTest_SameKeyDifferentResourceType() {
+  public void journalCreateTest_SameKeyDifferentResourceType() {
     UUID key = UUID.randomUUID();
     Map<String, Object> emptyMap = new LinkedHashMap<>();
     String note = "create note1";
@@ -77,7 +80,27 @@ public class JournalServiceTest {
   }
 
   @Test
-  public void auditCreateTest_SimpleEntries() {
+  public void journalGetResults_InvalidOffset() {
+    UUID key = UUID.randomUUID();
+    assertThat(
+        assertThrows(
+                DataIntegrityViolationException.class,
+                () -> journalService.getJournalEntries(key, IamResourceType.DATASNAPSHOT, -1, 0),
+                "invalid offset throws.")
+            .getMessage(),
+        containsString("OFFSET must not be negative"));
+  }
+
+  @Test
+  public void journalGetResults_EmptyResults() {
+    UUID key = UUID.randomUUID();
+    List<JournalEntryModel> emptyResults =
+        journalService.getJournalEntries(key, IamResourceType.DATASNAPSHOT, 0, 0);
+    assertThat("results should be empty", emptyResults.size(), equalTo(0));
+  }
+
+  @Test
+  public void journalCreateTest_SimpleEntries() {
     Map<String, Object> simpleMap = new LinkedHashMap<>();
     simpleMap.put("NULL", null);
     simpleMap.put("KEY", "VALUE");

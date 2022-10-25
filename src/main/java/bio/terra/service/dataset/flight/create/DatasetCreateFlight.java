@@ -18,6 +18,7 @@ import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
@@ -58,6 +59,7 @@ public class DatasetCreateFlight extends Flight {
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     GoogleResourceManagerService googleResourceManagerService =
         appContext.getBean(GoogleResourceManagerService.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
 
     DatasetRequestModel datasetRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
@@ -155,5 +157,6 @@ public class DatasetCreateFlight extends Flight {
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
     }
     addStep(new UnlockDatasetStep(datasetService, false));
+    addStep(new CreateDatasetJournalEntryStep(journalService, userReq));
   }
 }

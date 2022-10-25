@@ -6,7 +6,9 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.common.JournalCreateDeleteEntryStep;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetBucketDao;
@@ -21,6 +23,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -56,6 +59,7 @@ public class DatasetDeleteFlight extends Flight {
     ProfileDao profileDao = appContext.getBean(ProfileDao.class);
     TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
     AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
 
     // get data from inputs that steps need
     UUID datasetId =
@@ -126,5 +130,8 @@ public class DatasetDeleteFlight extends Flight {
     }
 
     addStep(new UnlockDatasetStep(datasetService, datasetId, false), lockDatasetRetry);
+    addStep(
+        new JournalCreateDeleteEntryStep(
+            journalService, userReq, datasetId, IamResourceType.DATASET, "Deleted dataset."));
   }
 }

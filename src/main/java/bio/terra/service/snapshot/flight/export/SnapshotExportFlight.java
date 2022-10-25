@@ -3,10 +3,13 @@ package bio.terra.service.snapshot.flight.export;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.common.JournalCreateUpdateEntryStep;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotService;
@@ -32,6 +35,7 @@ public class SnapshotExportFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
     ObjectMapper objectMapper = appConfig.objectMapper();
 
     AuthenticatedUserRequest userReq =
@@ -100,5 +104,12 @@ public class SnapshotExportFlight extends Flight {
             new CleanUpExportGsPathsStep(bigQueryExportPdao, gcsPdao, snapshotService, snapshotId));
       }
     }
+    addStep(
+        new JournalCreateUpdateEntryStep(
+            journalService,
+            userReq,
+            snapshotId,
+            IamResourceType.DATASNAPSHOT,
+            "Exported snapshot."));
   }
 }

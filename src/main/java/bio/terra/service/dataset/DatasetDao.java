@@ -411,12 +411,6 @@ public class DatasetDao {
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
       jdbcTemplate.update(sql, params, keyHolder);
-      journalService.journalCreate(
-          userReq,
-          dataset.getId(),
-          IamResourceType.DATASET,
-          "Created dataset.",
-          params.getValues());
     } catch (DuplicateKeyException dkEx) {
       throw new InvalidDatasetException(
           "Dataset name or id already exists: " + dataset.getName() + ", " + dataset.getId(), dkEx);
@@ -477,7 +471,6 @@ public class DatasetDao {
     int rowsAffected =
         jdbcTemplate.update(
             "DELETE FROM dataset WHERE id = :id", new MapSqlParameterSource().addValue("id", id));
-    journalService.journalDelete(userReq, id, IamResourceType.DATASET, "Dataset deleted.", null);
     return rowsAffected > 0;
   }
 

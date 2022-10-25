@@ -9,7 +9,9 @@ import bio.terra.common.ValidateBucketAccessStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.common.JournalCreateUpdateEntryStep;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -43,6 +45,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadUnlockStep;
@@ -90,6 +93,7 @@ public class DatasetIngestFlight extends Flight {
     AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
 
     IngestRequestModel ingestRequestModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
@@ -278,6 +282,13 @@ public class DatasetIngestFlight extends Flight {
       }
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
+    addStep(
+        new JournalCreateUpdateEntryStep(
+            journalService,
+            userReq,
+            datasetId,
+            IamResourceType.DATASET,
+            "Ingested data into dataset."));
   }
 
   private void addOptionalCombinedIngestStep(Step step, RetryRule retryRule) {

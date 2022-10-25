@@ -11,6 +11,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.flight.VerifyAuthorizationStep;
+import bio.terra.service.common.JournalCreateUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -22,6 +23,7 @@ import bio.terra.service.dataset.flight.transactions.TransactionUnlockStep;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
@@ -47,6 +49,7 @@ public class DatasetDataDeleteFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
 
     // get data from inputs that steps need
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -134,5 +137,12 @@ public class DatasetDataDeleteFlight extends Flight {
     // cleanup
     addStep(new DropExternalTablesStep(datasetService));
     addStep(new DataDeletionDeleteScratchFilesGcsStep(gcsPdao));
+    addStep(
+        new JournalCreateUpdateEntryStep(
+            journalService,
+            userReq,
+            UUID.fromString(datasetId),
+            IamResourceType.DATASET,
+            "Data deleted from dataset."));
   }
 }

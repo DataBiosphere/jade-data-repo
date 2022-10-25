@@ -15,6 +15,7 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.duos.DuosDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -59,6 +60,7 @@ public class SnapshotDao {
   private final DatasetDao datasetDao;
   private final ResourceService resourceService;
   private final ObjectMapper objectMapper;
+  private final DuosDao duosDao;
 
   private static final String TABLE_NAME = "snapshot";
 
@@ -85,7 +87,8 @@ public class SnapshotDao {
       SnapshotRelationshipDao snapshotRelationshipDao,
       DatasetDao datasetDao,
       ResourceService resourceService,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      DuosDao duosDao) {
     this.jdbcTemplate = jdbcTemplate;
     this.snapshotTableDao = snapshotTableDao;
     this.snapshotMapTableDao = snapshotMapTableDao;
@@ -93,6 +96,7 @@ public class SnapshotDao {
     this.datasetDao = datasetDao;
     this.resourceService = resourceService;
     this.objectMapper = objectMapper;
+    this.duosDao = duosDao;
   }
 
   /**
@@ -171,8 +175,13 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb) ";
+        """
+        INSERT INTO snapshot
+        (name, description, profile_id, project_resource_id, id, consent_code,
+          flightid, creation_information, properties, duos_firecloud_group_id)
+        VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code,
+          :flightid, :creation_information::jsonb, :properties::jsonb, :duos_firecloud_group_id)
+        """;
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
@@ -191,7 +200,8 @@ public class SnapshotDao {
             .addValue("flightid", flightId)
             .addValue("creation_information", creationInfo)
             .addValue(
-                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()));
+                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
+            .addValue("duos_firecloud_group_id", snapshot.getDuosFirecloudGroupId());
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {
@@ -405,7 +415,8 @@ public class SnapshotDao {
                               rs.getString("creation_information")))
                       .consentCode(rs.getString("consent_code"))
                       .properties(
-                          DaoUtils.stringToProperties(objectMapper, rs.getString("properties"))));
+                          DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
+                      .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class)));
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
         // retrieve the snapshot tables and relationships
@@ -421,14 +432,19 @@ public class SnapshotDao {
         // It seemed like the cleanest thing to me at the time.
         UUID projectResourceId = snapshot.getProjectResourceId();
         if (projectResourceId != null) {
-          snapshot.projectResource(
-              resourceService.getProjectResource(snapshot.getProjectResourceId()));
+          snapshot.projectResource(resourceService.getProjectResource(projectResourceId));
         }
 
         // Retrieve the Azure Storage Account associated with the snapshot.
         resourceService
             .getSnapshotStorageAccount(snapshot.getId())
             .ifPresent(snapshot::storageAccountResource);
+
+        // Retrieve the DUOS Firecloud group associated with the snapshot.
+        UUID duosFirecloudGroupId = snapshot.getDuosFirecloudGroupId();
+        if (duosFirecloudGroupId != null) {
+          snapshot.duosFirecloudGroup(duosDao.retrieveFirecloudGroupById(duosFirecloudGroupId));
+        }
       }
       return snapshot;
     } catch (EmptyResultDataAccessException ex) {

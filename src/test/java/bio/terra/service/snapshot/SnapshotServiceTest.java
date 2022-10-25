@@ -34,6 +34,7 @@ import bio.terra.model.AccessInfoModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
@@ -110,6 +111,7 @@ public class SnapshotServiceTest {
   private static final String PHS_ID = "phs123456";
   private static final String CONSENT_CODE = "c99";
   private static final String PASSPORT = "passportJwt";
+  private static final String DUOS_ID = "DUOS-123456";
 
   @MockBean private JobService jobService;
   @MockBean private DatasetService datasetService;
@@ -130,6 +132,7 @@ public class SnapshotServiceTest {
   private final UUID datasetId = UUID.randomUUID();
   private final UUID snapshotTableId = UUID.randomUUID();
   private final UUID profileId = UUID.randomUUID();
+  private final UUID duosFirecloudGroupId = UUID.randomUUID();
   private final Instant createdDate = Instant.now();
 
   @Autowired private SnapshotService service;
@@ -140,11 +143,7 @@ public class SnapshotServiceTest {
     assertThat(
         service.retrieveAvailableSnapshotModel(snapshotId, TEST_USER),
         equalTo(
-            new SnapshotModel()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate.toString())
+            expectedSnapshotModelBase()
                 .source(
                     List.of(
                         new SnapshotSourceModel()
@@ -184,12 +183,7 @@ public class SnapshotServiceTest {
     assertThat(
         service.retrieveAvailableSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.NONE), TEST_USER),
-        equalTo(
-            new SnapshotModel()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate.toString())));
+        equalTo(expectedSnapshotModelBase()));
   }
 
   @Test
@@ -215,11 +209,7 @@ public class SnapshotServiceTest {
         service.retrieveAvailableSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.CREATION_INFORMATION), TEST_USER),
         equalTo(
-            new SnapshotModel()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate.toString())
+            expectedSnapshotModelBase()
                 .creationInformation(
                     new SnapshotRequestContentsModel()
                         .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
@@ -233,11 +223,7 @@ public class SnapshotServiceTest {
         service.retrieveAvailableSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION), TEST_USER),
         equalTo(
-            new SnapshotModel()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate.toString())
+            expectedSnapshotModelBase()
                 .accessInformation(
                     new AccessInfoModel()
                         .bigQuery(
@@ -302,13 +288,7 @@ public class SnapshotServiceTest {
                 SnapshotRetrieveIncludeModel.PROFILE, SnapshotRetrieveIncludeModel.DATA_PROJECT),
             TEST_USER),
         equalTo(
-            new SnapshotModel()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate.toString())
-                .profileId(profileId)
-                .dataProject(SNAPSHOT_DATA_PROJECT)));
+            expectedSnapshotModelBase().profileId(profileId).dataProject(SNAPSHOT_DATA_PROJECT)));
   }
 
   private void mockSnapshot() {
@@ -355,7 +335,18 @@ public class SnapshotServiceTest {
                 .creationInformation(
                     new SnapshotRequestContentsModel()
                         .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
-                        .datasetName(DATASET_NAME)));
+                        .datasetName(DATASET_NAME))
+                .duosFirecloudGroupId(duosFirecloudGroupId)
+                .duosFirecloudGroup(new DuosFirecloudGroupModel().duosId(DUOS_ID)));
+  }
+
+  private SnapshotModel expectedSnapshotModelBase() {
+    return new SnapshotModel()
+        .id(snapshotId)
+        .name(SNAPSHOT_NAME)
+        .description(SNAPSHOT_DESCRIPTION)
+        .createdDate(createdDate.toString())
+        .duosFirecloudGroup(new DuosFirecloudGroupModel().duosId(DUOS_ID));
   }
 
   @Test

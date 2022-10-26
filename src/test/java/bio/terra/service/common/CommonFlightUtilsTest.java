@@ -33,8 +33,11 @@ public class CommonFlightUtilsTest {
   @Test
   public void journalMapShouldRemoveUserInfo() throws JsonProcessingException {
     FlightMap flightMap = new FlightMap();
+    flightMap.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER1);
+    flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), null);
     FlightContext flightContext =
         new FlightContext() {
+
           @Override
           public Object getApplicationContext() {
             return null;
@@ -52,7 +55,7 @@ public class CommonFlightUtilsTest {
 
           @Override
           public FlightMap getInputParameters() {
-            return null;
+            return flightMap;
           }
 
           @Override
@@ -118,15 +121,19 @@ public class CommonFlightUtilsTest {
           @Override
           public void setProgressMeter(String name, long v1, long v2) throws InterruptedException {}
         };
-    flightMap.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
     assertThat(
         "map should have an auth_user_info  entry.",
-        flightMap.containsKey(JobMapKeys.AUTH_USER_INFO.getKeyName()),
+        flightContext.getInputParameters().containsKey(JobMapKeys.AUTH_USER_INFO.getKeyName()),
         equalTo(true));
     assertThat(
         "map should not have an entry for auth user.",
         getFlightInformationOfInterest(flightContext)
             .containsKey(JobMapKeys.AUTH_USER_INFO.getKeyName()),
         equalTo(false));
+    assertThat(
+        "flight map entry for null value returns null",
+        getFlightInformationOfInterest(flightContext).get(JobMapKeys.DESCRIPTION.getKeyName()),
+        equalTo(null));
   }
 }

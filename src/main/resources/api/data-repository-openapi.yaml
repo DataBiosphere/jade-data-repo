@@ -3253,6 +3253,12 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: resourceType
+          in: query
+          required: true
+          description: The IamResource type of the journaled resource.
+          schema:
+            $ref: '#/components/schemas/IamResourceTypeEnum'
         - name: offset
           in: query
           description: The number of entries to skip before when retrieving the next
@@ -3266,12 +3272,6 @@ paths:
           schema:
             type: integer
             default: 10
-        - name: IamResourceType
-          in: query
-          required: true
-          description: The IamResource type of the journaled resource.
-          schema:
-            $ref: '#/components/schemas/IamResourceTypeEnum'
       responses:
         200:
           description: List of journal entries
@@ -5679,9 +5679,9 @@ components:
           description: A note about the journal entry
     IamResourceTypeEnum:
       type: string
-      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE ]
+      enum: [ DATASET, DATASNAPSHOT, SPENDPROFILE, DATAREPO, WORKSPACE ]
       description: >
-        The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile
+        The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND-PROFILE maps to Profile
   parameters:
     Id:
       name: id

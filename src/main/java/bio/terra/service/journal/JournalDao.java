@@ -1,5 +1,6 @@
 package bio.terra.service.journal;
 
+import bio.terra.common.IamResourceTypeCODEC;
 import bio.terra.model.JournalEntryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -143,11 +144,13 @@ public class JournalDao {
               String.format("Invalid mutation field for journal entry - id: %s", journalId), e);
         }
       }
+      IamResourceType resourceType =
+          IamResourceTypeCODEC.toIamResourceType(rs.getString("resource_type").toUpperCase());
       return new JournalEntry()
           .id(journalId)
           .user(rs.getString("user_email"))
           .resourceKey(rs.getObject("resource_key", UUID.class))
-          .resourceType(IamResourceType.valueOf(rs.getString("resource_type").toUpperCase()))
+          .resourceType(resourceType)
           .className(rs.getString("class_name"))
           .methodName(rs.getString("method_name"))
           .entryType(JournalService.EntryType.valueOf(rs.getString("entry_type").toUpperCase()))

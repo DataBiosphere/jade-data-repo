@@ -1,5 +1,6 @@
 package bio.terra.app.controller;
 
+import bio.terra.common.IamResourceTypeCODEC;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.JournalApi;
@@ -23,7 +24,6 @@ import org.springframework.stereotype.Controller;
 @Controller
 @Api(tags = {"journal"})
 public class JournalApiController implements JournalApi {
-
   private final IamService iamService;
   private final JournalService journalService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
@@ -46,13 +46,13 @@ public class JournalApiController implements JournalApi {
 
   @Override
   public ResponseEntity<List<JournalEntryModel>> retrieveJournalEntries(
-      UUID resourceKey, IamResourceTypeEnum iamResourceType, Integer offset, Integer limit) {
-    IamResourceType resourceType =
-        IamResourceType.valueOf(iamResourceType.toString().toUpperCase());
+      UUID resourceKey, IamResourceTypeEnum resourceType, Integer offset, Integer limit) {
+    IamResourceType iamResourceType =
+        IamResourceTypeCODEC.toIamResourceType(resourceType.toString());
     iamService.verifyAuthorization(
-        getAuthenticatedInfo(), resourceType, resourceKey.toString(), IamAction.VIEW_JOURNAL);
+        getAuthenticatedInfo(), iamResourceType, resourceKey.toString(), IamAction.VIEW_JOURNAL);
     List<JournalEntryModel> journalEntries =
-        journalService.getJournalEntries(resourceKey, resourceType, offset, limit);
+        journalService.getJournalEntries(resourceKey, iamResourceType, offset, limit);
     return new ResponseEntity<>(journalEntries, HttpStatus.OK);
   }
 

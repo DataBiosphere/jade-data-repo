@@ -125,7 +125,7 @@ public class CommonFlightUtilsTest {
         equalTo(true));
     assertThat(
         "map should not have an entry for auth user.",
-        getFlightInformationOfInterest(flightMap, flightContext)
+        getFlightInformationOfInterest(flightContext)
             .containsKey(JobMapKeys.AUTH_USER_INFO.getKeyName()),
         equalTo(false));
   }

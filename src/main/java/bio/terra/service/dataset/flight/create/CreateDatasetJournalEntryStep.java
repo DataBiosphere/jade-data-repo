@@ -32,7 +32,7 @@ public class CreateDatasetJournalEntryStep implements Step {
         datasetUUID,
         IamResourceType.DATASET,
         "Created dataset.",
-        getFlightInformationOfInterest(context.getInputParameters(), context));
+        getFlightInformationOfInterest(context));
     return StepResult.getStepResultSuccess();
   }
 

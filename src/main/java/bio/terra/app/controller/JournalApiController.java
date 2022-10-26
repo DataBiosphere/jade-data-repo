@@ -50,10 +50,7 @@ public class JournalApiController implements JournalApi {
     IamResourceType resourceType =
         IamResourceType.valueOf(iamResourceType.toString().toUpperCase());
     iamService.verifyAuthorization(
-        getAuthenticatedInfo(),
-        resourceType,
-        resourceKey.toString(),
-        IamAction.MANAGE_SCHEMA); // TODO: Add the IAM action for VIEW_JOURNAL
+        getAuthenticatedInfo(), resourceType, resourceKey.toString(), IamAction.VIEW_JOURNAL);
     List<JournalEntryModel> journalEntries =
         journalService.getJournalEntries(resourceKey, resourceType, offset, limit);
     return new ResponseEntity<>(journalEntries, HttpStatus.OK);

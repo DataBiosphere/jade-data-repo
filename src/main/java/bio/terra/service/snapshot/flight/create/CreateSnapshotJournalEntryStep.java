@@ -32,7 +32,7 @@ public class CreateSnapshotJournalEntryStep implements Step {
         snapshotUUID,
         IamResourceType.DATASNAPSHOT,
         "Created snapshot.",
-        getFlightInformationOfInterest(context.getInputParameters(), context));
+        getFlightInformationOfInterest(context));
     return StepResult.getStepResultSuccess();
   }
 

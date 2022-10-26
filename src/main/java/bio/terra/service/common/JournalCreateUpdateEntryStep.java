@@ -34,11 +34,7 @@ public class JournalCreateUpdateEntryStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     journalService.journalUpdate(
-        userReq,
-        resourceKey,
-        resourceType,
-        note,
-        getFlightInformationOfInterest(context.getInputParameters(), context));
+        userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
     return StepResult.getStepResultSuccess();
   }
 

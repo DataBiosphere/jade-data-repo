@@ -34,11 +34,7 @@ public class JournalCreateDeleteEntryStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     journalService.journalDelete(
-        userReq,
-        resourceKey,
-        resourceType,
-        note,
-        getFlightInformationOfInterest(context.getInputParameters(), context));
+        userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
     return StepResult.getStepResultSuccess();
   }
 

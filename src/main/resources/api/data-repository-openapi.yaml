@@ -5673,13 +5673,13 @@ components:
           description: timestamp of journal entry creation
         mutation:
           type: object
-          description: an optional map included with the journal entry
+          description: An optional map included with the journal entry.  Entries in the map ending with .json are entries that likely contain JSON encoded strings.
         note:
           type: string
           description: A note about the journal entry
     IamResourceTypeEnum:
       type: string
-      enum: [ DATAREPO, DATASET, DATASNAPSHOT, SPEND_PROFILE, WORKSPACE ]
+      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE ]
       description: >
         The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile
   parameters:

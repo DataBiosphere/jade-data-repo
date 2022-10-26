@@ -32,7 +32,7 @@ public class CreateProfileJournalEntryStep implements Step {
         billingReq.getId(),
         IamResourceType.SPEND_PROFILE,
         "Billing profile created.",
-        getFlightInformationOfInterest(context.getInputParameters(), context),
+        getFlightInformationOfInterest(context),
         true);
     return StepResult.getStepResultSuccess();
   }

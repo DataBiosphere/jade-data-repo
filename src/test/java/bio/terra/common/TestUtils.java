@@ -121,7 +121,7 @@ public final class TestUtils {
 
   public static void verifyHttpAccess(String url, Map<String, String> headers) {
     HttpUriRequest request = new HttpHead(url);
-    headers.entrySet().forEach(e -> request.setHeader(e.getKey(), e.getValue()));
+    headers.forEach(request::setHeader);
     try (CloseableHttpClient client = HttpClients.createDefault()) {
       try (CloseableHttpResponse response = client.execute(request); ) {
         assertThat(

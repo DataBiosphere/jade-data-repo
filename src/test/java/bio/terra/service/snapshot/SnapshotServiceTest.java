@@ -34,7 +34,6 @@ import bio.terra.model.AccessInfoModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
@@ -111,7 +110,6 @@ public class SnapshotServiceTest {
   private static final String PHS_ID = "phs123456";
   private static final String CONSENT_CODE = "c99";
   private static final String PASSPORT = "passportJwt";
-  private static final String DUOS_ID = "DUOS-123456";
 
   @MockBean private JobService jobService;
   @MockBean private DatasetService datasetService;
@@ -336,8 +334,7 @@ public class SnapshotServiceTest {
                     new SnapshotRequestContentsModel()
                         .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
                         .datasetName(DATASET_NAME))
-                .duosFirecloudGroupId(duosFirecloudGroupId)
-                .duosFirecloudGroup(new DuosFirecloudGroupModel().duosId(DUOS_ID)));
+                .duosFirecloudGroupId(duosFirecloudGroupId));
   }
 
   private SnapshotModel expectedSnapshotModelBase() {
@@ -346,7 +343,7 @@ public class SnapshotServiceTest {
         .name(SNAPSHOT_NAME)
         .description(SNAPSHOT_DESCRIPTION)
         .createdDate(createdDate.toString())
-        .duosFirecloudGroup(new DuosFirecloudGroupModel().duosId(DUOS_ID));
+        .duosFirecloudGroupId(duosFirecloudGroupId);
   }
 
   @Test

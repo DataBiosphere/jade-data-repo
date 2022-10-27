@@ -15,7 +15,6 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.StorageResource;
-import bio.terra.service.duos.DuosDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -60,7 +59,6 @@ public class SnapshotDao {
   private final DatasetDao datasetDao;
   private final ResourceService resourceService;
   private final ObjectMapper objectMapper;
-  private final DuosDao duosDao;
 
   private static final String TABLE_NAME = "snapshot";
 
@@ -87,8 +85,7 @@ public class SnapshotDao {
       SnapshotRelationshipDao snapshotRelationshipDao,
       DatasetDao datasetDao,
       ResourceService resourceService,
-      ObjectMapper objectMapper,
-      DuosDao duosDao) {
+      ObjectMapper objectMapper) {
     this.jdbcTemplate = jdbcTemplate;
     this.snapshotTableDao = snapshotTableDao;
     this.snapshotMapTableDao = snapshotMapTableDao;
@@ -96,7 +93,6 @@ public class SnapshotDao {
     this.datasetDao = datasetDao;
     this.resourceService = resourceService;
     this.objectMapper = objectMapper;
-    this.duosDao = duosDao;
   }
 
   /**
@@ -439,12 +435,6 @@ public class SnapshotDao {
         resourceService
             .getSnapshotStorageAccount(snapshot.getId())
             .ifPresent(snapshot::storageAccountResource);
-
-        // Retrieve the DUOS Firecloud group associated with the snapshot.
-        UUID duosFirecloudGroupId = snapshot.getDuosFirecloudGroupId();
-        if (duosFirecloudGroupId != null) {
-          snapshot.duosFirecloudGroup(duosDao.retrieveFirecloudGroupById(duosFirecloudGroupId));
-        }
       }
       return snapshot;
     } catch (EmptyResultDataAccessException ex) {

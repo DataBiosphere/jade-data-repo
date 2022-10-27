@@ -975,7 +975,7 @@ public class SnapshotService {
             .createdDate(snapshot.getCreatedDate().toString())
             .consentCode(snapshot.getConsentCode())
             .cloudPlatform(snapshot.getCloudPlatform())
-            .duosFirecloudGroup(snapshot.getDuosFirecloudGroup());
+            .duosFirecloudGroupId(snapshot.getDuosFirecloudGroupId());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRetrieveIncludeModel.NONE)) {

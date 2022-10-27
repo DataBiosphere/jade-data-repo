@@ -8,7 +8,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.CloudRegion;
@@ -92,7 +91,6 @@ public class SnapshotDaoTest {
   private UUID profileId;
   private UUID projectId;
   private UUID duosFirecloudGroupId;
-  private String duosId;
 
   @Before
   public void setup() throws Exception {
@@ -131,7 +129,7 @@ public class SnapshotDaoTest {
     snapshotId = UUID.randomUUID();
     datasetIds = new ArrayList<>();
 
-    duosId = UUID.randomUUID().toString();
+    String duosId = UUID.randomUUID().toString();
     String firecloudGroupName = "firecloudGroupName";
     String firecloudGroupEmail = "firecloudGroupEmail";
     duosFirecloudGroupId =
@@ -174,7 +172,8 @@ public class SnapshotDaoTest {
         snapshotService
             .makeSnapshotFromSnapshotRequest(snapshotRequest)
             .projectResourceId(projectId)
-            .id(snapshotId);
+            .id(snapshotId)
+            .duosFirecloudGroupId(duosFirecloudGroupId);
     Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, "happyInOutTest_flightId");
     assertThat("snapshot name set correctly", fromDB.getName(), equalTo(snapshot.getName()));
 
@@ -288,29 +287,10 @@ public class SnapshotDaoTest {
         snapshotTable2.getColumns().stream().map(Column::getName).collect(Collectors.toList()),
         contains("anothercolumn3", "anothercolumn2", "anothercolumn1"));
 
-    // Verify absence of linked DUOS Firecloud group
-    assertNull(fromDB.getDuosFirecloudGroupId());
-    assertNull(fromDB.getDuosFirecloudGroup());
-  }
-
-  @Test
-  public void insertAndRetrieveSnapshotWithLinkedDuosDataset() {
-    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
-
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(snapshotId)
-            .duosFirecloudGroupId(duosFirecloudGroupId);
-    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, "snapshotWithDuos_flightId");
-
-    assertThat(fromDB.getDuosFirecloudGroupId(), equalTo(duosFirecloudGroupId));
-    // (Note: more complete DuosDao verfication can be found in DuosDaoTest.)
     assertThat(
-        "Linked DUOS Firecloud group is obtained",
-        fromDB.getDuosFirecloudGroup().getDuosId(),
-        equalTo(duosId));
+        "Correct DUOS Firecloud group ID",
+        fromDB.getDuosFirecloudGroupId(),
+        equalTo(duosFirecloudGroupId));
   }
 
   @Test

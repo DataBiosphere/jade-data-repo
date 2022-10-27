@@ -6,7 +6,6 @@ import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
 import bio.terra.model.CloudPlatform;
-import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -40,7 +39,6 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private String consentCode;
   private Object properties;
   private UUID duosFirecloudGroupId;
-  private DuosFirecloudGroupModel duosFirecloudGroup;
 
   @Override
   public CollectionType getCollectionType() {
@@ -200,15 +198,6 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public Snapshot duosFirecloudGroupId(UUID duosFirecloudGroupId) {
     this.duosFirecloudGroupId = duosFirecloudGroupId;
-    return this;
-  }
-
-  public DuosFirecloudGroupModel getDuosFirecloudGroup() {
-    return duosFirecloudGroup;
-  }
-
-  public Snapshot duosFirecloudGroup(DuosFirecloudGroupModel duosFirecloudGroup) {
-    this.duosFirecloudGroup = duosFirecloudGroup;
     return this;
   }
 

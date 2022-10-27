@@ -1,6 +1,5 @@
 package bio.terra.app.controller;
 
-import bio.terra.common.IamResourceTypeCODEC;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.JournalApi;
@@ -47,8 +46,7 @@ public class JournalApiController implements JournalApi {
   @Override
   public ResponseEntity<List<JournalEntryModel>> retrieveJournalEntries(
       UUID resourceKey, IamResourceTypeEnum resourceType, Integer offset, Integer limit) {
-    IamResourceType iamResourceType =
-        IamResourceTypeCODEC.toIamResourceType(resourceType.toString());
+    IamResourceType iamResourceType = IamResourceType.toIamResourceType(resourceType);
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), iamResourceType, resourceKey.toString(), IamAction.VIEW_JOURNAL);
     List<JournalEntryModel> journalEntries =

@@ -1,6 +1,5 @@
 package bio.terra.service.journal;
 
-import bio.terra.common.IamResourceTypeCODEC;
 import bio.terra.model.JournalEntryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -145,7 +144,7 @@ public class JournalDao {
         }
       }
       IamResourceType resourceType =
-          IamResourceTypeCODEC.toIamResourceType(rs.getString("resource_type").toUpperCase());
+          IamResourceType.toIamResourceType(rs.getString("resource_type").toUpperCase());
       return new JournalEntry()
           .id(journalId)
           .user(rs.getString("user_email"))

@@ -1,5 +1,6 @@
 package bio.terra.service.auth.iam;
 
+import bio.terra.model.IamResourceTypeEnum;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import org.apache.commons.lang3.StringUtils;
@@ -35,5 +36,33 @@ public enum IamResourceType {
       }
     }
     return null;
+  }
+
+  public static IamResourceType toIamResourceType(IamResourceTypeEnum apiEnum) {
+    if (apiEnum == IamResourceTypeEnum.SPEND_PROFILE) {
+      return IamResourceType.SPEND_PROFILE;
+    }
+    return toIamResourceType(apiEnum.toString());
+  }
+
+  public static IamResourceType toIamResourceType(String stringResourceType) {
+    for (IamResourceType b : IamResourceType.values()) {
+      if (String.valueOf(b).equalsIgnoreCase(stringResourceType)) {
+        return b;
+      }
+    }
+    throw new RuntimeException("Invalid resource type: " + stringResourceType);
+  }
+
+  public static IamResourceTypeEnum toIamResourceTypeEnum(IamResourceType resourceType) {
+    if (resourceType.equals(IamResourceType.SPEND_PROFILE)) {
+      return IamResourceTypeEnum.SPEND_PROFILE;
+    }
+    for (IamResourceTypeEnum b : IamResourceTypeEnum.values()) {
+      if (String.valueOf(b).equalsIgnoreCase(resourceType.toString())) {
+        return b;
+      }
+    }
+    throw new RuntimeException("Invalid resource type: " + resourceType);
   }
 }

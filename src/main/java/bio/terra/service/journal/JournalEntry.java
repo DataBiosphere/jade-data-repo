@@ -1,6 +1,5 @@
 package bio.terra.service.journal;
 
-import bio.terra.common.IamResourceTypeCODEC;
 import bio.terra.model.JournalEntryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import java.time.Instant;
@@ -117,7 +116,7 @@ public class JournalEntry {
         .className(getClassName())
         .entryType(
             JournalEntryModel.EntryTypeEnum.fromValue(getEntryType().toString().toUpperCase()))
-        .resourceType(IamResourceTypeCODEC.toIamResourceTypeEnum(getResourceType()))
+        .resourceType(IamResourceType.toIamResourceTypeEnum(getResourceType()))
         .methodName(getMethodName())
         .user(getUser())
         .mutation(getMutations())

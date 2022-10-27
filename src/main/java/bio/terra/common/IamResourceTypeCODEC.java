@@ -4,9 +4,8 @@ import bio.terra.model.IamResourceTypeEnum;
 import bio.terra.service.auth.iam.IamResourceType;
 
 /**
- *   The swagger codegen we use has issues with ENUM values with hyphens.
- *   This utility helps convert between the internally used and externally
- *   visible ENUMS that represent the IamResourceType.
+ * The swagger codegen we use has issues with ENUM values with hyphens. This utility helps convert
+ * between the internally used and externally visible ENUMS that represent the IamResourceType.
  */
 public class IamResourceTypeCODEC {
   private static final String MAGIC_SPEND_STRING = "spendprofile";

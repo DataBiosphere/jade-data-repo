@@ -35,6 +35,7 @@ public class CommonFlightUtilsTest {
     FlightMap flightMap = new FlightMap();
     flightMap.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), TEST_USER1);
     flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), null);
+    flightMap.put(JobMapKeys.REQUEST.getKeyName(), "A request string");
     FlightContext flightContext =
         new FlightContext() {
 
@@ -135,5 +136,10 @@ public class CommonFlightUtilsTest {
         "flight map entry for null value returns null",
         getFlightInformationOfInterest(flightContext).get(JobMapKeys.DESCRIPTION.getKeyName()),
         equalTo(null));
+    assertThat(
+        "map should contain a key with the JSON hint at the end.",
+        getFlightInformationOfInterest(flightContext)
+            .get(JobMapKeys.REQUEST.getKeyName() + ".json"),
+        equalTo("\"A request string\""));
   }
 }

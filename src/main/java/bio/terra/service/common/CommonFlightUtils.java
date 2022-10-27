@@ -23,12 +23,12 @@ public class CommonFlightUtils {
   }
 
   /**
-   * Obtains flight information of Interest that might be useful in a journal entry.
-   * Patterned after an allowList because the flightContext input parameters can contain
-   * some sensitive information that we don't want included in a journal entry.
-   * The pattern of using the request payload to hold arbitrary objects that can be returned
-   * as JSON led to the inclusion of a hint in the key name so that our front end can detect
-   * and unwrap this value.
+   * Obtains flight information of Interest that might be useful in a journal entry. Patterned after
+   * an allowList because the flightContext input parameters can contain some sensitive information
+   * that we don't want included in a journal entry. The pattern of using the request payload to
+   * hold arbitrary objects that can be returned as JSON led to the inclusion of a hint in the key
+   * name so that our front end can detect and unwrap this value.
+   *
    * @param flightContext
    * @return LinkedHashMap<String, String>
    */

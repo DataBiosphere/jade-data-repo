@@ -245,6 +245,9 @@ public class SnapshotCreateFlight extends Flight {
       }
 
       addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
+      addStep(
+          new SnapshotAuthzServiceAccountConsumerStep(
+              snapshotService, resourceService, snapshotName));
     } else if (platform.isAzure()) {
       addStep(
           new CreateSnapshotStorageTableDataStep(

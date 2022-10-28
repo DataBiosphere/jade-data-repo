@@ -76,6 +76,10 @@ public class SnapshotDeleteFlight extends Flight {
         new PerformGcpStep(
             new DeleteSnapshotAuthzBqAclsStep(
                 iamClient, resourceService, snapshotService, snapshotId, userReq)));
+    addStep(
+        new PerformGcpStep(
+            new DeleteSnapshotAuthzServiceUsageAclsStep(
+                iamClient, resourceService, snapshotService, snapshotId, userReq)));
 
     // Delete access control first so Readers and Discoverers can no longer see snapshot
     // Google auto-magically removes the ACLs from BQ objects when SAM

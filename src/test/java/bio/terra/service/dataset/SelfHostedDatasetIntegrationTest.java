@@ -138,8 +138,16 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     testSelfHostedDatasetLifecycle("jade_testbucket_no_jade_sa", true);
   }
 
+  @Test
+  public void testSelfHostedDatasetRequesterPaysLifecycle() throws Exception {
+    testSelfHostedDatasetLifecycle("jade_testbucket_requester_pays", false);
+  }
+
   private void testSelfHostedDatasetLifecycle(String ingestBucket, boolean dedicatedServiceAccount)
       throws Exception {
+
+    gcsUtils.fileExists(wgsVcfPath(ingestBucket));
+
     DatasetSummaryModel datasetSummaryModel =
         dataRepoFixtures.createSelfHostedDataset(
             steward(), profileId, "dataset-ingest-combined-array.json", dedicatedServiceAccount);
@@ -307,6 +315,9 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
           "TDR was able to create a signed URL",
           objectAccessUrl.getUrl(),
           is(not(emptyOrNullString())));
+
+      // Ensure that the signed URL is accessible
+      TestUtils.verifyHttpAccess(objectAccessUrl.getUrl(), Map.of());
     }
 
     // validate that snapshot export works correctly

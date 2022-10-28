@@ -41,11 +41,13 @@ import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.Blob.BlobSourceOption;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BlobGetOption;
 import com.google.cloud.storage.Storage.BucketSourceOption;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
@@ -570,9 +572,9 @@ public class GcsPdao implements CloudFileReader {
   private boolean deleteWorker(BlobId blobId, String projectId) {
     GcsProject gcsProject = gcsProjectFactory.get(projectId, true);
     Storage storage = gcsProject.getStorage();
-    Blob blob = storage.get(blobId);
+    Blob blob = storage.get(blobId, BlobGetOption.userProject(projectId));
     if (blob != null) {
-      return blob.delete();
+      return blob.delete(BlobSourceOption.userProject(projectId));
     }
     logger.warn("{} was not found and so deletion was skipped", blobId);
     return false;

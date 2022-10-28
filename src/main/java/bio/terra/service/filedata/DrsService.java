@@ -45,12 +45,14 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BucketGetOption;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
 import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -78,6 +80,8 @@ public class DrsService {
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
   private static final String DRS_OBJECT_VERSION = "0";
   private static final Duration URL_TTL = Duration.ofMinutes(15);
+  private static final String USER_PROJECT_QUERY_PARAM = "userProject";
+  private static final String REQUESTED_BY_QUERY_PARAM = "requestedBy";
   // atomic counter that we incr on request arrival and decr on request response
   private final AtomicInteger currentDRSRequests = new AtomicInteger(0);
 
@@ -337,7 +341,7 @@ public class DrsService {
     }
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(billingProfileModel.getCloudPlatform());
     if (platform.isGcp()) {
-      return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath());
+      return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser);
     } else if (platform.isAzure()) {
       return signAzureUrl(billingProfileModel, fsFile, authUser);
     } else {
@@ -372,7 +376,8 @@ public class DrsService {
                     authUser.getEmail())));
   }
 
-  private DRSAccessURL signGoogleUrl(SnapshotCacheResult cachedSnapshot, String gsPath) {
+  private DRSAccessURL signGoogleUrl(
+      SnapshotCacheResult cachedSnapshot, String gsPath, AuthenticatedUserRequest authUser) {
     Storage storage =
         StorageOptions.newBuilder()
             .setProjectId(cachedSnapshot.googleProjectId)
@@ -382,11 +387,17 @@ public class DrsService {
 
     BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();
 
+    Map<String, String> queryParams = new HashMap<>();
+    queryParams.put(USER_PROJECT_QUERY_PARAM, cachedSnapshot.googleProjectId);
+    if (authUser != null) {
+      queryParams.put(REQUESTED_BY_QUERY_PARAM, authUser.getEmail());
+    }
     URL url =
         storage.signUrl(
             blobInfo,
             URL_TTL.toMinutes(),
             TimeUnit.MINUTES,
+            Storage.SignUrlOption.withQueryParams(queryParams),
             Storage.SignUrlOption.withV4Signature());
 
     return new DRSAccessURL().url(url.toString());
@@ -408,7 +419,8 @@ public class DrsService {
             getDrsSignedURLAccessMethods(
                 ACCESS_ID_PREFIX_GCP + ACCESS_ID_PREFIX_PASSPORT, gcpRegion, passportAuth);
       } else {
-        accessMethods = getDrsAccessMethodsOnGcp(fsFile, authUser, gcpRegion);
+        accessMethods =
+            getDrsAccessMethodsOnGcp(fsFile, authUser, gcpRegion, cachedSnapshot.googleProjectId);
       }
     } else if (platform.isAzure()) {
       String azureRegion = retrieveAzureSnapshotRegion(fsFile);
@@ -437,7 +449,10 @@ public class DrsService {
     final GoogleRegion region;
     if (cachedSnapshot.isSelfHosted) {
       Storage storage = gcsProjectFactory.getStorage(cachedSnapshot.googleProjectId);
-      Bucket bucket = storage.get(GcsUriUtils.parseBlobUri(fsFile.getCloudPath()).getBucket());
+      Bucket bucket =
+          storage.get(
+              GcsUriUtils.parseBlobUri(fsFile.getCloudPath()).getBucket(),
+              BucketGetOption.userProject(cachedSnapshot.googleProjectId));
       region = GoogleRegion.fromValue(bucket.getLocation());
     } else {
       GoogleBucketResource bucketResource =
@@ -456,7 +471,7 @@ public class DrsService {
   }
 
   private List<DRSAccessMethod> getDrsAccessMethodsOnGcp(
-      FSFile fsFile, AuthenticatedUserRequest authUser, String region) {
+      FSFile fsFile, AuthenticatedUserRequest authUser, String region, String userProject) {
     DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getCloudPath());
     DRSAuthorizations authorizationsBearerOnly = buildDRSAuth(false);
 
@@ -471,7 +486,7 @@ public class DrsService {
 
     DRSAccessURL httpsAccessURL =
         new DRSAccessURL()
-            .url(GcsUriUtils.makeHttpsFromGs(fsFile.getCloudPath()))
+            .url(GcsUriUtils.makeHttpsFromGs(fsFile.getCloudPath(), userProject))
             .headers(makeAuthHeader(authUser));
 
     DRSAccessMethod httpsAccessMethod =

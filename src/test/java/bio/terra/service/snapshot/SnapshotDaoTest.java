@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.CloudRegion;
@@ -27,6 +28,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -36,6 +38,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.duos.DuosDao;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
@@ -79,6 +82,8 @@ public class SnapshotDaoTest {
 
   @Autowired private JsonLoader jsonLoader;
 
+  @Autowired private DuosDao duosDao;
+
   private Dataset dataset;
   private UUID datasetId;
   private SnapshotRequestModel snapshotRequest;
@@ -87,6 +92,8 @@ public class SnapshotDaoTest {
   private List<UUID> datasetIds;
   private UUID profileId;
   private UUID projectId;
+  private UUID duosFirecloudGroupId;
+  private String duosId;
 
   @Before
   public void setup() throws Exception {
@@ -124,6 +131,14 @@ public class SnapshotDaoTest {
     // Populate the snapshotId with random; delete should quietly not find it.
     snapshotId = UUID.randomUUID();
     datasetIds = new ArrayList<>();
+
+    duosId = UUID.randomUUID().toString();
+    duosFirecloudGroupId =
+        duosDao.insertFirecloudGroup(
+            new DuosFirecloudGroupModel()
+                .duosId(duosId)
+                .firecloudGroupName("firecloudGroupName")
+                .firecloudGroupEmail("firecloudGroupEmail"));
   }
 
   @After
@@ -138,6 +153,7 @@ public class SnapshotDaoTest {
     datasetDao.delete(datasetId);
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(profileId);
+    duosDao.deleteFirecloudGroup(duosFirecloudGroupId);
   }
 
   @Test(expected = MissingRowCountsException.class)
@@ -762,5 +778,41 @@ public class SnapshotDaoTest {
         "Snapshot with full permission match is accessible",
         snapshotDao.getAccessibleSnapshots(permissions),
         contains(snapshotId));
+  }
+
+  @Test
+  public void updateDuosFirecloudGroupId() {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    Snapshot snapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(snapshotRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    Snapshot beforeUpdate = insertAndRetrieveSnapshot(snapshot, "snapshotWithDuos_flightId");
+
+    assertNull(
+        "snapshot's DUOS Firecloud group ID is null before update",
+        beforeUpdate.getDuosFirecloudGroupId());
+    assertNull(
+        "snapshot's DUOS Firecloud group is null before update",
+        beforeUpdate.getDuosFirecloudGroup());
+
+    assertTrue(snapshotDao.updateDuosFirecloudGroupId(snapshotId, duosFirecloudGroupId));
+
+    Snapshot afterUpdate = snapshotDao.retrieveSnapshot(snapshotId);
+    assertThat(afterUpdate.getDuosFirecloudGroupId(), equalTo(duosFirecloudGroupId));
+    assertThat(
+        "Linked DUOS Firecloud group is obtained",
+        afterUpdate.getDuosFirecloudGroup().getDuosId(),
+        equalTo(duosId));
+
+    assertTrue(snapshotDao.updateDuosFirecloudGroupId(snapshotId, null));
+
+    Snapshot afterUnset = snapshotDao.retrieveSnapshot(snapshotId);
+    assertNull(
+        "snapshot's DUOS Firecloud group ID is null after unset",
+        afterUnset.getDuosFirecloudGroupId());
+    assertNull(
+        "snapshot's DUOS Firecloud group is null after unset", afterUnset.getDuosFirecloudGroup());
   }
 }

@@ -5247,6 +5247,8 @@ components:
         This group has a TDR service account as its sole administrator.
         Only those DUOS datasets known to TDR will have Firecloud groups for their users.
       properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
         duosId:
           $ref: '#/components/schemas/DuosId'
         firecloudGroupName:

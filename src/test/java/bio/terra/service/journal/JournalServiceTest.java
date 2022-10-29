@@ -156,6 +156,42 @@ public class JournalServiceTest {
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
   }
 
+  @Test
+  public void journal_UnwindEntryTest() {
+    UUID key = UUID.randomUUID();
+    Map<String, Object> emptyMap = new LinkedHashMap<>();
+    String note = "create note1";
+    UUID entryKey =
+        journalService.journalCreate(TEST_USER1, key, IamResourceType.DATASET, note, emptyMap);
+    validateEntries(
+        1, key, JournalService.EntryType.CREATE, IamResourceType.DATASET, TEST_USER1, note, null);
+    UUID result =
+        journalService.journalCreate(TEST_USER1, key, IamResourceType.DATASNAPSHOT, note, emptyMap);
+    validateEntries(
+        1,
+        key,
+        JournalService.EntryType.CREATE,
+        IamResourceType.DATASNAPSHOT,
+        TEST_USER1,
+        note,
+        null);
+
+    assertThat(
+        "there should be an entry for this create.",
+        journalService.getJournalEntries(key, IamResourceType.DATASET, 0, 10).size(),
+        equalTo(1));
+    journalService.removeJournalEntry(entryKey);
+    assertThat(
+        "the datset journal entry should have been removed.",
+        journalService.getJournalEntries(key, IamResourceType.DATASET, 0, 10).size(),
+        equalTo(0));
+
+    assertThat(
+        "the snapshot journal entry should still exist.",
+        journalService.getJournalEntries(result, IamResourceType.DATASNAPSHOT, 0, 10).size(),
+        equalTo(0));
+  }
+
   private void validateEntries(
       int expectedCount,
       UUID key,

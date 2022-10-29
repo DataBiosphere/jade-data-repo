@@ -9,6 +9,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import java.util.Optional;
 import java.util.UUID;
 
 public class JournalCreateUpdateEntryStep implements Step {
@@ -17,6 +18,7 @@ public class JournalCreateUpdateEntryStep implements Step {
   private final UUID resourceKey;
   private final IamResourceType resourceType;
   private final String note;
+  private UUID journalEntryKey;
 
   public JournalCreateUpdateEntryStep(
       JournalService journalService,
@@ -29,17 +31,20 @@ public class JournalCreateUpdateEntryStep implements Step {
     this.resourceKey = resourceKey;
     this.resourceType = resourceType;
     this.note = note;
+    this.journalEntryKey = null;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    journalService.journalUpdate(
-        userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
+    this.journalEntryKey =
+        journalService.journalUpdate(
+            userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
+    Optional.ofNullable(this.journalEntryKey).ifPresent(this.journalService::removeJournalEntry);
     return StepResult.getStepResultSuccess();
   }
 }

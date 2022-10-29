@@ -35,14 +35,15 @@ public class JournalService {
    *     entry pertains to
    * @param note An optional message describing the event
    * @param changeMap An optional map of changes to store with the event
+   * @return UUID of the entry created.
    */
-  public void journalCreate(
+  public UUID journalCreate(
       @NotNull AuthenticatedUserRequest user,
       @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
       Map changeMap) {
-    journal(EntryType.CREATE, user, resourceKey, resourceType, note, changeMap, false);
+    return journal(EntryType.CREATE, user, resourceKey, resourceType, note, changeMap, false);
   }
 
   /**
@@ -58,15 +59,17 @@ public class JournalService {
    * @param changeMap An optional map of changes to store with the event
    * @param clearHistory A boolean to indicate that any prior journal entries should be removed on
    *     this create.
+   * @return UUID of the entry created.
    */
-  public void journalCreate(
+  public UUID journalCreate(
       @NotNull AuthenticatedUserRequest user,
       @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
       Map changeMap,
       boolean clearHistory) {
-    journal(EntryType.CREATE, user, resourceKey, resourceType, note, changeMap, clearHistory);
+    return journal(
+        EntryType.CREATE, user, resourceKey, resourceType, note, changeMap, clearHistory);
   }
 
   /**
@@ -79,14 +82,15 @@ public class JournalService {
    *     entry pertains to
    * @param note An optional message describing the event
    * @param changeMap An optional map of changes to store with the event
+   * @return UUID of the entry created.
    */
-  public void journalUpdate(
+  public UUID journalUpdate(
       @NotNull AuthenticatedUserRequest user,
       @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
       Map changeMap) {
-    journal(EntryType.UPDATE, user, resourceKey, resourceType, note, changeMap, false);
+    return journal(EntryType.UPDATE, user, resourceKey, resourceType, note, changeMap, false);
   }
 
   /**
@@ -98,14 +102,15 @@ public class JournalService {
    *     entry pertains to
    * @param note An optional message describing the event
    * @param changeMap An optional map of changes to store with the event
+   * @return UUID of the entry created.
    */
-  public void journalDelete(
+  public UUID journalDelete(
       @NotNull AuthenticatedUserRequest user,
       @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
       Map changeMap) {
-    journal(EntryType.DELETE, user, resourceKey, resourceType, note, changeMap, false);
+    return journal(EntryType.DELETE, user, resourceKey, resourceType, note, changeMap, false);
   }
 
   /**
@@ -123,7 +128,7 @@ public class JournalService {
     return journalDao.retrieveEntriesByIdAndType(resourceKey, resourceType, offset, limit);
   }
 
-  private void journal(
+  private UUID journal(
       EntryType entryType,
       AuthenticatedUserRequest user,
       UUID key,
@@ -157,7 +162,7 @@ public class JournalService {
     if (clearHistory) {
       journalDao.deleteJournalEntries(key, resourceType);
     }
-    journalDao.create(
+    return journalDao.create(
         entryType,
         user.getEmail(),
         key,
@@ -166,6 +171,15 @@ public class JournalService {
         frame.getMethodName(),
         note,
         mapJson);
+  }
+
+  /**
+   * Remove an entry from the journal.
+   *
+   * @param idToRemove The journal entry ID to remove.
+   */
+  public void removeJournalEntry(@NotNull UUID idToRemove) {
+    journalDao.deleteJournalEntryById(idToRemove);
   }
 
   @VisibleForTesting

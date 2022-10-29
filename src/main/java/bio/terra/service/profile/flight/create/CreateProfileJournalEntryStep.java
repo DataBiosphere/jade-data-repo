@@ -10,11 +10,14 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import java.util.Optional;
+import java.util.UUID;
 
 public class CreateProfileJournalEntryStep implements Step {
   private final JournalService journalService;
   private final AuthenticatedUserRequest userReq;
   private final BillingProfileRequestModel billingReq;
+  private UUID journalEntryKey;
 
   public CreateProfileJournalEntryStep(
       JournalService journalService,
@@ -27,18 +30,20 @@ public class CreateProfileJournalEntryStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    journalService.journalCreate(
-        userReq,
-        billingReq.getId(),
-        IamResourceType.SPEND_PROFILE,
-        "Billing profile created.",
-        getFlightInformationOfInterest(context),
-        true);
+    this.journalEntryKey =
+        journalService.journalCreate(
+            userReq,
+            billingReq.getId(),
+            IamResourceType.SPEND_PROFILE,
+            "Billing profile created.",
+            getFlightInformationOfInterest(context),
+            true);
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
+    Optional.ofNullable(this.journalEntryKey).ifPresent(this.journalService::removeJournalEntry);
     return StepResult.getStepResultSuccess();
   }
 }

@@ -11,11 +11,13 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import java.util.Optional;
 import java.util.UUID;
 
 public class CreateDatasetJournalEntryStep implements Step {
   private final AuthenticatedUserRequest userReq;
   JournalService journalService;
+  private UUID journalEntryKey;
 
   public CreateDatasetJournalEntryStep(
       JournalService journalService, AuthenticatedUserRequest userReq) {
@@ -27,17 +29,19 @@ public class CreateDatasetJournalEntryStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetUUID = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    journalService.journalCreate(
-        userReq,
-        datasetUUID,
-        IamResourceType.DATASET,
-        "Created dataset.",
-        getFlightInformationOfInterest(context));
+    this.journalEntryKey =
+        journalService.journalCreate(
+            userReq,
+            datasetUUID,
+            IamResourceType.DATASET,
+            "Created dataset.",
+            getFlightInformationOfInterest(context));
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
+    Optional.ofNullable(this.journalEntryKey).ifPresent(this.journalService::removeJournalEntry);
     return StepResult.getStepResultSuccess();
   }
 }

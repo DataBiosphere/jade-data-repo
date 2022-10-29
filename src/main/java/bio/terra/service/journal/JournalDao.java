@@ -1,5 +1,6 @@
 package bio.terra.service.journal;
 
+import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.JournalEntryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -42,7 +43,7 @@ public class JournalDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void create(
+  public UUID create(
       @NotNull JournalService.EntryType entryType,
       @NotNull String user,
       @NotNull UUID resource_key,
@@ -58,7 +59,7 @@ public class JournalDao {
             + "(entry_type, user_email, resource_key, resource_type, class_name, method_name, "
             + "mutation, note, entry_timestamp) "
             + "VALUES(:entryType, :user, :resource_key, :resourceType, :className, :methodName, "
-            + "COALESCE(cast(:mutation as jsonb)), COALESCE(:note), current_timestamp)";
+            + "cast(:mutation as jsonb), :note, current_timestamp)";
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -70,7 +71,8 @@ public class JournalDao {
             .addValue("methodName", methodName)
             .addValue("mutation", mutationAsJson)
             .addValue("note", note);
-    int resultCount = jdbcTemplate.update(sql, params);
+    DaoKeyHolder journalKey = new DaoKeyHolder();
+    int resultCount = jdbcTemplate.update(sql, params, journalKey);
     if (resultCount < 1) {
       logger.error(
           "Error writing journal entry {} {} {} {} {} {} {}",
@@ -82,6 +84,7 @@ public class JournalDao {
           methodName,
           mutationAsJson);
     }
+    return journalKey.getId();
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
@@ -99,6 +102,15 @@ public class JournalDao {
 
     int entriesRemoved = jdbcTemplate.update(sql, params);
     logger.warn("{} journal entries removed for {} {}", entriesRemoved, resource_key, resourceType);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void deleteJournalEntryById(@NotNull UUID jounralEntryId) {
+    String sql = "DELETE FROM " + TABLE_NAME + " WHERE id = :id";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", jounralEntryId);
+
+    int entriesRemoved = jdbcTemplate.update(sql, params);
+    logger.warn("Journal entry deleted: {} {}", jounralEntryId, entriesRemoved);
   }
 
   @Transactional(

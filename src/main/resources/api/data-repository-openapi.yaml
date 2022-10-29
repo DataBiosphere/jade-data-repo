@@ -5269,6 +5269,15 @@ components:
         lastSynced:
           description: Last time TDR queried DUOS for its dataset's authorized users
           type: string
+    SnapshotLinkDuosDatasetResponse:
+      type: object
+      description: >
+        The DUOS Firecloud groups unlinked from and/or linked to the snapshot.
+      properties:
+        unlinked:
+          $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        linked:
+          $ref: '#/components/schemas/DuosFirecloudGroupModel'
 
     ##############################################################################
     ## DRS STANDARD MODELS

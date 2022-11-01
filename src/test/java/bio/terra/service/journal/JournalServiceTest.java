@@ -55,7 +55,7 @@ public class JournalServiceTest {
     UUID key = UUID.randomUUID();
     Map<String, Object> emptyMap = new LinkedHashMap<>();
     String note = "create note1";
-    journalService.journalCreate(TEST_USER1, key, IamResourceType.DATASET, note, emptyMap);
+    journalService.recordCreate(TEST_USER1, key, IamResourceType.DATASET, note, emptyMap);
     validateEntries(
         1, key, JournalService.EntryType.CREATE, IamResourceType.DATASET, TEST_USER1, note, null);
   }
@@ -65,10 +65,10 @@ public class JournalServiceTest {
     UUID key = UUID.randomUUID();
     Map<String, Object> emptyMap = new LinkedHashMap<>();
     String note = "create note1";
-    journalService.journalCreate(TEST_USER1, key, IamResourceType.DATASET, note, emptyMap);
+    journalService.recordCreate(TEST_USER1, key, IamResourceType.DATASET, note, emptyMap);
     validateEntries(
         1, key, JournalService.EntryType.CREATE, IamResourceType.DATASET, TEST_USER1, note, null);
-    journalService.journalCreate(TEST_USER1, key, IamResourceType.DATASNAPSHOT, note, emptyMap);
+    journalService.recordCreate(TEST_USER1, key, IamResourceType.DATASNAPSHOT, note, emptyMap);
     validateEntries(
         1,
         key,
@@ -109,7 +109,7 @@ public class JournalServiceTest {
     Map<String, Object> simpleMap2 = new LinkedHashMap<>();
     simpleMap2.put("KEY2", "VALUE2");
     UUID key = UUID.randomUUID();
-    journalService.journalCreate(TEST_USER1, key, IamResourceType.DATASET, null, simpleMap);
+    journalService.recordCreate(TEST_USER1, key, IamResourceType.DATASET, null, simpleMap);
     validateEntries(
         1,
         key,
@@ -121,7 +121,7 @@ public class JournalServiceTest {
             .filter(entry -> entry.getValue() != null)
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
-    journalService.journalUpdate(TEST_USER1, key, IamResourceType.DATASET, note1, simpleMap2);
+    journalService.recordUpdate(TEST_USER1, key, IamResourceType.DATASET, note1, simpleMap2);
     validateEntries(
         2,
         key,
@@ -131,7 +131,7 @@ public class JournalServiceTest {
         note1,
         simpleMap2);
 
-    journalService.journalDelete(TEST_USER1, key, IamResourceType.DATASET, note2, null);
+    journalService.recordDelete(TEST_USER1, key, IamResourceType.DATASET, note2, null);
     validateEntries(
         3, key, JournalService.EntryType.DELETE, IamResourceType.DATASET, TEST_USER1, note2, null);
 
@@ -143,7 +143,7 @@ public class JournalServiceTest {
         queryResult.get(0).getEntryType(),
         equalTo(JournalEntryModel.EntryTypeEnum.UPDATE));
 
-    journalService.journalCreate(TEST_USER2, key, IamResourceType.DATASET, null, simpleMap, true);
+    journalService.recordCreate(TEST_USER2, key, IamResourceType.DATASET, null, simpleMap, true);
     validateEntries(
         1,
         key,
@@ -162,11 +162,11 @@ public class JournalServiceTest {
     Map<String, Object> emptyMap = new LinkedHashMap<>();
     String note = "create note1";
     UUID entryKey =
-        journalService.journalCreate(TEST_USER1, key, IamResourceType.DATASET, note, emptyMap);
+        journalService.recordCreate(TEST_USER1, key, IamResourceType.DATASET, note, emptyMap);
     validateEntries(
         1, key, JournalService.EntryType.CREATE, IamResourceType.DATASET, TEST_USER1, note, null);
     UUID result =
-        journalService.journalCreate(TEST_USER1, key, IamResourceType.DATASNAPSHOT, note, emptyMap);
+        journalService.recordCreate(TEST_USER1, key, IamResourceType.DATASNAPSHOT, note, emptyMap);
     validateEntries(
         1,
         key,

@@ -5,7 +5,7 @@ import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetSchemaUpdateModel;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.common.JournalCreateUpdateEntryStep;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetRelationshipDao;
@@ -84,7 +84,7 @@ public class DatasetSchemaUpdateFlight extends Flight {
     addStep(new UnlockDatasetStep(datasetService, datasetId, false));
 
     addStep(
-        new JournalCreateUpdateEntryStep(
+        new JournalRecordUpdateEntryStep(
             journalService, userRequest, datasetId, IamResourceType.DATASET, "Schema updated."));
   }
 }

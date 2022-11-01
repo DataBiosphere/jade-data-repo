@@ -12,7 +12,7 @@ import bio.terra.stairway.exception.RetryException;
 import java.util.Optional;
 import java.util.UUID;
 
-public class JournalCreateUpdateEntryStep implements Step {
+public class JournalRecordDeleteEntryStep implements Step {
   private final JournalService journalService;
   private final AuthenticatedUserRequest userReq;
   private final UUID resourceKey;
@@ -20,7 +20,7 @@ public class JournalCreateUpdateEntryStep implements Step {
   private final String note;
   private UUID journalEntryKey;
 
-  public JournalCreateUpdateEntryStep(
+  public JournalRecordDeleteEntryStep(
       JournalService journalService,
       AuthenticatedUserRequest userRequest,
       UUID resourceKey,
@@ -37,7 +37,7 @@ public class JournalCreateUpdateEntryStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     this.journalEntryKey =
-        journalService.journalUpdate(
+        journalService.recordDelete(
             userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
     return StepResult.getStepResultSuccess();
   }

@@ -8,7 +8,7 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.common.JournalCreateDeleteEntryStep;
+import bio.terra.service.common.JournalRecordDeleteEntryStep;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetBucketDao;
@@ -131,7 +131,7 @@ public class DatasetDeleteFlight extends Flight {
 
     addStep(new UnlockDatasetStep(datasetService, datasetId, false), lockDatasetRetry);
     addStep(
-        new JournalCreateDeleteEntryStep(
+        new JournalRecordDeleteEntryStep(
             journalService, userReq, datasetId, IamResourceType.DATASET, "Deleted dataset."));
   }
 }

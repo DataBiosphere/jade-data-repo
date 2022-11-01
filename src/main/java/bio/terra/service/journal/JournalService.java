@@ -27,7 +27,7 @@ public class JournalService {
   }
 
   /**
-   * Create a journal entry that indicates a resource was created
+   * Record a journal entry that indicates a resource was created
    *
    * @param user The user performing the action being journaled
    * @param resourceKey The UUID of the resource (domain object) the journal entry pertains to
@@ -37,17 +37,17 @@ public class JournalService {
    * @param changeMap An optional map of changes to store with the event
    * @return UUID of the entry created.
    */
-  public UUID journalCreate(
+  public UUID recordCreate(
       @NotNull AuthenticatedUserRequest user,
       @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
-      Map changeMap) {
-    return journal(EntryType.CREATE, user, resourceKey, resourceType, note, changeMap, false);
+      Map<?, ?> changeMap) {
+    return record(EntryType.CREATE, user, resourceKey, resourceType, note, changeMap, false);
   }
 
   /**
-   * Create a journal entry that indicates a resource was created and optionally deletes matching
+   * Record a journal entry that indicates a resource was created and optionally deletes matching
    * journal entries that may have existed. Billing profiles are an example of a domain object that
    * supports UUID reuse.
    *
@@ -61,19 +61,18 @@ public class JournalService {
    *     this create.
    * @return UUID of the entry created.
    */
-  public UUID journalCreate(
+  public UUID recordCreate(
       @NotNull AuthenticatedUserRequest user,
       @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
-      Map changeMap,
+      Map<?, ?> changeMap,
       boolean clearHistory) {
-    return journal(
-        EntryType.CREATE, user, resourceKey, resourceType, note, changeMap, clearHistory);
+    return record(EntryType.CREATE, user, resourceKey, resourceType, note, changeMap, clearHistory);
   }
 
   /**
-   * Create a journal entry that indicates a resource was updated or had an action performed that
+   * Record a journal entry that indicates a resource was updated or had an action performed that
    * was worth noting.
    *
    * @param user The user performing the action being journaled
@@ -84,17 +83,17 @@ public class JournalService {
    * @param changeMap An optional map of changes to store with the event
    * @return UUID of the entry created.
    */
-  public UUID journalUpdate(
+  public UUID recordUpdate(
       @NotNull AuthenticatedUserRequest user,
       @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
-      Map changeMap) {
-    return journal(EntryType.UPDATE, user, resourceKey, resourceType, note, changeMap, false);
+      Map<?, ?> changeMap) {
+    return record(EntryType.UPDATE, user, resourceKey, resourceType, note, changeMap, false);
   }
 
   /**
-   * Create a journal entry that indicates a resource was deleted.
+   * Record a journal entry that indicates a resource was deleted.
    *
    * @param user The user performing the action being journaled
    * @param resourceKey The UUID of the domain object the journal entry pertains to
@@ -104,13 +103,13 @@ public class JournalService {
    * @param changeMap An optional map of changes to store with the event
    * @return UUID of the entry created.
    */
-  public UUID journalDelete(
+  public UUID recordDelete(
       @NotNull AuthenticatedUserRequest user,
       @NotNull UUID resourceKey,
       @NotNull IamResourceType resourceType,
       String note,
-      Map changeMap) {
-    return journal(EntryType.DELETE, user, resourceKey, resourceType, note, changeMap, false);
+      Map<?, ?> changeMap) {
+    return record(EntryType.DELETE, user, resourceKey, resourceType, note, changeMap, false);
   }
 
   /**
@@ -128,16 +127,16 @@ public class JournalService {
     return journalDao.retrieveEntriesByIdAndType(resourceKey, resourceType, offset, limit);
   }
 
-  private UUID journal(
+  private UUID record(
       EntryType entryType,
       AuthenticatedUserRequest user,
       UUID key,
       IamResourceType resourceType,
       String note,
-      Map changeMap,
+      Map<?, ?> changeMap,
       boolean clearHistory) {
     StackWalker.StackFrame frame = getCallerFrame(3);
-    Map nonNullValuesMap = null;
+    Map<?, ?> nonNullValuesMap = null;
     String mapJson = null;
     if (changeMap != null) {
       nonNullValuesMap = filterNullValuesFromMap(changeMap);

@@ -39,6 +39,6 @@ public class ProfileDeleteFlightTest {
                 "DeleteProfileProjectMetadata",
                 "DeleteProfileMetadataStep",
                 "DeleteProfileAuthzIamStep",
-                "JournalCreateDeleteEntryStep")));
+                "JournalRecordDeleteEntryStep")));
   }
 }

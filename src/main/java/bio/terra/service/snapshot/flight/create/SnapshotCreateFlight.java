@@ -10,7 +10,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.common.JournalCreateUpdateEntryStep;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -275,7 +275,7 @@ public class SnapshotCreateFlight extends Flight {
     addStep(new UnlockSnapshotStep(snapshotDao, null));
     addStep(new CreateSnapshotJournalEntryStep(journalService, userReq));
     addStep(
-        new JournalCreateUpdateEntryStep(
+        new JournalRecordUpdateEntryStep(
             journalService,
             userReq,
             datasetId,

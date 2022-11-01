@@ -11,7 +11,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.flight.VerifyAuthorizationStep;
-import bio.terra.service.common.JournalCreateUpdateEntryStep;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -138,7 +138,7 @@ public class DatasetDataDeleteFlight extends Flight {
     addStep(new DropExternalTablesStep(datasetService));
     addStep(new DataDeletionDeleteScratchFilesGcsStep(gcsPdao));
     addStep(
-        new JournalCreateUpdateEntryStep(
+        new JournalRecordUpdateEntryStep(
             journalService,
             userReq,
             UUID.fromString(datasetId),

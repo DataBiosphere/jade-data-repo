@@ -3,7 +3,7 @@ package bio.terra.service.profile.flight.update;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.common.JournalCreateUpdateEntryStep;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
@@ -37,7 +37,7 @@ public class ProfileUpdateFlight extends Flight {
     // Update billing profile in gcloud project
     addStep(new UpdateProfileUpdateGCloudProject(googleProjectService));
     addStep(
-        new JournalCreateUpdateEntryStep(
+        new JournalRecordUpdateEntryStep(
             journalService,
             user,
             request.getId(),

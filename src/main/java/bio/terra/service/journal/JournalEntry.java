@@ -14,7 +14,7 @@ public class JournalEntry {
   private IamResourceType resourceType;
   private String className;
   private String methodName;
-  private Map mutations;
+  private Map<?, ?> mutations;
 
   private String note;
   private Instant when;
@@ -91,11 +91,11 @@ public class JournalEntry {
     return this;
   }
 
-  public Map getMutations() {
+  public Map<?, ?> getMutations() {
     return mutations;
   }
 
-  public JournalEntry mutations(Map mutations) {
+  public JournalEntry mutations(Map<?, ?> mutations) {
     this.mutations = mutations;
     return this;
   }

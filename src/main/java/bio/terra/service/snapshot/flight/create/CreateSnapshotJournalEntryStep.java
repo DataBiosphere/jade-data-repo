@@ -30,7 +30,7 @@ public class CreateSnapshotJournalEntryStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     UUID snapshotUUID = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     this.journalEntryKey =
-        journalService.journalCreate(
+        journalService.recordCreate(
             userReq,
             snapshotUUID,
             IamResourceType.DATASNAPSHOT,

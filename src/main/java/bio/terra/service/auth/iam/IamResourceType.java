@@ -38,7 +38,7 @@ public enum IamResourceType {
     return null;
   }
 
-  public static IamResourceType toIamResourceType(IamResourceTypeEnum apiEnum) {
+  public static IamResourceType fromEnum(IamResourceTypeEnum apiEnum) {
     if (apiEnum == IamResourceTypeEnum.SPEND_PROFILE) {
       return IamResourceType.SPEND_PROFILE;
     }
@@ -47,7 +47,7 @@ public enum IamResourceType {
 
   public static IamResourceType toIamResourceType(String stringResourceType) {
     for (IamResourceType b : IamResourceType.values()) {
-      if (String.valueOf(b).equalsIgnoreCase(stringResourceType)) {
+      if (b.getSamResourceName().equalsIgnoreCase(stringResourceType)) {
         return b;
       }
     }

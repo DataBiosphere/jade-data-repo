@@ -11,7 +11,7 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.common.JournalCreateUpdateEntryStep;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -283,7 +283,7 @@ public class DatasetIngestFlight extends Flight {
     }
     addStep(new UnlockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
     addStep(
-        new JournalCreateUpdateEntryStep(
+        new JournalRecordUpdateEntryStep(
             journalService,
             userReq,
             datasetId,

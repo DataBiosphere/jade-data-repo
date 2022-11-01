@@ -31,7 +31,7 @@ public class CreateProfileJournalEntryStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     this.journalEntryKey =
-        journalService.journalCreate(
+        journalService.recordCreate(
             userReq,
             billingReq.getId(),
             IamResourceType.SPEND_PROFILE,

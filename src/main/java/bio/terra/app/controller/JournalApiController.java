@@ -46,7 +46,7 @@ public class JournalApiController implements JournalApi {
   @Override
   public ResponseEntity<List<JournalEntryModel>> retrieveJournalEntries(
       UUID resourceKey, IamResourceTypeEnum resourceType, Integer offset, Integer limit) {
-    IamResourceType iamResourceType = IamResourceType.toIamResourceType(resourceType);
+    IamResourceType iamResourceType = IamResourceType.fromEnum(resourceType);
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), iamResourceType, resourceKey.toString(), IamAction.VIEW_JOURNAL);
     List<JournalEntryModel> journalEntries =

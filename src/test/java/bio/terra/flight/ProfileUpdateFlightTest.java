@@ -44,6 +44,6 @@ public class ProfileUpdateFlightTest {
                 "UpdateProfileMetadataStep",
                 "UpdateProfileVerifyAccountStep",
                 "UpdateProfileUpdateGCloudProject",
-                "JournalCreateUpdateEntryStep")));
+                "JournalRecordUpdateEntryStep")));
   }
 }

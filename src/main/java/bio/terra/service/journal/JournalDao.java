@@ -105,12 +105,12 @@ public class JournalDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void deleteJournalEntryById(@NotNull UUID jounralEntryId) {
+  public void deleteJournalEntryById(@NotNull UUID journalEntryId) {
     String sql = "DELETE FROM " + TABLE_NAME + " WHERE id = :id";
-    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", jounralEntryId);
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", journalEntryId);
 
     int entriesRemoved = jdbcTemplate.update(sql, params);
-    logger.warn("Journal entry deleted: {} {}", jounralEntryId, entriesRemoved);
+    logger.warn("Journal entry deleted: {} {}", journalEntryId, entriesRemoved);
   }
 
   @Transactional(
@@ -145,7 +145,7 @@ public class JournalDao {
     @Override
     public JournalEntryModel mapRow(ResultSet rs, int rowNum) throws SQLException {
       UUID journalId = rs.getObject("id", UUID.class);
-      Map mutation = null;
+      Map<?, ?> mutation = null;
       String rsMutation = rs.getString("mutation");
       if (rsMutation != null) {
         try {

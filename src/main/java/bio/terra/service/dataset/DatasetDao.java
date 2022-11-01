@@ -755,7 +755,7 @@ public class DatasetDao {
 
     if (patchSucceeded) {
       logger.info("Dataset {} patched with {}", id, patchRequest.toString());
-      journalService.journalUpdate(
+      journalService.recordUpdate(
           userReq, id, IamResourceType.DATASET, "Patched dataset.", params.getValues());
     }
     return patchSucceeded;

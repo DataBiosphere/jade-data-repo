@@ -7,7 +7,7 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.common.JournalCreateUpdateEntryStep;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
@@ -58,7 +58,7 @@ public class TransactionCommitFlight extends Flight {
           new TransactionUnlockStep(
               datasetService, bigQueryTransactionPdao, transactionId, userReq));
       addStep(
-          new JournalCreateUpdateEntryStep(
+          new JournalRecordUpdateEntryStep(
               journalService,
               userReq,
               datasetId,

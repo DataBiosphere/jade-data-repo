@@ -13,6 +13,7 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ImpersonatedCredentials;
@@ -60,11 +61,16 @@ public class IamService {
   private final IamProviderInterface iamProvider;
   private final ConfigurationService configurationService;
   private final Map<AuthorizedCacheKey, Boolean> authorizedMap;
+  private final JournalService journalService;
 
   @Autowired
-  public IamService(IamProviderInterface iamProvider, ConfigurationService configurationService) {
+  public IamService(
+      IamProviderInterface iamProvider,
+      ConfigurationService configurationService,
+      JournalService journalService) {
     this.iamProvider = iamProvider;
     this.configurationService = configurationService;
+    this.journalService = journalService;
     int ttl =
         Objects.requireNonNullElse(
             configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS),
@@ -306,6 +312,12 @@ public class IamService {
                   userReq, iamResourceType, resourceId, policyName, userEmail);
           // Invalidate the cache
           authorizedMap.clear();
+          journalService.recordUpdate(
+              userReq,
+              resourceId,
+              iamResourceType,
+              String.format("Added %s to %s", userEmail, policyName),
+              null);
           return policy;
         });
   }
@@ -323,6 +335,12 @@ public class IamService {
                   userReq, iamResourceType, resourceId, policyName, userEmail);
           // Invalidate the cache
           authorizedMap.clear();
+          journalService.recordUpdate(
+              userReq,
+              resourceId,
+              iamResourceType,
+              String.format("Removed %s from %s", userEmail, policyName),
+              null);
           return policy;
         });
   }

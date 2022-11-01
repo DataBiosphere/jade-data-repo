@@ -18,14 +18,14 @@ public class IamResourceTypeTest {
     for (IamResourceType resource : IamResourceType.values()) {
       assertThat(
           "ENUM encodes and decodes",
-          IamResourceType.toIamResourceType(IamResourceType.toIamResourceTypeEnum(resource)),
+          IamResourceType.fromEnum(IamResourceType.toIamResourceTypeEnum(resource)),
           equalTo(resource));
     }
 
     for (IamResourceTypeEnum resource : IamResourceTypeEnum.values()) {
       assertThat(
           "ENUM encodes and decodes",
-          IamResourceType.toIamResourceTypeEnum(IamResourceType.toIamResourceType(resource)),
+          IamResourceType.toIamResourceTypeEnum(IamResourceType.fromEnum(resource)),
           equalTo(resource));
     }
   }

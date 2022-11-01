@@ -3,7 +3,7 @@ package bio.terra.service.profile.flight.delete;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.common.JournalCreateDeleteEntryStep;
+import bio.terra.service.common.JournalRecordDeleteEntryStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
@@ -80,7 +80,7 @@ public class ProfileDeleteFlight extends Flight {
     addStep(new DeleteProfileMetadataStep(profileService, profileId));
     addStep(new DeleteProfileAuthzIamStep(profileService, profileId));
     addStep(
-        new JournalCreateDeleteEntryStep(
+        new JournalRecordDeleteEntryStep(
             journalService, user, profileId, IamResourceType.SPEND_PROFILE, "Deleted profile."));
   }
 }

@@ -3,7 +3,7 @@ package bio.terra.service.dataset.flight.transactions.upgrade;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.common.JournalCreateUpdateEntryStep;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
@@ -31,7 +31,7 @@ public class TransactionUpgradeFlight extends Flight {
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     addStep(new TransactionUpgradeStep(iamService, datasetService, bigQueryDatasetPdao, userReq));
     addStep(
-        new JournalCreateUpdateEntryStep(
+        new JournalRecordUpdateEntryStep(
             journalService,
             userReq,
             datasetId,

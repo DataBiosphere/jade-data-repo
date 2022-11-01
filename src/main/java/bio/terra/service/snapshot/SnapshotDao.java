@@ -750,7 +750,7 @@ public class SnapshotDao {
 
     if (patchSucceeded) {
       logger.info("Snapshot {} patched with {}", id, patchRequest.toString());
-      journalService.journalUpdate(
+      journalService.recordUpdate(
           userReq, id, IamResourceType.DATASNAPSHOT, "Snapshot patched.", params.getValues());
     }
     return patchSucceeded;

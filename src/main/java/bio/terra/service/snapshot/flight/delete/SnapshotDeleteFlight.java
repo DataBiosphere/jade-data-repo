@@ -6,7 +6,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.common.JournalCreateDeleteEntryStep;
+import bio.terra.service.common.JournalRecordDeleteEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
@@ -130,7 +130,7 @@ public class SnapshotDeleteFlight extends Flight {
 
     addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, false)));
     addStep(
-        new JournalCreateDeleteEntryStep(
+        new JournalRecordDeleteEntryStep(
             journalService,
             userReq,
             snapshotId,

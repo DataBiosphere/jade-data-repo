@@ -18,6 +18,7 @@ import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.journal.JournalService;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -40,6 +41,7 @@ public class IamServiceTest {
   @Mock private IamProviderInterface iamProvider;
 
   @Mock private ConfigurationService configurationService;
+  @Mock private JournalService journalService;
 
   private IamService iamService;
   private AuthenticatedUserRequest authenticatedUserRequest;
@@ -48,7 +50,7 @@ public class IamServiceTest {
   public void setup() {
     when(configurationService.getParameterValue(ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS))
         .thenReturn(0);
-    iamService = new IamService(iamProvider, configurationService);
+    iamService = new IamService(iamProvider, configurationService, journalService);
     authenticatedUserRequest =
         AuthenticatedUserRequest.builder()
             .setSubjectId("DatasetUnit")

@@ -281,12 +281,6 @@ public class SnapshotsApiController implements SnapshotsApi {
     PolicyModel policy =
         iamService.addPolicyMember(
             userReq, IamResourceType.DATASNAPSHOT, id, policyName, policyMember.getEmail());
-    journalService.journalUpdate(
-        userReq,
-        id,
-        IamResourceType.DATASNAPSHOT,
-        String.format("Added %s to %s", policyMember.getEmail(), policyName),
-        null);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
@@ -310,12 +304,6 @@ public class SnapshotsApiController implements SnapshotsApi {
     PolicyModel policy =
         iamService.deletePolicyMember(
             userReq, IamResourceType.DATASNAPSHOT, id, policyName, memberEmail);
-    journalService.journalUpdate(
-        userReq,
-        id,
-        IamResourceType.DATASNAPSHOT,
-        String.format("Removed %s from %s", memberEmail, policyName),
-        null);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }

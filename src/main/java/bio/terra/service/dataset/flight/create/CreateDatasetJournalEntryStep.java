@@ -30,7 +30,7 @@ public class CreateDatasetJournalEntryStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetUUID = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
     this.journalEntryKey =
-        journalService.journalCreate(
+        journalService.recordCreate(
             userReq,
             datasetUUID,
             IamResourceType.DATASET,

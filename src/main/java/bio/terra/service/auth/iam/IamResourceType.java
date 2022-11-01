@@ -42,10 +42,10 @@ public enum IamResourceType {
     if (apiEnum == IamResourceTypeEnum.SPEND_PROFILE) {
       return IamResourceType.SPEND_PROFILE;
     }
-    return toIamResourceType(apiEnum.toString());
+    return fromString(apiEnum.toString());
   }
 
-  public static IamResourceType toIamResourceType(String stringResourceType) {
+  public static IamResourceType fromString(String stringResourceType) {
     for (IamResourceType b : IamResourceType.values()) {
       if (b.getSamResourceName().equalsIgnoreCase(stringResourceType)) {
         return b;

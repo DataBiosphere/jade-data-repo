@@ -156,7 +156,7 @@ public class JournalDao {
         }
       }
       IamResourceType resourceType =
-          IamResourceType.toIamResourceType(rs.getString("resource_type").toUpperCase());
+          IamResourceType.fromString(rs.getString("resource_type").toUpperCase());
       return new JournalEntry()
           .id(journalId)
           .user(rs.getString("user_email"))

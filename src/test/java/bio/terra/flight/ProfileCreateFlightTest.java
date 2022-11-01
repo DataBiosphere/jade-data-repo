@@ -47,7 +47,8 @@ public class ProfileCreateFlightTest {
                 "GetOrCreateProfileIdStep",
                 "CreateProfileMetadataStep",
                 "CreateProfileVerifyDeployedApplicationStep",
-                "CreateProfileAuthzIamStep")));
+                "CreateProfileAuthzIamStep",
+                "CreateProfileJournalEntryStep")));
   }
 
   @Test
@@ -71,6 +72,7 @@ public class ProfileCreateFlightTest {
                 "GetOrCreateProfileIdStep",
                 "CreateProfileMetadataStep",
                 "CreateProfileVerifyAccountStep",
-                "CreateProfileAuthzIamStep")));
+                "CreateProfileAuthzIamStep",
+                "CreateProfileJournalEntryStep")));
   }
 }

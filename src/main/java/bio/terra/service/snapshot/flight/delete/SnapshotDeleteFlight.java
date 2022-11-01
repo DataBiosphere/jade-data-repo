@@ -4,7 +4,9 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.common.JournalRecordDeleteEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
@@ -12,6 +14,7 @@ import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -49,6 +52,7 @@ public class SnapshotDeleteFlight extends Flight {
     AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
     AzureStorageAccountService azureStorageAccountService =
         appContext.getBean(AzureStorageAccountService.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
 
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
@@ -117,7 +121,7 @@ public class SnapshotDeleteFlight extends Flight {
                 snapshotId, resourceService, azureStorageAccountService)));
 
     // Delete Metadata
-    addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
+    addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId, userReq));
     addStep(new PerformAzureStep(new DeleteSnapshotMetadataAzureStep(azureStorageAccountService)));
     addStep(new PerformSnapshotStep(new UnlockSnapshotStep(snapshotDao, snapshotId)));
 
@@ -129,5 +133,12 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(new PerformGcpStep(new DeleteSnapshotProjectMetadataStep(resourceService)));
 
     addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, false)));
+    addStep(
+        new JournalRecordDeleteEntryStep(
+            journalService,
+            userReq,
+            snapshotId,
+            IamResourceType.DATASNAPSHOT,
+            "Deleted snapshot."));
   }
 }

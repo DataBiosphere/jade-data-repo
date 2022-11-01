@@ -4,6 +4,8 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetSchemaUpdateModel;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetRelationshipDao;
@@ -12,6 +14,7 @@ import bio.terra.service.dataset.DatasetTableDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -29,6 +32,7 @@ public class DatasetSchemaUpdateFlight extends Flight {
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     DatasetRelationshipDao relationshipDao = appContext.getBean(DatasetRelationshipDao.class);
     BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
 
     AuthenticatedUserRequest userRequest =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
@@ -78,5 +82,9 @@ public class DatasetSchemaUpdateFlight extends Flight {
             datasetDao, datasetId, datasetService, updateModel, userRequest));
 
     addStep(new UnlockDatasetStep(datasetService, datasetId, false));
+
+    addStep(
+        new JournalRecordUpdateEntryStep(
+            journalService, userRequest, datasetId, IamResourceType.DATASET, "Schema updated."));
   }
 }

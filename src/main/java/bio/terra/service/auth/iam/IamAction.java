@@ -32,7 +32,8 @@ public enum IamAction {
   EXPORT_SNAPSHOT,
   // billing profiles
   UPDATE_BILLING_ACCOUNT,
-  LINK;
+  LINK,
+  VIEW_JOURNAL;
 
   private final String samActionName;
 

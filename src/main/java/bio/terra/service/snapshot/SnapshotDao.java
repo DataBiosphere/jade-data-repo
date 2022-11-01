@@ -5,16 +5,19 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.DaoUtils.UuidMapper;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -52,6 +55,7 @@ public class SnapshotDao {
 
   private final Logger logger = LoggerFactory.getLogger(SnapshotDao.class);
 
+  private final JournalService journalService;
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final SnapshotTableDao snapshotTableDao;
   private final SnapshotMapTableDao snapshotMapTableDao;
@@ -79,6 +83,7 @@ public class SnapshotDao {
 
   @Autowired
   public SnapshotDao(
+      JournalService journalService,
       NamedParameterJdbcTemplate jdbcTemplate,
       SnapshotTableDao snapshotTableDao,
       SnapshotMapTableDao snapshotMapTableDao,
@@ -87,6 +92,7 @@ public class SnapshotDao {
       ResourceService resourceService,
       ObjectMapper objectMapper) {
     this.jdbcTemplate = jdbcTemplate;
+    this.journalService = journalService;
     this.snapshotTableDao = snapshotTableDao;
     this.snapshotMapTableDao = snapshotMapTableDao;
     this.snapshotRelationshipDao = snapshotRelationshipDao;
@@ -167,7 +173,7 @@ public class SnapshotDao {
    * @throws InvalidSnapshotException if a row already exists with this snapshot name
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void createAndLock(Snapshot snapshot, String flightId) {
+  public void createAndLock(Snapshot snapshot, String flightId, AuthenticatedUserRequest userReq) {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
@@ -245,7 +251,7 @@ public class SnapshotDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean delete(UUID id) {
+  public boolean delete(UUID id, AuthenticatedUserRequest userReq) {
     logger.debug("delete snapshot by id: " + id);
     int rowsAffected =
         jdbcTemplate.update(
@@ -723,7 +729,8 @@ public class SnapshotDao {
    * @return whether the snapshot record was updated
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean patch(UUID id, SnapshotPatchRequestModel patchRequest) {
+  public boolean patch(
+      UUID id, SnapshotPatchRequestModel patchRequest, AuthenticatedUserRequest userReq) {
     String sql =
         "UPDATE snapshot SET consent_code = COALESCE(:consent_code, consent_code), "
             + "description = COALESCE(:description, description), "
@@ -743,6 +750,8 @@ public class SnapshotDao {
 
     if (patchSucceeded) {
       logger.info("Snapshot {} patched with {}", id, patchRequest.toString());
+      journalService.recordUpdate(
+          userReq, id, IamResourceType.DATASNAPSHOT, "Snapshot patched.", params.getValues());
     }
     return patchSucceeded;
   }

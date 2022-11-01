@@ -24,6 +24,7 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -111,6 +112,13 @@ public class SnapshotConnectedTest {
   private static final String CONSENT_CODE = "c99";
   private static final String PHS_ID = "phs123456";
 
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
+
   @Before
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
@@ -176,7 +184,8 @@ public class SnapshotConnectedTest {
 
   @Test
   public void testEnumeration() throws Exception {
-    datasetDao.patch(datasetSummary.getId(), new DatasetPatchRequestModel().phsId(PHS_ID));
+    datasetDao.patch(
+        datasetSummary.getId(), new DatasetPatchRequestModel().phsId(PHS_ID), TEST_USER);
 
     // Other unit tests exercise the array bounds, so here we don't fuss with that here.
     // Just make sure we get the same snapshot summary that we made.

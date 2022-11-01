@@ -30,6 +30,7 @@ import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -68,6 +69,7 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
+  private final JournalService journalService;
   private final JobService jobService;
   private final SnapshotRequestValidator snapshotRequestValidator;
   private final SnapshotService snapshotService;
@@ -81,6 +83,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   public SnapshotsApiController(
       ObjectMapper objectMapper,
       HttpServletRequest request,
+      JournalService journalService,
       JobService jobService,
       SnapshotRequestValidator snapshotRequestValidator,
       SnapshotService snapshotService,
@@ -91,6 +94,7 @@ public class SnapshotsApiController implements SnapshotsApi {
       AssetModelValidator assetModelValidator) {
     this.objectMapper = objectMapper;
     this.request = request;
+    this.journalService = journalService;
     this.jobService = jobService;
     this.snapshotRequestValidator = snapshotRequestValidator;
     this.snapshotService = snapshotService;
@@ -166,7 +170,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     Set<IamAction> actions = snapshotService.patchSnapshotIamActions(patchRequest);
     iamService.verifyAuthorizations(userReq, IamResourceType.DATASNAPSHOT, id.toString(), actions);
-    return new ResponseEntity<>(snapshotService.patch(id, patchRequest), HttpStatus.OK);
+    return new ResponseEntity<>(snapshotService.patch(id, patchRequest, userReq), HttpStatus.OK);
   }
 
   @Override
@@ -273,13 +277,10 @@ public class SnapshotsApiController implements SnapshotsApi {
       @PathVariable("id") UUID id,
       @PathVariable("policyName") String policyName,
       @Valid @RequestBody PolicyMemberRequest policyMember) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     PolicyModel policy =
         iamService.addPolicyMember(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASNAPSHOT,
-            id,
-            policyName,
-            policyMember.getEmail());
+            userReq, IamResourceType.DATASNAPSHOT, id, policyName, policyMember.getEmail());
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
@@ -299,10 +300,10 @@ public class SnapshotsApiController implements SnapshotsApi {
     if (!ValidationUtils.isValidEmail(memberEmail)) {
       throw new ValidationException("InvalidMemberEmail");
     }
-
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     PolicyModel policy =
         iamService.deletePolicyMember(
-            getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, policyName, memberEmail);
+            userReq, IamResourceType.DATASNAPSHOT, id, policyName, memberEmail);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
   }

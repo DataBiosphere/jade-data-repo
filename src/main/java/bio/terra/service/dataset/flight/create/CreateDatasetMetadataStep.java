@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.create;
 
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.dataset.Dataset;
@@ -21,14 +22,17 @@ import org.springframework.http.HttpStatus;
 
 public class CreateDatasetMetadataStep implements Step {
 
+  private final AuthenticatedUserRequest userReq;
   private DatasetDao datasetDao;
   private DatasetRequestModel datasetRequest;
 
   private static Logger logger = LoggerFactory.getLogger(CreateDatasetMetadataStep.class);
 
-  public CreateDatasetMetadataStep(DatasetDao datasetDao, DatasetRequestModel datasetRequest) {
+  public CreateDatasetMetadataStep(
+      DatasetDao datasetDao, DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
     this.datasetDao = datasetDao;
     this.datasetRequest = datasetRequest;
+    this.userReq = userReq;
   }
 
   @Override
@@ -45,7 +49,7 @@ public class CreateDatasetMetadataStep implements Step {
               .projectResourceId(projectResourceId)
               .applicationDeploymentResourceId(applicationDeploymentResourceId)
               .id(datasetId);
-      datasetDao.createAndLock(newDataset, context.getFlightId());
+      datasetDao.createAndLock(newDataset, context.getFlightId(), userReq);
 
       DatasetSummaryModel datasetSummary = newDataset.getDatasetSummary().toModel();
       workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);
@@ -67,7 +71,7 @@ public class CreateDatasetMetadataStep implements Step {
     logger.debug("Dataset creation failed. Deleting metadata.");
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    datasetDao.delete(datasetId);
+    datasetDao.delete(datasetId, userReq);
     return StepResult.getStepResultSuccess();
   }
 }

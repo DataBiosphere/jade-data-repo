@@ -24,7 +24,7 @@ public class RetrieveDuosFirecloudGroupStep implements Step {
 
     FlightMap workingMap = context.getWorkingMap();
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, retrieved);
-    workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP_EXISTS, (retrieved != null));
+    workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, (retrieved != null));
 
     return StepResult.getStepResultSuccess();
   }

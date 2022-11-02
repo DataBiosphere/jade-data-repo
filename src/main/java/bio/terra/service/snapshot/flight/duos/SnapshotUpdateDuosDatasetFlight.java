@@ -47,9 +47,9 @@ public class SnapshotUpdateDuosDatasetFlight extends Flight {
       addStep(new RetrieveDuosFirecloudGroupStep(duosDao, duosId));
       // Create a
       addStep(
-          new IfGroupDoesNotExistStep(
+          new IfNoGroupRetrievedStep(
               new CreateDuosFirecloudGroupStep(duosService, iamService, duosId)));
-      addStep(new IfGroupDoesNotExistStep(new RecordDuosFirecloudGroupStep(duosDao)));
+      addStep(new IfNoGroupRetrievedStep(new RecordDuosFirecloudGroupStep(duosDao)));
       addStep(new AddDuosFirecloudReaderStep(iamService, userReq, snapshotId));
     }
     addStep(

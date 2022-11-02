@@ -2,16 +2,18 @@ package bio.terra.service.snapshot.flight.duos;
 
 import bio.terra.service.job.OptionalStep;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 
-public class IfGroupDoesNotExistStep extends OptionalStep {
-  public IfGroupDoesNotExistStep(Step step) {
+public class IfNoGroupRetrievedStep extends OptionalStep {
+  public IfNoGroupRetrievedStep(Step step) {
     super(step);
   }
 
   @Override
   public boolean isEnabled(FlightContext context) {
-    return !context.getWorkingMap().get(SnapshotDuosMapKeys.FIRECLOUD_GROUP_EXISTS, boolean.class);
+    FlightMap workingMap = context.getWorkingMap();
+    return !workingMap.get(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, boolean.class);
   }
 
   @Override

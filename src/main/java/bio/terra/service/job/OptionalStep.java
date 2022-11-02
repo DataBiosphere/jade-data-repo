@@ -4,6 +4,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
+import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,11 @@ public abstract class OptionalStep implements Step {
 
   public OptionalStep(Step step) {
     this.step = step;
+  }
+
+  @VisibleForTesting
+  public Step getStep() {
+    return step;
   }
 
   public abstract boolean isEnabled(FlightContext context);

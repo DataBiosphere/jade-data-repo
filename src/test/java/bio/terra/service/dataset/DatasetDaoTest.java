@@ -24,6 +24,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
@@ -82,6 +83,13 @@ public class DatasetDaoTest {
   private BillingProfileModel billingProfile;
   private UUID projectId;
 
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
+
   private UUID createDataset(
       DatasetRequestModel datasetRequest, String newName, GoogleRegion region) throws Exception {
     datasetRequest
@@ -96,7 +104,7 @@ public class DatasetDaoTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId);
+    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     return datasetId;
   }
@@ -125,7 +133,8 @@ public class DatasetDaoTest {
   @Test(expected = DatasetNotFoundException.class)
   public void datasetDeleteTest() throws Exception {
     UUID datasetId = createDataset("dataset-minimal.json");
-    assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
+    assertThat(
+        "dataset delete signals success", datasetDao.delete(datasetId, TEST_USER), equalTo(true));
     datasetDao.retrieve(datasetId);
   }
 
@@ -270,8 +279,8 @@ public class DatasetDaoTest {
                 datasetSummary ->
                     datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_EAST1)));
 
-    datasetDao.delete(dataset1);
-    datasetDao.delete(dataset2);
+    datasetDao.delete(dataset1, TEST_USER);
+    datasetDao.delete(dataset2, TEST_USER);
   }
 
   @Test
@@ -327,7 +336,7 @@ public class DatasetDaoTest {
       assertThat(
           "Cloud platform is returned", fromDB.getCloudPlatform(), equalTo(CloudPlatform.GCP));
     } finally {
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
   }
 
@@ -352,7 +361,7 @@ public class DatasetDaoTest {
             equalTo(expectedRegion));
       }
     } finally {
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
   }
 
@@ -380,7 +389,7 @@ public class DatasetDaoTest {
           files.getBigQueryPartitionConfig(),
           equalTo(BigQueryPartitionConfigV1.ingestDate()));
     } finally {
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
   }
 
@@ -411,7 +420,7 @@ public class DatasetDaoTest {
           freqAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
           equalTo(Arrays.asList("variant_id", "ancestry", "phenotype")));
     } finally {
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
   }
 
@@ -600,7 +609,7 @@ public class DatasetDaoTest {
       assertEquals("no shared locks after step 10", 0, sharedLocks.length);
 
     } finally {
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
   }
 
@@ -658,7 +667,7 @@ public class DatasetDaoTest {
       sharedLocks = datasetDao.getSharedLocks(datasetId);
       assertEquals("no shared locks after step 5", 0, sharedLocks.length);
     } finally {
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
   }
 
@@ -719,7 +728,7 @@ public class DatasetDaoTest {
       sharedLocks = datasetDao.getSharedLocks(datasetId);
       assertEquals("no shared locks after step 5", 0, sharedLocks.length);
     } finally {
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
   }
 
@@ -770,7 +779,7 @@ public class DatasetDaoTest {
                     "can retrieve row metadata table name",
                     t.getRowMetadataTableName(),
                     containsString("row_metadata")));
-    datasetDao.delete(datasetId);
+    datasetDao.delete(datasetId, TEST_USER);
   }
 
   @Test
@@ -836,8 +845,8 @@ public class DatasetDaoTest {
             .collect(Collectors.toList()),
         contains("c3", "c2", "c1"));
 
-    datasetDao.delete(dataset1Id);
-    datasetDao.delete(dataset2Id);
+    datasetDao.delete(dataset1Id, TEST_USER);
+    datasetDao.delete(dataset2Id, TEST_USER);
   }
 
   @Test
@@ -851,7 +860,7 @@ public class DatasetDaoTest {
 
     String phsIdSet = "phs000000";
     DatasetPatchRequestModel patchRequestSet = new DatasetPatchRequestModel().phsId(phsIdSet);
-    datasetDao.patch(datasetId, patchRequestSet);
+    datasetDao.patch(datasetId, patchRequestSet, TEST_USER);
     assertThat(
         "dataset's PHS ID is set from patch",
         datasetDao.retrieve(datasetId).getPhsId(),
@@ -860,26 +869,26 @@ public class DatasetDaoTest {
     String phsIdOverride = "phs111111";
     DatasetPatchRequestModel patchRequestOverride =
         new DatasetPatchRequestModel().phsId(phsIdOverride);
-    datasetDao.patch(datasetId, patchRequestOverride);
+    datasetDao.patch(datasetId, patchRequestOverride, TEST_USER);
     assertThat(
         "dataset's PHS ID is overridden from patch",
         datasetDao.retrieve(datasetId).getPhsId(),
         equalTo(phsIdOverride));
 
-    datasetDao.patch(datasetId, new DatasetPatchRequestModel());
+    datasetDao.patch(datasetId, new DatasetPatchRequestModel(), TEST_USER);
     assertThat(
         "dataset's PHS ID is unchanged when unspecified in patch request",
         datasetDao.retrieve(datasetId).getPhsId(),
         equalTo(phsIdOverride));
 
     DatasetPatchRequestModel patchRequestBlank = new DatasetPatchRequestModel().phsId("");
-    datasetDao.patch(datasetId, patchRequestBlank);
+    datasetDao.patch(datasetId, patchRequestBlank, TEST_USER);
     assertThat(
         "dataset's PHS ID is set to empty string from patch",
         datasetDao.retrieve(datasetId).getPhsId(),
         equalTo(""));
 
-    datasetDao.delete(datasetId);
+    datasetDao.delete(datasetId, TEST_USER);
   }
 
   @Test
@@ -892,7 +901,7 @@ public class DatasetDaoTest {
         "dataset properties are set",
         datasetDao.retrieve(datasetId).getProperties(),
         equalTo(request.getProperties()));
-    datasetDao.delete(datasetId);
+    datasetDao.delete(datasetId, TEST_USER);
   }
 
   @Test
@@ -909,7 +918,7 @@ public class DatasetDaoTest {
         jsonLoader.loadJson(updatedProperties, new TypeReference<>() {});
     DatasetPatchRequestModel patchRequestSet =
         new DatasetPatchRequestModel().properties(updatedDatasetProperties);
-    datasetDao.patch(datasetId, patchRequestSet);
+    datasetDao.patch(datasetId, patchRequestSet, TEST_USER);
     assertThat(
         "dataset properties is set from patch",
         datasetDao.retrieve(datasetId).getProperties(),
@@ -920,7 +929,7 @@ public class DatasetDaoTest {
         equalTo(defaultDesc));
 
     DatasetPatchRequestModel patchRequestNull = new DatasetPatchRequestModel().phsId("phs123");
-    datasetDao.patch(datasetId, patchRequestNull);
+    datasetDao.patch(datasetId, patchRequestNull, TEST_USER);
     assertThat(
         "dataset properties is unchanged when not in request",
         datasetDao.retrieve(datasetId).getProperties(),
@@ -932,7 +941,7 @@ public class DatasetDaoTest {
 
     DatasetPatchRequestModel patchRequestExplicitNull =
         new DatasetPatchRequestModel().properties(null);
-    datasetDao.patch(datasetId, patchRequestExplicitNull);
+    datasetDao.patch(datasetId, patchRequestExplicitNull, TEST_USER);
     assertThat(
         "dataset properties is unchanged if set to null",
         datasetDao.retrieve(datasetId).getProperties(),
@@ -940,7 +949,7 @@ public class DatasetDaoTest {
 
     DatasetPatchRequestModel patchRequestDescNull =
         new DatasetPatchRequestModel().description(null);
-    datasetDao.patch(datasetId, patchRequestDescNull);
+    datasetDao.patch(datasetId, patchRequestDescNull, TEST_USER);
     assertThat(
         "dataset description is unchanged if set to null",
         datasetDao.retrieve(datasetId).getDescription(),
@@ -950,7 +959,7 @@ public class DatasetDaoTest {
     Object originalProperties = datasetDao.retrieve(datasetId).getProperties();
     DatasetPatchRequestModel patchRequestDesc =
         new DatasetPatchRequestModel().description("A new description");
-    datasetDao.patch(datasetId, patchRequestDesc);
+    datasetDao.patch(datasetId, patchRequestDesc, TEST_USER);
     assertThat(
         "dataset description is updated",
         datasetDao.retrieve(datasetId).getDescription(),
@@ -967,11 +976,11 @@ public class DatasetDaoTest {
     Object unsetDatasetProperties = jsonLoader.loadJson("{}", new TypeReference<>() {});
     DatasetPatchRequestModel patchRequestUnset =
         new DatasetPatchRequestModel().properties(unsetDatasetProperties);
-    datasetDao.patch(datasetId, patchRequestUnset);
+    datasetDao.patch(datasetId, patchRequestUnset, TEST_USER);
     assertThat(
         "dataset properties is set to empty",
         datasetDao.retrieve(datasetId).getProperties(),
         equalTo(unsetDatasetProperties));
-    datasetDao.delete(datasetId);
+    datasetDao.delete(datasetId, TEST_USER);
   }
 }

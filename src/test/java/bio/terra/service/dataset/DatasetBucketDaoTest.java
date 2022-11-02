@@ -12,6 +12,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.profile.ProfileDao;
@@ -66,6 +67,12 @@ public class DatasetBucketDaoTest {
   private final Map<String, String> bucketList = new HashMap<>();
   private final List<UUID> projectIds = new ArrayList<>();
   private final Map<UUID, UUID> datasetIdsToBucketResourceIds = new HashMap<>();
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
 
   @Before
   public void setup() throws IOException {
@@ -78,7 +85,7 @@ public class DatasetBucketDaoTest {
     projectResource.id(projectId);
     projectIds.add(projectId);
 
-    dataset = daoOperations.createMinimalDataset(billingProfile.getId(), projectId);
+    dataset = daoOperations.createMinimalDataset(billingProfile.getId(), projectId, TEST_USER);
     datasetId = dataset.getId();
     datasetIds.add(datasetId);
   }
@@ -100,7 +107,7 @@ public class DatasetBucketDaoTest {
     datasetIds.forEach(
         datasetId -> {
           try {
-            datasetDao.delete(datasetId);
+            datasetDao.delete(datasetId, TEST_USER);
           } catch (Exception ex) {
             logger.error("[CLEANUP] Unable to delete dataset {}", datasetId);
           }
@@ -178,7 +185,7 @@ public class DatasetBucketDaoTest {
 
     // Get project given a new dataset
     Dataset dataset_second =
-        daoOperations.createMinimalDataset(billingProfile2.getId(), ingestProjectId);
+        daoOperations.createMinimalDataset(billingProfile2.getId(), ingestProjectId, TEST_USER);
     datasetIds.add(dataset_second.getId());
     createBucketDbEntry(projectResource);
     assertNull(

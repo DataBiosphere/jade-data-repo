@@ -3235,6 +3235,82 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DRSError'
+#################################################################
+#####                  JOURNAL                              #####
+#################################################################
+  /api/repository/v1/journal/{resourceKey}:
+    get:
+      tags:
+        - journal
+      description: >
+        Returns a list of journal entries for an object the caller has access to
+      operationId: retrieveJournalEntries
+      parameters:
+        - in: path
+          description: The UUID of the journaled resource.
+          name: resourceKey
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: resourceType
+          in: query
+          required: true
+          description: The IamResource type of the journaled resource.
+          schema:
+            $ref: '#/components/schemas/IamResourceTypeEnum'
+        - name: offset
+          in: query
+          description: The number of entries to skip before when retrieving the next
+            page
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          description: The numbers entries to retrieve and return.
+          schema:
+            type: integer
+            default: 10
+      responses:
+        200:
+          description: List of journal entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JournalEntryModel'
+        400:
+          description: Bad request - invalid id, badly formed IamResourceType.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        401:
+          description: Unauthorized - journal entry does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: Unauthorized - journal entry does not exist or missing permissions to view.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: No journal entries found that meet the request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
 components:
   schemas:
     TableDataType:
@@ -5567,6 +5643,56 @@ components:
             which token to send via other means. It is strongly recommended that the caller
             validate that it is appropriate to send the requested token to the DRS server to mitigate attacks
             by malicious DRS servers requesting credentials they should not have.
+#################################################################
+#####                  JOURNAL MODELS
+#################################################################
+    JournalEntryModel:
+      required:
+        - id
+        - resourceKey
+        - user
+        - entryType
+        - resourceType
+        - className
+        - methodName
+        - when
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
+          description: unique identifier of the Journal Entry
+        resourceKey:
+          $ref: '#/components/schemas/UniqueIdProperty'
+          description: unique identifier of the resource the journal entry pertains to
+        user:
+          type: string
+          description: the email address of the user who performed this action
+        resourceType:
+          $ref: '#/components/schemas/IamResourceTypeEnum'
+        className:
+          type: string
+          description: the class name that made this journal entry
+        methodName:
+          type: string
+          description: the method name that made this journal entry
+        entryType:
+          type: string
+          enum: [ CREATE, UPDATE, DELETE ]
+          description: the type of journal entry created
+        when:
+          type: string
+          description: timestamp of journal entry creation
+        mutation:
+          type: object
+          description: An optional map included with the journal entry.  Entries in the map ending with .json are entries that likely contain JSON encoded strings.
+        note:
+          type: string
+          description: A note about the journal entry
+    IamResourceTypeEnum:
+      type: string
+      enum: [ DATASET, DATASNAPSHOT, SPEND_PROFILE, DATAREPO, WORKSPACE ]
+      description: >
+        The type of journal entries to return.  DATASET maps to Dataset, DATASNAPSHOT maps to Snapshot, SPEND_PROFILE maps to Profile.  DATAREPO and WORKSPACE are not implemented at this time but are included in the list for completeness.
   parameters:
     Id:
       name: id

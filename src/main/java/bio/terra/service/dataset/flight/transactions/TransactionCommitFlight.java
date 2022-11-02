@@ -6,9 +6,12 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.CommonExceptions;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -27,6 +30,7 @@ public class TransactionCommitFlight extends Flight {
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryTransactionPdao bigQueryTransactionPdao =
         appContext.getBean(BigQueryTransactionPdao.class);
+    JournalService journalService = appContext.getBean(JournalService.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -53,6 +57,13 @@ public class TransactionCommitFlight extends Flight {
       addStep(
           new TransactionUnlockStep(
               datasetService, bigQueryTransactionPdao, transactionId, userReq));
+      addStep(
+          new JournalRecordUpdateEntryStep(
+              journalService,
+              userReq,
+              datasetId,
+              IamResourceType.DATASET,
+              "Transaction committed."));
     } else if (cloudPlatform.isAzure()) {
       throw CommonExceptions.TRANSACTIONS_NOT_IMPLEMENTED_IN_AZURE;
     }

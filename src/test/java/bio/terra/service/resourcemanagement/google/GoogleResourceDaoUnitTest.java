@@ -8,6 +8,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.dataset.Dataset;
@@ -49,6 +50,12 @@ public class GoogleResourceDaoUnitTest {
   private List<GoogleProjectResource> projects;
   private List<UUID> projectResourceIds;
   private List<UUID> datasetIds;
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
 
   @Before
   public void setup() throws IOException, InterruptedException {
@@ -78,7 +85,7 @@ public class GoogleResourceDaoUnitTest {
   @After
   public void teardown() {
     for (UUID datasetId : datasetIds) {
-      datasetDao.delete(datasetId);
+      datasetDao.delete(datasetId, TEST_USER);
     }
     for (GoogleProjectResource project : projects) {
       googleResourceDao.deleteProject(project.getId());
@@ -120,7 +127,8 @@ public class GoogleResourceDaoUnitTest {
   public void testMarkForDeleteWhenProjectInUse() throws IOException {
     UUID project1Id = projects.get(0).getId();
     UUID project2Id = projects.get(1).getId();
-    Dataset dataset = daoOperations.createMinimalDataset(billingProfile.getId(), project1Id);
+    Dataset dataset =
+        daoOperations.createMinimalDataset(billingProfile.getId(), project1Id, TEST_USER);
     datasetIds.add(dataset.getId());
     googleResourceDao.markUnusedProjectsForDelete(projectResourceIds);
 

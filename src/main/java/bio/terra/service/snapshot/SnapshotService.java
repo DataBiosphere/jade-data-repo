@@ -209,8 +209,9 @@ public class SnapshotService {
     return actions;
   }
 
-  public SnapshotSummaryModel patch(UUID id, SnapshotPatchRequestModel patchRequest) {
-    boolean patchSucceeded = snapshotDao.patch(id, patchRequest);
+  public SnapshotSummaryModel patch(
+      UUID id, SnapshotPatchRequestModel patchRequest, AuthenticatedUserRequest userReq) {
+    boolean patchSucceeded = snapshotDao.patch(id, patchRequest, userReq);
     if (!patchSucceeded) {
       throw new RuntimeException("Snapshot was not updated");
     }

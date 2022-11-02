@@ -25,6 +25,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetPatchRequestModel;
@@ -97,6 +98,13 @@ public class SnapshotDaoTest {
   private UUID duosFirecloudGroupId;
   private String duosId;
 
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
+
   @Before
   public void setup() throws Exception {
     BillingProfileModel billingProfile =
@@ -120,7 +128,7 @@ public class SnapshotDaoTest {
     String createFlightId = UUID.randomUUID().toString();
     datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId);
+    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     dataset = datasetDao.retrieve(datasetId);
 
@@ -147,12 +155,12 @@ public class SnapshotDaoTest {
   public void teardown() throws Exception {
     if (snapshotIdList != null) {
       for (UUID id : snapshotIdList) {
-        snapshotDao.delete(id);
+        snapshotDao.delete(id, TEST_USER);
       }
       snapshotIdList = null;
     }
-    snapshotDao.delete(snapshotId);
-    datasetDao.delete(datasetId);
+    snapshotDao.delete(snapshotId, TEST_USER);
+    datasetDao.delete(datasetId, TEST_USER);
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(profileId);
     duosDao.deleteFirecloudGroup(duosFirecloudGroupId);
@@ -166,7 +174,7 @@ public class SnapshotDaoTest {
   }
 
   private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
-    snapshotDao.createAndLock(snapshot, flightId);
+    snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
     snapshotDao.unlock(snapshotId, flightId);
     return snapshotDao.retrieveSnapshot(snapshotId);
   }
@@ -313,7 +321,7 @@ public class SnapshotDaoTest {
               .makeSnapshotFromSnapshotRequest(snapshotRequest)
               .projectResourceId(projectId)
               .id(tempSnapshotId);
-      snapshotDao.createAndLock(snapshot, flightId);
+      snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
 
       snapshotDao.unlock(tempSnapshotId, flightId);
       snapshotIdList.add(tempSnapshotId);
@@ -581,7 +589,7 @@ public class SnapshotDaoTest {
             .projectResourceId(projectId)
             .id(snapshotId);
     String flightId = UUID.randomUUID().toString();
-    snapshotDao.createAndLock(snapshot, flightId);
+    snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
     snapshotDao.unlock(snapshotId, flightId);
 
     assertThat(
@@ -597,7 +605,7 @@ public class SnapshotDaoTest {
     String consentCodeSet = "c01";
     SnapshotPatchRequestModel patchRequestSet =
         new SnapshotPatchRequestModel().consentCode(consentCodeSet);
-    snapshotDao.patch(snapshotId, patchRequestSet);
+    snapshotDao.patch(snapshotId, patchRequestSet, TEST_USER);
     assertThat(
         "snapshot's consent code is set from patch",
         snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
@@ -611,13 +619,13 @@ public class SnapshotDaoTest {
     String consentCodeOverride = "c99";
     SnapshotPatchRequestModel patchRequestOverride =
         new SnapshotPatchRequestModel().consentCode(consentCodeOverride);
-    snapshotDao.patch(snapshotId, patchRequestOverride);
+    snapshotDao.patch(snapshotId, patchRequestOverride, TEST_USER);
     assertThat(
         "snapshot's consent code is overridden from patch",
         snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
         equalTo(consentCodeOverride));
 
-    snapshotDao.patch(snapshotId, new SnapshotPatchRequestModel());
+    snapshotDao.patch(snapshotId, new SnapshotPatchRequestModel(), TEST_USER);
     assertThat(
         "snapshot's consent code is unchanged when unspecified in patch request",
         snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
@@ -627,7 +635,7 @@ public class SnapshotDaoTest {
         snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
         equalTo(defaultSnapshotDescription));
     SnapshotPatchRequestModel patchRequestBlank = new SnapshotPatchRequestModel().consentCode("");
-    snapshotDao.patch(snapshotId, patchRequestBlank);
+    snapshotDao.patch(snapshotId, patchRequestBlank, TEST_USER);
     assertThat(
         "snapshot's consent code is set to empty string from patch",
         snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
@@ -635,7 +643,7 @@ public class SnapshotDaoTest {
 
     SnapshotPatchRequestModel patchDescription =
         new SnapshotPatchRequestModel().description("A new description");
-    snapshotDao.patch(snapshotId, patchDescription);
+    snapshotDao.patch(snapshotId, patchDescription, TEST_USER);
     assertThat(
         "snapshot's description is updated",
         snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
@@ -647,7 +655,7 @@ public class SnapshotDaoTest {
 
     SnapshotPatchRequestModel patchDescAndCode =
         new SnapshotPatchRequestModel().consentCode("c99").description("Another new description");
-    snapshotDao.patch(snapshotId, patchDescAndCode);
+    snapshotDao.patch(snapshotId, patchDescAndCode, TEST_USER);
     assertThat(
         "snapshot's description is updated",
         snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
@@ -658,7 +666,7 @@ public class SnapshotDaoTest {
         equalTo("c99"));
 
     SnapshotPatchRequestModel patchZeroLenStrDesc = new SnapshotPatchRequestModel().description("");
-    snapshotDao.patch(snapshotId, patchZeroLenStrDesc);
+    snapshotDao.patch(snapshotId, patchZeroLenStrDesc, TEST_USER);
     assertThat(
         "snapshot's description is updated to empty string",
         snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
@@ -698,14 +706,14 @@ public class SnapshotDaoTest {
     String updatedProperties = "{\"projectName\":\"updatedProject\"}";
     SnapshotPatchRequestModel patchRequestSet =
         new SnapshotPatchRequestModel().properties(updatedProperties);
-    snapshotDao.patch(snapshotId, patchRequestSet);
+    snapshotDao.patch(snapshotId, patchRequestSet, TEST_USER);
     assertThat(
         "snapshot properties is set from patch",
         snapshotDao.retrieveSnapshot(snapshotId).getProperties(),
         equalTo(updatedProperties));
 
     SnapshotPatchRequestModel patchRequestNull = new SnapshotPatchRequestModel().consentCode("c01");
-    snapshotDao.patch(datasetId, patchRequestNull);
+    snapshotDao.patch(datasetId, patchRequestNull, TEST_USER);
     assertThat(
         "snapshot properties is unchanged when not in request",
         snapshotDao.retrieveSnapshot(snapshotId).getProperties(),
@@ -713,7 +721,7 @@ public class SnapshotDaoTest {
 
     SnapshotPatchRequestModel patchRequestExplicitNull =
         new SnapshotPatchRequestModel().properties(null);
-    snapshotDao.patch(snapshotId, patchRequestExplicitNull);
+    snapshotDao.patch(snapshotId, patchRequestExplicitNull, TEST_USER);
     assertThat(
         "snapshot properties is unchanged if set to null",
         snapshotDao.retrieveSnapshot(snapshotId).getProperties(),
@@ -722,7 +730,7 @@ public class SnapshotDaoTest {
     Object unsetDatasetProperties = jsonLoader.loadJson("{}", new TypeReference<>() {});
     SnapshotPatchRequestModel patchRequestUnset =
         new SnapshotPatchRequestModel().properties(unsetDatasetProperties);
-    snapshotDao.patch(snapshotId, patchRequestUnset);
+    snapshotDao.patch(snapshotId, patchRequestUnset, TEST_USER);
     assertThat(
         "snapshot properties is set to empty",
         snapshotDao.retrieveSnapshot(snapshotId).getProperties(),
@@ -738,7 +746,7 @@ public class SnapshotDaoTest {
             .projectResourceId(projectId)
             .id(snapshotId);
     String flightId = UUID.randomUUID().toString();
-    snapshotDao.createAndLock(snapshot, flightId);
+    snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
     snapshotDao.unlock(snapshotId, flightId);
 
     String consentCode = "c01";
@@ -766,7 +774,7 @@ public class SnapshotDaoTest {
 
     SnapshotPatchRequestModel patchRequestConsentCode =
         new SnapshotPatchRequestModel().consentCode(consentCode);
-    snapshotDao.patch(snapshotId, patchRequestConsentCode);
+    snapshotDao.patch(snapshotId, patchRequestConsentCode, TEST_USER);
 
     assertThat(
         "Snapshot with partial permission match is inaccessible",
@@ -774,7 +782,7 @@ public class SnapshotDaoTest {
         empty());
 
     DatasetPatchRequestModel patchRequestPhsId = new DatasetPatchRequestModel().phsId(phsId);
-    datasetDao.patch(datasetId, patchRequestPhsId);
+    datasetDao.patch(datasetId, patchRequestPhsId, TEST_USER);
 
     assertThat(
         "Snapshot with full permission match is accessible",

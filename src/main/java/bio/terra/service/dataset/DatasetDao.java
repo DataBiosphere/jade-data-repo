@@ -6,17 +6,20 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -58,6 +61,7 @@ public class DatasetDao {
   private final ConfigurationService configurationService;
   private final ResourceService resourceService;
   private final StorageResourceDao storageResourceDao;
+  private final JournalService journalService;
   private final ObjectMapper objectMapper;
 
   private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
@@ -112,6 +116,7 @@ public class DatasetDao {
       ConfigurationService configurationService,
       ResourceService resourceService,
       StorageResourceDao storageResourceDao,
+      JournalService journalService,
       @Qualifier("daoObjectMapper") ObjectMapper objectMapper)
       throws SQLException {
     this.jdbcTemplate = jdbcTemplate;
@@ -121,6 +126,7 @@ public class DatasetDao {
     this.configurationService = configurationService;
     this.resourceService = resourceService;
     this.storageResourceDao = storageResourceDao;
+    this.journalService = journalService;
     this.objectMapper = objectMapper;
   }
 
@@ -376,7 +382,8 @@ public class DatasetDao {
    * @throws InvalidDatasetException if a row already exists with this dataset name
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void createAndLock(Dataset dataset, String flightId) throws IOException {
+  public void createAndLock(Dataset dataset, String flightId, AuthenticatedUserRequest userReq)
+      throws IOException {
     logger.debug(
         "Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
     String sql =
@@ -460,7 +467,7 @@ public class DatasetDao {
   }
 
   @Transactional
-  public boolean delete(UUID id) {
+  public boolean delete(UUID id, AuthenticatedUserRequest userReq) {
     int rowsAffected =
         jdbcTemplate.update(
             "DELETE FROM dataset WHERE id = :id", new MapSqlParameterSource().addValue("id", id));
@@ -727,7 +734,8 @@ public class DatasetDao {
    * @return whether the dataset record was updated
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean patch(UUID id, DatasetPatchRequestModel patchRequest) {
+  public boolean patch(
+      UUID id, DatasetPatchRequestModel patchRequest, AuthenticatedUserRequest userReq) {
     String sql =
         "UPDATE dataset SET phs_id = COALESCE(:phs_id, phs_id), "
             + "description = COALESCE(:description, description), "
@@ -747,6 +755,8 @@ public class DatasetDao {
 
     if (patchSucceeded) {
       logger.info("Dataset {} patched with {}", id, patchRequest.toString());
+      journalService.recordUpdate(
+          userReq, id, IamResourceType.DATASET, "Patched dataset.", params.getValues());
     }
     return patchSucceeded;
   }

@@ -280,8 +280,9 @@ public class DatasetService {
     return actions;
   }
 
-  public DatasetSummaryModel patch(UUID id, DatasetPatchRequestModel patchRequest) {
-    boolean patchSucceeded = datasetDao.patch(id, patchRequest);
+  public DatasetSummaryModel patch(
+      UUID id, DatasetPatchRequestModel patchRequest, AuthenticatedUserRequest userReq) {
+    boolean patchSucceeded = datasetDao.patch(id, patchRequest, userReq);
     if (!patchSucceeded) {
       throw new RuntimeException("Dataset was not updated");
     }

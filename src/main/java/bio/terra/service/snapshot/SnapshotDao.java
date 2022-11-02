@@ -22,6 +22,7 @@ import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -759,7 +760,8 @@ public class SnapshotDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean updateDuosFirecloudGroupId(UUID id, UUID duosFirecloudGroupId) {
+  public void updateDuosFirecloudGroupId(UUID id, UUID duosFirecloudGroupId)
+      throws SnapshotUpdateException {
     String sql =
         """
         UPDATE snapshot
@@ -770,13 +772,13 @@ public class SnapshotDao {
             .addValue("id", id)
             .addValue("duos_firecloud_group_id", duosFirecloudGroupId);
 
-    int rowsAffected = jdbcTemplate.update(sql, params);
-    boolean updateSucceeded = (rowsAffected == 1);
-
-    if (updateSucceeded) {
-      logger.info("Snapshot {} updated with DUOS Firecloud group ID {}", id, duosFirecloudGroupId);
+    String logSuffix =
+        String.format("snapshot %s with DUOS Firecloud group ID %s", id, duosFirecloudGroupId);
+    int numRowsUpdated = jdbcTemplate.update(sql, params);
+    if (numRowsUpdated == 0) {
+      throw new SnapshotUpdateException("Failed to update " + logSuffix);
     }
-    return updateSucceeded;
+    logger.info("Updated " + logSuffix);
   }
 
   private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {

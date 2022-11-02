@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.CloudRegion;
@@ -43,6 +44,7 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
+import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -782,6 +784,11 @@ public class SnapshotDaoTest {
 
   @Test
   public void updateDuosFirecloudGroupId() {
+    assertThrows(
+        "Exception is thrown when updating nonexistent snapshot",
+        SnapshotUpdateException.class,
+        () -> snapshotDao.updateDuosFirecloudGroupId(snapshotId, duosFirecloudGroupId));
+
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
     Snapshot snapshot =
         snapshotService
@@ -797,7 +804,7 @@ public class SnapshotDaoTest {
         "snapshot's DUOS Firecloud group is null before update",
         beforeUpdate.getDuosFirecloudGroup());
 
-    assertTrue(snapshotDao.updateDuosFirecloudGroupId(snapshotId, duosFirecloudGroupId));
+    snapshotDao.updateDuosFirecloudGroupId(snapshotId, duosFirecloudGroupId);
 
     Snapshot afterUpdate = snapshotDao.retrieveSnapshot(snapshotId);
     assertThat(afterUpdate.getDuosFirecloudGroupId(), equalTo(duosFirecloudGroupId));
@@ -806,7 +813,7 @@ public class SnapshotDaoTest {
         afterUpdate.getDuosFirecloudGroup().getDuosId(),
         equalTo(duosId));
 
-    assertTrue(snapshotDao.updateDuosFirecloudGroupId(snapshotId, null));
+    snapshotDao.updateDuosFirecloudGroupId(snapshotId, null);
 
     Snapshot afterUnset = snapshotDao.retrieveSnapshot(snapshotId);
     assertNull(

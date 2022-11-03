@@ -128,6 +128,27 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
   }
 
   @Test
+  public void testDoAndUndoUnlinkNoOp() throws InterruptedException {
+    // The caller could conceivably trigger a flight to unlink a snapshot from its DUOS dataset,
+    // despite the snapshot having no existing link.  In the user's eyes this is a no-op.
+    step = new UpdateSnapshotDuosFirecloudGroupIdStep(snapshotDao, SNAPSHOT_ID, null);
+
+    StepResult doResult = step.doStep(flightContext);
+    assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    verify(snapshotDao, times(1)).updateDuosFirecloudGroupId(SNAPSHOT_ID, null);
+
+    SnapshotLinkDuosDatasetResponse response =
+        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), SnapshotLinkDuosDatasetResponse.class);
+    assertNotNull(response);
+    assertNull("No new DUOS dataset to link", response.getLinked());
+    assertNull("No previous DUOS dataset to unlink", response.getUnlinked());
+
+    StepResult undoResult = step.undoStep(flightContext);
+    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    verify(snapshotDao, times(2)).updateDuosFirecloudGroupId(SNAPSHOT_ID, null);
+  }
+
+  @Test
   public void testDoAndUndoStepFails() throws InterruptedException {
     step =
         new UpdateSnapshotDuosFirecloudGroupIdStep(

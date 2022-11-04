@@ -625,7 +625,12 @@ public class DrsService {
       } else {
         this.googleProjectId = null;
       }
-      this.datasetProjectId = snapshot.getSourceDataset().getProjectResource().getGoogleProjectId();
+      var datasetProjectResource = snapshot.getSourceDataset().getProjectResource();
+      if (datasetProjectResource != null) {
+        this.datasetProjectId = datasetProjectResource.getGoogleProjectId();
+      } else {
+        this.datasetProjectId = null;
+      }
     }
 
     public UUID getId() {

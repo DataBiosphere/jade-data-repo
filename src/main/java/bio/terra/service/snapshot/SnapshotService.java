@@ -27,6 +27,7 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotPreviewModel;
@@ -58,6 +59,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
@@ -69,6 +71,8 @@ import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
+import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
+import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -109,6 +113,7 @@ public class SnapshotService {
   private final EcmService ecmService;
   private final AzureSynapsePdao azureSynapsePdao;
   private final RawlsService rawlsService;
+  private final DuosClient duosClient;
 
   @Autowired
   public SnapshotService(
@@ -122,7 +127,8 @@ public class SnapshotService {
       IamService iamService,
       EcmService ecmService,
       AzureSynapsePdao azureSynapsePdao,
-      RawlsService rawlsService) {
+      RawlsService rawlsService,
+      DuosClient duosClient) {
     this.jobService = jobService;
     this.datasetService = datasetService;
     this.dependencyDao = dependencyDao;
@@ -134,6 +140,7 @@ public class SnapshotService {
     this.ecmService = ecmService;
     this.azureSynapsePdao = azureSynapsePdao;
     this.rawlsService = rawlsService;
+    this.duosClient = duosClient;
   }
 
   /**
@@ -248,6 +255,29 @@ public class SnapshotService {
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id.toString())
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.EXPORT_SNAPSHOT)
         .submit();
+  }
+
+  public SnapshotLinkDuosDatasetResponse updateSnapshotDuosDataset(
+      UUID id, AuthenticatedUserRequest userReq, String duosId) {
+    if (duosId != null) {
+      // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
+      duosClient.getDataset(duosId, userReq);
+    }
+
+    Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
+    String description =
+        "Link snapshot %s to DUOS dataset %s".formatted(snapshot.toLogString(), duosId);
+
+    return jobService
+        .newJob(description, SnapshotUpdateDuosDatasetFlight.class, null, userReq)
+        .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id)
+        .addParameter(SnapshotDuosMapKeys.DUOS_ID, duosId)
+        .addParameter(SnapshotDuosMapKeys.FIRECLOUD_GROUP_PREV, snapshot.getDuosFirecloudGroup())
+        .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())
+        .addParameter(JobMapKeys.IAM_RESOURCE_TYPE.getKeyName(), IamResourceType.DATASNAPSHOT)
+        .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
+        .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.SHARE_POLICY_READER)
+        .submitAndWait(SnapshotLinkDuosDatasetResponse.class);
   }
 
   /**

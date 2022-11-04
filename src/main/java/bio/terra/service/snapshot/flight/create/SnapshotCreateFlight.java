@@ -74,6 +74,7 @@ public class SnapshotCreateFlight extends Flight {
     GoogleResourceManagerService googleResourceManagerService =
         appContext.getBean(GoogleResourceManagerService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
+    String tdrServiceAccountEmail = appContext.getBean("tdrServiceAccountEmail", String.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -251,7 +252,7 @@ public class SnapshotCreateFlight extends Flight {
       addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
       addStep(
           new SnapshotAuthzServiceAccountConsumerStep(
-              snapshotService, resourceService, snapshotName));
+              snapshotService, resourceService, snapshotName, tdrServiceAccountEmail));
     } else if (platform.isAzure()) {
       addStep(
           new CreateSnapshotStorageTableDataStep(

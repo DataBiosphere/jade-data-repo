@@ -10,19 +10,25 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.core.type.TypeReference;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class SnapshotAuthzServiceAccountConsumerStep implements Step {
   private final SnapshotService snapshotService;
   private final ResourceService resourceService;
   private final String snapshotName;
+  private final String tdrServiceAccountEmail;
 
   public SnapshotAuthzServiceAccountConsumerStep(
-      SnapshotService snapshotService, ResourceService resourceService, String snapshotName) {
+      SnapshotService snapshotService,
+      ResourceService resourceService,
+      String snapshotName,
+      String tdrServiceAccountEmail) {
     this.snapshotService = snapshotService;
     this.resourceService = resourceService;
     this.snapshotName = snapshotName;
+    this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }
 
   @Override
@@ -35,12 +41,18 @@ public class SnapshotAuthzServiceAccountConsumerStep implements Step {
 
     // Allow the steward and reader to bill this project to read requester pays bucket data.
     // The underlying service provides retries so we do not need to retry this operation
+    // Also grant the dataset's service account the permission to also access source buckets
+    List<String> principalsToAdd =
+        new ArrayList<>(List.of(policyMap.get(IamRole.STEWARD), policyMap.get(IamRole.READER)));
+    if (!snapshot
+        .getSourceDataset()
+        .getProjectResource()
+        .getServiceAccount()
+        .equals(tdrServiceAccountEmail)) {
+      principalsToAdd.add(snapshot.getSourceDataset().getProjectResource().getServiceAccount());
+    }
     resourceService.grantPoliciesServiceUsageConsumer(
-        snapshot.getProjectResource().getGoogleProjectId(),
-        Collections.singletonList(policyMap.get(IamRole.STEWARD)));
-    resourceService.grantPoliciesServiceUsageConsumer(
-        snapshot.getProjectResource().getGoogleProjectId(),
-        Collections.singletonList(policyMap.get(IamRole.READER)));
+        snapshot.getProjectResource().getGoogleProjectId(), principalsToAdd);
 
     return StepResult.getStepResultSuccess();
   }

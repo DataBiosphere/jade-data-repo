@@ -2,15 +2,17 @@ package bio.terra.service.auth.iam;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import org.apache.commons.lang3.StringUtils;
 
-// NOTE: these action enums must have exactly the same text as the Sam action name.
+// By default these action enums have exactly the same name as the Sam action name.
+// However, we also support an override where we are unable to match the enum to the Sam action,
+// necessary for Sam actions with enum-incompatible characters (e.g. colons).
 public enum IamAction {
   // common
   CREATE,
   DELETE,
   READ_POLICY,
   READ_POLICIES,
+  SHARE_POLICY_READER("share_policy::reader"),
   ALTER_POLICIES,
   UPDATE_PASSPORT_IDENTIFIER,
   // datarepo
@@ -25,7 +27,7 @@ public enum IamAction {
   HARD_DELETE,
   LINK_SNAPSHOT,
   UNLINK_SNAPSHOT,
-  // snapshots,
+  // snapshots
   UPDATE_SNAPSHOT,
   READ_DATA,
   DISCOVER_DATA,
@@ -33,12 +35,17 @@ public enum IamAction {
   // billing profiles
   UPDATE_BILLING_ACCOUNT,
   LINK,
+  // journal
   VIEW_JOURNAL;
 
   private final String samActionName;
 
   IamAction() {
     this.samActionName = name().toLowerCase();
+  }
+
+  IamAction(String samActionName) {
+    this.samActionName = samActionName;
   }
 
   @Override
@@ -50,7 +57,7 @@ public enum IamAction {
   @JsonCreator
   public static IamAction fromValue(String text) {
     for (IamAction b : IamAction.values()) {
-      if (b.name().equals(StringUtils.upperCase(text))) {
+      if (b.samActionName.equalsIgnoreCase(text)) {
         return b;
       }
     }

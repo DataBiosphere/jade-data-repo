@@ -78,6 +78,7 @@ import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.SnapshotService.SnapshotAccessibleResult;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -155,11 +156,7 @@ public class SnapshotServiceTest {
     assertThat(
         service.retrieveAvailableSnapshotModel(snapshotId, TEST_USER),
         equalTo(
-            new SnapshotModel()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate.toString())
+            expectedMockSnapshotModelBase()
                 .source(
                     List.of(
                         new SnapshotSourceModel()
@@ -190,7 +187,8 @@ public class SnapshotServiceTest {
                                         .required(true)))))
                 .relationships(Collections.emptyList())
                 .profileId(profileId)
-                .dataProject(SNAPSHOT_DATA_PROJECT)));
+                .dataProject(SNAPSHOT_DATA_PROJECT)
+                .duosFirecloudGroup(duosFirecloudGroup)));
   }
 
   @Test
@@ -199,12 +197,7 @@ public class SnapshotServiceTest {
     assertThat(
         service.retrieveAvailableSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.NONE), TEST_USER),
-        equalTo(
-            new SnapshotModel()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate.toString())));
+        equalTo(expectedMockSnapshotModelBase()));
   }
 
   @Test
@@ -218,7 +211,8 @@ public class SnapshotServiceTest {
                 SnapshotRetrieveIncludeModel.TABLES,
                 SnapshotRetrieveIncludeModel.RELATIONSHIPS,
                 SnapshotRetrieveIncludeModel.PROFILE,
-                SnapshotRetrieveIncludeModel.DATA_PROJECT),
+                SnapshotRetrieveIncludeModel.DATA_PROJECT,
+                SnapshotRetrieveIncludeModel.DUOS),
             TEST_USER),
         equalTo(service.retrieveAvailableSnapshotModel(snapshotId, TEST_USER)));
   }
@@ -230,11 +224,7 @@ public class SnapshotServiceTest {
         service.retrieveAvailableSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.CREATION_INFORMATION), TEST_USER),
         equalTo(
-            new SnapshotModel()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate.toString())
+            expectedMockSnapshotModelBase()
                 .creationInformation(
                     new SnapshotRequestContentsModel()
                         .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
@@ -248,11 +238,7 @@ public class SnapshotServiceTest {
         service.retrieveAvailableSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION), TEST_USER),
         equalTo(
-            new SnapshotModel()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate.toString())
+            expectedMockSnapshotModelBase()
                 .accessInformation(
                     new AccessInfoModel()
                         .bigQuery(
@@ -308,6 +294,15 @@ public class SnapshotServiceTest {
   }
 
   @Test
+  public void testRetrieveSnapshotOnlyDuos() {
+    mockSnapshot();
+    assertThat(
+        service.retrieveAvailableSnapshotModel(
+            snapshotId, List.of(SnapshotRetrieveIncludeModel.DUOS), TEST_USER),
+        equalTo(expectedMockSnapshotModelBase().duosFirecloudGroup(duosFirecloudGroup)));
+  }
+
+  @Test
   public void testRetrieveSnapshotMultiInfo() {
     mockSnapshot();
     assertThat(
@@ -317,11 +312,7 @@ public class SnapshotServiceTest {
                 SnapshotRetrieveIncludeModel.PROFILE, SnapshotRetrieveIncludeModel.DATA_PROJECT),
             TEST_USER),
         equalTo(
-            new SnapshotModel()
-                .id(snapshotId)
-                .name(SNAPSHOT_NAME)
-                .description(SNAPSHOT_DESCRIPTION)
-                .createdDate(createdDate.toString())
+            expectedMockSnapshotModelBase()
                 .profileId(profileId)
                 .dataProject(SNAPSHOT_DATA_PROJECT)));
   }
@@ -370,7 +361,17 @@ public class SnapshotServiceTest {
                 .creationInformation(
                     new SnapshotRequestContentsModel()
                         .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
-                        .datasetName(DATASET_NAME)));
+                        .datasetName(DATASET_NAME))
+                .duosFirecloudGroupId(duosFirecloudGroupId)
+                .duosFirecloudGroup(duosFirecloudGroup));
+  }
+
+  private SnapshotModel expectedMockSnapshotModelBase() {
+    return new SnapshotModel()
+        .id(snapshotId)
+        .name(SNAPSHOT_NAME)
+        .description(SNAPSHOT_DESCRIPTION)
+        .createdDate(createdDate.toString());
   }
 
   @Test
@@ -854,8 +855,30 @@ public class SnapshotServiceTest {
     verify(duosClient, never()).getDataset(any(), eq(TEST_USER));
     // Verify critical parameters passed to job
     verify(jobBuilder).addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), snapshotId);
-    verify(jobBuilder).addParameter(SnapshotDuosMapKeys.DUOS_ID, DUOS_ID);
+    verify(jobBuilder).addParameter(SnapshotDuosMapKeys.DUOS_ID, null);
     verify(jobBuilder).addParameter(SnapshotDuosMapKeys.FIRECLOUD_GROUP_PREV, duosFirecloudGroup);
+  }
+
+  @Test
+  public void testUpdateSnapshotDuosDatasetThrowsWhenSnapshotDoesNotExist() {
+    SnapshotNotFoundException expectedEx = new SnapshotNotFoundException("Snapshot not found");
+    when(snapshotDao.retrieveSnapshot(snapshotId)).thenThrow(expectedEx);
+
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    when(jobService.newJob(
+            anyString(), eq(SnapshotUpdateDuosDatasetFlight.class), eq(null), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+
+    SnapshotNotFoundException thrown =
+        assertThrows(
+            SnapshotNotFoundException.class,
+            () -> service.updateSnapshotDuosDataset(snapshotId, TEST_USER, DUOS_ID));
+    assertThat("Snapshot retrieval exception thrown", thrown, equalTo(expectedEx));
+
+    // Verify that we do not try to check for DUOS dataset existence if snapshot does not exist
+    verify(duosClient, never()).getDataset(DUOS_ID, TEST_USER);
+    // Job is not created or submitted if snapshot does not exist
+    verifyNoInteractions(jobBuilder);
   }
 
   @Test
@@ -863,11 +886,6 @@ public class SnapshotServiceTest {
     mockSnapshotWithDuosDataset();
 
     JobBuilder jobBuilder = mock(JobBuilder.class);
-    SnapshotLinkDuosDatasetResponse jobResponse =
-        new SnapshotLinkDuosDatasetResponse().unlinked(duosFirecloudGroup);
-    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
-    when(jobBuilder.submitAndWait(SnapshotLinkDuosDatasetResponse.class)).thenReturn(jobResponse);
-
     when(jobService.newJob(
             anyString(), eq(SnapshotUpdateDuosDatasetFlight.class), eq(null), eq(TEST_USER)))
         .thenReturn(jobBuilder);

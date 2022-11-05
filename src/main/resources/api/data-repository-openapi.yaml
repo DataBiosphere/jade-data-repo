@@ -587,7 +587,7 @@ paths:
           required: false
           schema:
             type: array
-            default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
+            default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT,DUOS"
             items:
               $ref: '#/components/schemas/SnapshotRetrieveIncludeModel'
       responses:
@@ -4594,7 +4594,17 @@ components:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, PROPERTIES, DATA_PROJECT, CREATION_INFORMATION ]
+      enum:
+        - NONE
+        - SOURCES
+        - TABLES
+        - RELATIONSHIPS
+        - ACCESS_INFORMATION
+        - PROFILE
+        - PROPERTIES
+        - DATA_PROJECT
+        - CREATION_INFORMATION
+        - DUOS
     SnapshotSummaryModel:
       type: object
       properties:
@@ -4706,6 +4716,8 @@ components:
         properties:
           type: object
           description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
+        duosFirecloudGroup:
+          $ref: '#/components/schemas/DuosFirecloudGroupModel'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:

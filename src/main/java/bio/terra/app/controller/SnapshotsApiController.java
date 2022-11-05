@@ -66,7 +66,7 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   // We do not include Access_Information since it can get expensive, and for backwards compat
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE =
-      "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT";
+      "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT,DUOS";
 
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;

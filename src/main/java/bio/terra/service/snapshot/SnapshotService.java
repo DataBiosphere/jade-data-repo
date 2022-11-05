@@ -259,14 +259,14 @@ public class SnapshotService {
 
   public SnapshotLinkDuosDatasetResponse updateSnapshotDuosDataset(
       UUID id, AuthenticatedUserRequest userReq, String duosId) {
+    Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
+    String description =
+        "Link snapshot %s to DUOS dataset %s".formatted(snapshot.toLogString(), duosId);
+
     if (duosId != null) {
       // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
       duosClient.getDataset(duosId, userReq);
     }
-
-    Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-    String description =
-        "Link snapshot %s to DUOS dataset %s".formatted(snapshot.toLogString(), duosId);
 
     return jobService
         .newJob(description, SnapshotUpdateDuosDatasetFlight.class, null, userReq)
@@ -1047,6 +1047,9 @@ public class SnapshotService {
     }
     if (include.contains(SnapshotRetrieveIncludeModel.PROPERTIES)) {
       snapshotModel.properties(snapshot.getProperties());
+    }
+    if (include.contains(SnapshotRetrieveIncludeModel.DUOS)) {
+      snapshotModel.duosFirecloudGroup(snapshot.getDuosFirecloudGroup());
     }
 
     return snapshotModel;

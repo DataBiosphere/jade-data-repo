@@ -15,6 +15,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotPreviewModel;
@@ -312,5 +313,26 @@ public class SnapshotsApiController implements SnapshotsApi {
   public ResponseEntity<List<String>> retrieveUserSnapshotRoles(UUID id) {
     List<String> roles = snapshotService.retrieveUserSnapshotRoles(id, getAuthenticatedInfo());
     return new ResponseEntity<>(roles, HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotLinkDuosDatasetResponse> linkDuosDatasetToSnapshot(
+      UUID id, String duosId) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.SHARE_POLICY_READER);
+    SnapshotLinkDuosDatasetResponse response =
+        snapshotService.updateSnapshotDuosDataset(id, userReq, duosId);
+    return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotLinkDuosDatasetResponse> unlinkDuosDatasetFromSnapshot(UUID id) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.SHARE_POLICY_READER);
+    SnapshotLinkDuosDatasetResponse response =
+        snapshotService.updateSnapshotDuosDataset(id, userReq, null);
+    return new ResponseEntity<>(response, HttpStatus.OK);
   }
 }

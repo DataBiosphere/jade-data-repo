@@ -24,6 +24,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.StorageRoles;
@@ -56,6 +57,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
   @Autowired private SamFixtures samFixtures;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private TestConfiguration testConfiguration;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
   @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String stewardToken;
@@ -459,7 +461,10 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         ingestServiceAccount,
         startsWith("tdr-ingest-sa"));
     DatasetIntegrationTest.addServiceAccountRoleToBucket(
-        bucketWithNoJadeSa, ingestServiceAccount, StorageRoles.objectViewer());
+        bucketWithNoJadeSa,
+        ingestServiceAccount,
+        StorageRoles.objectViewer(),
+        datasetSummaryModel.getDataProject());
     try {
       IngestResponseModel ingestResponse =
           dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
@@ -473,7 +478,10 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     } finally {
       // Clean up role grants on shared bucket
       DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
-          bucketWithNoJadeSa, ingestServiceAccount, StorageRoles.objectViewer());
+          bucketWithNoJadeSa,
+          ingestServiceAccount,
+          StorageRoles.objectViewer(),
+          datasetSummaryModel.getDataProject());
     }
   }
 }

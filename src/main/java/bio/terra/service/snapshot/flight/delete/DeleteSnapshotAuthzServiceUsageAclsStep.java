@@ -10,7 +10,8 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -22,6 +23,7 @@ public class DeleteSnapshotAuthzServiceUsageAclsStep implements Step {
   private final SnapshotService snapshotService;
   private final UUID snapshotId;
   private final AuthenticatedUserRequest userReq;
+  private final String tdrServiceAccountEmail;
 
   private static final Logger logger =
       LoggerFactory.getLogger(DeleteSnapshotAuthzServiceUsageAclsStep.class);
@@ -31,12 +33,14 @@ public class DeleteSnapshotAuthzServiceUsageAclsStep implements Step {
       ResourceService resourceService,
       SnapshotService snapshotService,
       UUID snapshotId,
-      AuthenticatedUserRequest userReq) {
+      AuthenticatedUserRequest userReq,
+      String tdrServiceAccountEmail) {
     this.sam = sam;
     this.resourceService = resourceService;
     this.snapshotService = snapshotService;
     this.snapshotId = snapshotId;
     this.userReq = userReq;
+    this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }
 
   @Override
@@ -49,9 +53,22 @@ public class DeleteSnapshotAuthzServiceUsageAclsStep implements Step {
 
     // Remove the custodian's access to bill this project to read requester pays bucket data.
     // The underlying service provides retries so we do not need to retry this operation
+    List<String> principalsToRemove = new ArrayList<>();
+    if (policyEmails.get(IamRole.STEWARD) != null) {
+      principalsToRemove.add(policyEmails.get(IamRole.STEWARD));
+    }
+    if (policyEmails.get(IamRole.READER) != null) {
+      principalsToRemove.add(policyEmails.get(IamRole.READER));
+    }
+    if (!snapshot
+        .getSourceDataset()
+        .getProjectResource()
+        .getServiceAccount()
+        .equals(tdrServiceAccountEmail)) {
+      principalsToRemove.add(snapshot.getSourceDataset().getProjectResource().getServiceAccount());
+    }
     resourceService.revokePoliciesServiceUsageConsumer(
-        snapshot.getProjectResource().getGoogleProjectId(),
-        Arrays.asList(policyEmails.get(IamRole.STEWARD), policyEmails.get(IamRole.READER)));
+        snapshot.getProjectResource().getGoogleProjectId(), principalsToRemove);
 
     return StepResult.getStepResultSuccess();
   }

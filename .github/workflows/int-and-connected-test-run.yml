@@ -129,6 +129,13 @@ jobs:
           test_to_run: 'testConnected'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
+      - name: "Temp: Archive all junit test reports"
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: junit-test-reports-for-connected
+          path: build/reports
+          retention-days: 5
   deploy_test_integration:
     name: "Run integration and smoke tests"
     outputs:

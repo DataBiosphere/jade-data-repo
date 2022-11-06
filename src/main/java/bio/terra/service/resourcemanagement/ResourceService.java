@@ -564,7 +564,8 @@ public class ResourceService {
       List<String> roles,
       GoogleProjectService.PermissionOp op)
       throws InterruptedException {
-    final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).toList();
+    final List<String> emails =
+        policyEmails.stream().map(ResourceService::formatEmailForPolicy).toList();
     final Map<String, List<String>> userPermissions =
         roles.stream().collect(Collectors.toMap(r -> r, r -> emails));
     resourceManagerService.updateIamPermissions(userPermissions, dataProject, op);
@@ -572,7 +573,7 @@ public class ResourceService {
 
   private Map<String, List<String>> getStewardPolicy() {
     // get steward emails and add to policy
-    String stewardsGroupEmail = "group:" + samConfiguration.getStewardsGroupEmail();
+    String stewardsGroupEmail = formatEmailForPolicy(samConfiguration.getStewardsGroupEmail());
     Map<String, List<String>> policyMap = new HashMap<>();
     policyMap.put(BQ_JOB_USER_ROLE, Collections.singletonList(stewardsGroupEmail));
     return Collections.unmodifiableMap(policyMap);
@@ -600,5 +601,16 @@ public class ResourceService {
 
   public void deleteDeployedApplicationMetadata(List<UUID> applicationIdList) {
     applicationDeploymentService.deleteApplicationDeploymentMetadata(applicationIdList);
+  }
+
+  public static String formatEmailForPolicy(String email) {
+    if (email == null) {
+      return null;
+    }
+    if (email.endsWith(".iam.gserviceaccount.com")) {
+      return "serviceAccount:" + email;
+    } else {
+      return "group:" + email;
+    }
   }
 }

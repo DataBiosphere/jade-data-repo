@@ -1,7 +1,5 @@
 package bio.terra.service.snapshot.flight.duos;
 
-import static bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils.getFirecloudGroup;
-
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.duos.DuosService;
@@ -34,7 +32,7 @@ public class CreateDuosFirecloudGroupStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    DuosFirecloudGroupModel created = getFirecloudGroup(context);
+    DuosFirecloudGroupModel created = SnapshotDuosFlightUtils.getFirecloudGroup(context);
     if (created != null) {
       iamService.deleteGroup(created.getFirecloudGroupName());
     }

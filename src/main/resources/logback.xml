@@ -10,6 +10,12 @@
         </then>
     </if>
 
+    <if condition='!isDefined("SENTRY_ENABLED")'>
+      <then>
+        <variable name="SENTRY_ENABLED" value="false" />
+      </then>
+    </if>
+
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <Pattern>%date %-5level [%thread] %logger{36}: %message%n</Pattern>
@@ -41,7 +47,18 @@
     <!--    <logger name="bio.terra.service.iam.sam.SamIam" level="debug" />-->
     <!--    <logger name="bio.terra.service.tabulardata.google.BigQueryProject" level="debug" />-->
 
+    <if condition="${SENTRY_ENABLED} == true">
+        <then>
+          <appender name="Sentry" class="io.sentry.logback.SentryAppender"/>
+        </then>
+    </if>
+
     <root level="INFO">
         <appender-ref ref="${TDR_LOG_APPENDER}"/>
+        <if condition="${SENTRY_ENABLED} == true">
+          <then>
+            <appender-ref ref="Sentry"/>
+          </then>
+        </if>
     </root>
 </configuration>

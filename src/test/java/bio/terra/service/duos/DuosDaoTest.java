@@ -62,13 +62,6 @@ public class DuosDaoTest {
     }
   }
 
-  @After
-  public void after() {
-    if (duosFirecloudGroupId != null) {
-      assertTrue(duosDao.deleteFirecloudGroup(duosFirecloudGroupId));
-    }
-  }
-
   @Test
   public void testRetrieveFirecloudGroupBeforeInsert() {
     DuosFirecloudGroupModel retrieveBeforeInsert = duosDao.retrieveFirecloudGroupByDuosId(duosId);

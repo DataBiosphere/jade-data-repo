@@ -17,6 +17,7 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.duos.DuosDao;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -24,6 +25,7 @@ import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,6 +65,7 @@ public class SnapshotDao {
   private final DatasetDao datasetDao;
   private final ResourceService resourceService;
   private final ObjectMapper objectMapper;
+  private final DuosDao duosDao;
 
   private static final String TABLE_NAME = "snapshot";
 
@@ -90,7 +93,8 @@ public class SnapshotDao {
       SnapshotRelationshipDao snapshotRelationshipDao,
       DatasetDao datasetDao,
       ResourceService resourceService,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      DuosDao duosDao) {
     this.jdbcTemplate = jdbcTemplate;
     this.journalService = journalService;
     this.snapshotTableDao = snapshotTableDao;
@@ -99,6 +103,7 @@ public class SnapshotDao {
     this.datasetDao = datasetDao;
     this.resourceService = resourceService;
     this.objectMapper = objectMapper;
+    this.duosDao = duosDao;
   }
 
   /**
@@ -411,7 +416,9 @@ public class SnapshotDao {
                               rs.getString("creation_information")))
                       .consentCode(rs.getString("consent_code"))
                       .properties(
-                          DaoUtils.stringToProperties(objectMapper, rs.getString("properties"))));
+                          DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
+                      .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class)));
+
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
         // retrieve the snapshot tables and relationships
@@ -427,14 +434,19 @@ public class SnapshotDao {
         // It seemed like the cleanest thing to me at the time.
         UUID projectResourceId = snapshot.getProjectResourceId();
         if (projectResourceId != null) {
-          snapshot.projectResource(
-              resourceService.getProjectResource(snapshot.getProjectResourceId()));
+          snapshot.projectResource(resourceService.getProjectResource(projectResourceId));
         }
 
         // Retrieve the Azure Storage Account associated with the snapshot.
         resourceService
             .getSnapshotStorageAccount(snapshot.getId())
             .ifPresent(snapshot::storageAccountResource);
+
+        // Retrieve the DUOS Firecloud group associated with the snapshot.
+        UUID duosFirecloudGroupId = snapshot.getDuosFirecloudGroupId();
+        if (duosFirecloudGroupId != null) {
+          snapshot.duosFirecloudGroup(duosDao.retrieveFirecloudGroup(duosFirecloudGroupId));
+        }
       }
       return snapshot;
     } catch (EmptyResultDataAccessException ex) {
@@ -754,6 +766,28 @@ public class SnapshotDao {
           userReq, id, IamResourceType.DATASNAPSHOT, "Snapshot patched.", params.getValues());
     }
     return patchSucceeded;
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void updateDuosFirecloudGroupId(UUID id, UUID duosFirecloudGroupId)
+      throws SnapshotUpdateException {
+    String sql =
+        """
+        UPDATE snapshot
+        SET duos_firecloud_group_id = :duos_firecloud_group_id
+        WHERE id = :id""";
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("id", id)
+            .addValue("duos_firecloud_group_id", duosFirecloudGroupId);
+
+    String logSuffix =
+        String.format("snapshot %s with DUOS Firecloud group ID %s", id, duosFirecloudGroupId);
+    int numRowsUpdated = jdbcTemplate.update(sql, params);
+    if (numRowsUpdated == 0) {
+      throw new SnapshotUpdateException("Failed to update " + logSuffix);
+    }
+    logger.info("Updated " + logSuffix);
   }
 
   private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {

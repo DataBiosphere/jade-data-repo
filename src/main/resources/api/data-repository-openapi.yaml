@@ -5329,6 +5329,8 @@ components:
         This group has a TDR service account as its sole administrator.
         Only those DUOS datasets known to TDR will have Firecloud groups for their users.
       properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
         duosId:
           $ref: '#/components/schemas/DuosId'
         firecloudGroupName:
@@ -5349,6 +5351,15 @@ components:
         lastSynced:
           description: Last time TDR queried DUOS for its dataset's authorized users
           type: string
+    SnapshotLinkDuosDatasetResponse:
+      type: object
+      description: >
+        The DUOS Firecloud groups unlinked from and/or linked to the snapshot.
+      properties:
+        unlinked:
+          $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        linked:
+          $ref: '#/components/schemas/DuosFirecloudGroupModel'
 
     ##############################################################################
     ## DRS STANDARD MODELS

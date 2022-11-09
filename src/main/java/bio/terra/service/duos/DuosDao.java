@@ -48,6 +48,12 @@ public class DuosDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public DuosFirecloudGroupModel insertAndRetrieveFirecloudGroup(DuosFirecloudGroupModel created) {
+    UUID id = insertFirecloudGroup(created);
+    return retrieveFirecloudGroup(id);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public UUID insertFirecloudGroup(DuosFirecloudGroupModel created) {
     String sql =
         """

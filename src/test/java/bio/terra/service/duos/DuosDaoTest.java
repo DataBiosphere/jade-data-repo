@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -39,6 +40,7 @@ public class DuosDaoTest {
   private String firecloudGroupName;
   private String firecloudGroupEmail;
   private String tdrServiceAccountEmail;
+  private DuosFirecloudGroupModel toInsert;
 
   @Before
   public void before() {
@@ -46,6 +48,18 @@ public class DuosDaoTest {
     firecloudGroupName = String.format("%s_users", duosId);
     firecloudGroupEmail = String.format("%s@dev.test.firecloud.org", firecloudGroupName);
     tdrServiceAccountEmail = duosDao.getTdrServiceAccountEmail();
+    toInsert =
+        new DuosFirecloudGroupModel()
+            .duosId(duosId)
+            .firecloudGroupName(firecloudGroupName)
+            .firecloudGroupEmail(firecloudGroupEmail);
+  }
+
+  @After
+  public void after() {
+    if (duosFirecloudGroupId != null) {
+      assertTrue(duosDao.deleteFirecloudGroup(duosFirecloudGroupId));
+    }
   }
 
   @After
@@ -56,31 +70,39 @@ public class DuosDaoTest {
   }
 
   @Test
-  public void testInsertAndRetrieveFirecloudGroup() {
+  public void testRetrieveFirecloudGroupBeforeInsert() {
     DuosFirecloudGroupModel retrieveBeforeInsert = duosDao.retrieveFirecloudGroupByDuosId(duosId);
-    assertThat(retrieveBeforeInsert, nullValue());
+    assertNull(retrieveBeforeInsert);
+  }
+
+  @Test
+  public void testDeleteNonExistentFirecloudGroup() {
     assertFalse(duosDao.deleteFirecloudGroup(null));
     assertFalse(duosDao.deleteFirecloudGroup(UUID.randomUUID()));
+  }
 
-    DuosFirecloudGroupModel toInsert =
-        new DuosFirecloudGroupModel()
-            .duosId(duosId)
-            .firecloudGroupName(firecloudGroupName)
-            .firecloudGroupEmail(firecloudGroupEmail);
-
+  @Test
+  public void testInsertThenRetrieveFirecloudGroup() {
     duosFirecloudGroupId = duosDao.insertFirecloudGroup(toInsert);
-    DuosFirecloudGroupModel retrieveByDuosId = duosDao.retrieveFirecloudGroupByDuosId(duosId);
-    DuosFirecloudGroupModel retrieveById = duosDao.retrieveFirecloudGroup(duosFirecloudGroupId);
 
-    assertThat(retrieveByDuosId, equalTo(retrieveById));
+    DuosFirecloudGroupModel retrievedByDuosId = duosDao.retrieveFirecloudGroupByDuosId(duosId);
+    verifyRetrievedFirecloudGroupContents(retrievedByDuosId);
 
-    assertThat(retrieveById, notNullValue());
-    assertThat(retrieveById.getId(), equalTo(duosFirecloudGroupId));
-    assertThat(retrieveById.getFirecloudGroupName(), equalTo(firecloudGroupName));
-    assertThat(retrieveById.getFirecloudGroupEmail(), equalTo(firecloudGroupEmail));
-    assertThat(retrieveById.getCreatedBy(), equalTo(tdrServiceAccountEmail));
-    assertThat(retrieveById.getCreated(), notNullValue());
-    assertThat(retrieveById.getLastSynced(), nullValue());
+    DuosFirecloudGroupModel retrievedById = duosDao.retrieveFirecloudGroup(duosFirecloudGroupId);
+    verifyRetrievedFirecloudGroupContents(retrievedById);
+  }
+
+  @Test
+  public void testInsertAndRetrieveFirecloudGroup() {
+    DuosFirecloudGroupModel retrieved = duosDao.insertAndRetrieveFirecloudGroup(toInsert);
+    duosFirecloudGroupId = retrieved.getId();
+
+    verifyRetrievedFirecloudGroupContents(retrieved);
+  }
+
+  @Test
+  public void testInsertFirecloudGroupThrowsOnDuplicateDuosId() {
+    duosFirecloudGroupId = duosDao.insertFirecloudGroup(toInsert);
 
     assertThrows(
         DuplicateKeyException.class,
@@ -90,5 +112,15 @@ public class DuosDaoTest {
                     .duosId(duosId)
                     .firecloudGroupName("another-fc-group-name")
                     .firecloudGroupEmail("another-fc-group-name@dev.test.firecloud.org")));
+  }
+
+  private void verifyRetrievedFirecloudGroupContents(DuosFirecloudGroupModel retrieved) {
+    assertThat(retrieved, notNullValue());
+    assertThat(retrieved.getId(), equalTo(duosFirecloudGroupId));
+    assertThat(retrieved.getFirecloudGroupName(), equalTo(firecloudGroupName));
+    assertThat(retrieved.getFirecloudGroupEmail(), equalTo(firecloudGroupEmail));
+    assertThat(retrieved.getCreatedBy(), equalTo(tdrServiceAccountEmail));
+    assertThat(retrieved.getCreated(), notNullValue());
+    assertThat(retrieved.getLastSynced(), nullValue());
   }
 }

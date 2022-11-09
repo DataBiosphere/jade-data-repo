@@ -53,6 +53,7 @@ public class SnapshotDeleteFlight extends Flight {
     AzureStorageAccountService azureStorageAccountService =
         appContext.getBean(AzureStorageAccountService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
+    String tdrServiceAccountEmail = appContext.getBean("tdrServiceAccountEmail", String.class);
 
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
@@ -83,7 +84,12 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(
         new PerformGcpStep(
             new DeleteSnapshotAuthzServiceUsageAclsStep(
-                iamClient, resourceService, snapshotService, snapshotId, userReq)));
+                iamClient,
+                resourceService,
+                snapshotService,
+                snapshotId,
+                userReq,
+                tdrServiceAccountEmail)));
 
     // Delete access control first so Readers and Discoverers can no longer see snapshot
     // Google auto-magically removes the ACLs from BQ objects when SAM

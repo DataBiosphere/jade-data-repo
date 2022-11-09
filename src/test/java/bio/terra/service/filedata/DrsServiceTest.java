@@ -143,10 +143,13 @@ public class DrsServiceTest {
                         new SnapshotSource()
                             .dataset(
                                 new Dataset(
-                                    new DatasetSummary()
-                                        .selfHosted(false)
-                                        .defaultProfileId(billingProfile.getId())
-                                        .billingProfiles(List.of(billingProfile)))))));
+                                        new DatasetSummary()
+                                            .selfHosted(false)
+                                            .defaultProfileId(billingProfile.getId())
+                                            .billingProfiles(List.of(billingProfile)))
+                                    .projectResource(
+                                        new GoogleProjectResource()
+                                            .googleProjectId("dataset-google-project"))))));
 
     String bucketResourceId = UUID.randomUUID().toString();
     String storageAccountResourceId = UUID.randomUUID().toString();
@@ -436,13 +439,14 @@ public class DrsServiceTest {
     UUID defaultProfileModelId = UUID.randomUUID();
     Dataset dataset =
         new Dataset(
-            new DatasetSummary()
-                .billingProfiles(
-                    List.of(
-                        new BillingProfileModel()
-                            .id(defaultProfileModelId)
-                            .cloudPlatform(CloudPlatform.AZURE)))
-                .defaultProfileId(defaultProfileModelId));
+                new DatasetSummary()
+                    .billingProfiles(
+                        List.of(
+                            new BillingProfileModel()
+                                .id(defaultProfileModelId)
+                                .cloudPlatform(CloudPlatform.AZURE)))
+                    .defaultProfileId(defaultProfileModelId))
+            .projectResource(new GoogleProjectResource().googleProjectId("dataset-google-project"));
     Snapshot snapshot =
         new Snapshot()
             .id(snapshotId)

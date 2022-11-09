@@ -39,6 +39,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.StorageRoles;
@@ -79,11 +80,14 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   @Autowired private AuthService authService;
   @Autowired private GcsUtils gcsUtils;
   @Autowired private SamFixtures samFixtures;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
+
   @Rule @Autowired public TestJobWatcher testWatcher;
 
   private String stewardToken;
   private UUID datasetId;
   private UUID snapshotId;
+  private String snapshotProject;
   private UUID profileId;
   private List<String> uploadedFiles;
   private String ingestServiceAccount;
@@ -101,6 +105,14 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   @After
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward());
+
+    if (ingestServiceAccount != null && ingestBucket != null) {
+      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
+          ingestBucket, ingestServiceAccount, StorageRoles.objectViewer(), snapshotProject);
+
+      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
+          ingestBucket, ingestServiceAccount, StorageRoles.legacyBucketReader(), snapshotProject);
+    }
 
     if (snapshotId != null) {
       dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
@@ -121,11 +133,6 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     for (var path : uploadedFiles) {
       gcsUtils.deleteTestFile(path);
     }
-
-    if (ingestServiceAccount != null && ingestBucket != null) {
-      DatasetIntegrationTest.removeServiceAccountRoleFromBucket(
-          ingestBucket, ingestServiceAccount, StorageRoles.objectViewer());
-    }
   }
 
   @Test
@@ -140,7 +147,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
   @Test
   public void testSelfHostedDatasetRequesterPaysLifecycle() throws Exception {
-    testSelfHostedDatasetLifecycle("jade_testbucket_requester_pays", false);
+    testSelfHostedDatasetLifecycle("jade_testbucket_requester_pays", true);
   }
 
   private void testSelfHostedDatasetLifecycle(String ingestBucket, boolean dedicatedServiceAccount)
@@ -168,7 +175,15 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
       this.ingestBucket = ingestBucket;
       // Note: this role gets removed in teardown
       DatasetIntegrationTest.addServiceAccountRoleToBucket(
-          ingestBucket, ingestServiceAccount, StorageRoles.objectViewer());
+          ingestBucket,
+          ingestServiceAccount,
+          StorageRoles.objectViewer(),
+          dataset.getDataProject());
+      DatasetIntegrationTest.addServiceAccountRoleToBucket(
+          ingestBucket,
+          ingestServiceAccount,
+          StorageRoles.legacyBucketReader(),
+          dataset.getDataProject());
     }
 
     // Ingest a single file
@@ -275,6 +290,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         dataRepoFixtures.createSnapshot(
             steward(), dataset.getName(), profileId, "dataset-ingest-combined-array-snapshot.json");
     snapshotId = snapshot.getId();
+    snapshotProject = snapshot.getDataProject();
 
     assertThat(
         "a snapshot created from a self-hosted dataset says its self-hosted too",

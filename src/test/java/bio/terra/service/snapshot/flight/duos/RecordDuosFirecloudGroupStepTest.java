@@ -40,7 +40,7 @@ public class RecordDuosFirecloudGroupStepTest {
 
   private RecordDuosFirecloudGroupStep step;
   private DuosFirecloudGroupModel duosFirecloudGroupCreated;
-  private DuosFirecloudGroupModel duosFirecloudGroupRetrieved;
+  private DuosFirecloudGroupModel duosFirecloudGroupInserted;
   private FlightMap workingMap;
 
   @Before
@@ -48,7 +48,7 @@ public class RecordDuosFirecloudGroupStepTest {
     step = new RecordDuosFirecloudGroupStep(duosDao);
 
     duosFirecloudGroupCreated = DuosFixtures.duosFirecloudGroupCreated(DUOS_ID);
-    duosFirecloudGroupRetrieved =
+    duosFirecloudGroupInserted =
         DuosFixtures.duosFirecloudGroupFromDb(DUOS_ID, DUOS_FIRECLOUD_GROUP_ID);
 
     workingMap = new FlightMap();
@@ -58,17 +58,15 @@ public class RecordDuosFirecloudGroupStepTest {
 
   @Test
   public void testDoAndUndoStepSucceeds() throws InterruptedException {
-    when(duosDao.insertFirecloudGroup(duosFirecloudGroupCreated))
-        .thenReturn(DUOS_FIRECLOUD_GROUP_ID);
-    when(duosDao.retrieveFirecloudGroup(DUOS_FIRECLOUD_GROUP_ID))
-        .thenReturn(duosFirecloudGroupRetrieved);
+    when(duosDao.insertAndRetrieveFirecloudGroup(duosFirecloudGroupCreated))
+        .thenReturn(duosFirecloudGroupInserted);
 
     StepResult doResult = step.doStep(flightContext);
     assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
     assertEquals(
-        "Retrieved Firecloud group overwrites created in working map",
+        "Inserted Firecloud group overwrites created in working map",
         SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
-        duosFirecloudGroupRetrieved);
+        duosFirecloudGroupInserted);
 
     // Undoing when we recorded the group deletes the record
     StepResult undoResult = step.undoStep(flightContext);
@@ -78,7 +76,9 @@ public class RecordDuosFirecloudGroupStepTest {
 
   @Test
   public void testDoStepThrows() throws InterruptedException {
-    doThrow(RuntimeException.class).when(duosDao).insertFirecloudGroup(duosFirecloudGroupCreated);
+    doThrow(RuntimeException.class)
+        .when(duosDao)
+        .insertAndRetrieveFirecloudGroup(duosFirecloudGroupCreated);
     assertThrows(RuntimeException.class, () -> step.doStep(flightContext));
 
     assertEquals(

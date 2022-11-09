@@ -1,7 +1,5 @@
 package bio.terra.service.snapshot.flight.duos;
 
-import static bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils.getFirecloudGroup;
-
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.service.duos.DuosDao;
 import bio.terra.stairway.FlightContext;
@@ -20,19 +18,19 @@ public class RecordDuosFirecloudGroupStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    UUID duosFirecloudGroupId = duosDao.insertFirecloudGroup(getFirecloudGroup(context));
+    DuosFirecloudGroupModel created = SnapshotDuosFlightUtils.getFirecloudGroup(context);
+    DuosFirecloudGroupModel inserted = duosDao.insertAndRetrieveFirecloudGroup(created);
 
     // When inserting a new record, DuosDao and the DB generate additional metadata
-    // (ex. creation time) so we'll retrieve the record and rewrite it in the working map.
-    DuosFirecloudGroupModel retrieved = duosDao.retrieveFirecloudGroup(duosFirecloudGroupId);
-    context.getWorkingMap().put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, retrieved);
+    // (ex. creation time) so we'll rewrite it in the working map.
+    context.getWorkingMap().put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, inserted);
 
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    UUID duosFirecloudGroupId = getFirecloudGroup(context).getId();
+    UUID duosFirecloudGroupId = SnapshotDuosFlightUtils.getFirecloudGroup(context).getId();
     if (duosFirecloudGroupId != null) {
       duosDao.deleteFirecloudGroup(duosFirecloudGroupId);
     }

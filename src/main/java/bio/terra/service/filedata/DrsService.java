@@ -448,10 +448,12 @@ public class DrsService {
   private String retrieveGCPSnapshotRegion(SnapshotCacheResult cachedSnapshot, FSFile fsFile) {
     final GoogleRegion region;
     if (cachedSnapshot.isSelfHosted) {
-      Storage storage = gcsProjectFactory.getStorage(cachedSnapshot.googleProjectId);
+      // Authorize using the dataset's service account...
+      Storage storage = gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId);
       Bucket bucket =
           storage.get(
               GcsUriUtils.parseBlobUri(fsFile.getCloudPath()).getBucket(),
+              // ...but bill to the snapshot's project
               BucketGetOption.userProject(cachedSnapshot.googleProjectId));
       region = GoogleRegion.fromValue(bucket.getLocation());
     } else {
@@ -610,6 +612,7 @@ public class DrsService {
     private final Boolean isSelfHosted;
     private final BillingProfileModel billingProfileModel;
     private final String googleProjectId;
+    private final String datasetProjectId;
 
     public SnapshotCacheResult(Snapshot snapshot) {
       this.id = snapshot.getId();
@@ -621,6 +624,12 @@ public class DrsService {
         this.googleProjectId = projectResource.getGoogleProjectId();
       } else {
         this.googleProjectId = null;
+      }
+      var datasetProjectResource = snapshot.getSourceDataset().getProjectResource();
+      if (datasetProjectResource != null) {
+        this.datasetProjectId = datasetProjectResource.getGoogleProjectId();
+      } else {
+        this.datasetProjectId = null;
       }
     }
 

@@ -3465,8 +3465,6 @@ components:
         - profileName
       type: object
       properties:
-        id:
-          $ref: '#/components/schemas/UniqueIdProperty'
         billingAccountId:
           type: string
           description: unique identifier of the billing account from Google
@@ -3492,6 +3490,14 @@ components:
         applicationDeploymentName:
           type: string
           description: an optional name for an application deployment for Azure
+        id:
+          deprecated: true
+          type: string
+          format: uuid
+          description: >
+            Deprecated: allowed for backwards compatibility.
+            Recommendation: leave this unset for TDR to generate a universally unique identifier
+            for your new billing profile.
     BillingProfileUpdateModel:
       required:
         - id

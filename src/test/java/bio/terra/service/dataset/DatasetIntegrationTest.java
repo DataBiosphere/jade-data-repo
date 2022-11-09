@@ -41,6 +41,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.google.cloud.Identity;
 import com.google.cloud.Policy;
 import com.google.cloud.Role;
@@ -54,6 +55,7 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobWriteOption;
+import com.google.cloud.storage.Storage.BucketSourceOption;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
 import java.io.IOException;
@@ -99,6 +101,7 @@ public class DatasetIntegrationTest extends UsersBase {
   @Autowired private AuthService authService;
   @Rule @Autowired public TestJobWatcher testWatcher;
   @Autowired private JsonLoader jsonLoader;
+  @Autowired private GoogleResourceManagerService resourceManagerService;
 
   private String stewardToken;
   private UUID datasetId;
@@ -481,22 +484,33 @@ public class DatasetIntegrationTest extends UsersBase {
     return String.format("gs://%s/%s", blob.getBucket(), targetPath);
   }
 
-  static void addServiceAccountRoleToBucket(String bucket, String serviceAccount, Role role) {
+  static void addServiceAccountRoleToBucket(
+      String bucket, String serviceAccount, Role role, String userProject) {
     Storage storage = StorageOptions.getDefaultInstance().getService();
-    Policy iamPolicy = storage.getIamPolicy(bucket);
+    BucketSourceOption[] options =
+        Optional.ofNullable(userProject)
+            .map(p -> new BucketSourceOption[] {BucketSourceOption.userProject(p)})
+            .orElseGet(() -> new BucketSourceOption[0]);
+
+    Policy iamPolicy = storage.getIamPolicy(bucket, options);
     storage.setIamPolicy(
         bucket,
-        iamPolicy.toBuilder().addIdentity(role, Identity.serviceAccount(serviceAccount)).build());
+        iamPolicy.toBuilder().addIdentity(role, Identity.serviceAccount(serviceAccount)).build(),
+        options);
   }
 
-  static void removeServiceAccountRoleFromBucket(String bucket, String serviceAccount, Role role) {
+  static void removeServiceAccountRoleFromBucket(
+      String bucket, String serviceAccount, Role role, String userProject) {
     Storage storage = StorageOptions.getDefaultInstance().getService();
-    Policy iamPolicy = storage.getIamPolicy(bucket);
+    BucketSourceOption[] options =
+        Optional.ofNullable(userProject)
+            .map(p -> new BucketSourceOption[] {BucketSourceOption.userProject(p)})
+            .orElseGet(() -> new BucketSourceOption[0]);
+    Policy iamPolicy = storage.getIamPolicy(bucket, options);
     storage.setIamPolicy(
         bucket,
-        iamPolicy.toBuilder()
-            .removeIdentity(role, Identity.serviceAccount(serviceAccount))
-            .build());
+        iamPolicy.toBuilder().removeIdentity(role, Identity.serviceAccount(serviceAccount)).build(),
+        options);
   }
 
   static void assertTableCount(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)

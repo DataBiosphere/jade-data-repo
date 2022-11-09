@@ -159,7 +159,11 @@ public class DataRepoClient {
 
     if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
       throw new IllegalStateException(
-          "unexpected job status code: " + jobModelResponse.getStatusCode());
+          "unexpected job status:"
+              + "\nwith code: "
+              + jobModelResponse.getStatusCode()
+              + jobModelResponse.getErrorObject().map(e -> "\nwith error: " + e).orElse("")
+              + jobModelResponse.getResponseObject().map(r -> "\nwith response: " + r).orElse(""));
     }
 
     location = getLocationHeader(jobModelResponse);

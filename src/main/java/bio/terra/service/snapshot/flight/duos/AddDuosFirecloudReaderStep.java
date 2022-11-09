@@ -1,7 +1,5 @@
 package bio.terra.service.snapshot.flight.duos;
 
-import static bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils.getFirecloudGroup;
-
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
@@ -32,7 +30,7 @@ public class AddDuosFirecloudReaderStep implements Step {
         IamResourceType.DATASNAPSHOT,
         snapshotId,
         IamRole.READER.toString(),
-        getFirecloudGroup(context).getFirecloudGroupEmail());
+        SnapshotDuosFlightUtils.getFirecloudGroup(context).getFirecloudGroupEmail());
     return StepResult.getStepResultSuccess();
   }
 
@@ -43,7 +41,7 @@ public class AddDuosFirecloudReaderStep implements Step {
         IamResourceType.DATASNAPSHOT,
         snapshotId,
         IamRole.READER.toString(),
-        getFirecloudGroup(context).getFirecloudGroupEmail());
+        SnapshotDuosFlightUtils.getFirecloudGroup(context).getFirecloudGroupEmail());
     return StepResult.getStepResultSuccess();
   }
 }

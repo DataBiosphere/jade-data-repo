@@ -1,8 +1,5 @@
 package bio.terra.service.snapshot.flight.duos;
 
-import static bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils.getDuosFirecloudGroupId;
-import static bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils.getFirecloudGroup;
-
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.service.job.JobMapKeys;
@@ -30,8 +27,8 @@ public class UpdateSnapshotDuosFirecloudGroupIdStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    DuosFirecloudGroupModel duosFirecloudGroup = getFirecloudGroup(context);
-    UUID duosFirecloudGroupId = getDuosFirecloudGroupId(duosFirecloudGroup);
+    DuosFirecloudGroupModel duosFirecloudGroup = SnapshotDuosFlightUtils.getFirecloudGroup(context);
+    UUID duosFirecloudGroupId = SnapshotDuosFlightUtils.getDuosFirecloudGroupId(duosFirecloudGroup);
 
     try {
       snapshotDao.updateDuosFirecloudGroupId(snapshotId, duosFirecloudGroupId);
@@ -49,7 +46,8 @@ public class UpdateSnapshotDuosFirecloudGroupIdStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    UUID duosFirecloudGroupIdPrev = getDuosFirecloudGroupId(duosFirecloudGroupPrev);
+    UUID duosFirecloudGroupIdPrev =
+        SnapshotDuosFlightUtils.getDuosFirecloudGroupId(duosFirecloudGroupPrev);
     try {
       snapshotDao.updateDuosFirecloudGroupId(snapshotId, duosFirecloudGroupIdPrev);
     } catch (SnapshotUpdateException ex) {

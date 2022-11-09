@@ -320,9 +320,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.SHARE_POLICY_READER);
-    SnapshotLinkDuosDatasetResponse response =
-        snapshotService.updateSnapshotDuosDataset(id, userReq, duosId);
-    return ResponseEntity.ok(response);
+    return ResponseEntity.ok(snapshotService.updateSnapshotDuosDataset(id, userReq, duosId));
   }
 
   @Override
@@ -330,8 +328,6 @@ public class SnapshotsApiController implements SnapshotsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.SHARE_POLICY_READER);
-    SnapshotLinkDuosDatasetResponse response =
-        snapshotService.updateSnapshotDuosDataset(id, userReq, null);
-    return ResponseEntity.ok(response);
+    return ResponseEntity.ok(snapshotService.updateSnapshotDuosDataset(id, userReq, null));
   }
 }

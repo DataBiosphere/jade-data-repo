@@ -2,7 +2,6 @@ package bio.terra.service.snapshot;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 
-import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
@@ -58,7 +57,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
-import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
@@ -80,7 +78,6 @@ import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -93,7 +90,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -400,7 +396,15 @@ public class SnapshotService {
    */
   public SnapshotModel retrieveAvailableSnapshotModel(
       UUID id, AuthenticatedUserRequest userRequest) {
-    return retrieveAvailableSnapshotModel(id, getDefaultIncludes(), userRequest);
+    List<SnapshotRetrieveIncludeModel> include =
+        List.of(
+            SnapshotRetrieveIncludeModel.SOURCES,
+            SnapshotRetrieveIncludeModel.TABLES,
+            SnapshotRetrieveIncludeModel.RELATIONSHIPS,
+            SnapshotRetrieveIncludeModel.PROFILE,
+            SnapshotRetrieveIncludeModel.DATA_PROJECT,
+            SnapshotRetrieveIncludeModel.DUOS);
+    return retrieveAvailableSnapshotModel(id, include, userRequest);
   }
 
   /**
@@ -563,15 +567,6 @@ public class SnapshotService {
     return snapshotRequestModel.getContents().stream()
         .map(c -> datasetService.retrieveByName(c.getDatasetName()))
         .collect(Collectors.toList());
-  }
-
-  public UUID getFirstSourceDatasetIdFromSnapshotId(
-      UUID snapshotId, AuthenticatedUserRequest userRequest) {
-    SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId, userRequest);
-    return snapshotModel.getSource().stream()
-        .map(s -> s.getDataset().getId())
-        .findFirst()
-        .orElseThrow(() -> new DatasetNotFoundException("Source dataset for snapshot not found"));
   }
 
   /**
@@ -1116,12 +1111,5 @@ public class SnapshotService {
         .datatype(column.getType())
         .arrayOf(column.isArrayOf())
         .required(column.isRequired());
-  }
-
-  private static List<SnapshotRetrieveIncludeModel> getDefaultIncludes() {
-    return Arrays.stream(
-            StringUtils.split(SnapshotsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
-        .map(SnapshotRetrieveIncludeModel::fromValue)
-        .collect(Collectors.toList());
   }
 }

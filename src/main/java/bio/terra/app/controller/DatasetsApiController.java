@@ -50,7 +50,6 @@ import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
-import bio.terra.service.journal.JournalService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.ArrayList;
@@ -87,7 +86,6 @@ public class DatasetsApiController implements DatasetsApi {
   private final DatasetRequestValidator datasetRequestValidator;
   private final DatasetService datasetService;
   private final IamService iamService;
-  private final JournalService journalService;
   private final FileService fileService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
@@ -104,7 +102,6 @@ public class DatasetsApiController implements DatasetsApi {
       DatasetRequestValidator datasetRequestValidator,
       DatasetService datasetService,
       IamService iamService,
-      JournalService journalService,
       FileService fileService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator,
@@ -113,7 +110,6 @@ public class DatasetsApiController implements DatasetsApi {
       DatasetSchemaUpdateValidator datasetSchemaUpdateValidator) {
     this.objectMapper = objectMapper;
     this.request = request;
-    this.journalService = journalService;
     this.jobService = jobService;
     this.datasetRequestValidator = datasetRequestValidator;
     this.datasetService = datasetService;

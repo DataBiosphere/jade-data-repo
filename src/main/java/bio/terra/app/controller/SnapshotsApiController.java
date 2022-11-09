@@ -31,7 +31,6 @@ import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
-import bio.terra.service.journal.JournalService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,13 +62,8 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   private final Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
 
-  // We do not include Access_Information since it can get expensive, and for backwards compat
-  public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE =
-      "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT,DUOS";
-
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
-  private final JournalService journalService;
   private final JobService jobService;
   private final SnapshotRequestValidator snapshotRequestValidator;
   private final SnapshotService snapshotService;
@@ -83,7 +77,6 @@ public class SnapshotsApiController implements SnapshotsApi {
   public SnapshotsApiController(
       ObjectMapper objectMapper,
       HttpServletRequest request,
-      JournalService journalService,
       JobService jobService,
       SnapshotRequestValidator snapshotRequestValidator,
       SnapshotService snapshotService,
@@ -94,7 +87,6 @@ public class SnapshotsApiController implements SnapshotsApi {
       AssetModelValidator assetModelValidator) {
     this.objectMapper = objectMapper;
     this.request = request;
-    this.journalService = journalService;
     this.jobService = jobService;
     this.snapshotRequestValidator = snapshotRequestValidator;
     this.snapshotService = snapshotService;
@@ -208,13 +200,7 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<SnapshotModel> retrieveSnapshot(
-      @PathVariable("id") UUID id,
-      @Valid
-          @RequestParam(
-              value = "include",
-              required = false,
-              defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
-          List<SnapshotRetrieveIncludeModel> include) {
+      UUID id, List<SnapshotRetrieveIncludeModel> include) {
     logger.info("Verifying user access");
     AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
     snapshotService.verifySnapshotAccessible(id, authenticatedInfo);

@@ -6,7 +6,6 @@ import bio.terra.service.duos.exception.DuosDatasetBadRequestException;
 import bio.terra.service.duos.exception.DuosDatasetNotFoundException;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -23,7 +22,6 @@ public class DuosClient {
   private final DuosConfiguration duosConfiguration;
   private final RestTemplate restTemplate;
 
-  @Autowired
   public DuosClient(DuosConfiguration duosConfiguration, RestTemplate restTemplate) {
     this.duosConfiguration = duosConfiguration;
     this.restTemplate = restTemplate;

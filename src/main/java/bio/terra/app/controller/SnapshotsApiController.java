@@ -49,7 +49,6 @@ import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
@@ -171,7 +170,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     Set<IamAction> actions = snapshotService.patchSnapshotIamActions(patchRequest);
     iamService.verifyAuthorizations(userReq, IamResourceType.DATASNAPSHOT, id.toString(), actions);
-    return new ResponseEntity<>(snapshotService.patch(id, patchRequest, userReq), HttpStatus.OK);
+    return ResponseEntity.ok(snapshotService.patch(id, patchRequest, userReq));
   }
 
   @Override
@@ -222,7 +221,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     logger.info("Retrieving snapshot");
     SnapshotModel snapshotModel =
         snapshotService.retrieveAvailableSnapshotModel(id, include, authenticatedInfo);
-    return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
+    return ResponseEntity.ok(snapshotModel);
   }
 
   @Override
@@ -234,7 +233,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
     FileModel fileModel = fileService.lookupSnapshotFile(id.toString(), fileid, depth);
-    return new ResponseEntity<>(fileModel, HttpStatus.OK);
+    return ResponseEntity.ok(fileModel);
   }
 
   @Override
@@ -249,7 +248,7 @@ public class SnapshotsApiController implements SnapshotsApi {
       throw new ValidationException("InvalidPath");
     }
     FileModel fileModel = fileService.lookupSnapshotPath(id.toString(), path, depth);
-    return new ResponseEntity<>(fileModel, HttpStatus.OK);
+    return ResponseEntity.ok(fileModel);
   }
 
   @Override
@@ -269,7 +268,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     SnapshotPreviewModel previewModel =
         snapshotService.retrievePreview(
             getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
-    return new ResponseEntity<>(previewModel, HttpStatus.OK);
+    return ResponseEntity.ok(previewModel);
   }
 
   // --snapshot policies --
@@ -283,13 +282,13 @@ public class SnapshotsApiController implements SnapshotsApi {
         iamService.addPolicyMember(
             userReq, IamResourceType.DATASNAPSHOT, id, policyName, policyMember.getEmail());
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
   public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(UUID id) {
     PolicyResponse response = snapshotService.retrieveSnapshotPolicies(id, getAuthenticatedInfo());
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
@@ -306,13 +305,13 @@ public class SnapshotsApiController implements SnapshotsApi {
         iamService.deletePolicyMember(
             userReq, IamResourceType.DATASNAPSHOT, id, policyName, memberEmail);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
   public ResponseEntity<List<String>> retrieveUserSnapshotRoles(UUID id) {
     List<String> roles = snapshotService.retrieveUserSnapshotRoles(id, getAuthenticatedInfo());
-    return new ResponseEntity<>(roles, HttpStatus.OK);
+    return ResponseEntity.ok(roles);
   }
 
   @Override
@@ -323,7 +322,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.SHARE_POLICY_READER);
     SnapshotLinkDuosDatasetResponse response =
         snapshotService.updateSnapshotDuosDataset(id, userReq, duosId);
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
@@ -333,6 +332,6 @@ public class SnapshotsApiController implements SnapshotsApi {
         userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.SHARE_POLICY_READER);
     SnapshotLinkDuosDatasetResponse response =
         snapshotService.updateSnapshotDuosDataset(id, userReq, null);
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 }

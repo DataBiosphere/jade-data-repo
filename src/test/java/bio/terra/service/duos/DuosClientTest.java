@@ -34,7 +34,6 @@ import org.springframework.web.client.RestTemplate;
 @Category(Unit.class)
 public class DuosClientTest {
 
-  @Mock private DuosConfiguration duosConfiguration;
   @Mock private RestTemplate restTemplate;
 
   private static final String BASE_PATH = "https://consent.dsde-dev.broadinstitute.org";
@@ -47,9 +46,7 @@ public class DuosClientTest {
 
   @Before
   public void setup() {
-    duosClient = new DuosClient(duosConfiguration, restTemplate);
-
-    when(duosConfiguration.getBasePath()).thenReturn(BASE_PATH);
+    duosClient = new DuosClient(new DuosConfiguration(BASE_PATH), restTemplate);
   }
 
   @Test

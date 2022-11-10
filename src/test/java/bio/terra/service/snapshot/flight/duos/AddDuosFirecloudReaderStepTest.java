@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.duos;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -54,7 +55,7 @@ public class AddDuosFirecloudReaderStepTest {
   @Test
   public void testDoAndUndoStep() throws InterruptedException {
     StepResult doResult = step.doStep(flightContext);
-    assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(iamService)
         .addPolicyMember(
             TEST_USER,
@@ -64,7 +65,7 @@ public class AddDuosFirecloudReaderStepTest {
             DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail());
 
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(iamService)
         .deletePolicyMember(
             TEST_USER,

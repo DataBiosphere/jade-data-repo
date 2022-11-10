@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.duos;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -56,20 +57,20 @@ public class CreateDuosFirecloudGroupStepTest {
     when(duosService.createFirecloudGroup(DUOS_ID)).thenReturn(DUOS_FIRECLOUD_GROUP_CREATED);
 
     StepResult doResult = step.doStep(flightContext);
-    assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(duosService).createFirecloudGroup(DUOS_ID);
 
-    assertEquals(
+    assertThat(
         "Created Firecloud group is stored in working map",
         SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
-        DUOS_FIRECLOUD_GROUP_CREATED);
+        equalTo(DUOS_FIRECLOUD_GROUP_CREATED));
     assertFalse(
         "Working map's earlier record of Firecloud group retrieval is unchanged",
         workingMap.get(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, boolean.class));
 
     // Undoing when we created a group deletes the group
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(iamService).deleteGroup(DUOS_FIRECLOUD_GROUP_CREATED.getFirecloudGroupName());
   }
 
@@ -89,7 +90,7 @@ public class CreateDuosFirecloudGroupStepTest {
 
     // Undoing when we failed to create a group is a no-op
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verifyNoInteractions(iamService);
   }
 }

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.duos;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -52,18 +53,19 @@ public class RetrieveDuosFirecloudGroupStepTest {
         .thenReturn(DUOS_FIRECLOUD_GROUP_RETRIEVED);
 
     StepResult result = step.doStep(flightContext);
-    assertEquals(result.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(duosDao).retrieveFirecloudGroupByDuosId(DUOS_ID);
 
-    assertEquals(
-        SnapshotDuosFlightUtils.getFirecloudGroup(flightContext), DUOS_FIRECLOUD_GROUP_RETRIEVED);
+    assertThat(
+        SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
+        equalTo(DUOS_FIRECLOUD_GROUP_RETRIEVED));
     assertTrue(workingMap.get(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, boolean.class));
   }
 
   @Test
   public void testDoStepGroupDoesNotExist() throws InterruptedException {
     StepResult result = step.doStep(flightContext);
-    assertEquals(result.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(duosDao).retrieveFirecloudGroupByDuosId(DUOS_ID);
 
     assertNull(SnapshotDuosFlightUtils.getFirecloudGroup(flightContext));

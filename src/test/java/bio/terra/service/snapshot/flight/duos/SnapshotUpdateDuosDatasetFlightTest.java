@@ -1,8 +1,8 @@
 package bio.terra.service.snapshot.flight.duos;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertEquals;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DuosFixtures;
@@ -38,19 +38,19 @@ public class SnapshotUpdateDuosDatasetFlightTest {
 
     var flight = new SnapshotUpdateDuosDatasetFlight(inputParameters, context);
 
-    assertEquals(
+    assertThat(
         "Flight only has steps for linking a new DUOS dataset",
         getFlightStepNames(flight),
-        List.of(
+        contains(
             "RetrieveDuosFirecloudGroupStep",
             "IfNoGroupRetrievedStep",
             "IfNoGroupRetrievedStep",
             "AddDuosFirecloudReaderStep",
             "UpdateSnapshotDuosFirecloudGroupIdStep"));
-    assertEquals(
+    assertThat(
         "Firecloud group creation and record steps are optional",
         getFlightOptionalStepNames(flight),
-        List.of("CreateDuosFirecloudGroupStep", "RecordDuosFirecloudGroupStep"));
+        contains("CreateDuosFirecloudGroupStep", "RecordDuosFirecloudGroupStep"));
   }
 
   @Test
@@ -61,20 +61,20 @@ public class SnapshotUpdateDuosDatasetFlightTest {
 
     var flight = new SnapshotUpdateDuosDatasetFlight(inputParameters, context);
 
-    assertEquals(
+    assertThat(
         "Flight has steps for unlinking the current DUOS dataset and linking a new one",
         getFlightStepNames(flight),
-        List.of(
+        contains(
             "RemoveDuosFirecloudReaderStep",
             "RetrieveDuosFirecloudGroupStep",
             "IfNoGroupRetrievedStep",
             "IfNoGroupRetrievedStep",
             "AddDuosFirecloudReaderStep",
             "UpdateSnapshotDuosFirecloudGroupIdStep"));
-    assertEquals(
+    assertThat(
         "Firecloud group creation and record steps are optional",
         getFlightOptionalStepNames(flight),
-        List.of("CreateDuosFirecloudGroupStep", "RecordDuosFirecloudGroupStep"));
+        contains("CreateDuosFirecloudGroupStep", "RecordDuosFirecloudGroupStep"));
   }
 
   @Test
@@ -85,10 +85,10 @@ public class SnapshotUpdateDuosDatasetFlightTest {
 
     var flight = new SnapshotUpdateDuosDatasetFlight(inputParameters, context);
 
-    assertEquals(
+    assertThat(
         "Flight only has steps for unlinking the current DUOS dataset",
         getFlightStepNames(flight),
-        List.of("RemoveDuosFirecloudReaderStep", "UpdateSnapshotDuosFirecloudGroupIdStep"));
+        contains("RemoveDuosFirecloudReaderStep", "UpdateSnapshotDuosFirecloudGroupIdStep"));
     assertThat(
         "We do not need to create a Firecloud group when only unlinking a DUOS dataset",
         getFlightOptionalStepNames(flight),

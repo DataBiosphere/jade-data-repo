@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.duos;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -56,15 +57,15 @@ public class RecordDuosFirecloudGroupStepTest {
         .thenReturn(DUOS_FIRECLOUD_GROUP_INSERTED);
 
     StepResult doResult = step.doStep(flightContext);
-    assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
-    assertEquals(
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    assertThat(
         "Inserted Firecloud group overwrites created in working map",
         SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
-        DUOS_FIRECLOUD_GROUP_INSERTED);
+        equalTo(DUOS_FIRECLOUD_GROUP_INSERTED));
 
     // Undoing when we recorded the group deletes the record
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(duosDao).deleteFirecloudGroup(DUOS_FIRECLOUD_GROUP_INSERTED.getId());
   }
 
@@ -75,14 +76,14 @@ public class RecordDuosFirecloudGroupStepTest {
         .insertAndRetrieveFirecloudGroup(DUOS_FIRECLOUD_GROUP_CREATED);
     assertThrows(RuntimeException.class, () -> step.doStep(flightContext));
 
-    assertEquals(
+    assertThat(
         "Created Firecloud group remains in working map when insertion fails",
         SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
-        DUOS_FIRECLOUD_GROUP_CREATED);
+        equalTo(DUOS_FIRECLOUD_GROUP_CREATED));
 
     // Undoing when we failed to record the group is a no-op
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(duosDao, never()).deleteFirecloudGroup(any());
   }
 }

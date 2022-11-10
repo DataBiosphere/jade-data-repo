@@ -1,8 +1,8 @@
 package bio.terra.service.snapshot.flight.duos;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -61,18 +61,20 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
             snapshotDao, SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP_PREV);
 
     StepResult doResult = step.doStep(flightContext);
-    assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(snapshotDao).updateDuosFirecloudGroupId(SNAPSHOT_ID, null);
 
     SnapshotLinkDuosDatasetResponse response =
         workingMap.get(JobMapKeys.RESPONSE.getKeyName(), SnapshotLinkDuosDatasetResponse.class);
     assertNotNull(response);
     assertNull("No new DUOS dataset to link", response.getLinked());
-    assertEquals(
-        "Unlinked our previous DUOS dataset", response.getUnlinked(), DUOS_FIRECLOUD_GROUP_PREV);
+    assertThat(
+        "Unlinked our previous DUOS dataset",
+        response.getUnlinked(),
+        equalTo(DUOS_FIRECLOUD_GROUP_PREV));
 
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(snapshotDao).updateDuosFirecloudGroupId(SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP_PREV.getId());
   }
 
@@ -82,17 +84,17 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP);
 
     StepResult doResult = step.doStep(flightContext);
-    assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(snapshotDao).updateDuosFirecloudGroupId(SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP.getId());
 
     SnapshotLinkDuosDatasetResponse response =
         workingMap.get(JobMapKeys.RESPONSE.getKeyName(), SnapshotLinkDuosDatasetResponse.class);
     assertNotNull(response);
-    assertEquals("Linked a new DUOS dataset", response.getLinked(), DUOS_FIRECLOUD_GROUP);
+    assertThat("Linked a new DUOS dataset", response.getLinked(), equalTo(DUOS_FIRECLOUD_GROUP));
     assertNull("No previous DUOS dataset to unlink", response.getUnlinked());
 
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(snapshotDao).updateDuosFirecloudGroupId(SNAPSHOT_ID, null);
   }
 
@@ -104,18 +106,20 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP);
 
     StepResult doResult = step.doStep(flightContext);
-    assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(snapshotDao).updateDuosFirecloudGroupId(SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP.getId());
 
     SnapshotLinkDuosDatasetResponse response =
         workingMap.get(JobMapKeys.RESPONSE.getKeyName(), SnapshotLinkDuosDatasetResponse.class);
     assertNotNull(response);
-    assertEquals("Linked a new DUOS dataset", response.getLinked(), DUOS_FIRECLOUD_GROUP);
-    assertEquals(
-        "Unlinked our previous DUOS dataset", response.getUnlinked(), DUOS_FIRECLOUD_GROUP_PREV);
+    assertThat("Linked a new DUOS dataset", response.getLinked(), equalTo(DUOS_FIRECLOUD_GROUP));
+    assertThat(
+        "Unlinked our previous DUOS dataset",
+        response.getUnlinked(),
+        equalTo(DUOS_FIRECLOUD_GROUP_PREV));
 
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(snapshotDao).updateDuosFirecloudGroupId(SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP_PREV.getId());
   }
 
@@ -126,7 +130,7 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
     step = new UpdateSnapshotDuosFirecloudGroupIdStep(snapshotDao, SNAPSHOT_ID, null);
 
     StepResult doResult = step.doStep(flightContext);
-    assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(snapshotDao).updateDuosFirecloudGroupId(SNAPSHOT_ID, null);
 
     SnapshotLinkDuosDatasetResponse response =
@@ -136,7 +140,7 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
     assertNull("No previous DUOS dataset to unlink", response.getUnlinked());
 
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(snapshotDao, times(2)).updateDuosFirecloudGroupId(SNAPSHOT_ID, null);
   }
 
@@ -151,7 +155,7 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
         .updateDuosFirecloudGroupId(SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP.getId());
 
     StepResult doResult = step.doStep(flightContext);
-    assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_FAILURE_FATAL);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_FAILURE_FATAL));
     verify(snapshotDao).updateDuosFirecloudGroupId(SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP.getId());
 
     assertTrue(doResult.getException().isPresent());
@@ -162,7 +166,7 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
     assertNull(response);
 
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(snapshotDao).updateDuosFirecloudGroupId(SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP_PREV.getId());
   }
 }

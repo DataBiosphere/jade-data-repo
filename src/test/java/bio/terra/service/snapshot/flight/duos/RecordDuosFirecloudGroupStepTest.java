@@ -34,10 +34,9 @@ public class RecordDuosFirecloudGroupStepTest {
   @Mock private FlightContext flightContext;
 
   private static final String DUOS_ID = "DUOS-123456";
-  private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP_CREATED =
-      DuosFixtures.mockDuosFirecloudGroupCreated(DUOS_ID);
-  private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP_INSERTED =
-      DuosFixtures.mockDuosFirecloudGroupFromDb(DUOS_ID);
+  private static final DuosFirecloudGroupModel CREATED = DuosFixtures.createFirecloudGroup(DUOS_ID);
+  private static final DuosFirecloudGroupModel INSERTED =
+      DuosFixtures.createDbFirecloudGroup(DUOS_ID);
 
   private RecordDuosFirecloudGroupStep step;
   private FlightMap workingMap;
@@ -47,39 +46,36 @@ public class RecordDuosFirecloudGroupStepTest {
     step = new RecordDuosFirecloudGroupStep(duosDao);
 
     workingMap = new FlightMap();
-    workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP_CREATED);
+    workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, CREATED);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
   }
 
   @Test
   public void testDoAndUndoStepSucceeds() throws InterruptedException {
-    when(duosDao.insertAndRetrieveFirecloudGroup(DUOS_FIRECLOUD_GROUP_CREATED))
-        .thenReturn(DUOS_FIRECLOUD_GROUP_INSERTED);
+    when(duosDao.insertAndRetrieveFirecloudGroup(CREATED)).thenReturn(INSERTED);
 
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     assertThat(
         "Inserted Firecloud group overwrites created in working map",
         SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
-        equalTo(DUOS_FIRECLOUD_GROUP_INSERTED));
+        equalTo(INSERTED));
 
     // Undoing when we recorded the group deletes the record
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(duosDao).deleteFirecloudGroup(DUOS_FIRECLOUD_GROUP_INSERTED.getId());
+    verify(duosDao).deleteFirecloudGroup(INSERTED.getId());
   }
 
   @Test
   public void testDoStepThrows() throws InterruptedException {
-    doThrow(RuntimeException.class)
-        .when(duosDao)
-        .insertAndRetrieveFirecloudGroup(DUOS_FIRECLOUD_GROUP_CREATED);
+    doThrow(RuntimeException.class).when(duosDao).insertAndRetrieveFirecloudGroup(CREATED);
     assertThrows(RuntimeException.class, () -> step.doStep(flightContext));
 
     assertThat(
         "Created Firecloud group remains in working map when insertion fails",
         SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
-        equalTo(DUOS_FIRECLOUD_GROUP_CREATED));
+        equalTo(CREATED));
 
     // Undoing when we failed to record the group is a no-op
     StepResult undoResult = step.undoStep(flightContext);

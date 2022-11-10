@@ -38,7 +38,7 @@ public class AddDuosFirecloudReaderStepTest {
       AuthenticationFixtures.randomUserRequest();
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
   private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP =
-      DuosFixtures.mockDuosFirecloudGroupFromDb("DUOS-123456");
+      DuosFixtures.createDbFirecloudGroup("DUOS-123456");
 
   private AddDuosFirecloudReaderStep step;
   private FlightMap workingMap;

@@ -28,7 +28,7 @@ public class SnapshotUpdateDuosDatasetFlightTest {
 
   private static final String DUOS_ID = "DUOS-123456";
   private static final DuosFirecloudGroupModel FIRECLOUD_GROUP_PREV =
-      DuosFixtures.mockDuosFirecloudGroupFromDb(DUOS_ID);
+      DuosFixtures.createDbFirecloudGroup(DUOS_ID);
 
   @Test
   public void testConstructFlightLinkDuosDataset() {

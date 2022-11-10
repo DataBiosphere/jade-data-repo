@@ -40,9 +40,9 @@ public class UpdateSnapshotDuosFirecloudGroupIdStepTest {
   @Mock private FlightContext flightContext;
 
   private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP =
-      DuosFixtures.mockDuosFirecloudGroupFromDb("DUOS-123456");
+      DuosFixtures.createDbFirecloudGroup("DUOS-123456");
   private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP_PREV =
-      DuosFixtures.mockDuosFirecloudGroupFromDb("DUOS-789012");
+      DuosFixtures.createDbFirecloudGroup("DUOS-789012");
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
 
   private UpdateSnapshotDuosFirecloudGroupIdStep step;

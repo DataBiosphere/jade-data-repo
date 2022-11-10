@@ -33,8 +33,8 @@ public class RetrieveDuosFirecloudGroupStepTest {
   @Mock private FlightContext flightContext;
 
   private static final String DUOS_ID = "DUOS-123456";
-  private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP_RETRIEVED =
-      DuosFixtures.mockDuosFirecloudGroupFromDb(DUOS_ID);
+  private static final DuosFirecloudGroupModel RETRIEVED =
+      DuosFixtures.createDbFirecloudGroup(DUOS_ID);
 
   private RetrieveDuosFirecloudGroupStep step;
   private FlightMap workingMap;
@@ -49,16 +49,13 @@ public class RetrieveDuosFirecloudGroupStepTest {
 
   @Test
   public void testDoStepGroupExists() throws InterruptedException {
-    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID))
-        .thenReturn(DUOS_FIRECLOUD_GROUP_RETRIEVED);
+    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(RETRIEVED);
 
     StepResult result = step.doStep(flightContext);
     assertThat(result.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(duosDao).retrieveFirecloudGroupByDuosId(DUOS_ID);
 
-    assertThat(
-        SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
-        equalTo(DUOS_FIRECLOUD_GROUP_RETRIEVED));
+    assertThat(SnapshotDuosFlightUtils.getFirecloudGroup(flightContext), equalTo(RETRIEVED));
     assertTrue(workingMap.get(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, boolean.class));
   }
 

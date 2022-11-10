@@ -37,8 +37,7 @@ public class CreateDuosFirecloudGroupStepTest {
   @Mock private FlightContext flightContext;
 
   private static final String DUOS_ID = "DUOS-123456";
-  private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP_CREATED =
-      DuosFixtures.mockDuosFirecloudGroupCreated(DUOS_ID);
+  private static final DuosFirecloudGroupModel CREATED = DuosFixtures.createFirecloudGroup(DUOS_ID);
 
   private CreateDuosFirecloudGroupStep step;
   private FlightMap workingMap;
@@ -54,7 +53,7 @@ public class CreateDuosFirecloudGroupStepTest {
 
   @Test
   public void testDoAndUndoStepSucceeds() throws InterruptedException {
-    when(duosService.createFirecloudGroup(DUOS_ID)).thenReturn(DUOS_FIRECLOUD_GROUP_CREATED);
+    when(duosService.createFirecloudGroup(DUOS_ID)).thenReturn(CREATED);
 
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
@@ -63,7 +62,7 @@ public class CreateDuosFirecloudGroupStepTest {
     assertThat(
         "Created Firecloud group is stored in working map",
         SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
-        equalTo(DUOS_FIRECLOUD_GROUP_CREATED));
+        equalTo(CREATED));
     assertFalse(
         "Working map's earlier record of Firecloud group retrieval is unchanged",
         workingMap.get(SnapshotDuosMapKeys.FIRECLOUD_GROUP_RETRIEVED, boolean.class));
@@ -71,7 +70,7 @@ public class CreateDuosFirecloudGroupStepTest {
     // Undoing when we created a group deletes the group
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(iamService).deleteGroup(DUOS_FIRECLOUD_GROUP_CREATED.getFirecloudGroupName());
+    verify(iamService).deleteGroup(CREATED.getFirecloudGroupName());
   }
 
   @Test

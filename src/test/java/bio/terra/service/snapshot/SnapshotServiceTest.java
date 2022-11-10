@@ -145,7 +145,7 @@ public class SnapshotServiceTest {
   private final UUID profileId = UUID.randomUUID();
   private final Instant createdDate = Instant.now();
   private final DuosFirecloudGroupModel duosFirecloudGroup =
-      DuosFixtures.mockDuosFirecloudGroupFromDb(DUOS_ID);
+      DuosFixtures.createDbFirecloudGroup(DUOS_ID);
 
   @Autowired private SnapshotService service;
 

@@ -378,11 +378,17 @@ public class DrsService {
 
   private DRSAccessURL signGoogleUrl(
       SnapshotCacheResult cachedSnapshot, String gsPath, AuthenticatedUserRequest authUser) {
-    Storage storage =
-        StorageOptions.newBuilder()
-            .setProjectId(cachedSnapshot.googleProjectId)
-            .build()
-            .getService();
+    Storage storage;
+    if (cachedSnapshot.isSelfHosted) {
+      // In the case of a self-hosted dataset, use the dataset's service account to sign the url
+      storage = gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId);
+    } else {
+      storage =
+          StorageOptions.newBuilder()
+              .setProjectId(cachedSnapshot.googleProjectId)
+              .build()
+              .getService();
+    }
     BlobId locator = GcsUriUtils.parseBlobUri(gsPath);
 
     BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();

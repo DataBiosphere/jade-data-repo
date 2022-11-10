@@ -143,10 +143,9 @@ public class SnapshotServiceTest {
   private final UUID datasetId = UUID.randomUUID();
   private final UUID snapshotTableId = UUID.randomUUID();
   private final UUID profileId = UUID.randomUUID();
-  private final UUID duosFirecloudGroupId = UUID.randomUUID();
   private final Instant createdDate = Instant.now();
   private final DuosFirecloudGroupModel duosFirecloudGroup =
-      DuosFixtures.duosFirecloudGroupFromDb(DUOS_ID, duosFirecloudGroupId);
+      DuosFixtures.mockDuosFirecloudGroupFromDb(DUOS_ID);
 
   @Autowired private SnapshotService service;
 
@@ -362,7 +361,7 @@ public class SnapshotServiceTest {
                     new SnapshotRequestContentsModel()
                         .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW)
                         .datasetName(DATASET_NAME))
-                .duosFirecloudGroupId(duosFirecloudGroupId)
+                .duosFirecloudGroupId(duosFirecloudGroup.getId())
                 .duosFirecloudGroup(duosFirecloudGroup));
   }
 
@@ -802,7 +801,7 @@ public class SnapshotServiceTest {
     Snapshot snapshot =
         new Snapshot()
             .id(snapshotId)
-            .duosFirecloudGroupId(duosFirecloudGroupId)
+            .duosFirecloudGroupId(duosFirecloudGroup.getId())
             .duosFirecloudGroup(duosFirecloudGroup);
     when(snapshotDao.retrieveSnapshot(snapshotId)).thenReturn(snapshot);
   }

@@ -5,7 +5,6 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,74 +16,69 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
+@RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class RecordDuosFirecloudGroupStepTest {
 
-  @MockBean private DuosDao duosDao;
+  @Mock private DuosDao duosDao;
   @Mock private FlightContext flightContext;
 
   private static final String DUOS_ID = "DUOS-123456";
-  private static final UUID DUOS_FIRECLOUD_GROUP_ID = UUID.randomUUID();
+  private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP_CREATED =
+      DuosFixtures.mockDuosFirecloudGroupCreated(DUOS_ID);
+  private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP_INSERTED =
+      DuosFixtures.mockDuosFirecloudGroupFromDb(DUOS_ID);
 
   private RecordDuosFirecloudGroupStep step;
-  private DuosFirecloudGroupModel duosFirecloudGroupCreated;
-  private DuosFirecloudGroupModel duosFirecloudGroupInserted;
   private FlightMap workingMap;
 
   @Before
   public void setup() {
     step = new RecordDuosFirecloudGroupStep(duosDao);
 
-    duosFirecloudGroupCreated = DuosFixtures.duosFirecloudGroupCreated(DUOS_ID);
-    duosFirecloudGroupInserted =
-        DuosFixtures.duosFirecloudGroupFromDb(DUOS_ID, DUOS_FIRECLOUD_GROUP_ID);
-
     workingMap = new FlightMap();
-    workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, duosFirecloudGroupCreated);
+    workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP_CREATED);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
   }
 
   @Test
   public void testDoAndUndoStepSucceeds() throws InterruptedException {
-    when(duosDao.insertAndRetrieveFirecloudGroup(duosFirecloudGroupCreated))
-        .thenReturn(duosFirecloudGroupInserted);
+    when(duosDao.insertAndRetrieveFirecloudGroup(DUOS_FIRECLOUD_GROUP_CREATED))
+        .thenReturn(DUOS_FIRECLOUD_GROUP_INSERTED);
 
     StepResult doResult = step.doStep(flightContext);
     assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
     assertEquals(
         "Inserted Firecloud group overwrites created in working map",
         SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
-        duosFirecloudGroupInserted);
+        DUOS_FIRECLOUD_GROUP_INSERTED);
 
     // Undoing when we recorded the group deletes the record
     StepResult undoResult = step.undoStep(flightContext);
     assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
-    verify(duosDao, times(1)).deleteFirecloudGroup(DUOS_FIRECLOUD_GROUP_ID);
+    verify(duosDao).deleteFirecloudGroup(DUOS_FIRECLOUD_GROUP_INSERTED.getId());
   }
 
   @Test
   public void testDoStepThrows() throws InterruptedException {
     doThrow(RuntimeException.class)
         .when(duosDao)
-        .insertAndRetrieveFirecloudGroup(duosFirecloudGroupCreated);
+        .insertAndRetrieveFirecloudGroup(DUOS_FIRECLOUD_GROUP_CREATED);
     assertThrows(RuntimeException.class, () -> step.doStep(flightContext));
 
     assertEquals(
         "Created Firecloud group remains in working map when insertion fails",
         SnapshotDuosFlightUtils.getFirecloudGroup(flightContext),
-        duosFirecloudGroupCreated);
+        DUOS_FIRECLOUD_GROUP_CREATED);
 
     // Undoing when we failed to record the group is a no-op
     StepResult undoResult = step.undoStep(flightContext);

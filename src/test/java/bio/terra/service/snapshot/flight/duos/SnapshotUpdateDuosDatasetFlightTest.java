@@ -11,7 +11,6 @@ import bio.terra.service.job.OptionalStep;
 import bio.terra.stairway.FlightMap;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -28,13 +27,8 @@ public class SnapshotUpdateDuosDatasetFlightTest {
   @Mock private ApplicationContext context;
 
   private static final String DUOS_ID = "DUOS-123456";
-
-  private DuosFirecloudGroupModel firecloudGroupPrev;
-
-  @Before
-  public void setup() {
-    firecloudGroupPrev = DuosFixtures.duosFirecloudGroupFromDb(DUOS_ID);
-  }
+  private static final DuosFirecloudGroupModel FIRECLOUD_GROUP_PREV =
+      DuosFixtures.mockDuosFirecloudGroupFromDb(DUOS_ID);
 
   @Test
   public void testConstructFlightLinkDuosDataset() {
@@ -63,7 +57,7 @@ public class SnapshotUpdateDuosDatasetFlightTest {
   public void testConstructFlightUpdateExistingDuosDatasetLink() {
     FlightMap inputParameters = new FlightMap();
     inputParameters.put(SnapshotDuosMapKeys.DUOS_ID, DUOS_ID);
-    inputParameters.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP_PREV, firecloudGroupPrev);
+    inputParameters.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP_PREV, FIRECLOUD_GROUP_PREV);
 
     var flight = new SnapshotUpdateDuosDatasetFlight(inputParameters, context);
 
@@ -87,7 +81,7 @@ public class SnapshotUpdateDuosDatasetFlightTest {
   public void testConstructFlightUnlinkDuosDataset() {
     FlightMap inputParameters = new FlightMap();
     inputParameters.put(SnapshotDuosMapKeys.DUOS_ID, null);
-    inputParameters.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP_PREV, firecloudGroupPrev);
+    inputParameters.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP_PREV, FIRECLOUD_GROUP_PREV);
 
     var flight = new SnapshotUpdateDuosDatasetFlight(inputParameters, context);
 

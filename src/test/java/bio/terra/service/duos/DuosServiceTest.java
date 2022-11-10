@@ -21,10 +21,10 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
+@RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class DuosServiceTest {
@@ -34,27 +34,26 @@ public class DuosServiceTest {
 
   private static final String DUOS_ID = "DUOS-123456";
   private static final String FIRECLOUD_GROUP_NAME = String.format("%s-users", DUOS_ID);
-  private String firecloudGroupEmail;
+  private static final String FIRECLOUD_GROUP_EMAIL = firecloudGroupEmail(FIRECLOUD_GROUP_NAME);
 
   @Before
   public void before() {
     duosService = new DuosService(iamService);
-    firecloudGroupEmail = firecloudGroupEmail(FIRECLOUD_GROUP_NAME);
   }
 
-  private String firecloudGroupEmail(String groupName) {
+  private static String firecloudGroupEmail(String groupName) {
     return String.format("%s@dev.test.firecloud.org", groupName);
   }
 
   @Test
   public void testCreateFirecloudGroup() {
-    when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(firecloudGroupEmail);
+    when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(FIRECLOUD_GROUP_EMAIL);
 
     DuosFirecloudGroupModel actual = duosService.createFirecloudGroup(DUOS_ID);
     assertThat(actual.getDuosId(), equalTo(DUOS_ID));
     assertThat(actual.getFirecloudGroupName(), equalTo(FIRECLOUD_GROUP_NAME));
-    assertThat(actual.getFirecloudGroupEmail(), equalTo(firecloudGroupEmail));
-    verify(iamService, times(1)).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
+    assertThat(actual.getFirecloudGroupEmail(), equalTo(FIRECLOUD_GROUP_EMAIL));
+    verify(iamService).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
   }
 
   @Test
@@ -83,6 +82,6 @@ public class DuosServiceTest {
         new IamForbiddenException("Unexpected SAM error", List.of());
     doThrow(iamForbiddenException).when(iamService).createGroup(FIRECLOUD_GROUP_NAME);
     assertThrows(IamForbiddenException.class, () -> duosService.createFirecloudGroup(DUOS_ID));
-    verify(iamService, times(1)).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
+    verify(iamService).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
   }
 }

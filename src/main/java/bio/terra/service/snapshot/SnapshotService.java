@@ -2,6 +2,7 @@ package bio.terra.service.snapshot;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 
+import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
@@ -78,6 +79,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -90,6 +92,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -396,15 +399,7 @@ public class SnapshotService {
    */
   public SnapshotModel retrieveAvailableSnapshotModel(
       UUID id, AuthenticatedUserRequest userRequest) {
-    List<SnapshotRetrieveIncludeModel> include =
-        List.of(
-            SnapshotRetrieveIncludeModel.SOURCES,
-            SnapshotRetrieveIncludeModel.TABLES,
-            SnapshotRetrieveIncludeModel.RELATIONSHIPS,
-            SnapshotRetrieveIncludeModel.PROFILE,
-            SnapshotRetrieveIncludeModel.DATA_PROJECT,
-            SnapshotRetrieveIncludeModel.DUOS);
-    return retrieveAvailableSnapshotModel(id, include, userRequest);
+    return retrieveAvailableSnapshotModel(id, getDefaultIncludes(), userRequest);
   }
 
   /**
@@ -1111,5 +1106,12 @@ public class SnapshotService {
         .datatype(column.getType())
         .arrayOf(column.isArrayOf())
         .required(column.isRequired());
+  }
+
+  private static List<SnapshotRetrieveIncludeModel> getDefaultIncludes() {
+    return Arrays.stream(
+            StringUtils.split(SnapshotsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
+        .map(SnapshotRetrieveIncludeModel::fromValue)
+        .collect(Collectors.toList());
   }
 }

@@ -62,6 +62,10 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   private final Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
 
+  // We do not include Access_Information since it can get expensive
+  public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE =
+      "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT,DUOS";
+
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final JobService jobService;
@@ -200,7 +204,12 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<SnapshotModel> retrieveSnapshot(
-      UUID id, List<SnapshotRetrieveIncludeModel> include) {
+      UUID id,
+      @RequestParam(
+              value = "include",
+              required = false,
+              defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
+          List<SnapshotRetrieveIncludeModel> include) {
     logger.info("Verifying user access");
     AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
     snapshotService.verifySnapshotAccessible(id, authenticatedInfo);

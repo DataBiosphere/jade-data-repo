@@ -1,11 +1,12 @@
 package bio.terra.service.snapshot.flight.duos;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.times;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.fixtures.DuosFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DuosFirecloudGroupModel;
@@ -21,61 +22,54 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
+@RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class RemoveDuosFirecloudReaderStepTest {
 
-  @MockBean private IamService iamService;
+  @Mock private IamService iamService;
   @Mock private FlightContext flightContext;
 
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
+  private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP_PREV =
+      DuosFixtures.createDbFirecloudGroup("DUOS-123456");
 
-  private AuthenticatedUserRequest userReq;
-  private DuosFirecloudGroupModel duosFirecloudGroupPrev;
   private RemoveDuosFirecloudReaderStep step;
 
   @Before
   public void setup() {
-    userReq =
-        AuthenticatedUserRequest.builder()
-            .setSubjectId("RemoveDuosFirecloudReaderStepTest")
-            .setEmail("RemoveDuosFirecloudReaderStepTest@unit.com")
-            .setToken("token")
-            .build();
-
-    duosFirecloudGroupPrev = DuosFixtures.duosFirecloudGroupFromDb("DUOS-123456");
-
     step =
-        new RemoveDuosFirecloudReaderStep(iamService, userReq, SNAPSHOT_ID, duosFirecloudGroupPrev);
+        new RemoveDuosFirecloudReaderStep(
+            iamService, TEST_USER, SNAPSHOT_ID, DUOS_FIRECLOUD_GROUP_PREV);
   }
 
   @Test
   public void testDoAndUndoStep() throws InterruptedException {
     StepResult doResult = step.doStep(flightContext);
-    assertEquals(doResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
-    verify(iamService, times(1))
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(iamService)
         .deletePolicyMember(
-            userReq,
+            TEST_USER,
             IamResourceType.DATASNAPSHOT,
             SNAPSHOT_ID,
             IamRole.READER.toString(),
-            duosFirecloudGroupPrev.getFirecloudGroupEmail());
+            DUOS_FIRECLOUD_GROUP_PREV.getFirecloudGroupEmail());
     verifyNoInteractions(flightContext);
 
     StepResult undoResult = step.undoStep(flightContext);
-    assertEquals(undoResult.getStepStatus(), StepStatus.STEP_RESULT_SUCCESS);
-    verify(iamService, times(1))
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(iamService)
         .addPolicyMember(
-            userReq,
+            TEST_USER,
             IamResourceType.DATASNAPSHOT,
             SNAPSHOT_ID,
             IamRole.READER.toString(),
-            duosFirecloudGroupPrev.getFirecloudGroupEmail());
+            DUOS_FIRECLOUD_GROUP_PREV.getFirecloudGroupEmail());
     verifyNoInteractions(flightContext);
   }
 }

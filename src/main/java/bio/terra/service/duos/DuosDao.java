@@ -9,7 +9,6 @@ import java.sql.Timestamp;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -34,7 +33,6 @@ public class DuosDao {
       FROM duos_firecloud_group
       """;
 
-  @Autowired
   public DuosDao(
       NamedParameterJdbcTemplate jdbcTemplate,
       @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail) {

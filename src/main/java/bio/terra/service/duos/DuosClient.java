@@ -39,7 +39,7 @@ public class DuosClient {
 
   @VisibleForTesting
   String getDatasetUrl(String duosId) {
-    return String.format("%s/api/tdr/%s", duosConfiguration.getBasePath(), duosId);
+    return String.format("%s/api/tdr/%s", duosConfiguration.basePath(), duosId);
   }
 
   /**

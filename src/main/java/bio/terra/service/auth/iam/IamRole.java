@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public enum IamRole {
   ADMIN,
+  MEMBER,
   STEWARD,
   CUSTODIAN,
   READER,

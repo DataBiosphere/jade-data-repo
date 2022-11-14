@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -12,7 +13,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -642,14 +642,13 @@ public class SamIamTest {
     String groupName = "firecloud_group_name";
     String groupEmail = String.format("%s@dev.test.firecloud.org", groupName);
 
-    doNothing().when(samGroupApi).postGroup(groupName);
     when(samGroupApi.getGroup(groupName)).thenReturn(groupEmail);
     assertThat(
         "Firecloud group email is returned when creation succeeds and email returned by SAM",
         samIam.createGroup(accessToken, groupName),
-        is(groupEmail));
-    verify(samGroupApi, times(1)).postGroup(groupName);
-    verify(samGroupApi, times(1)).getGroup(groupName);
+        equalTo(groupEmail));
+    verify(samGroupApi).postGroup(groupName);
+    verify(samGroupApi).getGroup(groupName);
   }
 
   @Test
@@ -664,7 +663,7 @@ public class SamIamTest {
         "IamConflictException is thrown when the group already exists",
         IamConflictException.class,
         () -> samIam.createGroup(accessToken, groupName));
-    verify(samGroupApi, times(1)).postGroup(groupName);
+    verify(samGroupApi).postGroup(groupName);
     verify(samGroupApi, never()).getGroup(groupName);
   }
 
@@ -673,15 +672,41 @@ public class SamIamTest {
     String accessToken = userReq.getToken();
     String groupName = "firecloud_group_name";
 
-    doNothing().when(samGroupApi).postGroup(groupName);
     ApiException samEx = new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
     when(samGroupApi.getGroup(groupName)).thenThrow(samEx);
     assertThrows(
         "IamNotFoundException is thrown when the user cannot access their created group",
         IamNotFoundException.class,
         () -> samIam.createGroup(accessToken, groupName));
-    verify(samGroupApi, times(1)).getGroup(groupName);
-    verify(samGroupApi, times(1)).getGroup(groupName);
+    verify(samGroupApi).postGroup(groupName);
+    verify(samGroupApi).getGroup(groupName);
+  }
+
+  @Test
+  public void testOverwriteGroupPolicyEmails() throws InterruptedException, ApiException {
+    String accessToken = userReq.getToken();
+    String groupName = "firecloud_group_name";
+    String policyName = IamRole.MEMBER.toString();
+    List<String> emails = List.of("user@a.com");
+
+    samIam.overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails);
+    verify(samGroupApi).overwriteGroupPolicyEmails(groupName, policyName, emails);
+  }
+
+  @Test
+  public void testOverwriteGroupPolicyEmailsThrowsWhenSamGroupApiThrows() throws ApiException {
+    String accessToken = userReq.getToken();
+    String groupName = "firecloud_group_name";
+    String policyName = IamRole.MEMBER.toString();
+    List<String> emails = List.of("user@a.com");
+
+    ApiException samEx = new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
+    doThrow(samEx).when(samGroupApi).overwriteGroupPolicyEmails(groupName, policyName, emails);
+    assertThrows(
+        "IamNotFoundException is thrown when the user cannot access the group",
+        IamNotFoundException.class,
+        () -> samIam.overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails));
+    verify(samGroupApi).overwriteGroupPolicyEmails(groupName, policyName, emails);
   }
 
   @Test
@@ -689,9 +714,14 @@ public class SamIamTest {
     String accessToken = userReq.getToken();
     String groupName = "firecloud_group_name";
 
-    doNothing().when(samGroupApi).deleteGroup(groupName);
     samIam.deleteGroup(accessToken, groupName);
-    verify(samGroupApi, times(1)).deleteGroup(groupName);
+    verify(samGroupApi).deleteGroup(groupName);
+  }
+
+  @Test
+  public void testDeleteGroupThrowsWhenSamGroupApiThrows() throws ApiException {
+    String accessToken = userReq.getToken();
+    String groupName = "firecloud_group_name";
 
     ApiException samEx = new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
     doThrow(samEx).when(samGroupApi).deleteGroup(groupName);
@@ -699,6 +729,6 @@ public class SamIamTest {
         "IamNotFoundException is thrown when the user cannot access the group",
         IamNotFoundException.class,
         () -> samIam.deleteGroup(accessToken, groupName));
-    verify(samGroupApi, times(2)).deleteGroup(groupName);
+    verify(samGroupApi).deleteGroup(groupName);
   }
 }

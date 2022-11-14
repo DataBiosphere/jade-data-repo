@@ -638,6 +638,21 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
+  public void overwriteGroupPolicyEmails(
+      String accessToken, String groupName, String policyName, List<String> emailAddresses)
+      throws InterruptedException {
+    SamRetry.retry(
+        configurationService,
+        () -> overwriteGroupPolicyEmailsInner(accessToken, groupName, policyName, emailAddresses));
+  }
+
+  private void overwriteGroupPolicyEmailsInner(
+      String accessToken, String groupName, String policyName, List<String> emailAddresses)
+      throws ApiException {
+    samGroupApi(accessToken).overwriteGroupPolicyEmails(groupName, policyName, emailAddresses);
+  }
+
+  @Override
   public void deleteGroup(String accessToken, String groupName) throws InterruptedException {
     SamRetry.retry(configurationService, () -> deleteGroupInner(accessToken, groupName));
   }

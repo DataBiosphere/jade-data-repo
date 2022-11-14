@@ -226,6 +226,16 @@ public interface IamProviderInterface {
   String createGroup(String accessToken, String groupName) throws InterruptedException;
 
   /**
+   * @param accessToken valid oauth token for the account modifying the group policy members
+   * @param groupName name of Firecloud managed group
+   * @param policyName name of Firecloud managed group policy
+   * @param emailAddresses user emails which will overwrite group policy contents
+   */
+  void overwriteGroupPolicyEmails(
+      String accessToken, String groupName, String policyName, List<String> emailAddresses)
+      throws InterruptedException;
+
+  /**
    * @param accessToken valid oauth token for the account creating the group
    * @param groupName name of Firecloud managed group to delete
    */

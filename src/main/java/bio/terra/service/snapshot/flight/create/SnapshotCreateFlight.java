@@ -140,7 +140,7 @@ public class SnapshotCreateFlight extends Flight {
           addStep(
               new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
           addStep(
-              new CreateSnapshotPrimaryDataAssetStep(
+              new CreateSnapshotPrimaryDataAssetGcpStep(
                   bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq));
           break;
         } else {

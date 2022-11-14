@@ -12,10 +12,15 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.model.SnapshotRequestAssetModel;
+import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableDataType;
+import bio.terra.service.dataset.AssetColumn;
+import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidColumnException;
 import bio.terra.service.dataset.exception.InvalidTableException;
@@ -126,6 +131,9 @@ public class AzureSynapsePdao {
 
   private static final String createSnapshotTableByRowIdTemplate =
       createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
+
+  private static final String createSnapshotTableByAssetTemplate =
+      createSnapshotTableTemplate + " WHERE rows.:rootColumn in (:rootValues)";
 
   private static final String createSnapshotRowIdTableTemplate =
       """
@@ -493,6 +501,62 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
 
+  public Map<String, Long> createSnapshotParquetFilesByAsset(
+      List<SnapshotTable> tables,
+      AssetSpecification assetSpec,
+      UUID snapshotId,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String datasetFlightId,
+      SnapshotRequestAssetModel assetModel)
+      throws SQLException {
+    Map<String, Long> tableRowCounts = new HashMap<>();
+
+    // First handle root table
+    AssetTable rootTable = assetSpec.getRootTable();
+    String rootTableName = rootTable.getTable().getRawTableName();
+
+    // Get columns to include for root table
+    List<SynapseColumn> columns =
+          rootTable.getColumns().stream()
+              .map(c -> c.getDatasetColumn())
+              .collect(Collectors.toList())
+              .stream()
+              .map(Column::toSynapseColumn)
+              .collect(Collectors.toList());
+      ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByAssetTemplate);
+      String query =
+          generateSnapshotParquetCreateQuery(
+              sqlCreateSnapshotTableTemplate,
+              rootTable.getTable().getName(),
+              snapshotId,
+              datasetDataSourceName,
+              snapshotDataSourceName,
+              datasetFlightId,
+              columns);
+
+    AssetColumn rootColumn = assetSpec.getRootColumn();
+    MapSqlParameterSource params = new MapSqlParameterSource()
+        .addValue("rootColumn", rootColumn.getDatasetColumn().getName())
+        .addValue("rootValues", assetModel.getRootValues());
+
+    int rows = synapseJdbcTemplate.update(query, params);
+
+    tableRowCounts.put(rootTableName, (long) rows);
+    if (rows == 0) {
+      logger.info(
+          "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
+          rootTableName);
+    }
+
+    // Then walk relationships
+
+    // For each table
+
+
+    return tableRowCounts;
+  }
+
   public Map<String, Long> createSnapshotParquetFilesByRowId(
       List<SnapshotTable> tables,
       UUID snapshotId,
@@ -509,6 +573,7 @@ public class AzureSynapsePdao {
       List<SynapseColumn> columns;
       MapSqlParameterSource params;
       String query;
+      // Match snapshot table - optional b/c not every table
       Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
           rowIdModel.getTables().stream()
               .filter(t -> Objects.equals(t.getTableName(), table.getName()))
@@ -525,7 +590,7 @@ public class AzureSynapsePdao {
         query =
             generateSnapshotParquetCreateQuery(
                 sqlCreateSnapshotTableTemplate,
-                table,
+                table.getName(),
                 snapshotId,
                 datasetDataSourceName,
                 snapshotDataSourceName,
@@ -568,7 +633,7 @@ public class AzureSynapsePdao {
       String query =
           generateSnapshotParquetCreateQuery(
               sqlCreateSnapshotTableTemplate,
-              table,
+              table.getName(),
               snapshotId,
               datasetDataSourceName,
               snapshotDataSourceName,
@@ -592,7 +657,7 @@ public class AzureSynapsePdao {
 
   private String generateSnapshotParquetCreateQuery(
       ST sqlCreateSnapshotTableTemplate,
-      SnapshotTable table,
+      String tableName,
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
@@ -600,14 +665,14 @@ public class AzureSynapsePdao {
       List<SynapseColumn> columns,
       boolean isGlobalFileIds) {
     String datasetParquetFileName =
-        IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
+        IngestUtils.getSourceDatasetParquetFilePath(tableName, datasetFlightId);
     String snapshotParquetFileName =
-        IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
-    String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
+        IngestUtils.getSnapshotParquetFilePath(snapshotId, tableName);
+    String snapshotTableName = IngestUtils.formatSnapshotTableName(snapshotId, tableName);
 
     sqlCreateSnapshotTableTemplate
         .add("columns", columns)
-        .add("tableName", tableName)
+        .add("tableName", snapshotTableName)
         .add("destinationParquetFile", snapshotParquetFileName)
         .add("destinationDataSourceName", snapshotDataSourceName)
         .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())

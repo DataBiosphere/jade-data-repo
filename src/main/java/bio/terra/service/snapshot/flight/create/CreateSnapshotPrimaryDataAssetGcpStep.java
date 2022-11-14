@@ -19,14 +19,14 @@ import bio.terra.stairway.StepStatus;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 
-public class CreateSnapshotPrimaryDataAssetStep implements Step {
+public class CreateSnapshotPrimaryDataAssetGcpStep implements Step {
 
   private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private SnapshotDao snapshotDao;
   private SnapshotService snapshotService;
   private SnapshotRequestModel snapshotReq;
 
-  public CreateSnapshotPrimaryDataAssetStep(
+  public CreateSnapshotPrimaryDataAssetGcpStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
@@ -50,6 +50,9 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
 
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     SnapshotSource source = snapshot.getFirstSnapshotSource();
+
+    // instead of a query, it looks like we're basically building a query to match
+    // the input values.
     RowIdMatch rowIdMatch =
         bigQuerySnapshotPdao.mapValuesToRows(source, assetSpec.getRootValues(), createdAt);
     if (rowIdMatch.getUnmatchedInputValues().size() != 0) {

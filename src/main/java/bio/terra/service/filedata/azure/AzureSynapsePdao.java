@@ -13,7 +13,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestAssetModel;
-import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SqlSortDirection;
@@ -494,7 +493,6 @@ public class AzureSynapsePdao {
   }
 
   public Map<String, Long> createSnapshotParquetFilesByAsset(
-      List<SnapshotTable> tables,
       AssetSpecification assetSpec,
       UUID snapshotId,
       String datasetDataSourceName,
@@ -510,27 +508,28 @@ public class AzureSynapsePdao {
 
     // Get columns to include for root table
     List<SynapseColumn> columns =
-          rootTable.getColumns().stream()
-              .map(c -> c.getDatasetColumn())
-              .collect(Collectors.toList())
-              .stream()
-              .map(Column::toSynapseColumn)
-              .collect(Collectors.toList());
-      ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByAssetTemplate);
-      String query =
-          generateSnapshotParquetCreateQuery(
-              sqlCreateSnapshotTableTemplate,
-              rootTable.getTable().getName(),
-              snapshotId,
-              datasetDataSourceName,
-              snapshotDataSourceName,
-              datasetFlightId,
-              columns);
+        rootTable.getColumns().stream()
+            .map(c -> c.getDatasetColumn())
+            .collect(Collectors.toList())
+            .stream()
+            .map(Column::toSynapseColumn)
+            .collect(Collectors.toList());
+    ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByAssetTemplate);
+    String query =
+        generateSnapshotParquetCreateQuery(
+            sqlCreateSnapshotTableTemplate,
+            rootTable.getTable().getName(),
+            snapshotId,
+            datasetDataSourceName,
+            snapshotDataSourceName,
+            datasetFlightId,
+            columns);
 
     AssetColumn rootColumn = assetSpec.getRootColumn();
-    MapSqlParameterSource params = new MapSqlParameterSource()
-        .addValue("rootColumn", rootColumn.getDatasetColumn().getName())
-        .addValue("rootValues", assetModel.getRootValues());
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("rootColumn", rootColumn.getDatasetColumn().getName())
+            .addValue("rootValues", assetModel.getRootValues());
 
     int rows = synapseJdbcTemplate.update(query, params);
 
@@ -544,7 +543,6 @@ public class AzureSynapsePdao {
     // Then walk relationships
 
     // For each table
-
 
     return tableRowCounts;
   }
@@ -651,8 +649,7 @@ public class AzureSynapsePdao {
       List<SynapseColumn> columns) {
     String datasetParquetFileName =
         IngestUtils.getSourceDatasetParquetFilePath(tableName, datasetFlightId);
-    String snapshotParquetFileName =
-        IngestUtils.getSnapshotParquetFilePath(snapshotId, tableName);
+    String snapshotParquetFileName = IngestUtils.getSnapshotParquetFilePath(snapshotId, tableName);
     String snapshotTableName = IngestUtils.formatSnapshotTableName(snapshotId, tableName);
 
     sqlCreateSnapshotTableTemplate

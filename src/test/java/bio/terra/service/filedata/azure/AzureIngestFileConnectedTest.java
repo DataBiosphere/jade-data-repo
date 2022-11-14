@@ -19,6 +19,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.common.azure.StorageTableName;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.FSItem;
@@ -210,7 +211,12 @@ public class AzureIngestFileConnectedTest {
     // 5 - IngestFileAzurePrimaryDataStep
     FSFileInfo fsFileInfo =
         azureBlobStorePdao.copyFile(
-            billingProfile, fileLoadModel, fileId, storageAccountResource, TEST_USER);
+            new Dataset().id(datasetId).predictableFileIDs(false),
+            billingProfile,
+            fileLoadModel,
+            fileId,
+            storageAccountResource,
+            TEST_USER);
 
     // 6 - IngestFileAzureFileStep
     FireStoreFile newFile =

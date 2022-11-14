@@ -141,7 +141,6 @@ public class FileIngestFlight extends Flight {
               gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq),
           getDefaultExponentialBackoffRetryRule());
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-      addStep(new IngestFileDirectoryStep(fileDao, dataset), randomBackoffRetry);
       if (!dataset.isSelfHosted()) {
         addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
         addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
@@ -150,7 +149,13 @@ public class FileIngestFlight extends Flight {
             randomBackoffRetry);
         addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
       }
-      addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), randomBackoffRetry);
+      if (dataset.isPredictableFileIds()) {
+        addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), randomBackoffRetry);
+        addStep(new IngestFileDirectoryStep(fileDao, dataset), randomBackoffRetry);
+      } else {
+        addStep(new IngestFileDirectoryStep(fileDao, dataset), randomBackoffRetry);
+        addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), randomBackoffRetry);
+      }
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {
       addStep(
@@ -159,8 +164,17 @@ public class FileIngestFlight extends Flight {
           new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
           randomBackoffRetry);
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset), randomBackoffRetry);
-      addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), randomBackoffRetry);
-      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService, userReq));
+      if (dataset.isPredictableFileIds()) {
+        addStep(
+            new IngestFileAzurePrimaryDataStep(
+                dataset, azureBlobStorePdao, configService, userReq));
+        addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), randomBackoffRetry);
+      } else {
+        addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), randomBackoffRetry);
+        addStep(
+            new IngestFileAzurePrimaryDataStep(
+                dataset, azureBlobStorePdao, configService, userReq));
+      }
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), randomBackoffRetry);
     }
     addStep(new LoadUnlockStep(loadService));

@@ -3723,6 +3723,13 @@ components:
           type: string
           description: >
             Google service account to grant storage.object.get access on source Google storage buckets to in order to ingest files
+        predictableFileIds:
+          type: boolean
+          default: false
+          description: >
+            If false, random ids will be created. If true, full target path (e.g. path + name), size and MD5 hash will be used
+
+            Note: this only applies to files.  Directories still have random ids regardless of this value
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -3761,6 +3768,13 @@ components:
           type: boolean
           default: false
           description: denotes whether data files in the dataset are self-hosted or not
+        predictableFileIds:
+          type: boolean
+          default: false
+          description: >
+            If false, random ids will be created. If true, full target path (e.g. path + name), size and MD5 hash will be used
+
+            Note: this only applies to files.  Directories still have random ids regardless of this value
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -3811,6 +3825,13 @@ components:
             This might be useful to set as a security improvement since this provides a dedicated account that explicitly
             does not have access to any other buckets.  It's also recommended if you need to authorize a large number of buckets
             since the main service account could run into Google group membership quota violations.
+        predictableFileIds:
+          type: boolean
+          default: false
+          description: >
+            If false, random ids will be created. If true, full target path (e.g. path + name), size and MD5 hash will be used
+            
+            Note: this only applies to files.  Directories still have random ids regardless of this value
         policies:
           description: User emails to add as dataset policy members.
           type: object

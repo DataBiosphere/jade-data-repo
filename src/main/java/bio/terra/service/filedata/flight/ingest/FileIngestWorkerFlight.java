@@ -81,13 +81,33 @@ public class FileIngestWorkerFlight extends Flight {
 
     if (platform.isGcp()) {
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-      addStep(new IngestFileDirectoryStep(fileDao, dataset), fileSystemRetry);
-      addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), fileSystemRetry);
+      // Order depends on how the file id is obtained.  If we are generating the file predictably,
+      // we determine it when ingesting the file (by reading the MD5) so we need to run that first.
+      // Otherwise, we need to first perform the directory creation step and then the physical copy
+      // of the file
+      if (dataset.isPredictableFileIds()) {
+        addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), fileSystemRetry);
+        addStep(new IngestFileDirectoryStep(fileDao, dataset), fileSystemRetry);
+      } else {
+        addStep(new IngestFileDirectoryStep(fileDao, dataset), fileSystemRetry);
+        addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), fileSystemRetry);
+      }
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
-      addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
-      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService, userReq));
+      // Same as for GCP: because of the order in which file ids are calculated, we need to swap
+      // the order of the steps when using predictable file ids
+      if (dataset.isPredictableFileIds()) {
+        addStep(
+            new IngestFileAzurePrimaryDataStep(
+                dataset, azureBlobStorePdao, configService, userReq));
+        addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
+      } else {
+        addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
+        addStep(
+            new IngestFileAzurePrimaryDataStep(
+                dataset, azureBlobStorePdao, configService, userReq));
+      }
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), fileSystemRetry);
     }
   }

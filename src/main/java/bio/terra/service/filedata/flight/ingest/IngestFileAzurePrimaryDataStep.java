@@ -9,6 +9,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.CommonMapKeys;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -29,14 +30,17 @@ public class IngestFileAzurePrimaryDataStep implements Step {
   private final ConfigurationService configService;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final AuthenticatedUserRequest userRequest;
+  private final Dataset dataset;
 
   public IngestFileAzurePrimaryDataStep(
+      Dataset dataset,
       AzureBlobStorePdao azureBlobStorePdao,
       ConfigurationService configService,
       AuthenticatedUserRequest userRequest) {
     this.configService = configService;
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.userRequest = userRequest;
+    this.dataset = dataset;
   }
 
   @Override
@@ -46,7 +50,10 @@ public class IngestFileAzurePrimaryDataStep implements Step {
 
     FlightMap workingMap = context.getWorkingMap();
 
-    String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+    String fileId = null;
+    if (!dataset.isPredictableFileIds()) {
+      fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+    }
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       BillingProfileModel billingProfileModel =
@@ -65,7 +72,15 @@ public class IngestFileAzurePrimaryDataStep implements Step {
       } else {
         fsFileInfo =
             azureBlobStorePdao.copyFile(
-                billingProfileModel, fileLoadModel, fileId, storageAccountResource, userRequest);
+                dataset,
+                billingProfileModel,
+                fileLoadModel,
+                fileId,
+                storageAccountResource,
+                userRequest);
+      }
+      if (fileId == null) {
+        workingMap.put(FileMapKeys.FILE_ID, fsFileInfo.getFileId());
       }
       workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
     }

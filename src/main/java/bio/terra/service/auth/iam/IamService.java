@@ -383,6 +383,20 @@ public class IamService {
   }
 
   /**
+   * @param groupName Firecloud managed group
+   * @param policyName name of Firecloud managed group policy
+   * @param emailAddresses emails which the TDR SA will set as group policy members
+   */
+  public void overwriteGroupPolicyEmails(
+      String groupName, String policyName, List<String> emailAddresses) {
+    GoogleCredentials tdrSaCreds = getGoogleCredentialsApplicationDefault();
+    callProvider(
+        () ->
+            iamProvider.overwriteGroupPolicyEmails(
+                getAccessToken(tdrSaCreds), groupName, policyName, emailAddresses));
+  }
+
+  /**
    * @param groupName Firecloud managed group to delete as the TDR SA
    */
   public void deleteGroup(String groupName) {

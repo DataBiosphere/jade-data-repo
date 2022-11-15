@@ -40,6 +40,7 @@ jobs:
           workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
           service_account: 'dsp-tools-iap-access@dsp-tools-k8s.iam.gserviceaccount.com'
           id_token_include_email: true
+      # These Sherlock calls are all separate so they can fail without affecting the others
       - name: 'Update Sherlock'
         run: |
           curl -X 'POST' \
@@ -51,6 +52,40 @@ jobs:
               \"chartReleases\": [
                 {
                   \"chartRelease\": \"alpha/datarepo\",
+                  \"toAppVersionExact\": \"${{ steps.apiprevioustag.outputs.tag }}\",
+                  \"toAppVersionResolver\": \"exact\",
+                  \"toChartVersionExact\": \"${{ env.chartVersion }}\",
+                  \"toChartVersionResolver\": \"exact\",
+                  \"toHelmfileRef\": \"HEAD\"
+                }
+              ]
+            }"
+          curl -X 'POST' \
+            'https://sherlock-dev.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan-and-apply' \
+            -H 'accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
+            -d "{
+              \"chartReleases\": [
+                {
+                  \"chartRelease\": \"swatomation/datarepo\",
+                  \"toAppVersionExact\": \"${{ steps.apiprevioustag.outputs.tag }}\",
+                  \"toAppVersionResolver\": \"exact\",
+                  \"toChartVersionExact\": \"${{ env.chartVersion }}\",
+                  \"toChartVersionResolver\": \"exact\",
+                  \"toHelmfileRef\": \"HEAD\"
+                }
+              ]
+            }"
+          curl -X 'POST' \
+            'https://sherlock.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan-and-apply' \
+            -H 'accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
+            -d "{
+              \"chartReleases\": [
+                {
+                  \"chartRelease\": \"swatomation/datarepo\",
                   \"toAppVersionExact\": \"${{ steps.apiprevioustag.outputs.tag }}\",
                   \"toAppVersionResolver\": \"exact\",
                   \"toChartVersionExact\": \"${{ env.chartVersion }}\",

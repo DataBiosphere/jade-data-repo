@@ -16,10 +16,16 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 public class CreateSnapshotPrimaryDataAssetGcpStep implements Step {
+  private static final Logger logger =
+      LoggerFactory.getLogger(CreateSnapshotPrimaryDataAssetGcpStep.class);
 
   private BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private SnapshotDao snapshotDao;
@@ -45,6 +51,15 @@ public class CreateSnapshotPrimaryDataAssetGcpStep implements Step {
      */
     SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     SnapshotRequestAssetModel assetSpec = contentsModel.getAssetSpec();
+
+    // TODO - remove
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      String prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(assetSpec);
+      logger.info("[assetTest] SnapshotRequestAssetModel: " + prettyJson);
+    } catch (JsonProcessingException ex) {
+      logger.info("[assetTest] " + ex);
+    }
 
     Instant createdAt = CommonFlightUtils.getCreatedAt(context);
 

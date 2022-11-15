@@ -33,6 +33,8 @@ import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import bio.terra.service.tabulardata.google.WalkRelationship;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -147,7 +149,9 @@ public class BigQuerySnapshotPdao {
       sqlTemplate.add("dataset", datasetBqDatasetName);
       sqlTemplate.add("tableId", rootTableId);
       sqlTemplate.add("rowIds", rowIds);
-      snapshotBigQueryProject.query(sqlTemplate.render());
+      String sql = sqlTemplate.render();
+      logger.info("[assetTest] loadRootRowIdsTemplate: " + sql);
+      snapshotBigQueryProject.query(sql);
     }
 
     String datasetLiveViewSql =
@@ -180,6 +184,18 @@ public class BigQuerySnapshotPdao {
 
     // walk and populate relationship table row ids
     List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(asset);
+
+    // TODO - remove
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      String prettyJson =
+          mapper.writerWithDefaultPrettyPrinter().writeValueAsString(walkRelationships);
+      logger.info("[assetTest] walkRelationships: " + prettyJson);
+    } catch (JsonProcessingException ex) {
+      logger.info("[assetTest] " + ex);
+    }
+    logger.info("[assetTest] walkRelationships (reg print): " + walkRelationships);
+
     walkRelationships(
         datasetProjectId,
         datasetBqDatasetName,
@@ -478,8 +494,13 @@ public class BigQuerySnapshotPdao {
     BigQueryProject datasetBigQueryProject = BigQueryProject.from(source.getDataset());
     String datasetProjectId = datasetBigQueryProject.getProjectId();
     AssetSpecification asset = source.getAssetSpecification();
+
+    logger.info("[assetTest] AssetSpecification: \n" +
+        "name: " + asset.getName() );
+
     Column column = asset.getRootColumn().getDatasetColumn();
     DatasetTable datasetTable = getTable(source, column.getTable().getName());
+    logger.info("[assetTest] DatasetTable: " + datasetTable.getName());
 
     String datasetLiveViewSql =
         BigQueryDatasetPdao.renderDatasetLiveViewSql(
@@ -497,7 +518,7 @@ public class BigQuerySnapshotPdao {
     // ids and the mismatched ids
     RowIdMatch rowIdMatch = new RowIdMatch();
     String sql = sqlTemplate.render();
-    logger.debug("mapValuesToRows sql: " + sql);
+    logger.info("[assetTest] mapValuesToRows sql: " + sql);
     TableResult result =
         datasetBigQueryProject.query(
             sql,
@@ -510,10 +531,14 @@ public class BigQuerySnapshotPdao {
       FieldValue inputValue = row.get(1);
       if (rowId.isNull()) {
         rowIdMatch.addMismatch(inputValue.getStringValue());
-        logger.debug("rowId=<NULL>" + "  inVal=" + inputValue.getStringValue());
+        logger.info("[assetTest] rowId=<NULL>" + "  inVal=" + inputValue.getStringValue());
       } else {
         rowIdMatch.addMatch(inputValue.getStringValue(), rowId.getStringValue());
-        logger.debug("rowId=" + rowId.getStringValue() + "  inVal=" + inputValue.getStringValue());
+        logger.info(
+            "[assetTest] rowId="
+                + rowId.getStringValue()
+                + "  inVal="
+                + inputValue.getStringValue());
       }
     }
 
@@ -955,7 +980,7 @@ public class BigQuerySnapshotPdao {
         continue;
       }
       logger.info(
-          "The relationship is being set from column {} in table {} to column {} in table {}",
+          "[assetTest] The relationship is being set from column {} in table {} to column {} in table {}",
           relationship.getFromColumnName(),
           relationship.getFromTableName(),
           relationship.getToColumnName(),
@@ -1118,8 +1143,11 @@ public class BigQuerySnapshotPdao {
     sqlTemplate.add("fromCol", fromCol);
     sqlTemplate.add("toCol", toCol);
 
+    String sql = sqlTemplate.render();
+    logger.info("[assetTest] walk relationships - storeRowIdsForRelatedTableTemplate: " + sql);
+
     QueryJobConfiguration queryConfig =
-        QueryJobConfiguration.newBuilder(sqlTemplate.render())
+        QueryJobConfiguration.newBuilder(sql)
             .setDestinationTable(TableId.of(snapshot.getName(), PDAO_ROW_ID_TABLE))
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
             .setNamedParameters(

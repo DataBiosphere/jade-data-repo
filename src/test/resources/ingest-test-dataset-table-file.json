@@ -1,0 +1,14 @@
+{
+  "name": "file",
+  "columns": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "derived_from",
+      "arrayOf": true,
+      "type": "string"
+    }
+  ]
+}

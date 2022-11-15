@@ -1,0 +1,30 @@
+{
+  "name": "sample",
+  "rawTableName": "sample",
+  "columns": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "participant_ids",
+      "arrayOf": true,
+      "type": "string"
+    },
+    {
+      "name": "date_collected",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "name": "derived_from",
+      "type": "string"
+    }
+  ],
+  "primaryKey": [
+    {
+      "name": "id",
+      "type": "string"
+    }
+  ]
+}

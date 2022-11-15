@@ -505,6 +505,7 @@ public class AzureSynapsePdao {
     // First handle root table
     AssetTable rootTable = assetSpec.getRootTable();
     String rootTableName = rootTable.getTable().getRawTableName();
+    logger.info(rootTableName);
 
     // Get columns to include for root table
     List<SynapseColumn> columns =
@@ -530,6 +531,7 @@ public class AzureSynapsePdao {
         new MapSqlParameterSource()
             .addValue("rootColumn", rootColumn.getDatasetColumn().getName())
             .addValue("rootValues", assetModel.getRootValues());
+    logger.info(query);
 
     int rows = synapseJdbcTemplate.update(query, params);
 

@@ -495,8 +495,7 @@ public class BigQuerySnapshotPdao {
     String datasetProjectId = datasetBigQueryProject.getProjectId();
     AssetSpecification asset = source.getAssetSpecification();
 
-    logger.info("[assetTest] AssetSpecification: \n" +
-        "name: " + asset.getName() );
+    logger.info("[assetTest] AssetSpecification: \n" + "name: " + asset.getName());
 
     Column column = asset.getRootColumn().getDatasetColumn();
     DatasetTable datasetTable = getTable(source, column.getTable().getName());

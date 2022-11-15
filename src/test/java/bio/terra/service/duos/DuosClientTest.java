@@ -14,6 +14,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.duos.exception.DuosDatasetBadRequestException;
 import bio.terra.service.duos.exception.DuosDatasetNotFoundException;
 import java.util.List;
+import java.util.Map;
 import org.apache.http.HttpHeaders;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,6 +28,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
@@ -50,6 +52,35 @@ public class DuosClientTest {
     duosClient = new DuosClient(duosConfiguration, restTemplate);
 
     when(duosConfiguration.getBasePath()).thenReturn(BASE_PATH);
+  }
+
+  @Test
+  public void testStatusSucceeds() {
+    var expectedBody = new SystemStatus(true, false, Map.of());
+    when(restTemplate.exchange(
+            eq(duosClient.getStatusUrl()),
+            eq(HttpMethod.GET),
+            argThat(this::isUnauthenticated),
+            eq(SystemStatus.class)))
+        .thenReturn(ResponseEntity.ok(expectedBody));
+
+    assertThat("Successful system status returned", duosClient.status(), equalTo(expectedBody));
+  }
+
+  @Test
+  public void testStatusThrows() {
+    var expectedException = new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
+    when(restTemplate.exchange(
+            eq(duosClient.getStatusUrl()),
+            eq(HttpMethod.GET),
+            argThat(this::isUnauthenticated),
+            eq(SystemStatus.class)))
+        .thenThrow(expectedException);
+
+    assertThat(
+        "System status exception rethrown",
+        assertThrows(HttpServerErrorException.class, () -> duosClient.status()),
+        equalTo(expectedException));
   }
 
   @Test
@@ -104,6 +135,11 @@ public class DuosClientTest {
         "Exception thrown when supplied DUOS ID is malformed",
         thrown.getCause(),
         equalTo(expectedEx));
+  }
+
+  private boolean isUnauthenticated(HttpEntity httpEntity) {
+    List<String> authorizations = httpEntity.getHeaders().get(HttpHeaders.AUTHORIZATION);
+    return authorizations == null || authorizations.isEmpty();
   }
 
   private boolean hasUserToken(HttpEntity httpEntity) {

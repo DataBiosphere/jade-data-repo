@@ -1,8 +1,11 @@
 package bio.terra.service.duos;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -11,10 +14,14 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamConflictException;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,7 +29,9 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.client.HttpServerErrorException;
 
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
@@ -30,15 +39,64 @@ import org.springframework.test.context.ActiveProfiles;
 public class DuosServiceTest {
 
   @Mock private IamService iamService;
+  @Mock private DuosClient duosClient;
   private DuosService duosService;
 
+  private static final List<String> SUBSYSTEM_NAMES =
+      List.of("ontology", "elastic-search", "google-cloud-storage");
   private static final String DUOS_ID = "DUOS-123456";
   private static final String FIRECLOUD_GROUP_NAME = String.format("%s-users", DUOS_ID);
   private static final String FIRECLOUD_GROUP_EMAIL = firecloudGroupEmail(FIRECLOUD_GROUP_NAME);
 
   @Before
   public void before() {
-    duosService = new DuosService(iamService);
+    duosService = new DuosService(iamService, duosClient);
+  }
+
+  private static SystemStatusSystems statusSubsystem(boolean healthy, String name) {
+    String message = name + " " + (healthy ? "" : "un") + "healthy";
+    return new SystemStatusSystems(healthy, message, null, null);
+  }
+
+  @Test
+  public void testStatusOk() {
+    Map<String, SystemStatusSystems> subsystems =
+        SUBSYSTEM_NAMES.stream()
+            .collect(Collectors.toMap(Function.identity(), name -> statusSubsystem(true, name)));
+    SystemStatus systemStatus = new SystemStatus(true, false, subsystems);
+    when(duosClient.status()).thenReturn(systemStatus);
+
+    RepositoryStatusModelSystems actual = duosService.status();
+    assertTrue(actual.isOk());
+    assertThat(actual.isCritical(), equalTo(DuosService.IS_CRITICAL_SYSTEM));
+    assertThat(actual.getMessage(), equalTo(subsystems.toString()));
+  }
+
+  @Test
+  public void testStatusNotOk() {
+    Map<String, SystemStatusSystems> subsystems =
+        SUBSYSTEM_NAMES.stream()
+            .collect(Collectors.toMap(Function.identity(), name -> statusSubsystem(false, name)));
+    SystemStatus systemStatus = new SystemStatus(false, false, subsystems);
+    when(duosClient.status()).thenReturn(systemStatus);
+
+    RepositoryStatusModelSystems actual = duosService.status();
+    assertFalse(actual.isOk());
+    assertThat(actual.isCritical(), equalTo(DuosService.IS_CRITICAL_SYSTEM));
+    assertThat(actual.getMessage(), equalTo(subsystems.toString()));
+  }
+
+  @Test
+  public void testStatusNotOkWhenDuosClientThrows() {
+    String exceptionMessage = "Error thrown by DUOS";
+    when(duosClient.status())
+        .thenThrow(
+            new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, exceptionMessage));
+
+    RepositoryStatusModelSystems actual = duosService.status();
+    assertFalse(actual.isOk());
+    assertThat(actual.isCritical(), equalTo(DuosService.IS_CRITICAL_SYSTEM));
+    assertThat(actual.getMessage(), containsString(exceptionMessage));
   }
 
   private static String firecloudGroupEmail(String groupName) {

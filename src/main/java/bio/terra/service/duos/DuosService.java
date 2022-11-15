@@ -1,6 +1,8 @@
 package bio.terra.service.duos;
 
+import bio.terra.common.ExceptionUtils;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamConflictException;
 import com.google.common.annotations.VisibleForTesting;
@@ -12,10 +14,33 @@ import org.springframework.stereotype.Component;
 @Component
 public class DuosService {
   private static final Logger logger = LoggerFactory.getLogger(DuosService.class);
+  @VisibleForTesting static final boolean IS_CRITICAL_SYSTEM = false;
   private final IamService iamService;
+  private final DuosClient duosClient;
 
-  public DuosService(IamService iamService) {
+  public DuosService(IamService iamService, DuosClient duosClient) {
     this.iamService = iamService;
+    this.duosClient = duosClient;
+  }
+
+  /**
+   * @return status of DUOS and its subsystems
+   */
+  public RepositoryStatusModelSystems status() {
+    try {
+      SystemStatus status = duosClient.status();
+      return new RepositoryStatusModelSystems()
+          .ok(status.ok())
+          .critical(IS_CRITICAL_SYSTEM)
+          .message(status.systems().toString());
+    } catch (Exception ex) {
+      String errorMsg = "DUOS status check failed";
+      logger.error(errorMsg, ex);
+      return new RepositoryStatusModelSystems()
+          .ok(false)
+          .critical(IS_CRITICAL_SYSTEM)
+          .message(errorMsg + ": " + ExceptionUtils.formatException(ex));
+    }
   }
 
   /**

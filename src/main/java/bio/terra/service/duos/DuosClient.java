@@ -38,6 +38,19 @@ public class DuosClient {
   }
 
   @VisibleForTesting
+  String getStatusUrl() {
+    return String.format("%s/status", duosConfiguration.getBasePath());
+  }
+
+  public SystemStatus status() {
+    HttpHeaders unauthedHeaders = getHttpHeaders();
+    return restTemplate
+        .exchange(
+            getStatusUrl(), HttpMethod.GET, new HttpEntity<>(unauthedHeaders), SystemStatus.class)
+        .getBody();
+  }
+
+  @VisibleForTesting
   String getDatasetUrl(String duosId) {
     return String.format("%s/api/tdr/%s", duosConfiguration.getBasePath(), duosId);
   }

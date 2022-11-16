@@ -2,7 +2,6 @@ package bio.terra.service.duos;
 
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.DuosFirecloudGroupModel;
-import com.google.common.annotations.VisibleForTesting;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -38,11 +37,6 @@ public class DuosDao {
       @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail) {
     this.jdbcTemplate = jdbcTemplate;
     this.tdrServiceAccountEmail = tdrServiceAccountEmail;
-  }
-
-  @VisibleForTesting
-  String getTdrServiceAccountEmail() {
-    return tdrServiceAccountEmail;
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

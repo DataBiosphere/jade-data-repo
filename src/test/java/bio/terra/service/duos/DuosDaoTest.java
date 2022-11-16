@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -33,21 +34,24 @@ import org.springframework.test.context.junit4.SpringRunner;
 @EmbeddedDatabaseTest
 public class DuosDaoTest {
 
-  @Autowired private DuosDao duosDao;
+  @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
+  private DuosDao duosDao;
+
+  private static final String TDR_SERVICE_ACCOUNT_EMAIL = "tdr-sa@a.com";
 
   private UUID duosFirecloudGroupId;
   private String duosId;
   private String firecloudGroupName;
   private String firecloudGroupEmail;
-  private String tdrServiceAccountEmail;
   private DuosFirecloudGroupModel toInsert;
 
   @Before
   public void before() {
+    duosDao = new DuosDao(jdbcTemplate, TDR_SERVICE_ACCOUNT_EMAIL);
+
     duosId = UUID.randomUUID().toString();
     firecloudGroupName = String.format("%s_users", duosId);
     firecloudGroupEmail = String.format("%s@dev.test.firecloud.org", firecloudGroupName);
-    tdrServiceAccountEmail = duosDao.getTdrServiceAccountEmail();
     toInsert =
         new DuosFirecloudGroupModel()
             .duosId(duosId)
@@ -112,7 +116,7 @@ public class DuosDaoTest {
     assertThat(retrieved.getId(), equalTo(duosFirecloudGroupId));
     assertThat(retrieved.getFirecloudGroupName(), equalTo(firecloudGroupName));
     assertThat(retrieved.getFirecloudGroupEmail(), equalTo(firecloudGroupEmail));
-    assertThat(retrieved.getCreatedBy(), equalTo(tdrServiceAccountEmail));
+    assertThat(retrieved.getCreatedBy(), equalTo(TDR_SERVICE_ACCOUNT_EMAIL));
     assertThat(retrieved.getCreated(), notNullValue());
     assertThat(retrieved.getLastSynced(), nullValue());
   }

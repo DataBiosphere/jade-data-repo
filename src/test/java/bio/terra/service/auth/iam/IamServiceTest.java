@@ -6,16 +6,17 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
+import bio.terra.service.auth.oauth2.GoogleCredentialsService;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.journal.JournalService;
@@ -37,26 +38,26 @@ import org.springframework.test.context.ActiveProfiles;
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 public class IamServiceTest {
   private static final UUID ID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
 
   @Mock private IamProviderInterface iamProvider;
 
   @Mock private ConfigurationService configurationService;
   @Mock private JournalService journalService;
+  @Mock private GoogleCredentialsService googleCredentialsService;
 
   private IamService iamService;
-  private AuthenticatedUserRequest authenticatedUserRequest;
 
   @Before
   public void setup() {
     when(configurationService.getParameterValue(ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS))
         .thenReturn(0);
-    iamService = new IamService(iamProvider, configurationService, journalService);
-    authenticatedUserRequest =
-        AuthenticatedUserRequest.builder()
-            .setSubjectId("DatasetUnit")
-            .setEmail("dataset@unit.com")
-            .setToken("token")
-            .build();
+    when(googleCredentialsService.scopes(IamService.SAM_SCOPES))
+        .thenReturn(googleCredentialsService);
+
+    iamService =
+        new IamService(iamProvider, configurationService, journalService, googleCredentialsService);
   }
 
   @Test
@@ -65,15 +66,13 @@ public class IamServiceTest {
     String policyName = "policyName";
     String email = "email";
     when(iamProvider.addPolicyMember(
-            authenticatedUserRequest, IamResourceType.SPEND_PROFILE, ID, policyName, email))
+            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email))
         .thenReturn(policyModel);
 
     PolicyModel result =
-        iamService.addPolicyMember(
-            authenticatedUserRequest, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    verify(iamProvider, times(1))
-        .addPolicyMember(
-            authenticatedUserRequest, IamResourceType.SPEND_PROFILE, ID, policyName, email);
+        iamService.addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
+    verify(iamProvider)
+        .addPolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
     assertEquals(policyModel, result);
   }
 
@@ -83,15 +82,14 @@ public class IamServiceTest {
     String policyName = "policyName";
     String email = "email";
     when(iamProvider.deletePolicyMember(
-            authenticatedUserRequest, IamResourceType.SPEND_PROFILE, ID, policyName, email))
+            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email))
         .thenReturn(policyModel);
 
     PolicyModel result =
         iamService.deletePolicyMember(
-            authenticatedUserRequest, IamResourceType.SPEND_PROFILE, ID, policyName, email);
-    verify(iamProvider, times(1))
-        .deletePolicyMember(
-            authenticatedUserRequest, IamResourceType.SPEND_PROFILE, ID, policyName, email);
+            TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
+    verify(iamProvider)
+        .deletePolicyMember(TEST_USER, IamResourceType.SPEND_PROFILE, ID, policyName, email);
     assertEquals(policyModel, result);
   }
 
@@ -101,18 +99,15 @@ public class IamServiceTest {
     String id = ID.toString();
     IamAction action = IamAction.READ_DATA;
 
-    when(iamProvider.isAuthorized(authenticatedUserRequest, resourceType, id, action))
-        .thenReturn(true);
+    when(iamProvider.isAuthorized(TEST_USER, resourceType, id, action)).thenReturn(true);
     // Checking authorization for an action associated with the caller should not throw.
-    iamService.verifyAuthorization(authenticatedUserRequest, resourceType, id, action);
+    iamService.verifyAuthorization(TEST_USER, resourceType, id, action);
 
-    when(iamProvider.isAuthorized(authenticatedUserRequest, resourceType, id, action))
-        .thenReturn(false);
+    when(iamProvider.isAuthorized(TEST_USER, resourceType, id, action)).thenReturn(false);
     IamForbiddenException thrown =
         assertThrows(
             IamForbiddenException.class,
-            () ->
-                iamService.verifyAuthorization(authenticatedUserRequest, resourceType, id, action),
+            () -> iamService.verifyAuthorization(TEST_USER, resourceType, id, action),
             "Authorization verification throws if the caller is missing the action");
     assertThat(
         "Error message reflects cause",
@@ -126,12 +121,12 @@ public class IamServiceTest {
     String id = ID.toString();
 
     Set<IamAction> hasActions = EnumSet.of(IamAction.MANAGE_SCHEMA, IamAction.READ_DATA);
-    when(iamProvider.listActions(authenticatedUserRequest, resourceType, id))
+    when(iamProvider.listActions(TEST_USER, resourceType, id))
         .thenReturn(hasActions.stream().map(IamAction::toString).toList());
 
     // Checking authorizations for actions associated with the caller should not throw.
-    iamService.verifyAuthorizations(authenticatedUserRequest, resourceType, id, Set.of());
-    iamService.verifyAuthorizations(authenticatedUserRequest, resourceType, id, hasActions);
+    iamService.verifyAuthorizations(TEST_USER, resourceType, id, Set.of());
+    iamService.verifyAuthorizations(TEST_USER, resourceType, id, hasActions);
 
     Set<IamAction> missingActions = EnumSet.of(IamAction.UPDATE_PASSPORT_IDENTIFIER);
     Set<IamAction> requiredActions = EnumSet.copyOf(hasActions);
@@ -140,9 +135,7 @@ public class IamServiceTest {
     IamForbiddenException thrown =
         assertThrows(
             IamForbiddenException.class,
-            () ->
-                iamService.verifyAuthorizations(
-                    authenticatedUserRequest, resourceType, id, requiredActions),
+            () -> iamService.verifyAuthorizations(TEST_USER, resourceType, id, requiredActions),
             "Authorization verification throws if the caller is missing a required action");
     assertThat(
         "Error message reflects cause",

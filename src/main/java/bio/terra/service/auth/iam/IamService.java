@@ -12,12 +12,11 @@ import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
+import bio.terra.service.auth.oauth2.GoogleCredentialsService;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.journal.JournalService;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ImpersonatedCredentials;
-import java.io.IOException;
+import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,7 +52,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class IamService {
   private final Logger logger = LoggerFactory.getLogger(IamService.class);
-  private static final List<String> SAM_SCOPES = List.of("openid", "email", "profile");
+  @VisibleForTesting static final List<String> SAM_SCOPES = List.of("openid", "email", "profile");
   private static final Duration TOKEN_LENGTH = Duration.ofMinutes(5);
 
   private static final int AUTH_CACHE_TIMEOUT_SECONDS_DEFAULT = 60;
@@ -62,15 +61,18 @@ public class IamService {
   private final ConfigurationService configurationService;
   private final Map<AuthorizedCacheKey, Boolean> authorizedMap;
   private final JournalService journalService;
+  private final GoogleCredentialsService googleCredentialsService;
 
   @Autowired
   public IamService(
       IamProviderInterface iamProvider,
       ConfigurationService configurationService,
-      JournalService journalService) {
+      JournalService journalService,
+      GoogleCredentialsService googleCredentialsService) {
     this.iamProvider = iamProvider;
     this.configurationService = configurationService;
     this.journalService = journalService;
+    this.googleCredentialsService = googleCredentialsService.scopes(SAM_SCOPES);
     int ttl =
         Objects.requireNonNullElse(
             configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS),
@@ -356,19 +358,15 @@ public class IamService {
 
   public UserStatus registerUser(String serviceAccountEmail) {
     logger.info("Registering user %s in Terra".formatted(serviceAccountEmail));
-    ImpersonatedCredentials impersonatedCredentials;
-    try {
-      impersonatedCredentials =
-          ImpersonatedCredentials.create(
-              GoogleCredentials.getApplicationDefault(),
-              serviceAccountEmail,
-              null,
-              SAM_SCOPES,
-              (int) TOKEN_LENGTH.toSeconds());
-    } catch (IOException e) {
-      throw new GoogleResourceException("Could not generate Google credentials", e);
-    }
-    return callProvider(() -> iamProvider.registerUser(getAccessToken(impersonatedCredentials)));
+    ImpersonatedCredentials impersonatedCredentials =
+        ImpersonatedCredentials.create(
+            googleCredentialsService.getApplicationDefault(),
+            serviceAccountEmail,
+            null,
+            SAM_SCOPES,
+            (int) TOKEN_LENGTH.toSeconds());
+    String accessToken = googleCredentialsService.getAccessToken(impersonatedCredentials);
+    return callProvider(() -> iamProvider.registerUser(accessToken));
   }
 
   // -- managed group support --
@@ -378,8 +376,8 @@ public class IamService {
    * @return the email for the newly created group
    */
   public String createGroup(String groupName) {
-    GoogleCredentials tdrSaCreds = getGoogleCredentialsApplicationDefault();
-    return callProvider(() -> iamProvider.createGroup(getAccessToken(tdrSaCreds), groupName));
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken();
+    return callProvider(() -> iamProvider.createGroup(tdrSaAccessToken, groupName));
   }
 
   /**
@@ -389,38 +387,18 @@ public class IamService {
    */
   public void overwriteGroupPolicyEmails(
       String groupName, String policyName, List<String> emailAddresses) {
-    GoogleCredentials tdrSaCreds = getGoogleCredentialsApplicationDefault();
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken();
     callProvider(
         () ->
             iamProvider.overwriteGroupPolicyEmails(
-                getAccessToken(tdrSaCreds), groupName, policyName, emailAddresses));
+                tdrSaAccessToken, groupName, policyName, emailAddresses));
   }
 
   /**
    * @param groupName Firecloud managed group to delete as the TDR SA
    */
   public void deleteGroup(String groupName) {
-    GoogleCredentials tdrSaCreds = getGoogleCredentialsApplicationDefault();
-    callProvider(() -> iamProvider.deleteGroup(getAccessToken(tdrSaCreds), groupName));
-  }
-
-  // -- credential utilities --
-  private GoogleCredentials getGoogleCredentialsApplicationDefault() {
-    try {
-      return GoogleCredentials.getApplicationDefault();
-    } catch (IOException e) {
-      throw new GoogleResourceException("Could not generate Google credentials", e);
-    }
-  }
-
-  private String getAccessToken(GoogleCredentials credentials) {
-    try {
-      if (credentials.createScopedRequired()) {
-        credentials = credentials.createScoped(SAM_SCOPES);
-      }
-      return credentials.refreshAccessToken().getTokenValue();
-    } catch (IOException e) {
-      throw new GoogleResourceException("Could not generate Google access token", e);
-    }
+    String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken();
+    callProvider(() -> iamProvider.deleteGroup(tdrSaAccessToken, groupName));
   }
 }

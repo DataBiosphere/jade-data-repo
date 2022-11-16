@@ -4628,6 +4628,12 @@ components:
               type: array
               items:
                 type: string
+        globalFileIds:
+          type: boolean
+          default: false
+          description: >
+            if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
+            if true, drs ids will be in the format: v2_<fileid>
       description: >
         Request for creating a snapshot.
         For now, the API only supports snapshots defined as a single dataset asset and
@@ -4784,6 +4790,12 @@ components:
         selfHosted:
           type: boolean
           description: Denotes whether the data files in this snapshot are self hosted or not
+        globalFileIds:
+          type: boolean
+          default: false
+          description: >
+            if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
+            if true, drs ids will be in the format: v2_<fileid>
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -4860,6 +4872,12 @@ components:
           description: Additional JSON metadata about the snapshot (this does not need to adhere to a particular schema)
         duosFirecloudGroup:
           $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        globalFileIds:
+          type: boolean
+          default: false
+          description: >
+            if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
+            if true, drs ids will be in the format: v2_<fileid>
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:

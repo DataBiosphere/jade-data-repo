@@ -11,6 +11,7 @@ import bio.terra.service.common.JournalRecordDeleteEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.DrsService;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
@@ -54,6 +55,7 @@ public class SnapshotDeleteFlight extends Flight {
     AzureStorageAccountService azureStorageAccountService =
         appContext.getBean(AzureStorageAccountService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
+    DrsService drsService = appContext.getBean(DrsService.class);
     String tdrServiceAccountEmail = appContext.getBean("tdrServiceAccountEmail", String.class);
 
     RetryRule randomBackoffRetry =
@@ -128,6 +130,7 @@ public class SnapshotDeleteFlight extends Flight {
                 snapshotId, resourceService, azureStorageAccountService)));
 
     // Delete Metadata
+    addStep(new DeleteSnapshotDrsIdsStep(drsService, snapshotId));
     addStep(
         new DeleteSnapshotMetadataStep(snapshotDao, snapshotId, userReq),
         getDefaultExponentialBackoffRetryRule());

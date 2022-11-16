@@ -157,7 +157,13 @@ public class FireStoreDao {
     String snapshotId = snapshot.getId().toString();
 
     directoryDao.addEntriesToSnapshot(
-        datasetFirestore, datasetId, datasetName, snapshotFirestore, snapshotId, refIds);
+        datasetFirestore,
+        datasetId,
+        datasetName,
+        snapshotFirestore,
+        snapshotId,
+        refIds,
+        snapshot.isGlobalFileIds());
   }
 
   public void deleteFilesFromSnapshot(Snapshot snapshot) throws InterruptedException {

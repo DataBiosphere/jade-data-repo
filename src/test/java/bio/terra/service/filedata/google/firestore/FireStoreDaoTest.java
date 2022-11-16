@@ -114,7 +114,7 @@ public class FireStoreDaoTest {
       fileIdList.add(fireStoreDirectoryEntry.getFileId());
     }
     directoryDao.addEntriesToSnapshot(
-        firestore, collectionId, "dataset", firestore, snapshotId, fileIdList);
+        firestore, collectionId, "dataset", firestore, snapshotId, fileIdList, false);
 
     // Validate we can lookup files in the snapshot
     for (FireStoreDirectoryEntry dsetObject : snapObjects) {

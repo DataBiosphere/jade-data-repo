@@ -41,6 +41,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private Object properties;
   private UUID duosFirecloudGroupId;
   private DuosFirecloudGroupModel duosFirecloudGroup;
+  private boolean globalFileIds;
 
   @Override
   public CollectionType getCollectionType() {
@@ -248,6 +249,15 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public boolean isSelfHosted() {
     return getSourceDataset().isSelfHosted();
+  }
+
+  public boolean isGlobalFileIds() {
+    return globalFileIds;
+  }
+
+  public Snapshot globalFileIds(boolean globalFileIds) {
+    this.globalFileIds = globalFileIds;
+    return this;
   }
 
   @Override

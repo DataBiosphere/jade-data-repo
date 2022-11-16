@@ -1182,8 +1182,6 @@ public class BigQuerySnapshotPdao {
                 throw new PdaoException(
                     "No matching map table for snapshot table " + table.getName());
               }
-              String snapshotId = snapshot.getId().toString();
-
               ST sqlTemplate = new ST(createViewsTemplate);
               sqlTemplate.add("datasetProject", datasetProjectId);
               sqlTemplate.add("snapshotProject", snapshotProjectId);
@@ -1196,7 +1194,7 @@ public class BigQuerySnapshotPdao {
                   .forEach(
                       c -> {
                         sqlTemplate.add("columns", c.getName());
-                        sqlTemplate.add("mappedColumns", sourceSelectSql(snapshotId, c, mapTable));
+                        sqlTemplate.add("mappedColumns", sourceSelectSql(snapshot, c, mapTable));
                       });
 
               // create the view
@@ -1238,7 +1236,7 @@ public class BigQuerySnapshotPdao {
    * any consequences downstream to DRS clients.
    */
   private String sourceSelectSql(
-      String snapshotId, Column targetColumn, SnapshotMapTable mapTable) {
+      Snapshot snapshot, Column targetColumn, SnapshotMapTable mapTable) {
     // In the future, there may not be a column map for a given target column; it might not exist
     // in the table. The logic here covers these cases:
     // 1) no source column: supply NULL
@@ -1258,7 +1256,12 @@ public class BigQuerySnapshotPdao {
 
       if (mapColumn.getFromColumn().isFileOrDirRef()) {
 
-        String drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshotId + "_'";
+        String drsPrefix;
+        if (snapshot.isGlobalFileIds()) {
+          drsPrefix = "'drs://" + datarepoDnsName + "/v2_'";
+        } else {
+          drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshot.getId() + "_'";
+        }
 
         if (targetColumn.isArrayOf()) {
           return "ARRAY(SELECT CONCAT("

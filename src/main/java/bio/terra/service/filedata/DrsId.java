@@ -44,8 +44,13 @@ public class DrsId {
   }
 
   public String toDrsObjectId() {
-    String vv = version == null ? "v1" : version;
-    return vv + "_" + snapshotId + "_" + fsObjectId;
+    if (version.equals("v1") || version == null) {
+      return "v1_" + snapshotId + "_" + fsObjectId;
+    } else if (version.equals("v2")) {
+      return "v2_" + fsObjectId;
+    } else {
+      throw new InvalidDrsIdException("Unrecognized DRS Object ID version: %s".formatted(version));
+    }
   }
 
   public String toDrsUri() {

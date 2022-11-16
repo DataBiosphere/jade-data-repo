@@ -138,7 +138,6 @@ public class SnapshotCreateFlight extends Flight {
           addStep(
               new CreateSnapshotPrimaryDataAssetGcpStep(
                   bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq));
-          break;
         } else {
           addStep(
               new CreateSnapshotSourceDatasetDataSourceAzureStep(
@@ -146,11 +145,14 @@ public class SnapshotCreateFlight extends Flight {
           addStep(
               new CreateSnapshotTargetDataSourceAzureStep(
                   azureSynapsePdao, azureBlobStorePdao, userReq));
-          addStep(new CreateSnapshotByAssetParquetFilesAzureStep(azureSynapsePdao, snapshotDao, snapshotService, snapshotReq));
-//          addStep(
-//              new CreateSnapshotCountTableRowsAzureStep(
-//                  azureSynapsePdao, snapshotDao, snapshotReq));
+          addStep(
+              new CreateSnapshotByAssetParquetFilesAzureStep(
+                  azureSynapsePdao, snapshotDao, snapshotService, snapshotReq));
+          //          addStep(
+          //              new CreateSnapshotCountTableRowsAzureStep(
+          //                  azureSynapsePdao, snapshotDao, snapshotReq));
         }
+        break;
       case BYFULLVIEW:
         if (platform.isGcp()) {
           addStep(

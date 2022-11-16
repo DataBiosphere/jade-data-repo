@@ -5,6 +5,7 @@ import bio.terra.model.DuosFirecloudGroupModel;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,6 +96,23 @@ public class DuosDao {
     } catch (EmptyResultDataAccessException ex) {
       return null;
     }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean updateFirecloudGroupLastSyncedDate(UUID id, Instant lastSyncedDate) {
+    logger.info("Updating Firecloud group record {} last synced date to {}", id, lastSyncedDate);
+    String sql =
+        """
+            UPDATE duos_firecloud_group
+            SET last_synced_date = :last_synced_date
+            WHERE id = :id
+            """;
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("id", id)
+            .addValue("last_synced_date", Timestamp.from(lastSyncedDate));
+    int rowsAffected = jdbcTemplate.update(sql, params);
+    return rowsAffected > 0;
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

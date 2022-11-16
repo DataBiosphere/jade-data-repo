@@ -3,7 +3,6 @@ package bio.terra.service.duos;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -12,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.model.DuosFirecloudGroupModel;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -111,13 +111,39 @@ public class DuosDaoTest {
                     .firecloudGroupEmail("another-fc-group-name@dev.test.firecloud.org")));
   }
 
-  private void verifyRetrievedFirecloudGroupContents(DuosFirecloudGroupModel retrieved) {
+  @Test
+  public void testUpdateFirecloudGroupLastSyncedDateForNonexistentRow() {
+    assertFalse(duosDao.updateFirecloudGroupLastSyncedDate(UUID.randomUUID(), Instant.now()));
+  }
+
+  @Test
+  public void testUpdateFirecloudGroupLastSyncedDate() {
+    duosFirecloudGroupId = duosDao.insertFirecloudGroup(toInsert);
+    Instant lastSyncedDate = Instant.now();
+
+    assertTrue(duosDao.updateFirecloudGroupLastSyncedDate(duosFirecloudGroupId, lastSyncedDate));
+
+    DuosFirecloudGroupModel retrieved = duosDao.retrieveFirecloudGroup(duosFirecloudGroupId);
+    verifyRetrievedFirecloudGroupContents(retrieved, lastSyncedDate);
+  }
+
+  private void verifyRetrievedFirecloudGroupContents(
+      DuosFirecloudGroupModel retrieved, Instant lastSyncedDate) {
     assertThat(retrieved, notNullValue());
     assertThat(retrieved.getId(), equalTo(duosFirecloudGroupId));
     assertThat(retrieved.getFirecloudGroupName(), equalTo(firecloudGroupName));
     assertThat(retrieved.getFirecloudGroupEmail(), equalTo(firecloudGroupEmail));
     assertThat(retrieved.getCreatedBy(), equalTo(TDR_SERVICE_ACCOUNT_EMAIL));
     assertThat(retrieved.getCreated(), notNullValue());
-    assertThat(retrieved.getLastSynced(), nullValue());
+
+    String expectedLastSyncedDate = null;
+    if (lastSyncedDate != null) {
+      expectedLastSyncedDate = lastSyncedDate.toString();
+    }
+    assertThat(retrieved.getLastSynced(), equalTo(expectedLastSyncedDate));
+  }
+
+  private void verifyRetrievedFirecloudGroupContents(DuosFirecloudGroupModel retrieved) {
+    verifyRetrievedFirecloudGroupContents(retrieved, null);
   }
 }

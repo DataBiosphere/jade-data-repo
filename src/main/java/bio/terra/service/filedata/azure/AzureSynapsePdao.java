@@ -132,7 +132,7 @@ public class AzureSynapsePdao {
       createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
   private static final String createSnapshotTableByAssetTemplate =
-      createSnapshotTableTemplate + " WHERE rows.:rootColumn in (:rootValues)";
+      createSnapshotTableTemplate + " WHERE rows.<rootColumn> in (:rootValues)";
 
   private static final String createSnapshotRowIdTableTemplate =
       """
@@ -146,8 +146,8 @@ public class AzureSynapsePdao {
       """
       SELECT '<tableId>' as <tableIdColumn>, <dataRepoRowIdColumn>
         FROM OPENROWSET(
-                 BULK '<datasetParquetFileName>',
-                 DATA_SOURCE = '<datasetDataSourceName>',
+                 BULK '<snapshotParquetFileName>',
+                 DATA_SOURCE = '<snapshotDataSourceName>',
                  FORMAT = 'parquet') AS rows""";
 
   private static final String mergeLiveViewTablesTemplate =
@@ -471,16 +471,16 @@ public class AzureSynapsePdao {
             "Table {} is not contained in the TableRowCounts map and therefore will be skipped in the snapshotRowIds parquet file.",
             table.getName());
       } else if (tableRowCounts.get(table.getName()) > 0) {
-        String datasetParquetFileName =
-            IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
+        String snapshotParquetFileName =
+            IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
 
         ST sqlTableTemplate =
             new ST(getLiveViewTableTemplate)
                 .add("tableId", table.getId().toString())
                 .add("tableIdColumn", PDAO_TABLE_ID_COLUMN)
                 .add("dataRepoRowIdColumn", PDAO_ROW_ID_COLUMN)
-                .add("datasetParquetFileName", datasetParquetFileName)
-                .add("datasetDataSourceName", datasetDataSourceName);
+                .add("snapshotParquetFileName", snapshotParquetFileName)
+                .add("snapshotDataSourceName", snapshotDataSourceName);
         selectStatements.add(sqlTableTemplate.render());
       }
     }
@@ -524,7 +524,7 @@ public class AzureSynapsePdao {
             .map(Column::toSynapseColumn)
             .collect(Collectors.toList());
     ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByAssetTemplate);
-    String query =
+    ST queryTemplate =
         generateSnapshotParquetCreateQuery(
             sqlCreateSnapshotTableTemplate,
             rootTable.getTable().getName(),
@@ -535,13 +535,14 @@ public class AzureSynapsePdao {
             columns);
 
     AssetColumn rootColumn = assetSpec.getRootColumn();
+    queryTemplate.add("rootColumn", rootColumn.getDatasetColumn().getName());
+    String query = queryTemplate.render();
     MapSqlParameterSource params =
-        new MapSqlParameterSource()
-            .addValue("rootColumn", rootColumn.getDatasetColumn().getName())
-            .addValue("rootValues", assetModel.getRootValues());
+        new MapSqlParameterSource().addValue("rootValues", assetModel.getRootValues());
     logger.info(query);
 
     int rows = synapseJdbcTemplate.update(query, params);
+    logger.info("{} rows included in root table {}", rows, rootTableName);
 
     tableRowCounts.put(rootTableName, (long) rows);
     if (rows == 0) {
@@ -589,14 +590,15 @@ public class AzureSynapsePdao {
         sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByRowIdTemplate);
         query =
             generateSnapshotParquetCreateQuery(
-                sqlCreateSnapshotTableTemplate,
-                table.getName(),
-                snapshotId,
-                datasetDataSourceName,
-                snapshotDataSourceName,
-                datasetFlightId,
-                columns,
-                isGlobalFileIds);
+                    sqlCreateSnapshotTableTemplate,
+                    table.getName(),
+                    snapshotId,
+                    datasetDataSourceName,
+                    snapshotDataSourceName,
+                    datasetFlightId,
+                    columns,
+                    isGlobalFileIds)
+                .render();
 
         List<UUID> rowIds = rowIdTableModel.get().getRowIds();
         params = new MapSqlParameterSource().addValue("datarepoRowIds", rowIds);
@@ -632,15 +634,15 @@ public class AzureSynapsePdao {
 
       String query =
           generateSnapshotParquetCreateQuery(
-              sqlCreateSnapshotTableTemplate,
-              table.getName(),
-              snapshotId,
-              datasetDataSourceName,
-              snapshotDataSourceName,
-              datasetFlightId,
-              columns,
-              isGlobalFileIds);
-
+                  sqlCreateSnapshotTableTemplate,
+                  table.getName(),
+                  snapshotId,
+                  datasetDataSourceName,
+                  snapshotDataSourceName,
+                  datasetFlightId,
+                  columns,
+                  isGlobalFileIds)
+              .render();
       try {
         int rows = executeSynapseQuery(query);
         tableRowCounts.put(table.getName(), (long) rows);
@@ -655,7 +657,7 @@ public class AzureSynapsePdao {
     return tableRowCounts;
   }
 
-  private String generateSnapshotParquetCreateQuery(
+  private ST generateSnapshotParquetCreateQuery(
       ST sqlCreateSnapshotTableTemplate,
       String tableName,
       UUID snapshotId,
@@ -681,7 +683,7 @@ public class AzureSynapsePdao {
         .add("snapshotId", snapshotId)
         .add("isGlobalFileIds", isGlobalFileIds);
 
-    return sqlCreateSnapshotTableTemplate.render();
+    return sqlCreateSnapshotTableTemplate;
   }
 
   public void dropTables(List<String> tableNames) {

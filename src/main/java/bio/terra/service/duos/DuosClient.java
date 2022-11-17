@@ -9,6 +9,8 @@ import bio.terra.service.duos.exception.DuosDatasetNotFoundException;
 import bio.terra.service.duos.exception.DuosInternalServerErrorException;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -22,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class DuosClient {
 
+  private static final Logger logger = LoggerFactory.getLogger(DuosClient.class);
   @VisibleForTesting static final List<String> DUOS_SCOPES = List.of("email", "profile");
 
   private final DuosConfiguration duosConfiguration;
@@ -76,13 +79,12 @@ public class DuosClient {
   public DuosDataset getDataset(String duosId, AuthenticatedUserRequest userRequest) {
     HttpHeaders authedHeaders = getHttpHeaders();
     authedHeaders.setBearerAuth(userRequest.getToken());
+    String url = getDatasetUrl(duosId);
+    logger.info("About to GET {} as authenticated user", url);
     try {
       ResponseEntity<DuosDataset> datasetCall =
           restTemplate.exchange(
-              getDatasetUrl(duosId),
-              HttpMethod.GET,
-              new HttpEntity<>(authedHeaders),
-              DuosDataset.class);
+              url, HttpMethod.GET, new HttpEntity<>(authedHeaders), DuosDataset.class);
       return datasetCall.getBody();
     } catch (HttpStatusCodeException ex) {
       throw convertDuosExToDataRepoEx(ex, duosId);
@@ -103,13 +105,12 @@ public class DuosClient {
   public DuosDatasetApprovedUsers getApprovedUsers(String duosId) {
     HttpHeaders saHeaders = getHttpHeaders();
     saHeaders.setBearerAuth(googleCredentialsService.getApplicationDefaultAccessToken());
+    String url = getApprovedUsersUrl(duosId);
+    logger.info("About to GET {} as TDR SA", url);
     try {
       ResponseEntity<DuosDatasetApprovedUsers> approvedUsersCall =
           restTemplate.exchange(
-              getApprovedUsersUrl(duosId),
-              HttpMethod.GET,
-              new HttpEntity<>(saHeaders),
-              DuosDatasetApprovedUsers.class);
+              url, HttpMethod.GET, new HttpEntity<>(saHeaders), DuosDatasetApprovedUsers.class);
       return approvedUsersCall.getBody();
     } catch (HttpStatusCodeException ex) {
       throw convertDuosExToDataRepoEx(ex, duosId);

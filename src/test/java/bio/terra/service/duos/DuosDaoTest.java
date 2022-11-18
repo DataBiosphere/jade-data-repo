@@ -12,6 +12,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.model.DuosFirecloudGroupModel;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -119,7 +120,7 @@ public class DuosDaoTest {
   @Test
   public void testUpdateFirecloudGroupLastSyncedDate() {
     duosFirecloudGroupId = duosDao.insertFirecloudGroup(toInsert);
-    Instant lastSyncedDate = Instant.now();
+    Instant lastSyncedDate = Instant.parse("2022-11-17T00:00:00.00Z");
 
     assertTrue(duosDao.updateFirecloudGroupLastSyncedDate(duosFirecloudGroupId, lastSyncedDate));
 
@@ -136,11 +137,9 @@ public class DuosDaoTest {
     assertThat(retrieved.getCreatedBy(), equalTo(TDR_SERVICE_ACCOUNT_EMAIL));
     assertThat(retrieved.getCreated(), notNullValue());
 
-    String expectedLastSyncedDate = null;
-    if (lastSyncedDate != null) {
-      expectedLastSyncedDate = lastSyncedDate.toString();
-    }
-    assertThat(retrieved.getLastSynced(), equalTo(expectedLastSyncedDate));
+    Instant actualLastSynced =
+        Optional.ofNullable(retrieved.getLastSynced()).map(Instant::parse).orElse(null);
+    assertThat(actualLastSynced, equalTo(lastSyncedDate));
   }
 
   private void verifyRetrievedFirecloudGroupContents(DuosFirecloudGroupModel retrieved) {

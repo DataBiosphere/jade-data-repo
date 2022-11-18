@@ -398,7 +398,7 @@ public class AzureSynapsePdaoConnectedTest {
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem("Jones"));
 
     String snapshotParquetFileName =
-        IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
+        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, destinationTable.getName());
     List<String> snapshotFirstNames =
         synapseUtils.readParquetFileStringColumn(
             snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
@@ -420,7 +420,7 @@ public class AzureSynapsePdaoConnectedTest {
         snapshotByAssetTableRowCounts,
         randomFlightId);
     String snapshotRowIdsParquetFileName =
-        IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
+        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(
             snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);
@@ -482,7 +482,7 @@ public class AzureSynapsePdaoConnectedTest {
             snapshotDataSourceName,
             randomFlightId);
     String snapshotParquetFileName =
-        IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
+        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, destinationTable.getName());
     List<String> snapshotFirstNames =
         synapseUtils.readParquetFileStringColumn(
             snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
@@ -504,7 +504,7 @@ public class AzureSynapsePdaoConnectedTest {
         tableRowCounts,
         randomFlightId);
     String snapshotRowIdsParquetFileName =
-        IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
+        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(
             snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);

@@ -1,5 +1,6 @@
 {
   "name": "file",
+  "rawTableName": "file",
   "columns": [
     {
       "name": "id",

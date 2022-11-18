@@ -11,7 +11,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.common.fixtures.DatasetFixtures;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
@@ -20,7 +20,6 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.model.TableDataType;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
@@ -43,6 +42,7 @@ import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.sas.BlobSasPermission;
+import java.io.IOException;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -50,8 +50,6 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -84,8 +82,7 @@ public class AzureSynapsePdaoConnectedTest {
   private static Logger logger = LoggerFactory.getLogger(AzureSynapsePdaoConnectedTest.class);
 
   private String randomFlightId;
-  private String destinationParquetFile;
-
+  private List<String> parquetFileNames;
   private String scratchParquetFile;
 
   private static final AuthenticatedUserRequest TEST_USER =
@@ -139,23 +136,15 @@ public class AzureSynapsePdaoConnectedTest {
           // We can't load array data with CSVs
           .peek(r -> r.put("arrayCol", Optional.empty()))
           .toList();
-  private static final String INGEST_REQUEST_SCOPED_CREDENTIAL_PREFIX = "irsas_";
-  private static final String DESTINATION_SCOPED_CREDENTIAL_PREFIX = "dsas_";
-  private static final String SNAPSHOT_SCOPED_CREDENTIAL_PREFIX = "ssas_";
-  private static final String INGEST_REQUEST_DATA_SOURCE_PREFIX = "irds_";
-  private static final String DESTINATION_DATA_SOURCE_PREFIX = "dds_";
-  private static final String SNAPSHOT_DATA_SOURCE_PREFIX = "sds_";
   private static final String TABLE_NAME_PREFIX = "ingest_";
   private static final String SCRATCH_TABLE_NAME_PREFIX = "scratch_";
+  private static final String SNAPSHOT_SCOPED_CREDENTIAL_PREFIX = "ssas_";
+  private static final String SNAPSHOT_DATA_SOURCE_PREFIX = "sds_";
 
-  private String ingestRequestScopedCredentialName;
-  private String destinationScopedCredentialName;
-  private String snapshotScopedCredentialName;
   private String snapshotQueryCredentialName;
-  private String ingestRequestDataSourceName;
-  private String destinationDataSourceName;
-  private String snapshotDataSourceName;
   private String snapshotQueryDataSourceName;
+  private String snapshotScopedCredentialName;
+  private String snapshotDataSourceName;
   private String tableName;
   private String scratchTableName;
   private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
@@ -165,7 +154,7 @@ public class AzureSynapsePdaoConnectedTest {
 
   private AzureResourceManager client;
   private AzureApplicationDeploymentResource applicationResource;
-  private AzureStorageAccountResource storageAccountResource;
+  private AzureStorageAccountResource datasetStorageAccountResource;
   private AzureStorageAccountResource snapshotStorageAccountResource;
   private BillingProfileModel billingProfile;
 
@@ -178,21 +167,19 @@ public class AzureSynapsePdaoConnectedTest {
   @MockBean private IamProviderInterface samService;
   @Autowired SynapseUtils synapseUtils;
   @Autowired SnapshotDao snapshotDao;
+  @Autowired JsonLoader jsonLoader;
 
   @Before
   public void setup() throws Exception {
+    parquetFileNames = new ArrayList<>();
     connectedOperations.stubOutSamCalls(samService);
     randomFlightId = ShortUUID.get();
-    ingestRequestScopedCredentialName = INGEST_REQUEST_SCOPED_CREDENTIAL_PREFIX + randomFlightId;
-    destinationScopedCredentialName = DESTINATION_SCOPED_CREDENTIAL_PREFIX + randomFlightId;
-    snapshotScopedCredentialName = SNAPSHOT_SCOPED_CREDENTIAL_PREFIX + randomFlightId;
-    ingestRequestDataSourceName = INGEST_REQUEST_DATA_SOURCE_PREFIX + randomFlightId;
-    destinationDataSourceName = DESTINATION_DATA_SOURCE_PREFIX + randomFlightId;
-    snapshotDataSourceName = SNAPSHOT_DATA_SOURCE_PREFIX + randomFlightId;
     snapshotQueryDataSourceName = null;
     snapshotQueryCredentialName = null;
     tableName = TABLE_NAME_PREFIX + randomFlightId;
     scratchTableName = SCRATCH_TABLE_NAME_PREFIX + randomFlightId;
+    snapshotScopedCredentialName = SNAPSHOT_SCOPED_CREDENTIAL_PREFIX + randomFlightId;
+    snapshotDataSourceName = SNAPSHOT_DATA_SOURCE_PREFIX + randomFlightId;
     UUID applicationId = UUID.randomUUID();
     UUID storageAccountId = UUID.randomUUID();
 
@@ -215,7 +202,7 @@ public class AzureSynapsePdaoConnectedTest {
             .azureApplicationDeploymentName(testConfig.getTargetApplicationName())
             .azureResourceGroupName(MANAGED_RESOURCE_GROUP_NAME)
             .profileId(billingProfile.getId());
-    storageAccountResource =
+    datasetStorageAccountResource =
         new AzureStorageAccountResource()
             .resourceId(storageAccountId)
             .name(STORAGE_ACCOUNT_NAME)
@@ -246,10 +233,10 @@ public class AzureSynapsePdaoConnectedTest {
   @After
   public void cleanup() throws Exception {
     try {
-      for (var parquetFile : List.of(scratchParquetFile, destinationParquetFile)) {
+      for (var parquetFile : parquetFileNames) {
         synapseUtils.deleteParquetFile(
             billingProfile,
-            storageAccountResource,
+            datasetStorageAccountResource,
             parquetFile,
             new BlobSasTokenOptions(
                 Duration.ofMinutes(15),
@@ -260,7 +247,10 @@ public class AzureSynapsePdaoConnectedTest {
       // check to see if successful delete
       List<String> emptyList =
           synapseUtils.readParquetFileStringColumn(
-              destinationParquetFile, destinationDataSourceName, "first_name", false);
+              IngestUtils.getParquetFilePath("all_data_types", randomFlightId),
+              IngestUtils.getTargetDataSourceName(randomFlightId),
+              "first_name",
+              false);
       assertThat(
           "No longer able to read parquet file because it should have been delete",
           emptyList.size(),
@@ -274,21 +264,21 @@ public class AzureSynapsePdaoConnectedTest {
         List.of(
             scratchTableName,
             tableName,
-            IngestUtils.formatSnapshotTableName(snapshotId, "participant"),
+            IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"),
             IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
     azureSynapsePdao.dropDataSources(
         Stream.of(
                 snapshotDataSourceName,
-                destinationDataSourceName,
-                ingestRequestDataSourceName,
+                IngestUtils.getTargetDataSourceName(randomFlightId),
+                IngestUtils.getIngestRequestDataSourceName(randomFlightId),
                 snapshotQueryDataSourceName)
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
     azureSynapsePdao.dropScopedCredentials(
         Stream.of(
                 snapshotScopedCredentialName,
-                destinationScopedCredentialName,
-                ingestRequestScopedCredentialName,
+                IngestUtils.getTargetScopedCredentialName(randomFlightId),
+                IngestUtils.getIngestRequestScopedCredentialName(randomFlightId),
                 snapshotQueryCredentialName)
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
@@ -301,12 +291,8 @@ public class AzureSynapsePdaoConnectedTest {
   public void testSynapseQueryCSV() throws Exception {
     IngestRequestModel ingestRequestModel =
         new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
-    String ingestFileLocation =
-        synapseUtils.ingestRequestURL(
-            testConfig.getSourceStorageAccountName(),
-            testConfig.getIngestRequestContainer(),
-            "azure-simple-dataset-ingest-request.csv");
-    runIngest(ingestRequestModel, ingestFileLocation);
+    testSynapseQuery(
+        ingestRequestModel, "azure-simple-dataset-ingest-request.csv", SAMPLE_DATA_CSV);
   }
 
   @Test
@@ -317,11 +303,6 @@ public class AzureSynapsePdaoConnectedTest {
             .csvSkipLeadingRows(2)
             .csvFieldDelimiter("!")
             .csvQuote("*");
-    String nonStandardIngestFileLocation =
-        synapseUtils.ingestRequestURL(
-            testConfig.getSourceStorageAccountName(),
-            testConfig.getIngestRequestContainer(),
-            "azure-simple-dataset-ingest-request-non-standard.csv");
     // Add exclamation points to the end of the expected text fields
     var testData =
         SAMPLE_DATA_CSV.stream()
@@ -330,11 +311,17 @@ public class AzureSynapsePdaoConnectedTest {
                     r.entrySet().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue)))
             .peek(r -> r.put("textCol", r.get("textCol").map(v -> v + "!")))
             .toList();
-    runIngest(nonStandardIngestRequestModel, nonStandardIngestFileLocation);
+    testSynapseQuery(
+        nonStandardIngestRequestModel,
+        "azure-simple-dataset-ingest-request-non-standard.csv",
+        testData);
 
     List<String> textCols =
         synapseUtils.readParquetFileStringColumn(
-            destinationParquetFile, destinationDataSourceName, "textCol", true);
+            IngestUtils.getParquetFilePath("all_data_types", randomFlightId),
+            IngestUtils.getTargetDataSourceName(randomFlightId),
+            "textCol",
+            true);
     assertThat(
         "The text columns should be properly quoted", textCols, equalTo(List.of("Dao!", "Jones!")));
   }
@@ -342,37 +329,51 @@ public class AzureSynapsePdaoConnectedTest {
   @Test
   public void testSynapseQueryJSON() throws Exception {
     IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
-    String ingestFileLocation =
-        synapseUtils.ingestRequestURL(
-            testConfig.getSourceStorageAccountName(),
-            testConfig.getIngestRequestContainer(),
-            "azure-ingest-request.json");
-    runIngest(ingestRequestModel, ingestFileLocation);
+    testSynapseQuery(ingestRequestModel, "azure-ingest-request.json", SAMPLE_DATA);
   }
 
   @Test
-  public void testSnapshotByAsset() throws SQLException {
+  public void testSnapshotByAsset() throws SQLException, IOException {
     IngestRequestModel ingestRequestModel =
         new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
-    String ingestFileLocation =
-        synapseUtils.ingestRequestURL(
-            testConfig.getSourceStorageAccountName(),
-            testConfig.getIngestRequestContainer(),
-            "azure-simple-dataset-ingest-request.csv");
-    List<Map<String, Optional<Object>>> expectedData = SAMPLE_DATA_CSV;
-
-    DatasetTable destinationTable = runIngest(ingestRequestModel, ingestFileLocation);
 
     // SNAPSHOT
     Snapshot snapshot = new Snapshot().id(snapshotId);
-    SnapshotTable snapshotTable = new SnapshotTable();
-    snapshotTable.columns(destinationTable.getColumns());
-    snapshotTable.id(destinationTable.getId());
-    snapshotTable.name(destinationTable.getName());
-    snapshot.snapshotTables(List.of(snapshotTable));
+    String snapshotFlightId = UUID.randomUUID().toString();
+    // Table 1 - All Data Types Table
+    DatasetTable allDataTypesTable =
+        ingestIntoAllDataTypesTable(ingestRequestModel, "azure-simple-dataset-ingest-request.csv");
+    SnapshotTable allDataTypesSnapshotTable = setupSnapshotTable(allDataTypesTable);
 
-    // 5 - Create external data source for the snapshot
+    // Table 2 - date_of_birth
+    String dateOfBirthTableIngestFlightId = UUID.randomUUID().toString();
+    DatasetTable dateOfBirthTable =
+        ingestIntoTable(
+            "ingest-test-dataset-table-date-of-birth.json",
+            ingestRequestModel,
+            "ingest-test-dataset-date-of-birth-rows.csv",
+            dateOfBirthTableIngestFlightId,
+            "synapsetestdata/test",
+            4);
+    SnapshotTable dateOfBirthSnapshotTable = setupSnapshotTable(dateOfBirthTable);
 
+    // Table 3 - Participant
+    String participantTableIngestFlightId = UUID.randomUUID().toString();
+    DatasetTable participantTable =
+        ingestIntoTable(
+            "ingest-test-dataset-table-participant.json",
+            ingestRequestModel,
+            "ingest-test-dataset-participant-rows.csv",
+            participantTableIngestFlightId,
+            "synapsetestdata/test",
+            4);
+
+    SnapshotTable participantSnapshotTable = setupSnapshotTable(participantTable);
+
+    snapshot.snapshotTables(
+        List.of(allDataTypesSnapshotTable, dateOfBirthSnapshotTable, participantSnapshotTable));
+
+    // -- Create external data source for the snapshot
     // where we'll write the resulting parquet files
     String parquetSnapshotLocation = snapshotStorageAccountResource.getStorageAccountUrl();
     BlobUrlParts snapshotSignUrlBlob =
@@ -388,17 +389,27 @@ public class AzureSynapsePdaoConnectedTest {
     // 6 - Create snapshot parquet files via external table
     // By Asset
     String assetName = "testAsset";
+    List<DatasetTable> datasetTables = List.of(allDataTypesTable, dateOfBirthTable, participantTable);
+    String rootTableName = participantTable.getRawTableName();
+    String rootTableFlightId = participantTableIngestFlightId;
+    String rootColumnName = "id";
+    String rootValue = "1";
     Map<String, Long> snapshotByAssetTableRowCounts =
         azureSynapsePdao.createSnapshotParquetFilesByAsset(
-            buildAssetSpecification(destinationTable, assetName),
+            buildAssetSpecification(
+                datasetTables,
+                assetName,
+                rootTableName,
+                rootColumnName),
             snapshotId,
-            destinationDataSourceName,
+            IngestUtils.getTargetDataSourceName(rootTableFlightId),
             snapshotDataSourceName,
-            randomFlightId,
-            new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem("Jones"));
+            rootTableFlightId,
+            new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue));
 
     String snapshotParquetFileName =
-        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, destinationTable.getName());
+        IngestUtils.getRetrieveSnapshotParquetFilePath(
+            snapshotId, rootTableName);
     List<String> snapshotFirstNames =
         synapseUtils.readParquetFileStringColumn(
             snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
@@ -408,14 +419,16 @@ public class AzureSynapsePdaoConnectedTest {
         equalTo(List.of("Sally")));
     assertThat(
         "Table row count should equal 1 for destination table",
-        snapshotByAssetTableRowCounts.get(destinationTable.getName()),
+        snapshotByAssetTableRowCounts.get(rootTableName),
         equalTo(1L));
+    // TODO - When we build out the walk relationships, we should also check the other two tables
+    // and make sure those rows are populated
 
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
         snapshot.getTables(),
         snapshotId,
-        destinationDataSourceName,
+        IngestUtils.getTargetDataSourceName(snapshotFlightId),
         snapshotDataSourceName,
         snapshotByAssetTableRowCounts,
         randomFlightId);
@@ -427,30 +440,124 @@ public class AzureSynapsePdaoConnectedTest {
     assertThat("Snapshot contains expected number or rows", snapshotRowIds.size(), equalTo(1));
 
     // Updated snapshot w/ rowId
-    snapshotTable.rowCount(snapshotRowIds.size());
-    snapshot.snapshotTables(List.of(snapshotTable));
+    allDataTypesSnapshotTable.rowCount(snapshotRowIds.size());
+    // snapshot.snapshotTables(List.of(snapshotTable));
 
-    List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
-    assertThat("2 fileRefs Returned.", refIds.size(), equalTo(2));
+    //        List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
+    //        assertThat("2 fileRefs Returned.", refIds.size(), equalTo(2));
 
-    // 12 - clean out synapse
-    // we'll do this in the test cleanup method, but it will be a step in the normal flight
   }
 
-  @Test
-  public void testSnapshotByFullView() throws Exception {
-    IngestRequestModel ingestRequestModel =
-        new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
-    String ingestFileLocation =
-        synapseUtils.ingestRequestURL(
-            testConfig.getSourceStorageAccountName(),
+  private AssetSpecification buildAssetSpecification(
+      List<DatasetTable> datasetTables,
+      String assetName,
+      String rootTableName,
+      String rootColumnName) {
+    List<AssetTable> assetTables =
+        datasetTables.stream()
+            .map(
+                datasetTable -> {
+                  // Define AssetTable
+                  List<AssetColumn> columns = new ArrayList<>();
+                  datasetTable.getColumns().stream()
+                      .forEach(
+                          c ->
+                              columns.add(
+                                  new AssetColumn().datasetColumn(c).datasetTable(datasetTable)));
+                  return new AssetTable().datasetTable(datasetTable).columns(columns);
+                })
+            .collect(Collectors.toList());
+
+    AssetTable rootTable =
+        assetTables.stream()
+            .filter(at -> at.getTable().getName().equals(rootTableName))
+            .findFirst()
+            .orElseThrow();
+    return new AssetSpecification()
+        .name(assetName)
+        .assetTables(assetTables)
+        .rootTable(rootTable)
+        .rootColumn(
+            rootTable.getColumns().stream()
+                .filter(c -> c.getDatasetColumn().getName().equals(rootColumnName))
+                .findFirst()
+                .orElseThrow());
+  }
+
+  private SnapshotTable setupSnapshotTable(DatasetTable datasetTable) {
+    SnapshotTable snapshotTable = new SnapshotTable();
+    snapshotTable.columns(datasetTable.getColumns());
+    snapshotTable.id(datasetTable.getId());
+    snapshotTable.name(datasetTable.getName());
+    return snapshotTable;
+  }
+
+  private DatasetTable ingestIntoTable(
+      String datasetTableSpecFilePath,
+      IngestRequestModel ingestRequestModel,
+      String ingestFileLocation,
+      String flightId,
+      String ingestRequestContainer, // TODO - move test data to ingestrequest folder in azure & can
+      // remove this argument
+      int numRowsToIngest)
+      throws IOException, SQLException {
+    DatasetTable destinationTable =
+        jsonLoader.loadObject(datasetTableSpecFilePath, DatasetTable.class);
+    destinationTable.id(UUID.randomUUID());
+    synapseUtils.performIngest(
+        destinationTable,
+        ingestFileLocation,
+        flightId,
+        datasetStorageAccountResource,
+        billingProfile,
+        ingestRequestModel,
+        numRowsToIngest,
+        ingestRequestContainer);
+    return destinationTable;
+  }
+
+  private DatasetTable ingestIntoAllDataTypesTable(
+      IngestRequestModel ingestRequestModel, String ingestFileLocation)
+      throws IOException, SQLException {
+
+    DatasetTable destinationTable =
+        ingestIntoTable(
+            "ingest-test-dataset-table-all-data-types.json",
+            ingestRequestModel,
+            ingestFileLocation,
+            randomFlightId,
             testConfig.getIngestRequestContainer(),
-            "azure-simple-dataset-ingest-request.csv");
-    List<Map<String, Optional<Object>>> expectedData = SAMPLE_DATA_CSV;
+            2);
+    jsonLoader.loadObject("ingest-test-dataset-table-all-data-types.json", DatasetTable.class);
 
-    DatasetTable destinationTable = runIngest(ingestRequestModel, ingestFileLocation);
+    scratchParquetFile =
+        "parquet/scratch_" + destinationTable.getName() + "/" + randomFlightId + ".parquet";
+    parquetFileNames.add(scratchParquetFile);
+    parquetFileNames.add(
+        IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId));
 
-    // SNAPSHOT
+    // Check that the parquet files were successfully created.
+    List<String> firstNames =
+        synapseUtils.readParquetFileStringColumn(
+            IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId),
+            IngestUtils.getTargetDataSourceName(randomFlightId),
+            "first_name",
+            true);
+    assertThat(
+        "List of names should equal the input", firstNames, equalTo(List.of("Bob", "Sally")));
+    return destinationTable;
+  }
+
+  private void testSynapseQuery(
+      IngestRequestModel ingestRequestModel,
+      String ingestFileLocation,
+      List<Map<String, Optional<Object>>> expectedData)
+      throws Exception {
+    // ---- part 1 - ingest metadata into parquet files associated with dataset
+    DatasetTable destinationTable =
+        ingestIntoAllDataTypesTable(ingestRequestModel, ingestFileLocation);
+
+    // --- part 2 - create snapshot by full view of the ingested data
     Snapshot snapshot = new Snapshot().id(snapshotId);
     SnapshotTable snapshotTable = new SnapshotTable();
     snapshotTable.columns(destinationTable.getColumns());
@@ -473,12 +580,11 @@ public class AzureSynapsePdaoConnectedTest {
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
 
     // 6 - Create snapshot parquet files via external table
-    // By Full View
     Map<String, Long> tableRowCounts =
         azureSynapsePdao.createSnapshotParquetFiles(
             snapshot.getTables(),
             snapshotId,
-            destinationDataSourceName,
+            IngestUtils.getTargetDataSourceName(randomFlightId),
             snapshotDataSourceName,
             randomFlightId);
     String snapshotParquetFileName =
@@ -499,7 +605,7 @@ public class AzureSynapsePdaoConnectedTest {
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
         snapshot.getTables(),
         snapshotId,
-        destinationDataSourceName,
+        IngestUtils.getTargetDataSourceName(randomFlightId),
         snapshotDataSourceName,
         tableRowCounts,
         randomFlightId);
@@ -515,7 +621,7 @@ public class AzureSynapsePdaoConnectedTest {
     snapshot.snapshotTables(List.of(snapshotTable));
 
     List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
-    assertThat("2 fileRefs Returned.", refIds.size(), equalTo(4));
+    assertThat("4 fileRefs Returned.", refIds.size(), equalTo(4));
 
     // 9 - do a basic query of the data
     snapshotQueryCredentialName =
@@ -575,150 +681,6 @@ public class AzureSynapsePdaoConnectedTest {
     // 12 - clean out synapse
     // we'll do this in the test cleanup method, but it will be a step in the normal flight
 
-  }
-
-  private DatasetTable runIngest(IngestRequestModel ingestRequestModel, String ingestFileLocation)
-      throws SQLException {
-    UUID tenantId = testConfig.getTargetTenantId();
-
-    // ---- ingest steps ---
-    // 0 -
-    // A - Collect user input and validate
-    IngestUtils.validateBlobAzureBlobFileURL(ingestFileLocation);
-    String destinationTableName = "participant";
-
-    // B - Build parameters based on user input
-    destinationParquetFile = "parquet/" + destinationTableName + "/" + randomFlightId + ".parquet";
-
-    scratchParquetFile =
-        "parquet/scratch_" + destinationTableName + "/" + randomFlightId + ".parquet";
-
-    // 1 - Create external data source for the ingest control file
-    BlobUrlParts ingestRequestSignUrlBlob =
-        azureBlobStorePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId, TEST_USER);
-    azureSynapsePdao.getOrCreateExternalDataSource(
-        ingestRequestSignUrlBlob, ingestRequestScopedCredentialName, ingestRequestDataSourceName);
-
-    // 2 - Create the external data source for the destination
-    // where we'll write the resulting parquet files
-    // We will build this parquetDestinationLocation according
-    // to the associated storage account for the dataset
-    String parquetDestinationLocation = storageAccountResource.getStorageAccountUrl();
-
-    BlobUrlParts destinationSignUrlBlob =
-        azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetDestinationLocation,
-            billingProfile,
-            storageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            TEST_USER);
-    azureSynapsePdao.getOrCreateExternalDataSource(
-        destinationSignUrlBlob, destinationScopedCredentialName, destinationDataSourceName);
-
-    // 3 - Retrieve info about database schema so that we can populate the parquet create query
-    DatasetTable destinationTable = buildExampleTableSchema(destinationTableName);
-
-    // 4 - Create parquet files via external table
-    // All inputs should be sanitized before passed into this method
-    int updateCount =
-        azureSynapsePdao.createScratchParquetFiles(
-            ingestRequestModel.getFormat(),
-            destinationTable,
-            ingestRequestSignUrlBlob.getBlobName(),
-            scratchParquetFile,
-            destinationDataSourceName,
-            ingestRequestDataSourceName,
-            scratchTableName,
-            ingestRequestModel.getCsvSkipLeadingRows(),
-            ingestRequestModel.getCsvFieldDelimiter(),
-            ingestRequestModel.getCsvQuote());
-    assertThat("num rows updated is two", updateCount, equalTo(2));
-
-    int failedRows =
-        azureSynapsePdao.validateScratchParquetFiles(destinationTable, scratchTableName);
-
-    assertThat("there are no rows that fail validation", failedRows, equalTo(0));
-
-    azureSynapsePdao.createFinalParquetFiles(
-        tableName,
-        destinationParquetFile,
-        destinationDataSourceName,
-        scratchTableName,
-        destinationTable);
-
-    // Check that the parquet files were successfully created.
-    List<String> firstNames =
-        synapseUtils.readParquetFileStringColumn(
-            destinationParquetFile, destinationDataSourceName, "first_name", true);
-    assertThat(
-        "List of names should equal the input", firstNames, equalTo(List.of("Bob", "Sally")));
-    return destinationTable;
-  }
-
-  private DatasetTable buildExampleTableSchema(String destinationTableName) {
-    List<String> columnNames =
-        Arrays.asList(
-            "boolCol",
-            "dateCol",
-            "dateTimeCol",
-            "dirRefCol",
-            "file", // test use of reserved word
-            "floatCol",
-            "float64Col",
-            "intCol",
-            "int64Col",
-            "numericCol",
-            "first_name",
-            "textCol",
-            "timeCol",
-            "timestampCol",
-            "arrayCol");
-    TableDataType baseType = TableDataType.STRING;
-    DatasetTable destinationTable =
-        DatasetFixtures.generateDatasetTable(destinationTableName, baseType, columnNames);
-
-    // Set each column to be a different data type so we can test them all
-    List<TableDataType> tableTypesToTry =
-        Arrays.asList(
-            TableDataType.BOOLEAN,
-            TableDataType.DATE,
-            TableDataType.DATETIME,
-            TableDataType.DIRREF,
-            TableDataType.FILEREF,
-            TableDataType.FLOAT,
-            TableDataType.FLOAT64,
-            TableDataType.INTEGER,
-            TableDataType.INT64,
-            TableDataType.NUMERIC,
-            TableDataType.STRING,
-            TableDataType.TEXT,
-            TableDataType.TIME,
-            TableDataType.TIMESTAMP,
-            TableDataType.STRING);
-    Iterator<TableDataType> dataTypes = tableTypesToTry.iterator();
-    destinationTable.getColumns().forEach(c -> c.type(dataTypes.next()));
-    destinationTable.getColumns().get(tableTypesToTry.size() - 1).arrayOf(true);
-
-    return destinationTable;
-  }
-
-  // TODO - have this input list of DatasetTables and then only set one as root table
-  private AssetSpecification buildAssetSpecification(DatasetTable datasetTable, String assetName) {
-    // Define AssetTable
-    List<AssetColumn> columns = new ArrayList<>();
-    datasetTable.getColumns().stream()
-        .forEach(c -> columns.add(new AssetColumn().datasetColumn(c).datasetTable(datasetTable)));
-    AssetTable assetTable = new AssetTable().datasetTable(datasetTable).columns(columns);
-
-    return new AssetSpecification()
-        .name(assetName)
-        .assetTables(List.of(assetTable))
-        .rootTable(assetTable)
-        .rootColumn(
-            assetTable.getColumns().stream()
-                .filter(c -> c.getDatasetColumn().getName().equals("textCol"))
-                .findFirst()
-                .orElseThrow());
   }
 
   private Optional<Object> extractFileId(Optional<Object> drsUri) {

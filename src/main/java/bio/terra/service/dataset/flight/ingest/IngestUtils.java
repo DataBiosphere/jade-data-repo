@@ -353,8 +353,13 @@ public final class IngestUtils {
     return "parquet/" + targetTableName + "/" + flightId + ".parquet";
   }
 
-  public static String getSnapshotParquetFilePath(UUID snapshotId, String targetTableName) {
-    return "parquet/" + snapshotId + "/" + targetTableName + ".parquet";
+  public static String getRetrieveSnapshotParquetFilePath(UUID snapshotId, String targetTableName) {
+    return "parquet/" + snapshotId + "/" + targetTableName + "/*.parquet/*";
+  }
+
+  public static String getSnapshotSliceParquetFilePath(
+      UUID snapshotId, String targetTableName, String snapshotSliceName) {
+    return "parquet/" + snapshotId + "/" + targetTableName + "/" + snapshotSliceName + ".parquet";
   }
 
   public static String getSourceDatasetParquetFilePath(String tableName, String datasetFlightId) {

@@ -59,15 +59,11 @@ public class DuosApiController implements DuosApi {
 
   @Override
   public ResponseEntity<DuosFirecloudGroupModel> syncDuosDatasetAuthorizedUsers(String duosId) {
-    // TODO: at present, only TDR Admins hold the "configure" action on the "datarepo" resource.
-    // This check effectively limits syncing to TDR Admins.
-    // But rather than overloading an existing action, a more targeted approach would be to create
-    // new action(s) / role(s) in Sam to gate this operation.
     iamService.verifyAuthorization(
         getAuthenticatedInfo(),
         IamResourceType.DATAREPO,
         appConfig.getResourceId(),
-        IamAction.CONFIGURE);
+        IamAction.SYNC_DUOS_USERS);
     return ResponseEntity.ok(duosService.syncDuosDatasetAuthorizedUsers(duosId));
   }
 

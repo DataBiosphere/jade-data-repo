@@ -130,6 +130,15 @@ public class DuosServiceTest {
   }
 
   @Test
+  public void testRetrieveFirecloudGroup() {
+    assertThrows(
+        DuosDatasetNotFoundException.class, () -> duosService.retrieveFirecloudGroup(DUOS_ID));
+
+    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
+    assertThat(duosService.retrieveFirecloudGroup(DUOS_ID), equalTo(FIRECLOUD_GROUP));
+  }
+
+  @Test
   public void testCreateFirecloudGroup() {
     when(iamService.createGroup(FIRECLOUD_GROUP_NAME)).thenReturn(FIRECLOUD_GROUP_EMAIL);
 
@@ -295,8 +304,6 @@ public class DuosServiceTest {
         assertThrows(
             DuosFirecloudGroupUpdateConflictException.class,
             () -> duosService.updateLastSynced(FIRECLOUD_GROUP, Instant.now()));
-    System.out.println(actualEx.getMessage());
-    System.out.println(actualEx.getCauses());
     assertThat(actualEx.getCause(), equalTo(expectedEx));
   }
 

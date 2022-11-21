@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +69,14 @@ public class DuosDao {
         created.getDuosId(),
         created.getFirecloudGroupName());
     return keyHolder.getId();
+  }
+
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public List<DuosFirecloudGroupModel> retrieveFirecloudGroups() {
+    return jdbcTemplate.query(duosFirecloudGroupQuery, new DuosFirecloudGroupMapper());
   }
 
   @Transactional(

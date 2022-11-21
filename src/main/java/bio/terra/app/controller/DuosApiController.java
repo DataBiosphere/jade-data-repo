@@ -11,6 +11,7 @@ import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.duos.DuosService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
+import java.util.List;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -44,6 +45,16 @@ public class DuosApiController implements DuosApi {
     this.appConfig = appConfig;
     this.iamService = iamService;
     this.duosService = duosService;
+  }
+
+  @Override
+  public ResponseEntity<List<DuosFirecloudGroupModel>> retrieveDuosFirecloudGroups() {
+    return ResponseEntity.ok(duosService.retrieveFirecloudGroups());
+  }
+
+  @Override
+  public ResponseEntity<DuosFirecloudGroupModel> retrieveDuosFirecloudGroup(String duosId) {
+    return ResponseEntity.ok(duosService.retrieveFirecloudGroup(duosId));
   }
 
   @Override

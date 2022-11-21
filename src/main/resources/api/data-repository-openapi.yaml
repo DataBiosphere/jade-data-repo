@@ -1198,8 +1198,69 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/duos/{duosId}/syncAuthorizedUsers:
+  /api/repository/v1/duos:
     get:
+      tags:
+        - duos
+        - repository
+      description: >
+        Returns a list of all DUOS Firecloud groups managed by TDR.
+        NOTE: This is an experimental feature and its response body may change.
+      operationId: retrieveDuosFirecloudGroups
+      responses:
+        200:
+          description: List of DUOS Firecloud groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        500:
+          description: >
+            An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/duos/{duosId}:
+    get:
+      tags:
+        - duos
+        - repository
+      description: >
+        Returns a DUOS Firecloud group managed by TDR.
+        NOTE: This is an experimental feature and its response body may change.
+      operationId: retrieveDuosFirecloudGroup
+      parameters:
+        - name: duosId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/DuosId'
+      responses:
+        200:
+          description: DUOS Firecloud group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        404:
+          description: >
+            Not found - TDR has no record of of a DUOS dataset with the specified ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: >
+            An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/duos/{duosId}/syncAuthorizedUsers:
+    put:
       tags:
         - duos
         - repository

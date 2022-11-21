@@ -1,6 +1,7 @@
 package bio.terra.service.duos;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertFalse;
@@ -12,6 +13,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
 import bio.terra.model.DuosFirecloudGroupModel;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.After;
@@ -71,6 +73,8 @@ public class DuosDaoTest {
   public void testRetrieveFirecloudGroupBeforeInsert() {
     DuosFirecloudGroupModel retrieveBeforeInsert = duosDao.retrieveFirecloudGroupByDuosId(duosId);
     assertNull(retrieveBeforeInsert);
+    List<DuosFirecloudGroupModel> retrieveAllBeforeInsert = duosDao.retrieveFirecloudGroups();
+    assertThat(retrieveAllBeforeInsert, empty());
   }
 
   @Test
@@ -88,6 +92,10 @@ public class DuosDaoTest {
 
     DuosFirecloudGroupModel retrievedById = duosDao.retrieveFirecloudGroup(duosFirecloudGroupId);
     verifyRetrievedFirecloudGroupContents(retrievedById);
+
+    List<DuosFirecloudGroupModel> retrieved = duosDao.retrieveFirecloudGroups();
+    assertThat(retrieved.size(), equalTo(1));
+    verifyRetrievedFirecloudGroupContents(retrieved.get(0));
   }
 
   @Test

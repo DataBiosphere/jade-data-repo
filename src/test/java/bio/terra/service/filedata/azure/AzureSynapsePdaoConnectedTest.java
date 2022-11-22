@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.Relationship;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -22,6 +23,7 @@ import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.AssetColumn;
+import bio.terra.service.dataset.AssetRelationship;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.DatasetService;
@@ -373,6 +375,30 @@ public class AzureSynapsePdaoConnectedTest {
     snapshot.snapshotTables(
         List.of(allDataTypesSnapshotTable, dateOfBirthSnapshotTable, participantSnapshotTable));
 
+    // Define relationships
+    AssetRelationship participantDOBRelationship =
+        new AssetRelationship()
+            .datasetRelationship(
+                new Relationship()
+                    .id(UUID.randomUUID())
+                    .fromColumn(participantTable.getColumnByName("id"))
+                    .fromTable(participantTable)
+                    .toColumn(dateOfBirthTable.getColumnByName("participant_id"))
+                    .toTable(dateOfBirthTable)
+                    .name("participant_dob_table"));
+    AssetRelationship participantADTRelationship =
+        new AssetRelationship()
+            .datasetRelationship(
+                new Relationship()
+                    .id(UUID.randomUUID())
+                    .fromColumn(participantTable.getColumnByName("first_name"))
+                    .fromTable(participantTable)
+                    .toColumn(allDataTypesTable.getColumnByName("first_name"))
+                    .toTable(allDataTypesTable)
+                    .name("participant_allDataTypes_table"));
+    List<AssetRelationship> relationships =
+        List.of(participantDOBRelationship, participantADTRelationship);
+
     // -- Create external data source for the snapshot
     // where we'll write the resulting parquet files
     String parquetSnapshotLocation = snapshotStorageAccountResource.getStorageAccountUrl();
@@ -397,7 +423,8 @@ public class AzureSynapsePdaoConnectedTest {
     String rootValue = "1";
     Map<String, Long> snapshotByAssetTableRowCounts =
         azureSynapsePdao.createSnapshotParquetFilesByAsset(
-            buildAssetSpecification(datasetTables, assetName, rootTableName, rootColumnName),
+            buildAssetSpecification(
+                datasetTables, assetName, rootTableName, rootColumnName, relationships),
             snapshotId,
             IngestUtils.getTargetDataSourceName(rootTableFlightId),
             snapshotDataSourceName,
@@ -448,7 +475,8 @@ public class AzureSynapsePdaoConnectedTest {
       List<DatasetTable> datasetTables,
       String assetName,
       String rootTableName,
-      String rootColumnName) {
+      String rootColumnName,
+      List<AssetRelationship> relationships) {
     List<AssetTable> assetTables =
         datasetTables.stream()
             .map(
@@ -472,6 +500,7 @@ public class AzureSynapsePdaoConnectedTest {
     return new AssetSpecification()
         .name(assetName)
         .assetTables(assetTables)
+        .assetRelationships(relationships)
         .rootTable(rootTable)
         .rootColumn(
             rootTable.getColumns().stream()

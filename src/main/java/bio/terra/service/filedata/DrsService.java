@@ -693,15 +693,8 @@ public class DrsService {
   }
 
   private DRSObject drsObjectFromFSDir(FSDir fsDir, SnapshotCacheResult snapshot) {
-    DRSObject dirObject = makeCommonDrsObject(fsDir, snapshot);
-
-    DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum("0");
-    dirObject
-        .size(0L)
-        .addChecksumsItem(drsChecksum)
+    return makeCommonDrsObject(fsDir, snapshot)
         .contents(makeContentsList(fsDir, snapshot.id.toString()));
-
-    return dirObject;
   }
 
   private DRSObject makeCommonDrsObject(FSItem fsObject, SnapshotCacheResult snapshot) {
@@ -793,6 +786,13 @@ public class DrsService {
 
   @VisibleForTesting
   DRSObject mergeDRSObjects(List<DRSObject> drsObjects) {
+    boolean isDirectory =
+        drsObjects.stream().map(DRSObject::getAccessMethods).anyMatch(Objects::isNull);
+    if (isDirectory
+        && drsObjects.stream().map(DRSObject::getAccessMethods).anyMatch(Objects::nonNull)) {
+      throw new InvalidDrsObjectException(
+          "Drs object would contain a mix of file and directory objects");
+    }
     DRSObject drsObject =
         new DRSObject()
             // Extract singleton values
@@ -821,11 +821,13 @@ public class DrsService {
                     .orElse(""))
             // Get a distinct list of access methods
             .accessMethods(
-                drsObjects.stream()
-                    .map(DRSObject::getAccessMethods)
-                    .flatMap(Collection::stream)
-                    .distinct()
-                    .toList())
+                isDirectory
+                    ? null
+                    : drsObjects.stream()
+                        .map(DRSObject::getAccessMethods)
+                        .flatMap(Collection::stream)
+                        .distinct()
+                        .toList())
             // Get a distinct list of checksums methods
             .checksums(
                 drsObjects.stream()
@@ -851,7 +853,10 @@ public class DrsService {
         (k, v) -> {
           if (v.size() > 1) {
             throw new InvalidDrsObjectException(
-                "Invalid DRS object. Many checksums for %s exist".formatted(k));
+                "Invalid DRS object. Many checksums for %s exist: %s"
+                    .formatted(
+                        k,
+                        v.stream().map(DRSChecksum::getChecksum).collect(Collectors.joining(","))));
           }
         });
     return drsObject;

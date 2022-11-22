@@ -1,4 +1,4 @@
-package bio.terra.service.tabulardata.google;
+package bio.terra.service.tabulardata;
 
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
@@ -7,8 +7,13 @@ import bio.terra.service.dataset.AssetRelationship;
 import bio.terra.service.dataset.AssetSpecification;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WalkRelationship {
+  private static final Logger logger = LoggerFactory.getLogger(WalkRelationship.class);
+
   public enum WalkDirection {
     FROM_TO,
     TO_FROM
@@ -121,5 +126,34 @@ public class WalkRelationship {
 
   public Boolean getToColumnIsArray() {
     return columnIsArrayOf[toIndex];
+  }
+
+  // TODO -figure out better name for this method
+  // This returns whether or not we should actually walk this relationship
+  public boolean processRelationship(String startTableId) {
+    if (this.isVisited()) {
+      return false;
+    }
+
+    // NOTE: setting the direction tells the WalkRelationship to change its meaning of from and
+    // to.
+    // When constructed, it is always in the FROM_TO direction.
+    if (StringUtils.equals(startTableId, this.getFromTableId())) {
+      this.setDirection(WalkRelationship.WalkDirection.FROM_TO);
+    } else if (StringUtils.equals(startTableId, this.getToTableId())) {
+      this.setDirection(WalkRelationship.WalkDirection.TO_FROM);
+    } else {
+      // This relationship is not connected to the start table
+      return false;
+    }
+    logger.info(
+        "[assetTest] The relationship is being set from column {} in table {} to column {} in table {}",
+        this.getFromColumnName(),
+        this.getFromTableName(),
+        this.getToColumnName(),
+        this.getToTableName());
+
+    this.setVisited();
+    return true;
   }
 }

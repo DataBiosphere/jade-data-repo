@@ -33,6 +33,7 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
+import bio.terra.service.tabulardata.WalkRelationship;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -133,7 +134,47 @@ public class AzureSynapsePdao {
       createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
   private static final String createSnapshotTableByAssetTemplate =
-      createSnapshotTableTemplate + " WHERE rows.<rootColumn> in (:rootValues)";
+      createSnapshotTableTemplate + " WHERE rows.<rootColumn> in (:rootValues);";
+
+  private static final String createSnapshotTableWalkRelationshipTemplate =
+      createSnapshotTableTemplate
+          + """
+           WHERE
+            (rows.<toTableColumn> IN
+            (
+              IF EXISTS (
+                SELECT TOP(1) <fromTableColumn> FROM
+                OPENROWSET(
+                  BULK '<fromTableParquetFileLocation>',
+                  DATA_SOURCE = '<snapshotDataSource>',
+                  FORMAT = 'parquet'
+                ) as check_for_from_rows
+              )
+             SELECT <fromTableColumn> FROM
+                OPENROWSET(
+                  BULK '<fromTableParquetFileLocation>',
+                  DATA_SOURCE = '<snapshotDataSource>',
+                  FORMAT = 'parquet'
+                ) as from_rows
+             ))
+             AND (rows.datarepo_row_id NOT IN
+             (
+              IF EXISTS (
+                SELECT TOP(1) datarepo_row_id FROM
+                  OPENROWSET(
+                    BULK '<toTableParquetFileLocation>',
+                    DATA_SOURCE = '<snapshotDataSource>',
+                    FORMAT = 'parquet'
+                  ) AS check_for_to_rows
+              )
+              SELECT datarepo_row_id FROM
+                  OPENROWSET(
+                    BULK '<toTableParquetFileLocation>',
+                    DATA_SOURCE = '<snapshotDataSource>',
+                    FORMAT = 'parquet'
+                  ) AS already_existing_to_rows
+            ));
+          """;
 
   private static final String createSnapshotRowIdTableTemplate =
       """
@@ -503,6 +544,89 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
 
+  public void walkRelationships(
+      UUID snapshotId,
+      AssetSpecification assetSpec,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String datasetFlightId,
+      String startTableId,
+      Map<String, Long> tableRowCounts)
+      throws SQLException {
+    List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpec);
+    for (WalkRelationship relationship : walkRelationships) {
+      if (relationship.processRelationship(startTableId)) {
+        createSnapshotParquetFilesByRelationship(
+            snapshotId,
+            assetSpec,
+            relationship,
+            datasetDataSourceName,
+            snapshotDataSourceName,
+            datasetFlightId,
+            tableRowCounts);
+        walkRelationships(
+            snapshotId,
+            assetSpec,
+            datasetDataSourceName,
+            snapshotDataSourceName,
+            datasetFlightId,
+            relationship.getToTableId(),
+            tableRowCounts);
+      }
+    }
+  }
+
+  // Used when walking relationships
+  public void createSnapshotParquetFilesByRelationship(
+      UUID snapshotId,
+      AssetSpecification assetSpec,
+      WalkRelationship relationship,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String datasetFlightId,
+      Map<String, Long> tableRowCounts)
+      throws SQLException {
+    String toTableName = relationship.getToTableName();
+    String fromTableName = relationship.getFromTableName();
+    AssetTable toAssetTable = assetSpec.getAssetTableByName(toTableName);
+
+    // Get Columns to include for this table
+    List<SynapseColumn> columns =
+        toAssetTable.getColumns().stream()
+            .map(c -> c.getDatasetColumn())
+            .collect(Collectors.toList())
+            .stream()
+            .map(Column::toSynapseColumn)
+            .collect(Collectors.toList());
+    ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableWalkRelationshipTemplate);
+    ST queryTemplate =
+        generateSnapshotParquetCreateQuery(
+            sqlCreateSnapshotTableTemplate,
+            toTableName,
+            snapshotId,
+            IngestUtils.getSnapshotSliceParquetFilePath(
+                snapshotId,
+                toTableName,
+                String.format("{}_{}_relationship", fromTableName, toTableName)),
+            datasetDataSourceName,
+            snapshotDataSourceName,
+            datasetFlightId,
+            columns);
+
+    queryTemplate.add("toTableColumn", relationship.getToColumnName());
+    queryTemplate.add("fromTableColumn", relationship.getFromColumnName());
+    queryTemplate.add(
+        "fromTableParquetFileLocation",
+        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, fromTableName));
+    queryTemplate.add("snapshotDataSource", snapshotDataSourceName);
+    queryTemplate.add(
+        "toTableParquetFileLocation",
+        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, toTableName));
+    int rows = executeSynapseQuery(queryTemplate.render());
+    logger.info("{} rows included in table {}", rows, toTableName);
+    tableRowCounts.put(toTableName, (long) rows);
+  }
+
   public Map<String, Long> createSnapshotParquetFilesByAsset(
       AssetSpecification assetSpec,
       UUID snapshotId,
@@ -556,8 +680,15 @@ public class AzureSynapsePdao {
     }
 
     // Then walk relationships
-
-    // For each table
+    String rootTableId = rootTable.getTable().getId().toString();
+    walkRelationships(
+        snapshotId,
+        assetSpec,
+        datasetDataSourceName,
+        snapshotDataSourceName,
+        datasetFlightId,
+        rootTableId,
+        tableRowCounts);
 
     return tableRowCounts;
   }

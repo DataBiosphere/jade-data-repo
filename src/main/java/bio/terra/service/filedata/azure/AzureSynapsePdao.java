@@ -599,7 +599,7 @@ public class AzureSynapsePdao {
             IngestUtils.getSnapshotSliceParquetFilePath(
                 snapshotId,
                 toTableName,
-                String.format("{}_{}_relationship", fromTableName, toTableName)),
+                String.format("%s_%s_relationship", fromTableName, toTableName)),
             datasetDataSourceName,
             snapshotDataSourceName,
             datasetFlightId,

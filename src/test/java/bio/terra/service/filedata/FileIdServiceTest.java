@@ -50,10 +50,11 @@ public class FileIdServiceTest {
         service.calculateFileId(dataset, fsItem2));
   }
 
+  record TestCase(FSItem fsItem, FSFileInfo fsFileInfo) {}
+
   @Test
   public void testPredictableUUIDNotEquals() {
     when(dataset.isPredictableFileIds()).thenReturn(true);
-    record TestCase(FSItem fsItem, FSFileInfo fsFileInfo) {}
     List<TestCase> testCases =
         Stream.of("/foo/bar/file1.txt", "/foo/bar/file2.txt")
             .flatMap(

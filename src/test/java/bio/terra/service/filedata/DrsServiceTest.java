@@ -62,6 +62,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
@@ -78,6 +79,10 @@ import org.springframework.test.context.ActiveProfiles;
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
+@SuppressFBWarnings(
+    value = "DMI",
+    justification =
+        "This fails with not allowing absolute paths but they're not file paths in our case")
 public class DrsServiceTest {
 
   @Mock private SnapshotService snapshotService;
@@ -749,6 +754,9 @@ public class DrsServiceTest {
         () -> drsService.mergeDRSObjects(List.of(drsObject1, drsObject2)));
   }
 
+  @SuppressFBWarnings(
+      value = "NP",
+      justification = "It's incorrectly complaining about potential NPEs")
   private DRSObject createFileDrsObject(
       String id,
       String path,

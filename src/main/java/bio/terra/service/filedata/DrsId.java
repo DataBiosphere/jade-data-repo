@@ -44,7 +44,7 @@ public class DrsId {
   }
 
   public String toDrsObjectId() {
-    if (version.equals("v1") || version == null) {
+    if (version == null || version.equals("v1")) {
       return "v1_" + snapshotId + "_" + fsObjectId;
     } else if (version.equals("v2")) {
       return "v2_" + fsObjectId;

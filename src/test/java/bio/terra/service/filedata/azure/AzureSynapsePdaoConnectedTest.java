@@ -389,18 +389,15 @@ public class AzureSynapsePdaoConnectedTest {
     // 6 - Create snapshot parquet files via external table
     // By Asset
     String assetName = "testAsset";
-    List<DatasetTable> datasetTables = List.of(allDataTypesTable, dateOfBirthTable, participantTable);
+    List<DatasetTable> datasetTables =
+        List.of(allDataTypesTable, dateOfBirthTable, participantTable);
     String rootTableName = participantTable.getRawTableName();
     String rootTableFlightId = participantTableIngestFlightId;
     String rootColumnName = "id";
     String rootValue = "1";
     Map<String, Long> snapshotByAssetTableRowCounts =
         azureSynapsePdao.createSnapshotParquetFilesByAsset(
-            buildAssetSpecification(
-                datasetTables,
-                assetName,
-                rootTableName,
-                rootColumnName),
+            buildAssetSpecification(datasetTables, assetName, rootTableName, rootColumnName),
             snapshotId,
             IngestUtils.getTargetDataSourceName(rootTableFlightId),
             snapshotDataSourceName,
@@ -408,8 +405,7 @@ public class AzureSynapsePdaoConnectedTest {
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue));
 
     String snapshotParquetFileName =
-        IngestUtils.getRetrieveSnapshotParquetFilePath(
-            snapshotId, rootTableName);
+        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, rootTableName);
     List<String> snapshotFirstNames =
         synapseUtils.readParquetFileStringColumn(
             snapshotParquetFileName, snapshotDataSourceName, "first_name", true);

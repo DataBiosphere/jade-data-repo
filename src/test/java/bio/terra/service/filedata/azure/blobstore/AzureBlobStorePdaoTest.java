@@ -146,7 +146,7 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
-            new Dataset().id(UUID.randomUUID()).predictableFileIDs(false),
+            new Dataset().id(UUID.randomUUID()).predictableFileIds(false),
             BILLING_PROFILE,
             fileLoadModel,
             fileId.toString(),
@@ -167,7 +167,7 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
-            new Dataset().id(UUID.randomUUID()).predictableFileIDs(false),
+            new Dataset().id(UUID.randomUUID()).predictableFileIds(false),
             BILLING_PROFILE,
             fileLoadModel,
             fileId.toString(),

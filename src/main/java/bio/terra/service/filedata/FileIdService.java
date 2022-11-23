@@ -11,7 +11,7 @@ public class FileIdService {
   private static final String HASH_SEPARATOR = "#";
 
   public UUID calculateFileId(Dataset dataset, FSItem fsItem) {
-    if (dataset.isPredictableFileIds()) {
+    if (dataset.hasPredictableFileIds()) {
       return UUID.nameUUIDFromBytes(createHashableContent(fsItem).getBytes(StandardCharsets.UTF_8));
     } else {
       return UUID.randomUUID();

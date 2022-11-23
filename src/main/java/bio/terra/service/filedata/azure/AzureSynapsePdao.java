@@ -576,7 +576,6 @@ public class AzureSynapsePdao {
               columns,
               isGlobalFileIds);
 
-      logger.info("((((" + query);
       try {
         int rows = executeSynapseQuery(query);
         tableRowCounts.put(table.getName(), (long) rows);
@@ -810,6 +809,6 @@ public class AzureSynapsePdao {
   }
 
   public static void logQuery(String query) {
-    logger.info("Running query:\n#########\n{}", query);
+    logger.debug("Running query:\n#########\n{}", query);
   }
 }

@@ -163,7 +163,7 @@ public class FireStoreDao {
         snapshotFirestore,
         snapshotId,
         refIds,
-        snapshot.isGlobalFileIds());
+        snapshot.hasGlobalFileIds());
   }
 
   public void deleteFilesFromSnapshot(Snapshot snapshot) throws InterruptedException {

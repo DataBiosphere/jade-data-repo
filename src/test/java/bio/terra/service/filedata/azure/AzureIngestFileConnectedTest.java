@@ -211,7 +211,7 @@ public class AzureIngestFileConnectedTest {
     // 5 - IngestFileAzurePrimaryDataStep
     FSFileInfo fsFileInfo =
         azureBlobStorePdao.copyFile(
-            new Dataset().id(datasetId).predictableFileIDs(false),
+            new Dataset().id(datasetId).predictableFileIds(false),
             billingProfile,
             fileLoadModel,
             fileId,

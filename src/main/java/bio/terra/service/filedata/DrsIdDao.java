@@ -20,15 +20,6 @@ public class DrsIdDao {
       INSERT INTO drs_id (drs_object_id, snapshot_id) VALUES (:drs_object_id, :snapshot_id)
       ON CONFLICT DO NOTHING
       """;
-  public static final String DELETE_DRS_ID_BY_SNAPSHOT =
-      """
-      DELETE FROM drs_id WHERE snapshot_id = :snapshot_id
-      """;
-
-  public static final String ENUMERATE_DRS_IDS_BY_DRS_ID =
-      """
-      SELECT id, drs_object_id, snapshot_id FROM drs_id WHERE drs_object_id = :drs_object_id
-      """;
 
   public long recordDrsIdToSnapshot(UUID snapshotId, List<DrsId> drsIds) {
     MapSqlParameterSource[] parameters =
@@ -43,11 +34,21 @@ public class DrsIdDao {
     return Arrays.stream(affectedRows).reduce(0, Integer::sum);
   }
 
+  public static final String DELETE_DRS_ID_BY_SNAPSHOT =
+      """
+      DELETE FROM drs_id WHERE snapshot_id = :snapshot_id
+      """;
+
   public long deleteDrsIdToSnapshotsBySnapshot(UUID snapshotId) {
     MapSqlParameterSource parameters =
         new MapSqlParameterSource().addValue("snapshot_id", snapshotId);
     return jdbcTemplate.update(DELETE_DRS_ID_BY_SNAPSHOT, parameters);
   }
+
+  public static final String ENUMERATE_DRS_IDS_BY_DRS_ID =
+      """
+      SELECT id, drs_object_id, snapshot_id FROM drs_id WHERE drs_object_id = :drs_object_id
+      """;
 
   public List<UUID> retrieveReferencedSnapshotIds(DrsId drsId) {
     MapSqlParameterSource parameters =

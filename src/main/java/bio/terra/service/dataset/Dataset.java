@@ -329,12 +329,12 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return datasetSummary.getCloudPlatform();
   }
 
-  public boolean isPredictableFileIds() {
-    return datasetSummary.isPredictableFileIds();
+  public boolean hasPredictableFileIds() {
+    return datasetSummary.hasPredictableFileIds();
   }
 
-  public Dataset predictableFileIDs(boolean predictableFileIDs) {
-    datasetSummary.predictableFileIds(predictableFileIDs);
+  public Dataset predictableFileIds(boolean predictableFileIds) {
+    datasetSummary.predictableFileIds(predictableFileIds);
     return this;
   }
 

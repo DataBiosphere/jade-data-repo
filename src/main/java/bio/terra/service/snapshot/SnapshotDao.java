@@ -203,7 +203,7 @@ public class SnapshotDao {
             .addValue("creation_information", creationInfo)
             .addValue(
                 "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
-            .addValue("global_file_ids", snapshot.isGlobalFileIds());
+            .addValue("global_file_ids", snapshot.hasGlobalFileIds());
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {

@@ -223,7 +223,7 @@ public class DatasetSummary {
     return this;
   }
 
-  public boolean isPredictableFileIds() {
+  public boolean hasPredictableFileIds() {
     return predictableFileIds;
   }
 
@@ -246,7 +246,7 @@ public class DatasetSummary {
         .storageAccount(getStorageAccount())
         .phsId(getPhsId())
         .selfHosted(isSelfHosted())
-        .predictableFileIds(isPredictableFileIds());
+        .predictableFileIds(hasPredictableFileIds());
   }
 
   List<StorageResourceModel> toStorageResourceModel() {

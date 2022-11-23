@@ -28,7 +28,7 @@ public class FileIdServiceTest {
 
   @Test
   public void testPredictableUUIDEquals() {
-    when(dataset.isPredictableFileIds()).thenReturn(true);
+    when(dataset.hasPredictableFileIds()).thenReturn(true);
     FSItem fsItem1 = new FSFile().path("/foo/bar").size(123L).checksumMd5("foo");
 
     FSItem fsItem2 = new FSFile().path("/foo/bar").size(123L).checksumMd5("foo");
@@ -40,7 +40,7 @@ public class FileIdServiceTest {
 
   @Test
   public void testPredictableUUIDNotEqualsWhenRandom() {
-    when(dataset.isPredictableFileIds()).thenReturn(false);
+    when(dataset.hasPredictableFileIds()).thenReturn(false);
     FSItem fsItem1 = new FSFile().path("/foo/bar").size(123L).checksumMd5("foo");
 
     FSItem fsItem2 = new FSFile().path("/foo/bar").size(123L).checksumMd5("foo");
@@ -54,7 +54,7 @@ public class FileIdServiceTest {
 
   @Test
   public void testPredictableUUIDNotEquals() {
-    when(dataset.isPredictableFileIds()).thenReturn(true);
+    when(dataset.hasPredictableFileIds()).thenReturn(true);
     List<TestCase> testCases =
         Stream.of("/foo/bar/file1.txt", "/foo/bar/file2.txt")
             .flatMap(

@@ -14,7 +14,6 @@ import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleRandomBackoff;
 import java.util.UUID;
@@ -28,7 +27,7 @@ import org.springframework.context.ApplicationContext;
  * - REQUEST - a FileLoadModel describing the file to load
  */
 
-public class FileIngestWorkerFlight extends Flight {
+public class FileIngestWorkerFlight extends FileIngestTypeFlight {
 
   public FileIngestWorkerFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
@@ -81,33 +80,13 @@ public class FileIngestWorkerFlight extends Flight {
 
     if (platform.isGcp()) {
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-      // Order depends on how the file id is obtained.  If we are generating the file predictably,
-      // we determine it when ingesting the file (by reading the MD5) so we need to run that first.
-      // Otherwise, we need to first perform the directory creation step and then the physical copy
-      // of the file
-      if (dataset.isPredictableFileIds()) {
-        addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), fileSystemRetry);
-        addStep(new IngestFileDirectoryStep(fileDao, dataset), fileSystemRetry);
-      } else {
-        addStep(new IngestFileDirectoryStep(fileDao, dataset), fileSystemRetry);
-        addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), fileSystemRetry);
-      }
+      addFileCopyAndDirectoryRecordStepsGcp(
+          fileDao, gcsPdao, configService, dataset, fileSystemRetry);
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
-      // Same as for GCP: because of the order in which file ids are calculated, we need to swap
-      // the order of the steps when using predictable file ids
-      if (dataset.isPredictableFileIds()) {
-        addStep(
-            new IngestFileAzurePrimaryDataStep(
-                dataset, azureBlobStorePdao, configService, userReq));
-        addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
-      } else {
-        addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), fileSystemRetry);
-        addStep(
-            new IngestFileAzurePrimaryDataStep(
-                dataset, azureBlobStorePdao, configService, userReq));
-      }
+      addFileCopyAndDirectoryRecordStepsAzure(
+          azureBlobStorePdao, configService, azureTableDao, userReq, dataset, fileSystemRetry);
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), fileSystemRetry);
     }
   }

@@ -65,7 +65,9 @@ import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import org.junit.Before;
@@ -411,6 +413,43 @@ public class DrsServiceTest {
   }
 
   @Test
+  public void testBillingSnapshotDetection() throws InterruptedException {
+    UUID billingIdA = UUID.randomUUID();
+    UUID snpId1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    UUID billingIdB = UUID.randomUUID();
+    UUID snpId2 = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    UUID snpId3 = UUID.fromString("33333333-3333-3333-3333-333333333333");
+    UUID billingIdC = UUID.randomUUID();
+    UUID snpId4 = UUID.fromString("44444444-4444-4444-4444-444444444444");
+    UUID snpId5 = UUID.fromString("55555555-5555-5555-5555-555555555555");
+
+    Snapshot snp1 = mockSnapshot(snpId1, billingIdA, CloudPlatform.GCP, "google-project-1");
+    Snapshot snp2 = mockSnapshot(snpId2, billingIdB, CloudPlatform.GCP, "google-project-2");
+    Snapshot snp3 = mockSnapshot(snpId3, billingIdB, CloudPlatform.GCP, "google-project-3");
+    Snapshot snp4 = mockSnapshot(snpId4, billingIdC, CloudPlatform.GCP, "google-project-4");
+    Snapshot snp5 = mockSnapshot(snpId5, billingIdA, CloudPlatform.GCP, "google-project-4");
+    Map<UUID, UUID> snapshotIds =
+        drsService.chooseBillingSnapshotsPerSnapshot(
+            List.of(
+                new SnapshotCacheResult(snp1),
+                new SnapshotCacheResult(snp2),
+                new SnapshotCacheResult(snp3),
+                new SnapshotCacheResult(snp4),
+                new SnapshotCacheResult(snp5)));
+
+    assertThat(
+        "correct billing account was selected",
+        snapshotIds,
+        equalTo(
+            Map.of(
+                snpId1, snpId1,
+                snpId2, snpId2,
+                snpId3, snpId2,
+                snpId4, snpId4,
+                snpId5, snpId1)));
+  }
+
+  @Test
   public void testLookupSnapshot() {
     List<SnapshotCacheResult> cacheResults =
         drsService.lookupSnapshotsForDRSObject(googleDrsObjectId);
@@ -667,7 +706,7 @@ public class DrsServiceTest {
   }
 
   @Test
-  public void nametestMergeDrsObjects() {
+  public void testMergeDrsObjects() {
     DRSObject drsObject1 =
         createFileDrsObject(
             "v2_file1",
@@ -719,12 +758,12 @@ public class DrsServiceTest {
                             .region("asia-south1"),
                         new DRSAccessMethod()
                             .type(TypeEnum.HTTPS)
-                            .accessId("gcp-us-central1")
-                            .region("us-central1"),
+                            .accessId("az-europe")
+                            .region("europe"),
                         new DRSAccessMethod()
                             .type(TypeEnum.HTTPS)
-                            .accessId("az-europe")
-                            .region("europe")))
+                            .accessId("gcp-us-central1")
+                            .region("us-central1")))
                 .aliases(List.of("/my/path/file.txt"))));
   }
 
@@ -752,6 +791,159 @@ public class DrsServiceTest {
     assertThrows(
         InvalidDrsObjectException.class,
         () -> drsService.mergeDRSObjects(List.of(drsObject1, drsObject2)));
+  }
+
+  @Test
+  public void testMergeDrsObjectsWithConflictingPath() {
+    DRSObject drsObject1 =
+        createFileDrsObject(
+            "v2_file1",
+            "/my/path/file1.txt",
+            123L,
+            "foomd5",
+            CloudPlatform.GCP,
+            GoogleRegion.ASIA_SOUTH1,
+            Instant.parse("2022-01-01T00:00:00.00Z"));
+    DRSObject drsObject2 =
+        createFileDrsObject(
+            "v2_file1",
+            "/my/path/file2.txt",
+            123L,
+            "foomd5",
+            CloudPlatform.GCP,
+            GoogleRegion.US_CENTRAL1,
+            Instant.parse("2022-01-02T00:00:00.00Z"));
+
+    assertThrows(
+        InvalidDrsObjectException.class,
+        () -> drsService.mergeDRSObjects(List.of(drsObject1, drsObject2)));
+  }
+
+  @Test
+  public void testDateMerging() {
+    DRSObject drsObject1 =
+        createFileDrsObject(
+            "v2_file1",
+            "/my/path/file1.txt",
+            123L,
+            "foomd5",
+            CloudPlatform.GCP,
+            GoogleRegion.ASIA_SOUTH1,
+            Instant.parse("2022-01-01T00:00:00.00Z"));
+    DRSObject drsObject2 =
+        createFileDrsObject(
+            "v2_file1",
+            "/my/path/file1.txt",
+            123L,
+            "foomd5",
+            CloudPlatform.GCP,
+            GoogleRegion.US_CENTRAL1,
+            Instant.parse("2022-01-02T00:00:00.00Z"));
+    assertThat(
+        "min date returns correctly",
+        DrsService.getMinCreatedTime(List.of(drsObject1, drsObject2)),
+        equalTo("2022-01-01T00:00:00Z"));
+    assertThat(
+        "max date returns correctly",
+        DrsService.getMaxUpdatedTime(List.of(drsObject1, drsObject2)),
+        equalTo("2022-01-02T00:00:00Z"));
+  }
+
+  @Test
+  public void testUniqueExtraction() {
+    DRSObject drsObject1 =
+        createFileDrsObject(
+            "v2_file1",
+            "/my/path/file1.txt",
+            123L,
+            "foomd5",
+            CloudPlatform.GCP,
+            GoogleRegion.ASIA_SOUTH1,
+            Instant.parse("2022-01-01T00:00:00.00Z"));
+    DRSObject drsObject2 =
+        createFileDrsObject(
+            "v2_file1",
+            "/my/path/file1.txt",
+            124L,
+            "foomd5",
+            CloudPlatform.AZURE,
+            AzureRegion.CENTRAL_US,
+            Instant.parse("2022-01-01T00:00:00.00Z"));
+    assertThat(
+        "distinct value is correctly returned",
+        DrsService.extractUniqueDrsObjectValue(List.of(drsObject1, drsObject2), DRSObject::getId),
+        equalTo("v2_file1"));
+    assertThrows(
+        InvalidDrsObjectException.class,
+        () ->
+            DrsService.extractUniqueDrsObjectValue(
+                List.of(drsObject1, drsObject2), DRSObject::getSize));
+  }
+
+  @Test
+  public void testDistinctListExtraction() {
+    DRSObject drsObject1 =
+        createFileDrsObject(
+            "v2_file1",
+            "/my/path/file1.txt",
+            123L,
+            "foomd5",
+            CloudPlatform.GCP,
+            GoogleRegion.ASIA_SOUTH1,
+            Instant.parse("2022-01-01T00:00:00.00Z"));
+    DRSObject drsObject2 =
+        createFileDrsObject(
+            "v2_file1",
+            "/my/path/file1.txt",
+            123L,
+            "foomd5",
+            CloudPlatform.AZURE,
+            AzureRegion.CENTRAL_US,
+            Instant.parse("2022-01-01T00:00:00.00Z"));
+    DRSObject drsObject3 =
+        createFileDrsObject(
+            "v2_file1",
+            "/my/path/file1.txt",
+            123L,
+            "foomd5",
+            CloudPlatform.GCP,
+            GoogleRegion.ASIA_SOUTH1,
+            Instant.parse("2022-01-01T00:00:00.00Z"));
+    assertThat(
+        "access methods are correctly returned",
+        DrsService.extractDistinctListOfDrsObjectValues(
+            List.of(drsObject1, drsObject2, drsObject3),
+            DRSObject::getAccessMethods,
+            Comparator.comparing(DRSAccessMethod::getRegion)
+                .thenComparing(DRSAccessMethod::getAccessId)),
+        equalTo(
+            List.of(
+                new DRSAccessMethod()
+                    .region(GoogleRegion.ASIA_SOUTH1.getValue())
+                    .accessId("gcp-" + GoogleRegion.ASIA_SOUTH1.getValue())
+                    .type(TypeEnum.HTTPS),
+                new DRSAccessMethod()
+                    .region(AzureRegion.CENTRAL_US.getValue())
+                    .accessId("az-" + AzureRegion.CENTRAL_US.getValue())
+                    .type(TypeEnum.HTTPS))));
+
+    assertThat(
+        "access methods are correctly returned when swapping comparators",
+        DrsService.extractDistinctListOfDrsObjectValues(
+            List.of(drsObject1, drsObject2, drsObject3),
+            DRSObject::getAccessMethods,
+            Comparator.comparing(DRSAccessMethod::getAccessId)
+                .thenComparing(DRSAccessMethod::getRegion)),
+        equalTo(
+            List.of(
+                new DRSAccessMethod()
+                    .region(AzureRegion.CENTRAL_US.getValue())
+                    .accessId("az-" + AzureRegion.CENTRAL_US.getValue())
+                    .type(TypeEnum.HTTPS),
+                new DRSAccessMethod()
+                    .region(GoogleRegion.ASIA_SOUTH1.getValue())
+                    .accessId("gcp-" + GoogleRegion.ASIA_SOUTH1.getValue())
+                    .type(TypeEnum.HTTPS))));
   }
 
   @SuppressFBWarnings(

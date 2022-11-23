@@ -180,7 +180,7 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
     when(gcsPdao.copyFile(any(), any(), any(), any())).thenReturn(fileInfo);
 
     // Dataset uses predictable file ids
-    when(dataset.isPredictableFileIds()).thenReturn(true);
+    when(dataset.hasPredictableFileIds()).thenReturn(true);
 
     step.doStep(flightContext);
 
@@ -200,7 +200,7 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
     when(gcsPdao.copyFile(any(), any(), any(), any())).thenReturn(fileInfo);
 
     // Dataset uses predictable file ids
-    when(dataset.isPredictableFileIds()).thenReturn(false);
+    when(dataset.hasPredictableFileIds()).thenReturn(false);
 
     step.doStep(flightContext);
 

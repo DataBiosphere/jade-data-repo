@@ -40,7 +40,7 @@ public class IngestFilePrimaryDataStep implements Step {
 
     FlightMap workingMap = context.getWorkingMap();
     String fileId = null;
-    if (!dataset.isPredictableFileIds()) {
+    if (!dataset.hasPredictableFileIds()) {
       fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     }
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);

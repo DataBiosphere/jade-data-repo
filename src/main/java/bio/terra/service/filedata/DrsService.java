@@ -330,8 +330,8 @@ public class DrsService {
    * Given a list of snapshots, return a map of snapshot ids mapped to the snapshot to use for
    * billing
    */
-  private Map<UUID, UUID> chooseBillingSnapshotsPerSnapshot(
-      List<SnapshotCacheResult> cachedSnapshots) {
+  @VisibleForTesting
+  Map<UUID, UUID> chooseBillingSnapshotsPerSnapshot(List<SnapshotCacheResult> cachedSnapshots) {
     // First create a multimap keyed on billing profile id whose values are a list of snapshots
     // sorted by id
     Map<UUID, List<SnapshotCacheResult>> snapshotsByBillingId =
@@ -805,56 +805,31 @@ public class DrsService {
             .selfUri(extractUniqueDrsObjectValue(drsObjects, DRSObject::getSelfUri))
             .mimeType(extractUniqueDrsObjectValue(drsObjects, DRSObject::getMimeType))
             .version(extractUniqueDrsObjectValue(drsObjects, DRSObject::getVersion))
-            // Get the earliest creation date
-            .createdTime(
-                drsObjects.stream()
-                    .map(DRSObject::getCreatedTime)
-                    .map(Instant::parse)
-                    .min(Comparator.naturalOrder())
-                    .map(Instant::toString)
-                    .orElse(""))
-            // Get the latest update date
-            .updatedTime(
-                drsObjects.stream()
-                    .map(DRSObject::getUpdatedTime)
-                    .map(Instant::parse)
-                    .max(Comparator.naturalOrder())
-                    .map(Instant::toString)
-                    .orElse(""))
-            // Get a distinct list of access methods
+            .createdTime(getMinCreatedTime(drsObjects))
+            .updatedTime(getMaxUpdatedTime(drsObjects))
             .accessMethods(
                 isDirectory
                     ? null
-                    : drsObjects.stream()
-                        .map(DRSObject::getAccessMethods)
-                        .flatMap(Collection::stream)
-                        .distinct()
-                        .toList())
-            // Get a distinct list of checksums methods
+                    : extractDistinctListOfDrsObjectValues(
+                        drsObjects,
+                        DRSObject::getAccessMethods,
+                        Comparator.comparing(DRSAccessMethod::getRegion)
+                            .thenComparing(DRSAccessMethod::getType)))
             .checksums(
-                drsObjects.stream()
-                    .map(DRSObject::getChecksums)
-                    .flatMap(Collection::stream)
-                    .distinct()
-                    .toList())
-            // Get a distinct list aliases
+                extractDistinctListOfDrsObjectValues(
+                    drsObjects,
+                    DRSObject::getChecksums,
+                    Comparator.comparing(DRSChecksum::getType)))
             .aliases(
-                drsObjects.stream()
-                    .map(DRSObject::getAliases)
-                    .flatMap(Collection::stream)
-                    .distinct()
-                    .sorted()
-                    .toList());
-
-    if (isDirectory) {
-      drsObject.contents(
-          drsObjects.stream()
-              .map(DRSObject::getContents)
-              .flatMap(Collection::stream)
-              .distinct()
-              .sorted(Comparator.comparing(DRSContentsObject::getName))
-              .toList());
-    }
+                extractDistinctListOfDrsObjectValues(
+                    drsObjects, DRSObject::getAliases, Comparator.naturalOrder()))
+            .contents(
+                isDirectory
+                    ? extractDistinctListOfDrsObjectValues(
+                        drsObjects,
+                        DRSObject::getContents,
+                        Comparator.comparing(DRSContentsObject::getName))
+                    : null);
 
     // If there are overlapping checksum types with different values, throw an error
     Map<String, List<DRSChecksum>> checksumsByType =
@@ -872,10 +847,31 @@ public class DrsService {
     return drsObject;
   }
 
+  @VisibleForTesting
+  static String getMinCreatedTime(List<DRSObject> drsObjects) {
+    return drsObjects.stream()
+        .map(DRSObject::getCreatedTime)
+        .map(Instant::parse)
+        .min(Comparator.naturalOrder())
+        .map(Instant::toString)
+        .orElse("");
+  }
+
+  @VisibleForTesting
+  static String getMaxUpdatedTime(List<DRSObject> drsObjects) {
+    return drsObjects.stream()
+        .map(DRSObject::getUpdatedTime)
+        .map(Instant::parse)
+        .max(Comparator.naturalOrder())
+        .map(Instant::toString)
+        .orElse("");
+  }
+
   /**
    * Given a list of DRSObjects, extract a singleton value and fail if there are 0, 2 or more values
    */
-  private static <R> R extractUniqueDrsObjectValue(
+  @VisibleForTesting
+  static <R> R extractUniqueDrsObjectValue(
       List<DRSObject> drsObjects, Function<DRSObject, ? extends R> mapper) {
     List<R> values = new ArrayList<>();
     try {
@@ -884,6 +880,20 @@ public class DrsService {
     } catch (IllegalArgumentException e) {
       throw new InvalidDrsObjectException("Found duplicate values: %s".formatted(values), e);
     }
+  }
+
+  /** Given a list of DRSObjects, extract a list of distinct values sorted by the comparator. */
+  @VisibleForTesting
+  static <R> List<R> extractDistinctListOfDrsObjectValues(
+      List<DRSObject> drsObjects,
+      Function<DRSObject, ? extends Collection<R>> mapper,
+      Comparator<R> comparator) {
+    return drsObjects.stream()
+        .map(mapper)
+        .flatMap(Collection::stream)
+        .distinct()
+        .sorted(comparator)
+        .toList();
   }
 
   @VisibleForTesting
@@ -900,7 +910,7 @@ public class DrsService {
     public SnapshotCacheResult(Snapshot snapshot) {
       this.id = snapshot.getId();
       this.isSelfHosted = snapshot.isSelfHosted();
-      this.globalFileIds = snapshot.isGlobalFileIds();
+      this.globalFileIds = snapshot.hasGlobalFileIds();
       this.datasetBillingProfileModel =
           snapshot.getSourceDataset().getDatasetSummary().getDefaultBillingProfile();
       this.snapshotBillingProfileId = snapshot.getProfileId();

@@ -99,7 +99,7 @@ public final class DatasetJsonConversion {
             .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
             .phsId(dataset.getPhsId())
             .selfHosted(dataset.isSelfHosted())
-            .predictableFileIds(dataset.isPredictableFileIds());
+            .predictableFileIds(dataset.hasPredictableFileIds());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;

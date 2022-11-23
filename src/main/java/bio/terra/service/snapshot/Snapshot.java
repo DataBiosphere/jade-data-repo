@@ -251,7 +251,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
     return getSourceDataset().isSelfHosted();
   }
 
-  public boolean isGlobalFileIds() {
+  public boolean hasGlobalFileIds() {
     return globalFileIds;
   }
 

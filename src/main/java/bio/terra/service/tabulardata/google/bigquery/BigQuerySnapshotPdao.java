@@ -1257,7 +1257,7 @@ public class BigQuerySnapshotPdao {
       if (mapColumn.getFromColumn().isFileOrDirRef()) {
 
         String drsPrefix;
-        if (snapshot.isGlobalFileIds()) {
+        if (snapshot.hasGlobalFileIds()) {
           drsPrefix = "'drs://" + datarepoDnsName + "/v2_'";
         } else {
           drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshot.getId() + "_'";

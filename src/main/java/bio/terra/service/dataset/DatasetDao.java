@@ -389,12 +389,12 @@ public class DatasetDao {
     String sql =
         """
         INSERT INTO dataset
-       (name, default_profile_id, id, project_resource_id, application_resource_id, flightid,
-       description, secure_monitoring, phs_id, self_hosted, properties, sharedlock,
-       predictable_file_ids)
-       VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id,
-       :flightid, :description, :secure_monitoring, :phs_id, :self_hosted,
-       cast(:properties as jsonb), ARRAY[]::TEXT[], :predictable_file_ids)
+        (name, default_profile_id, id, project_resource_id, application_resource_id, flightid,
+         description, secure_monitoring, phs_id, self_hosted, properties, sharedlock,
+         predictable_file_ids)
+        VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id,
+         :flightid, :description, :secure_monitoring, :phs_id, :self_hosted,
+         cast(:properties as jsonb), ARRAY[]::TEXT[], :predictable_file_ids)
        """;
 
     MapSqlParameterSource params =
@@ -409,7 +409,7 @@ public class DatasetDao {
             .addValue("secure_monitoring", dataset.isSecureMonitoringEnabled())
             .addValue("phs_id", dataset.getPhsId())
             .addValue("self_hosted", dataset.isSelfHosted())
-            .addValue("predictable_file_ids", dataset.isPredictableFileIds())
+            .addValue("predictable_file_ids", dataset.hasPredictableFileIds())
             .addValue(
                 "properties", DaoUtils.propertiesToString(objectMapper, dataset.getProperties()));
 

@@ -6,14 +6,24 @@ import org.apache.commons.lang3.StringUtils;
 
 public enum IamRole {
   ADMIN,
-  MEMBER,
   STEWARD,
   CUSTODIAN,
   READER,
   DISCOVERER,
   OWNER,
   USER,
-  SNAPSHOT_CREATOR;
+  SNAPSHOT_CREATOR,
+  MEMBER("Used for Firecloud Managed Groups");
+
+  private final String description;
+
+  IamRole() {
+    this.description = "";
+  }
+
+  IamRole(String description) {
+    this.description = description;
+  }
 
   @Override
   @JsonValue

@@ -9,17 +9,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class GoogleCredentialsService {
 
-  private List<String> scopes = List.of();
-
-  public List<String> getScopes() {
-    return this.scopes;
-  }
-
-  public GoogleCredentialsService scopes(List<String> scopes) {
-    this.scopes = scopes;
-    return this;
-  }
-
   /**
    * @return the application's default credentials
    */
@@ -34,7 +23,7 @@ public class GoogleCredentialsService {
   /**
    * @return valid oauth token for credentials with scopes specified when required
    */
-  public String getAccessToken(GoogleCredentials credentials) {
+  public String getAccessToken(GoogleCredentials credentials, List<String> scopes) {
     try {
       if (credentials.createScopedRequired()) {
         credentials = credentials.createScoped(scopes);
@@ -49,8 +38,8 @@ public class GoogleCredentialsService {
    * @return valid oauth token for application's default credentials with scopes specified when
    *     required
    */
-  public String getApplicationDefaultAccessToken() {
+  public String getApplicationDefaultAccessToken(List<String> scopes) {
     GoogleCredentials credentials = getApplicationDefault();
-    return getAccessToken(credentials);
+    return getAccessToken(credentials, scopes);
   }
 }

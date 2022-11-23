@@ -46,21 +46,11 @@ public class GoogleCredentialsServiceTest {
   }
 
   @Test
-  public void testServiceScopes() {
-    assertThat("Service scopes default to empty list", service.getScopes(), equalTo(List.of()));
-    assertThat("Service scopes can be set", service.scopes(SCOPES).getScopes(), equalTo(SCOPES));
-    assertThat("Set service scopes persist on the service", service.getScopes(), equalTo(SCOPES));
-  }
-
-  @Test
   public void testGetAccessTokenScopesNotRequired() {
-    // Without scopes
-    assertThat(service.getAccessToken(credentials), equalTo(TOKEN_VALUE));
+    assertThat(service.getAccessToken(credentials, List.of()), equalTo(TOKEN_VALUE));
     verify(credentials, never()).createScoped(anyList());
 
-    // With scopes
-    service.scopes(SCOPES);
-    assertThat(service.getAccessToken(credentials), equalTo(TOKEN_VALUE));
+    assertThat(service.getAccessToken(credentials, SCOPES), equalTo(TOKEN_VALUE));
     verify(credentials, never()).createScoped(anyList());
   }
 
@@ -68,13 +58,10 @@ public class GoogleCredentialsServiceTest {
   public void testGetAccessTokenScopesRequired() {
     when(credentials.createScopedRequired()).thenReturn(true);
 
-    // Without scopes
-    assertThat(service.getAccessToken(credentials), equalTo(TOKEN_VALUE));
+    assertThat(service.getAccessToken(credentials, List.of()), equalTo(TOKEN_VALUE));
     verify(credentials).createScoped(List.of());
 
-    // With scopes
-    service.scopes(SCOPES);
-    assertThat(service.getAccessToken(credentials), equalTo(TOKEN_VALUE));
+    assertThat(service.getAccessToken(credentials, SCOPES), equalTo(TOKEN_VALUE));
     verify(credentials).createScoped(SCOPES);
   }
 
@@ -84,7 +71,8 @@ public class GoogleCredentialsServiceTest {
     when(credentials.refreshAccessToken()).thenThrow(expectedEx);
 
     GoogleResourceException thrown =
-        assertThrows(GoogleResourceException.class, () -> service.getAccessToken(credentials));
+        assertThrows(
+            GoogleResourceException.class, () -> service.getAccessToken(credentials, SCOPES));
     assertThat(
         "Exception thrown when refreshing access token fails",
         thrown.getCause(),

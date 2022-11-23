@@ -25,7 +25,7 @@ import org.springframework.web.client.RestTemplate;
 public class DuosClient {
 
   private static final Logger logger = LoggerFactory.getLogger(DuosClient.class);
-  @VisibleForTesting static final List<String> DUOS_SCOPES = List.of("email", "profile");
+  @VisibleForTesting static final List<String> SCOPES = List.of("email", "profile");
 
   private final DuosConfiguration duosConfiguration;
   private final RestTemplate restTemplate;
@@ -38,7 +38,7 @@ public class DuosClient {
     this.duosConfiguration = duosConfiguration;
     this.restTemplate = restTemplate;
     restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-    this.googleCredentialsService = googleCredentialsService.scopes(DUOS_SCOPES);
+    this.googleCredentialsService = googleCredentialsService;
   }
 
   /**
@@ -104,7 +104,7 @@ public class DuosClient {
    */
   public DuosDatasetApprovedUsers getApprovedUsers(String duosId) {
     HttpHeaders saHeaders = getHttpHeaders();
-    saHeaders.setBearerAuth(googleCredentialsService.getApplicationDefaultAccessToken());
+    saHeaders.setBearerAuth(googleCredentialsService.getApplicationDefaultAccessToken(SCOPES));
     String url = getApprovedUsersUrl(duosId);
     logger.info("About to GET {} as TDR SA", url);
     try {

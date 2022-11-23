@@ -56,9 +56,8 @@ public class DuosClientTest {
 
   @Before
   public void setup() {
-    when(googleCredentialsService.scopes(DuosClient.DUOS_SCOPES))
-        .thenReturn(googleCredentialsService);
-    when(googleCredentialsService.getApplicationDefaultAccessToken()).thenReturn(TDR_SA_TOKEN);
+    when(googleCredentialsService.getApplicationDefaultAccessToken(DuosClient.SCOPES))
+        .thenReturn(TDR_SA_TOKEN);
 
     when(duosConfiguration.getBasePath()).thenReturn(BASE_PATH);
 

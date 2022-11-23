@@ -53,8 +53,6 @@ public class IamServiceTest {
   public void setup() {
     when(configurationService.getParameterValue(ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS))
         .thenReturn(0);
-    when(googleCredentialsService.scopes(IamService.SAM_SCOPES))
-        .thenReturn(googleCredentialsService);
 
     iamService =
         new IamService(iamProvider, configurationService, journalService, googleCredentialsService);

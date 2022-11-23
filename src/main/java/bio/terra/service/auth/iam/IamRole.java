@@ -13,17 +13,8 @@ public enum IamRole {
   OWNER,
   USER,
   SNAPSHOT_CREATOR,
-  MEMBER("Used for Firecloud Managed Groups");
-
-  private final String description;
-
-  IamRole() {
-    this.description = "";
-  }
-
-  IamRole(String description) {
-    this.description = description;
-  }
+  /** A role used by Firecloud Managed Groups */
+  MEMBER;
 
   @Override
   @JsonValue

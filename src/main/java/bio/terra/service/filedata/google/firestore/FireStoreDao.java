@@ -399,6 +399,15 @@ public class FireStoreDao {
     return directoryDao.validateRefIds(firestore, datasetId, refIdArray);
   }
 
+  /** Retrieve all fileIds (including directories) from a snapshot */
+  public List<String> retrieveAllFileIds(Snapshot snapshot) throws InterruptedException {
+    Firestore firestore =
+        FireStoreProject.get(snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
+    return directoryDao.enumerateAll(firestore, snapshot.getId().toString()).stream()
+        .map(FireStoreDirectoryEntry::getFileId)
+        .toList();
+  }
+
   // -- private methods --
 
   /**

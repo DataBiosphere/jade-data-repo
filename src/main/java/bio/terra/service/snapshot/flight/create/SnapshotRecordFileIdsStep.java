@@ -1,12 +1,10 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -37,7 +35,9 @@ public abstract class SnapshotRecordFileIdsStep implements Step {
     this.drsService = drsService;
   }
 
-  abstract List<String> getFileIds(FlightContext context, Dataset dataset, UUID snapshotId)
+  //  abstract List<String> getFileIds(FlightContext context, Dataset dataset, UUID snapshotId)
+  //      throws InterruptedException;
+  abstract List<String> getFileIds(FlightContext context, Snapshot snapshot)
       throws InterruptedException;
 
   @Override
@@ -45,10 +45,7 @@ public abstract class SnapshotRecordFileIdsStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
-    SnapshotSource snapshotSource = snapshot.getFirstSnapshotSource();
-    String datasetId = snapshotSource.getDataset().getId().toString();
-    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-    List<String> fileIds = getFileIds(context, dataset, snapshotId);
+    List<String> fileIds = getFileIds(context, snapshot);
 
     logger.info(
         "Inserted {} rows",

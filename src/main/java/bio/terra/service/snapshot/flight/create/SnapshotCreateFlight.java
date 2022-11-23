@@ -263,7 +263,7 @@ public class SnapshotCreateFlight extends Flight {
       if (snapshotReq.isGlobalFileIds()) {
         addStep(
             new SnapshotRecordFileIdsGcpStep(
-                snapshotService, datasetService, drsIdService, drsService, dependencyDao));
+                snapshotService, datasetService, drsIdService, drsService, fileDao));
       }
     } else if (platform.isAzure()) {
       addStep(
@@ -291,7 +291,7 @@ public class SnapshotCreateFlight extends Flight {
                 datasetService,
                 drsIdService,
                 drsService,
-                tableDependencyDao,
+                tableDao,
                 azureAuthService));
       }
       // cannot clean up azure synapse tables until after gathered refIds in

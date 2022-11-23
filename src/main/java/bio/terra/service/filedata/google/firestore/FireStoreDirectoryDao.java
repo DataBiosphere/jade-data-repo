@@ -249,14 +249,22 @@ public class FireStoreDirectoryDao {
     return missingIds;
   }
 
+  public List<FireStoreDirectoryEntry> enumerateAll(Firestore firestore, String collectionId)
+      throws InterruptedException {
+    CollectionReference dirColl = firestore.collection(collectionId);
+    return query(dirColl.orderBy("path"));
+  }
   // -- private methods --
 
   List<FireStoreDirectoryEntry> enumerateDirectory(
       Firestore firestore, String collectionId, String dirPath) throws InterruptedException {
+    CollectionReference dirColl = firestore.collection(collectionId);
+    return query(dirColl.whereEqualTo("path", dirPath));
+  }
+
+  List<FireStoreDirectoryEntry> query(Query query) throws InterruptedException {
 
     int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
-    CollectionReference dirColl = firestore.collection(collectionId);
-    Query query = dirColl.whereEqualTo("path", dirPath);
     FireStoreBatchQueryIterator queryIterator =
         new FireStoreBatchQueryIterator(query, batchSize, fireStoreUtils);
 

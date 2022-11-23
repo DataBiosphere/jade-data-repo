@@ -250,6 +250,14 @@ public class TableDao {
         fileId);
   }
 
+  public List<String> retrieveAllFileIds(TableServiceClient tableServiceClient) {
+    return directoryDao
+        .enumerateAll(tableServiceClient, StorageTableName.SNAPSHOT.toTableName())
+        .stream()
+        .map(FireStoreDirectoryEntry::getFileId)
+        .toList();
+  }
+
   //   -- private methods --
 
   /**

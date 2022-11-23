@@ -434,11 +434,10 @@ public class DrsService {
           "Unexpected interruption during file system processing", ex);
     }
 
-    if (fsObject instanceof FSFile) {
-      return drsObjectFromFSFile(
-          (FSFile) fsObject, snapshot, authUser, passportAuth, billingSnapshot);
-    } else if (fsObject instanceof FSDir) {
-      return drsObjectFromFSDir((FSDir) fsObject, snapshot);
+    if (fsObject instanceof FSFile fsFile) {
+      return drsObjectFromFSFile(fsFile, snapshot, authUser, passportAuth, billingSnapshot);
+    } else if (fsObject instanceof FSDir fsDir) {
+      return drsObjectFromFSDir(fsDir, snapshot);
     }
 
     throw new IllegalArgumentException("Invalid object type");
@@ -599,14 +598,9 @@ public class DrsService {
       throw new InvalidCloudPlatformException();
     }
 
-    String selfUri =
-        cachedSnapshot.globalFileIds
-            ? drsIdService.makeDrsId(fsFile).toDrsUri()
-            : drsIdService.makeDrsId(fsFile, cachedSnapshot.id.toString()).toDrsUri();
     fileObject
         .mimeType(fsFile.getMimeType())
         .checksums(fileService.makeChecksums(fsFile))
-        .selfUri(selfUri)
         .accessMethods(accessMethods);
 
     return fileObject;
@@ -693,8 +687,7 @@ public class DrsService {
   }
 
   private DRSObject drsObjectFromFSDir(FSDir fsDir, SnapshotCacheResult snapshot) {
-    return makeCommonDrsObject(fsDir, snapshot)
-        .contents(makeContentsList(fsDir, snapshot.id.toString()));
+    return makeCommonDrsObject(fsDir, snapshot).contents(makeContentsList(fsDir, snapshot));
   }
 
   private DRSObject makeCommonDrsObject(FSItem fsObject, SnapshotCacheResult snapshot) {
@@ -710,6 +703,7 @@ public class DrsService {
 
     return new DRSObject()
         .id(drsId.toDrsObjectId())
+        .selfUri(drsId.toDrsUri())
         .name(getLastNameFromPath(fsObject.getPath()))
         .createdTime(theTime)
         .updatedTime(theTime)
@@ -720,18 +714,23 @@ public class DrsService {
         .checksums(fileService.makeChecksums(fsObject));
   }
 
-  private List<DRSContentsObject> makeContentsList(FSDir fsDir, String snapshotId) {
+  private List<DRSContentsObject> makeContentsList(FSDir fsDir, SnapshotCacheResult snapshot) {
     List<DRSContentsObject> contentsList = new ArrayList<>();
 
     for (FSItem fsObject : fsDir.getContents()) {
-      contentsList.add(makeDrsContentsObject(fsObject, snapshotId));
+      contentsList.add(makeDrsContentsObject(fsObject, snapshot));
     }
 
     return contentsList;
   }
 
-  private DRSContentsObject makeDrsContentsObject(FSItem fsObject, String snapshotId) {
-    DrsId drsId = drsIdService.makeDrsId(fsObject, snapshotId);
+  private DRSContentsObject makeDrsContentsObject(FSItem fsObject, SnapshotCacheResult snapshot) {
+    DrsId drsId;
+    if (snapshot.globalFileIds) {
+      drsId = drsIdService.makeDrsId(fsObject);
+    } else {
+      drsId = drsIdService.makeDrsId(fsObject, snapshot.getId().toString());
+    }
 
     List<String> drsUris = new ArrayList<>();
     drsUris.add(drsId.toDrsUri());
@@ -745,7 +744,7 @@ public class DrsService {
     if (fsObject instanceof FSDir) {
       FSDir fsDir = (FSDir) fsObject;
       if (fsDir.isEnumerated()) {
-        contentsObject.contents(makeContentsList(fsDir, snapshotId));
+        contentsObject.contents(makeContentsList(fsDir, snapshot));
       }
     }
 
@@ -765,6 +764,9 @@ public class DrsService {
   }
 
   public static String getLastNameFromPath(String path) {
+    if (path.equals("/")) {
+      return "";
+    }
     String[] pathParts = StringUtils.split(path, '/');
     return pathParts[pathParts.length - 1];
   }
@@ -842,9 +844,17 @@ public class DrsService {
                     .flatMap(Collection::stream)
                     .distinct()
                     .sorted()
-                    .toList())
-            // Since this only works for files, set contents to be null
-            .contents(null);
+                    .toList());
+
+    if (isDirectory) {
+      drsObject.contents(
+          drsObjects.stream()
+              .map(DRSObject::getContents)
+              .flatMap(Collection::stream)
+              .distinct()
+              .sorted(Comparator.comparing(DRSContentsObject::getName))
+              .toList());
+    }
 
     // If there are overlapping checksum types with different values, throw an error
     Map<String, List<DRSChecksum>> checksumsByType =

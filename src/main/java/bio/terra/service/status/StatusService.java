@@ -26,7 +26,7 @@ public class StatusService {
   public static final String POSTGRES = "Postgres";
   public static final String SAM = "Sam";
   public static final String RBS = "ResourceBufferService";
-  public static final String DUOS = "Consent";
+  public static final String DUOS = "DUOS";
 
   @Autowired
   public StatusService(

@@ -10,20 +10,14 @@ import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.duos.DuosService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.swagger.annotations.Api;
 import java.util.List;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
 @Controller
-@Api(tags = {"duos"})
 public class DuosApiController implements DuosApi {
-
-  private final Logger logger = LoggerFactory.getLogger(DuosApiController.class);
 
   private final HttpServletRequest request;
   private final ObjectMapper objectMapper;

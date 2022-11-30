@@ -141,8 +141,12 @@ public class GcsPdao implements CloudFileReader {
     this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }
 
+  public Storage storageForProjectId(String projectId) {
+    return gcsProjectFactory.getStorage(projectId);
+  }
+
   public Storage storageForBucket(GoogleBucketResource bucketResource) {
-    return gcsProjectFactory.getStorage(bucketResource.projectIdForBucket());
+    return storageForProjectId(bucketResource.projectIdForBucket());
   }
 
   /**

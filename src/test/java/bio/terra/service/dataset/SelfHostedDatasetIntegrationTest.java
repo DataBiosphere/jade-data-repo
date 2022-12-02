@@ -24,6 +24,10 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.model.BulkLoadHistoryModelList;
+import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
@@ -46,6 +50,7 @@ import com.google.cloud.storage.StorageRoles;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -92,18 +97,23 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
   private List<String> uploadedFiles;
   private String ingestServiceAccount;
   private String ingestBucket;
+  private Map<String, String> directFileIngestTargetPathsToIds;
 
   @Before
   public void setup() throws Exception {
+    logger.info("Beginning test setup...");
     super.setup();
     stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     uploadedFiles = new ArrayList<>();
+    directFileIngestTargetPathsToIds = new HashMap<>();
+    logger.info("Test setup complete.");
   }
 
   @After
   public void teardown() throws Exception {
+    logger.info("Beginning test teardown...");
     dataRepoFixtures.resetConfig(steward());
 
     if (ingestServiceAccount != null && ingestBucket != null) {
@@ -133,6 +143,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     for (var path : uploadedFiles) {
       gcsUtils.deleteTestFile(path);
     }
+    logger.info("Test teardown complete.");
   }
 
   @Test
@@ -152,118 +163,20 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
   private void testSelfHostedDatasetLifecycle(String ingestBucket, boolean dedicatedServiceAccount)
       throws Exception {
+    this.ingestBucket = ingestBucket;
 
     gcsUtils.fileExists(wgsVcfPath(ingestBucket));
 
-    DatasetSummaryModel datasetSummaryModel =
-        dataRepoFixtures.createSelfHostedDataset(
-            steward(), profileId, "dataset-ingest-combined-array.json", dedicatedServiceAccount);
-    datasetId = datasetSummaryModel.getId();
-
-    assertThat(
-        "the dataset is marked as self-hosted", datasetSummaryModel.isSelfHosted(), is(true));
-
-    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    assertThat(
-        "the dataset returned from the retrieve endpoint is marked as self-hosted",
-        dataset.isSelfHosted(),
-        is(true));
-
-    // Authorize the ingest source bucket
+    DatasetModel dataset = createAndValidateSelfHostedDataset(dedicatedServiceAccount);
     if (dedicatedServiceAccount) {
       ingestServiceAccount = dataset.getIngestServiceAccount();
-      this.ingestBucket = ingestBucket;
-      // Note: this role gets removed in teardown
-      DatasetIntegrationTest.addServiceAccountRoleToBucket(
-          ingestBucket,
-          ingestServiceAccount,
-          StorageRoles.objectViewer(),
-          dataset.getDataProject());
-      DatasetIntegrationTest.addServiceAccountRoleToBucket(
-          ingestBucket,
-          ingestServiceAccount,
-          StorageRoles.legacyBucketReader(),
-          dataset.getDataProject());
+      authorizeIngestSourceBucket(dataset);
     }
 
-    // Ingest a single file
-    FileModel exomeVcfModel =
-        dataRepoFixtures.ingestFile(
-            steward(),
-            datasetId,
-            profileId,
-            exomeVcfPath(ingestBucket),
-            "/vcfs/downsampled/exome/NA12878_PLUMBING.g.vcf.gz");
-
-    List<BulkLoadFileModel> vcfIndexLoadModels =
-        List.of(
-            new BulkLoadFileModel()
-                .mimeType("text/plain")
-                .description("A downsampled exome gVCF index")
-                .sourcePath(
-                    String.format(
-                        "gs://%s/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_exome.g.vcf.gz.tbi",
-                        ingestBucket))
-                .targetPath("/vcfs/downsampled/exome/NA12878_PLUMBING.g.vcf.gz.tbi"),
-            new BulkLoadFileModel()
-                .mimeType("text/plain")
-                .description("A downsampled wgs gVCF index")
-                .sourcePath(
-                    String.format(
-                        "gs://%s/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_wgs.g.vcf.gz.tbi",
-                        ingestBucket))
-                .targetPath("/vcfs/downsampled/wgs/NA12878_PLUMBING.g.vcf.gz.tbi"));
-
-    BulkLoadArrayRequestModel bulkLoadArrayRequestModel =
-        new BulkLoadArrayRequestModel()
-            .profileId(profileId)
-            .loadArray(vcfIndexLoadModels)
-            .maxFailedFileLoads(0)
-            .loadTag("selfHostedDataset" + datasetId);
-
-    // Bulk ingest files
-    BulkLoadArrayResultModel vcfIndicesModel =
-        dataRepoFixtures.bulkLoadArray(steward(), datasetId, bulkLoadArrayRequestModel);
-
-    Map<String, String> targetPathToFileId =
-        vcfIndicesModel.getLoadFileResults().stream()
-            .collect(
-                Collectors.toMap(
-                    BulkLoadFileResultModel::getTargetPath, BulkLoadFileResultModel::getFileId));
-    Map<String, String> fileReplaceMap =
-        Map.of(
-            "EXOME_VCF_FILE_ID", exomeVcfModel.getFileId(),
-            "EXOME_VCF_INDEX_FILE_ID",
-                targetPathToFileId.get("/vcfs/downsampled/exome/NA12878_PLUMBING.g.vcf.gz.tbi"),
-            "WGS_VCF_INDEX_FILE_ID",
-                targetPathToFileId.get("/vcfs/downsampled/wgs/NA12878_PLUMBING.g.vcf.gz.tbi"));
-
-    Stream<String> lines =
-        Files.lines(
-                Paths.get(ClassLoader.getSystemResource("self-hosted-dataset-ingest.json").toURI()))
-            .map(line -> replaceVars(line, fileReplaceMap))
-            .map(line -> replaceVars(line, Map.of("INGEST_BUCKET", ingestBucket)));
-
-    // Ingest metadata + 1 combined ingest file
-    String ingestPath =
-        gcsUtils.uploadTestFile(
-            ingestBucket,
-            String.format("selfHostedDatasetTest/%s/self-hosted-ingest-control.json", datasetId),
-            lines);
-    uploadedFiles.add(ingestPath);
-
-    IngestRequestModel ingestRequest =
-        new IngestRequestModel()
-            .format(IngestRequestModel.FormatEnum.JSON)
-            .ignoreUnknownValues(false)
-            .maxBadRecords(0)
-            .table("sample_vcf")
-            .path(ingestPath);
-
-    dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    long expectedTableCount = ingestFilesAndMetadata();
 
     BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 2L);
+    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", expectedTableCount);
 
     List<Map<String, List<String>>> sampleVcfResults =
         DatasetIntegrationTest.transformStringResults(bigQuery, dataset, "sample_vcf");
@@ -279,12 +192,12 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     assertThat(
         "dataset ingest should result in all fileIds being present in data",
         ingestedFileIds,
-        hasSize(4));
+        hasSize(directFileIngestTargetPathsToIds.size() + 1));
 
     assertThat(
-        "all the fileIds in non-combined ingests show up in dataset results",
+        "all the fileIds in direct (non-combined) ingests show up in dataset results",
         ingestedFileIds,
-        hasItems(fileReplaceMap.values().toArray(new String[0])));
+        hasItems(directFileIngestTargetPathsToIds.values().toArray(new String[0])));
 
     SnapshotSummaryModel snapshot =
         dataRepoFixtures.createSnapshot(
@@ -293,7 +206,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     snapshotProject = snapshot.getDataProject();
 
     assertThat(
-        "a snapshot created from a self-hosted dataset says its self-hosted too",
+        "a snapshot created from a self-hosted dataset is also self-hosted",
         snapshot.isSelfHosted(),
         is(true));
 
@@ -379,7 +292,6 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
                             new DataDeletionJsonArrayModel().rowIds(List.of(datarepoRowId))))));
 
     boolean fileExistsAfterDataDelete = gcsUtils.fileExists(wgsVcfPath(ingestBucket));
-
     assertThat(
         "files deleted from a self-hosted dataset continue to exist in their source buckets",
         fileExistsAfterDataDelete,
@@ -395,10 +307,15 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         is(true));
   }
 
+  /**
+   * Replace every instance of ${`key`} with `value` in `inputString` for all entries in
+   * `replacements` map.
+   */
   private String replaceVars(String inputString, Map<String, String> replacements) {
     String outputString = inputString;
     for (var entry : replacements.entrySet()) {
-      outputString = outputString.replaceAll(entry.getKey(), entry.getValue());
+      String placeholder = "\\$\\{%s\\}".formatted(entry.getKey());
+      outputString = outputString.replaceAll(placeholder, entry.getValue());
     }
     return outputString;
   }
@@ -408,8 +325,205 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
         "gs://%s/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_wgs.g.vcf.gz", ingestBucket);
   }
 
+  private String wgsVcfTargetPath(String suffix) {
+    return String.format("/vcfs/downsampled/wgs/NA12878_PLUMBING.g.vcf.gz%s", suffix);
+  }
+
   private String exomeVcfPath(String ingestBucket) {
     return String.format(
         "gs://%s/selfHostedDatasetTest/vcfs/NA12878_PLUMBING_exome.g.vcf.gz", ingestBucket);
+  }
+
+  private String exomeVcfTargetPath(String suffix) {
+    return String.format("/vcfs/downsampled/exome/NA12878_PLUMBING.g.vcf.gz%s", suffix);
+  }
+
+  /**
+   * Ingest files and metadata to the self-hosted dataset through all available means:
+   *
+   * <ul>
+   *   <li>Individual file upload
+   *   <li>Bulk file upload specified by an array in the request
+   *   <li>Bulk file upload specified by a control file
+   *   <li>Combined metadata and file ingest
+   * </ul>
+   *
+   * @return expected number of rows in destination table
+   */
+  private long ingestFilesAndMetadata() throws Exception {
+    String singleFileExomeSuffix = "1";
+    ingestSingleFile(singleFileExomeSuffix);
+
+    List<String> bulkControlFileExomeSuffixes = List.of("2", "3");
+    bulkLoadFilesViaControlFile(bulkControlFileExomeSuffixes);
+
+    bulkLoadFilesViaArray();
+
+    List<String> exomeSuffixes = new ArrayList<>();
+    exomeSuffixes.add(singleFileExomeSuffix);
+    exomeSuffixes.addAll(bulkControlFileExomeSuffixes);
+    return ingestMetadataAndOneCombinedFile(exomeSuffixes);
+  }
+
+  private DatasetModel createAndValidateSelfHostedDataset(boolean dedicatedServiceAccount)
+      throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createSelfHostedDataset(
+            steward(), profileId, "dataset-ingest-combined-array.json", dedicatedServiceAccount);
+    datasetId = datasetSummaryModel.getId();
+
+    assertThat(
+        "the dataset is marked as self-hosted", datasetSummaryModel.isSelfHosted(), is(true));
+
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    assertThat(
+        "the dataset returned from the retrieve endpoint is marked as self-hosted",
+        dataset.isSelfHosted(),
+        is(true));
+
+    return dataset;
+  }
+
+  private void authorizeIngestSourceBucket(DatasetModel dataset) {
+    ingestServiceAccount = dataset.getIngestServiceAccount();
+    // Note: this role gets removed in teardown
+    DatasetIntegrationTest.addServiceAccountRoleToBucket(
+        ingestBucket, ingestServiceAccount, StorageRoles.objectViewer(), dataset.getDataProject());
+    DatasetIntegrationTest.addServiceAccountRoleToBucket(
+        ingestBucket,
+        ingestServiceAccount,
+        StorageRoles.legacyBucketReader(),
+        dataset.getDataProject());
+  }
+
+  private FileModel ingestSingleFile(String exomeSuffix) throws Exception {
+    String targetPath = exomeVcfTargetPath(exomeSuffix);
+    FileModel exomeVcfModel =
+        dataRepoFixtures.ingestFile(
+            steward(), datasetId, profileId, exomeVcfPath(ingestBucket), targetPath);
+
+    directFileIngestTargetPathsToIds.put(targetPath, exomeVcfModel.getFileId());
+
+    return exomeVcfModel;
+  }
+
+  private BulkLoadArrayResultModel bulkLoadFilesViaArray() throws Exception {
+    List<BulkLoadFileModel> vcfIndexLoadModels =
+        List.of(
+            new BulkLoadFileModel()
+                .mimeType("text/plain")
+                .description("A downsampled exome gVCF index")
+                .sourcePath(exomeVcfPath(ingestBucket) + ".tbi")
+                .targetPath(exomeVcfTargetPath(".tbi")),
+            new BulkLoadFileModel()
+                .mimeType("text/plain")
+                .description("A downsampled wgs gVCF index")
+                .sourcePath(wgsVcfPath(ingestBucket) + ".tbi")
+                .targetPath(wgsVcfTargetPath(".tbi")));
+
+    BulkLoadArrayRequestModel bulkLoadArrayRequestModel =
+        new BulkLoadArrayRequestModel()
+            .profileId(profileId)
+            .loadArray(vcfIndexLoadModels)
+            .maxFailedFileLoads(0)
+            .loadTag("selfHostedDataset" + datasetId);
+
+    BulkLoadArrayResultModel result =
+        dataRepoFixtures.bulkLoadArray(steward(), datasetId, bulkLoadArrayRequestModel);
+
+    directFileIngestTargetPathsToIds.putAll(
+        result.getLoadFileResults().stream()
+            .collect(
+                Collectors.toMap(
+                    BulkLoadFileResultModel::getTargetPath, BulkLoadFileResultModel::getFileId)));
+
+    return result;
+  }
+
+  private String exomeBulkLoadControlLine(String suffix) {
+    return TestUtils.mapToJson(
+        Map.of(
+            "description",
+            "A downsampled exome gVCF " + suffix,
+            "mimeType",
+            "text/plain",
+            "sourcePath",
+            exomeVcfPath(ingestBucket),
+            "targetPath",
+            exomeVcfTargetPath(suffix)));
+  }
+
+  private void bulkLoadFilesViaControlFile(List<String> exomeSuffixes) throws Exception {
+    String loadControlFile =
+        gcsUtils.uploadTestFile(
+            ingestBucket,
+            String.format(
+                "selfHostedDatasetTest/%s/self-hosted-bulk-load-file-control.json", datasetId),
+            exomeSuffixes.stream().map(this::exomeBulkLoadControlLine));
+    uploadedFiles.add(loadControlFile);
+
+    String loadTag = "selfHostedDataset.bulkLoadControl." + datasetId;
+    BulkLoadRequestModel bulkLoadControlRequestModel =
+        new BulkLoadRequestModel()
+            .profileId(profileId)
+            .loadControlFile(loadControlFile)
+            .maxFailedFileLoads(0)
+            .loadTag(loadTag);
+
+    BulkLoadResultModel result =
+        dataRepoFixtures.bulkLoad(steward(), datasetId, bulkLoadControlRequestModel);
+    assertThat(
+        "two files were bulk loaded via control file", result.getSucceededFiles(), equalTo(2));
+
+    BulkLoadHistoryModelList controlFileLoadResults =
+        dataRepoFixtures.getLoadHistory(steward(), datasetId, loadTag, 0, 2);
+    directFileIngestTargetPathsToIds.putAll(
+        controlFileLoadResults.getItems().stream()
+            .collect(
+                Collectors.toMap(
+                    BulkLoadHistoryModel::getTargetPath, BulkLoadHistoryModel::getFileId)));
+  }
+
+  private int ingestMetadataAndOneCombinedFile(List<String> exomeSuffixes) throws Exception {
+    Map<String, String> exomeFileIdMap =
+        exomeSuffixes.stream()
+            .collect(
+                Collectors.toMap(
+                    suffix -> "EXOME%s_VCF_FILE_ID".formatted(suffix),
+                    suffix -> directFileIngestTargetPathsToIds.get(exomeVcfTargetPath(suffix))));
+
+    Map<String, String> fileReplaceMap =
+        Map.of(
+            "INGEST_BUCKET", ingestBucket,
+            "EXOME_VCF_INDEX_FILE_ID",
+                directFileIngestTargetPathsToIds.get(exomeVcfTargetPath(".tbi")),
+            "WGS_VCF_INDEX_FILE_ID",
+                directFileIngestTargetPathsToIds.get(wgsVcfTargetPath(".tbi")));
+
+    List<String> lines =
+        Files.readAllLines(
+            Paths.get(ClassLoader.getSystemResource("self-hosted-dataset-ingest.json").toURI()));
+    Stream<String> linesVarsReplaced =
+        lines.stream()
+            .map(line -> replaceVars(line, exomeFileIdMap))
+            .map(line -> replaceVars(line, fileReplaceMap));
+
+    String ingestPath =
+        gcsUtils.uploadTestFile(
+            ingestBucket,
+            String.format("selfHostedDatasetTest/%s/self-hosted-ingest-control.json", datasetId),
+            linesVarsReplaced);
+    uploadedFiles.add(ingestPath);
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(ingestPath);
+
+    dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    return lines.size();
   }
 }

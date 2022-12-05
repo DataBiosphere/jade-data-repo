@@ -187,8 +187,7 @@ public class FileIngestBulkFlight extends Flight {
                 gcsPdao,
                 bulkLoadObjectMapper,
                 executor,
-                userReq,
-                dataset));
+                userReq));
       } else {
         addStep(
             new IngestPopulateFileStateFromFileAzureStep(

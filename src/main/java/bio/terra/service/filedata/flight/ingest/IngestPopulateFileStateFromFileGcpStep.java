@@ -3,7 +3,6 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.common.FlightUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadRequestModel;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsBufferedReader;
@@ -23,7 +22,6 @@ import java.util.concurrent.ExecutorService;
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileStateFromFileStep {
   private final GcsPdao gcsPdao;
-  private final Dataset dataset;
 
   public IngestPopulateFileStateFromFileGcpStep(
       LoadService loadService,
@@ -32,12 +30,10 @@ public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileSt
       GcsPdao gcsPdao,
       ObjectMapper bulkLoadObjectMapper,
       ExecutorService executor,
-      AuthenticatedUserRequest userRequest,
-      Dataset dataset) {
+      AuthenticatedUserRequest userRequest) {
     super(
         loadService, maxBadLines, batchSize, bulkLoadObjectMapper, gcsPdao, executor, userRequest);
     this.gcsPdao = gcsPdao;
-    this.dataset = dataset;
   }
 
   @Override
@@ -46,16 +42,10 @@ public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileSt
     FlightMap inputParameters = context.getInputParameters();
     BulkLoadRequestModel loadRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
-
-    String projectId;
-    if (dataset.isSelfHosted()) {
-      projectId = dataset.getProjectResource().getGoogleProjectId();
-    } else {
-      GoogleBucketResource bucketResource =
-          FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-      projectId = bucketResource.projectIdForBucket();
-    }
-    Storage storage = gcsPdao.storageForProjectId(projectId);
+    GoogleBucketResource bucketResource =
+        FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+    Storage storage = gcsPdao.storageForBucket(bucketResource);
+    String projectId = bucketResource.projectIdForBucket();
 
     // Stream from control file and build list of files to be ingested
     try (BufferedReader reader =

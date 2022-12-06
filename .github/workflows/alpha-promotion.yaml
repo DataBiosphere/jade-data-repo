@@ -60,40 +60,6 @@ jobs:
                 }
               ]
             }"
-          curl -X 'POST' \
-            'https://sherlock-dev.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan-and-apply' \
-            -H 'accept: application/json' \
-            -H 'Content-Type: application/json' \
-            -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
-            -d "{
-              \"chartReleases\": [
-                {
-                  \"chartRelease\": \"swatomation/datarepo\",
-                  \"toAppVersionExact\": \"${{ steps.apiprevioustag.outputs.tag }}\",
-                  \"toAppVersionResolver\": \"exact\",
-                  \"toChartVersionExact\": \"${{ env.chartVersion }}\",
-                  \"toChartVersionResolver\": \"exact\",
-                  \"toHelmfileRef\": \"HEAD\"
-                }
-              ]
-            }"
-          curl -X 'POST' \
-            'https://sherlock.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan-and-apply' \
-            -H 'accept: application/json' \
-            -H 'Content-Type: application/json' \
-            -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
-            -d "{
-              \"chartReleases\": [
-                {
-                  \"chartRelease\": \"swatomation/datarepo\",
-                  \"toAppVersionExact\": \"${{ steps.apiprevioustag.outputs.tag }}\",
-                  \"toAppVersionResolver\": \"exact\",
-                  \"toChartVersionExact\": \"${{ env.chartVersion }}\",
-                  \"toChartVersionResolver\": \"exact\",
-                  \"toHelmfileRef\": \"HEAD\"
-                }
-              ]
-            }"
           curl --fail -X 'POST' \
             'https://sherlock.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan-and-apply' \
             -H 'accept: application/json' \

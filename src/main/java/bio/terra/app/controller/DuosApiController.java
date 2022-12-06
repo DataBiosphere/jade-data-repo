@@ -9,9 +9,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.duos.DuosService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
-import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -20,7 +18,6 @@ import org.springframework.stereotype.Controller;
 public class DuosApiController implements DuosApi {
 
   private final HttpServletRequest request;
-  private final ObjectMapper objectMapper;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final ApplicationConfiguration appConfig;
   private final IamService iamService;
@@ -28,13 +25,11 @@ public class DuosApiController implements DuosApi {
 
   public DuosApiController(
       HttpServletRequest request,
-      ObjectMapper objectMapper,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       ApplicationConfiguration appConfig,
       IamService iamService,
       DuosService duosService) {
     this.request = request;
-    this.objectMapper = objectMapper;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.appConfig = appConfig;
     this.iamService = iamService;
@@ -63,15 +58,5 @@ public class DuosApiController implements DuosApi {
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
     return authenticatedUserRequestFactory.from(request);
-  }
-
-  @Override
-  public Optional<HttpServletRequest> getRequest() {
-    return Optional.ofNullable(request);
-  }
-
-  @Override
-  public Optional<ObjectMapper> getObjectMapper() {
-    return Optional.ofNullable(objectMapper);
   }
 }

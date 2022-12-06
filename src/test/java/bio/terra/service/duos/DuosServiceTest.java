@@ -157,7 +157,9 @@ public class DuosServiceTest {
     // we don't know exactly what our backstop name will be as it will be suffixed by a new UUID,
     // but we know that it will start with our more readable group name.
     when(iamService.createGroup(startsWith(FIRECLOUD_GROUP_NAME))).thenReturn(groupEmailNew);
-    doThrow(mock(IamConflictException.class)).when(iamService).createGroup(FIRECLOUD_GROUP_NAME);
+    doThrow(new IamConflictException("", List.of()))
+        .when(iamService)
+        .createGroup(FIRECLOUD_GROUP_NAME);
 
     DuosFirecloudGroupModel actual = duosService.createFirecloudGroup(DUOS_ID);
     assertThat(actual.getDuosId(), equalTo(DUOS_ID));
@@ -169,7 +171,9 @@ public class DuosServiceTest {
 
   @Test
   public void testCreateFirecloudGroupWithUnretriableCreationException() {
-    doThrow(mock(IamForbiddenException.class)).when(iamService).createGroup(FIRECLOUD_GROUP_NAME);
+    doThrow(new IamForbiddenException("", List.of()))
+        .when(iamService)
+        .createGroup(FIRECLOUD_GROUP_NAME);
     assertThrows(IamForbiddenException.class, () -> duosService.createFirecloudGroup(DUOS_ID));
     verify(iamService).createGroup(startsWith(FIRECLOUD_GROUP_NAME));
   }
@@ -218,7 +222,7 @@ public class DuosServiceTest {
 
   @Test
   public void testSyncFirecloudGroupContentsEmptiedWhenDuosDatasetDoesNotExist() {
-    when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(mock(DuosDatasetNotFoundException.class));
+    when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(new DuosDatasetNotFoundException(""));
 
     duosService.syncFirecloudGroupContents(FIRECLOUD_GROUP);
 
@@ -231,7 +235,7 @@ public class DuosServiceTest {
 
   @Test
   public void testSyncFirecloudGroupContentsThrowsWhenUserFetchThrows() {
-    DuosInternalServerErrorException expectedEx = mock(DuosInternalServerErrorException.class);
+    var expectedEx = new DuosInternalServerErrorException("Could not get approved users");
     when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(expectedEx);
 
     DuosInternalServerErrorException actualEx =
@@ -251,7 +255,7 @@ public class DuosServiceTest {
   public void testSyncFirecloudGroupContentsThrowsWhenIamServiceThrows() {
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
 
-    IamForbiddenException expectedEx = mock(IamForbiddenException.class);
+    IamForbiddenException expectedEx = new IamForbiddenException("Forbidden", List.of());
     doThrow(expectedEx)
         .when(iamService)
         .overwriteGroupPolicyEmails(
@@ -279,7 +283,7 @@ public class DuosServiceTest {
 
     when(duosDao.updateFirecloudGroupLastSyncedDate(
             eq(FIRECLOUD_GROUP.getId()), isA(Instant.class)))
-        .thenThrow(mock(RuntimeException.class));
+        .thenThrow(new RuntimeException());
     assertThrows(
         RuntimeException.class, () -> duosService.syncFirecloudGroupContents(FIRECLOUD_GROUP));
 
@@ -294,8 +298,7 @@ public class DuosServiceTest {
 
   @Test
   public void testUpdateLastSyncedThrowsCustomExceptionOnConflict() {
-    CannotSerializeTransactionException expectedEx =
-        mock(CannotSerializeTransactionException.class);
+    var expectedEx = new CannotSerializeTransactionException("Conflict on update");
     when(duosDao.updateFirecloudGroupLastSyncedDate(
             eq(FIRECLOUD_GROUP.getId()), isA(Instant.class)))
         .thenThrow(expectedEx);
@@ -329,20 +332,19 @@ public class DuosServiceTest {
 
   @Test
   public void testGetAuthorizedUsersReturnsEmptyListWhenDatasetBadRequest() {
-    when(duosClient.getApprovedUsers(DUOS_ID))
-        .thenThrow(mock(DuosDatasetBadRequestException.class));
+    when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(new DuosDatasetBadRequestException(""));
     assertThat(duosService.getAuthorizedUsers(DUOS_ID), empty());
   }
 
   @Test
   public void testGetAuthorizedUsersReturnsEmptyListWhenDatasetNotFound() {
-    when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(mock(DuosDatasetNotFoundException.class));
+    when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(new DuosDatasetNotFoundException(""));
     assertThat(duosService.getAuthorizedUsers(DUOS_ID), empty());
   }
 
   @Test
   public void testGetAuthorizedUsersThrowsWhenUnexpectedError() {
-    DuosInternalServerErrorException expectedEx = mock(DuosInternalServerErrorException.class);
+    var expectedEx = new DuosInternalServerErrorException("Could not get approved users");
     when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(expectedEx);
     DuosInternalServerErrorException actualEx =
         assertThrows(

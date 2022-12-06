@@ -113,6 +113,8 @@ public class DataRepoFixtures {
 
     DataRepoResponse<JobModel> jobResponse =
         dataRepoClient.post(user, "/api/resources/v1/profiles", json, new TypeReference<>() {});
+    logger.info("Response was: {}", jobResponse);
+
     assertTrue("profile create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "profile create launch response is present", jobResponse.getResponseObject().isPresent());

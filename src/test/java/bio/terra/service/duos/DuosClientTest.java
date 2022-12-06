@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.apache.http.HttpHeaders;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +71,7 @@ public class DuosClientTest {
     when(restTemplate.exchange(
             eq(duosClient.getStatusUrl()),
             eq(HttpMethod.GET),
-            argThat(this::isUnauthenticated),
+            argThat(DuosClientTest::isUnauthenticated),
             eq(SystemStatus.class)))
         .thenReturn(ResponseEntity.ok(expectedBody));
 
@@ -83,7 +84,7 @@ public class DuosClientTest {
     when(restTemplate.exchange(
             eq(duosClient.getStatusUrl()),
             eq(HttpMethod.GET),
-            argThat(this::isUnauthenticated),
+            argThat(DuosClientTest::isUnauthenticated),
             eq(SystemStatus.class)))
         .thenThrow(expectedException);
 
@@ -99,7 +100,7 @@ public class DuosClientTest {
     when(restTemplate.exchange(
             eq(duosClient.getDatasetUrl(DUOS_ID)),
             eq(HttpMethod.GET),
-            argThat(this::hasUserToken),
+            argThat(DuosClientTest::hasUserToken),
             eq(DuosDataset.class)))
         .thenReturn(ResponseEntity.ok(expectedBody));
 
@@ -115,7 +116,7 @@ public class DuosClientTest {
     when(restTemplate.exchange(
             eq(duosClient.getDatasetUrl(DUOS_ID)),
             eq(HttpMethod.GET),
-            argThat(this::hasUserToken),
+            argThat(DuosClientTest::hasUserToken),
             eq(DuosDataset.class)))
         .thenThrow(expectedEx);
 
@@ -134,7 +135,7 @@ public class DuosClientTest {
     when(restTemplate.exchange(
             eq(duosClient.getDatasetUrl(DUOS_ID)),
             eq(HttpMethod.GET),
-            argThat(this::hasUserToken),
+            argThat(DuosClientTest::hasUserToken),
             eq(DuosDataset.class)))
         .thenThrow(expectedEx);
 
@@ -151,11 +152,11 @@ public class DuosClientTest {
   public void testGetApprovedUsers() {
     var expectedBody =
         new DuosDatasetApprovedUsers(
-            List.of("a", "b", "c").stream().map(DuosDatasetApprovedUser::new).toList());
+            Stream.of("a", "b", "c").map(DuosDatasetApprovedUser::new).toList());
     when(restTemplate.exchange(
             eq(duosClient.getApprovedUsersUrl(DUOS_ID)),
             eq(HttpMethod.GET),
-            argThat(this::hasTdrSaToken),
+            argThat(DuosClientTest::hasTdrSaToken),
             eq(DuosDatasetApprovedUsers.class)))
         .thenReturn(ResponseEntity.ok(expectedBody));
 
@@ -171,7 +172,7 @@ public class DuosClientTest {
     when(restTemplate.exchange(
             eq(duosClient.getApprovedUsersUrl(DUOS_ID)),
             eq(HttpMethod.GET),
-            argThat(this::hasTdrSaToken),
+            argThat(DuosClientTest::hasTdrSaToken),
             eq(DuosDatasetApprovedUsers.class)))
         .thenThrow(expectedEx);
 
@@ -188,42 +189,42 @@ public class DuosClientTest {
   public void testConvertDuosExToDataRepoEx() {
     var badRequestEx = new HttpClientErrorException(HttpStatus.BAD_REQUEST);
     assertThat(
-        DuosClient.convertDuosExToDataRepoEx(badRequestEx, DUOS_ID),
+        DuosClient.convertToDataRepoException(badRequestEx, DUOS_ID),
         instanceOf(DuosDatasetBadRequestException.class));
 
     var notFoundEx = new HttpClientErrorException(HttpStatus.NOT_FOUND);
     assertThat(
-        DuosClient.convertDuosExToDataRepoEx(notFoundEx, DUOS_ID),
+        DuosClient.convertToDataRepoException(notFoundEx, DUOS_ID),
         instanceOf(DuosDatasetNotFoundException.class));
 
     var unexpectedEx = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
     assertThat(
-        DuosClient.convertDuosExToDataRepoEx(unexpectedEx, DUOS_ID),
+        DuosClient.convertToDataRepoException(unexpectedEx, DUOS_ID),
         instanceOf(DuosInternalServerErrorException.class));
 
     var internalServerErrorEx = new HttpClientErrorException(HttpStatus.INTERNAL_SERVER_ERROR);
     assertThat(
-        DuosClient.convertDuosExToDataRepoEx(internalServerErrorEx, DUOS_ID),
+        DuosClient.convertToDataRepoException(internalServerErrorEx, DUOS_ID),
         instanceOf(DuosInternalServerErrorException.class));
   }
 
   // Utilities for examining HttpEntity parameters
-  private List<String> getAuthorizations(HttpEntity httpEntity) {
+  private static <T> List<String> getAuthorizations(HttpEntity<T> httpEntity) {
     return Optional.ofNullable(httpEntity.getHeaders().get(HttpHeaders.AUTHORIZATION))
         .orElse(List.of());
   }
 
-  private boolean isUnauthenticated(HttpEntity httpEntity) {
+  private static <T> boolean isUnauthenticated(HttpEntity<T> httpEntity) {
     return getAuthorizations(httpEntity).isEmpty();
   }
 
-  private boolean hasUserToken(HttpEntity httpEntity) {
+  private static <T> boolean hasUserToken(HttpEntity<T> httpEntity) {
     String bearerHeader = "Bearer %s".formatted(TEST_USER.getToken());
     List<String> authorizations = getAuthorizations(httpEntity);
     return authorizations.size() == 1 && authorizations.get(0).equals(bearerHeader);
   }
 
-  private boolean hasTdrSaToken(HttpEntity httpEntity) {
+  private static <T> boolean hasTdrSaToken(HttpEntity<T> httpEntity) {
     String bearerHeader = "Bearer %s".formatted(TDR_SA_TOKEN);
     List<String> authorizations = getAuthorizations(httpEntity);
     return authorizations.size() == 1 && authorizations.get(0).equals(bearerHeader);

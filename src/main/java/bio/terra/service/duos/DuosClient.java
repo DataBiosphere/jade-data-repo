@@ -15,7 +15,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -25,7 +24,7 @@ import org.springframework.web.client.RestTemplate;
 public class DuosClient {
 
   private static final Logger logger = LoggerFactory.getLogger(DuosClient.class);
-  @VisibleForTesting static final List<String> SCOPES = List.of("email", "profile");
+  static final List<String> SCOPES = List.of("email", "profile");
 
   private final DuosConfiguration duosConfiguration;
   private final RestTemplate restTemplate;
@@ -60,7 +59,7 @@ public class DuosClient {
    */
   public SystemStatus status() {
     HttpHeaders unauthedHeaders = getHttpHeaders();
-    ResponseEntity<SystemStatus> statusCall =
+    var statusCall =
         restTemplate.exchange(
             getStatusUrl(), HttpMethod.GET, new HttpEntity<>(unauthedHeaders), SystemStatus.class);
     return statusCall.getBody();
@@ -80,14 +79,14 @@ public class DuosClient {
     HttpHeaders authedHeaders = getHttpHeaders();
     authedHeaders.setBearerAuth(userRequest.getToken());
     String url = getDatasetUrl(duosId);
-    logger.info("About to GET {} as authenticated user", url);
+    logger.debug("About to GET {} as authenticated user", url);
     try {
-      ResponseEntity<DuosDataset> datasetCall =
+      var datasetCall =
           restTemplate.exchange(
               url, HttpMethod.GET, new HttpEntity<>(authedHeaders), DuosDataset.class);
       return datasetCall.getBody();
     } catch (HttpStatusCodeException ex) {
-      throw convertDuosExToDataRepoEx(ex, duosId);
+      throw convertToDataRepoException(ex, duosId);
     }
   }
 
@@ -106,35 +105,26 @@ public class DuosClient {
     HttpHeaders saHeaders = getHttpHeaders();
     saHeaders.setBearerAuth(googleCredentialsService.getApplicationDefaultAccessToken(SCOPES));
     String url = getApprovedUsersUrl(duosId);
-    logger.info("About to GET {} as TDR SA", url);
+    logger.debug("About to GET {} as TDR SA", url);
     try {
-      ResponseEntity<DuosDatasetApprovedUsers> approvedUsersCall =
+      var approvedUsersCall =
           restTemplate.exchange(
               url, HttpMethod.GET, new HttpEntity<>(saHeaders), DuosDatasetApprovedUsers.class);
       return approvedUsersCall.getBody();
     } catch (HttpStatusCodeException ex) {
-      throw convertDuosExToDataRepoEx(ex, duosId);
+      throw convertToDataRepoException(ex, duosId);
     }
   }
 
   @VisibleForTesting
-  static ErrorReportException convertDuosExToDataRepoEx(
+  static ErrorReportException convertToDataRepoException(
       HttpStatusCodeException duosEx, String duosId) {
-    switch (duosEx.getStatusCode()) {
-      case BAD_REQUEST:
-        {
-          return new DuosDatasetBadRequestException(
-              "DUOS dataset identifier %s is malformed".formatted(duosId), duosEx);
-        }
-      case NOT_FOUND:
-        {
-          return new DuosDatasetNotFoundException(
-              "Could not find DUOS dataset for identifier %s".formatted(duosId), duosEx);
-        }
-      default:
-        {
-          return new DuosInternalServerErrorException("Unexpected error from DUOS", duosEx);
-        }
-    }
+    return switch (duosEx.getStatusCode()) {
+      case BAD_REQUEST -> new DuosDatasetBadRequestException(
+          "DUOS dataset identifier %s is malformed".formatted(duosId), duosEx);
+      case NOT_FOUND -> new DuosDatasetNotFoundException(
+          "Could not find DUOS dataset for identifier %s".formatted(duosId), duosEx);
+      default -> new DuosInternalServerErrorException("Unexpected error from DUOS", duosEx);
+    };
   }
 }

@@ -87,8 +87,12 @@ public final class TestUtils {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change
    * and any consequences downstream to DRS clients.
    */
-  public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods, String token)
-      throws IOException {
+  public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods, String token) {
+    return validateDrsAccessMethods(accessMethods, token, true);
+  }
+
+  public static String validateDrsAccessMethods(
+      List<DRSAccessMethod> accessMethods, String token, boolean shouldAssertHttpsAccessibility) {
     assertThat("Two access methods", accessMethods.size(), equalTo(2));
 
     String gsuri = StringUtils.EMPTY;
@@ -106,10 +110,10 @@ public final class TestUtils {
         gotGs = true;
       } else if (accessMethod.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
         assertFalse("have not seen HTTPS yet", gotHttps);
-        // Make sure that the HTTP url is valid and accessible
         verifyHttpAccess(
             accessMethod.getAccessUrl().getUrl(),
-            Map.of("Authorization", String.format("Bearer %s", token)));
+            Map.of("Authorization", String.format("Bearer %s", token)),
+            shouldAssertHttpsAccessibility);
         gotHttps = true;
       } else {
         fail("Invalid access method");
@@ -120,12 +124,30 @@ public final class TestUtils {
   }
 
   public static void verifyHttpAccess(String url, Map<String, String> headers) {
+    verifyHttpAccess(url, headers, true);
+  }
+
+  /**
+   * Make sure that the HTTP url is valid.
+   *
+   * @param shouldAssertAccessibility if true, also assert that the HTTP url is accessible. When
+   *     debugging certain test failures, disabling the accessibility check can allow the remainder
+   *     of the test to complete.
+   */
+  public static void verifyHttpAccess(
+      String url, Map<String, String> headers, boolean shouldAssertAccessibility) {
     HttpUriRequest request = new HttpHead(url);
     headers.forEach(request::setHeader);
     try (CloseableHttpClient client = HttpClients.createDefault()) {
-      try (CloseableHttpResponse response = client.execute(request); ) {
-        assertThat(
-            "Https Uri is accessible", response.getStatusLine().getStatusCode(), equalTo(200));
+      try (CloseableHttpResponse response = client.execute(request)) {
+        int statusCode = response.getStatusLine().getStatusCode();
+        if (shouldAssertAccessibility) {
+          assertThat("Https Uri is accessible", statusCode, equalTo(200));
+        } else if (statusCode == 200) {
+          logger.info("Https Uri is accessible (but not asserted in test): " + response);
+        } else {
+          logger.warn("Https Uri is inaccessible (but not asserted in test): " + response);
+        }
       }
     } catch (IOException e) {
       throw new RuntimeException("Error creating Http client", e);

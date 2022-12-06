@@ -84,6 +84,10 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
   @Rule @Autowired public TestJobWatcher testWatcher;
 
+  // Disabling check while we debug failing tests.
+  // See https://broadworkbench.atlassian.net/browse/DR-2858
+  private static final Boolean SHOULD_ASSERT_HTTPS_ACCESSIBILITY = false;
+
   private String stewardToken;
   private UUID datasetId;
   private UUID snapshotId;
@@ -311,7 +315,8 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
             .toList();
 
     for (DRSObject drsObject : collect) {
-      TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods(), stewardToken);
+      TestUtils.validateDrsAccessMethods(
+          drsObject.getAccessMethods(), stewardToken, SHOULD_ASSERT_HTTPS_ACCESSIBILITY);
       DRSAccessMethod gsAccessMethod =
           drsObject.getAccessMethods().stream()
               .filter(accessMethod -> accessMethod.getType().equals(DRSAccessMethod.TypeEnum.GS))

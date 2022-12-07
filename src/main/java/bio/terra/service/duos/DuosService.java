@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DuosService {
   private static final Logger logger = LoggerFactory.getLogger(DuosService.class);
-  @VisibleForTesting static final boolean IS_CRITICAL_SYSTEM = false;
+  static final boolean IS_CRITICAL_SYSTEM = false;
   private final IamService iamService;
   private final DuosClient duosClient;
   private final DuosDao duosDao;
@@ -126,8 +126,8 @@ public class DuosService {
    *     of approved users
    * @return DUOS Firecloud group reflecting the last successful sync of its members
    */
-  @VisibleForTesting
-  DuosFirecloudGroupModel syncFirecloudGroupContents(DuosFirecloudGroupModel firecloudGroup) {
+  private DuosFirecloudGroupModel syncFirecloudGroupContents(
+      DuosFirecloudGroupModel firecloudGroup) {
     Instant lastSyncedDate = Instant.now();
     iamService.overwriteGroupPolicyEmails(
         firecloudGroup.getFirecloudGroupName(),
@@ -143,21 +143,15 @@ public class DuosService {
    * @param lastSyncedDate DUOS Firecloud group members match the DUOS dataset's authorized users at
    *     this moment in time
    */
-  @VisibleForTesting
-  void updateLastSynced(DuosFirecloudGroupModel firecloudGroup, Instant lastSyncedDate) {
+  private void updateLastSynced(DuosFirecloudGroupModel firecloudGroup, Instant lastSyncedDate) {
     UUID id = firecloudGroup.getId();
     try {
       duosDao.updateFirecloudGroupLastSyncedDate(id, lastSyncedDate);
     } catch (CannotSerializeTransactionException ex) {
       String msg =
-          String.join(
-              " ",
-              "Members of Firecloud group",
-              firecloudGroup.getFirecloudGroupName(),
-              "were updated, but could not update DUOS Firecloud Group record",
-              id.toString(),
-              "with last_synced_date",
-              lastSyncedDate.toString());
+          "Members of Firecloud group %s were updated, "
+              + "but could not update DUOS Firecloud Group record %s with last_synced_date %s"
+                  .formatted(firecloudGroup.getFirecloudGroupName(), id, lastSyncedDate);
       String errorDetail =
           "This indicates that another process was updating the database row at the same time";
       throw new DuosFirecloudGroupUpdateConflictException(msg, ex, List.of(errorDetail));
@@ -170,8 +164,7 @@ public class DuosService {
    *     is known to not exist. Unexpected exceptions are allowed to bubble up to register as a
    *     failure to sync the Firecloud group's contents.
    */
-  @VisibleForTesting
-  List<String> getAuthorizedUsers(String duosId) {
+  private List<String> getAuthorizedUsers(String duosId) {
     List<String> users;
     try {
       users =

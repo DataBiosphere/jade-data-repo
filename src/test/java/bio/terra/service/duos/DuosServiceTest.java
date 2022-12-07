@@ -2,7 +2,6 @@ package bio.terra.service.duos;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -12,7 +11,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -45,7 +43,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.dao.CannotSerializeTransactionException;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpServerErrorException;
@@ -61,7 +58,7 @@ public class DuosServiceTest {
   private DuosService duosService;
 
   private static final List<String> SUBSYSTEM_NAMES =
-      List.of("ontology", "elastic-search", "google-cloud-storage");
+      List.of("duos_subsystem_1", "duos_subsystem_2", "duos_subsystem_3");
   private static final String DUOS_ID = "DUOS-123456";
   private static final String FIRECLOUD_GROUP_NAME = String.format("%s-users", DUOS_ID);
   private static final String FIRECLOUD_GROUP_EMAIL = firecloudGroupEmail(FIRECLOUD_GROUP_NAME);
@@ -206,25 +203,11 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncFirecloudGroupContents() {
-    when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
-
-    duosService.syncFirecloudGroupContents(FIRECLOUD_GROUP);
-
-    verify(iamService)
-        .overwriteGroupPolicyEmails(
-            FIRECLOUD_GROUP.getFirecloudGroupName(),
-            IamRole.MEMBER.toString(),
-            APPROVED_USER_EMAILS);
-    verify(duosDao)
-        .updateFirecloudGroupLastSyncedDate(eq(FIRECLOUD_GROUP.getId()), isA(Instant.class));
-  }
-
-  @Test
-  public void testSyncFirecloudGroupContentsEmptiedWhenDuosDatasetDoesNotExist() {
+  public void testSyncDuosDatasetAuthorizedUsersEmptiesGroupWhenDuosDatasetDoesNotExist() {
+    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(new DuosDatasetNotFoundException(""));
 
-    duosService.syncFirecloudGroupContents(FIRECLOUD_GROUP);
+    duosService.syncDuosDatasetAuthorizedUsers(DUOS_ID);
 
     verify(iamService)
         .overwriteGroupPolicyEmails(
@@ -234,14 +217,29 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncFirecloudGroupContentsThrowsWhenUserFetchThrows() {
+  public void testSyncDuosDatasetAuthorizedUsersEmptiesGroupWhenBadDuosDatasetRequest() {
+    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
+    when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(new DuosDatasetBadRequestException(""));
+
+    duosService.syncDuosDatasetAuthorizedUsers(DUOS_ID);
+
+    verify(iamService)
+        .overwriteGroupPolicyEmails(
+            FIRECLOUD_GROUP.getFirecloudGroupName(), IamRole.MEMBER.toString(), List.of());
+    verify(duosDao)
+        .updateFirecloudGroupLastSyncedDate(eq(FIRECLOUD_GROUP.getId()), isA(Instant.class));
+  }
+
+  @Test
+  public void testSyncDuosDatasetAuthorizedUsersThrowsWhenUserFetchThrows() {
+    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     var expectedEx = new DuosInternalServerErrorException("Could not get approved users");
     when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(expectedEx);
 
     DuosInternalServerErrorException actualEx =
         assertThrows(
             DuosInternalServerErrorException.class,
-            () -> duosService.syncFirecloudGroupContents(FIRECLOUD_GROUP));
+            () -> duosService.syncDuosDatasetAuthorizedUsers(DUOS_ID));
     assertThat(actualEx, equalTo(expectedEx));
 
     verify(iamService, never())
@@ -252,7 +250,8 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncFirecloudGroupContentsThrowsWhenIamServiceThrows() {
+  public void testSyncDuosDatasetAuthorizedUsersThrowsWhenIamServiceThrows() {
+    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
 
     IamForbiddenException expectedEx = new IamForbiddenException("Forbidden", List.of());
@@ -265,8 +264,7 @@ public class DuosServiceTest {
 
     IamForbiddenException actualEx =
         assertThrows(
-            IamForbiddenException.class,
-            () -> duosService.syncFirecloudGroupContents(FIRECLOUD_GROUP));
+            IamForbiddenException.class, () -> duosService.syncDuosDatasetAuthorizedUsers(DUOS_ID));
     assertThat(actualEx, equalTo(expectedEx));
     verify(iamService)
         .overwriteGroupPolicyEmails(
@@ -278,14 +276,19 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testSyncFirecloudGroupContentsThrowsWhenDbUpdateThrows() {
+  public void testSyncDuosDatasetAuthorizedUsersThrowsCustomExceptionOnDbUpdateConflict() {
+    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
 
+    var expectedEx = new CannotSerializeTransactionException("Conflict on update");
     when(duosDao.updateFirecloudGroupLastSyncedDate(
             eq(FIRECLOUD_GROUP.getId()), isA(Instant.class)))
-        .thenThrow(new RuntimeException());
-    assertThrows(
-        RuntimeException.class, () -> duosService.syncFirecloudGroupContents(FIRECLOUD_GROUP));
+        .thenThrow(expectedEx);
+    DuosFirecloudGroupUpdateConflictException actualEx =
+        assertThrows(
+            DuosFirecloudGroupUpdateConflictException.class,
+            () -> duosService.syncDuosDatasetAuthorizedUsers(DUOS_ID));
+    assertThat(actualEx.getCause(), equalTo(expectedEx));
 
     verify(iamService)
         .overwriteGroupPolicyEmails(
@@ -297,58 +300,25 @@ public class DuosServiceTest {
   }
 
   @Test
-  public void testUpdateLastSyncedThrowsCustomExceptionOnConflict() {
-    var expectedEx = new CannotSerializeTransactionException("Conflict on update");
-    when(duosDao.updateFirecloudGroupLastSyncedDate(
-            eq(FIRECLOUD_GROUP.getId()), isA(Instant.class)))
-        .thenThrow(expectedEx);
-
-    DuosFirecloudGroupUpdateConflictException actualEx =
-        assertThrows(
-            DuosFirecloudGroupUpdateConflictException.class,
-            () -> duosService.updateLastSynced(FIRECLOUD_GROUP, Instant.now()));
-    assertThat(actualEx.getCause(), equalTo(expectedEx));
-  }
-
-  @Test
-  public void testUpdateLastSyncedThrowsOtherDataAccessExceptions() {
-    DataAccessException expectedEx = mock(DataAccessException.class);
-    when(duosDao.updateFirecloudGroupLastSyncedDate(
-            eq(FIRECLOUD_GROUP.getId()), isA(Instant.class)))
-        .thenThrow(expectedEx);
-
-    DataAccessException actualEx =
-        assertThrows(
-            DataAccessException.class,
-            () -> duosService.updateLastSynced(FIRECLOUD_GROUP, Instant.now()));
-    assertThat(actualEx, equalTo(expectedEx));
-  }
-
-  @Test
-  public void testGetAuthorizedUsers() {
+  public void testSyncDuosDatasetAuthorizedUsersThrowsOnOtherDbExceptions() {
+    when(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID)).thenReturn(FIRECLOUD_GROUP);
     when(duosClient.getApprovedUsers(DUOS_ID)).thenReturn(APPROVED_USERS);
-    assertThat(duosService.getAuthorizedUsers(DUOS_ID), equalTo(APPROVED_USER_EMAILS));
-  }
 
-  @Test
-  public void testGetAuthorizedUsersReturnsEmptyListWhenDatasetBadRequest() {
-    when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(new DuosDatasetBadRequestException(""));
-    assertThat(duosService.getAuthorizedUsers(DUOS_ID), empty());
-  }
-
-  @Test
-  public void testGetAuthorizedUsersReturnsEmptyListWhenDatasetNotFound() {
-    when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(new DuosDatasetNotFoundException(""));
-    assertThat(duosService.getAuthorizedUsers(DUOS_ID), empty());
-  }
-
-  @Test
-  public void testGetAuthorizedUsersThrowsWhenUnexpectedError() {
-    var expectedEx = new DuosInternalServerErrorException("Could not get approved users");
-    when(duosClient.getApprovedUsers(DUOS_ID)).thenThrow(expectedEx);
-    DuosInternalServerErrorException actualEx =
+    var expectedEx = new RuntimeException();
+    when(duosDao.updateFirecloudGroupLastSyncedDate(
+            eq(FIRECLOUD_GROUP.getId()), isA(Instant.class)))
+        .thenThrow(expectedEx);
+    RuntimeException actualEx =
         assertThrows(
-            DuosInternalServerErrorException.class, () -> duosService.getAuthorizedUsers(DUOS_ID));
+            RuntimeException.class, () -> duosService.syncDuosDatasetAuthorizedUsers(DUOS_ID));
     assertThat(actualEx, equalTo(expectedEx));
+
+    verify(iamService)
+        .overwriteGroupPolicyEmails(
+            FIRECLOUD_GROUP.getFirecloudGroupName(),
+            IamRole.MEMBER.toString(),
+            APPROVED_USER_EMAILS);
+    verify(duosDao)
+        .updateFirecloudGroupLastSyncedDate(eq(FIRECLOUD_GROUP.getId()), isA(Instant.class));
   }
 }

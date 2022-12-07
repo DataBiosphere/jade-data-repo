@@ -32,7 +32,7 @@ public class GoogleCredentialsServiceTest {
 
   private GoogleCredentialsService service;
 
-  private static final List<String> SCOPES = List.of("openid", "email", "profile");
+  private static final List<String> SCOPES = List.of("scope1", "scope2", "scope3");
   private static final String TOKEN_VALUE = UUID.randomUUID().toString();
   private static final AccessToken ACCESS_TOKEN = new AccessToken(TOKEN_VALUE, null);
 

@@ -57,7 +57,6 @@ public class IamService {
   private static final int AUTH_CACHE_TIMEOUT_SECONDS_DEFAULT = 60;
 
   private final IamProviderInterface iamProvider;
-  private final ConfigurationService configurationService;
   private final Map<AuthorizedCacheKey, Boolean> authorizedMap;
   private final JournalService journalService;
   private final GoogleCredentialsService googleCredentialsService;
@@ -69,7 +68,6 @@ public class IamService {
       JournalService journalService,
       GoogleCredentialsService googleCredentialsService) {
     this.iamProvider = iamProvider;
-    this.configurationService = configurationService;
     this.journalService = journalService;
     this.googleCredentialsService = googleCredentialsService;
     int ttl =

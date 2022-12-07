@@ -3,6 +3,7 @@ package bio.terra.service.duos;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -71,10 +72,8 @@ public class DuosDaoTest {
 
   @Test
   public void testRetrieveFirecloudGroupBeforeInsert() {
-    DuosFirecloudGroupModel retrieveBeforeInsert = duosDao.retrieveFirecloudGroupByDuosId(duosId);
-    assertNull(retrieveBeforeInsert);
-    List<DuosFirecloudGroupModel> retrieveAllBeforeInsert = duosDao.retrieveFirecloudGroups();
-    assertThat(retrieveAllBeforeInsert, empty());
+    assertNull(duosDao.retrieveFirecloudGroupByDuosId(duosId));
+    assertThat(duosDao.retrieveFirecloudGroups(), empty());
   }
 
   @Test
@@ -87,14 +86,11 @@ public class DuosDaoTest {
   public void testInsertThenRetrieveFirecloudGroup() {
     duosFirecloudGroupId = duosDao.insertFirecloudGroup(toInsert);
 
-    DuosFirecloudGroupModel retrievedByDuosId = duosDao.retrieveFirecloudGroupByDuosId(duosId);
-    verifyRetrievedFirecloudGroupContents(retrievedByDuosId);
-
-    DuosFirecloudGroupModel retrievedById = duosDao.retrieveFirecloudGroup(duosFirecloudGroupId);
-    verifyRetrievedFirecloudGroupContents(retrievedById);
+    verifyRetrievedFirecloudGroupContents(duosDao.retrieveFirecloudGroupByDuosId(duosId));
+    verifyRetrievedFirecloudGroupContents(duosDao.retrieveFirecloudGroup(duosFirecloudGroupId));
 
     List<DuosFirecloudGroupModel> retrieved = duosDao.retrieveFirecloudGroups();
-    assertThat(retrieved.size(), equalTo(1));
+    assertThat(retrieved, hasSize(1));
     verifyRetrievedFirecloudGroupContents(retrieved.get(0));
   }
 
@@ -128,6 +124,9 @@ public class DuosDaoTest {
   @Test
   public void testUpdateFirecloudGroupLastSyncedDate() {
     duosFirecloudGroupId = duosDao.insertFirecloudGroup(toInsert);
+    // When reading back an Instant written to Postgres, the precision can differ.
+    // Parsing an Instant from a fixed lower precision string representation allows us
+    // to verify expectations when reading back the record.
     Instant lastSyncedDate = Instant.parse("2022-11-17T00:00:00.00Z");
 
     assertTrue(duosDao.updateFirecloudGroupLastSyncedDate(duosFirecloudGroupId, lastSyncedDate));

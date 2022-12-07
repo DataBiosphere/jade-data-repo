@@ -27,12 +27,14 @@ public class DuosDao {
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final String tdrServiceAccountEmail;
 
-  private static final String duosFirecloudGroupQuery =
+  private static final String DUOS_FIRECLOUD_GROUP_QUERY =
       """
       SELECT id, duos_id, firecloud_group_name, firecloud_group_email, created_by, created_date,
         last_synced_date
       FROM duos_firecloud_group
       """;
+  private static final DuosFirecloudGroupMapper DUOS_FIRECLOUD_GROUP_MAPPER =
+      new DuosFirecloudGroupMapper();
 
   public DuosDao(
       NamedParameterJdbcTemplate jdbcTemplate,
@@ -76,7 +78,7 @@ public class DuosDao {
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
   public List<DuosFirecloudGroupModel> retrieveFirecloudGroups() {
-    return jdbcTemplate.query(duosFirecloudGroupQuery, new DuosFirecloudGroupMapper());
+    return jdbcTemplate.query(DUOS_FIRECLOUD_GROUP_QUERY, DUOS_FIRECLOUD_GROUP_MAPPER);
   }
 
   @Transactional(
@@ -85,9 +87,9 @@ public class DuosDao {
       readOnly = true)
   public DuosFirecloudGroupModel retrieveFirecloudGroup(UUID id) {
     try {
-      String sql = duosFirecloudGroupQuery + " WHERE id = :id";
+      String sql = DUOS_FIRECLOUD_GROUP_QUERY + " WHERE id = :id";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-      return jdbcTemplate.queryForObject(sql, params, new DuosFirecloudGroupMapper());
+      return jdbcTemplate.queryForObject(sql, params, DUOS_FIRECLOUD_GROUP_MAPPER);
     } catch (EmptyResultDataAccessException ex) {
       return null;
     }
@@ -99,9 +101,9 @@ public class DuosDao {
       readOnly = true)
   public DuosFirecloudGroupModel retrieveFirecloudGroupByDuosId(String duosId) {
     try {
-      String sql = duosFirecloudGroupQuery + " WHERE duos_id = :duos_id";
+      String sql = DUOS_FIRECLOUD_GROUP_QUERY + " WHERE duos_id = :duos_id";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("duos_id", duosId);
-      return jdbcTemplate.queryForObject(sql, params, new DuosFirecloudGroupMapper());
+      return jdbcTemplate.queryForObject(sql, params, DUOS_FIRECLOUD_GROUP_MAPPER);
     } catch (EmptyResultDataAccessException ex) {
       return null;
     }

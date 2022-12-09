@@ -328,7 +328,9 @@ public class FileTest extends UsersBase {
     logger.info("Drs Object: {}", drsObject);
 
     TestUtils.validateDrsAccessMethods(
-        drsObject.getAccessMethods(), authService.getDirectAccessAuthToken(custodian().getEmail()), false);
+        drsObject.getAccessMethods(),
+        authService.getDirectAccessAuthToken(custodian().getEmail()),
+        false);
   }
 
   @Test

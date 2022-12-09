@@ -291,7 +291,7 @@ public class AccessTest extends UsersBase {
 
     // Use DRS API to lookup the file by DRS ID (pulled out of the URI).
     DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
-    String gsuri = TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods(), custodianToken);
+    String gsuri = TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods(), custodianToken, false);
 
     // Try to read the file of the gs path as reader and discoverer
     String[] strings = gsuri.split("/", 4);

@@ -32,7 +32,7 @@ import org.threeten.bp.Duration;
 
 public final class BigQueryFixtures {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryFixtures.class);
-  private static final int SAM_TIMEOUT_SECONDS = 900; // 15 minutes
+  private static final int SAM_TIMEOUT_SECONDS = 400;
 
   private BigQueryFixtures() {}
 

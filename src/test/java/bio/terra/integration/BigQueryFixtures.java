@@ -42,7 +42,7 @@ public final class BigQueryFixtures {
             .setInitialRetryDelay(Duration.ofSeconds(1))
             .setMaxRetryDelay(Duration.ofSeconds(32))
             .setRetryDelayMultiplier(2.0)
-            .setTotalTimeout(Duration.ofMinutes(15))
+            .setTotalTimeout(Duration.ofMinutes(7))
             .setInitialRpcTimeout(Duration.ofSeconds(50))
             .setRpcTimeoutMultiplier(1.0)
             .setMaxRpcTimeout(Duration.ofSeconds(50))

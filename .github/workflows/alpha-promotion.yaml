@@ -8,7 +8,7 @@ on:
     - cron: '0 17 * * 5' # Fridays at 12PM EST or 1PM EDT; 5PM UTC
     - cron: '0 1 * * 1-5' # Sun - Thurs 8PM EST or 9PM EDT; 1AM UTC
 env:
-  chartVersion: 0.1.589
+  chartVersion: 0.1.593
 jobs:
   alpha_promotion:
     permissions:
@@ -52,40 +52,6 @@ jobs:
               \"chartReleases\": [
                 {
                   \"chartRelease\": \"alpha/datarepo\",
-                  \"toAppVersionExact\": \"${{ steps.apiprevioustag.outputs.tag }}\",
-                  \"toAppVersionResolver\": \"exact\",
-                  \"toChartVersionExact\": \"${{ env.chartVersion }}\",
-                  \"toChartVersionResolver\": \"exact\",
-                  \"toHelmfileRef\": \"HEAD\"
-                }
-              ]
-            }"
-          curl -X 'POST' \
-            'https://sherlock-dev.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan-and-apply' \
-            -H 'accept: application/json' \
-            -H 'Content-Type: application/json' \
-            -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
-            -d "{
-              \"chartReleases\": [
-                {
-                  \"chartRelease\": \"swatomation/datarepo\",
-                  \"toAppVersionExact\": \"${{ steps.apiprevioustag.outputs.tag }}\",
-                  \"toAppVersionResolver\": \"exact\",
-                  \"toChartVersionExact\": \"${{ env.chartVersion }}\",
-                  \"toChartVersionResolver\": \"exact\",
-                  \"toHelmfileRef\": \"HEAD\"
-                }
-              ]
-            }"
-          curl -X 'POST' \
-            'https://sherlock.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan-and-apply' \
-            -H 'accept: application/json' \
-            -H 'Content-Type: application/json' \
-            -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
-            -d "{
-              \"chartReleases\": [
-                {
-                  \"chartRelease\": \"swatomation/datarepo\",
                   \"toAppVersionExact\": \"${{ steps.apiprevioustag.outputs.tag }}\",
                   \"toAppVersionResolver\": \"exact\",
                   \"toChartVersionExact\": \"${{ env.chartVersion }}\",

@@ -175,7 +175,8 @@ public class DrsTest extends UsersBase {
 
     TestUtils.validateDrsAccessMethods(
         drsObjectFile.getAccessMethods(),
-        authService.getDirectAccessAuthToken(steward().getEmail()));
+        authService.getDirectAccessAuthToken(steward().getEmail()),
+        false);
 
     Map<String, List<Acl>> preDeleteAcls =
         TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());

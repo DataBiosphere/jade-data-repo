@@ -102,6 +102,8 @@ public final class BigQueryUtils {
       throws InterruptedException {
     QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
     BigQueryResult bigQueryResult = new BigQueryResult(bigQueryClient, queryConfig);
+    // We have seen permission propagation delays of ~15 minutes
+    // addition addtional 2 minutes as buffer (total of 17 minutes)
     Awaitility.await().atMost(17, TimeUnit.MINUTES).until(bigQueryResult);
     return bigQueryResult.getTableResult();
   }

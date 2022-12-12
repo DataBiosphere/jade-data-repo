@@ -12,7 +12,10 @@ import com.google.cloud.bigquery.TableResult;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.awaitility.Awaitility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.threeten.bp.Duration;
@@ -97,7 +100,30 @@ public final class BigQueryUtils {
   public static TableResult queryBigQuery(BigQuery bigQueryClient, String query)
       throws InterruptedException {
     QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
-    return bigQueryClient.query(queryConfig);
+    BigQueryResult bigQueryResult = new BigQueryResult(bigQueryClient, queryConfig);
+    Awaitility.await().atMost(17, TimeUnit.MINUTES).until(bigQueryResult);
+    return bigQueryResult.getTableResult();
+  }
+
+  private static final class BigQueryResult implements Callable<Boolean> {
+    private final BigQuery bigQueryClient;
+    private final QueryJobConfiguration queryConfig;
+    private TableResult result;
+
+    private BigQueryResult(BigQuery bigQueryClient, QueryJobConfiguration queryConfig) {
+      this.bigQueryClient = bigQueryClient;
+      this.queryConfig = queryConfig;
+    }
+
+    public Boolean call() throws Exception {
+      result = bigQueryClient.query(queryConfig);
+
+      return result.getTotalRows() > 0;
+    }
+
+    public TableResult getTableResult() {
+      return result;
+    }
   }
 
   /**

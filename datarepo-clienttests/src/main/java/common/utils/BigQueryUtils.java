@@ -4,6 +4,7 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
@@ -116,9 +117,12 @@ public final class BigQueryUtils {
     }
 
     public Boolean call() throws Exception {
-      result = bigQueryClient.query(queryConfig);
-
-      return result.getTotalRows() > 0;
+      try {
+        result = bigQueryClient.query(queryConfig);
+      } catch (BigQueryException ex) {
+        return false;
+      }
+      return true;
     }
 
     public TableResult getTableResult() {

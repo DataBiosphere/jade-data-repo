@@ -604,7 +604,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         403:
-          description: No permission to see snapshot
+          description: No permission to retrieve snapshot with the specified inclusions
           content:
             application/json:
               schema:

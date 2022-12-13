@@ -77,44 +77,8 @@ jobs:
                 }
               ]
             }"
-      # Legacy terra-helmfile interaction done for double-writing after Sherlock cut-over, see DDO-2449
-      - name: 'Checkout terra-helmfile repo'
-        uses: actions/checkout@v2
-        with:
-          repository: 'broadinstitute/terra-helmfile'
-          token: ${{ secrets.BROADBOT_TOKEN}}
-          path: terra-helmfile
-          persist-credentials: false
-      - name: "Find and replace Datarepo version in versions/app/dev.yaml"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i terra-helmfile/versions/app/dev.yaml releases.datarepo.appVersion ${{ steps.apiprevioustag.outputs.tag }}
-      - name: "Find and replace Datarepo chartVersion version in versions/app/dev.yaml"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i terra-helmfile/versions/app/dev.yaml releases.datarepo.chartVersion ${{ env.chartVersion }}
-      - name: "Read terra-helmfile daterepo fields in versions/app/dev.yaml"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq r terra-helmfile/versions/app/dev.yaml releases.datarepo
-      - name: Create pull request
-        uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
-        id: create-pr
-        with:
-          token: ${{ secrets.BROADBOT_TOKEN }}
-          path: terra-helmfile
-          commit-message: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
-          committer: datarepo-bot <noreply@github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
-          branch: "version-update/${{ steps.apiprevioustag.outputs.tag }}"
-          body: |
-            Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
-            *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
-          labels: "broadbot,datarepo,automerge,version-update"
-      - name: "Notify Slack"
-        # End of legacy double-writing
 
+      - name: "Notify Slack"
         if: always()
         uses: broadinstitute/action-slack@v3.8.0
         env:

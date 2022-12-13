@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
@@ -127,7 +128,9 @@ public class SnapshotDeleteFlight extends Flight {
                 snapshotId, resourceService, azureStorageAccountService)));
 
     // Delete Metadata
-    addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId, userReq));
+    addStep(
+        new DeleteSnapshotMetadataStep(snapshotDao, snapshotId, userReq),
+        getDefaultExponentialBackoffRetryRule());
     addStep(new PerformAzureStep(new DeleteSnapshotMetadataAzureStep(azureStorageAccountService)));
     addStep(new PerformSnapshotStep(new UnlockSnapshotStep(snapshotDao, snapshotId)));
 

@@ -45,12 +45,16 @@ public class SnapshotUpdateDuosDatasetFlightTest {
             "RetrieveDuosFirecloudGroupStep",
             "IfNoGroupRetrievedStep",
             "IfNoGroupRetrievedStep",
+            "IfNoGroupRetrievedStep",
             "AddDuosFirecloudReaderStep",
             "UpdateSnapshotDuosFirecloudGroupIdStep"));
     assertThat(
-        "Firecloud group creation and record steps are optional",
+        "Firecloud group creation, record, and sync steps are optional",
         getFlightOptionalStepNames(flight),
-        contains("CreateDuosFirecloudGroupStep", "RecordDuosFirecloudGroupStep"));
+        contains(
+            "CreateDuosFirecloudGroupStep",
+            "RecordDuosFirecloudGroupStep",
+            "SyncDuosFirecloudGroupStep"));
   }
 
   @Test
@@ -69,12 +73,16 @@ public class SnapshotUpdateDuosDatasetFlightTest {
             "RetrieveDuosFirecloudGroupStep",
             "IfNoGroupRetrievedStep",
             "IfNoGroupRetrievedStep",
+            "IfNoGroupRetrievedStep",
             "AddDuosFirecloudReaderStep",
             "UpdateSnapshotDuosFirecloudGroupIdStep"));
     assertThat(
-        "Firecloud group creation and record steps are optional",
+        "Firecloud group creation, record, and sync steps are optional",
         getFlightOptionalStepNames(flight),
-        contains("CreateDuosFirecloudGroupStep", "RecordDuosFirecloudGroupStep"));
+        contains(
+            "CreateDuosFirecloudGroupStep",
+            "RecordDuosFirecloudGroupStep",
+            "SyncDuosFirecloudGroupStep"));
   }
 
   @Test

@@ -212,7 +212,8 @@ public class SnapshotsApiController implements SnapshotsApi {
           List<SnapshotRetrieveIncludeModel> include) {
     logger.info("Verifying user access");
     AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
-    snapshotService.verifySnapshotAccessible(id, authenticatedInfo);
+    IamAction action = SnapshotService.retrieveSnapshotIamAction(include);
+    snapshotService.verifySnapshotAccessible(id, authenticatedInfo, action);
     logger.info("Retrieving snapshot");
     SnapshotModel snapshotModel =
         snapshotService.retrieveAvailableSnapshotModel(id, include, authenticatedInfo);

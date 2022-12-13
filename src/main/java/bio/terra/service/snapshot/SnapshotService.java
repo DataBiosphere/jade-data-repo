@@ -80,6 +80,7 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -101,6 +102,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class SnapshotService {
   private static final Logger logger = LoggerFactory.getLogger(SnapshotService.class);
+  static final Set<SnapshotRetrieveIncludeModel> INCLUDES_DISCOVER_DATA =
+      Set.of(
+          SnapshotRetrieveIncludeModel.NONE,
+          SnapshotRetrieveIncludeModel.PROFILE,
+          SnapshotRetrieveIncludeModel.DATA_PROJECT,
+          SnapshotRetrieveIncludeModel.DUOS);
   private final JobService jobService;
   private final DatasetService datasetService;
   private final FireStoreDependencyDao dependencyDao;
@@ -382,6 +389,17 @@ public class SnapshotService {
   public SnapshotSummaryModel retrieveSnapshotSummary(UUID id) {
     SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(id);
     return snapshotSummary.toModel();
+  }
+
+  /**
+   * @param requestedIncludes specifications for what to return when retrieving a snapshot
+   * @return IAM action needed to retrieve the snapshot with the requested inclusions
+   */
+  public static IamAction retrieveSnapshotIamAction(
+      Collection<SnapshotRetrieveIncludeModel> requestedIncludes) {
+    return (INCLUDES_DISCOVER_DATA.containsAll(requestedIncludes))
+        ? IamAction.DISCOVER_DATA
+        : IamAction.READ_DATA;
   }
 
   /**
@@ -669,24 +687,39 @@ public class SnapshotService {
   }
 
   /**
-   * Throw if the user cannot access the snapshot via SAM permissions or linked RAS passports.
+   * Throw if the user cannot read underlying snapshot data via SAM permissions or linked RAS
+   * passports.
    *
    * @param snapshotId snapshot UUID
    * @param userReq authenticated user
    */
   public void verifySnapshotAccessible(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    verifySnapshotAccessible(snapshotId, userReq, IamAction.READ_DATA);
+  }
+
+  /**
+   * Throw if the user cannot access the snapshot via SAM permissions or linked RAS passports.
+   *
+   * @param snapshotId snapshot UUID
+   * @param userReq authenticated user
+   * @param action which the user must hold on the snapshot to be considered authorized via SAM (the
+   *     specific action checked can vary depending on what the user has requested).
+   */
+  public void verifySnapshotAccessible(
+      UUID snapshotId, AuthenticatedUserRequest userReq, IamAction action) {
     boolean iamAuthorized = false;
     boolean ecmAuthorized = false;
     List<String> causes = new ArrayList<>();
     try {
       iamService.verifyAuthorization(
-          userReq, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+          userReq, IamResourceType.DATASNAPSHOT, snapshotId.toString(), action);
       iamAuthorized = true;
     } catch (Exception iamEx) {
       logger.warn(
-          "Snapshot {} inaccessible via SAM for {}, checking for linked RAS passport",
-          snapshotId,
+          "{} does not hold {} on snapshot {}, checking for linked RAS passport",
           userReq.getEmail(),
+          action,
+          snapshotId,
           iamEx);
       causes.add(iamEx.getMessage());
       SnapshotAccessibleResult byPassport = snapshotAccessibleByPassport(snapshotId, userReq);

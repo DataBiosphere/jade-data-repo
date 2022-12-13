@@ -84,11 +84,13 @@ import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -746,22 +748,24 @@ public class SnapshotServiceTest {
 
   @Test
   public void verifySnapshotAccessibleBySam() {
-    service.verifySnapshotAccessible(snapshotId, TEST_USER);
+    IamAction action = IamAction.READ_DATA;
+    service.verifySnapshotAccessible(snapshotId, TEST_USER, action);
 
-    verify(iamService, times(1))
+    verify(iamService)
         .verifyAuthorization(
-            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), action);
     verify(ecmService, never()).getRasProviderPassport(TEST_USER);
     verify(ecmService, never()).validatePassport(any());
   }
 
   @Test
   public void verifySnapshotInaccessibleBySamFallsBackToPassport() {
+    IamAction action = IamAction.READ_DATA;
     IamForbiddenException samEx = new IamForbiddenException("Snapshot inaccessible via SAM");
     doThrow(samEx)
         .when(iamService)
         .verifyAuthorization(
-            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), action);
 
     mockSnapshotSummaryWithPassportCriteria();
     when(ecmService.getRasProviderPassport(TEST_USER)).thenReturn(PASSPORT);
@@ -772,27 +776,27 @@ public class SnapshotServiceTest {
     ForbiddenException thrown =
         assertThrows(
             ForbiddenException.class,
-            () -> service.verifySnapshotAccessible(snapshotId, TEST_USER));
+            () -> service.verifySnapshotAccessible(snapshotId, TEST_USER, IamAction.READ_DATA));
     assertThat(
         "SAM and ECM exception messages returned when ECM passport is invalid",
         thrown.getCauses(),
         contains(
             samEx.getMessage(), service.passportInvalidForSnapshotErrorMsg(TEST_USER.getEmail())));
 
-    verify(iamService, times(1))
+    verify(iamService)
         .verifyAuthorization(
-            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
-    verify(ecmService, times(1)).getRasProviderPassport(TEST_USER);
-    verify(ecmService, times(1)).validatePassport(any());
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), action);
+    verify(ecmService).getRasProviderPassport(TEST_USER);
+    verify(ecmService).validatePassport(any());
 
     // No SAM access and a valid passport = accessible snapshot
     when(ecmService.validatePassport(any())).thenReturn(new ValidatePassportResult().valid(true));
 
-    service.verifySnapshotAccessible(snapshotId, TEST_USER);
+    service.verifySnapshotAccessible(snapshotId, TEST_USER, action);
 
     verify(iamService, times(2))
         .verifyAuthorization(
-            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), action);
     verify(ecmService, times(2)).getRasProviderPassport(TEST_USER);
     verify(ecmService, times(2)).validatePassport(any());
   }
@@ -900,5 +904,38 @@ public class SnapshotServiceTest {
 
     // Job is not created or submitted if DUOS client cannot successfully obtain DUOS dataset
     verifyNoInteractions(jobBuilder);
+  }
+
+  @Test
+  public void testRetrieveSnapshotIamAction() {
+    assertThat(
+        "Discoverers can retrieve snapshot unless an included value requires a higher privilege",
+        SnapshotService.retrieveSnapshotIamAction(List.of()),
+        equalTo(IamAction.DISCOVER_DATA));
+
+    Set<SnapshotRetrieveIncludeModel> includesReadData =
+        Arrays.stream(SnapshotRetrieveIncludeModel.values()).collect(Collectors.toSet());
+    includesReadData.removeAll(SnapshotService.INCLUDES_DISCOVER_DATA);
+
+    for (var includeDiscoverData : SnapshotService.INCLUDES_DISCOVER_DATA) {
+      for (var includeReadData : includesReadData) {
+        assertThat(
+            "Discoverers can retrieve snapshot when including %s alone"
+                .formatted(includeDiscoverData),
+            SnapshotService.retrieveSnapshotIamAction(List.of(includeDiscoverData)),
+            equalTo(IamAction.DISCOVER_DATA));
+        assertThat(
+            "Discoverers cannot retrieve snapshot when including %s and %s"
+                .formatted(includeDiscoverData, includeReadData),
+            SnapshotService.retrieveSnapshotIamAction(
+                List.of(includeDiscoverData, includeReadData)),
+            equalTo(IamAction.READ_DATA));
+        assertThat(
+            "Discoverers cannot retrieve snapshot when including %s alone"
+                .formatted(includeReadData),
+            SnapshotService.retrieveSnapshotIamAction(List.of(includeReadData)),
+            equalTo(IamAction.READ_DATA));
+      }
+    }
   }
 }

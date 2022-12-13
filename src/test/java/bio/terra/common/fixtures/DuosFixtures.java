@@ -32,4 +32,13 @@ public final class DuosFixtures {
         .created(Instant.now().toString())
         .createdBy("jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com");
   }
+
+  /**
+   * @param duosId DUOS dataset ID
+   * @return a DuosFirecloudGroupModel created from the DUOS ID, populated as if synced and returned
+   *     via database retrieval. No external calls are made.
+   */
+  public static DuosFirecloudGroupModel createDbSyncedFirecloudGroup(String duosId) {
+    return createDbFirecloudGroup(duosId).lastSynced(Instant.now().toString());
+  }
 }

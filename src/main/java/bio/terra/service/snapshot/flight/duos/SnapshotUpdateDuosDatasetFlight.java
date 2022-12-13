@@ -45,11 +45,14 @@ public class SnapshotUpdateDuosDatasetFlight extends Flight {
     }
     if (linking) {
       addStep(new RetrieveDuosFirecloudGroupStep(duosDao, duosId));
-      // Create a
+
+      // Create, record, and sync a new Firecloud group if we don't have one for the DUOS ID.
       addStep(
           new IfNoGroupRetrievedStep(
               new CreateDuosFirecloudGroupStep(duosService, iamService, duosId)));
       addStep(new IfNoGroupRetrievedStep(new RecordDuosFirecloudGroupStep(duosDao)));
+      addStep(new IfNoGroupRetrievedStep(new SyncDuosFirecloudGroupStep(duosService, duosId)));
+
       addStep(new AddDuosFirecloudReaderStep(iamService, userReq, snapshotId));
     }
     addStep(

@@ -1198,6 +1198,121 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/duos:
+    get:
+      tags:
+        - duos
+        - repository
+      description: >
+        Returns a list of all DUOS Firecloud groups managed by TDR.
+        NOTE: This is an experimental feature and its response body may change.
+      operationId: retrieveDuosFirecloudGroups
+      responses:
+        200:
+          description: List of DUOS Firecloud groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        500:
+          description: >
+            An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/duos/{duosId}:
+    get:
+      tags:
+        - duos
+        - repository
+      description: >
+        Returns a DUOS Firecloud group managed by TDR.
+        NOTE: This is an experimental feature and its response body may change.
+      operationId: retrieveDuosFirecloudGroup
+      parameters:
+        - name: duosId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/DuosId'
+      responses:
+        200:
+          description: DUOS Firecloud group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        404:
+          description: >
+            Not found - TDR has no record of of a DUOS dataset with the specified ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: >
+            An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/duos/{duosId}/syncAuthorizedUsers:
+    put:
+      tags:
+        - duos
+        - repository
+      description: >
+        Sync the DUOS dataset's authorized users as members of their corresponding TDR-managed
+        Firecloud group.  Any snapshots linked to the DUOS dataset have this Firecloud group
+        as a reader, which means its members are also snapshot readers.
+        NOTE: This is an experimental feature and its response body may change.
+      operationId: syncDuosDatasetAuthorizedUsers
+      parameters:
+        - name: duosId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/DuosId'
+      responses:
+        200:
+          description: Firecloud group contents successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        403:
+          description: >
+            Unauthorized - the caller must be a TDR Admin or TDR-DUOS Integration Admin
+            to facilitate sync.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: >
+              Not found - TDR has no record of of a DUOS dataset with the specified ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        409:
+          description: >
+              Conflict - Firecloud group contents may have been updated, but TDR encountered a
+              conflict when writing back to the database.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: >
+              An unexpected error occurred - Firecloud group contents may not have been updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/datasets:
     get:
       tags:

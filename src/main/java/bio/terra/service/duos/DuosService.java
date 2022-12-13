@@ -1,21 +1,76 @@
 package bio.terra.service.duos;
 
+import bio.terra.common.ExceptionUtils;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.auth.iam.exception.IamConflictException;
+import bio.terra.service.duos.exception.DuosDatasetBadRequestException;
+import bio.terra.service.duos.exception.DuosDatasetNotFoundException;
+import bio.terra.service.duos.exception.DuosFirecloudGroupUpdateConflictException;
 import com.google.common.annotations.VisibleForTesting;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.CannotSerializeTransactionException;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DuosService {
   private static final Logger logger = LoggerFactory.getLogger(DuosService.class);
+  static final boolean IS_CRITICAL_SYSTEM = false;
   private final IamService iamService;
+  private final DuosClient duosClient;
+  private final DuosDao duosDao;
 
-  public DuosService(IamService iamService) {
+  public DuosService(IamService iamService, DuosClient duosClient, DuosDao duosDao) {
     this.iamService = iamService;
+    this.duosClient = duosClient;
+    this.duosDao = duosDao;
+  }
+
+  /**
+   * @return status of DUOS and its subsystems
+   */
+  public RepositoryStatusModelSystems status() {
+    try {
+      SystemStatus status = duosClient.status();
+      return new RepositoryStatusModelSystems()
+          .ok(status.ok())
+          .critical(IS_CRITICAL_SYSTEM)
+          .message(status.systems().toString());
+    } catch (Exception ex) {
+      String errorMsg = "DUOS status check failed";
+      logger.error(errorMsg, ex);
+      return new RepositoryStatusModelSystems()
+          .ok(false)
+          .critical(IS_CRITICAL_SYSTEM)
+          .message(errorMsg + ": " + ExceptionUtils.formatException(ex));
+    }
+  }
+
+  /**
+   * @return all TDR-managed DUOS Firecloud groups
+   */
+  public List<DuosFirecloudGroupModel> retrieveFirecloudGroups() {
+    return duosDao.retrieveFirecloudGroups();
+  }
+
+  /**
+   * @param duosId DUOS dataset ID
+   * @return TDR-managed DUOS Firecloud group
+   * @throws DuosDatasetNotFoundException if TDR has no record of the DUOS dataset
+   */
+  public DuosFirecloudGroupModel retrieveFirecloudGroup(String duosId) {
+    DuosFirecloudGroupModel firecloudGroup = duosDao.retrieveFirecloudGroupByDuosId(duosId);
+    if (firecloudGroup == null) {
+      throw new DuosDatasetNotFoundException(
+          "DUOS dataset %s has not been registered in TDR".formatted(duosId));
+    }
+    return firecloudGroup;
   }
 
   /**
@@ -53,5 +108,73 @@ public class DuosService {
   @VisibleForTesting
   String constructUniqueFirecloudGroupName(String duosId) {
     return String.format("%s-%s", constructFirecloudGroupName(duosId), UUID.randomUUID());
+  }
+
+  /**
+   * If the DUOS dataset ID is registered in TDR, force a sync of its Firecloud group members.
+   *
+   * @param duosId DUOS dataset ID
+   * @return DUOS Firecloud group reflecting the last successful sync of its members
+   */
+  public DuosFirecloudGroupModel syncDuosDatasetAuthorizedUsers(String duosId) {
+    DuosFirecloudGroupModel firecloudGroup = retrieveFirecloudGroup(duosId);
+    return syncFirecloudGroupContents(firecloudGroup);
+  }
+
+  /**
+   * @param firecloudGroup DUOS Firecloud group whose members will be overwritten by the latest set
+   *     of approved users
+   * @return DUOS Firecloud group reflecting the last successful sync of its members
+   */
+  private DuosFirecloudGroupModel syncFirecloudGroupContents(
+      DuosFirecloudGroupModel firecloudGroup) {
+    Instant lastSyncedDate = Instant.now();
+    iamService.overwriteGroupPolicyEmails(
+        firecloudGroup.getFirecloudGroupName(),
+        IamRole.MEMBER.toString(),
+        getAuthorizedUsers(firecloudGroup.getDuosId()));
+    updateLastSynced(firecloudGroup, lastSyncedDate);
+    return duosDao.retrieveFirecloudGroup(firecloudGroup.getId());
+  }
+
+  /**
+   * @param firecloudGroup DUOS Firecloud group whose members were overwritten by the latest set of
+   *     approved users
+   * @param lastSyncedDate DUOS Firecloud group members match the DUOS dataset's authorized users at
+   *     this moment in time
+   */
+  private void updateLastSynced(DuosFirecloudGroupModel firecloudGroup, Instant lastSyncedDate) {
+    UUID id = firecloudGroup.getId();
+    try {
+      duosDao.updateFirecloudGroupLastSyncedDate(id, lastSyncedDate);
+    } catch (CannotSerializeTransactionException ex) {
+      String msg =
+          "Members of Firecloud group %s were updated, "
+              + "but could not update DUOS Firecloud Group record %s with last_synced_date %s"
+                  .formatted(firecloudGroup.getFirecloudGroupName(), id, lastSyncedDate);
+      String errorDetail =
+          "This indicates that another process was updating the database row at the same time";
+      throw new DuosFirecloudGroupUpdateConflictException(msg, ex, List.of(errorDetail));
+    }
+  }
+
+  /**
+   * @param duosId DUOS dataset ID
+   * @return a list of emails belonging to the DUOS dataset's approved users, empty if the dataset
+   *     is known to not exist. Unexpected exceptions are allowed to bubble up to register as a
+   *     failure to sync the Firecloud group's contents.
+   */
+  private List<String> getAuthorizedUsers(String duosId) {
+    List<String> users;
+    try {
+      users =
+          duosClient.getApprovedUsers(duosId).approvedUsers().stream()
+              .map(DuosDatasetApprovedUser::email)
+              .toList();
+    } catch (DuosDatasetBadRequestException | DuosDatasetNotFoundException ex) {
+      logger.warn("No DUOS dataset exists for ID {}, emptying its Firecloud group members", duosId);
+      users = List.of();
+    }
+    return users;
   }
 }

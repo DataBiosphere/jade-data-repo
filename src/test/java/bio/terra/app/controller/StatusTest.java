@@ -9,9 +9,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.duos.DuosService;
+import bio.terra.service.resourcemanagement.BufferService;
+import bio.terra.service.status.StatusService;
+import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -36,10 +41,20 @@ public class StatusTest {
   @Autowired private MockMvc mvc;
   @Autowired private ConfigurationService configurationService;
   @MockBean private DatasetDao datasetDao;
+  @MockBean private IamProviderInterface iamProviderInterface;
+  @MockBean private BufferService bufferService;
+  @MockBean private DuosService duosService;
+
+  private static RepositoryStatusModelSystems ok() {
+    return new RepositoryStatusModelSystems().ok(true);
+  }
 
   @Before
   public void setup() throws Exception {
-    when(datasetDao.statusCheck()).thenReturn(new RepositoryStatusModelSystems().ok(true));
+    when(datasetDao.statusCheck()).thenReturn(ok());
+    when(iamProviderInterface.samStatus()).thenReturn(ok());
+    when(bufferService.status()).thenReturn(ok().critical(false));
+    when(duosService.status()).thenReturn(ok().critical(false));
   }
 
   @Test
@@ -56,12 +71,13 @@ public class StatusTest {
   }
 
   @Test
-  public void testCriticalSystem() throws Exception {
-    configurationService.setFault(ConfigEnum.CRITICAL_SYSTEM_FAULT.name(), true);
+  public void testCriticalSystemDown() throws Exception {
+    when(datasetDao.statusCheck())
+        .thenReturn(new RepositoryStatusModelSystems().ok(false).critical(true));
     MvcResult result =
         this.mvc.perform(get("/status")).andExpect(status().is5xxServerError()).andReturn();
-    MockHttpServletResponse downResponse = result.getResponse();
-    String responseBody = downResponse.getContentAsString();
+    MockHttpServletResponse response = result.getResponse();
+    String responseBody = response.getContentAsString();
     assertThat(
         "/Status response should indicate that the whole system is down.",
         responseBody,
@@ -69,23 +85,53 @@ public class StatusTest {
     assertThat(
         "/Status response should indicate that postgres is down",
         responseBody,
-        containsString("\"Postgres\":{\"ok\":false,\"critical\":true"));
+        containsSubserviceString(StatusService.POSTGRES, false, true));
     assertThat(
         "/Status response should indicate that sam is up",
         responseBody,
-        containsString("\"Sam\":{\"ok\":true,\"critical\":true"));
+        containsSubserviceString(StatusService.SAM, true, true));
     assertThat(
         "/Status response should indicate that rbs is up",
         responseBody,
-        containsString("\"ResourceBufferService\":{\"ok\":true,\"critical\":false"));
-
-    configurationService.setFault(ConfigEnum.CRITICAL_SYSTEM_FAULT.name(), false);
-    MvcResult upResult = this.mvc.perform(get("/status")).andExpect(status().isOk()).andReturn();
-    MockHttpServletResponse upResponse = upResult.getResponse();
-    String upResponseBody = upResponse.getContentAsString();
+        containsSubserviceString(StatusService.RBS, true, false));
     assertThat(
-        "/Status response should indicate that the whole system is up",
-        upResponseBody,
+        "/Status response should indicate that duos is up",
+        responseBody,
+        containsSubserviceString(StatusService.DUOS, true, false));
+  }
+
+  @Test
+  public void testNonCriticalSystemDown() throws Exception {
+    when(duosService.status())
+        .thenReturn(new RepositoryStatusModelSystems().ok(false).critical(false));
+    MvcResult result = this.mvc.perform(get("/status")).andExpect(status().isOk()).andReturn();
+    MockHttpServletResponse response = result.getResponse();
+    String responseBody = response.getContentAsString();
+    assertThat(
+        "/Status response should indicate that the system is up.",
+        responseBody,
         startsWith("{\"ok\":true"));
+    assertThat(
+        "/Status response should indicate that postgres is up",
+        responseBody,
+        containsSubserviceString(StatusService.POSTGRES, true, true));
+    assertThat(
+        "/Status response should indicate that sam is up",
+        responseBody,
+        containsSubserviceString(StatusService.SAM, true, true));
+    assertThat(
+        "/Status response should indicate that rbs is up",
+        responseBody,
+        containsSubserviceString(StatusService.RBS, true, false));
+    assertThat(
+        "/Status response should indicate that duos is down",
+        responseBody,
+        containsSubserviceString(StatusService.DUOS, false, false));
+  }
+
+  private Matcher<String> containsSubserviceString(
+      String subserviceName, boolean ok, boolean critical) {
+    String expected = "\"%s\":{\"ok\":%b,\"critical\":%b".formatted(subserviceName, ok, critical);
+    return containsString(expected);
   }
 }

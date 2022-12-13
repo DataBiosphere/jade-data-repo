@@ -19,6 +19,7 @@ public enum IamAction {
   LIST_JOBS,
   DELETE_JOBS,
   CONFIGURE,
+  SYNC_DUOS_USERS,
   // dataset
   MANAGE_SCHEMA,
   READ_DATASET,

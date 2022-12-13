@@ -12,7 +12,9 @@ public enum IamRole {
   DISCOVERER,
   OWNER,
   USER,
-  SNAPSHOT_CREATOR;
+  SNAPSHOT_CREATOR,
+  /** A role used by Firecloud Managed Groups */
+  MEMBER;
 
   @Override
   @JsonValue

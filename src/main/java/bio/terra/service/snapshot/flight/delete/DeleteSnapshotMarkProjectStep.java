@@ -1,11 +1,11 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeleteSnapshotMarkProjectStep implements Step {
+public class DeleteSnapshotMarkProjectStep extends DefaultUndoStep {
 
   private final ResourceService resourceService;
   private final UUID snapshotId;
@@ -38,11 +38,6 @@ public class DeleteSnapshotMarkProjectStep implements Step {
 
     workingMap.put(SnapshotWorkingMapKeys.PROJECTS_MARKED_FOR_DELETE, projectsToBeDeleted);
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
     return StepResult.getStepResultSuccess();
   }
 }

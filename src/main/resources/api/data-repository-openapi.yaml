@@ -619,7 +619,10 @@ paths:
       tags:
         - snapshots
         - repository
-      description: Delete a snapshot by id
+      description: >
+        Delete a snapshot by id.
+        If this operation fails, we do not attempt to undo any failed steps. Therefore, a
+        failed snapshot delete call leaves the snapshot in a partially deleted state.
       operationId: deleteSnapshot
       parameters:
         - $ref: '#/components/parameters/Id'

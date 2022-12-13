@@ -1,14 +1,13 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
 
-public class DeleteSnapshotMetadataAzureStep implements Step {
+public class DeleteSnapshotMetadataAzureStep extends DefaultUndoStep {
 
   private final AzureStorageAccountService storageAccountService;
 
@@ -26,12 +25,5 @@ public class DeleteSnapshotMetadataAzureStep implements Step {
         storageAccountResourceName, context.getFlightId());
 
     return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    return new StepResult(
-        StepStatus.STEP_RESULT_FAILURE_FATAL,
-        new IllegalStateException("Attempt to undo permanent delete"));
   }
 }

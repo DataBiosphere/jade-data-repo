@@ -10,6 +10,7 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
+import org.springframework.dao.CannotSerializeTransactionException;
 import org.springframework.http.HttpStatus;
 
 public class DeleteSnapshotMetadataStep implements Step {
@@ -35,6 +36,8 @@ public class DeleteSnapshotMetadataStep implements Step {
               : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
     } catch (SnapshotNotFoundException ex) {
       stateEnum = DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
+    } catch (CannotSerializeTransactionException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
 
     DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);

@@ -149,6 +149,22 @@ public class IamService {
   }
 
   /**
+   * This is a wrapper method around {@link #hasAnyActions(AuthenticatedUserRequest,
+   * IamResourceType, String)} that throws an exception instead of returning false when the user
+   * holds no actions on the resource.
+   *
+   * @throws IamUnauthorizedException if NOT authorized to perform any action on the resource
+   */
+  public void verifyAuthorization(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
+    String userEmail = userReq.getEmail();
+    if (!hasAnyActions(userReq, iamResourceType, resourceId)) {
+      throw new IamForbiddenException(
+          "User '" + userEmail + "' does not have any actions on the resource");
+    }
+  }
+
+  /**
    * List of the ids of the resources of iamResourceType that the user has any access to.
    *
    * @param userReq authenticated user

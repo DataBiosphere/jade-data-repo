@@ -114,6 +114,26 @@ public class IamServiceTest {
   }
 
   @Test
+  public void testVerifyAuthorizationAnyAction() throws InterruptedException {
+    IamResourceType resourceType = IamResourceType.DATASET;
+    String id = ID.toString();
+
+    when(iamProvider.hasAnyActions(TEST_USER, resourceType, id)).thenReturn(true);
+    iamService.verifyAuthorization(TEST_USER, resourceType, id);
+
+    when(iamProvider.hasAnyActions(TEST_USER, resourceType, id)).thenReturn(false);
+    IamForbiddenException thrown =
+        assertThrows(
+            IamForbiddenException.class,
+            () -> iamService.verifyAuthorization(TEST_USER, resourceType, id),
+            "Authorization verification throws if the caller holds no actions");
+    assertThat(
+        "Error message reflects cause",
+        thrown.getMessage(),
+        containsString("does not have any actions"));
+  }
+
+  @Test
   public void testVerifyAuthorizations() throws Exception {
     IamResourceType resourceType = IamResourceType.DATASET;
     String id = ID.toString();

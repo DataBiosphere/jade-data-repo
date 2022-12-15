@@ -142,14 +142,6 @@ public class AzureSynapsePdao {
            WHERE
             (rows.<toTableColumn> IN
             (
-              IF EXISTS (
-                SELECT TOP(1) <fromTableColumn> FROM
-                OPENROWSET(
-                  BULK '<fromTableParquetFileLocation>',
-                  DATA_SOURCE = '<snapshotDataSource>',
-                  FORMAT = 'parquet'
-                ) as check_for_from_rows
-              )
              SELECT <fromTableColumn> FROM
                 OPENROWSET(
                   BULK '<fromTableParquetFileLocation>',
@@ -157,16 +149,13 @@ public class AzureSynapsePdao {
                   FORMAT = 'parquet'
                 ) as from_rows
              ))
-             AND (rows.datarepo_row_id NOT IN
+          """;
+
+  private static final String createSnapshotTableWithExistingRowsTemplate =
+      createSnapshotTableWalkRelationshipTemplate
+          + """
+         AND (rows.datarepo_row_id NOT IN
              (
-              IF EXISTS (
-                SELECT TOP(1) datarepo_row_id FROM
-                  OPENROWSET(
-                    BULK '<toTableParquetFileLocation>',
-                    DATA_SOURCE = '<snapshotDataSource>',
-                    FORMAT = 'parquet'
-                  ) AS check_for_to_rows
-              )
               SELECT datarepo_row_id FROM
                   OPENROWSET(
                     BULK '<toTableParquetFileLocation>',
@@ -586,8 +575,23 @@ public class AzureSynapsePdao {
       String datasetFlightId,
       Map<String, Long> tableRowCounts)
       throws SQLException {
-    String toTableName = relationship.getToTableName();
     String fromTableName = relationship.getFromTableName();
+    String toTableName = relationship.getToTableName();
+
+    // If there are no rows in the "from" table's snapshot, then there is nothing to be added
+    // to the "to" snapshot table
+    if (tableRowCounts.get(fromTableName) <= Long.valueOf(0)) {
+      logger.info(
+          "No rows included in from table {}. Snapshot table will not be created.", fromTableName);
+      tableRowCounts.put(toTableName, (long) 0);
+    }
+
+    // Since there coule be multiple relationships pointing to the same "to" table,
+    // We don't want to add duplicate rows to the "to" table snapshot
+    // Add clause to query to avoid rows already included in snapshot
+    Long toTableRowCount = tableRowCounts.get(toTableName);
+    boolean toTableAlreadyHasRows = toTableRowCount != null && toTableRowCount > Long.valueOf(0);
+
     AssetTable toAssetTable = assetSpec.getAssetTableByName(toTableName);
 
     // Get Columns to include for this table
@@ -598,7 +602,11 @@ public class AzureSynapsePdao {
             .stream()
             .map(Column::toSynapseColumn)
             .collect(Collectors.toList());
-    ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableWalkRelationshipTemplate);
+    ST sqlCreateSnapshotTableTemplate =
+        new ST(
+            toTableAlreadyHasRows
+                ? createSnapshotTableWithExistingRowsTemplate
+                : createSnapshotTableWalkRelationshipTemplate + ";");
     ST queryTemplate =
         generateSnapshotParquetCreateQuery(
             sqlCreateSnapshotTableTemplate,

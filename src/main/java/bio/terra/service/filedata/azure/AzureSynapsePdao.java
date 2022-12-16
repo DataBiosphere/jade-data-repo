@@ -540,9 +540,9 @@ public class AzureSynapsePdao {
       String snapshotDataSourceName,
       String datasetFlightId,
       String startTableId,
+      List<WalkRelationship> walkRelationships,
       Map<String, Long> tableRowCounts)
       throws SQLException {
-    List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpec);
     for (WalkRelationship relationship : walkRelationships) {
       if (relationship.processRelationship(startTableId)) {
         createSnapshotParquetFilesByRelationship(
@@ -560,6 +560,7 @@ public class AzureSynapsePdao {
             snapshotDataSourceName,
             datasetFlightId,
             relationship.getToTableId(),
+            walkRelationships,
             tableRowCounts);
       }
     }
@@ -689,6 +690,7 @@ public class AzureSynapsePdao {
 
     // Then walk relationships
     String rootTableId = rootTable.getTable().getId().toString();
+    List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpec);
     walkRelationships(
         snapshotId,
         assetSpec,
@@ -696,6 +698,7 @@ public class AzureSynapsePdao {
         snapshotDataSourceName,
         datasetFlightId,
         rootTableId,
+        walkRelationships,
         tableRowCounts);
 
     return tableRowCounts;

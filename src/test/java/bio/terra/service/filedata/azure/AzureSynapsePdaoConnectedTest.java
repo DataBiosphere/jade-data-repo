@@ -84,6 +84,7 @@ public class AzureSynapsePdaoConnectedTest {
   private static Logger logger = LoggerFactory.getLogger(AzureSynapsePdaoConnectedTest.class);
 
   private String randomFlightId;
+  private String snapshotCreateFlightId;
   private List<String> parquetFileNames;
   private String scratchParquetFile;
 
@@ -140,19 +141,21 @@ public class AzureSynapsePdaoConnectedTest {
           .toList();
   private static final String TABLE_NAME_PREFIX = "ingest_";
   private static final String SCRATCH_TABLE_NAME_PREFIX = "scratch_";
-  private static final String SNAPSHOT_SCOPED_CREDENTIAL_PREFIX = "ssas_";
-  private static final String SNAPSHOT_DATA_SOURCE_PREFIX = "sds_";
 
   private String snapshotQueryCredentialName;
   private String snapshotQueryDataSourceName;
   private String snapshotScopedCredentialName;
   private String snapshotDataSourceName;
+  private String sourceDatasetScopedCredentialName;
+  private String sourceDatasetDataSourceName;
   private String tableName;
   private String scratchTableName;
   private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
   private static final String STORAGE_ACCOUNT_NAME = "tdrshiqauwlpzxavohmxxhfv";
   private static final UUID snapshotId = UUID.randomUUID();
+
   private String snapshotStorageAccountId;
+  private String datasetStorageAccountId;
 
   private AzureResourceManager client;
   private AzureApplicationDeploymentResource applicationResource;
@@ -176,14 +179,19 @@ public class AzureSynapsePdaoConnectedTest {
     parquetFileNames = new ArrayList<>();
     connectedOperations.stubOutSamCalls(samService);
     randomFlightId = ShortUUID.get();
+    snapshotCreateFlightId = ShortUUID.get();
     snapshotQueryDataSourceName = null;
     snapshotQueryCredentialName = null;
     tableName = TABLE_NAME_PREFIX + randomFlightId;
     scratchTableName = SCRATCH_TABLE_NAME_PREFIX + randomFlightId;
-    snapshotScopedCredentialName = SNAPSHOT_SCOPED_CREDENTIAL_PREFIX + randomFlightId;
-    snapshotDataSourceName = SNAPSHOT_DATA_SOURCE_PREFIX + randomFlightId;
+    snapshotScopedCredentialName =
+        IngestUtils.getTargetScopedCredentialName(snapshotCreateFlightId);
+    snapshotDataSourceName = IngestUtils.getTargetDataSourceName(snapshotCreateFlightId);
+    sourceDatasetScopedCredentialName =
+        IngestUtils.getSourceDatasetScopedCredentialName(snapshotCreateFlightId);
+    sourceDatasetDataSourceName =
+        IngestUtils.getSourceDatasetDataSourceName(snapshotCreateFlightId);
     UUID applicationId = UUID.randomUUID();
-    UUID storageAccountId = UUID.randomUUID();
 
     billingProfile =
         new BillingProfileModel()
@@ -204,30 +212,46 @@ public class AzureSynapsePdaoConnectedTest {
             .azureApplicationDeploymentName(testConfig.getTargetApplicationName())
             .azureResourceGroupName(MANAGED_RESOURCE_GROUP_NAME)
             .profileId(billingProfile.getId());
-    datasetStorageAccountResource =
-        new AzureStorageAccountResource()
-            .resourceId(storageAccountId)
-            .name(STORAGE_ACCOUNT_NAME)
-            .applicationResource(applicationResource)
-            .metadataContainer("metadata");
+
+    //    datasetStorageAccountResource =
+    //        new AzureStorageAccountResource()
+    //            .resourceId(storageAccountId)
+    //            .name(STORAGE_ACCOUNT_NAME)
+    //            .applicationResource(applicationResource)
+    //            .metadataContainer("metadata");
 
     client =
         azureResourceConfiguration.getClient(
             azureResourceConfiguration.getCredentials().getHomeTenantId(),
             billingProfile.getSubscriptionId());
 
-    StorageAccount storageAccount =
+    StorageAccount datasetStorageAccount =
         client
             .storageAccounts()
-            .define("ct" + Instant.now().toEpochMilli())
+            .define("ctdataset" + Instant.now().toEpochMilli())
             .withRegion(Region.US_CENTRAL)
             .withExistingResourceGroup(MANAGED_RESOURCE_GROUP_NAME)
             .create();
-    snapshotStorageAccountId = storageAccount.id();
+    datasetStorageAccountId = datasetStorageAccount.id();
+    datasetStorageAccountResource =
+        new AzureStorageAccountResource()
+            .resourceId(UUID.randomUUID())
+            .name(datasetStorageAccount.name())
+            .applicationResource(applicationResource)
+            .metadataContainer("metadata");
+
+    StorageAccount snapshotStorageAccount =
+        client
+            .storageAccounts()
+            .define("ctsnapshot" + Instant.now().toEpochMilli())
+            .withRegion(Region.US_CENTRAL)
+            .withExistingResourceGroup(MANAGED_RESOURCE_GROUP_NAME)
+            .create();
+    snapshotStorageAccountId = snapshotStorageAccount.id();
     snapshotStorageAccountResource =
         new AzureStorageAccountResource()
             .resourceId(UUID.randomUUID())
-            .name(storageAccount.name())
+            .name(snapshotStorageAccount.name())
             .applicationResource(applicationResource)
             .metadataContainer("metadata");
   }
@@ -286,6 +310,7 @@ public class AzureSynapsePdaoConnectedTest {
             .collect(Collectors.toList()));
 
     client.storageAccounts().deleteById(snapshotStorageAccountId);
+    client.storageAccounts().deleteById(datasetStorageAccountId);
     connectedOperations.teardown();
   }
 
@@ -339,9 +364,8 @@ public class AzureSynapsePdaoConnectedTest {
     IngestRequestModel ingestRequestModel =
         new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
 
-    // SNAPSHOT
+    // Prep dataset data for snapshot
     Snapshot snapshot = new Snapshot().id(snapshotId);
-    String snapshotFlightId = UUID.randomUUID().toString();
     // Table 1 - All Data Types Table
     DatasetTable allDataTypesTable =
         ingestIntoAllDataTypesTable(ingestRequestModel, "azure-simple-dataset-ingest-request.csv");
@@ -399,7 +423,23 @@ public class AzureSynapsePdaoConnectedTest {
     List<AssetRelationship> relationships =
         List.of(participantDOBRelationship, participantADTRelationship);
 
-    // -- Create external data source for the snapshot
+    // ----- SNAPSHOT ---
+    // -- CreateSnapshotSourceDatasetDataSourceAzureStep --
+    // Create external data source for the source dataset
+    // Where we'll pull the dataset data from to then write to the snapshot
+    String parquetDatasetSourceLocation = datasetStorageAccountResource.getStorageAccountUrl();
+    BlobUrlParts datasetSignUrlBlob =
+        azureBlobStorePdao.getOrSignUrlForTargetFactory(
+            parquetDatasetSourceLocation,
+            billingProfile,
+            datasetStorageAccountResource,
+            AzureStorageAccountResource.ContainerType.METADATA,
+            TEST_USER);
+    azureSynapsePdao.getOrCreateExternalDataSource(
+        datasetSignUrlBlob, sourceDatasetScopedCredentialName, sourceDatasetDataSourceName);
+
+    // -- CreateSnapshotTargetDataSourceAzureStep --
+    // Create external data source for the snapshot
     // where we'll write the resulting parquet files
     String parquetSnapshotLocation = snapshotStorageAccountResource.getStorageAccountUrl();
     BlobUrlParts snapshotSignUrlBlob =
@@ -412,13 +452,13 @@ public class AzureSynapsePdaoConnectedTest {
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
 
-    // 6 - Create snapshot parquet files via external table
+    // -- CreateSnapshotByAssetParquetFilesAzureStep --
+    // Create snapshot parquet files via external table
     // By Asset
     String assetName = "testAsset";
     List<DatasetTable> datasetTables =
         List.of(allDataTypesTable, dateOfBirthTable, participantTable);
     String rootTableName = participantTable.getRawTableName();
-    String rootTableFlightId = participantTableIngestFlightId;
     String rootColumnName = "id";
     String rootValue = "1";
     Map<String, Long> snapshotByAssetTableRowCounts =
@@ -426,9 +466,9 @@ public class AzureSynapsePdaoConnectedTest {
             buildAssetSpecification(
                 datasetTables, assetName, rootTableName, rootColumnName, relationships),
             snapshotId,
-            IngestUtils.getTargetDataSourceName(rootTableFlightId),
+            sourceDatasetDataSourceName,
             snapshotDataSourceName,
-            rootTableFlightId,
+            null,
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue));
 
     String snapshotParquetFileName =
@@ -451,7 +491,7 @@ public class AzureSynapsePdaoConnectedTest {
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
         snapshot.getTables(),
         snapshotId,
-        IngestUtils.getTargetDataSourceName(snapshotFlightId),
+        IngestUtils.getSourceDatasetDataSourceName(snapshotCreateFlightId),
         snapshotDataSourceName,
         snapshotByAssetTableRowCounts,
         randomFlightId);
@@ -460,7 +500,7 @@ public class AzureSynapsePdaoConnectedTest {
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(
             snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);
-    assertThat("Snapshot contains expected number or rows", snapshotRowIds.size(), equalTo(1));
+    assertThat("Snapshot contains expected number or rows", snapshotRowIds.size(), equalTo(3));
 
     // Updated snapshot w/ rowId
     allDataTypesSnapshotTable.rowCount(snapshotRowIds.size());

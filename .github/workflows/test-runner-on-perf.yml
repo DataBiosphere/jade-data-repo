@@ -77,6 +77,10 @@ jobs:
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
           gcloud auth configure-docker  --quiet
+
+          if [[ -n "${K8_CLUSTER}" ]]; then
+            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
+          fi
       - name: "Set up Cloud SDK"
         uses: google-github-actions/setup-gcloud@v1
         with:

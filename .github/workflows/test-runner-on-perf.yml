@@ -81,6 +81,16 @@ jobs:
           if [[ -n "${K8_CLUSTER}" ]]; then
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
+      - name: "Set up Cloud SDK"
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          install_components: 'gke-gcloud-auth-plugin'
+      - name: 'Get GKE Credentials'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: ${{ env.K8_CLUSTER }}
+          location: ${{ env.GOOGLE_ZONE }}
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
       - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions/actions/main@0.65.0
         env:

@@ -100,6 +100,11 @@ jobs:
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
           google_project: broad-jade-perf
+      - name: "Check that perf namespace is available and set state lock"
+        uses: broadinstitute/datarepo-actions/actions/main@0.65.0
+        with:
+          actions_subcommand: 'k8_checknamespace'
+          k8_namespaces: 'perf'
       - name: '[Update API version on Perf] Checkout datarepo-helm-definitions repo'
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: actions/checkout@v2
@@ -179,7 +184,7 @@ jobs:
           echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
           echo "Running test suite"
-          ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
+          ./gradlew runTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
           echo "Collecting measurements"
           ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
@@ -188,6 +193,11 @@ jobs:
           ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: "Clean state lock from perf namespace"
+        if: always()
+        uses: broadinstitute/datarepo-actions/actions/main@0.65.0
+        with:
+          actions_subcommand: 'k8_checknamespace_clean'
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.65.0

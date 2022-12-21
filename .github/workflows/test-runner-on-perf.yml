@@ -10,6 +10,7 @@ env:
   K8_NAMESPACES: perf
   TDR_LOG_APPENDER: Console-Standard
   AZURE_CREDENTIALS_APPLICATIONID: 22cb243c-f1a5-43d8-8f12-6566bcce6542
+  USE_GKE_GCLOUD_AUTH_PLUGIN: true
 on:
   workflow_dispatch: {}
   schedule:

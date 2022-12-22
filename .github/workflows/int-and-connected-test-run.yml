@@ -247,7 +247,11 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      RUN_STATUS: ${{ (needs.test_check.outputs.job-status == 'success' && needs.test_connected.outputs.job-status == 'success' && needs.deploy_test_integration.outputs.job-status == 'success') && 'success' || 'failure' }}
+      RUN_STATUS: >-
+        ${{ (needs.test_check.outputs.job-status == 'success'
+        && needs.test_connected.outputs.job-status == 'success' 
+        && needs.deploy_test_integration.outputs.job-status == 'success') 
+        && 'success' || 'failure' }}
     steps:
       - name: "Load unit test cache"
         uses: actions/cache@v3

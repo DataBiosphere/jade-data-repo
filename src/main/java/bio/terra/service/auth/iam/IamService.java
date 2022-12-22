@@ -134,7 +134,7 @@ public class IamService {
    * String, IamAction)} that throws an exception instead of returning false when the user is NOT
    * authorized to do the action on the resource.
    *
-   * @throws IamUnauthorizedException if NOT authorized
+   * @throws IamForbiddenException if NOT authorized
    */
   public void verifyAuthorization(
       AuthenticatedUserRequest userReq,
@@ -153,7 +153,7 @@ public class IamService {
    * IamResourceType, String)} that throws an exception instead of returning false when the user
    * holds no actions on the resource.
    *
-   * @throws IamUnauthorizedException if NOT authorized to perform any action on the resource
+   * @throws IamForbiddenException if NOT authorized to perform any action on the resource
    */
   public void verifyAuthorization(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {

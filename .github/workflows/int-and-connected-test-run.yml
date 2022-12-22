@@ -252,7 +252,7 @@ jobs:
         && needs.test_connected.outputs.job-status == 'success'
         && needs.deploy_test_integration.outputs.job-status == 'success')
         && 'success' || 'failure' }}
-      SLACK_FIELDS: repo,message,commit,author,eventName,workflow
+      SLACK_FIELDS: repo,commit,workflow
     steps:
       - name: "Load unit test cache"
         uses: actions/cache@v3

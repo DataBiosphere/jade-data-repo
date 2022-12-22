@@ -283,13 +283,11 @@ jobs:
           path: build/reports
           retention-days: 10
       - name: "Notify Jade Slack on nightly test run"
-        # if: ${{ github.event_name == 'schedule' && always() }}
-        if: always()
+        if: ${{ github.event_name == 'schedule' && always() }}
         uses: broadinstitute/action-slack@v3.8.0
         with:
           status: ${{ env.RUN_STATUS }}
-          # channel: "#jade-alerts"
-          channel: "#olivia-slack-testing"
+          channel: "#jade-alerts"
           username: "Data Repo tests"
           text: "Nightly Unit, Connected and Integration tests"
           fields: ${{ env.SLACK_FIELDS }}

@@ -171,6 +171,13 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
+  public ResponseEntity<DatasetSummaryModel> retrieveDatasetSummary(UUID id) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(userRequest, IamResourceType.DATASET, id.toString());
+    return ResponseEntity.ok(datasetService.retrieveDatasetSummary(id));
+  }
+
+  @Override
   public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") UUID id) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(

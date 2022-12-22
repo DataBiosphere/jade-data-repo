@@ -210,6 +210,14 @@ public class DatasetService {
         dataset, include, metadataDataAccessUtils, userRequest);
   }
 
+  /**
+   * @return summary model of the dataset
+   */
+  public DatasetSummaryModel retrieveDatasetSummary(UUID id) {
+    DatasetSummary datasetSummary = datasetDao.retrieveSummaryById(id);
+    return datasetSummary.toModel();
+  }
+
   public EnumerateDatasetModel enumerate(
       int offset,
       int limit,

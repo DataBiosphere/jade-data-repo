@@ -246,6 +246,8 @@ jobs:
         os: [ubuntu-latest]
     if: always()
     runs-on: ${{ matrix.os }}
+    with:
+      status: ${{ (needs.test_check.outputs.job-status == 'success' && needs.test_connected.outputs.job-status == 'success' && needs.deploy_test_integration.outputs.job-status == 'success') && 'success' || 'failure' }}
     steps:
       - name: "Load unit test cache"
         uses: actions/cache@v3
@@ -280,7 +282,7 @@ jobs:
         if: always()
         uses: broadinstitute/action-slack@v3.8.0
         with:
-          status: ${{ (needs.test_check.outputs.job-status == 'success' && needs.test_connected.outputs.job-status == 'success' && needs.deploy_test_integration.outputs.job-status == 'success') && 'success' || 'failure' }}
+          # status: ${{ (needs.test_check.outputs.job-status == 'success' && needs.test_connected.outputs.job-status == 'success' && needs.deploy_test_integration.outputs.job-status == 'success') && 'success' || 'failure' }}
           # channel: "#jade-alerts"
           channel: "#olivia-slack-testing"
           username: "Data Repo tests"

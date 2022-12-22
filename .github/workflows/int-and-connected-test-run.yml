@@ -18,6 +18,8 @@ env:
     build/spotless
     build/test-results
     build/jacocoHtml
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 on:
   pull_request:
     branches:
@@ -274,13 +276,12 @@ jobs:
           path: build/reports
           retention-days: 10
       - name: "Notify Jade Slack on nightly test run"
-        if: ${{ github.event_name == 'schedule' && always() }}
+        # if: ${{ github.event_name == 'schedule' && always() }}
+        if: always()
         uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
           status: ${{ (needs.test_check.outputs.job-status == 'success' && needs.test_connected.outputs.job-status == 'success' && needs.deploy_test_integration.outputs.job-status == 'success') && 'success' || 'failure' }}
-          channel: "#jade-alerts"
+          # channel: "#jade-alerts"
+          channel: "#olivia-slack-testing"
           username: "Data Repo tests"
           text: "Nightly Unit, Connected and Integration tests"

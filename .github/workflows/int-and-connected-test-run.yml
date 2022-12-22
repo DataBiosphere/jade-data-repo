@@ -244,6 +244,15 @@ jobs:
         os: [ubuntu-latest]
     if: always()
     runs-on: ${{ matrix.os }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      RUN_STATUS: >-
+        ${{ (needs.test_check.outputs.job-status == 'success'
+        && needs.test_connected.outputs.job-status == 'success'
+        && needs.deploy_test_integration.outputs.job-status == 'success')
+        && 'success' || 'failure' }}
+      SLACK_FIELDS: repo,commit,workflow
     steps:
       - name: "Load unit test cache"
         uses: actions/cache@v3
@@ -276,11 +285,18 @@ jobs:
       - name: "Notify Jade Slack on nightly test run"
         if: ${{ github.event_name == 'schedule' && always() }}
         uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
-          status: ${{ (needs.test_check.outputs.job-status == 'success' && needs.test_connected.outputs.job-status == 'success' && needs.deploy_test_integration.outputs.job-status == 'success') && 'success' || 'failure' }}
+          status: ${{ env.RUN_STATUS }}
           channel: "#jade-alerts"
           username: "Data Repo tests"
           text: "Nightly Unit, Connected and Integration tests"
+          fields: ${{ env.SLACK_FIELDS }}
+      - name: "Notify QA Slack on nightly test run"
+        if: ${{ github.event_name == 'schedule' && always() }}
+        uses: broadinstitute/action-slack@v3.8.0
+        with:
+          status: ${{ env.RUN_STATUS }}
+          channel: "#dsde-qa"
+          username: "Data Repo tests"
+          text: "Nightly Unit, Connected and Integration tests"
+          fields: ${{ env.SLACK_FIELDS }}

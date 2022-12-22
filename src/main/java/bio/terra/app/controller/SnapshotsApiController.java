@@ -212,7 +212,7 @@ public class SnapshotsApiController implements SnapshotsApi {
           List<SnapshotRetrieveIncludeModel> include) {
     logger.info("Verifying user access");
     AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
-    snapshotService.verifySnapshotAccessible(id, authenticatedInfo);
+    snapshotService.verifySnapshotReadable(id, authenticatedInfo);
     logger.info("Retrieving snapshot");
     SnapshotModel snapshotModel =
         snapshotService.retrieveAvailableSnapshotModel(id, include, authenticatedInfo);
@@ -256,7 +256,7 @@ public class SnapshotsApiController implements SnapshotsApi {
       SqlSortDirection direction,
       String filter) {
     logger.info("Verifying user access");
-    snapshotService.verifySnapshotAccessible(id, getAuthenticatedInfo());
+    snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
     logger.info("Retrieving snapshot id {}", id);
     // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
     SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);

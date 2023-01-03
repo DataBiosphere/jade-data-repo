@@ -687,7 +687,6 @@ public class AzureIntegrationTest extends UsersBase {
             .collect(Collectors.toList());
 
     String fileId = result.getLoadFileResults().get(0).getFileId();
-    String filePath = result.getLoadFileResults().get(0).getTargetPath();
 
     // Do a Drs lookup
     String drsId = String.format("v1_%s_%s", snapshotId, fileId);

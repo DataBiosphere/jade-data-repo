@@ -152,9 +152,9 @@ public class SnapshotCreateFlight extends Flight {
           addStep(
               new CreateSnapshotByAssetParquetFilesAzureStep(
                   azureSynapsePdao, snapshotDao, snapshotService, snapshotReq));
-          //          addStep(
-          //              new CreateSnapshotCountTableRowsAzureStep(
-          //                  azureSynapsePdao, snapshotDao, snapshotReq));
+          addStep(
+              new CreateSnapshotCountTableRowsAzureStep(
+                  azureSynapsePdao, snapshotDao, snapshotReq));
         }
         break;
       case BYFULLVIEW:

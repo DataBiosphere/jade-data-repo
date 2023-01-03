@@ -74,6 +74,7 @@ public class AzureSynapsePdaoUnitTest {
 
   private AssetTable setUpAssetTable(String resourcePath) throws IOException {
     DatasetTable datasetTable = jsonLoader.loadObject(resourcePath, DatasetTable.class);
+    datasetTable.id(UUID.randomUUID());
     List<AssetColumn> columns = new ArrayList<>();
     datasetTable.getColumns().stream()
         .forEach(c -> columns.add(new AssetColumn().datasetColumn(c).datasetTable(datasetTable)));

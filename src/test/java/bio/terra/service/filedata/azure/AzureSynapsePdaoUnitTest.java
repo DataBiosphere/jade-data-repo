@@ -4,16 +4,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.SnapshotRequestAssetModel;
-import bio.terra.service.dataset.AssetColumn;
+import bio.terra.service.common.AssetUtils;
 import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.AssetTable;
-import bio.terra.service.dataset.DatasetTable;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,7 +31,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Unit.class)
 public class AzureSynapsePdaoUnitTest {
 
-  @Autowired JsonLoader jsonLoader;
+  @Autowired AssetUtils assetUtils;
   private SnapshotRequestAssetModel requestAssetModel;
   private AssetSpecification assetSpec;
   @Autowired AzureSynapsePdao azureSynapsePdao;
@@ -48,42 +43,16 @@ public class AzureSynapsePdaoUnitTest {
   @Before
   public void setup() throws IOException {
     when(synapseJdbcTemplate.update(any(), any(MapSqlParameterSource.class))).thenReturn(2);
-    AssetTable assetTable_sample = setUpAssetTable("ingest-test-dataset-table-sample.json");
-    AssetTable assetTable_participant =
-        setUpAssetTable("ingest-test-dataset-table-participant.json");
-    AssetTable assetTable_file = setUpAssetTable("ingest-test-dataset-table-file.json");
-
-    String assetName = "sample_centric";
+    assetSpec = assetUtils.buildTestAssetSpec();
     requestAssetModel =
         new SnapshotRequestAssetModel()
-            .assetName(assetName)
+            .assetName(assetSpec.getName())
             .addRootValuesItem("sample2")
             .addRootValuesItem("sample3");
-
-    assetSpec =
-        new AssetSpecification()
-            .name(assetName)
-            .assetTables(List.of(assetTable_file, assetTable_sample, assetTable_participant))
-            .rootTable(assetTable_sample)
-            .rootColumn(
-                assetTable_sample.getColumns().stream()
-                    .filter(c -> c.getDatasetColumn().getName().equals("id"))
-                    .findFirst()
-                    .orElseThrow());
-  }
-
-  private AssetTable setUpAssetTable(String resourcePath) throws IOException {
-    DatasetTable datasetTable = jsonLoader.loadObject(resourcePath, DatasetTable.class);
-    datasetTable.id(UUID.randomUUID());
-    List<AssetColumn> columns = new ArrayList<>();
-    datasetTable.getColumns().stream()
-        .forEach(c -> columns.add(new AssetColumn().datasetColumn(c).datasetTable(datasetTable)));
-    return new AssetTable().datasetTable(datasetTable).columns(columns);
   }
 
   @Test
   public void createSnapshotParquetFilesByAsset() throws SQLException {
-
     azureSynapsePdao.createSnapshotParquetFilesByAsset(
         assetSpec,
         UUID.randomUUID(),

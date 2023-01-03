@@ -7,7 +7,7 @@ import bio.terra.service.dataset.AssetRelationship;
 import bio.terra.service.dataset.AssetSpecification;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +22,7 @@ public class WalkRelationship {
   private String[] columnNames;
   private boolean[] columnIsArrayOf;
   private String[] tableNames;
-  private String[] tableIds;
+  private UUID[] tableIds;
   private boolean visited; // marks that we have been here before
   private int fromIndex; // index of table we are walking from
   private int toIndex; // index of table we are walking to
@@ -48,7 +48,7 @@ public class WalkRelationship {
     columnNames = new String[2];
     columnIsArrayOf = new boolean[2];
     tableNames = new String[2];
-    tableIds = new String[2];
+    tableIds = new UUID[2];
     visited = false;
     fromIndex = 0;
     toIndex = 1;
@@ -56,7 +56,7 @@ public class WalkRelationship {
 
   public WalkRelationship fromTable(Table table) {
     this.tableNames[0] = table.getName();
-    this.tableIds[0] = table.getId().toString();
+    this.tableIds[0] = table.getId();
     return this;
   }
 
@@ -68,7 +68,7 @@ public class WalkRelationship {
 
   public WalkRelationship toTable(Table table) {
     this.tableNames[1] = table.getName();
-    this.tableIds[1] = table.getId().toString();
+    this.tableIds[1] = table.getId();
     return this;
   }
 
@@ -100,7 +100,7 @@ public class WalkRelationship {
     return tableNames[fromIndex];
   }
 
-  public String getFromTableId() {
+  public UUID getFromTableId() {
     return tableIds[fromIndex];
   }
 
@@ -116,7 +116,7 @@ public class WalkRelationship {
     return tableNames[toIndex];
   }
 
-  public String getToTableId() {
+  public UUID getToTableId() {
     return tableIds[toIndex];
   }
 
@@ -128,19 +128,25 @@ public class WalkRelationship {
     return columnIsArrayOf[toIndex];
   }
 
-  // TODO -figure out better name for this method
-  // This returns whether or not we should actually walk this relationship
-  public boolean processRelationship(String startTableId) {
+  /**
+   * Determines whether we create a snapshot table based on this relationship Sets the Walk
+   * Direction - This sets the "TO" and "FROM" tables of the WalkRelationship so that the "FROM"
+   * table is the table associated with the startTableId
+   *
+   * @param startTableId UUID for table designated as the "FROM" table of the relationship
+   * @return Returns boolean indicating whether the relationship should be visited Returns true if
+   *     we should visit the relationship and marks the relationship as visited Returns false if the
+   *     relationship has already been visited Returns false if the "TO" and "FROM" tables are not
+   *     connected via the relationship
+   */
+  public boolean visitRelationship(UUID startTableId) {
     if (this.isVisited()) {
       return false;
     }
 
-    // NOTE: setting the direction tells the WalkRelationship to change its meaning of from and
-    // to.
-    // When constructed, it is always in the FROM_TO direction.
-    if (StringUtils.equals(startTableId, this.getFromTableId())) {
+    if (startTableId.equals(this.getFromTableId())) {
       this.setDirection(WalkRelationship.WalkDirection.FROM_TO);
-    } else if (StringUtils.equals(startTableId, this.getToTableId())) {
+    } else if (startTableId.equals(this.getToTableId())) {
       this.setDirection(WalkRelationship.WalkDirection.TO_FROM);
     } else {
       // This relationship is not connected to the start table

@@ -138,7 +138,7 @@ public class BigQuerySnapshotPdao {
 
     AssetSpecification asset = source.getAssetSpecification();
     DatasetTable rootTable = asset.getRootTable().getTable();
-    String rootTableId = rootTable.getId().toString();
+    UUID rootTableId = rootTable.getId();
 
     if (rowIds.size() > 0) {
       ST sqlTemplate = new ST(loadRootRowIdsTemplate);
@@ -618,7 +618,7 @@ public class BigQuerySnapshotPdao {
       // and thus matches the PDAO_ROW_ID_COLUMN
       AssetTable rootAssetTable = assetSpecification.getRootTable();
       DatasetTable rootTable = rootAssetTable.getTable();
-      String rootTableId = rootTable.getId().toString();
+      UUID rootTableId = rootTable.getId();
 
       ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
       sqlTemplate.add("snapshotProject", snapshotProjectId);
@@ -934,12 +934,12 @@ public class BigQuerySnapshotPdao {
       String snapshotProjectId,
       Snapshot snapshot,
       List<WalkRelationship> walkRelationships,
-      String startTableId,
+      UUID startTableId,
       BigQuery snapshotBigQuery,
       Instant filterBefore)
       throws InterruptedException {
     for (WalkRelationship relationship : walkRelationships) {
-      if (relationship.processRelationship(startTableId)) {
+      if (relationship.visitRelationship(startTableId)) {
         storeRowIdsForRelatedTable(
             datasetProjectId,
             datasetBqDatasetName,

@@ -192,6 +192,12 @@ jobs:
           ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: 'Re-obtain GKE Credentials'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: ${{ env.K8_CLUSTER }}
+          location: ${{ env.GOOGLE_ZONE }}
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
       - name: "Unlock perf namespace if we locked it in this run"
         if: always() # the task always runs, but the lock is only cleared if this run set it.
         uses: broadinstitute/datarepo-actions/actions/unlock-namespace@0.65.0

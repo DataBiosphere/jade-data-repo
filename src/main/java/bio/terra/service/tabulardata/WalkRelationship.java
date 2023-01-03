@@ -147,7 +147,7 @@ public class WalkRelationship {
       return false;
     }
     logger.info(
-        "[assetTest] The relationship is being set from column {} in table {} to column {} in table {}",
+        "The relationship is being set from column {} in table {} to column {} in table {}",
         this.getFromColumnName(),
         this.getFromTableName(),
         this.getToColumnName(),

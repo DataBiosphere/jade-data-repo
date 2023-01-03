@@ -575,7 +575,8 @@ public class AzureSynapsePdao {
     // to the "to" snapshot table
     if (tableRowCounts.get(fromTableName) <= Long.valueOf(0)) {
       logger.info(
-          "No rows included in from table {}. Snapshot table will not be created.", fromTableName);
+          "Snapshot by Asset - No rows included in from table {}. Snapshot table will not be created.",
+          fromTableName);
       tableRowCounts.put(toTableName, (long) 0);
     }
 
@@ -624,7 +625,7 @@ public class AzureSynapsePdao {
         "toTableParquetFileLocation",
         IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, toTableName));
     int rows = executeSynapseQuery(queryTemplate.render());
-    logger.info("{} rows included in table {}", rows, toTableName);
+    logger.info("Snapshot by Asset - {} rows included in table {}", rows, toTableName);
     tableRowCounts.put(toTableName, (long) rows);
   }
 
@@ -641,7 +642,6 @@ public class AzureSynapsePdao {
     // First handle root table
     AssetTable rootTable = assetSpec.getRootTable();
     String rootTableName = rootTable.getTable().getRawTableName();
-    logger.info(rootTableName);
 
     // Get columns to include for root table
     List<SynapseColumn> columns =
@@ -668,16 +668,19 @@ public class AzureSynapsePdao {
     String query = queryTemplate.render();
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("rootValues", assetModel.getRootValues());
-    logger.info(query);
 
     int rows = synapseJdbcTemplate.update(query, params);
-    logger.info("{} rows included in root table {}", rows, rootTableName);
 
     tableRowCounts.put(rootTableName, (long) rows);
     if (rows == 0) {
-      logger.info(
-          "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
+      // TODO - we need to handle the case that the root table is actually empty (synapse query will
+      // fail)
+      // VS. Filtered down to no rows in the root table
+      logger.warn(
+          "Snapshot by Asset - No rows included from root table {}. Snapshot will be empty.",
           rootTableName);
+    } else {
+      logger.info("Snapshot by Asset - {} rows included in root table {}", rows, rootTableName);
     }
 
     // Then walk relationships
@@ -898,8 +901,6 @@ public class AzureSynapsePdao {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
-      // TODO - remove before merging
-      logger.info(query);
       statement.execute(query);
       return statement.getUpdateCount();
     }

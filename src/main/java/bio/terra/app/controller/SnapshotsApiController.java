@@ -172,7 +172,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   @Override
   public ResponseEntity<JobModel> exportSnapshot(
       @PathVariable("id") UUID id, Boolean exportGsPaths, Boolean validatePrimaryKeyUniqueness) {
-    logger.info("Verifying user access");
+    logger.debug("Verifying user access");
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.EXPORT_SNAPSHOT);
@@ -210,13 +210,21 @@ public class SnapshotsApiController implements SnapshotsApi {
               required = false,
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
           List<SnapshotRetrieveIncludeModel> include) {
-    logger.info("Verifying user access");
+    logger.debug("Verifying user access");
     AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
-    snapshotService.verifySnapshotAccessible(id, authenticatedInfo);
-    logger.info("Retrieving snapshot");
+    snapshotService.verifySnapshotReadable(id, authenticatedInfo);
+    logger.debug("Retrieving snapshot");
     SnapshotModel snapshotModel =
         snapshotService.retrieveAvailableSnapshotModel(id, include, authenticatedInfo);
     return ResponseEntity.ok(snapshotModel);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotSummaryModel> retrieveSnapshotSummary(UUID id) {
+    AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
+    snapshotService.verifySnapshotListable(id, authenticatedInfo);
+    SnapshotSummaryModel snapshotSummaryModel = snapshotService.retrieveSnapshotSummary(id);
+    return ResponseEntity.ok(snapshotSummaryModel);
   }
 
   @Override
@@ -255,9 +263,9 @@ public class SnapshotsApiController implements SnapshotsApi {
       String sort,
       SqlSortDirection direction,
       String filter) {
-    logger.info("Verifying user access");
-    snapshotService.verifySnapshotAccessible(id, getAuthenticatedInfo());
-    logger.info("Retrieving snapshot id {}", id);
+    logger.debug("Verifying user access");
+    snapshotService.verifySnapshotReadable(id, getAuthenticatedInfo());
+    logger.debug("Retrieving snapshot id {}", id);
     // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
     SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
     SnapshotPreviewModel previewModel =

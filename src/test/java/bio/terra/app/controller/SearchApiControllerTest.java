@@ -102,7 +102,7 @@ public class SearchApiControllerTest {
     var table = "good_table";
     var column = "good_column";
     mockSnapshotPreviewByIdSuccess(id, table, column);
-    verify(snapshotService).verifySnapshotAccessible(eq(id), any());
+    verify(snapshotService).verifySnapshotReadable(eq(id), any());
     verify(snapshotService)
         .retrievePreview(
             any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER));
@@ -114,7 +114,7 @@ public class SearchApiControllerTest {
     var table = "good_table";
     var column = "datarepo_row_id";
     mockSnapshotPreviewByIdSuccess(id, table, column);
-    verify(snapshotService).verifySnapshotAccessible(eq(id), any());
+    verify(snapshotService).verifySnapshotReadable(eq(id), any());
     verify(snapshotService)
         .retrievePreview(
             any(), eq(id), eq(table), eq(LIMIT), eq(OFFSET), eq(column), eq(DIRECTION), eq(FILTER));
@@ -126,7 +126,7 @@ public class SearchApiControllerTest {
     var table = "good_table";
     var column = "bad_column";
     mockSnapshotPreviewByIdError(id, table, column);
-    verify(snapshotService).verifySnapshotAccessible(eq(id), any());
+    verify(snapshotService).verifySnapshotReadable(eq(id), any());
     snapshotService.retrievePreview(TEST_USER, id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
   }
 
@@ -136,7 +136,7 @@ public class SearchApiControllerTest {
     var table = "bad_table";
     var column = "good_column";
     mockSnapshotPreviewByIdError(id, table, column);
-    verify(snapshotService).verifySnapshotAccessible(eq(id), any());
+    verify(snapshotService).verifySnapshotReadable(eq(id), any());
     snapshotService.retrievePreview(TEST_USER, id, table, LIMIT, OFFSET, column, DIRECTION, FILTER);
   }
 

@@ -47,6 +47,7 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
 import bio.terra.service.auth.ras.exception.InvalidAuthorizationMethod;
@@ -668,19 +669,46 @@ public class SnapshotService {
     return new SnapshotAccessibleResult(accessible, causes);
   }
 
+  @FunctionalInterface
+  public interface IamAuthorizedCall {
+    void get() throws IamForbiddenException;
+  }
+
+  /** Throw if the user cannot read the snapshot. */
+  public void verifySnapshotReadable(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    IamAuthorizedCall canRead =
+        () ->
+            iamService.verifyAuthorization(
+                userReq, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+    verifySnapshotAccessible(snapshotId, userReq, canRead);
+  }
+
+  /**
+   * Throw if the user cannot list the snapshot (i.e. would not see this snapshot's summary in an
+   * enumeration).
+   */
+  public void verifySnapshotListable(UUID snapshotId, AuthenticatedUserRequest userReq) {
+    IamAuthorizedCall canList =
+        () ->
+            iamService.verifyAuthorization(
+                userReq, IamResourceType.DATASNAPSHOT, snapshotId.toString());
+    verifySnapshotAccessible(snapshotId, userReq, canList);
+  }
+
   /**
    * Throw if the user cannot access the snapshot via SAM permissions or linked RAS passports.
    *
    * @param snapshotId snapshot UUID
    * @param userReq authenticated user
+   * @param iamAuthorizedCall throws if snapshot inaccessible via SAM permissions
    */
-  public void verifySnapshotAccessible(UUID snapshotId, AuthenticatedUserRequest userReq) {
+  void verifySnapshotAccessible(
+      UUID snapshotId, AuthenticatedUserRequest userReq, IamAuthorizedCall iamAuthorizedCall) {
     boolean iamAuthorized = false;
     boolean ecmAuthorized = false;
     List<String> causes = new ArrayList<>();
     try {
-      iamService.verifyAuthorization(
-          userReq, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+      iamAuthorizedCall.get();
       iamAuthorized = true;
     } catch (Exception iamEx) {
       logger.warn(

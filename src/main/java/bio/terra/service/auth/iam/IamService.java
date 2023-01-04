@@ -10,7 +10,6 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.auth.iam.exception.IamForbiddenException;
-import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.auth.iam.exception.IamUnavailableException;
 import bio.terra.service.auth.oauth2.GoogleCredentialsService;
 import bio.terra.service.configuration.ConfigurationService;
@@ -134,7 +133,7 @@ public class IamService {
    * String, IamAction)} that throws an exception instead of returning false when the user is NOT
    * authorized to do the action on the resource.
    *
-   * @throws IamUnauthorizedException if NOT authorized
+   * @throws IamForbiddenException if NOT authorized
    */
   public void verifyAuthorization(
       AuthenticatedUserRequest userReq,
@@ -145,6 +144,22 @@ public class IamService {
     if (!isAuthorized(userReq, iamResourceType, resourceId, action)) {
       throw new IamForbiddenException(
           "User '" + userEmail + "' does not have required action: " + action);
+    }
+  }
+
+  /**
+   * This is a wrapper method around {@link #hasAnyActions(AuthenticatedUserRequest,
+   * IamResourceType, String)} that throws an exception instead of returning false when the user
+   * holds no actions on the resource.
+   *
+   * @throws IamForbiddenException if NOT authorized to perform any action on the resource
+   */
+  public void verifyAuthorization(
+      AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
+    String userEmail = userReq.getEmail();
+    if (!hasAnyActions(userReq, iamResourceType, resourceId)) {
+      throw new IamForbiddenException(
+          "User '" + userEmail + "' does not have any actions on the resource");
     }
   }
 

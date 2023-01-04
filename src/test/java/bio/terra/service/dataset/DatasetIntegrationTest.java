@@ -358,7 +358,7 @@ public class DatasetIntegrationTest extends UsersBase {
     List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
 
     assertThat(
-        "Asset specification is as originally expected", originalAssetList.size(), equalTo(1));
+        "Asset specification is as originally expected", originalAssetList.size(), equalTo(2));
 
     // Test Asset Validation
     AssetModel invalidAssetModel =
@@ -387,7 +387,7 @@ public class DatasetIntegrationTest extends UsersBase {
     List<AssetModel> assetList = datasetSpecificationModel.getAssets();
 
     // assert that the asset isn't there
-    assertThat("Additional asset specification has never been added", assetList.size(), equalTo(1));
+    assertThat("Additional asset specification has never been added", assetList.size(), equalTo(2));
   }
 
   @Test

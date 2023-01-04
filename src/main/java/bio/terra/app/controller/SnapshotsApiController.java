@@ -221,10 +221,8 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<SnapshotSummaryModel> retrieveSnapshotSummary(UUID id) {
-    logger.info("Verifying user access");
     AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
     snapshotService.verifySnapshotListable(id, authenticatedInfo);
-    logger.info("Retrieving snapshot summary");
     SnapshotSummaryModel snapshotSummaryModel = snapshotService.retrieveSnapshotSummary(id);
     return ResponseEntity.ok(snapshotSummaryModel);
   }

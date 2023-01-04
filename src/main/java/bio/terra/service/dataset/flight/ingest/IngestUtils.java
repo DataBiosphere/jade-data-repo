@@ -26,7 +26,6 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.BlobUrlParts;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -370,9 +369,8 @@ public final class IngestUtils {
     return "parquet/" + tableName + "/*/*.parquet";
   }
 
-  // TODO - we probably should trim these names to be < 63 characters
   public static String formatSnapshotTableName(UUID snapshotId, String tableName) {
-    return snapshotId.toString().replaceAll("-", "") + "_" + tableName + "_" + ShortUUID.get();
+    return snapshotId.toString().replaceAll("-", "") + "_" + tableName;
   }
 
   public static String getSourceDatasetDataSourceName(String flightId) {

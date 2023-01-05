@@ -5,12 +5,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
-import bio.terra.common.Relationship;
 import bio.terra.common.category.Unit;
 import bio.terra.service.common.AssetUtils;
-import bio.terra.service.dataset.AssetRelationship;
 import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.DatasetTable;
 import java.io.IOException;
 import java.util.UUID;
 import org.junit.Before;
@@ -36,21 +33,7 @@ public class WalkRelationshipTest {
   @Before
   public void setup() throws IOException {
     AssetSpecification assetSpecification = assetUtils.buildTestAssetSpec();
-    DatasetTable participantTable =
-        assetSpecification.getAssetTableByName("participant").getTable();
-    DatasetTable sampleTable = assetSpecification.getAssetTableByName("sample").getTable();
-    // define relationships
-    AssetRelationship sampleParticipantRelationship =
-        new AssetRelationship()
-            .datasetRelationship(
-                new Relationship()
-                    .id(UUID.randomUUID())
-                    .fromColumn(participantTable.getColumnByName("id"))
-                    .fromTable(participantTable)
-                    .toColumn(sampleTable.getColumnByName("participant_ids"))
-                    .toTable(sampleTable)
-                    .name("participant_sample_relationship"));
-    walkRelationship = WalkRelationship.ofAssetRelationship(sampleParticipantRelationship);
+    walkRelationship = assetUtils.buildExampleWalkRelationship(assetSpecification);
   }
 
   @Test

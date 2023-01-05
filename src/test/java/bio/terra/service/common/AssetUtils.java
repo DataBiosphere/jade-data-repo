@@ -1,10 +1,13 @@
 package bio.terra.service.common;
 
+import bio.terra.common.Relationship;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.service.dataset.AssetColumn;
+import bio.terra.service.dataset.AssetRelationship;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.tabulardata.WalkRelationship;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +36,24 @@ public class AssetUtils {
                 .filter(c -> c.getDatasetColumn().getName().equals("id"))
                 .findFirst()
                 .orElseThrow());
+  }
+
+  public WalkRelationship buildExampleWalkRelationship(AssetSpecification assetSpecification) {
+    DatasetTable participantTable =
+        assetSpecification.getAssetTableByName("participant").getTable();
+    DatasetTable sampleTable = assetSpecification.getAssetTableByName("sample").getTable();
+    // define relationships
+    AssetRelationship sampleParticipantRelationship =
+        new AssetRelationship()
+            .datasetRelationship(
+                new Relationship()
+                    .id(UUID.randomUUID())
+                    .fromColumn(participantTable.getColumnByName("id"))
+                    .fromTable(participantTable)
+                    .toColumn(sampleTable.getColumnByName("participant_ids"))
+                    .toTable(sampleTable)
+                    .name("participant_sample_relationship"));
+    return WalkRelationship.ofAssetRelationship(sampleParticipantRelationship);
   }
 
   private AssetTable setUpAssetTable(String resourcePath) throws IOException {

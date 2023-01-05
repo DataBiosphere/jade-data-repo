@@ -48,7 +48,6 @@ public class CreateSnapshotByAssetParquetFilesAzureStep
         snapshotId,
         IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
         IngestUtils.getTargetDataSourceName(context.getFlightId()),
-        null,
         assetModel);
   }
 }

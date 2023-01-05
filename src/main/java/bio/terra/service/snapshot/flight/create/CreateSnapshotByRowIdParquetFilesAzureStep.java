@@ -36,7 +36,6 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep
         snapshotId,
         IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
         IngestUtils.getTargetDataSourceName(context.getFlightId()),
-        null,
         rowIdModel);
   }
 }

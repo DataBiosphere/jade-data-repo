@@ -468,7 +468,6 @@ public class AzureSynapsePdaoConnectedTest {
             snapshotId,
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
-            null,
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue));
 
     String snapshotParquetFileName =
@@ -489,12 +488,7 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
-        snapshot.getTables(),
-        snapshotId,
-        IngestUtils.getSourceDatasetDataSourceName(snapshotCreateFlightId),
-        snapshotDataSourceName,
-        snapshotByAssetTableRowCounts,
-        randomFlightId);
+        snapshot.getTables(), snapshotId, snapshotDataSourceName, snapshotByAssetTableRowCounts);
     String snapshotRowIdsParquetFileName =
         IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
     List<String> snapshotRowIds =
@@ -668,12 +662,7 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
-        snapshot.getTables(),
-        snapshotId,
-        IngestUtils.getTargetDataSourceName(randomFlightId),
-        snapshotDataSourceName,
-        tableRowCounts,
-        randomFlightId);
+        snapshot.getTables(), snapshotId, snapshotDataSourceName, tableRowCounts);
     String snapshotRowIdsParquetFileName =
         IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
     List<String> snapshotRowIds =

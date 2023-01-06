@@ -486,6 +486,7 @@ public class AzureSynapsePdao {
 
     // Get all row ids from the dataset
     List<String> selectStatements = new ArrayList<>();
+    // TODO - Do we want to handle empty snapshots or throw error?
     for (SnapshotTable table : tables) {
       if (!tableRowCounts.containsKey(table.getName())) {
         logger.warn(
@@ -550,7 +551,7 @@ public class AzureSynapsePdao {
 
     // First handle root table
     AssetTable rootTable = assetSpec.getRootTable();
-    String rootTableName = rootTable.getTable().getRawTableName();
+    String rootTableName = rootTable.getTable().getName();
 
     // Get columns to include for root table
     List<SynapseColumn> columns =

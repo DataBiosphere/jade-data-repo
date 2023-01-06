@@ -222,7 +222,6 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
-          test_filter: "bio.terra.integration.AzureIntegrationTest"
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.65.0

@@ -128,8 +128,7 @@ public class SynapseUtils {
       BillingProfileModel billingProfile,
       IngestRequestModel ingestRequestModel,
       int numRowsToIngest,
-      String ingestRequestContainer) // TODO - move test data to ingestrequest folder in azure & can
-      // remove this argument
+      String ingestRequestContainer)
       throws SQLException, IOException {
     UUID tenantId = testConfig.getTargetTenantId();
     String ingestFileLocation =
@@ -206,8 +205,5 @@ public class SynapseUtils {
             AzureStorageAccountResource.ContainerType.METADATA, ingestFlightId),
         IngestUtils.getSynapseScratchTableName(ingestFlightId),
         destinationTable);
-
-    // TODO - run check that ingest was successful in the method
-
   }
 }

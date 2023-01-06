@@ -614,14 +614,15 @@ public class AzureIntegrationTest extends UsersBase {
     for (AccessInfoParquetModelTable table : snapshotParquetAccessInfo.getTables()) {
       if (tablesToCheck.contains(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
-        // Failing here in previous test run. Setting to false to test if allows it to past
-        TestUtils.verifyHttpAccess(tableUrl, Map.of(), false);
+        TestUtils.verifyHttpAccess(tableUrl, Map.of(), true);
         verifySignedUrl(tableUrl, steward(), "rl");
 
         // The vocabulary table has file data so test Drs on that one
         // TODO: once we have an endpoint to expose parquet data, we should use that mechanism here
         if (table.getName().equals("vocabulary")) {
-          List<Map<String, String>> records = ParquetUtils.readParquetRecords(tableUrl);
+          String individualTableUrl =
+              table.getUrl() + "/" + table.getName() + ".parquet?" + table.getSasToken();
+          List<Map<String, String>> records = ParquetUtils.readParquetRecords(individualTableUrl);
           assertThat("2 rows are present", records, hasSize(2));
 
           // Extract the DRS Ids
@@ -636,7 +637,7 @@ public class AzureIntegrationTest extends UsersBase {
             .findAny()
             .orElseThrow();
 
-    String domainTableUrl = domainTable.getUrl() + "?" + domainTable.getSasToken();
+    String domainTableUrl = domainTable.getUrl() + "/domain.parquet?" + domainTable.getSasToken();
     List<Map<String, String>> records = ParquetUtils.readParquetRecords(domainTableUrl);
     assertThat("1 row is present", records, hasSize(1));
     assertThat(
@@ -688,6 +689,7 @@ public class AzureIntegrationTest extends UsersBase {
             .collect(Collectors.toList());
 
     String fileId = result.getLoadFileResults().get(0).getFileId();
+    String filePath = result.getLoadFileResults().get(0).getTargetPath();
 
     // Do a Drs lookup
     String drsId = String.format("v1_%s_%s", snapshotId, fileId);
@@ -835,17 +837,17 @@ public class AzureIntegrationTest extends UsersBase {
     snapshotId = null;
 
     // Delete the file we just ingested
-    //    dataRepoFixtures.deleteFile(steward, datasetId, fileId);
-    //
-    //    assertThat(
-    //        "file is gone",
-    //        dataRepoFixtures.getFileByIdRaw(steward, datasetId, fileId).getStatusCode(),
-    //        equalTo(HttpStatus.NOT_FOUND));
-    //
-    //    assertThat(
-    //        "file is gone",
-    //        dataRepoFixtures.getFileByNameRaw(steward, datasetId, filePath).getStatusCode(),
-    //        equalTo(HttpStatus.NOT_FOUND));
+    dataRepoFixtures.deleteFile(steward, datasetId, fileId);
+
+    assertThat(
+        "file is gone",
+        dataRepoFixtures.getFileByIdRaw(steward, datasetId, fileId).getStatusCode(),
+        equalTo(HttpStatus.NOT_FOUND));
+
+    assertThat(
+        "file is gone",
+        dataRepoFixtures.getFileByNameRaw(steward, datasetId, filePath).getStatusCode(),
+        equalTo(HttpStatus.NOT_FOUND));
 
     // Delete dataset should now succeed
     dataRepoFixtures.deleteDataset(steward, datasetId);

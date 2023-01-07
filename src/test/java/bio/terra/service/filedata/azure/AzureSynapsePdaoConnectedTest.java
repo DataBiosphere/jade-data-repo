@@ -249,6 +249,8 @@ public class AzureSynapsePdaoConnectedTest {
   @After
   public void cleanup() throws Exception {
 
+    // Parquet File delete is not currently operational
+    // To be addressed in DR-2882
     //    for (var parquetFile : parquetFileNames.entrySet()) {
     //      try {
     //        synapseUtils.deleteParquetFile(
@@ -268,8 +270,6 @@ public class AzureSynapsePdaoConnectedTest {
     //      }
     //    }
     //
-    //    try {
-    //
     //      // check to see if successful delete
     //      List<String> emptyList =
     //          synapseUtils.readParquetFileStringColumn(
@@ -281,10 +281,6 @@ public class AzureSynapsePdaoConnectedTest {
     //          "No longer able to read parquet file because it should have been delete",
     //          emptyList.size(),
     //          equalTo(0));
-    //
-    //    } catch (Exception ex) {
-    //      logger.warn("unable to confirm parquet file was successfully deleted.");
-    //    }
 
     azureSynapsePdao.dropTables(
         List.of(

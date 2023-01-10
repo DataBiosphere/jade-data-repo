@@ -11,6 +11,7 @@ import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.Relationship;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
+import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
@@ -83,8 +84,10 @@ public class AzureSynapsePdaoConnectedTest {
 
   private String randomFlightId;
   private String snapshotCreateFlightId;
+  private List<String> tableNames;
   private Map<String, AzureStorageAccountResource> parquetFileNames;
   private String scratchParquetFile;
+  private BlobUrlParts snapshotSignUrlBlob;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
@@ -137,8 +140,6 @@ public class AzureSynapsePdaoConnectedTest {
           // We can't load array data with CSVs
           .peek(r -> r.put("arrayCol", Optional.empty()))
           .toList();
-  private static final String TABLE_NAME_PREFIX = "ingest_";
-  private static final String SCRATCH_TABLE_NAME_PREFIX = "scratch_";
 
   private String snapshotQueryCredentialName;
   private String snapshotQueryDataSourceName;
@@ -146,8 +147,6 @@ public class AzureSynapsePdaoConnectedTest {
   private String snapshotDataSourceName;
   private String sourceDatasetScopedCredentialName;
   private String sourceDatasetDataSourceName;
-  private String tableName;
-  private String scratchTableName;
   private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
   private static final UUID snapshotId = UUID.randomUUID();
 
@@ -174,13 +173,12 @@ public class AzureSynapsePdaoConnectedTest {
   @Before
   public void setup() throws Exception {
     parquetFileNames = new HashMap<>();
+    tableNames = new ArrayList<>();
     connectedOperations.stubOutSamCalls(samService);
     randomFlightId = ShortUUID.get();
     snapshotCreateFlightId = ShortUUID.get();
     snapshotQueryDataSourceName = null;
     snapshotQueryCredentialName = null;
-    tableName = TABLE_NAME_PREFIX + randomFlightId;
-    scratchTableName = SCRATCH_TABLE_NAME_PREFIX + randomFlightId;
     snapshotScopedCredentialName =
         IngestUtils.getTargetScopedCredentialName(snapshotCreateFlightId);
     snapshotDataSourceName = IngestUtils.getTargetDataSourceName(snapshotCreateFlightId);
@@ -282,29 +280,34 @@ public class AzureSynapsePdaoConnectedTest {
     //          emptyList.size(),
     //          equalTo(0));
 
-    azureSynapsePdao.dropTables(
-        List.of(
-            scratchTableName,
-            tableName,
-            IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"),
-            IngestUtils.formatSnapshotTableName(snapshotId, "participant"),
-            IngestUtils.formatSnapshotTableName(snapshotId, "date_of_birth"),
-            IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
-    azureSynapsePdao.dropDataSources(
-        Stream.of(
-                snapshotDataSourceName,
-                IngestUtils.getTargetDataSourceName(randomFlightId),
-                snapshotQueryDataSourceName,
-                sourceDatasetDataSourceName)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList()));
-    azureSynapsePdao.dropScopedCredentials(
-        Stream.of(
-                snapshotScopedCredentialName,
-                sourceDatasetScopedCredentialName,
-                snapshotQueryCredentialName)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList()));
+    try {
+      azureSynapsePdao.dropTables(tableNames);
+    } catch (Exception ex) {
+      logger.warn("[Cleanup exception] Unable to drop tables.", ex.getMessage());
+    }
+    try {
+      azureSynapsePdao.dropDataSources(
+          Stream.of(
+                  snapshotDataSourceName,
+                  IngestUtils.getTargetDataSourceName(randomFlightId),
+                  snapshotQueryDataSourceName,
+                  sourceDatasetDataSourceName)
+              .filter(Objects::nonNull)
+              .collect(Collectors.toList()));
+    } catch (Exception ex) {
+      logger.warn("[Cleanup exception] Unable to drop data sources", ex.getMessage());
+    }
+    try {
+      azureSynapsePdao.dropScopedCredentials(
+          Stream.of(
+                  snapshotScopedCredentialName,
+                  sourceDatasetScopedCredentialName,
+                  snapshotQueryCredentialName)
+              .filter(Objects::nonNull)
+              .collect(Collectors.toList()));
+    } catch (Exception ex) {
+      logger.warn("[Cleanup exception] Unable to drop scoped credentials", ex.getMessage());
+    }
 
     client.storageAccounts().deleteById(snapshotStorageAccountId);
     client.storageAccounts().deleteById(datasetStorageAccountId);
@@ -354,6 +357,30 @@ public class AzureSynapsePdaoConnectedTest {
   public void testSynapseQueryJSON() throws Exception {
     IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
     testSynapseQuery(ingestRequestModel, "azure-ingest-request.json", SAMPLE_DATA);
+  }
+
+  @Test(expected = PdaoException.class)
+  public void testEmptySourceDatasetSnapshotByAsset() throws IOException, SQLException {
+    DatasetTable allDataTypesTable =
+        jsonLoader.loadObject("ingest-test-dataset-table-all-data-types.json", DatasetTable.class);
+
+    // ----- SNAPSHOT ---
+    setupSnapshotDataSources();
+    // -- CreateSnapshotByAssetParquetFilesAzureStep --
+    // Create snapshot parquet files via external table
+    // By Asset
+    String assetName = "testAsset";
+    List<DatasetTable> datasetTables = List.of(allDataTypesTable);
+    String rootTableName = allDataTypesTable.getName();
+    String rootColumnName = "first_name";
+    String rootValue = "Sally";
+    azureSynapsePdao.createSnapshotParquetFilesByAsset(
+        buildAssetSpecification(
+            datasetTables, assetName, rootTableName, rootColumnName, new ArrayList<>()),
+        snapshotId,
+        sourceDatasetDataSourceName,
+        snapshotDataSourceName,
+        new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue));
   }
 
   @Test
@@ -421,33 +448,7 @@ public class AzureSynapsePdaoConnectedTest {
         List.of(participantDOBRelationship, participantADTRelationship);
 
     // ----- SNAPSHOT ---
-    // -- CreateSnapshotSourceDatasetDataSourceAzureStep --
-    // Create external data source for the source dataset
-    // Where we'll pull the dataset data from to then write to the snapshot
-    String parquetDatasetSourceLocation = datasetStorageAccountResource.getStorageAccountUrl();
-    BlobUrlParts datasetSignUrlBlob =
-        azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetDatasetSourceLocation,
-            billingProfile,
-            datasetStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            TEST_USER);
-    azureSynapsePdao.getOrCreateExternalDataSource(
-        datasetSignUrlBlob, sourceDatasetScopedCredentialName, sourceDatasetDataSourceName);
-
-    // -- CreateSnapshotTargetDataSourceAzureStep --
-    // Create external data source for the snapshot
-    // where we'll write the resulting parquet files
-    String parquetSnapshotLocation = snapshotStorageAccountResource.getStorageAccountUrl();
-    BlobUrlParts snapshotSignUrlBlob =
-        azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetSnapshotLocation,
-            billingProfile,
-            snapshotStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            TEST_USER);
-    azureSynapsePdao.getOrCreateExternalDataSource(
-        snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
+    setupSnapshotDataSources();
 
     // -- CreateSnapshotByAssetParquetFilesAzureStep --
     // Create snapshot parquet files via external table
@@ -466,6 +467,9 @@ public class AzureSynapsePdaoConnectedTest {
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue));
+    tableNames.add(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
+    tableNames.add(IngestUtils.formatSnapshotTableName(snapshotId, "date_of_birth"));
+    tableNames.add(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
 
     // Check correct row included for root table
     String snapshotParquetFileName =
@@ -516,6 +520,7 @@ public class AzureSynapsePdaoConnectedTest {
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
         snapshot.getTables(), snapshotId, snapshotDataSourceName, snapshotByAssetTableRowCounts);
+    tableNames.add(IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE));
     String snapshotRowIdsParquetFileName =
         IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
     parquetFileNames.put(snapshotRowIdsParquetFileName, snapshotStorageAccountResource);
@@ -592,6 +597,8 @@ public class AzureSynapsePdaoConnectedTest {
         ingestRequestModel,
         numRowsToIngest,
         ingestRequestContainer);
+    tableNames.add(IngestUtils.getSynapseIngestTableName(flightId));
+    tableNames.add(IngestUtils.getSynapseScratchTableName(flightId));
     return destinationTable;
   }
 
@@ -645,18 +652,7 @@ public class AzureSynapsePdaoConnectedTest {
     snapshotTable.name(destinationTable.getName());
     snapshot.snapshotTables(List.of(snapshotTable));
 
-    // CreateSnapshotTargetDataSourceAzureStep
-    // Create external data source for the snapshot, where we'll write the resulting parquet files
-    String parquetSnapshotLocation = snapshotStorageAccountResource.getStorageAccountUrl();
-    BlobUrlParts snapshotSignUrlBlob =
-        azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetSnapshotLocation,
-            billingProfile,
-            snapshotStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            TEST_USER);
-    azureSynapsePdao.getOrCreateExternalDataSource(
-        snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
+    setupSnapshotDataSources();
 
     // CreateSnapshotParquetFilesAzureStep
     // CreateSnapshotParquetFilesAzureStep part 1 - Create snapshot parquet files via external table
@@ -664,7 +660,7 @@ public class AzureSynapsePdaoConnectedTest {
         azureSynapsePdao.createSnapshotParquetFiles(
             snapshot.getTables(),
             snapshotId,
-            IngestUtils.getTargetDataSourceName(randomFlightId),
+            sourceDatasetDataSourceName,
             snapshotDataSourceName,
             randomFlightId);
     // Test that parquet files are correctly generated
@@ -776,5 +772,35 @@ public class AzureSynapsePdaoConnectedTest {
         .peek(r -> r.put("file", extractFileId(r.get("file"))))
         .peek(r -> r.put("dirRefCol", extractFileId(r.get("dirRefCol"))))
         .toList();
+  }
+
+  private void setupSnapshotDataSources() throws SQLException {
+    // -- CreateSnapshotSourceDatasetDataSourceAzureStep --
+    // Create external data source for the source dataset
+    // Where we'll pull the dataset data from to then write to the snapshot
+    String parquetDatasetSourceLocation = datasetStorageAccountResource.getStorageAccountUrl();
+    BlobUrlParts datasetSignUrlBlob =
+        azureBlobStorePdao.getOrSignUrlForTargetFactory(
+            parquetDatasetSourceLocation,
+            billingProfile,
+            datasetStorageAccountResource,
+            AzureStorageAccountResource.ContainerType.METADATA,
+            TEST_USER);
+    azureSynapsePdao.getOrCreateExternalDataSource(
+        datasetSignUrlBlob, sourceDatasetScopedCredentialName, sourceDatasetDataSourceName);
+
+    // -- CreateSnapshotTargetDataSourceAzureStep --
+    // Create external data source for the snapshot
+    // where we'll write the resulting parquet files
+    String parquetSnapshotLocation = snapshotStorageAccountResource.getStorageAccountUrl();
+    snapshotSignUrlBlob =
+        azureBlobStorePdao.getOrSignUrlForTargetFactory(
+            parquetSnapshotLocation,
+            billingProfile,
+            snapshotStorageAccountResource,
+            AzureStorageAccountResource.ContainerType.METADATA,
+            TEST_USER);
+    azureSynapsePdao.getOrCreateExternalDataSource(
+        snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
   }
 }

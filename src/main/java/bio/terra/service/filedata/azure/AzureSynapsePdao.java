@@ -62,6 +62,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -494,7 +495,6 @@ public class AzureSynapsePdao {
 
     // Get all row ids from the dataset
     List<String> selectStatements = new ArrayList<>();
-    // TODO - Do we want to handle empty snapshots or throw error?
     for (SnapshotTable table : tables) {
       if (!tableRowCounts.containsKey(table.getName())) {
         logger.warn(
@@ -586,17 +586,20 @@ public class AzureSynapsePdao {
     String query = queryTemplate.render();
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("rootValues", requestModel.getRootValues());
-
-    int rows = synapseJdbcTemplate.update(query, params);
+    int rows;
+    try {
+      rows = synapseJdbcTemplate.update(query, params);
+    } catch (DataAccessException ex) {
+      logger.error("Error while creating root table parquet file on snapshot by asset", ex);
+      throw new PdaoException(
+          "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case. Exception cause: "
+              + ex.getCause().getMessage());
+    }
 
     tableRowCounts.put(rootTableName, (long) rows);
     if (rows == 0) {
-      // TODO - we need to handle the case that the root table is actually empty (synapse query will
-      // fail)
-      // VS. Filtered down to no rows in the root table
-      logger.warn(
-          "Snapshot by Asset - No rows included from root table {}. Snapshot will be empty.",
-          rootTableName);
+      throw new PdaoException(
+          "Snapshot by Asset - No rows included from root table due to root values that were specified. Cannot create entirely empty snapshot.");
     } else {
       logger.info("Snapshot by Asset - {} rows included in root table {}", rows, rootTableName);
     }
@@ -712,8 +715,16 @@ public class AzureSynapsePdao {
         "toTableParquetFileLocation",
         IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, toTableName));
     String sql = queryTemplate.render();
-    int rows = executeSynapseQuery(sql);
-    logger.info("Snapshot by Asset - {} rows included in table {}", rows, toTableName);
+    int rows = 0;
+    try {
+      rows = executeSynapseQuery(sql);
+      logger.info("Snapshot by Asset - {} rows included in table {}", rows, toTableName);
+    } catch (SQLException ex) {
+      logger.warn(
+          "No rows were added to the Snapshot for table {}. This may be because the source dataset was empty or because the rows were filtered out by the query/asset specification defined in the snapshot create request. Exception: {}",
+          toTableName,
+          ex.getMessage());
+    }
     tableRowCounts.put(toTableName, (long) rows);
   }
 
@@ -831,10 +842,9 @@ public class AzureSynapsePdao {
         tableRowCounts.put(table.getName(), (long) rows);
       } catch (SQLServerException ex) {
         tableRowCounts.put(table.getName(), 0L);
-        logger.warn("Error running sql", ex);
-        logger.info(
-            "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
-            table.getName());
+        logger.warn(
+            "Unable to copy files from table " + table.getName() +". This could mean that the source dataset's table is empty.",
+            ex);
       }
     }
     return tableRowCounts;

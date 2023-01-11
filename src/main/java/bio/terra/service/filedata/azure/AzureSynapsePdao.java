@@ -33,6 +33,7 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
+import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.tabulardata.WalkRelationship;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
@@ -484,7 +485,6 @@ public class AzureSynapsePdao {
       String snapshotDataSourceName,
       Map<String, Long> tableRowCounts)
       throws SQLException {
-
     // Get all row ids from the dataset
     List<String> selectStatements = new ArrayList<>();
     for (SnapshotTable table : tables) {
@@ -505,6 +505,9 @@ public class AzureSynapsePdao {
                 .add("snapshotDataSourceName", snapshotDataSourceName);
         selectStatements.add(sqlTableTemplate.render());
       }
+    }
+    if (selectStatements.isEmpty()) {
+      throw new InvalidSnapshotException("Snapshot cannot be empty.");
     }
     ST sqlMergeTablesTemplate =
         new ST(mergeLiveViewTablesTemplate).add("selectStatements", selectStatements);
@@ -585,7 +588,7 @@ public class AzureSynapsePdao {
       logger.error("Error while creating root table parquet file on snapshot by asset", ex);
       throw new PdaoException(
           "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case. Exception cause: "
-              + ex.getCause().getMessage());
+              + ex.getMessage());
     }
 
     tableRowCounts.put(rootTableName, (long) rows);
@@ -666,8 +669,7 @@ public class AzureSynapsePdao {
       WalkRelationship relationship,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      Map<String, Long> tableRowCounts)
-      throws SQLException {
+      Map<String, Long> tableRowCounts) {
     String fromTableName = relationship.getFromTableName();
     String toTableName = relationship.getToTableName();
     AssetTable toAssetTable = assetSpecification.getAssetTableByName(toTableName);
@@ -746,8 +748,7 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      SnapshotRequestRowIdModel rowIdModel)
-      throws SQLException {
+      SnapshotRequestRowIdModel rowIdModel) {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     for (SnapshotTable table : tables) {
@@ -787,14 +788,17 @@ public class AzureSynapsePdao {
       } else {
         throw new TableNotFoundException("Matching row id table not found");
       }
-      int rows = synapseJdbcTemplate.update(query, params);
-
-      tableRowCounts.put(table.getName(), (long) rows);
-      if (rows == 0) {
-        logger.info(
-            "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
-            table.getName());
+      int rows = 0;
+      try {
+        rows = synapseJdbcTemplate.update(query, params);
+      } catch (DataAccessException ex) {
+        logger.warn(
+            "No rows were added to the Snapshot for table "
+                + table.getName()
+                + ". This may be because the source dataset was empty or because the rows were filtered out by the query/asset specification defined in the snapshot create request. Exception: "
+                + ex.getMessage());
       }
+      tableRowCounts.put(table.getName(), (long) rows);
     }
     return tableRowCounts;
   }
@@ -825,16 +829,17 @@ public class AzureSynapsePdao {
                   snapshotDataSourceName,
                   columns)
               .render();
+      int rows = 0;
       try {
-        int rows = executeSynapseQuery(query);
-        tableRowCounts.put(table.getName(), (long) rows);
+        rows = executeSynapseQuery(query);
       } catch (SQLServerException ex) {
-        tableRowCounts.put(table.getName(), 0L);
         logger.warn(
-            "Unable to copy files from table {}. This could mean that the source dataset's table is empty. Exception: {}",
-            table.getName(),
-            ex.getMessage());
+            "No rows were added to the Snapshot for table "
+                + table.getName()
+                + ". This could mean that the source dataset's table is empty. Exception: "
+                + ex.getMessage());
       }
+      tableRowCounts.put(table.getName(), (long) rows);
     }
     return tableRowCounts;
   }

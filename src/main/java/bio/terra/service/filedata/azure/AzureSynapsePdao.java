@@ -553,7 +553,7 @@ public class AzureSynapsePdao {
   }
 
   /**
-   * Create Snapshot by Asset First, create parquet file for root table, including only rows that
+   * Create Snapshot by Asset. First, create parquet file for root table, including only rows that
    * match the root values Then, walk relationships defined by asset, creating a parquet file per
    * relationship
    *

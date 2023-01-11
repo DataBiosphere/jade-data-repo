@@ -130,28 +130,45 @@ public class AzureSynapsePdao {
               FROM OPENROWSET(
                  BULK '<ingestFileName>',
                  DATA_SOURCE = '<ingestFileDataSourceName>',
-                 FORMAT = 'parquet') AS rows """;
+                 FORMAT = 'parquet') AS rows
+              """;
 
   private static final String createSnapshotTableByRowIdTemplate =
       createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
+  private static final String createSnapshotTableArrayRootColumnClause =
+      """
+          <if(isRootColumnArray)>
+           CROSS APPLY OPENJSON(<rootColumn>) WITH (value <arrayRootColumnType> '$')
+          <endif>
+          """;
+  private static final String createSnapshotTableArrayFromColumnClause =
+      """
+          <if(isFromColumnArray)>
+           CROSS APPLY OPENJSON(<fromTableColumn>) WITH (value <arrayFromColumnType> '$')
+          <endif>
+          """;
   private static final String createSnapshotTableByAssetTemplate =
-      createSnapshotTableTemplate + " WHERE rows.<rootColumn> in (:rootValues);";
+      createSnapshotTableTemplate
+          + createSnapshotTableArrayRootColumnClause
+          + " WHERE <if(isRootColumnArray)>value<else>rows.<rootColumn><endif> in (:rootValues);";
 
   private static final String createSnapshotTableWalkRelationshipTemplate =
       createSnapshotTableTemplate
+          + createSnapshotTableArrayRootColumnClause
           + """
-           WHERE
-            (rows.<toTableColumn> IN
+            WHERE
+            (<if(isRootColumnArray)>value<else>rows.<toTableColumn><endif> IN
             (
-             SELECT <fromTableColumn> FROM
+             SELECT <if(isFromColumnArray)>value<else><fromTableColumn><endif> FROM
                 OPENROWSET(
                   BULK '<fromTableParquetFileLocation>',
                   DATA_SOURCE = '<snapshotDataSource>',
                   FORMAT = 'parquet'
                 ) as from_rows
-             ))
-          """;
+          """
+          + createSnapshotTableArrayFromColumnClause
+          + "   ))";
 
   private static final String createSnapshotTableWithExistingRowsTemplate =
       createSnapshotTableWalkRelationshipTemplate
@@ -585,6 +602,12 @@ public class AzureSynapsePdao {
             columns);
 
     AssetColumn rootColumn = assetSpec.getRootColumn();
+
+    queryTemplate.add("isRootColumnArray", rootColumn.getDatasetColumn().isArrayOf());
+    queryTemplate.add(
+        "arrayRootColumnType",
+        SynapseColumn.translateDataType(
+            rootColumn.getDatasetColumn().getType(), rootColumn.getDatasetColumn().isArrayOf()));
     queryTemplate.add("rootColumn", rootColumn.getDatasetColumn().getName());
     String query = queryTemplate.render();
     MapSqlParameterSource params =
@@ -681,6 +704,18 @@ public class AzureSynapsePdao {
     String fromTableName = relationship.getFromTableName();
     String toTableName = relationship.getToTableName();
     AssetTable toAssetTable = assetSpecification.getAssetTableByName(toTableName);
+    AssetColumn toTableColumn =
+        toAssetTable.getColumns().stream()
+            .filter(col -> col.getDatasetColumn().getName().equals(relationship.getToColumnName()))
+            .findFirst()
+            .orElseThrow();
+    AssetTable fromAssetTable = assetSpecification.getAssetTableByName(fromTableName);
+    AssetColumn fromTableColumn =
+        fromAssetTable.getColumns().stream()
+            .filter(
+                col -> col.getDatasetColumn().getName().equals(relationship.getFromColumnName()))
+            .findFirst()
+            .orElseThrow();
 
     // If there are no rows in the "from" table's snapshot, then there is nothing to be added
     // to the "to" snapshot table
@@ -707,6 +742,19 @@ public class AzureSynapsePdao {
             snapshotDataSourceName,
             toAssetTable.getSynapseColumns());
 
+    queryTemplate.add("rootColumn", relationship.getToColumnName());
+    queryTemplate.add("isRootColumnArray", toTableColumn.getDatasetColumn().isArrayOf());
+    queryTemplate.add(
+        "arrayRootColumnType",
+        SynapseColumn.translateDataType(
+            toTableColumn.getDatasetColumn().getType(),
+            toTableColumn.getDatasetColumn().isArrayOf()));
+    queryTemplate.add("isFromColumnArray", fromTableColumn.getDatasetColumn().isArrayOf());
+    queryTemplate.add(
+        "arrayFromColumnType",
+        SynapseColumn.translateDataType(
+            fromTableColumn.getDatasetColumn().getType(),
+            fromTableColumn.getDatasetColumn().isArrayOf()));
     queryTemplate.add("toTableColumn", relationship.getToColumnName());
     queryTemplate.add("fromTableColumn", relationship.getFromColumnName());
     queryTemplate.add(

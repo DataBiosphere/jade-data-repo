@@ -384,15 +384,101 @@ public class AzureSynapsePdaoConnectedTest {
   }
 
   @Test
+  public void testArraySnapshotByAsset() throws SQLException, IOException {
+    IngestRequestModel jsonIngestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
+
+    // Prep dataset data for snapshot
+    Snapshot snapshot = new Snapshot().id(snapshotId);
+    // Table 1 - Participant
+    String participantTableIngestFlightId = UUID.randomUUID().toString();
+    DatasetTable participantTable =
+        ingestIntoTable(
+            "ingest-test-dataset-table-participant.json",
+            jsonIngestRequestModel,
+            "ingest-test-dataset-participant-rows.json",
+            participantTableIngestFlightId,
+            "synapsetestdata/test",
+            4);
+    SnapshotTable participantSnapshotTable = setupSnapshotTable(participantTable);
+
+    // Table 2 - Sample
+    String sampleTableIngestFlightId = UUID.randomUUID().toString();
+    DatasetTable sampleTable =
+        ingestIntoTable(
+            "ingest-test-dataset-table-sample.json",
+            jsonIngestRequestModel,
+            "ingest-test-dataset-sample-rows.json",
+            sampleTableIngestFlightId,
+            "synapsetestdata/test",
+            3);
+    SnapshotTable sampleSnapshotTable = setupSnapshotTable(sampleTable);
+
+    snapshot.snapshotTables(List.of(participantSnapshotTable, sampleSnapshotTable));
+
+    // Define relationships
+    // Test Array field
+    AssetRelationship participantSampleRelationship =
+        new AssetRelationship()
+            .datasetRelationship(
+                new Relationship()
+                    .id(UUID.randomUUID())
+                    .fromColumn(sampleTable.getColumnByName("participant_ids"))
+                    .fromTable(sampleTable)
+                    .toColumn(participantTable.getColumnByName("id"))
+                    .toTable(participantTable)
+                    .name("participant_sample_table"));
+    List<AssetRelationship> relationships = List.of(participantSampleRelationship);
+
+    // ----- SNAPSHOT ---
+    setupSnapshotDataSources();
+
+    // -- CreateSnapshotByAssetParquetFilesAzureStep --
+    // Create snapshot parquet files via external table
+    // By Asset
+    String assetName = "testAsset";
+    List<DatasetTable> datasetTables = List.of(participantTable, sampleTable);
+    String rootTableName = sampleTable.getRawTableName();
+    String rootColumnName = "participant_ids";
+    String rootValue = "1";
+    Map<String, Long> snapshotByAssetTableRowCounts =
+        azureSynapsePdao.createSnapshotParquetFilesByAsset(
+            buildAssetSpecification(
+                datasetTables, assetName, rootTableName, rootColumnName, relationships),
+            snapshotId,
+            sourceDatasetDataSourceName,
+            snapshotDataSourceName,
+            new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue));
+    tableNames.add(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
+    tableNames.add(IngestUtils.formatSnapshotTableName(snapshotId, "sample"));
+
+    String snapshotParquetFileName =
+        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, participantTable.getName());
+    parquetFileNames.put(snapshotParquetFileName, snapshotStorageAccountResource);
+    List<String> snapshotFirstNames =
+        synapseUtils.readParquetFileStringColumn(
+            snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
+    assertThat(
+        "List of names in snapshot should equal the dataset names",
+        snapshotFirstNames,
+        equalTo(List.of("Sally", "Bobby", "Freddy")));
+    assertThat(
+        "Table row count should equal 3 for destination table",
+        snapshotByAssetTableRowCounts.get(participantTable.getName()),
+        equalTo(3L));
+  }
+
+  @Test
   public void testSnapshotByAsset() throws SQLException, IOException {
-    IngestRequestModel ingestRequestModel =
+    IngestRequestModel csvIngestRequestModel =
         new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
+    IngestRequestModel jsonIngestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
 
     // Prep dataset data for snapshot
     Snapshot snapshot = new Snapshot().id(snapshotId);
     // Table 1 - All Data Types Table
     DatasetTable allDataTypesTable =
-        ingestIntoAllDataTypesTable(ingestRequestModel, "azure-simple-dataset-ingest-request.csv");
+        ingestIntoAllDataTypesTable(
+            csvIngestRequestModel, "azure-simple-dataset-ingest-request.csv");
     SnapshotTable allDataTypesSnapshotTable = setupSnapshotTable(allDataTypesTable);
 
     // Table 2 - date_of_birth
@@ -400,7 +486,7 @@ public class AzureSynapsePdaoConnectedTest {
     DatasetTable dateOfBirthTable =
         ingestIntoTable(
             "ingest-test-dataset-table-date-of-birth.json",
-            ingestRequestModel,
+            csvIngestRequestModel,
             "ingest-test-dataset-date-of-birth-rows.csv",
             dateOfBirthTableIngestFlightId,
             "synapsetestdata/test",
@@ -412,16 +498,31 @@ public class AzureSynapsePdaoConnectedTest {
     DatasetTable participantTable =
         ingestIntoTable(
             "ingest-test-dataset-table-participant.json",
-            ingestRequestModel,
-            "ingest-test-dataset-participant-rows.csv",
+            jsonIngestRequestModel,
+            "ingest-test-dataset-participant-rows.json",
             participantTableIngestFlightId,
             "synapsetestdata/test",
             4);
-
     SnapshotTable participantSnapshotTable = setupSnapshotTable(participantTable);
 
+    // Table 4 - Sample
+    String sampleTableIngestFlightId = UUID.randomUUID().toString();
+    DatasetTable sampleTable =
+        ingestIntoTable(
+            "ingest-test-dataset-table-sample.json",
+            jsonIngestRequestModel,
+            "ingest-test-dataset-sample-rows.json",
+            sampleTableIngestFlightId,
+            "synapsetestdata/test",
+            3);
+    SnapshotTable sampleSnapshotTable = setupSnapshotTable(sampleTable);
+
     snapshot.snapshotTables(
-        List.of(allDataTypesSnapshotTable, dateOfBirthSnapshotTable, participantSnapshotTable));
+        List.of(
+            allDataTypesSnapshotTable,
+            dateOfBirthSnapshotTable,
+            participantSnapshotTable,
+            sampleSnapshotTable));
 
     // Define relationships
     AssetRelationship participantDOBRelationship =
@@ -444,8 +545,20 @@ public class AzureSynapsePdaoConnectedTest {
                     .toColumn(allDataTypesTable.getColumnByName("first_name"))
                     .toTable(allDataTypesTable)
                     .name("participant_allDataTypes_table"));
+    // Test Array field
+    AssetRelationship participantSampleRelationship =
+        new AssetRelationship()
+            .datasetRelationship(
+                new Relationship()
+                    .id(UUID.randomUUID())
+                    .fromColumn(participantTable.getColumnByName("id"))
+                    .fromTable(participantTable)
+                    .toColumn(sampleTable.getColumnByName("participant_ids"))
+                    .toTable(sampleTable)
+                    .name("participant_sample_table"));
     List<AssetRelationship> relationships =
-        List.of(participantDOBRelationship, participantADTRelationship);
+        List.of(
+            participantDOBRelationship, participantADTRelationship, participantSampleRelationship);
 
     // ----- SNAPSHOT ---
     setupSnapshotDataSources();
@@ -455,7 +568,7 @@ public class AzureSynapsePdaoConnectedTest {
     // By Asset
     String assetName = "testAsset";
     List<DatasetTable> datasetTables =
-        List.of(allDataTypesTable, dateOfBirthTable, participantTable);
+        List.of(allDataTypesTable, dateOfBirthTable, participantTable, sampleTable);
     String rootTableName = participantTable.getRawTableName();
     String rootColumnName = "id";
     String rootValue = "1";
@@ -470,6 +583,7 @@ public class AzureSynapsePdaoConnectedTest {
     tableNames.add(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     tableNames.add(IngestUtils.formatSnapshotTableName(snapshotId, "date_of_birth"));
     tableNames.add(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
+    tableNames.add(IngestUtils.formatSnapshotTableName(snapshotId, "sample"));
 
     // Check correct row included for root table
     String snapshotParquetFileName =
@@ -516,6 +630,21 @@ public class AzureSynapsePdaoConnectedTest {
         "Table row count should equal 1 for destination table",
         snapshotByAssetTableRowCounts.get(allDataTypesTable.getName()),
         equalTo(1L));
+    // Check correct row included for sample, participant_id "1"
+    String sampleParquetFileName =
+        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, sampleTable.getName());
+    parquetFileNames.put(sampleParquetFileName, snapshotStorageAccountResource);
+    List<String> ids =
+        synapseUtils.readParquetFileStringColumn(
+            sampleParquetFileName, snapshotDataSourceName, "id", true);
+    assertThat(
+        "List of participant ids in snapshot should id for participant from root table",
+        ids,
+        equalTo(List.of("abc", "part1")));
+    assertThat(
+        "Table row count should equal 2 for destination table",
+        snapshotByAssetTableRowCounts.get(sampleTable.getName()),
+        equalTo(2L));
 
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
@@ -527,7 +656,7 @@ public class AzureSynapsePdaoConnectedTest {
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(
             snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);
-    assertThat("Snapshot contains expected number or rows", snapshotRowIds.size(), equalTo(3));
+    assertThat("Snapshot contains expected number or rows", snapshotRowIds.size(), equalTo(5));
   }
 
   private AssetSpecification buildAssetSpecification(

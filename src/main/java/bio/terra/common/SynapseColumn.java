@@ -51,7 +51,7 @@ public class SynapseColumn extends Column {
     return FILE_TYPES.contains(getType());
   }
 
-  static String translateDataType(TableDataType datatype, boolean isArrayOf) {
+  public static String translateDataType(TableDataType datatype, boolean isArrayOf) {
     if (isArrayOf) {
       return "varchar(8000)";
     }

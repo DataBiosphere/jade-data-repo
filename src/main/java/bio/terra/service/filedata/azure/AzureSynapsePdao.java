@@ -128,6 +128,9 @@ public class AzureSynapsePdao {
   private static final String createSnapshotTableByRowIdTemplate =
       createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
+  private static final String createSnapshotTableByQueryTemplate =
+      createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:query);";
+
   private static final String createSnapshotTableArrayRootColumnClause =
       """
           <if(isRootColumnArray)>
@@ -542,6 +545,72 @@ public class AzureSynapsePdao {
             .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
             .add("selectStatements", sqlMergeTablesTemplate.render());
     executeSynapseQuery(sqlCreateRowIdTable.render());
+  }
+
+  public Map<String, Long> createSnapshotParquetFilesByQuery(
+      AssetSpecification assetSpec,
+      UUID snapshotId,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String userProvidedQuery)
+      throws SQLException {
+    Map<String, Long> tableRowCounts = new HashMap<>();
+
+    // First handle root table
+    AssetTable rootTable = assetSpec.getRootTable();
+    String rootTableName = rootTable.getTable().getName();
+
+    // Get columns to include for root table
+    List<SynapseColumn> columns =
+        rootTable.getColumns().stream()
+            .map(c -> c.getDatasetColumn())
+            .collect(Collectors.toList())
+            .stream()
+            .map(Column::toSynapseColumn)
+            .collect(Collectors.toList());
+    ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByQueryTemplate);
+    ST queryTemplate =
+        generateSnapshotParquetCreateQuery(
+            sqlCreateSnapshotTableTemplate,
+            IngestUtils.getSourceDatasetParquetFilePath(rootTable.getTable().getName()),
+            rootTable.getTable().getName(),
+            snapshotId,
+            IngestUtils.getSnapshotSliceParquetFilePath(snapshotId, rootTableName, "root"),
+            datasetDataSourceName,
+            snapshotDataSourceName,
+            columns);
+
+    queryTemplate.add("query", userProvidedQuery);
+    int rows;
+    try {
+      rows = executeCountQuery(queryTemplate.render());
+    } catch (DataAccessException ex) {
+      throw new PdaoException(
+          "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case.",
+          ex);
+    }
+
+    tableRowCounts.put(rootTableName, (long) rows);
+    if (rows == 0) {
+      throw new PdaoException(
+          "Snapshot by Query - No rows included from root table due to root values that were specified. Cannot create entirely empty snapshot.");
+    } else {
+      logger.info("Snapshot by Query - {} rows included in root table {}", rows, rootTableName);
+    }
+
+    // Then walk relationships
+    UUID rootTableId = rootTable.getTable().getId();
+    List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpec);
+    walkRelationships(
+        snapshotId,
+        assetSpec,
+        datasetDataSourceName,
+        snapshotDataSourceName,
+        rootTableId,
+        walkRelationships,
+        tableRowCounts);
+
+    return tableRowCounts;
   }
 
   /**

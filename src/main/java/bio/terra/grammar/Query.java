@@ -36,6 +36,12 @@ public class Query {
     ParseTreeWalker.DEFAULT.walk(listener, queryStatement);
     return listener.getDatasetNames();
   }
+  // We currently make the assumption that there is only one dataset
+  // (based on the validation flight step that already occurred.)
+  // This will change when more than 1 dataset is allowed
+  public String getDatasetName() {
+    return getDatasetNames().get(0);
+  }
 
   public List<String> getTableNames() {
     TableNameListener listener = new TableNameListener();

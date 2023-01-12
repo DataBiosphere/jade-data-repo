@@ -49,11 +49,6 @@ public class CreateSnapshotValidateQueryStep implements Step {
           StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
     }
 
-    if (datasetNames.size() > 1) {
-      String message = String.format("Snapshots can currently only be associated with one dataset");
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
-    }
     // Get the dataset by name to ensure the dataset exists
     String datasetName = datasetNames.get(0);
     datasetService.retrieveByName(

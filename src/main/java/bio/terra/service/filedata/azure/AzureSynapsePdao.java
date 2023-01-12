@@ -129,7 +129,7 @@ public class AzureSynapsePdao {
       createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
   private static final String createSnapshotTableByQueryTemplate =
-      createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:query);";
+      createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (<query>);";
 
   private static final String createSnapshotTableArrayRootColumnClause =
       """
@@ -583,7 +583,7 @@ public class AzureSynapsePdao {
     queryTemplate.add("query", userProvidedQuery);
     int rows;
     try {
-      rows = executeCountQuery(queryTemplate.render());
+      rows = executeSynapseQuery(queryTemplate.render());
     } catch (DataAccessException ex) {
       throw new PdaoException(
           "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case.",

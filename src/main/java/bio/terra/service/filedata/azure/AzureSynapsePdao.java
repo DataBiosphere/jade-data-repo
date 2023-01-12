@@ -616,10 +616,9 @@ public class AzureSynapsePdao {
     try {
       rows = synapseJdbcTemplate.update(query, params);
     } catch (DataAccessException ex) {
-      logger.error("Error while creating root table parquet file on snapshot by asset", ex);
       throw new PdaoException(
-          "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case. Exception cause: "
-              + ex.getMessage());
+          "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case.",
+          ex);
     }
 
     tableRowCounts.put(rootTableName, (long) rows);
@@ -652,8 +651,7 @@ public class AzureSynapsePdao {
       String snapshotDataSourceName,
       UUID startTableId,
       List<WalkRelationship> walkRelationships,
-      Map<String, Long> tableRowCounts)
-      throws SQLException {
+      Map<String, Long> tableRowCounts) {
     for (WalkRelationship relationship : walkRelationships) {
       if (relationship.visitRelationship(startTableId)) {
         createSnapshotParquetFilesByRelationship(

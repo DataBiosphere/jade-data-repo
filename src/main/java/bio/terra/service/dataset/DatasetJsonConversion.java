@@ -79,7 +79,7 @@ public final class DatasetJsonConversion {
                 .phsId(datasetRequest.getPhsId())
                 .selfHosted(datasetRequest.isExperimentalSelfHosted())
                 .properties(datasetRequest.getProperties())
-                .predictableFileIds(datasetRequest.isPredictableFileIds()))
+                .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds()))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);

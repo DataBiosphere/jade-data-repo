@@ -3825,7 +3825,7 @@ components:
             This might be useful to set as a security improvement since this provides a dedicated account that explicitly
             does not have access to any other buckets.  It's also recommended if you need to authorize a large number of buckets
             since the main service account could run into Google group membership quota violations.
-        predictableFileIds:
+        experimentalPredictableFileIds:
           type: boolean
           default: false
           description: >

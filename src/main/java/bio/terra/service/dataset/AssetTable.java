@@ -5,7 +5,6 @@ import bio.terra.common.SynapseColumn;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class AssetTable {
   private DatasetTable datasetTable;
@@ -30,8 +29,9 @@ public class AssetTable {
   }
 
   public List<SynapseColumn> getSynapseColumns() {
-    return columns.stream().map(c -> c.getDatasetColumn()).collect(Collectors.toList()).stream()
+    return columns.stream()
+        .map(AssetColumn::getDatasetColumn)
         .map(Column::toSynapseColumn)
-        .collect(Collectors.toList());
+        .toList();
   }
 }

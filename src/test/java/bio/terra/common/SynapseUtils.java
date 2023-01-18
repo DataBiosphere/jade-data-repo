@@ -142,6 +142,7 @@ public class SynapseUtils {
             .withExistingResourceGroup(managedResourceGroupName)
             .create();
     datasetStorageAccountId = datasetStorageAccount.id();
+    addStorageAccountId(datasetStorageAccountId);
     datasetStorageAccountResource =
         new AzureStorageAccountResource()
             .resourceId(UUID.randomUUID())
@@ -157,6 +158,7 @@ public class SynapseUtils {
             .withExistingResourceGroup(managedResourceGroupName)
             .create();
     snapshotStorageAccountId = snapshotStorageAccount.id();
+    addStorageAccountId(snapshotStorageAccountId);
     snapshotStorageAccountResource =
         new AzureStorageAccountResource()
             .resourceId(UUID.randomUUID())

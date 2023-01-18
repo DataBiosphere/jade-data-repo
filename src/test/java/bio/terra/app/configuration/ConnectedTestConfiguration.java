@@ -22,6 +22,7 @@ public class ConnectedTestConfiguration {
   private String sourceStorageAccountName;
   private String destinationStorageAccountName;
   private String ingestRequestContainer;
+  private String azureManagedResourceGroupName;
 
   public String getSourceStorageAccountName() {
     return sourceStorageAccountName;
@@ -117,5 +118,13 @@ public class ConnectedTestConfiguration {
 
   public void setTargetResourceGroupName(String targetResourceGroupName) {
     this.targetResourceGroupName = targetResourceGroupName;
+  }
+
+  public String getAzureManagedResourceGroupName() {
+    return azureManagedResourceGroupName;
+  }
+
+  public void setAzureManagedResourceGroupName(String azureManagedResourceGroupName) {
+    this.azureManagedResourceGroupName = azureManagedResourceGroupName;
   }
 }

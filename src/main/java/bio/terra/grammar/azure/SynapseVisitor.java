@@ -19,7 +19,7 @@ public class SynapseVisitor extends DatasetAwareVisitor {
     int tableNameHash = tableName.hashCode();
     // there's less of a chance of collision if we multiply the first value by an odd prime before
     // we sum them
-    int hash = tableNameHash * PRIME;
+    int hash = Math.abs(tableNameHash * PRIME);
     return "alias" + hash;
   }
 

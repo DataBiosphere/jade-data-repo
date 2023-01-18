@@ -552,7 +552,7 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      String userProvidedQuery)
+      String translatedQuery)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -580,7 +580,7 @@ public class AzureSynapsePdao {
             snapshotDataSourceName,
             columns);
 
-    queryTemplate.add("query", userProvidedQuery);
+    queryTemplate.add("query", translatedQuery);
     int rows;
     try {
       rows = executeSynapseQuery(queryTemplate.render());

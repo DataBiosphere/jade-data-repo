@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -66,7 +67,6 @@ public class SynapseUtils {
   private AzureResourceManager client;
   private BillingProfileModel billingProfile;
   private AzureApplicationDeploymentResource applicationResource;
-  private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
   private String snapshotStorageAccountId;
   private String datasetStorageAccountId;
   private BlobUrlParts snapshotSignUrlBlob;
@@ -77,6 +77,7 @@ public class SynapseUtils {
   private String snapshotDataSourceName;
   private String sourceDatasetScopedCredentialName;
   private String sourceDatasetDataSourceName;
+  private String managedResourceGroupName;
 
   private AzureStorageAccountResource datasetStorageAccountResource;
   private AzureStorageAccountResource snapshotStorageAccountResource;
@@ -86,6 +87,7 @@ public class SynapseUtils {
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired JsonLoader jsonLoader;
+  @Autowired TestConfiguration testConfiguration;
 
   public void synapseTestSetup() throws SQLException {
     parquetFileNames = new HashMap<>();
@@ -105,6 +107,7 @@ public class SynapseUtils {
     sourceDatasetDataSourceName =
         IngestUtils.getSourceDatasetDataSourceName(snapshotCreateFlightId);
     addDataSource(sourceDatasetDataSourceName);
+    managedResourceGroupName = testConfig.getAzureManagedResourceGroupName();
 
     billingProfile =
         new BillingProfileModel()
@@ -128,7 +131,7 @@ public class SynapseUtils {
         new AzureApplicationDeploymentResource()
             .id(applicationId)
             .azureApplicationDeploymentName(testConfig.getTargetApplicationName())
-            .azureResourceGroupName(MANAGED_RESOURCE_GROUP_NAME)
+            .azureResourceGroupName(managedResourceGroupName)
             .profileId(billingProfile.getId());
 
     StorageAccount datasetStorageAccount =
@@ -136,7 +139,7 @@ public class SynapseUtils {
             .storageAccounts()
             .define("ctdataset" + Instant.now().toEpochMilli())
             .withRegion(Region.US_CENTRAL)
-            .withExistingResourceGroup(MANAGED_RESOURCE_GROUP_NAME)
+            .withExistingResourceGroup(managedResourceGroupName)
             .create();
     datasetStorageAccountId = datasetStorageAccount.id();
     datasetStorageAccountResource =
@@ -151,7 +154,7 @@ public class SynapseUtils {
             .storageAccounts()
             .define("ctsnapshot" + Instant.now().toEpochMilli())
             .withRegion(Region.US_CENTRAL)
-            .withExistingResourceGroup(MANAGED_RESOURCE_GROUP_NAME)
+            .withExistingResourceGroup(managedResourceGroupName)
             .create();
     snapshotStorageAccountId = snapshotStorageAccount.id();
     snapshotStorageAccountResource =

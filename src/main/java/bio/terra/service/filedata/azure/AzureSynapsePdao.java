@@ -511,7 +511,7 @@ public class AzureSynapsePdao {
             table.getName());
       } else if (tableRowCounts.get(table.getName()) > 0) {
         String snapshotParquetFileName =
-            IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, table.getName());
+            IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, table.getName());
 
         ST sqlTableTemplate =
             new ST(getLiveViewTableTemplate)
@@ -749,11 +749,11 @@ public class AzureSynapsePdao {
     queryTemplate.add("fromTableColumn", relationship.getFromColumnName());
     queryTemplate.add(
         "fromTableParquetFileLocation",
-        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, fromTableName));
+        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, fromTableName));
     queryTemplate.add("snapshotDataSource", snapshotDataSourceName);
     queryTemplate.add(
         "toTableParquetFileLocation",
-        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, toTableName));
+        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, toTableName));
     String sql = queryTemplate.render();
     int rows = 0;
     try {

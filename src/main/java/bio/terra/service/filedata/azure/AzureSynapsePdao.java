@@ -992,7 +992,6 @@ public class AzureSynapsePdao {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
-      logger.info(query);
       statement.execute(query);
       return statement.getUpdateCount();
     }

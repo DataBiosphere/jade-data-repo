@@ -82,7 +82,8 @@ public class AzureSynapsePdaoUnitTest {
             UUID.randomUUID(),
             "datasetDataSource1",
             "snapshotDataSource1",
-            requestAssetModel);
+            requestAssetModel,
+            false);
     assertThat(
         "Table has 2 rows",
         tableRowCounts.get(assetSpec.getRootTable().getTable().getName()),
@@ -104,7 +105,8 @@ public class AzureSynapsePdaoUnitTest {
         UUID.randomUUID(),
         "datasetDataSource1",
         "snapshotDataSource1",
-        requestAssetModel);
+        requestAssetModel,
+        false);
   }
 
   @Test(expected = PdaoException.class)
@@ -121,7 +123,8 @@ public class AzureSynapsePdaoUnitTest {
         UUID.randomUUID(),
         "datasetDataSource1",
         "snapshotDataSource1",
-        requestAssetModel);
+        requestAssetModel,
+        false);
   }
 
   @Test
@@ -137,7 +140,8 @@ public class AzureSynapsePdaoUnitTest {
         walkRelationship,
         "datasetDataSourceName1",
         "snapshotDataSourceName1",
-        tableRowCounts);
+        tableRowCounts,
+        false);
     assertThat(
         "Correct row count returned for sample table", tableRowCounts.get("sample"), equalTo(3L));
   }
@@ -153,7 +157,8 @@ public class AzureSynapsePdaoUnitTest {
         walkRelationship,
         "datasetDataSourceName1",
         "snapshotDataSourceName1",
-        tableRowCounts);
+        tableRowCounts,
+        false);
     assertThat(
         "'FROM' table was not in tableRowCounts, so no rows were added",
         tableRowCounts.get("sample"),
@@ -222,11 +227,12 @@ public class AzureSynapsePdaoUnitTest {
         UUID.randomUUID(),
         "datasetDataSourceName1",
         "snapshotDataSourceName1",
-        new SnapshotRequestRowIdModel());
+        new SnapshotRequestRowIdModel(),
+        false);
   }
 
   @Test
-  public void testCreateSnapshotParquetFilesByRowId() {
+  public void testCreateSnapshotParquetFilesByRowId() throws SQLException {
     SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
     List<SnapshotTable> tables = List.of(snapshotTable1);
     SnapshotRequestRowIdTableModel tableModel =
@@ -240,12 +246,13 @@ public class AzureSynapsePdaoUnitTest {
             UUID.randomUUID(),
             "datasetDataSourceName1",
             "snapshotDataSourceName1",
-            requestRowIdModel);
+            requestRowIdModel,
+            false);
     assertThat("Table has 2 rows", tableRowCounts.get("table1"), equalTo(2L));
   }
 
   @Test
-  public void testCreateSnapshotParquetFilesByRowIdNoRows() {
+  public void testCreateSnapshotParquetFilesByRowIdNoRows() throws SQLException {
     when(synapseJdbcTemplate.update(any(), any(MapSqlParameterSource.class)))
         .thenThrow(new DataAccessException("...") {});
     SnapshotTable snapshotTable1 = new SnapshotTable().name("table1").id(UUID.randomUUID());
@@ -261,7 +268,8 @@ public class AzureSynapsePdaoUnitTest {
             UUID.randomUUID(),
             "datasetDataSourceName1",
             "snapshotDataSourceName1",
-            requestRowIdModel);
+            requestRowIdModel,
+            false);
     assertThat(
         "Table should have thrown exception, should should be set to 0 rows",
         tableRowCounts.get("table1"),
@@ -280,7 +288,8 @@ public class AzureSynapsePdaoUnitTest {
             UUID.randomUUID(),
             "datasetDataSourceName1",
             "snapshotDataSourceName1",
-            "datasetFlightId1");
+            "datasetFlightId1",
+            false);
     assertThat("Table has 3 rows", tableRowCounts.get("table1"), equalTo(3L));
   }
 
@@ -296,7 +305,8 @@ public class AzureSynapsePdaoUnitTest {
             UUID.randomUUID(),
             "datasetDataSourceName1",
             "snapshotDataSourceName1",
-            "datasetFlightId1");
+            "datasetFlightId1",
+            false);
     assertThat("Table has 0 rows", tableRowCounts.get("table1"), equalTo(0L));
   }
 }

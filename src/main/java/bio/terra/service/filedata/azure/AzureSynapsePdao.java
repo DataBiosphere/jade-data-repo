@@ -103,9 +103,17 @@ public class AzureSynapsePdao {
                  <columns:{c|
                     <if(c.isFileType)>
                        <if(c.arrayOf)>
-                         (SELECT '[' + STRING_AGG('"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                         <if(isGlobalFileIds)>
+                           (SELECT '[' + STRING_AGG('"drs://<hostname>/v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                         <else>
+                           (SELECT '[' + STRING_AGG('"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                         <endif>
                        <else>
-                         'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]
+                         <if(isGlobalFileIds)>
+                           'drs://<hostname>/v2_' + [<c.name>] AS [<c.name>]
+                         <else>
+                           'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]
+                         <endif>
                        <endif>
                     <else>
                        <c.name> AS [<c.name>]
@@ -491,7 +499,8 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       String datasetFlightId,
-      SnapshotRequestRowIdModel rowIdModel)
+      SnapshotRequestRowIdModel rowIdModel,
+      boolean isGlobalFileIds)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -521,7 +530,8 @@ public class AzureSynapsePdao {
                 datasetDataSourceName,
                 snapshotDataSourceName,
                 datasetFlightId,
-                columns);
+                columns,
+                isGlobalFileIds);
 
         List<UUID> rowIds = rowIdTableModel.get().getRowIds();
         params = new MapSqlParameterSource().addValue("datarepoRowIds", rowIds);
@@ -545,7 +555,8 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      String datasetFlightId)
+      String datasetFlightId,
+      boolean isGlobalFileIds)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -562,12 +573,15 @@ public class AzureSynapsePdao {
               datasetDataSourceName,
               snapshotDataSourceName,
               datasetFlightId,
-              columns);
+              columns,
+              isGlobalFileIds);
+
       try {
         int rows = executeSynapseQuery(query);
         tableRowCounts.put(table.getName(), (long) rows);
       } catch (SQLServerException ex) {
         tableRowCounts.put(table.getName(), 0L);
+        logger.warn("Error running sql", ex);
         logger.info(
             "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
             table.getName());
@@ -583,7 +597,8 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       String datasetFlightId,
-      List<SynapseColumn> columns) {
+      List<SynapseColumn> columns,
+      boolean isGlobalFileIds) {
     String datasetParquetFileName =
         IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
     String snapshotParquetFileName =
@@ -599,7 +614,8 @@ public class AzureSynapsePdao {
         .add("ingestFileName", datasetParquetFileName)
         .add("ingestFileDataSourceName", datasetDataSourceName)
         .add("hostname", applicationConfiguration.getDnsName())
-        .add("snapshotId", snapshotId);
+        .add("snapshotId", snapshotId)
+        .add("isGlobalFileIds", isGlobalFileIds);
 
     return sqlCreateSnapshotTableTemplate.render();
   }
@@ -681,6 +697,7 @@ public class AzureSynapsePdao {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
+      logQuery(query);
       statement.execute(query);
       return statement.getUpdateCount();
     }
@@ -690,6 +707,7 @@ public class AzureSynapsePdao {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
+      logQuery(query);
       try (ResultSet resultSet = statement.executeQuery(query)) {
         resultSet.next();
         return resultSet.getInt(1);
@@ -788,5 +806,9 @@ public class AzureSynapsePdao {
         throw new PdaoException("Could not deserialize value %s".formatted(rawValue), e);
       }
     }
+  }
+
+  public static void logQuery(String query) {
+    logger.debug("Running query:\n#########\n{}", query);
   }
 }

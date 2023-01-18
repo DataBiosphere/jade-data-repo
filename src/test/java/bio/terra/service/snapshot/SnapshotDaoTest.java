@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -41,6 +42,9 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.duos.DuosDao;
+import bio.terra.service.filedata.DrsId;
+import bio.terra.service.filedata.DrsIdDao;
+import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
@@ -54,6 +58,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,6 +91,8 @@ public class SnapshotDaoTest {
   @Autowired private JsonLoader jsonLoader;
 
   @Autowired private DuosDao duosDao;
+
+  @Autowired private DrsIdDao drsIdDao;
 
   private Dataset dataset;
   private UUID datasetId;
@@ -175,8 +182,8 @@ public class SnapshotDaoTest {
 
   private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
     snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
-    snapshotDao.unlock(snapshotId, flightId);
-    return snapshotDao.retrieveSnapshot(snapshotId);
+    snapshotDao.unlock(snapshot.getId(), flightId);
+    return snapshotDao.retrieveSnapshot(snapshot.getId());
   }
 
   @Test
@@ -829,5 +836,89 @@ public class SnapshotDaoTest {
         afterUnset.getDuosFirecloudGroupId());
     assertNull(
         "snapshot's DUOS Firecloud group is null after unset", afterUnset.getDuosFirecloudGroup());
+  }
+
+  @Test
+  public void recordDrsIds() {
+    // This test runs through a couple of scenarios.  It's in one method to avoid the setup overhead
+    // Initialize test
+    snapshotIdList = new ArrayList<>();
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    Snapshot snapshot1 =
+        insertAndRetrieveSnapshot(
+            snapshotService
+                .makeSnapshotFromSnapshotRequest(snapshotRequest)
+                .projectResourceId(projectId)
+                .id(UUID.randomUUID()),
+            "snp1flightid");
+    snapshotIdList.add(snapshot1.getId());
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    Snapshot snapshot2 =
+        insertAndRetrieveSnapshot(
+            snapshotService
+                .makeSnapshotFromSnapshotRequest(snapshotRequest)
+                .projectResourceId(projectId)
+                .id(UUID.randomUUID()),
+            "snp2flightid");
+    snapshotIdList.add(snapshot2.getId());
+
+    List<DrsId> drsIds =
+        IntStream.range(0, 1000)
+            .boxed()
+            .map(i -> DrsIdService.fromUri("drs://home/v2_" + i))
+            .toList();
+
+    // Load drs ids (attempt loading duplicates)
+    assertThat(
+        "drsIds were inserted into snp1",
+        drsIdDao.recordDrsIdToSnapshot(snapshot1.getId(), drsIds),
+        equalTo(1000L));
+    assertThat(
+        "drsIds were ignored on reinsert into snp1",
+        drsIdDao.recordDrsIdToSnapshot(snapshot1.getId(), drsIds),
+        equalTo(0L));
+
+    assertThrows(
+        "can't insert id for an invalid snapshot",
+        Exception.class,
+        () -> drsIdDao.recordDrsIdToSnapshot(UUID.randomUUID(), drsIds));
+
+    // A subset of drs ids are in snapshot 2
+    assertThat(
+        "drsIds were inserted into snp2",
+        drsIdDao.recordDrsIdToSnapshot(snapshot2.getId(), drsIds.subList(0, 100)),
+        equalTo(100L));
+    assertThat(
+        "new drsIds were inserted into snp2",
+        drsIdDao.recordDrsIdToSnapshot(snapshot2.getId(), drsIds.subList(50, 150)),
+        equalTo(50L));
+
+    // Drs IDs are linked to correct snapshots
+    assertThat(
+        "lower numbered drs id is in snapshot 1 and snapshot 2",
+        drsIdDao.retrieveReferencedSnapshotIds(drsIds.get(0)),
+        containsInAnyOrder(snapshot1.getId(), snapshot2.getId()));
+
+    // Drs IDs are linked to correct snapshots
+    assertThat(
+        "higher numbered drs id is in snapshot 1 only",
+        drsIdDao.retrieveReferencedSnapshotIds(drsIds.get(500)),
+        containsInAnyOrder(snapshot1.getId()));
+
+    // Deleting snapshot 1 removes entries
+    assertThat(
+        "all 1000 entries removed when deleting the first snapshot",
+        drsIdDao.deleteDrsIdToSnapshotsBySnapshot(snapshot1.getId()),
+        equalTo(1000L));
+    assertThat(
+        "lower numbered drs id is now only in snapshot 2",
+        drsIdDao.retrieveReferencedSnapshotIds(drsIds.get(0)),
+        containsInAnyOrder(snapshot2.getId()));
+
+    // Deleting snapshot 2 removes entries
+    assertThat(
+        "all 150 entries removed when deleting the second snapshot",
+        drsIdDao.deleteDrsIdToSnapshotsBySnapshot(snapshot2.getId()),
+        equalTo(150L));
   }
 }

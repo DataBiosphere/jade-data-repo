@@ -24,6 +24,7 @@ public class SnapshotSummary {
   private String consentCode;
   private String phsId;
   private boolean selfHosted;
+  private boolean globalFileIds;
 
   public UUID getId() {
     return id;
@@ -142,6 +143,15 @@ public class SnapshotSummary {
     return this;
   }
 
+  public boolean isGlobalFileIds() {
+    return globalFileIds;
+  }
+
+  public SnapshotSummary globalFileIds(boolean globalFileIds) {
+    this.globalFileIds = globalFileIds;
+    return this;
+  }
+
   public SnapshotSummaryModel toModel() {
     return new SnapshotSummaryModel()
         .id(getId())
@@ -156,7 +166,8 @@ public class SnapshotSummary {
         .storageAccount(getStorageAccount())
         .consentCode(getConsentCode())
         .phsId(getPhsId())
-        .selfHosted(isSelfHosted());
+        .selfHosted(isSelfHosted())
+        .globalFileIds(isGlobalFileIds());
   }
 
   private List<StorageResourceModel> toStorageResourceModel() {

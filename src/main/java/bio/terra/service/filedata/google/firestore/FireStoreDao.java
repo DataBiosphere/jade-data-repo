@@ -157,7 +157,13 @@ public class FireStoreDao {
     String snapshotId = snapshot.getId().toString();
 
     directoryDao.addEntriesToSnapshot(
-        datasetFirestore, datasetId, datasetName, snapshotFirestore, snapshotId, refIds);
+        datasetFirestore,
+        datasetId,
+        datasetName,
+        snapshotFirestore,
+        snapshotId,
+        refIds,
+        snapshot.hasGlobalFileIds());
   }
 
   public void deleteFilesFromSnapshot(Snapshot snapshot) throws InterruptedException {
@@ -391,6 +397,15 @@ public class FireStoreDao {
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String datasetId = dataset.getId().toString();
     return directoryDao.validateRefIds(firestore, datasetId, refIdArray);
+  }
+
+  /** Retrieve all fileIds (including directories) from a snapshot */
+  public List<String> retrieveAllFileIds(Snapshot snapshot) throws InterruptedException {
+    Firestore firestore =
+        FireStoreProject.get(snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
+    return directoryDao.enumerateAll(firestore, snapshot.getId().toString()).stream()
+        .map(FireStoreDirectoryEntry::getFileId)
+        .toList();
   }
 
   // -- private methods --

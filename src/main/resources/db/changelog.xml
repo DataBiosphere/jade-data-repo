@@ -66,4 +66,6 @@
     <include file="changesets/20221014_duosfirecloudgroup.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20221020_duosfirecloudgroupprimarykey.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20221024_snapshotduosfirecloudgroupid.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221104_predictablefileidsoption.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20221104_v2drsids.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

@@ -19,6 +19,7 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobContainerCopier;
@@ -145,6 +146,7 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
+            new Dataset().id(UUID.randomUUID()).predictableFileIds(false),
             BILLING_PROFILE,
             fileLoadModel,
             fileId.toString(),
@@ -165,6 +167,7 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
+            new Dataset().id(UUID.randomUUID()).predictableFileIds(false),
             BILLING_PROFILE,
             fileLoadModel,
             fileId.toString(),

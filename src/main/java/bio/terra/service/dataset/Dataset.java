@@ -329,6 +329,15 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return datasetSummary.getCloudPlatform();
   }
 
+  public boolean hasPredictableFileIds() {
+    return datasetSummary.hasPredictableFileIds();
+  }
+
+  public Dataset predictableFileIds(boolean predictableFileIds) {
+    datasetSummary.predictableFileIds(predictableFileIds);
+    return this;
+  }
+
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());

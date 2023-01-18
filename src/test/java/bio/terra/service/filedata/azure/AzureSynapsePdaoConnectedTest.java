@@ -5,6 +5,8 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -24,6 +26,7 @@ import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
@@ -300,7 +303,7 @@ public class AzureSynapsePdaoConnectedTest {
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
             "azure-simple-dataset-ingest-request.csv");
-    testSynapseQuery(ingestRequestModel, ingestFileLocation, SAMPLE_DATA_CSV);
+    testSynapseQuery(ingestRequestModel, ingestFileLocation, SAMPLE_DATA_CSV, false);
   }
 
   @Test
@@ -324,7 +327,7 @@ public class AzureSynapsePdaoConnectedTest {
                     r.entrySet().stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue)))
             .peek(r -> r.put("textCol", r.get("textCol").map(v -> v + "!")))
             .toList();
-    testSynapseQuery(nonStandardIngestRequestModel, nonStandardIngestFileLocation, testData);
+    testSynapseQuery(nonStandardIngestRequestModel, nonStandardIngestFileLocation, testData, false);
 
     List<String> textCols =
         synapseUtils.readParquetFileStringColumn(
@@ -341,13 +344,25 @@ public class AzureSynapsePdaoConnectedTest {
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
             "azure-ingest-request.json");
-    testSynapseQuery(ingestRequestModel, ingestFileLocation, SAMPLE_DATA);
+    testSynapseQuery(ingestRequestModel, ingestFileLocation, SAMPLE_DATA, false);
+  }
+
+  @Test
+  public void testSynapseQueryJSONWithGlobalFileIds() throws Exception {
+    IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
+    String ingestFileLocation =
+        synapseUtils.ingestRequestURL(
+            testConfig.getSourceStorageAccountName(),
+            testConfig.getIngestRequestContainer(),
+            "azure-ingest-request.json");
+    testSynapseQuery(ingestRequestModel, ingestFileLocation, SAMPLE_DATA, true);
   }
 
   private void testSynapseQuery(
       IngestRequestModel ingestRequestModel,
       String ingestFileLocation,
-      List<Map<String, Optional<Object>>> expectedData)
+      List<Map<String, Optional<Object>>> expectedData,
+      boolean isGlobalFileIds)
       throws Exception {
 
     UUID tenantId = testConfig.getTargetTenantId();
@@ -453,7 +468,8 @@ public class AzureSynapsePdaoConnectedTest {
             snapshotId,
             destinationDataSourceName,
             snapshotDataSourceName,
-            randomFlightId);
+            randomFlightId,
+            isGlobalFileIds);
     String snapshotParquetFileName =
         IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
     List<String> snapshotFirstNames =
@@ -489,6 +505,8 @@ public class AzureSynapsePdaoConnectedTest {
 
     List<String> refIds = azureSynapsePdao.getRefIdsForSnapshot(snapshot);
     assertThat("4 fileRefs Returned.", refIds.size(), equalTo(4));
+    // Make sure all are valid UUIDs
+    refIds.forEach(UUID::fromString);
 
     // 9 - do a basic query of the data
     snapshotQueryCredentialName =
@@ -507,7 +525,8 @@ public class AzureSynapsePdaoConnectedTest {
                 0,
                 "first_name",
                 SqlSortDirection.ASC,
-                ""));
+                ""),
+            isGlobalFileIds);
     assertThat(
         "table query contains correct data in the right order (ascending by first name)",
         tableData,
@@ -524,7 +543,8 @@ public class AzureSynapsePdaoConnectedTest {
                 0,
                 "first_name",
                 SqlSortDirection.DESC,
-                ""));
+                ""),
+            isGlobalFileIds);
     assertThat(
         "table query contains correct data in the right order (descending by first name)",
         tableData,
@@ -541,7 +561,8 @@ public class AzureSynapsePdaoConnectedTest {
                 0,
                 "first_name",
                 SqlSortDirection.ASC,
-                "upper(first_name)='SALLY'"));
+                "upper(first_name)='SALLY'"),
+            isGlobalFileIds);
     assertThat(
         "table query contains only a single record", tableData, contains(expectedData.get(1)));
 
@@ -597,18 +618,32 @@ public class AzureSynapsePdaoConnectedTest {
     return destinationTable;
   }
 
-  private Optional<Object> extractFileId(Optional<Object> drsUri) {
-    return drsUri.map(d -> UUID.fromString(DrsIdService.fromUri(d.toString()).getFsObjectId()));
+  private Optional<Object> extractFileId(Optional<Object> drsUri, boolean isGlobalFileIds) {
+    return drsUri.map(
+        d -> {
+          DrsId drsId = DrsIdService.fromUri(d.toString());
+          if (isGlobalFileIds) {
+            assertThat("drs id is a v2 drs id", drsId.getVersion(), equalTo("v2"));
+            assertNull("drs id has no snapshot", drsId.getSnapshotId());
+            assertNotNull("drs id has no snapshot", drsId.getFsObjectId());
+          } else {
+            assertThat("drs id is a v1 drs id", drsId.getVersion(), equalTo("v1"));
+            assertNotNull("drs id has no snapshot", drsId.getSnapshotId());
+            assertNotNull("drs id has no snapshot", drsId.getFsObjectId());
+          }
+
+          return UUID.fromString(drsId.getFsObjectId());
+        });
   }
 
   private List<Map<String, Optional<Object>>> prepQueryResultForComparison(
-      List<Map<String, Optional<Object>>> tableData) {
+      List<Map<String, Optional<Object>>> tableData, boolean isGlobalFileIds) {
     return tableData.stream()
         // Remove datarepo_row_id since it's random
         .peek(r -> r.remove(PDAO_ROW_ID_COLUMN))
         // Replace the DRS id with its file ID for easier comparison
-        .peek(r -> r.put("file", extractFileId(r.get("file"))))
-        .peek(r -> r.put("dirRefCol", extractFileId(r.get("dirRefCol"))))
+        .peek(r -> r.put("file", extractFileId(r.get("file"), isGlobalFileIds)))
+        .peek(r -> r.put("dirRefCol", extractFileId(r.get("dirRefCol"), isGlobalFileIds)))
         .toList();
   }
 }

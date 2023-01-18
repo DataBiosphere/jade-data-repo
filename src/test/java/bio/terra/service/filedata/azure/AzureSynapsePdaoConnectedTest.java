@@ -228,7 +228,7 @@ public class AzureSynapsePdaoConnectedTest {
             randomFlightId);
     // Test that parquet files are correctly generated
     String snapshotParquetFileName =
-        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, destinationTable.getName());
+        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, destinationTable.getName());
     List<String> snapshotFirstNames =
         synapseUtils.readParquetFileStringColumn(
             snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
@@ -247,7 +247,7 @@ public class AzureSynapsePdaoConnectedTest {
         snapshot.getTables(), snapshotId, snapshotDataSourceName, tableRowCounts);
     // Test that parquet files are correctly generated
     String snapshotRowIdsParquetFileName =
-        IngestUtils.getRetrieveSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
+        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, PDAO_ROW_ID_TABLE);
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(
             snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);

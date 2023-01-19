@@ -84,6 +84,13 @@ public class DatasetTable implements Table, LogPrintable {
     return this;
   }
 
+  public Column getColumnByName(String columnName) {
+    return this.columns.stream()
+        .filter(column -> column.getName().equals(columnName))
+        .findFirst()
+        .orElseThrow();
+  }
+
   @Override
   public List<Column> getPrimaryKey() {
     return primaryKey;

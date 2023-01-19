@@ -48,11 +48,9 @@ import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
-import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -171,13 +169,6 @@ public class SnapshotDaoTest {
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(profileId);
     duosDao.deleteFirecloudGroup(duosFirecloudGroupId);
-  }
-
-  @Test(expected = MissingRowCountsException.class)
-  public void testMissingRowCounts() throws Exception {
-    Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-    snapshot.projectResourceId(projectId);
-    snapshotDao.updateSnapshotTableRowCounts(snapshot, Collections.emptyMap());
   }
 
   private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {

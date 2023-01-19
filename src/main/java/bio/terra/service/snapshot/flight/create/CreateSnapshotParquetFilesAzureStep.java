@@ -47,10 +47,8 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
       azureSynapsePdao.createSnapshotRowIdsParquetFile(
           tables,
           snapshotId,
-          IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
           IngestUtils.getTargetDataSourceName(context.getFlightId()),
-          tableRowCounts,
-          null);
+          tableRowCounts);
 
       workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
 

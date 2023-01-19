@@ -140,13 +140,23 @@ public class SnapshotCreateFlight extends Flight {
           addStep(
               new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
           addStep(
-              new CreateSnapshotPrimaryDataAssetStep(
+              new CreateSnapshotPrimaryDataAssetGcpStep(
                   bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq));
-          break;
         } else {
-          throw new FeatureNotImplementedException(
-              "By Asset Snapshots are not yet supported in Azure datasets.");
+          addStep(
+              new CreateSnapshotSourceDatasetDataSourceAzureStep(
+                  azureSynapsePdao, azureBlobStorePdao, userReq));
+          addStep(
+              new CreateSnapshotTargetDataSourceAzureStep(
+                  azureSynapsePdao, azureBlobStorePdao, userReq));
+          addStep(
+              new CreateSnapshotByAssetParquetFilesAzureStep(
+                  azureSynapsePdao, snapshotDao, snapshotService, snapshotReq));
+          addStep(
+              new CreateSnapshotCountTableRowsAzureStep(
+                  azureSynapsePdao, snapshotDao, snapshotReq));
         }
+        break;
       case BYFULLVIEW:
         if (platform.isGcp()) {
           addStep(

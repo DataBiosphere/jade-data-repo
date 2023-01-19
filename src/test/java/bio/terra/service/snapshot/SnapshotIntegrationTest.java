@@ -209,6 +209,23 @@ public class SnapshotIntegrationTest extends UsersBase {
   }
 
   @Test
+  public void snapshotByAssetHappyPathTest() throws Exception {
+    DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+    String datasetName = dataset.getName();
+    SnapshotRequestModel requestModel =
+        jsonLoader.loadObject("ingest-test-snapshot-asset.json", SnapshotRequestModel.class);
+    // swap in the correct dataset name (with the id at the end)
+    requestModel.getContents().get(0).setDatasetName(datasetName);
+    SnapshotSummaryModel snapshotSummary =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward(), dataset.getName(), profileId, requestModel);
+    TimeUnit.SECONDS.sleep(10);
+    createdSnapshotIds.add(snapshotSummary.getId());
+    SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
+    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+  }
+
+  @Test
   public void deleteAssetWithSnapshotTest() throws Exception {
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     SnapshotRequestModel requestModel = snapshotByQueryRequestModel(dataset);

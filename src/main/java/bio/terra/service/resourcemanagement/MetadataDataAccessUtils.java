@@ -48,8 +48,7 @@ public final class MetadataDataAccessUtils {
   private static final String AZURE_PARQUET_LINK =
       "https://<storageAccount>.blob.core.windows.net/metadata/<blob>";
   private static final String AZURE_BLOB_TEMPLATE_DATASET = "parquet/<table>";
-  private static final String AZURE_BLOB_TEMPLATE_SNAPSHOT =
-      "parquet/<collectionId>/<table>.parquet";
+  private static final String AZURE_BLOB_TEMPLATE_SNAPSHOT = "parquet/<collectionId>/<table>";
   private static final String AZURE_DATASET_ID = "<storageAccount>.<dataset>";
 
   private static final String DEPLOYED_APPLICATION_RESOURCE_ID =

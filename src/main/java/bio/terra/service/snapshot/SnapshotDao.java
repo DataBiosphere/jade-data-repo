@@ -22,7 +22,6 @@ import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
-import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
@@ -725,7 +724,8 @@ public class SnapshotDao {
     for (SnapshotTable snapshotTable : snapshot.getTables()) {
       String tableName = snapshotTable.getName();
       if (!tableRowCounts.containsKey(tableName)) {
-        throw new MissingRowCountsException("Missing counts for " + tableName);
+        // Case when there is no relationship to a table, but included in asset
+        tableRowCounts.put(tableName, Long.valueOf(0));
       }
       MapSqlParameterSource params =
           new MapSqlParameterSource()

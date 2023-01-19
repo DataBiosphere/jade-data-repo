@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -22,11 +23,15 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
 
   protected AzureSynapsePdao azureSynapsePdao;
   private final SnapshotService snapshotService;
+  protected final SnapshotRequestModel snapshotReq;
 
   public CreateSnapshotParquetFilesAzureStep(
-      AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService) {
+      AzureSynapsePdao azureSynapsePdao,
+      SnapshotService snapshotService,
+      SnapshotRequestModel snapshotReq) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.snapshotService = snapshotService;
+    this.snapshotReq = snapshotReq;
   }
 
   @Override
@@ -61,7 +66,8 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
         snapshotId,
         IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
         IngestUtils.getTargetDataSourceName(context.getFlightId()),
-        null);
+        null,
+        snapshotReq.isGlobalFileIds());
   }
 
   @Override

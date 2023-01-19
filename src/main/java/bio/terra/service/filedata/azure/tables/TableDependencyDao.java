@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.common.azure.StorageTableName;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
@@ -96,6 +97,18 @@ public class TableDependencyDao {
     } else {
       logger.warn("No snapshot file dependencies found to be deleted from dataset");
     }
+  }
+
+  public List<String> getDatasetSnapshotFileIds(
+      TableServiceClient tableServiceClient, Dataset dataset, String snapshotId) {
+    String dependencyTableName = StorageTableName.DEPENDENCIES.toTableName(dataset.getId());
+    TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
+    ListEntitiesOptions options =
+        new ListEntitiesOptions().setFilter(String.format("snapshotId eq '%s'", snapshotId));
+    return tableClient.listEntities(options, null, null).stream()
+        .map(FireStoreDependency::fromTableEntity)
+        .map(FireStoreDependency::getFileId)
+        .toList();
   }
 
   public boolean datasetHasSnapshotReference(

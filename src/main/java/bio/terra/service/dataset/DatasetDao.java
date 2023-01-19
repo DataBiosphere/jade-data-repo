@@ -71,7 +71,7 @@ public class DatasetDao {
   private static final String summaryQueryColumns =
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
           + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, "
-          + "properties, created_date, ";
+          + "properties, created_date, predictable_file_ids,";
 
   private static final String summaryCloudPlatformQuery =
       "(SELECT pr.google_project_id "
@@ -387,11 +387,15 @@ public class DatasetDao {
     logger.debug(
         "Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
     String sql =
-        "INSERT INTO dataset "
-            + "(name, default_profile_id, id, project_resource_id, application_resource_id, flightid, description, "
-            + "secure_monitoring, phs_id, self_hosted, properties, sharedlock) "
-            + "VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id, :flightid, "
-            + ":description, :secure_monitoring, :phs_id, :self_hosted, cast(:properties as jsonb), ARRAY[]::TEXT[]) ";
+        """
+        INSERT INTO dataset
+        (name, default_profile_id, id, project_resource_id, application_resource_id, flightid,
+         description, secure_monitoring, phs_id, self_hosted, properties, sharedlock,
+         predictable_file_ids)
+        VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id,
+         :flightid, :description, :secure_monitoring, :phs_id, :self_hosted,
+         cast(:properties as jsonb), ARRAY[]::TEXT[], :predictable_file_ids)
+       """;
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -405,6 +409,7 @@ public class DatasetDao {
             .addValue("secure_monitoring", dataset.isSecureMonitoringEnabled())
             .addValue("phs_id", dataset.getPhsId())
             .addValue("self_hosted", dataset.isSelfHosted())
+            .addValue("predictable_file_ids", dataset.hasPredictableFileIds())
             .addValue(
                 "properties", DaoUtils.propertiesToString(objectMapper, dataset.getProperties()));
 
@@ -721,6 +726,7 @@ public class DatasetDao {
           .storageAccount(rs.getString("storage_account_name"))
           .phsId(rs.getString("phs_id"))
           .selfHosted(rs.getBoolean("self_hosted"))
+          .predictableFileIds(rs.getBoolean("predictable_file_ids"))
           .properties(properties);
     }
   }

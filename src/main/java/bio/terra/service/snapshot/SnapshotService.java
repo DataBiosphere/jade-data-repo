@@ -544,7 +544,8 @@ public class SnapshotService {
         .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource))
         .creationInformation(requestContents)
         .consentCode(snapshotRequestModel.getConsentCode())
-        .properties(snapshotRequestModel.getProperties());
+        .properties(snapshotRequestModel.getProperties())
+        .globalFileIds(snapshotRequestModel.isGlobalFileIds());
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(
@@ -1019,7 +1020,8 @@ public class SnapshotService {
             .description(snapshot.getDescription())
             .createdDate(snapshot.getCreatedDate().toString())
             .consentCode(snapshot.getConsentCode())
-            .cloudPlatform(snapshot.getCloudPlatform());
+            .cloudPlatform(snapshot.getCloudPlatform())
+            .globalFileIds(snapshot.hasGlobalFileIds());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRetrieveIncludeModel.NONE)) {

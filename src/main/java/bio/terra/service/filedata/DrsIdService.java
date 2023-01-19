@@ -22,25 +22,29 @@ public class DrsIdService {
     this.datarepoDnsName = applicationConfiguration.getDnsName();
   }
 
-  public String toDrsUri(String snapshotId, String fsObjectId) {
-    return fromParts(snapshotId, fsObjectId).toDrsUri();
-  }
-
-  public String toDrsObjectId(String snapshotId, String fsObjectId) {
-    return fromParts(snapshotId, fsObjectId).toDrsObjectId();
-  }
-
   public DrsId makeDrsId(FSItem fsObject, String snapshotId) {
     return fromParts(snapshotId, fsObject.getFileId().toString());
   }
 
+  public DrsId makeDrsId(FSItem fsObject) {
+    return makeDrsId(fsObject.getFileId().toString());
+  }
+
+  public DrsId makeDrsId(String fileId) {
+    return fromParts(null, fileId);
+  }
+
   private DrsId fromParts(String snapshotId, String fsObjectId) {
-    return DrsId.builder()
-        .dnsname(datarepoDnsName)
-        .version("v1")
-        .snapshotId(snapshotId)
-        .fsObjectId(fsObjectId)
-        .build();
+    if (snapshotId != null) {
+      return DrsId.builder()
+          .dnsname(datarepoDnsName)
+          .version("v1")
+          .snapshotId(snapshotId)
+          .fsObjectId(fsObjectId)
+          .build();
+    } else {
+      return DrsId.builder().dnsname(datarepoDnsName).version("v2").fsObjectId(fsObjectId).build();
+    }
   }
 
   public static DrsId fromUri(String drsUri) {
@@ -64,16 +68,18 @@ public class DrsIdService {
   }
 
   private static DrsId.Builder parseObjectId(String datarepoDnsName, String objectId) {
-    // The format is v1_<snapshotid>_<fsobjectid>
+    // The format is v1_<snapshotid>_<fsobjectid> or v2_fsobjectid
     String[] idParts = StringUtils.split(objectId, '_');
-    if (idParts.length != 3 || !StringUtils.equals(idParts[0], "v1")) {
+    if (idParts.length == 3 && StringUtils.equals(idParts[0], "v1")) {
+      return DrsId.builder()
+          .dnsname(datarepoDnsName)
+          .version(idParts[0])
+          .snapshotId(idParts[1])
+          .fsObjectId(idParts[2]);
+    } else if (idParts.length == 2 && StringUtils.equals(idParts[0], "v2")) {
+      return DrsId.builder().dnsname(datarepoDnsName).version(idParts[0]).fsObjectId(idParts[1]);
+    } else {
       throw new InvalidDrsIdException("Invalid DRS object id '" + objectId + "'");
     }
-
-    return DrsId.builder()
-        .dnsname(datarepoDnsName)
-        .version(idParts[0])
-        .snapshotId(idParts[1])
-        .fsObjectId(idParts[2]);
   }
 }

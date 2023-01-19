@@ -238,6 +238,16 @@ public class TableDirectoryDao {
         .collect(Collectors.toList());
   }
 
+  public List<FireStoreDirectoryEntry> enumerateAll(
+      TableServiceClient tableServiceClient, String tableName) {
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
+    ListEntitiesOptions options = new ListEntitiesOptions();
+    PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+    return entities.stream()
+        .map(FireStoreDirectoryEntry::fromTableEntity)
+        .collect(Collectors.toList());
+  }
+
   List<FireStoreDirectoryEntry> enumerateDirectory(
       TableServiceClient tableServiceClient, String tableName, String dirPath) {
     TableClient tableClient = tableServiceClient.getTableClient(tableName);

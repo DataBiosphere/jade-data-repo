@@ -3,6 +3,9 @@ package bio.terra.service.filedata.azure.tables;
 import static bio.terra.service.filedata.google.firestore.FireStoreDependency.FILE_ID_FIELD_NAME;
 import static bio.terra.service.filedata.google.firestore.FireStoreDependency.REF_COUNT_FIELD_NAME;
 import static bio.terra.service.filedata.google.firestore.FireStoreDependency.SNAPSHOT_ID_FIELD_NAME;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -12,10 +15,12 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableItem;
 import java.util.Iterator;
@@ -26,6 +31,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -44,6 +51,8 @@ public class TableDependencyDaoTest {
   @MockBean private TableServiceClient tableServiceClient;
   @MockBean private TableClient tableClient;
   @Autowired private TableDependencyDao dao;
+
+  @Captor private ArgumentCaptor<ListEntitiesOptions> queryOptionsCaptor;
 
   @Before
   public void setUp() {
@@ -96,5 +105,47 @@ public class TableDependencyDaoTest {
 
     dao.storeSnapshotFileDependencies(tableServiceClient, datasetId, snapshotId, List.of(refId));
     verify(tableClient, times(0)).upsertEntity(any());
+  }
+
+  @Test
+  public void testReadSnapshotFileDependencies() {
+    UUID datasetId = UUID.randomUUID();
+    UUID snapshotId = UUID.randomUUID();
+    String refId1 = UUID.randomUUID().toString();
+    String refId2 = UUID.randomUUID().toString();
+    TableEntity fireStoreDependencyEntity1 =
+        new TableEntity(datasetId.toString(), refId1)
+            .addProperty(SNAPSHOT_ID_FIELD_NAME, snapshotId)
+            .addProperty(FILE_ID_FIELD_NAME, refId1)
+            .addProperty(REF_COUNT_FIELD_NAME, 1L);
+
+    TableEntity fireStoreDependencyEntity2 =
+        new TableEntity(datasetId.toString(), refId2)
+            .addProperty(SNAPSHOT_ID_FIELD_NAME, snapshotId)
+            .addProperty(FILE_ID_FIELD_NAME, refId2)
+            .addProperty(REF_COUNT_FIELD_NAME, 1L);
+
+    PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
+    Iterator<TableEntity> mockIterator = mock(Iterator.class);
+    when(mockIterator.hasNext()).thenReturn(true, false);
+    when(mockIterator.next())
+        .thenReturn(fireStoreDependencyEntity1)
+        .thenReturn(fireStoreDependencyEntity2);
+    when(mockPagedIterable.iterator()).thenReturn(mockIterator);
+    when(mockPagedIterable.stream())
+        .thenReturn(Stream.of(fireStoreDependencyEntity1, fireStoreDependencyEntity2));
+    when(tableClient.listEntities(queryOptionsCaptor.capture(), any(), any()))
+        .thenReturn(mockPagedIterable);
+
+    assertThat(
+        "proper ids are returned",
+        dao.getDatasetSnapshotFileIds(
+            tableServiceClient, new Dataset().id(datasetId), snapshotId.toString()),
+        containsInAnyOrder(refId1, refId2));
+
+    assertThat(
+        "right filter was used",
+        queryOptionsCaptor.getValue().getFilter(),
+        equalTo("snapshotId eq '%s'".formatted(snapshotId)));
   }
 }

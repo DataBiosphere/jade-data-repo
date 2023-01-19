@@ -16,6 +16,7 @@ import bio.terra.grammar.Query;
 import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestAssetModel;
@@ -37,6 +38,9 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -71,14 +75,6 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
   private AzureStorageAccountResource snapshotStorageAccountResource;
   private BillingProfileModel billingProfile;
   private static final UUID snapshotId = UUID.randomUUID();
-  private DatasetTable allDataTypesTable;
-  private DatasetTable participantTable;
-  private DatasetTable sampleTable;
-  private DatasetTable dateOfBirthTable;
-  private List<AssetRelationship> relationships;
-  private Snapshot snapshot;
-  private IngestRequestModel csvIngestRequestModel;
-  private IngestRequestModel jsonIngestRequestModel;
 
   @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
@@ -134,7 +130,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
         snapshotId,
         sourceDatasetDataSourceName,
         snapshotDataSourceName,
-        new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue));
+        new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
+        false);
   }
 
   @Test
@@ -179,7 +176,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             snapshotId,
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
-            new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue));
+            new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
+            false);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "sample"));
 

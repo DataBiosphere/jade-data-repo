@@ -111,9 +111,17 @@ public class AzureSynapsePdao {
                  <columns:{c|
                     <if(c.isFileType)>
                        <if(c.arrayOf)>
-                         (SELECT '[' + STRING_AGG('"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                         <if(isGlobalFileIds)>
+                           (SELECT '[' + STRING_AGG('"drs://<hostname>/v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                         <else>
+                           (SELECT '[' + STRING_AGG('"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                         <endif>
                        <else>
-                         'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]
+                         <if(isGlobalFileIds)>
+                           'drs://<hostname>/v2_' + [<c.name>] AS [<c.name>]
+                         <else>
+                           'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]
+                         <endif>
                        <endif>
                     <else>
                        <c.name> AS [<c.name>]
@@ -634,7 +642,8 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      SnapshotRequestAssetModel requestModel)
+      SnapshotRequestAssetModel requestModel,
+      Boolean isGlobalFieldIds)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -660,7 +669,8 @@ public class AzureSynapsePdao {
             IngestUtils.getSnapshotSliceParquetFilePath(snapshotId, rootTableName, "root"),
             datasetDataSourceName,
             snapshotDataSourceName,
-            columns);
+            columns,
+            isGlobalFieldIds);
 
     AssetColumn rootColumn = assetSpec.getRootColumn();
 
@@ -700,7 +710,8 @@ public class AzureSynapsePdao {
         snapshotDataSourceName,
         rootTableId,
         walkRelationships,
-        tableRowCounts);
+        tableRowCounts,
+        isGlobalFieldIds);
 
     return tableRowCounts;
   }
@@ -712,7 +723,8 @@ public class AzureSynapsePdao {
       String snapshotDataSourceName,
       UUID startTableId,
       List<WalkRelationship> walkRelationships,
-      Map<String, Long> tableRowCounts) {
+      Map<String, Long> tableRowCounts,
+      Boolean isGlobalFieldIds) {
     for (WalkRelationship relationship : walkRelationships) {
       if (relationship.visitRelationship(startTableId)) {
         createSnapshotParquetFilesByRelationship(
@@ -721,7 +733,8 @@ public class AzureSynapsePdao {
             relationship,
             datasetDataSourceName,
             snapshotDataSourceName,
-            tableRowCounts);
+            tableRowCounts,
+            isGlobalFieldIds);
         walkRelationships(
             snapshotId,
             assetSpec,
@@ -729,7 +742,8 @@ public class AzureSynapsePdao {
             snapshotDataSourceName,
             relationship.getToTableId(),
             walkRelationships,
-            tableRowCounts);
+            tableRowCounts,
+            isGlobalFieldIds);
       }
     }
   }
@@ -759,7 +773,8 @@ public class AzureSynapsePdao {
       WalkRelationship relationship,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      Map<String, Long> tableRowCounts) {
+      Map<String, Long> tableRowCounts,
+      Boolean isGlobalFieldIds) {
     String fromTableName = relationship.getFromTableName();
     String toTableName = relationship.getToTableName();
     AssetTable toAssetTable = assetSpecification.getAssetTableByName(toTableName);
@@ -799,7 +814,8 @@ public class AzureSynapsePdao {
                 String.format("%s_%s_relationship", fromTableName, toTableName)),
             datasetDataSourceName,
             snapshotDataSourceName,
-            toAssetTable.getSynapseColumns());
+            toAssetTable.getSynapseColumns(),
+            isGlobalFieldIds);
 
     queryTemplate.add("rootColumn", relationship.getToColumnName());
     queryTemplate.add("isRootColumnArray", toTableColumn.getDatasetColumn().isArrayOf());
@@ -863,7 +879,9 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      SnapshotRequestRowIdModel rowIdModel) {
+      SnapshotRequestRowIdModel rowIdModel,
+      boolean isGlobalFileIds)
+      throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     for (SnapshotTable table : tables) {
@@ -895,7 +913,8 @@ public class AzureSynapsePdao {
                         snapshotId, table.getName(), table.getName()),
                     datasetDataSourceName,
                     snapshotDataSourceName,
-                    columns)
+                    columns,
+                    isGlobalFileIds)
                 .render();
 
         List<UUID> rowIds = rowIdTableModel.get().getRowIds();
@@ -923,7 +942,8 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      String datasetFlightId)
+      String datasetFlightId,
+      boolean isGlobalFileIds)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -942,7 +962,8 @@ public class AzureSynapsePdao {
                       snapshotId, table.getName(), table.getName()),
                   datasetDataSourceName,
                   snapshotDataSourceName,
-                  columns)
+                  columns,
+                  isGlobalFileIds)
               .render();
       int rows = 0;
       try {
@@ -951,8 +972,8 @@ public class AzureSynapsePdao {
         logger.warn(
             "No rows were added to the Snapshot for table "
                 + table.getName()
-                + ". This could mean that the source dataset's table is empty. Exception: "
-                + ex.getMessage());
+                + ". This could mean that the source dataset's table is empty.",
+            ex);
       }
       tableRowCounts.put(table.getName(), (long) rows);
     }
@@ -967,7 +988,8 @@ public class AzureSynapsePdao {
       String snapshotParquetFileName,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      List<SynapseColumn> columns) {
+      List<SynapseColumn> columns,
+      boolean isGlobalFileIds) {
     String snapshotTableName = IngestUtils.formatSnapshotTableName(snapshotId, tableName);
 
     sqlCreateSnapshotTableTemplate
@@ -979,7 +1001,8 @@ public class AzureSynapsePdao {
         .add("ingestFileName", datasetParquetFileName)
         .add("ingestFileDataSourceName", datasetDataSourceName)
         .add("hostname", applicationConfiguration.getDnsName())
-        .add("snapshotId", snapshotId);
+        .add("snapshotId", snapshotId)
+        .add("isGlobalFileIds", isGlobalFileIds);
 
     return sqlCreateSnapshotTableTemplate;
   }
@@ -1061,6 +1084,7 @@ public class AzureSynapsePdao {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
+      logQuery(query);
       statement.execute(query);
       return statement.getUpdateCount();
     }
@@ -1070,6 +1094,7 @@ public class AzureSynapsePdao {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
+      logQuery(query);
       try (ResultSet resultSet = statement.executeQuery(query)) {
         resultSet.next();
         return resultSet.getInt(1);
@@ -1168,5 +1193,9 @@ public class AzureSynapsePdao {
         throw new PdaoException("Could not deserialize value %s".formatted(rawValue), e);
       }
     }
+  }
+
+  public static void logQuery(String query) {
+    logger.debug("Running query:\n#########\n{}", query);
   }
 }

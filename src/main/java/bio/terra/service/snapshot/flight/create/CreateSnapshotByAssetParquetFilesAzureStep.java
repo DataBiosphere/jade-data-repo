@@ -27,7 +27,7 @@ public class CreateSnapshotByAssetParquetFilesAzureStep
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotReq) {
-    super(azureSynapsePdao, snapshotService);
+    super(azureSynapsePdao, snapshotService, snapshotReq);
     this.snapshotReq = snapshotReq;
     this.snapshotDao = snapshotDao;
   }
@@ -48,6 +48,7 @@ public class CreateSnapshotByAssetParquetFilesAzureStep
         snapshotId,
         IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
         IngestUtils.getTargetDataSourceName(context.getFlightId()),
-        assetModel);
+        assetModel,
+        snapshotReq.isGlobalFileIds());
   }
 }

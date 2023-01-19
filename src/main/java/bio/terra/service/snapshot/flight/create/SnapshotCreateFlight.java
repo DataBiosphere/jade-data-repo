@@ -13,6 +13,8 @@ import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.filedata.DrsService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
@@ -76,6 +78,8 @@ public class SnapshotCreateFlight extends Flight {
         appContext.getBean(GoogleResourceManagerService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
     String tdrServiceAccountEmail = appContext.getBean("tdrServiceAccountEmail", String.class);
+    DrsIdService drsIdService = appContext.getBean(DrsIdService.class);
+    DrsService drsService = appContext.getBean(DrsService.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -256,6 +260,12 @@ public class SnapshotCreateFlight extends Flight {
       addStep(
           new SnapshotAuthzServiceAccountConsumerStep(
               snapshotService, resourceService, snapshotName, tdrServiceAccountEmail));
+      // Record the Drs IDs if this is a global file id snapshot
+      if (snapshotReq.isGlobalFileIds()) {
+        addStep(
+            new SnapshotRecordFileIdsGcpStep(
+                snapshotService, datasetService, drsIdService, drsService, fileDao));
+      }
     } else if (platform.isAzure()) {
       addStep(
           new CreateSnapshotStorageTableDataStep(
@@ -273,6 +283,18 @@ public class SnapshotCreateFlight extends Flight {
       addStep(
           new CreateSnapshotStorageTableComputeStep(
               tableDao, snapshotReq, snapshotService, azureAuthService));
+
+      // Record the Drs IDs if this is a global file id snapshot
+      if (snapshotReq.isGlobalFileIds()) {
+        addStep(
+            new SnapshotRecordFileIdsAzureStep(
+                snapshotService,
+                datasetService,
+                drsIdService,
+                drsService,
+                tableDao,
+                azureAuthService));
+      }
       // cannot clean up azure synapse tables until after gathered refIds in
       // CreateSnapshotStorageTableDataStep
       addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao, snapshotService));

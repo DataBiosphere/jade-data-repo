@@ -181,8 +181,8 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb) ";
+        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties, global_file_ids) "
+            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb, :global_file_ids) ";
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
@@ -201,7 +201,8 @@ public class SnapshotDao {
             .addValue("flightid", flightId)
             .addValue("creation_information", creationInfo)
             .addValue(
-                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()));
+                "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
+            .addValue("global_file_ids", snapshot.hasGlobalFileIds());
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {
@@ -414,6 +415,7 @@ public class SnapshotDao {
                           stringToSnapshotRequestContentsModel(
                               rs.getString("creation_information")))
                       .consentCode(rs.getString("consent_code"))
+                      .globalFileIds(rs.getBoolean("global_file_ids"))
                       .properties(
                           DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
                       .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class)));
@@ -649,7 +651,9 @@ public class SnapshotDao {
 
     String sql =
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-            + "snapshot_source.id, dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
+            + "snapshot.global_file_ids, "
+            + "snapshot_source.id, "
+            + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
             + summaryCloudPlatformQuery
             + snapshotSourceStorageQuery
             + "FROM snapshot "
@@ -822,7 +826,8 @@ public class SnapshotDao {
           .storageAccount(rs.getString("storage_account_name"))
           .consentCode(rs.getString("consent_code"))
           .phsId(rs.getString("phs_id"))
-          .selfHosted(rs.getBoolean("self_hosted"));
+          .selfHosted(rs.getBoolean("self_hosted"))
+          .globalFileIds(rs.getBoolean("global_file_ids"));
     }
   }
 }

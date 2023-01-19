@@ -15,14 +15,12 @@ import java.util.UUID;
 
 public class CreateSnapshotByRowIdParquetFilesAzureStep
     extends CreateSnapshotParquetFilesAzureStep {
-  private final SnapshotRequestModel snapshotReq;
 
   public CreateSnapshotByRowIdParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotReq) {
-    super(azureSynapsePdao, snapshotService);
-    this.snapshotReq = snapshotReq;
+    super(azureSynapsePdao, snapshotService, snapshotReq);
   }
 
   @Override
@@ -36,6 +34,7 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep
         snapshotId,
         IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
         IngestUtils.getTargetDataSourceName(context.getFlightId()),
-        rowIdModel);
+        rowIdModel,
+        snapshotReq.isGlobalFileIds());
   }
 }

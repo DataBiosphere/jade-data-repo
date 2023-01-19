@@ -195,6 +195,7 @@ jobs:
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: 'Re-obtain GKE Credentials'
+        if: always()
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
           cluster_name: ${{ env.K8_CLUSTER }}

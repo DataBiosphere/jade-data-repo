@@ -161,7 +161,9 @@ public class SnapshotCreateFlight extends Flight {
               new CreateSnapshotPrimaryDataFullViewGcpStep(
                   bigQuerySnapshotPdao, datasetService, snapshotDao, snapshotService, snapshotReq));
         } else if (platform.isAzure()) {
-          addStep(new CreateSnapshotParquetFilesAzureStep(azureSynapsePdao, snapshotService));
+          addStep(
+              new CreateSnapshotParquetFilesAzureStep(
+                  azureSynapsePdao, snapshotService, snapshotReq));
         }
         break;
       case BYQUERY:

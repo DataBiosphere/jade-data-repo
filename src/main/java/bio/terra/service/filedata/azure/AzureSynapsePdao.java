@@ -560,7 +560,8 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      String translatedQuery)
+      String translatedQuery,
+      Boolean isGlobalFieldIds)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -586,7 +587,8 @@ public class AzureSynapsePdao {
             IngestUtils.getSnapshotSliceParquetFilePath(snapshotId, rootTableName, "root"),
             datasetDataSourceName,
             snapshotDataSourceName,
-            columns);
+            columns,
+            isGlobalFieldIds);
 
     queryTemplate.add("query", translatedQuery);
     int rows;
@@ -616,7 +618,8 @@ public class AzureSynapsePdao {
         snapshotDataSourceName,
         rootTableId,
         walkRelationships,
-        tableRowCounts);
+        tableRowCounts,
+        isGlobalFieldIds);
 
     return tableRowCounts;
   }
@@ -643,8 +646,7 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       SnapshotRequestAssetModel requestModel,
-      Boolean isGlobalFieldIds)
-      throws SQLException {
+      Boolean isGlobalFieldIds) {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     // First handle root table

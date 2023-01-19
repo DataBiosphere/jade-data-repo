@@ -40,7 +40,7 @@ public class CreateSnapshotPrimaryDataQueryAzureStep extends CreateSnapshotParqu
       DatasetService datasetService,
       AuthenticatedUserRequest userRequest,
       CreateSnapshotPrimaryDataQueryUtils createSnapshotPrimaryDataQueryUtils) {
-    super(azureSynapsePdao, snapshotService);
+    super(azureSynapsePdao, snapshotService, snapshotReq);
     this.azureSynapsePdao = azureSynapsePdao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
@@ -72,7 +72,8 @@ public class CreateSnapshotPrimaryDataQueryAzureStep extends CreateSnapshotParqu
         snapshotId,
         sourceDatasetDataSourceName,
         IngestUtils.getTargetDataSourceName(context.getFlightId()),
-        sqlQuery);
+        sqlQuery,
+        snapshotReq.isGlobalFileIds());
   }
 
   private String translateSynapseQuery(

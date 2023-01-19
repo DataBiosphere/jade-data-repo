@@ -131,7 +131,6 @@ public class AzureSynapsePdaoConnectedTest {
   @Autowired SynapseUtils synapseUtils;
   @Autowired SnapshotDao snapshotDao;
   @Autowired JsonLoader jsonLoader;
-  @Autowired private ConnectedTestConfiguration testConfig;
 
   @Before
   public void setup() throws Exception {

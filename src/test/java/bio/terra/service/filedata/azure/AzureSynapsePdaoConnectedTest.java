@@ -150,7 +150,7 @@ public class AzureSynapsePdaoConnectedTest {
 
   @After
   public void cleanup() throws Exception {
-    synapseUtils.synapseTestSetup();
+    synapseUtils.synapseTestCleanup();
     connectedOperations.teardown();
   }
 

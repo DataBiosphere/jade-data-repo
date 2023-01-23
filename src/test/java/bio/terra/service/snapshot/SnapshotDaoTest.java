@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -829,5 +830,37 @@ public class SnapshotDaoTest {
         afterUnset.getDuosFirecloudGroupId());
     assertNull(
         "snapshot's DUOS Firecloud group is null after unset", afterUnset.getDuosFirecloudGroup());
+  }
+
+  @Test
+  public void getSnapshotIds() {
+    assertThat(
+        "No snapshots in DB yield an empty UUID list", snapshotDao.getSnapshotIds(), empty());
+
+    snapshotIdList = new ArrayList<>();
+    String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
+    String flightId = "getSnapshotIds_flightId";
+    for (int i = 0; i < 3; i++) {
+      snapshotRequest.name(makeName(snapshotName, i));
+      UUID tempSnapshotId = UUID.randomUUID();
+      Snapshot snapshot =
+          snapshotService
+              .makeSnapshotFromSnapshotRequest(snapshotRequest)
+              .projectResourceId(projectId)
+              .id(tempSnapshotId);
+      snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
+      snapshotIdList.add(tempSnapshotId);
+    }
+
+    assertThat(
+        "Locked snapshot UUIDs are returned",
+        snapshotDao.getSnapshotIds(),
+        containsInAnyOrder(snapshotIdList.toArray()));
+
+    snapshotIdList.stream().forEach(id -> snapshotDao.unlock(id, flightId));
+    assertThat(
+        "Unlocked snapshot UUIDs are returned",
+        snapshotDao.getSnapshotIds(),
+        containsInAnyOrder(snapshotIdList.toArray()));
   }
 }

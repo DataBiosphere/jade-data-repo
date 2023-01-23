@@ -353,15 +353,42 @@ public final class IngestUtils {
     return "parquet/" + targetTableName + "/" + flightId + ".parquet";
   }
 
-  public static String getSnapshotParquetFilePath(UUID snapshotId, String targetTableName) {
-    return "parquet/" + snapshotId + "/" + targetTableName + ".parquet";
+  /**
+   * Returns wildcard path that can be used to retrieve all data for a snapshot table A snapshot
+   * table can be represented by multiple parquet files in a snapshot table directory
+   *
+   * @param snapshotId
+   * @param targetTableName
+   * @return
+   */
+  public static String getSnapshotParquetFilePathForQuery(UUID snapshotId, String targetTableName) {
+    return "parquet/" + snapshotId + "/" + targetTableName + "/*.parquet/*";
+  }
+
+  /**
+   * Returns full path and name of a parquet file representing a slice of a snapshot. There can be
+   * multiple slices/parquet files per snapshot table. All parquet files within the table directory
+   * represent the data in a snapshot table.
+   *
+   * @param snapshotId
+   * @param targetTableName Snapshot table name that will be used as a directory
+   * @param snapshotSliceName Name of parquet file
+   * @return
+   */
+  public static String getSnapshotSliceParquetFilePath(
+      UUID snapshotId, String targetTableName, String snapshotSliceName) {
+    return "parquet/" + snapshotId + "/" + targetTableName + "/" + snapshotSliceName + ".parquet";
+  }
+
+  public static String getSourceDatasetParquetFilePath(String tableName) {
+    return "parquet/" + tableName + "/*/*.parquet";
   }
 
   public static String getSourceDatasetParquetFilePath(String tableName, String datasetFlightId) {
     if (datasetFlightId != null) {
       return IngestUtils.getParquetFilePath(tableName, datasetFlightId);
     }
-    return "parquet/" + tableName + "/*/*.parquet";
+    return getSourceDatasetParquetFilePath(tableName);
   }
 
   public static String formatSnapshotTableName(UUID snapshotId, String tableName) {

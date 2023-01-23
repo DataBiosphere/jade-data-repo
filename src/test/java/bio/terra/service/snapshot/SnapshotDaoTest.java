@@ -42,19 +42,21 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.duos.DuosDao;
+import bio.terra.service.filedata.DrsId;
+import bio.terra.service.filedata.DrsIdDao;
+import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
-import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,6 +89,8 @@ public class SnapshotDaoTest {
   @Autowired private JsonLoader jsonLoader;
 
   @Autowired private DuosDao duosDao;
+
+  @Autowired private DrsIdDao drsIdDao;
 
   private Dataset dataset;
   private UUID datasetId;
@@ -167,17 +171,10 @@ public class SnapshotDaoTest {
     duosDao.deleteFirecloudGroup(duosFirecloudGroupId);
   }
 
-  @Test(expected = MissingRowCountsException.class)
-  public void testMissingRowCounts() throws Exception {
-    Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-    snapshot.projectResourceId(projectId);
-    snapshotDao.updateSnapshotTableRowCounts(snapshot, Collections.emptyMap());
-  }
-
   private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
     snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
-    snapshotDao.unlock(snapshotId, flightId);
-    return snapshotDao.retrieveSnapshot(snapshotId);
+    snapshotDao.unlock(snapshot.getId(), flightId);
+    return snapshotDao.retrieveSnapshot(snapshot.getId());
   }
 
   @Test
@@ -833,6 +830,90 @@ public class SnapshotDaoTest {
   }
 
   @Test
+  public void recordDrsIds() {
+    // This test runs through a couple of scenarios.  It's in one method to avoid the setup overhead
+    // Initialize test
+    snapshotIdList = new ArrayList<>();
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    Snapshot snapshot1 =
+        insertAndRetrieveSnapshot(
+            snapshotService
+                .makeSnapshotFromSnapshotRequest(snapshotRequest)
+                .projectResourceId(projectId)
+                .id(UUID.randomUUID()),
+            "snp1flightid");
+    snapshotIdList.add(snapshot1.getId());
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+    Snapshot snapshot2 =
+        insertAndRetrieveSnapshot(
+            snapshotService
+                .makeSnapshotFromSnapshotRequest(snapshotRequest)
+                .projectResourceId(projectId)
+                .id(UUID.randomUUID()),
+            "snp2flightid");
+    snapshotIdList.add(snapshot2.getId());
+
+    List<DrsId> drsIds =
+        IntStream.range(0, 1000)
+            .boxed()
+            .map(i -> DrsIdService.fromUri("drs://home/v2_" + i))
+            .toList();
+
+    // Load drs ids (attempt loading duplicates)
+    assertThat(
+        "drsIds were inserted into snp1",
+        drsIdDao.recordDrsIdToSnapshot(snapshot1.getId(), drsIds),
+        equalTo(1000L));
+    assertThat(
+        "drsIds were ignored on reinsert into snp1",
+        drsIdDao.recordDrsIdToSnapshot(snapshot1.getId(), drsIds),
+        equalTo(0L));
+
+    assertThrows(
+        "can't insert id for an invalid snapshot",
+        Exception.class,
+        () -> drsIdDao.recordDrsIdToSnapshot(UUID.randomUUID(), drsIds));
+
+    // A subset of drs ids are in snapshot 2
+    assertThat(
+        "drsIds were inserted into snp2",
+        drsIdDao.recordDrsIdToSnapshot(snapshot2.getId(), drsIds.subList(0, 100)),
+        equalTo(100L));
+    assertThat(
+        "new drsIds were inserted into snp2",
+        drsIdDao.recordDrsIdToSnapshot(snapshot2.getId(), drsIds.subList(50, 150)),
+        equalTo(50L));
+
+    // Drs IDs are linked to correct snapshots
+    assertThat(
+        "lower numbered drs id is in snapshot 1 and snapshot 2",
+        drsIdDao.retrieveReferencedSnapshotIds(drsIds.get(0)),
+        containsInAnyOrder(snapshot1.getId(), snapshot2.getId()));
+
+    // Drs IDs are linked to correct snapshots
+    assertThat(
+        "higher numbered drs id is in snapshot 1 only",
+        drsIdDao.retrieveReferencedSnapshotIds(drsIds.get(500)),
+        containsInAnyOrder(snapshot1.getId()));
+
+    // Deleting snapshot 1 removes entries
+    assertThat(
+        "all 1000 entries removed when deleting the first snapshot",
+        drsIdDao.deleteDrsIdToSnapshotsBySnapshot(snapshot1.getId()),
+        equalTo(1000L));
+    assertThat(
+        "lower numbered drs id is now only in snapshot 2",
+        drsIdDao.retrieveReferencedSnapshotIds(drsIds.get(0)),
+        containsInAnyOrder(snapshot2.getId()));
+
+    // Deleting snapshot 2 removes entries
+    assertThat(
+        "all 150 entries removed when deleting the second snapshot",
+        drsIdDao.deleteDrsIdToSnapshotsBySnapshot(snapshot2.getId()),
+        equalTo(150L));
+  }
+
+  @Test
   public void getSnapshotIds() {
     assertThat(
         "No snapshots in DB yield an empty UUID list", snapshotDao.getSnapshotIds(), empty());
@@ -862,5 +943,5 @@ public class SnapshotDaoTest {
         "Unlocked snapshot UUIDs are returned",
         snapshotDao.getSnapshotIds(),
         containsInAnyOrder(snapshotIdList.toArray()));
-  }
+    }
 }

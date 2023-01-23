@@ -31,8 +31,8 @@ import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
+import bio.terra.service.tabulardata.WalkRelationship;
 import bio.terra.service.tabulardata.google.BigQueryProject;
-import bio.terra.service.tabulardata.google.WalkRelationship;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -138,7 +138,7 @@ public class BigQuerySnapshotPdao {
 
     AssetSpecification asset = source.getAssetSpecification();
     DatasetTable rootTable = asset.getRootTable().getTable();
-    String rootTableId = rootTable.getId().toString();
+    UUID rootTableId = rootTable.getId();
 
     if (rowIds.size() > 0) {
       ST sqlTemplate = new ST(loadRootRowIdsTemplate);
@@ -618,7 +618,7 @@ public class BigQuerySnapshotPdao {
       // and thus matches the PDAO_ROW_ID_COLUMN
       AssetTable rootAssetTable = assetSpecification.getRootTable();
       DatasetTable rootTable = rootAssetTable.getTable();
-      String rootTableId = rootTable.getId().toString();
+      UUID rootTableId = rootTable.getId();
 
       ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
       sqlTemplate.add("snapshotProject", snapshotProjectId);
@@ -934,51 +934,30 @@ public class BigQuerySnapshotPdao {
       String snapshotProjectId,
       Snapshot snapshot,
       List<WalkRelationship> walkRelationships,
-      String startTableId,
+      UUID startTableId,
       BigQuery snapshotBigQuery,
       Instant filterBefore)
       throws InterruptedException {
     for (WalkRelationship relationship : walkRelationships) {
-      if (relationship.isVisited()) {
-        continue;
+      if (relationship.visitRelationship(startTableId)) {
+        storeRowIdsForRelatedTable(
+            datasetProjectId,
+            datasetBqDatasetName,
+            snapshotProjectId,
+            snapshot,
+            relationship,
+            snapshotBigQuery,
+            filterBefore);
+        walkRelationships(
+            datasetProjectId,
+            datasetBqDatasetName,
+            snapshotProjectId,
+            snapshot,
+            walkRelationships,
+            relationship.getToTableId(),
+            snapshotBigQuery,
+            filterBefore);
       }
-
-      // NOTE: setting the direction tells the WalkRelationship to change its meaning of from and
-      // to.
-      // When constructed, it is always in the FROM_TO direction.
-      if (StringUtils.equals(startTableId, relationship.getFromTableId())) {
-        relationship.setDirection(WalkRelationship.WalkDirection.FROM_TO);
-      } else if (StringUtils.equals(startTableId, relationship.getToTableId())) {
-        relationship.setDirection(WalkRelationship.WalkDirection.TO_FROM);
-      } else {
-        // This relationship is not connected to the start table
-        continue;
-      }
-      logger.info(
-          "The relationship is being set from column {} in table {} to column {} in table {}",
-          relationship.getFromColumnName(),
-          relationship.getFromTableName(),
-          relationship.getToColumnName(),
-          relationship.getToTableName());
-
-      relationship.setVisited();
-      storeRowIdsForRelatedTable(
-          datasetProjectId,
-          datasetBqDatasetName,
-          snapshotProjectId,
-          snapshot,
-          relationship,
-          snapshotBigQuery,
-          filterBefore);
-      walkRelationships(
-          datasetProjectId,
-          datasetBqDatasetName,
-          snapshotProjectId,
-          snapshot,
-          walkRelationships,
-          relationship.getToTableId(),
-          snapshotBigQuery,
-          filterBefore);
     }
   }
 
@@ -1182,8 +1161,6 @@ public class BigQuerySnapshotPdao {
                 throw new PdaoException(
                     "No matching map table for snapshot table " + table.getName());
               }
-              String snapshotId = snapshot.getId().toString();
-
               ST sqlTemplate = new ST(createViewsTemplate);
               sqlTemplate.add("datasetProject", datasetProjectId);
               sqlTemplate.add("snapshotProject", snapshotProjectId);
@@ -1196,7 +1173,7 @@ public class BigQuerySnapshotPdao {
                   .forEach(
                       c -> {
                         sqlTemplate.add("columns", c.getName());
-                        sqlTemplate.add("mappedColumns", sourceSelectSql(snapshotId, c, mapTable));
+                        sqlTemplate.add("mappedColumns", sourceSelectSql(snapshot, c, mapTable));
                       });
 
               // create the view
@@ -1238,7 +1215,7 @@ public class BigQuerySnapshotPdao {
    * any consequences downstream to DRS clients.
    */
   private String sourceSelectSql(
-      String snapshotId, Column targetColumn, SnapshotMapTable mapTable) {
+      Snapshot snapshot, Column targetColumn, SnapshotMapTable mapTable) {
     // In the future, there may not be a column map for a given target column; it might not exist
     // in the table. The logic here covers these cases:
     // 1) no source column: supply NULL
@@ -1258,7 +1235,12 @@ public class BigQuerySnapshotPdao {
 
       if (mapColumn.getFromColumn().isFileOrDirRef()) {
 
-        String drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshotId + "_'";
+        String drsPrefix;
+        if (snapshot.hasGlobalFileIds()) {
+          drsPrefix = "'drs://" + datarepoDnsName + "/v2_'";
+        } else {
+          drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshot.getId() + "_'";
+        }
 
         if (targetColumn.isArrayOf()) {
           return "ARRAY(SELECT CONCAT("

@@ -1,11 +1,10 @@
 package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
+import bio.terra.common.SynapseColumn;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
 
 public class AssetTable {
   private DatasetTable datasetTable;
@@ -29,13 +28,10 @@ public class AssetTable {
     return this;
   }
 
-  public Optional<Column> getDatasetColumnByName(String name) {
-    for (AssetColumn assetColumn : getColumns()) {
-      Column datasetColumn = assetColumn.getDatasetColumn();
-      if (StringUtils.equals(name, datasetColumn.getName())) {
-        return Optional.of(datasetColumn);
-      }
-    }
-    return Optional.empty();
+  public List<SynapseColumn> getSynapseColumns() {
+    return columns.stream()
+        .map(AssetColumn::getDatasetColumn)
+        .map(Column::toSynapseColumn)
+        .toList();
   }
 }

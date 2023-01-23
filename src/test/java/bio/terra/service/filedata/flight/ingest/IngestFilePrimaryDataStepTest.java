@@ -3,17 +3,24 @@ package bio.terra.service.filedata.flight.ingest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoFileCopyException;
+import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.FileIdService;
 import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
 import bio.terra.service.filedata.exception.InvalidUserProjectException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
@@ -27,6 +34,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -35,11 +43,21 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Unit.class)
 public class IngestFilePrimaryDataStepTest extends TestCase {
 
+  private static final UUID RANDOM_FILE_ID = UUID.randomUUID();
+
+  private static final FileLoadModel FILE_LOAD_MODEL =
+      new FileLoadModel()
+          .loadTag("lt")
+          .sourcePath("gs://bucket/path/file.txt")
+          .targetPath("/foo/bar/baz.txt");
+
   @MockBean private GcsPdao gcsPdao;
 
   @MockBean private Dataset dataset;
 
   @MockBean private ConfigurationService configService;
+
+  @SpyBean private FileIdService fileIdService;
 
   private IngestFilePrimaryDataStep step;
 
@@ -53,10 +71,11 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
     FlightMap inputParameters = new FlightMap();
     inputParameters.put(
         FileMapKeys.BUCKET_INFO, new GoogleBucketResource().resourceId(UUID.randomUUID()));
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), FILE_LOAD_MODEL);
     when(flightContext.getInputParameters()).thenReturn(inputParameters);
 
     FlightMap workingMap = new FlightMap();
-    workingMap.put(FileMapKeys.FILE_ID, UUID.randomUUID().toString());
+    workingMap.put(FileMapKeys.FILE_ID, RANDOM_FILE_ID.toString());
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
 
     GoogleProjectResource projectResource =
@@ -145,5 +164,49 @@ public class IngestFilePrimaryDataStepTest extends TestCase {
             "Step throws unretryable exception");
     verify(gcsPdao, times(1)).copyFile(any(), any(), any(), any());
     assertThat("Error message reflects cause", thrown.getMessage(), equalTo(errorMessage));
+  }
+
+  @Test
+  public void testThatFileIdIsProperlyCalculatedWhenPredictable() {
+    // This is an ID that is a function of size, checksum and path of the file
+    UUID predictableFileId = UUID.fromString("762d37d3-dccc-3e61-a0fd-c3768f3a975a");
+
+    // Dataset is externally hosted by default
+    FSFileInfo fileInfo = mock(FSFileInfo.class);
+    when(fileInfo.getFileId()).thenReturn(predictableFileId.toString());
+    when(fileInfo.getSize()).thenReturn(123L);
+    when(fileInfo.getChecksumMd5()).thenReturn("foo");
+
+    when(gcsPdao.copyFile(any(), any(), any(), any())).thenReturn(fileInfo);
+
+    // Dataset uses predictable file ids
+    when(dataset.hasPredictableFileIds()).thenReturn(true);
+
+    step.doStep(flightContext);
+
+    assertThat(
+        "File ID is predicable",
+        flightContext.getWorkingMap().get(FileMapKeys.FILE_ID, UUID.class),
+        equalTo(predictableFileId));
+  }
+
+  @Test
+  public void testThatFileIdIsProperlyCalculatedWhenRandom() {
+    // Dataset is externally hosted by default
+    FSFileInfo fileInfo = mock(FSFileInfo.class);
+    when(fileInfo.getSize()).thenReturn(123L);
+    when(fileInfo.getChecksumMd5()).thenReturn("foo");
+
+    when(gcsPdao.copyFile(any(), any(), any(), any())).thenReturn(fileInfo);
+
+    // Dataset uses predictable file ids
+    when(dataset.hasPredictableFileIds()).thenReturn(false);
+
+    step.doStep(flightContext);
+
+    assertThat(
+        "File ID is random",
+        flightContext.getWorkingMap().get(FileMapKeys.FILE_ID, UUID.class),
+        equalTo(RANDOM_FILE_ID));
   }
 }

@@ -31,7 +31,6 @@ import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import java.util.UUID;
@@ -40,7 +39,7 @@ import org.springframework.context.ApplicationContext;
 // The FileIngestFlight is specific to firestore. Another cloud or file system implementation
 // might be quite different and would need a different flight.
 // TODO: Refactor flights when we do the cloud refactor work.
-public class FileIngestFlight extends Flight {
+public class FileIngestFlight extends FileIngestTypeFlight {
 
   public FileIngestFlight(FlightMap inputParameters, Object applicationContext) {
     super(inputParameters, applicationContext);
@@ -141,7 +140,6 @@ public class FileIngestFlight extends Flight {
               gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq),
           getDefaultExponentialBackoffRetryRule());
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-      addStep(new IngestFileDirectoryStep(fileDao, dataset), randomBackoffRetry);
       if (!dataset.isSelfHosted()) {
         addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
         addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
@@ -150,7 +148,8 @@ public class FileIngestFlight extends Flight {
             randomBackoffRetry);
         addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
       }
-      addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService), randomBackoffRetry);
+      addFileCopyAndDirectoryRecordStepsGcp(
+          fileDao, gcsPdao, configService, dataset, randomBackoffRetry);
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {
       addStep(
@@ -159,8 +158,8 @@ public class FileIngestFlight extends Flight {
           new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
           randomBackoffRetry);
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset), randomBackoffRetry);
-      addStep(new IngestFileAzureDirectoryStep(azureTableDao, dataset), randomBackoffRetry);
-      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService, userReq));
+      addFileCopyAndDirectoryRecordStepsAzure(
+          azureBlobStorePdao, configService, azureTableDao, userReq, dataset, randomBackoffRetry);
       addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), randomBackoffRetry);
     }
     addStep(new LoadUnlockStep(loadService));

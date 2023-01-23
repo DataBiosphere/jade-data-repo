@@ -23,6 +23,8 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.FSItem;
+import bio.terra.service.filedata.FileIdService;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
@@ -116,6 +118,7 @@ public class GcsPdao implements CloudFileReader {
   private final Environment environment;
   private final GoogleResourceManagerService resourceManagerService;
   private final String tdrServiceAccountEmail;
+  private final FileIdService fileIdService;
 
   @Autowired
   public GcsPdao(
@@ -128,7 +131,8 @@ public class GcsPdao implements CloudFileReader {
       IamProviderInterface iamClient,
       Environment environment,
       GoogleResourceManagerService resourceManagerService,
-      @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail) {
+      @Qualifier("tdrServiceAccountEmail") String tdrServiceAccountEmail,
+      FileIdService fileIdService) {
     this.gcsProjectFactory = gcsProjectFactory;
     this.resourceService = resourceService;
     this.fileDao = fileDao;
@@ -139,6 +143,7 @@ public class GcsPdao implements CloudFileReader {
     this.environment = environment;
     this.resourceManagerService = resourceManagerService;
     this.tdrServiceAccountEmail = tdrServiceAccountEmail;
+    this.fileIdService = fileIdService;
   }
 
   public Storage storageForProjectId(String projectId) {
@@ -428,10 +433,24 @@ public class GcsPdao implements CloudFileReader {
       String targetProjectId = bucketResource.projectIdForBucket();
       Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), targetProjectId);
 
+      String effectiveFileId;
+      if (fileId == null) {
+        effectiveFileId =
+            fileIdService
+                .calculateFileId(
+                    dataset,
+                    new FSItem()
+                        .path(fileLoadModel.getTargetPath())
+                        .checksumMd5(sourceBlob.getMd5ToHexString())
+                        .size(sourceBlob.getSize()))
+                .toString();
+      } else {
+        effectiveFileId = fileId;
+      }
       // Read the leaf node of the source file to use as a way to name the file we store
       String sourceFileName = getLastNameFromPath(sourceBlob.getName());
       // Our path is /<dataset-id>/<file-id>/<source-file-name>
-      String targetPath = dataset.getId().toString() + "/" + fileId + "/" + sourceFileName;
+      String targetPath = dataset.getId().toString() + "/" + effectiveFileId + "/" + sourceFileName;
 
       // The documentation is vague whether or not it is important to copy by chunk. One set of
       // examples does it and another doesn't.
@@ -468,7 +487,7 @@ public class GcsPdao implements CloudFileReader {
       String gspath = String.format("gs://%s/%s", bucketResource.getName(), targetPath);
 
       return new FSFileInfo()
-          .fileId(fileId)
+          .fileId(effectiveFileId)
           .createdDate(createTime.toString())
           .cloudPath(gspath)
           .checksumCrc32c(targetBlob.getCrc32cToHexString())

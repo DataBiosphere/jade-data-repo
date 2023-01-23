@@ -249,14 +249,22 @@ public class FireStoreDirectoryDao {
     return missingIds;
   }
 
+  public List<FireStoreDirectoryEntry> enumerateAll(Firestore firestore, String collectionId)
+      throws InterruptedException {
+    CollectionReference dirColl = firestore.collection(collectionId);
+    return query(dirColl.orderBy("path"));
+  }
   // -- private methods --
 
   List<FireStoreDirectoryEntry> enumerateDirectory(
       Firestore firestore, String collectionId, String dirPath) throws InterruptedException {
+    CollectionReference dirColl = firestore.collection(collectionId);
+    return query(dirColl.whereEqualTo("path", dirPath));
+  }
+
+  List<FireStoreDirectoryEntry> query(Query query) throws InterruptedException {
 
     int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
-    CollectionReference dirColl = firestore.collection(collectionId);
-    Query query = dirColl.whereEqualTo("path", dirPath);
     FireStoreBatchQueryIterator queryIterator =
         new FireStoreBatchQueryIterator(query, batchSize, fireStoreUtils);
 
@@ -367,7 +375,8 @@ public class FireStoreDirectoryDao {
       String datasetDirName,
       Firestore snapshotFirestore,
       String snapshotId,
-      List<String> fileIdList)
+      List<String> fileIdList,
+      boolean usesGlobalFileIds)
       throws InterruptedException {
 
     int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
@@ -406,11 +415,18 @@ public class FireStoreDirectoryDao {
 
       // Create snapshot file system entries
       List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
-      for (FireStoreDirectoryEntry datasetEntry : datasetEntries) {
-        snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
-      }
-      for (FireStoreDirectoryEntry datasetEntry : datasetDirectoryEntries) {
-        snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+      // I don't really think that we need the dataset base path since we only support sourcing
+      // from a single dataset but will leave for backwards compatibility
+      if (usesGlobalFileIds) {
+        snapshotEntries.addAll(datasetEntries);
+        snapshotEntries.addAll(datasetDirectoryEntries);
+      } else {
+        for (FireStoreDirectoryEntry datasetEntry : datasetEntries) {
+          snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+        }
+        for (FireStoreDirectoryEntry datasetEntry : datasetDirectoryEntries) {
+          snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+        }
       }
 
       // Store the batch of entries. This will override existing entries,

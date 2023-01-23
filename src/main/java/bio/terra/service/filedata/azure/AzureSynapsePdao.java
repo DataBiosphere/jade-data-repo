@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.azure;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_PARQUET_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 
@@ -12,10 +13,14 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableDataType;
+import bio.terra.service.dataset.AssetColumn;
+import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidColumnException;
 import bio.terra.service.dataset.exception.InvalidTableException;
@@ -28,6 +33,8 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
+import bio.terra.service.snapshot.exception.InvalidSnapshotException;
+import bio.terra.service.tabulardata.WalkRelationship;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -56,6 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -103,9 +111,17 @@ public class AzureSynapsePdao {
                  <columns:{c|
                     <if(c.isFileType)>
                        <if(c.arrayOf)>
-                         (SELECT '[' + STRING_AGG('"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                         <if(isGlobalFileIds)>
+                           (SELECT '[' + STRING_AGG('"drs://<hostname>/v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                         <else>
+                           (SELECT '[' + STRING_AGG('"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                         <endif>
                        <else>
-                         'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]
+                         <if(isGlobalFileIds)>
+                           'drs://<hostname>/v2_' + [<c.name>] AS [<c.name>]
+                         <else>
+                           'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]
+                         <endif>
                        <endif>
                     <else>
                        <c.name> AS [<c.name>]
@@ -114,10 +130,59 @@ public class AzureSynapsePdao {
               FROM OPENROWSET(
                  BULK '<ingestFileName>',
                  DATA_SOURCE = '<ingestFileDataSourceName>',
-                 FORMAT = 'parquet') AS rows """;
+                 FORMAT = 'parquet') AS rows
+              """;
 
   private static final String createSnapshotTableByRowIdTemplate =
       createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
+
+  private static final String createSnapshotTableArrayRootColumnClause =
+      """
+          <if(isRootColumnArray)>
+           CROSS APPLY OPENJSON(<rootColumn>) WITH (value <arrayRootColumnType> '$')
+          <endif>
+          """;
+  private static final String createSnapshotTableArrayFromColumnClause =
+      """
+          <if(isFromColumnArray)>
+           CROSS APPLY OPENJSON(<fromTableColumn>) WITH (value <arrayFromColumnType> '$')
+          <endif>
+          """;
+  private static final String createSnapshotTableByAssetTemplate =
+      createSnapshotTableTemplate
+          + createSnapshotTableArrayRootColumnClause
+          + " WHERE <if(isRootColumnArray)>value<else>rows.<rootColumn><endif> in (:rootValues);";
+
+  private static final String createSnapshotTableWalkRelationshipTemplate =
+      createSnapshotTableTemplate
+          + createSnapshotTableArrayRootColumnClause
+          + """
+            WHERE
+            (<if(isRootColumnArray)>value<else>rows.<toTableColumn><endif> IN
+            (
+             SELECT <if(isFromColumnArray)>value<else><fromTableColumn><endif> FROM
+                OPENROWSET(
+                  BULK '<fromTableParquetFileLocation>',
+                  DATA_SOURCE = '<snapshotDataSource>',
+                  FORMAT = 'parquet'
+                ) as from_rows
+          """
+          + createSnapshotTableArrayFromColumnClause
+          + "   ))";
+
+  private static final String createSnapshotTableWithExistingRowsTemplate =
+      createSnapshotTableWalkRelationshipTemplate
+          + """
+         AND (rows.datarepo_row_id NOT IN
+             (
+              SELECT datarepo_row_id FROM
+                  OPENROWSET(
+                    BULK '<toTableParquetFileLocation>',
+                    DATA_SOURCE = '<snapshotDataSource>',
+                    FORMAT = 'parquet'
+                  ) AS already_existing_to_rows
+            ));
+          """;
 
   private static final String createSnapshotRowIdTableTemplate =
       """
@@ -131,8 +196,8 @@ public class AzureSynapsePdao {
       """
       SELECT '<tableId>' as <tableIdColumn>, <dataRepoRowIdColumn>
         FROM OPENROWSET(
-                 BULK '<datasetParquetFileName>',
-                 DATA_SOURCE = '<datasetDataSourceName>',
+                 BULK '<snapshotParquetFileName>',
+                 DATA_SOURCE = '<snapshotDataSourceName>',
                  FORMAT = 'parquet') AS rows""";
 
   private static final String mergeLiveViewTablesTemplate =
@@ -209,7 +274,7 @@ public class AzureSynapsePdao {
       SELECT <columns:{c|tbl.[<c>]}; separator=",">
         FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
                      <columns:{c|rows.[<c>]}; separator=",">
-                FROM OPENROWSET(BULK 'parquet/*/<tableName>.parquet/*',
+                FROM OPENROWSET(BULK 'parquet/*/<tableName>/*.parquet/*',
                                 DATA_SOURCE = '<datasource>',
                                 FORMAT='PARQUET') AS rows
                 WHERE (<userFilter>)
@@ -442,12 +507,9 @@ public class AzureSynapsePdao {
   public void createSnapshotRowIdsParquetFile(
       List<SnapshotTable> tables,
       UUID snapshotId,
-      String datasetDataSourceName,
       String snapshotDataSourceName,
-      Map<String, Long> tableRowCounts,
-      String datasetFlightId)
+      Map<String, Long> tableRowCounts)
       throws SQLException {
-
     // Get all row ids from the dataset
     List<String> selectStatements = new ArrayList<>();
     for (SnapshotTable table : tables) {
@@ -456,25 +518,30 @@ public class AzureSynapsePdao {
             "Table {} is not contained in the TableRowCounts map and therefore will be skipped in the snapshotRowIds parquet file.",
             table.getName());
       } else if (tableRowCounts.get(table.getName()) > 0) {
-        String datasetParquetFileName =
-            IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
+        String snapshotParquetFileName =
+            IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, table.getName());
 
         ST sqlTableTemplate =
             new ST(getLiveViewTableTemplate)
                 .add("tableId", table.getId().toString())
                 .add("tableIdColumn", PDAO_TABLE_ID_COLUMN)
                 .add("dataRepoRowIdColumn", PDAO_ROW_ID_COLUMN)
-                .add("datasetParquetFileName", datasetParquetFileName)
-                .add("datasetDataSourceName", datasetDataSourceName);
+                .add("snapshotParquetFileName", snapshotParquetFileName)
+                .add("snapshotDataSourceName", snapshotDataSourceName);
         selectStatements.add(sqlTableTemplate.render());
       }
+    }
+    if (selectStatements.isEmpty()) {
+      throw new InvalidSnapshotException("Snapshot cannot be empty.");
     }
     ST sqlMergeTablesTemplate =
         new ST(mergeLiveViewTablesTemplate).add("selectStatements", selectStatements);
 
     // Create row id table
     String rowIdTableName = IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE);
-    String rowIdParquetFile = IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
+    String rowIdParquetFile =
+        IngestUtils.getSnapshotSliceParquetFilePath(
+            snapshotId, PDAO_ROW_ID_TABLE, PDAO_ROW_ID_PARQUET_NAME);
     ST sqlCreateRowIdTable =
         new ST(createSnapshotRowIdTableTemplate)
             .add("tableName", rowIdTableName)
@@ -485,13 +552,266 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
 
+  /**
+   * Create Snapshot by Asset. First, create parquet file for root table, including only rows that
+   * match the root values Then, walk relationships defined by asset, creating a parquet file per
+   * relationship
+   *
+   * @param assetSpec Asset Specification used to define the root table and which tables and columns
+   *     to include in snapshot
+   * @param snapshotId UUID associated with destination snapshot
+   * @param datasetDataSourceName Data source associated with source data from dataset
+   * @param snapshotDataSourceName Data source associated with destination snapshot
+   * @param requestModel Specifies the root values which determines which rows to include in root
+   *     table snapshot
+   * @return tableRowCounts - hash map of snapshot table names and number of rows included in
+   *     snapshot
+   * @throws SQLException
+   */
+  public Map<String, Long> createSnapshotParquetFilesByAsset(
+      AssetSpecification assetSpec,
+      UUID snapshotId,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      SnapshotRequestAssetModel requestModel,
+      Boolean isGlobalFieldIds)
+      throws SQLException {
+    Map<String, Long> tableRowCounts = new HashMap<>();
+
+    // First handle root table
+    AssetTable rootTable = assetSpec.getRootTable();
+    String rootTableName = rootTable.getTable().getName();
+
+    // Get columns to include for root table
+    List<SynapseColumn> columns =
+        rootTable.getColumns().stream()
+            .map(c -> c.getDatasetColumn())
+            .collect(Collectors.toList())
+            .stream()
+            .map(Column::toSynapseColumn)
+            .collect(Collectors.toList());
+    ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByAssetTemplate);
+    ST queryTemplate =
+        generateSnapshotParquetCreateQuery(
+            sqlCreateSnapshotTableTemplate,
+            IngestUtils.getSourceDatasetParquetFilePath(rootTable.getTable().getName()),
+            rootTable.getTable().getName(),
+            snapshotId,
+            IngestUtils.getSnapshotSliceParquetFilePath(snapshotId, rootTableName, "root"),
+            datasetDataSourceName,
+            snapshotDataSourceName,
+            columns,
+            isGlobalFieldIds);
+
+    AssetColumn rootColumn = assetSpec.getRootColumn();
+
+    queryTemplate.add("isRootColumnArray", rootColumn.getDatasetColumn().isArrayOf());
+    queryTemplate.add(
+        "arrayRootColumnType",
+        SynapseColumn.translateDataType(
+            rootColumn.getDatasetColumn().getType(), rootColumn.getDatasetColumn().isArrayOf()));
+    queryTemplate.add("rootColumn", rootColumn.getDatasetColumn().getName());
+    String query = queryTemplate.render();
+    MapSqlParameterSource params =
+        new MapSqlParameterSource().addValue("rootValues", requestModel.getRootValues());
+    int rows;
+    try {
+      rows = synapseJdbcTemplate.update(query, params);
+    } catch (DataAccessException ex) {
+      throw new PdaoException(
+          "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case.",
+          ex);
+    }
+
+    tableRowCounts.put(rootTableName, (long) rows);
+    if (rows == 0) {
+      throw new PdaoException(
+          "Snapshot by Asset - No rows included from root table due to root values that were specified. Cannot create entirely empty snapshot.");
+    } else {
+      logger.info("Snapshot by Asset - {} rows included in root table {}", rows, rootTableName);
+    }
+
+    // Then walk relationships
+    UUID rootTableId = rootTable.getTable().getId();
+    List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpec);
+    walkRelationships(
+        snapshotId,
+        assetSpec,
+        datasetDataSourceName,
+        snapshotDataSourceName,
+        rootTableId,
+        walkRelationships,
+        tableRowCounts,
+        isGlobalFieldIds);
+
+    return tableRowCounts;
+  }
+
+  public void walkRelationships(
+      UUID snapshotId,
+      AssetSpecification assetSpec,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      UUID startTableId,
+      List<WalkRelationship> walkRelationships,
+      Map<String, Long> tableRowCounts,
+      Boolean isGlobalFieldIds) {
+    for (WalkRelationship relationship : walkRelationships) {
+      if (relationship.visitRelationship(startTableId)) {
+        createSnapshotParquetFilesByRelationship(
+            snapshotId,
+            assetSpec,
+            relationship,
+            datasetDataSourceName,
+            snapshotDataSourceName,
+            tableRowCounts,
+            isGlobalFieldIds);
+        walkRelationships(
+            snapshotId,
+            assetSpec,
+            datasetDataSourceName,
+            snapshotDataSourceName,
+            relationship.getToTableId(),
+            walkRelationships,
+            tableRowCounts,
+            isGlobalFieldIds);
+      }
+    }
+  }
+
+  /**
+   * Creates a parquet file for a given snapshot table based on relationship, which defines the
+   * 'FROM' and 'TO' table and column. The 'TO' table is the destination snapshot table that will be
+   * represented by the parquet file generated during this method. A JOIN is preformed between the
+   * 'TO' and 'FROM' tables so that only rows related to the FROM table are included in the TO table
+   * snapshot. The number of rows included in the snapshot is recorded in the tableRowCounts map.
+   * NOTE: A table could be designated as the 'TO' table in multiple relationships from different
+   * 'FROM' tables. So, this parquet file is just one of potentially many slices for the destination
+   * snapshot.
+   *
+   * @param snapshotId UUID associated with snapshot for snapshot table
+   * @param assetSpecification Asset Specification that defines which columns should be included in
+   *     the snapshot table
+   * @param relationship Object defining the "FROM" and "TO" snapshot table and column
+   * @param datasetDataSourceName Azure data source associated with parent dataset
+   * @param snapshotDataSourceName Azure data source associated with destination snapshot
+   * @param tableRowCounts Map tracking the number of rows included in each table of the snapshot
+   * @throws SQLException
+   */
+  public void createSnapshotParquetFilesByRelationship(
+      UUID snapshotId,
+      AssetSpecification assetSpecification,
+      WalkRelationship relationship,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      Map<String, Long> tableRowCounts,
+      Boolean isGlobalFieldIds) {
+    String fromTableName = relationship.getFromTableName();
+    String toTableName = relationship.getToTableName();
+    AssetTable toAssetTable = assetSpecification.getAssetTableByName(toTableName);
+    AssetColumn toTableColumn =
+        toAssetTable.getColumns().stream()
+            .filter(col -> col.getDatasetColumn().getName().equals(relationship.getToColumnName()))
+            .findFirst()
+            .orElseThrow();
+    AssetTable fromAssetTable = assetSpecification.getAssetTableByName(fromTableName);
+    AssetColumn fromTableColumn =
+        fromAssetTable.getColumns().stream()
+            .filter(
+                col -> col.getDatasetColumn().getName().equals(relationship.getFromColumnName()))
+            .findFirst()
+            .orElseThrow();
+
+    // If there are no rows in the "from" table's snapshot, then there is nothing to be added
+    // to the "to" snapshot table
+    Long fromTableCount = tableRowCounts.get(fromTableName);
+    if (fromTableCount == null || fromTableCount <= Long.valueOf(0)) {
+      logger.info(
+          "Snapshot by Asset - No rows included in from table {}. Parquet file for snapshot table will not be created.",
+          fromTableName);
+      tableRowCounts.put(toTableName, (long) 0);
+      return;
+    }
+
+    ST queryTemplate =
+        generateSnapshotParquetCreateQuery(
+            buildSnapshotByAssetQueryTemplate(tableRowCounts, toTableName),
+            IngestUtils.getSourceDatasetParquetFilePath(toTableName),
+            toTableName,
+            snapshotId,
+            IngestUtils.getSnapshotSliceParquetFilePath(
+                snapshotId,
+                toTableName,
+                String.format("%s_%s_relationship", fromTableName, toTableName)),
+            datasetDataSourceName,
+            snapshotDataSourceName,
+            toAssetTable.getSynapseColumns(),
+            isGlobalFieldIds);
+
+    queryTemplate.add("rootColumn", relationship.getToColumnName());
+    queryTemplate.add("isRootColumnArray", toTableColumn.getDatasetColumn().isArrayOf());
+    queryTemplate.add(
+        "arrayRootColumnType",
+        SynapseColumn.translateDataType(
+            toTableColumn.getDatasetColumn().getType(),
+            toTableColumn.getDatasetColumn().isArrayOf()));
+    queryTemplate.add("isFromColumnArray", fromTableColumn.getDatasetColumn().isArrayOf());
+    queryTemplate.add(
+        "arrayFromColumnType",
+        SynapseColumn.translateDataType(
+            fromTableColumn.getDatasetColumn().getType(),
+            fromTableColumn.getDatasetColumn().isArrayOf()));
+    queryTemplate.add("toTableColumn", relationship.getToColumnName());
+    queryTemplate.add("fromTableColumn", relationship.getFromColumnName());
+    queryTemplate.add(
+        "fromTableParquetFileLocation",
+        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, fromTableName));
+    queryTemplate.add("snapshotDataSource", snapshotDataSourceName);
+    queryTemplate.add(
+        "toTableParquetFileLocation",
+        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, toTableName));
+    String sql = queryTemplate.render();
+    int rows = 0;
+    try {
+      rows = executeSynapseQuery(sql);
+      logger.info("Snapshot by Asset - {} rows included in table {}", rows, toTableName);
+    } catch (SQLException ex) {
+      logger.warn(
+          "No rows were added to the Snapshot for table {}. This may be because the source dataset was empty or because the rows were filtered out by the query/asset specification defined in the snapshot create request. Exception: {}",
+          toTableName,
+          ex.getMessage());
+    }
+    tableRowCounts.put(toTableName, (long) rows);
+  }
+
+  /**
+   * Select query template depending on whether rows have already been added to snapshot table Since
+   * there could be multiple relationships pointing to the same 'TO' table, We could run this
+   * process multiple times for the same table Add clause to query to avoid rows already included in
+   * snapshot
+   *
+   * @param tableRowCounts Map of snapshot tables and included row counts
+   * @param toTableName Destination snapshot table name
+   * @return String Template for creating snapshot by asset parquet query
+   */
+  @VisibleForTesting
+  ST buildSnapshotByAssetQueryTemplate(Map<String, Long> tableRowCounts, String toTableName) {
+    Long toTableRowCount = tableRowCounts.get(toTableName);
+    boolean toTableAlreadyHasRows = toTableRowCount != null && toTableRowCount > Long.valueOf(0);
+
+    return new ST(
+        toTableAlreadyHasRows
+            ? createSnapshotTableWithExistingRowsTemplate
+            : createSnapshotTableWalkRelationshipTemplate + ";");
+  }
+
   public Map<String, Long> createSnapshotParquetFilesByRowId(
       List<SnapshotTable> tables,
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      String datasetFlightId,
-      SnapshotRequestRowIdModel rowIdModel)
+      SnapshotRequestRowIdModel rowIdModel,
+      boolean isGlobalFileIds)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -500,6 +820,7 @@ public class AzureSynapsePdao {
       List<SynapseColumn> columns;
       MapSqlParameterSource params;
       String query;
+      // Match snapshot table - optional b/c not every table
       Optional<SnapshotRequestRowIdTableModel> rowIdTableModel =
           rowIdModel.getTables().stream()
               .filter(t -> Objects.equals(t.getTableName(), table.getName()))
@@ -515,27 +836,34 @@ public class AzureSynapsePdao {
         sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByRowIdTemplate);
         query =
             generateSnapshotParquetCreateQuery(
-                sqlCreateSnapshotTableTemplate,
-                table,
-                snapshotId,
-                datasetDataSourceName,
-                snapshotDataSourceName,
-                datasetFlightId,
-                columns);
+                    sqlCreateSnapshotTableTemplate,
+                    IngestUtils.getSourceDatasetParquetFilePath(table.getName()),
+                    table.getName(),
+                    snapshotId,
+                    IngestUtils.getSnapshotSliceParquetFilePath(
+                        snapshotId, table.getName(), table.getName()),
+                    datasetDataSourceName,
+                    snapshotDataSourceName,
+                    columns,
+                    isGlobalFileIds)
+                .render();
 
         List<UUID> rowIds = rowIdTableModel.get().getRowIds();
         params = new MapSqlParameterSource().addValue("datarepoRowIds", rowIds);
       } else {
         throw new TableNotFoundException("Matching row id table not found");
       }
-      int rows = synapseJdbcTemplate.update(query, params);
-
-      tableRowCounts.put(table.getName(), (long) rows);
-      if (rows == 0) {
-        logger.info(
-            "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
-            table.getName());
+      int rows = 0;
+      try {
+        rows = synapseJdbcTemplate.update(query, params);
+      } catch (DataAccessException ex) {
+        logger.warn(
+            "No rows were added to the Snapshot for table "
+                + table.getName()
+                + ". This may be because the source dataset was empty or because the rows were filtered out by the query/asset specification defined in the snapshot create request. Exception: "
+                + ex.getMessage());
       }
+      tableRowCounts.put(table.getName(), (long) rows);
     }
     return tableRowCounts;
   }
@@ -545,7 +873,8 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      String datasetFlightId)
+      String datasetFlightId,
+      boolean isGlobalFileIds)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -556,52 +885,57 @@ public class AzureSynapsePdao {
 
       String query =
           generateSnapshotParquetCreateQuery(
-              sqlCreateSnapshotTableTemplate,
-              table,
-              snapshotId,
-              datasetDataSourceName,
-              snapshotDataSourceName,
-              datasetFlightId,
-              columns);
+                  sqlCreateSnapshotTableTemplate,
+                  IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId),
+                  table.getName(),
+                  snapshotId,
+                  IngestUtils.getSnapshotSliceParquetFilePath(
+                      snapshotId, table.getName(), table.getName()),
+                  datasetDataSourceName,
+                  snapshotDataSourceName,
+                  columns,
+                  isGlobalFileIds)
+              .render();
+      int rows = 0;
       try {
-        int rows = executeSynapseQuery(query);
-        tableRowCounts.put(table.getName(), (long) rows);
+        rows = executeSynapseQuery(query);
       } catch (SQLServerException ex) {
-        tableRowCounts.put(table.getName(), 0L);
-        logger.info(
-            "Unable to copy files from table {} - this usually means that the source dataset's table is empty.",
-            table.getName());
+        logger.warn(
+            "No rows were added to the Snapshot for table "
+                + table.getName()
+                + ". This could mean that the source dataset's table is empty.",
+            ex);
       }
+      tableRowCounts.put(table.getName(), (long) rows);
     }
     return tableRowCounts;
   }
 
-  private String generateSnapshotParquetCreateQuery(
+  private ST generateSnapshotParquetCreateQuery(
       ST sqlCreateSnapshotTableTemplate,
-      SnapshotTable table,
+      String datasetParquetFileName,
+      String tableName,
       UUID snapshotId,
+      String snapshotParquetFileName,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      String datasetFlightId,
-      List<SynapseColumn> columns) {
-    String datasetParquetFileName =
-        IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
-    String snapshotParquetFileName =
-        IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
-    String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
+      List<SynapseColumn> columns,
+      boolean isGlobalFileIds) {
+    String snapshotTableName = IngestUtils.formatSnapshotTableName(snapshotId, tableName);
 
     sqlCreateSnapshotTableTemplate
         .add("columns", columns)
-        .add("tableName", tableName)
+        .add("tableName", snapshotTableName)
         .add("destinationParquetFile", snapshotParquetFileName)
         .add("destinationDataSourceName", snapshotDataSourceName)
         .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
         .add("ingestFileName", datasetParquetFileName)
         .add("ingestFileDataSourceName", datasetDataSourceName)
         .add("hostname", applicationConfiguration.getDnsName())
-        .add("snapshotId", snapshotId);
+        .add("snapshotId", snapshotId)
+        .add("isGlobalFileIds", isGlobalFileIds);
 
-    return sqlCreateSnapshotTableTemplate.render();
+    return sqlCreateSnapshotTableTemplate;
   }
 
   public void dropTables(List<String> tableNames) {
@@ -681,6 +1015,7 @@ public class AzureSynapsePdao {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
+      logQuery(query);
       statement.execute(query);
       return statement.getUpdateCount();
     }
@@ -690,6 +1025,7 @@ public class AzureSynapsePdao {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
+      logQuery(query);
       try (ResultSet resultSet = statement.executeQuery(query)) {
         resultSet.next();
         return resultSet.getInt(1);
@@ -788,5 +1124,9 @@ public class AzureSynapsePdao {
         throw new PdaoException("Could not deserialize value %s".formatted(rawValue), e);
       }
     }
+  }
+
+  public static void logQuery(String query) {
+    logger.debug("Running query:\n#########\n{}", query);
   }
 }

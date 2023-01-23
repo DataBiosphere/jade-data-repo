@@ -3915,6 +3915,22 @@
                     "fpk_note_visit",
                     "fpk_drug_visit"
                 ]
+            },
+            {
+                "name": "vocab_single",
+                "tables": [
+                  {
+                    "name": "vocabulary",
+                    "columns": []
+                  },
+                  {
+                    "name": "domain",
+                    "columns": []
+                  }
+                ],
+                "rootTable": "vocabulary",
+                "rootColumn": "vocabulary_id",
+                "follow": []
             }
         ]
     }

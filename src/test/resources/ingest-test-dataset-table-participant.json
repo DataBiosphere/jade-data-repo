@@ -1,0 +1,38 @@
+{
+  "name": "participant",
+  "rawTableName": "participant",
+  "columns": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "first_name",
+      "type": "string"
+    },
+    {
+      "name": "last_name",
+      "type": "string"
+    },
+    {
+      "name": "age",
+      "type": "string"
+    },
+    {
+      "name": "children",
+      "arrayOf": true,
+      "type": "string"
+    },
+    {
+      "name": "donated",
+      "arrayOf": true,
+      "type": "string"
+    }
+  ],
+  "primaryKey": [
+    {
+      "name": "id",
+      "type": "string"
+    }
+  ]
+}

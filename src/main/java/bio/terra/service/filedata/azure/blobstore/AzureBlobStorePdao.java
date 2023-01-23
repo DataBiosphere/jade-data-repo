@@ -6,8 +6,11 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.FSItem;
+import bio.terra.service.filedata.FileIdService;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedWriter;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
@@ -65,6 +68,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
   private final AzureResourceConfiguration resourceConfiguration;
   private final AzureResourceDao azureResourceDao;
   private final AzureAuthService azureAuthService;
+  private final FileIdService fileIdService;
 
   @Autowired
   public AzureBlobStorePdao(
@@ -72,12 +76,14 @@ public class AzureBlobStorePdao implements CloudFileReader {
       AzureContainerPdao azureContainerPdao,
       AzureResourceConfiguration resourceConfiguration,
       AzureResourceDao azureResourceDao,
-      AzureAuthService azureAuthService) {
+      AzureAuthService azureAuthService,
+      FileIdService fileIdService) {
     this.profileDao = profileDao;
     this.azureContainerPdao = azureContainerPdao;
     this.resourceConfiguration = resourceConfiguration;
     this.azureResourceDao = azureResourceDao;
     this.azureAuthService = azureAuthService;
+    this.fileIdService = fileIdService;
   }
 
   private RequestRetryOptions getRetryOptions() {
@@ -91,6 +97,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
   }
 
   public FSFileInfo copyFile(
+      Dataset dataset,
       BillingProfileModel profileModel,
       FileLoadModel fileLoadModel,
       String fileId,
@@ -119,7 +126,27 @@ public class AzureBlobStorePdao implements CloudFileReader {
     BlobUrlParts blobUrl = BlobUrlParts.parse(fileLoadModel.getSourcePath());
     String fileName = getLastNameFromPath(blobUrl.getBlobName());
 
-    String blobName = getBlobName(fileId, fileName);
+    String effectiveFileId;
+    if (fileId == null) {
+      BlobProperties sourceBlobProperties =
+          sourceClientFactory
+              .getBlobContainerClient()
+              .getBlobClient(blobUrl.getBlobName())
+              .getProperties();
+      effectiveFileId =
+          fileIdService
+              .calculateFileId(
+                  dataset,
+                  new FSItem()
+                      .path(fileLoadModel.getTargetPath())
+                      .checksumMd5(Hex.encodeHexString(sourceBlobProperties.getContentMd5()))
+                      .size(sourceBlobProperties.getBlobSize()))
+              .toString();
+    } else {
+      effectiveFileId = fileId;
+    }
+
+    String blobName = getBlobName(effectiveFileId, fileName);
     blobCrl
         .createBlobContainerCopier(sourceClientFactory, blobUrl.getBlobName(), blobName)
         .beginCopyOperation()
@@ -128,7 +155,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
     BlobProperties blobProperties = blobCrl.getBlobProperties(blobName);
     Instant createTime = blobProperties.getCreationTime().toInstant();
     return new FSFileInfo()
-        .fileId(fileId)
+        .fileId(effectiveFileId)
         .createdDate(createTime.toString())
         .cloudPath(
             String.format(

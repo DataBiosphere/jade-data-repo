@@ -943,5 +943,5 @@ public class SnapshotDaoTest {
         "Unlocked snapshot UUIDs are returned",
         snapshotDao.getSnapshotIds(),
         containsInAnyOrder(snapshotIdList.toArray()));
-    }
+  }
 }

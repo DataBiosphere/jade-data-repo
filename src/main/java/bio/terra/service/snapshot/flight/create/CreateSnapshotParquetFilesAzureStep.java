@@ -60,7 +60,8 @@ public class CreateSnapshotParquetFilesAzureStep implements Step {
   }
 
   public Map<String, Long> createSnapshotParquetFiles(
-      List<SnapshotTable> tables, UUID snapshotId, FlightContext context) throws SQLException {
+      List<SnapshotTable> tables, UUID snapshotId, FlightContext context)
+      throws SQLException, InterruptedException {
     return azureSynapsePdao.createSnapshotParquetFiles(
         tables,
         snapshotId,

@@ -12,6 +12,7 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.grammar.azure.SynapseVisitor;
 import bio.terra.model.BillingProfileModel;
@@ -19,6 +20,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestAssetModel;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetRelationship;
@@ -31,8 +33,9 @@ import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotTable;
-import bio.terra.service.snapshot.flight.create.CreateSnapshotPrimaryDataQueryUtils;
+import bio.terra.service.snapshot.flight.create.CreateSnapshotPrimaryDataQueryAzureStep;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -79,6 +82,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
   private DatasetTable allDataTypesTable;
   private DatasetTable dateOfBirthTable;
   private List<AssetRelationship> relationships;
+  private CreateSnapshotPrimaryDataQueryAzureStep createSnapshotPrimaryDataQueryAzureStep;
+  private AuthenticatedUserRequest TEST_USER;
 
   @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
@@ -88,7 +93,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
   @Autowired SynapseUtils synapseUtils;
   @Autowired SnapshotDao snapshotDao;
   @Autowired JsonLoader jsonLoader;
-  @Autowired CreateSnapshotPrimaryDataQueryUtils createSnapshotPrimaryDataQueryUtils;
+  @Autowired SnapshotService snapshotService;
 
   @Before
   public void setup() throws Exception {
@@ -102,6 +107,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
     randomFlightId = synapseUtils.retrieveRandomFlightId();
     sourceDatasetDataSourceName = synapseUtils.retrieveSourceDatasetDataSourceName();
     snapshotDataSourceName = synapseUtils.retrieveSnapshotDataSourceName();
+    TEST_USER = synapseUtils.retrieveTestUser();
 
     snapshot = new Snapshot().id(snapshotId);
     csvIngestRequestModel = new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
@@ -254,7 +260,15 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
     AssetSpecification assetSpecification =
         buildAssetSpecification(
             datasetTables, assetName, rootTableName, rootColumnName, relationships);
-    createSnapshotPrimaryDataQueryUtils.validateRootTable(query, assetSpecification);
+    createSnapshotPrimaryDataQueryAzureStep =
+        new CreateSnapshotPrimaryDataQueryAzureStep(
+            azureSynapsePdao,
+            snapshotDao,
+            snapshotService,
+            new SnapshotRequestModel(),
+            datasetService,
+            TEST_USER);
+    createSnapshotPrimaryDataQueryAzureStep.validateRootTable(query, assetSpecification);
 
     SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
     String translatedQuery = query.translateSql(synapseVisitor);

@@ -72,8 +72,6 @@ public class SnapshotCreateFlight extends Flight {
     AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
     TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
-    CreateSnapshotPrimaryDataQueryUtils createSnapshotPrimaryDataQueryUtils =
-        appContext.getBean(CreateSnapshotPrimaryDataQueryUtils.class);
     GoogleResourceManagerService googleResourceManagerService =
         appContext.getBean(GoogleResourceManagerService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
@@ -176,8 +174,7 @@ public class SnapshotCreateFlight extends Flight {
                   datasetService,
                   snapshotDao,
                   snapshotReq,
-                  userReq,
-                  createSnapshotPrimaryDataQueryUtils));
+                  userReq));
           break;
         } else if (platform.isAzure()) {
           addStep(
@@ -187,8 +184,7 @@ public class SnapshotCreateFlight extends Flight {
                   snapshotService,
                   snapshotReq,
                   datasetService,
-                  userReq,
-                  createSnapshotPrimaryDataQueryUtils));
+                  userReq));
           break;
         }
 

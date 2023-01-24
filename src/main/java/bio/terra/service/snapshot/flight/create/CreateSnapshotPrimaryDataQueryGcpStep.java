@@ -5,8 +5,6 @@ import bio.terra.grammar.Query;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotRequestQueryModel;
-import bio.terra.service.common.CommonFlightUtils;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -17,18 +15,21 @@ import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-public class CreateSnapshotPrimaryDataQueryGcpStep implements Step {
+public class CreateSnapshotPrimaryDataQueryGcpStep
+    implements CreateSnapshotPrimaryDataQueryStep, Step {
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final DatasetService datasetService;
   private final SnapshotDao snapshotDao;
   private final SnapshotRequestModel snapshotReq;
   private final AuthenticatedUserRequest userRequest;
-  private final CreateSnapshotPrimaryDataQueryUtils createSnapshotPrimaryDataQueryUtils;
 
   public CreateSnapshotPrimaryDataQueryGcpStep(
       BigQuerySnapshotPdao bigQuerySnapshotPdao,
@@ -36,34 +37,35 @@ public class CreateSnapshotPrimaryDataQueryGcpStep implements Step {
       DatasetService datasetService,
       SnapshotDao snapshotDao,
       SnapshotRequestModel snapshotReq,
-      AuthenticatedUserRequest userRequest,
-      CreateSnapshotPrimaryDataQueryUtils createSnapshotPrimaryDataQueryUtils) {
+      AuthenticatedUserRequest userRequest) {
     this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
     this.snapshotService = snapshotService;
     this.datasetService = datasetService;
     this.snapshotDao = snapshotDao;
     this.snapshotReq = snapshotReq;
     this.userRequest = userRequest;
-    this.createSnapshotPrimaryDataQueryUtils = createSnapshotPrimaryDataQueryUtils;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
-
-    Query query = Query.parse(snapshotQuerySpec.getQuery());
-    Dataset dataset = createSnapshotPrimaryDataQueryUtils.retrieveDatasetSpecifiedByQuery(query);
-    AssetSpecification assetSpecification =
-        createSnapshotPrimaryDataQueryUtils.retrieveAssetSpecification(
-            dataset, snapshotQuerySpec.getAssetName());
-    createSnapshotPrimaryDataQueryUtils.validateRootTable(query, assetSpecification);
-    String sqlQuery = translateBQQuery(query, dataset);
-
-    Instant createdAt = CommonFlightUtils.getCreatedAt(context);
-
-    bigQuerySnapshotPdao.queryForRowIds(assetSpecification, snapshot, sqlQuery, createdAt);
+    try {
+      prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
+    } catch (SQLException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+    }
     return StepResult.getStepResultSuccess();
+  }
+
+  @Override
+  public Map<String, Long> createSnapshotPrimaryData(
+      AssetSpecification assetSpecification,
+      Snapshot snapshot,
+      String sqlQuery,
+      Instant filterBefore)
+      throws InterruptedException {
+    bigQuerySnapshotPdao.queryForRowIds(assetSpecification, snapshot, sqlQuery, filterBefore);
+    return new HashMap<>();
   }
 
   /**
@@ -73,7 +75,8 @@ public class CreateSnapshotPrimaryDataQueryGcpStep implements Step {
    * @param dataset
    * @return
    */
-  private String translateBQQuery(Query query, Dataset dataset) {
+  @Override
+  public String translateQuery(Query query, Dataset dataset) {
     DatasetModel datasetModel = datasetService.retrieveModel(dataset, userRequest);
     Map<String, DatasetModel> datasetMap =
         Collections.singletonMap(dataset.getName(), datasetModel);

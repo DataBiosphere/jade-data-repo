@@ -195,6 +195,10 @@ public class SynapseUtils {
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
   }
 
+  public AuthenticatedUserRequest retrieveTestUser() {
+    return TEST_USER;
+  }
+
   public BlobUrlParts retrieveSnapshotSignUrlBlob() {
     return snapshotSignUrlBlob;
   }

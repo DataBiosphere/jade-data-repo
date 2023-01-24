@@ -7,45 +7,54 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
-import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.Step;
+import bio.terra.stairway.StepResult;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class CreateSnapshotByAssetParquetFilesAzureStep
-    extends CreateSnapshotParquetFilesAzureStep {
+    implements Step, CreateSnapshotParquetFilesAzureInterface {
   private final SnapshotRequestModel snapshotReq;
-  private final SnapshotDao snapshotDao;
+  private final SnapshotService snapshotService;
+  private final AzureSynapsePdao azureSynapsePdao;
 
   public CreateSnapshotByAssetParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao,
-      SnapshotDao snapshotDao,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotReq) {
-    super(azureSynapsePdao, snapshotService, snapshotReq);
     this.snapshotReq = snapshotReq;
-    this.snapshotDao = snapshotDao;
+    this.azureSynapsePdao = azureSynapsePdao;
+    this.snapshotService = snapshotService;
   }
 
   @Override
-  public Map<String, Long> createSnapshotParquetFiles(
-      List<SnapshotTable> tables, UUID snapshotId, FlightContext context) throws SQLException {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
+    return createSnapshotParquetFiles(context, azureSynapsePdao, snapshotService);
+  }
+
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    undoCreateSnapshotParquetFiles(context, snapshotService, azureSynapsePdao);
+    return StepResult.getStepResultSuccess();
+  }
+
+  @Override
+  public Map<String, Long> createSnapshotPrimaryDataParquetFiles(FlightContext context)
+      throws InterruptedException, SQLException {
     SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     SnapshotRequestAssetModel assetModel = contentsModel.getAssetSpec();
 
-    Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
+    Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
     SnapshotSource source = snapshot.getFirstSnapshotSource();
 
     AssetSpecification assetSpec = source.getAssetSpecification();
 
     return azureSynapsePdao.createSnapshotParquetFilesByAsset(
         assetSpec,
-        snapshotId,
+        snapshot.getId(),
         IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
         IngestUtils.getTargetDataSourceName(context.getFlightId()),
         assetModel,

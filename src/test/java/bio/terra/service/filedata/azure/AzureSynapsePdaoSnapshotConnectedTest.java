@@ -35,7 +35,7 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotTable;
-import bio.terra.service.snapshot.flight.create.CreateSnapshotPrimaryDataQueryAzureStep;
+import bio.terra.service.snapshot.flight.create.CreateSnapshotByQueryParquetFilesAzureStep;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -82,7 +82,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
   private DatasetTable allDataTypesTable;
   private DatasetTable dateOfBirthTable;
   private List<AssetRelationship> relationships;
-  private CreateSnapshotPrimaryDataQueryAzureStep createSnapshotPrimaryDataQueryAzureStep;
+  private CreateSnapshotByQueryParquetFilesAzureStep createSnapshotPrimaryDataQueryAzureStep;
   private AuthenticatedUserRequest TEST_USER;
 
   @Autowired AzureSynapsePdao azureSynapsePdao;
@@ -261,7 +261,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
         buildAssetSpecification(
             datasetTables, assetName, rootTableName, rootColumnName, relationships);
     createSnapshotPrimaryDataQueryAzureStep =
-        new CreateSnapshotPrimaryDataQueryAzureStep(
+        new CreateSnapshotByQueryParquetFilesAzureStep(
             azureSynapsePdao,
             snapshotDao,
             snapshotService,

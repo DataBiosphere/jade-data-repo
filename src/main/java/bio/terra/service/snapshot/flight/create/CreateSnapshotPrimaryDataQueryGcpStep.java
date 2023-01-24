@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CreateSnapshotPrimaryDataQueryGcpStep
-    implements CreateSnapshotPrimaryDataQueryStep, Step {
+    implements CreateSnapshotPrimaryDataQueryInterface, Step {
   private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
   private final SnapshotService snapshotService;
   private final DatasetService datasetService;

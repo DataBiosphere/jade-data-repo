@@ -150,7 +150,7 @@ public class SnapshotCreateFlight extends Flight {
         } else {
           addStep(
               new CreateSnapshotByAssetParquetFilesAzureStep(
-                  azureSynapsePdao, snapshotDao, snapshotService, snapshotReq));
+                  azureSynapsePdao, snapshotService, snapshotReq));
         }
         break;
       case BYFULLVIEW:
@@ -160,7 +160,7 @@ public class SnapshotCreateFlight extends Flight {
                   bigQuerySnapshotPdao, datasetService, snapshotDao, snapshotService, snapshotReq));
         } else if (platform.isAzure()) {
           addStep(
-              new CreateSnapshotParquetFilesAzureStep(
+              new CreateSnapshotByFullViewParquetFilesAzureStep(
                   azureSynapsePdao, snapshotService, snapshotReq));
         }
         break;
@@ -178,7 +178,7 @@ public class SnapshotCreateFlight extends Flight {
           break;
         } else if (platform.isAzure()) {
           addStep(
-              new CreateSnapshotPrimaryDataQueryAzureStep(
+              new CreateSnapshotByQueryParquetFilesAzureStep(
                   azureSynapsePdao,
                   snapshotDao,
                   snapshotService,

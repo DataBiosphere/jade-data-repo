@@ -18,7 +18,7 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 @Component
-public interface CreateSnapshotPrimaryDataQueryStep {
+public interface CreateSnapshotPrimaryDataQueryInterface {
 
   default Map<String, Long> prepareQueryAndCreateSnapshot(
       FlightContext context,

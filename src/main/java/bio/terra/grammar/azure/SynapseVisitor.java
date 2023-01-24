@@ -27,12 +27,13 @@ public class SynapseVisitor extends DatasetAwareVisitor {
   public String visitTable_expr(SQLParser.Table_exprContext ctx) {
     String tableName = getNameFromContext(ctx.table_name());
     String alias = generateAlias(tableName);
-    return String.format(
-        "OPENROWSET(%n"
-            + "           BULK 'parquet/%s/*/*.parquet',%n"
-            + "           DATA_SOURCE = '%s',%n"
-            + "           FORMAT = 'parquet') AS %s",
-        tableName, sourceDatasetDatasource, alias);
+    return """
+      OPENROWSET(
+        BULK 'parquet/%s/*/*.parquet',
+        DATA_SOURCE = '%s',
+        FORMAT = 'parquet') AS %s
+      """
+        .formatted(tableName, sourceDatasetDatasource, alias);
   }
 
   @Override

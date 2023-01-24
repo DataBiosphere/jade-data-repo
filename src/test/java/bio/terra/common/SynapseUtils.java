@@ -243,13 +243,12 @@ public class SynapseUtils {
     } catch (Exception ex) {
       logger.warn("[Cleanup exception] Unable to drop scoped credentials", ex.getMessage());
     }
-    try {
-      storageAccountIds.forEach(
-          storageAccountId -> {
-            client.storageAccounts().deleteById(storageAccountId);
-          });
-    } catch (Exception ex) {
-      logger.warn("[Cleanup exception] Unable to delete storage account", ex.getMessage());
+    for (String storageAccountId : storageAccountIds) {
+      try {
+        client.storageAccounts().deleteById(storageAccountId);
+      } catch (Exception ex) {
+        logger.warn("[Cleanup exception] Unable to delete storage account", ex.getMessage());
+      }
     }
     // Parquet File delete is not currently operational
     // To be addressed in DR-2882

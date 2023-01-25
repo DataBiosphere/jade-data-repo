@@ -21,22 +21,9 @@ public interface CreateSnapshotParquetFilesAzureInterface {
   default StepResult createSnapshotParquetFiles(
       FlightContext context, AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService)
       throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-
-    List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
-
     try {
       Map<String, Long> tableRowCounts = createSnapshotPrimaryDataParquetFiles(context);
-
-      azureSynapsePdao.createSnapshotRowIdsParquetFile(
-          tables,
-          snapshotId,
-          IngestUtils.getTargetDataSourceName(context.getFlightId()),
-          tableRowCounts);
-
-      workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
-
+      createRowIdsAndStoreRowCount(context, azureSynapsePdao, snapshotService, tableRowCounts);
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
@@ -45,6 +32,25 @@ public interface CreateSnapshotParquetFilesAzureInterface {
 
   Map<String, Long> createSnapshotPrimaryDataParquetFiles(FlightContext context)
       throws InterruptedException, SQLException;
+
+  default void createRowIdsAndStoreRowCount(
+      FlightContext context,
+      AzureSynapsePdao azureSynapsePdao,
+      SnapshotService snapshotService,
+      Map<String, Long> tableRowCounts)
+      throws SQLException {
+    FlightMap workingMap = context.getWorkingMap();
+    UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+
+    List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
+    azureSynapsePdao.createSnapshotRowIdsParquetFile(
+        tables,
+        snapshotId,
+        IngestUtils.getTargetDataSourceName(context.getFlightId()),
+        tableRowCounts);
+
+    workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
+  }
 
   default void undoCreateSnapshotParquetFiles(
       FlightContext context, SnapshotService snapshotService, AzureSynapsePdao azureSynapsePdao) {

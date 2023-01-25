@@ -11,21 +11,20 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightContext;
-import java.sql.SQLException;
+import bio.terra.stairway.StepResult;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import org.springframework.stereotype.Component;
 
 @Component
 public interface CreateSnapshotPrimaryDataQueryInterface {
 
-  default Map<String, Long> prepareQueryAndCreateSnapshot(
+  default StepResult prepareQueryAndCreateSnapshot(
       FlightContext context,
       Snapshot snapshot,
       SnapshotRequestModel snapshotReq,
       DatasetService datasetService)
-      throws InterruptedException, SQLException {
+      throws InterruptedException {
     SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
 
     Query query = Query.parse(snapshotQuerySpec.getQuery());
@@ -37,15 +36,16 @@ public interface CreateSnapshotPrimaryDataQueryInterface {
     String sqlQuery = translateQuery(query, dataset);
 
     Instant createdAt = CommonFlightUtils.getCreatedAt(context);
-    return createSnapshotPrimaryData(assetSpecification, snapshot, sqlQuery, createdAt);
+    return createSnapshotPrimaryData(context, assetSpecification, snapshot, sqlQuery, createdAt);
   }
 
-  Map<String, Long> createSnapshotPrimaryData(
+  StepResult createSnapshotPrimaryData(
+      FlightContext context,
       AssetSpecification assetSpecification,
       Snapshot snapshot,
       String sqlQuery,
       Instant filterBefore)
-      throws InterruptedException, SQLException;
+      throws InterruptedException;
 
   String translateQuery(Query query, Dataset dataset);
 

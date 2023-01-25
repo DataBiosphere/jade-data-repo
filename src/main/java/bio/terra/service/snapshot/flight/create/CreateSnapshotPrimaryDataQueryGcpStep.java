@@ -15,11 +15,8 @@ import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 public class CreateSnapshotPrimaryDataQueryGcpStep
@@ -49,23 +46,19 @@ public class CreateSnapshotPrimaryDataQueryGcpStep
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    try {
-      prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
-    } catch (SQLException ex) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
-    }
-    return StepResult.getStepResultSuccess();
+    return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
   }
 
   @Override
-  public Map<String, Long> createSnapshotPrimaryData(
+  public StepResult createSnapshotPrimaryData(
+      FlightContext context,
       AssetSpecification assetSpecification,
       Snapshot snapshot,
       String sqlQuery,
       Instant filterBefore)
       throws InterruptedException {
     bigQuerySnapshotPdao.queryForRowIds(assetSpecification, snapshot, sqlQuery, filterBefore);
-    return new HashMap<>();
+    return StepResult.getStepResultSuccess();
   }
 
   /**

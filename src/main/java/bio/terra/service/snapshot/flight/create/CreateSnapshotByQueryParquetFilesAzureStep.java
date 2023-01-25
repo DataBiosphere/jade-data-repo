@@ -16,6 +16,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Collections;
@@ -52,7 +53,10 @@ public class CreateSnapshotByQueryParquetFilesAzureStep
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    return createSnapshotParquetFiles(context, azureSynapsePdao, snapshotService);
+    sourceDatasetDataSourceName = IngestUtils.getSourceDatasetDataSourceName(context.getFlightId());
+    targetDataSourceName = IngestUtils.getTargetDataSourceName(context.getFlightId());
+    Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
+    return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
   }
 
   @Override
@@ -62,28 +66,26 @@ public class CreateSnapshotByQueryParquetFilesAzureStep
   }
 
   @Override
-  public Map<String, Long> createSnapshotPrimaryDataParquetFiles(FlightContext context)
-      throws SQLException, InterruptedException {
-    sourceDatasetDataSourceName = IngestUtils.getSourceDatasetDataSourceName(context.getFlightId());
-    targetDataSourceName = IngestUtils.getTargetDataSourceName(context.getFlightId());
-    Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
-  }
-
-  @Override
-  public Map<String, Long> createSnapshotPrimaryData(
+  public StepResult createSnapshotPrimaryData(
+      FlightContext context,
       AssetSpecification assetSpecification,
       Snapshot snapshot,
       String sqlQuery,
-      Instant filterBefore)
-      throws SQLException {
-    return azureSynapsePdao.createSnapshotParquetFilesByQuery(
-        assetSpecification,
-        snapshot.getId(),
-        sourceDatasetDataSourceName,
-        targetDataSourceName,
-        sqlQuery,
-        snapshotReq.isGlobalFileIds());
+      Instant filterBefore) {
+    try {
+      Map<String, Long> tableRowCounts =
+          azureSynapsePdao.createSnapshotParquetFilesByQuery(
+              assetSpecification,
+              snapshot.getId(),
+              sourceDatasetDataSourceName,
+              targetDataSourceName,
+              sqlQuery,
+              snapshotReq.isGlobalFileIds());
+      createRowIdsAndStoreRowCount(context, azureSynapsePdao, snapshotService, tableRowCounts);
+    } catch (SQLException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+    }
+    return StepResult.getStepResultSuccess();
   }
 
   @Override
@@ -93,5 +95,11 @@ public class CreateSnapshotByQueryParquetFilesAzureStep
         Collections.singletonMap(dataset.getName(), datasetModel);
     SynapseVisitor synapseVisitor = new SynapseVisitor(datasetMap, sourceDatasetDataSourceName);
     return query.translateSql(synapseVisitor);
+  }
+
+  @Override
+  public Map<String, Long> createSnapshotPrimaryDataParquetFiles(FlightContext context)
+      throws InterruptedException, SQLException {
+    return null;
   }
 }

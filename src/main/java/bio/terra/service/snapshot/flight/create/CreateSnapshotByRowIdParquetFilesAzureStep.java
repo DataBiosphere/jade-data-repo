@@ -12,6 +12,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -34,30 +35,31 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    return createSnapshotParquetFiles(context, azureSynapsePdao, snapshotService);
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    undoCreateSnapshotParquetFiles(context, snapshotService, azureSynapsePdao);
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public Map<String, Long> createSnapshotPrimaryDataParquetFiles(FlightContext context)
-      throws InterruptedException, SQLException {
     SnapshotRequestContentsModel contentsModel = snapshotRequestModel.getContents().get(0);
     SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
     FlightMap workingMap = context.getWorkingMap();
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
 
-    return azureSynapsePdao.createSnapshotParquetFilesByRowId(
-        tables,
-        snapshotId,
-        IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
-        IngestUtils.getTargetDataSourceName(context.getFlightId()),
-        rowIdModel,
-        snapshotRequestModel.isGlobalFileIds());
+    try {
+      Map<String, Long> tableRowCounts =
+          azureSynapsePdao.createSnapshotParquetFilesByRowId(
+              tables,
+              snapshotId,
+              IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
+              IngestUtils.getTargetDataSourceName(context.getFlightId()),
+              rowIdModel,
+              snapshotRequestModel.isGlobalFileIds());
+      workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
+    } catch (SQLException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+    }
+    return StepResult.getStepResultSuccess();
+  }
+
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    undoCreateSnapshotParquetFiles(context, snapshotService, azureSynapsePdao);
+    return StepResult.getStepResultSuccess();
   }
 }

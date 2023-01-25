@@ -9,8 +9,6 @@ import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -18,20 +16,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public interface CreateSnapshotParquetFilesAzureInterface {
-  default StepResult createSnapshotParquetFiles(
-      FlightContext context, AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService)
-      throws InterruptedException {
-    try {
-      Map<String, Long> tableRowCounts = createSnapshotPrimaryDataParquetFiles(context);
-      createRowIdsAndStoreRowCount(context, azureSynapsePdao, snapshotService, tableRowCounts);
-    } catch (SQLException ex) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
-    }
-    return StepResult.getStepResultSuccess();
-  }
-
-  Map<String, Long> createSnapshotPrimaryDataParquetFiles(FlightContext context)
-      throws InterruptedException, SQLException;
 
   default void createRowIdsAndStoreRowCount(
       FlightContext context,

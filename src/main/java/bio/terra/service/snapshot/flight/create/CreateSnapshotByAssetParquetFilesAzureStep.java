@@ -33,6 +33,7 @@ public class CreateSnapshotByAssetParquetFilesAzureStep
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    FlightMap workingMap = context.getWorkingMap();
     SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
     SnapshotRequestAssetModel assetModel = contentsModel.getAssetSpec();
 
@@ -49,7 +50,6 @@ public class CreateSnapshotByAssetParquetFilesAzureStep
             IngestUtils.getTargetDataSourceName(context.getFlightId()),
             assetModel,
             snapshotReq.isGlobalFileIds());
-    FlightMap workingMap = context.getWorkingMap();
     workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
     return StepResult.getStepResultSuccess();
   }

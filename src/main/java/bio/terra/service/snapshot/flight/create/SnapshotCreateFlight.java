@@ -204,6 +204,7 @@ public class SnapshotCreateFlight extends Flight {
         throw new InvalidSnapshotException("Snapshot does not have required mode information");
     }
     if (platform.isAzure()) {
+      addStep(new CreateSnapshotCreateRowIdParquetFileStep(azureSynapsePdao, snapshotService));
       addStep(
           new CreateSnapshotCountTableRowsAzureStep(azureSynapsePdao, snapshotDao, snapshotReq));
     }

@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class CreateSnapshotCleanSynapseAzureStep implements Step {
+
   private AzureSynapsePdao azureSynapsePdao;
   private SnapshotService snapshotService;
 

@@ -31,14 +31,17 @@ public class Query {
     }
   }
 
+  /**
+   * Used for query validation; There should only ever be one dataset name
+   *
+   * @return List of dataset names
+   */
   public List<String> getDatasetNames() {
     DatasetNameListener listener = new DatasetNameListener();
     ParseTreeWalker.DEFAULT.walk(listener, queryStatement);
     return listener.getDatasetNames();
   }
-  // We currently make the assumption that there is only one dataset
-  // (based on the validation flight step that already occurred.)
-  // This will change when more than 1 dataset is allowed
+
   public String getDatasetName() {
     return getDatasetNames().get(0);
   }

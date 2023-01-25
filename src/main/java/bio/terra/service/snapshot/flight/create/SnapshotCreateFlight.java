@@ -141,9 +141,8 @@ public class SnapshotCreateFlight extends Flight {
     // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
     switch (snapshotReq.getContents().get(0).getMode()) {
       case BYASSET:
+        addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
         if (platform.isGcp()) {
-          addStep(
-              new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
           addStep(
               new CreateSnapshotPrimaryDataAssetGcpStep(
                   bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq));

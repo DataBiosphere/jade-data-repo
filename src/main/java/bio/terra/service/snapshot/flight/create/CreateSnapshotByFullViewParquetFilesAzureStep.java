@@ -8,7 +8,6 @@ import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
@@ -17,18 +16,15 @@ import java.util.Map;
 import java.util.UUID;
 
 public class CreateSnapshotByFullViewParquetFilesAzureStep
-    implements Step, CreateSnapshotParquetFilesAzureInterface {
+    extends CreateSnapshotParquetFilesAzureStep {
 
-  protected AzureSynapsePdao azureSynapsePdao;
-  private final SnapshotService snapshotService;
-  protected final SnapshotRequestModel snapshotReq;
+  private final SnapshotRequestModel snapshotReq;
 
   public CreateSnapshotByFullViewParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotReq) {
-    this.azureSynapsePdao = azureSynapsePdao;
-    this.snapshotService = snapshotService;
+    super(azureSynapsePdao, snapshotService);
     this.snapshotReq = snapshotReq;
   }
 
@@ -51,12 +47,6 @@ public class CreateSnapshotByFullViewParquetFilesAzureStep
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    undoCreateSnapshotParquetFiles(context, snapshotService, azureSynapsePdao);
     return StepResult.getStepResultSuccess();
   }
 }

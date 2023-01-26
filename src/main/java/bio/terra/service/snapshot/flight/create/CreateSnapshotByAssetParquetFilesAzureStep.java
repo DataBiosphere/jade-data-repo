@@ -12,23 +12,19 @@ import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.Map;
 
 public class CreateSnapshotByAssetParquetFilesAzureStep
-    implements Step, CreateSnapshotParquetFilesAzureInterface {
+    extends CreateSnapshotParquetFilesAzureStep {
   private final SnapshotRequestModel snapshotReq;
-  private final SnapshotService snapshotService;
-  private final AzureSynapsePdao azureSynapsePdao;
 
   public CreateSnapshotByAssetParquetFilesAzureStep(
       AzureSynapsePdao azureSynapsePdao,
       SnapshotService snapshotService,
       SnapshotRequestModel snapshotReq) {
+    super(azureSynapsePdao, snapshotService);
     this.snapshotReq = snapshotReq;
-    this.azureSynapsePdao = azureSynapsePdao;
-    this.snapshotService = snapshotService;
   }
 
   @Override
@@ -51,12 +47,6 @@ public class CreateSnapshotByAssetParquetFilesAzureStep
             assetModel,
             snapshotReq.isGlobalFileIds());
     workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    undoCreateSnapshotParquetFiles(context, snapshotService, azureSynapsePdao);
     return StepResult.getStepResultSuccess();
   }
 }

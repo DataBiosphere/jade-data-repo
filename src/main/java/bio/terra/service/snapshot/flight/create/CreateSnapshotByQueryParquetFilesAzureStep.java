@@ -16,7 +16,6 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
@@ -24,13 +23,9 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 
-public class CreateSnapshotByQueryParquetFilesAzureStep
-    implements Step,
-        CreateSnapshotPrimaryDataQueryInterface,
-        CreateSnapshotParquetFilesAzureInterface {
+public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotParquetFilesAzureStep
+    implements CreateSnapshotPrimaryDataQueryInterface {
 
-  private final AzureSynapsePdao azureSynapsePdao;
-  private final SnapshotService snapshotService;
   private final SnapshotDao snapshotDao;
   private final SnapshotRequestModel snapshotReq;
   private final DatasetService datasetService;
@@ -45,8 +40,7 @@ public class CreateSnapshotByQueryParquetFilesAzureStep
       SnapshotRequestModel snapshotReq,
       DatasetService datasetService,
       AuthenticatedUserRequest userRequest) {
-    this.azureSynapsePdao = azureSynapsePdao;
-    this.snapshotService = snapshotService;
+    super(azureSynapsePdao, snapshotService);
     this.snapshotReq = snapshotReq;
     this.snapshotDao = snapshotDao;
     this.datasetService = datasetService;
@@ -59,12 +53,6 @@ public class CreateSnapshotByQueryParquetFilesAzureStep
     targetDataSourceName = IngestUtils.getTargetDataSourceName(context.getFlightId());
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
     return prepareQueryAndCreateSnapshot(context, snapshot, snapshotReq, datasetService);
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    undoCreateSnapshotParquetFiles(context, snapshotService, azureSynapsePdao);
-    return StepResult.getStepResultSuccess();
   }
 
   @Override

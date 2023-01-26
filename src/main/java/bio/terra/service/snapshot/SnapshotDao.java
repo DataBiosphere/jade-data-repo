@@ -567,6 +567,17 @@ public class SnapshotDao {
   }
 
   /**
+   * @return a list of all snapshot IDs, including those exclusively locked
+   */
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public List<UUID> getSnapshotIds() {
+    return jdbcTemplate.query("SELECT snapshot.id FROM snapshot", new UuidMapper("id"));
+  }
+
+  /**
    * Fetch a list of all the available snapshots. This method returns summary objects, which do not
    * include sub-objects associated with snapshots (e.g. tables). Note that this method will only
    * return snapshots that are NOT exclusively locked.

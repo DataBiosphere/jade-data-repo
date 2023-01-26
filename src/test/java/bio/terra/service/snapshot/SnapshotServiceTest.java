@@ -8,8 +8,10 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -42,6 +44,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.InaccessibleWorkspacePolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
@@ -82,6 +85,7 @@ import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -967,5 +971,64 @@ public class SnapshotServiceTest {
 
     // Job is not created or submitted if DUOS client cannot successfully obtain DUOS dataset
     verifyNoInteractions(jobBuilder);
+  }
+
+  @Test
+  public void getSnapshotIdsAndRoles() throws ParseException {
+    // Arranging Sam-accessible snapshots (could contain snapshots registered in a different TDR)
+    UUID accessibleNonTdrSnapshotId = UUID.randomUUID();
+    IamRole role = IamRole.DISCOVERER;
+    Map<UUID, Set<IamRole>> resourcesAndRoles =
+        Map.of(snapshotId, Set.of(role), accessibleNonTdrSnapshotId, Set.of(role));
+    when(iamService.listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT))
+        .thenReturn(resourcesAndRoles);
+
+    // Arranging RAS-accessible snapshots (ECM could throw)
+    HttpClientErrorException ecmException = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
+    when(ecmService.getRasDbgapPermissions(TEST_USER))
+        .thenThrow(ecmException)
+        .thenReturn(List.of());
+
+    // Arranging TDR snapshots (could contain inaccessible snapshots)
+    UUID inaccessibleTdrSnapshotId = UUID.randomUUID();
+    when(snapshotDao.getSnapshotIds()).thenReturn(List.of(snapshotId, inaccessibleTdrSnapshotId));
+
+    // First invocation: error which may yield a partial role map
+    SnapshotIdsAndRolesModel result = service.getSnapshotIdsAndRoles(TEST_USER);
+    verify(iamService).listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT);
+    verify(ecmService).getRasDbgapPermissions(TEST_USER);
+    verify(snapshotDao).getSnapshotIds();
+
+    List<ErrorModel> errors = result.getErrors();
+    Map<String, List<String>> roleMap = result.getRoleMap();
+    assertThat("ECM error added to error list", errors, hasSize(1));
+    assertThat(
+        "ECM error contents match expectations",
+        errors.get(0).getMessage(),
+        containsString("Error listing RAS-authorized snapshots"));
+    assertTrue(
+        "Role map only contains accessible snapshot present in TDR",
+        roleMap.containsKey(snapshotId.toString()));
+    assertThat(
+        "Snapshot ID maps to its roles",
+        roleMap.get(snapshotId.toString()),
+        contains(role.toString()));
+
+    // Second invocation: no errors encountered when constructing role map
+    result = service.getSnapshotIdsAndRoles(TEST_USER);
+    verify(iamService, times(2)).listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT);
+    verify(ecmService, times(2)).getRasDbgapPermissions(TEST_USER);
+    verify(snapshotDao, times(2)).getSnapshotIds();
+
+    errors = result.getErrors();
+    roleMap = result.getRoleMap();
+    assertThat("No errors encountered when constructing role map", errors, empty());
+    assertTrue(
+        "Role map only contains accessible snapshot present in TDR",
+        roleMap.containsKey(snapshotId.toString()));
+    assertThat(
+        "Snapshot ID maps to its roles",
+        roleMap.get(snapshotId.toString()),
+        contains(role.toString()));
   }
 }

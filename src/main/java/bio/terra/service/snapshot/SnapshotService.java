@@ -27,6 +27,7 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SamPolicyModel;
+import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
@@ -371,6 +372,30 @@ public class SnapshotService {
         .filteredTotal(enumeration.getFilteredTotal())
         .roleMap(roleMap)
         .errors(errors);
+  }
+
+  /**
+   * @param userReq authenticated user
+   * @return accessible snapshot IDs mapped to the roles which confer access
+   */
+  public SnapshotIdsAndRolesModel getSnapshotIdsAndRoles(AuthenticatedUserRequest userReq) {
+    List<ErrorModel> errors = new ArrayList<>();
+    Map<UUID, Set<IamRole>> authorizedSnapshots = listAuthorizedSnapshots(userReq, errors);
+
+    // We could have multiple TDRs talking to the same Sam (as for dev environments),
+    // so should only return authorized snapshot UUIDs also present in TDR.
+    Set<UUID> tdrSnapshotUuids = new HashSet<>(snapshotDao.getSnapshotIds());
+
+    Map<String, List<String>> roleMap =
+        authorizedSnapshots.keySet().stream()
+            .filter(tdrSnapshotUuids::contains)
+            .collect(
+                Collectors.toMap(
+                    UUID::toString,
+                    uuid ->
+                        authorizedSnapshots.get(uuid).stream().map(IamRole::toString).toList()));
+
+    return new SnapshotIdsAndRolesModel().roleMap(roleMap).errors(errors);
   }
 
   /**

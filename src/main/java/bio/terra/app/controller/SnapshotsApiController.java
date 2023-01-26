@@ -15,6 +15,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.SnapshotIdsAndRolesModel;
 import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
@@ -200,6 +201,11 @@ public class SnapshotsApiController implements SnapshotsApi {
         snapshotService.enumerateSnapshots(
             getAuthenticatedInfo(), offset, limit, sort, direction, filter, region, datasetUUIDs);
     return ResponseEntity.ok(esm);
+  }
+
+  @Override
+  public ResponseEntity<SnapshotIdsAndRolesModel> getSnapshotIdsAndRoles() {
+    return ResponseEntity.ok(snapshotService.getSnapshotIdsAndRoles(getAuthenticatedInfo()));
   }
 
   @Override

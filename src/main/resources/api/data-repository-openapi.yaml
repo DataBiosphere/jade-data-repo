@@ -572,6 +572,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: snapshot
+  /api/repository/v1/snapshots/roleMap:
+    get:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Get accessible snapshot IDs mapped to the roles which confer access.
+        Access may be granted directly via Sam and/or indirectly via a user's linked RAS passport
+        in Terra.  Snapshot accessibility derived from a linked RAS passport will be attributed to
+        the "reader" role.
+      operationId: getSnapshotIdsAndRoles
+      responses:
+        200:
+          description: Accessible snapshot IDs and roles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotIdsAndRolesModel"
   /api/repository/v1/snapshots/{id}:
     get:
       tags:
@@ -4901,6 +4919,23 @@ components:
             $ref: '#/components/schemas/ErrorModel'
       description: >
         The total number of snapshots available that match the criteria and a page of summaries
+    SnapshotIdsAndRolesModel:
+      type: object
+      properties:
+        roleMap:
+          type: object
+          description: >
+            Map of snapshot IDs to the calling user's roles.
+            The key is the snapshot ID and the value is a list of role names.
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        errors:
+          type: array
+          description: Errors encountered which may result in a partial role map returned.
+          items:
+            $ref: '#/components/schemas/ErrorModel'
     SnapshotModel:
       type: object
       properties:

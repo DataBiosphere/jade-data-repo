@@ -912,4 +912,36 @@ public class SnapshotDaoTest {
         drsIdDao.deleteDrsIdToSnapshotsBySnapshot(snapshot2.getId()),
         equalTo(150L));
   }
+
+  @Test
+  public void getSnapshotIds() {
+    assertThat(
+        "No snapshots in DB yield an empty UUID list", snapshotDao.getSnapshotIds(), empty());
+
+    snapshotIdList = new ArrayList<>();
+    String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
+    String flightId = "getSnapshotIds_flightId";
+    for (int i = 0; i < 3; i++) {
+      snapshotRequest.name(makeName(snapshotName, i));
+      UUID tempSnapshotId = UUID.randomUUID();
+      Snapshot snapshot =
+          snapshotService
+              .makeSnapshotFromSnapshotRequest(snapshotRequest)
+              .projectResourceId(projectId)
+              .id(tempSnapshotId);
+      snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
+      snapshotIdList.add(tempSnapshotId);
+    }
+
+    assertThat(
+        "Locked snapshot UUIDs are returned",
+        snapshotDao.getSnapshotIds(),
+        containsInAnyOrder(snapshotIdList.toArray()));
+
+    snapshotIdList.stream().forEach(id -> snapshotDao.unlock(id, flightId));
+    assertThat(
+        "Unlocked snapshot UUIDs are returned",
+        snapshotDao.getSnapshotIds(),
+        containsInAnyOrder(snapshotIdList.toArray()));
+  }
 }

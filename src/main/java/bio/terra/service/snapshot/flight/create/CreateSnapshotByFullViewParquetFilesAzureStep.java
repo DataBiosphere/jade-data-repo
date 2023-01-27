@@ -41,7 +41,6 @@ public class CreateSnapshotByFullViewParquetFilesAzureStep
               snapshotId,
               IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
               IngestUtils.getTargetDataSourceName(context.getFlightId()),
-              null,
               snapshotReq.isGlobalFileIds());
       workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
     } catch (SQLException ex) {

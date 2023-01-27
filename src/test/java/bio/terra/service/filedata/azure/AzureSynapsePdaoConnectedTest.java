@@ -239,7 +239,6 @@ public class AzureSynapsePdaoConnectedTest {
             snapshotId,
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
-            randomFlightId,
             isGlobalFileIds);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
     // Test that parquet files are correctly generated

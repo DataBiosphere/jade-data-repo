@@ -944,7 +944,6 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      String datasetFlightId,
       boolean isGlobalFileIds)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
@@ -957,7 +956,7 @@ public class AzureSynapsePdao {
       String query =
           generateSnapshotParquetCreateQuery(
                   sqlCreateSnapshotTableTemplate,
-                  IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId),
+                  IngestUtils.getSourceDatasetParquetFilePath(table.getName()),
                   table.getName(),
                   snapshotId,
                   IngestUtils.getSnapshotSliceParquetFilePath(

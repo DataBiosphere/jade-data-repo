@@ -39,13 +39,6 @@ public class SnapshotTable implements Table {
     return columns;
   }
 
-  /**
-   * @return Columns formatted for use with Azure Synapse
-   */
-  public List<SynapseColumn> getSynapseColumns() {
-    return columns.stream().map(Column::toSynapseColumn).toList();
-  }
-
   public Optional<Column> getColumnByName(String columnName) {
     return this.columns.stream().filter(t -> t.getName().equals(columnName)).findFirst();
   }

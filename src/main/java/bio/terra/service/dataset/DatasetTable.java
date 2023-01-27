@@ -85,13 +85,6 @@ public class DatasetTable implements Table, LogPrintable {
     return this;
   }
 
-  /**
-   * @return Columns formatted for use with Azure Synapse
-   */
-  public List<SynapseColumn> getSynapseColumns() {
-    return columns.stream().map(Column::toSynapseColumn).toList();
-  }
-
   public Column getColumnByName(String columnName) {
     return this.columns.stream()
         .filter(column -> column.getName().equals(columnName))

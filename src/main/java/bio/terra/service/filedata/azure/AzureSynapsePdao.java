@@ -418,10 +418,6 @@ public class AzureSynapsePdao {
       String csvStringDelimiter)
       throws SQLException {
 
-    List<SynapseColumn> columns =
-        datasetTable.getColumns().stream()
-            .map(Column::toSynapseColumn)
-            .collect(Collectors.toList());
     boolean isCSV = ingestType == FormatEnum.CSV;
 
     ST sqlCreateTableTemplate = new ST(createTableTemplate);
@@ -442,7 +438,7 @@ public class AzureSynapsePdao {
         "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
-    sqlCreateTableTemplate.add("columns", columns);
+    sqlCreateTableTemplate.add("columns", datasetTable.getSynapseColumns());
     return executeSynapseQuery(sqlCreateTableTemplate.render());
   }
 
@@ -569,14 +565,6 @@ public class AzureSynapsePdao {
     AssetTable rootTable = assetSpec.getRootTable();
     String rootTableName = rootTable.getTable().getName();
 
-    // Get columns to include for root table
-    List<SynapseColumn> columns =
-        rootTable.getColumns().stream()
-            .map(c -> c.getDatasetColumn())
-            .collect(Collectors.toList())
-            .stream()
-            .map(Column::toSynapseColumn)
-            .collect(Collectors.toList());
     ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByQueryTemplate);
     ST queryTemplate =
         generateSnapshotParquetCreateQuery(
@@ -587,7 +575,7 @@ public class AzureSynapsePdao {
             IngestUtils.getSnapshotSliceParquetFilePath(snapshotId, rootTableName, "root"),
             datasetDataSourceName,
             snapshotDataSourceName,
-            columns,
+            rootTable.getSynapseColumns(),
             isGlobalFieldIds);
 
     queryTemplate.add("query", translatedQuery);
@@ -653,14 +641,6 @@ public class AzureSynapsePdao {
     AssetTable rootTable = assetSpec.getRootTable();
     String rootTableName = rootTable.getTable().getName();
 
-    // Get columns to include for root table
-    List<SynapseColumn> columns =
-        rootTable.getColumns().stream()
-            .map(c -> c.getDatasetColumn())
-            .collect(Collectors.toList())
-            .stream()
-            .map(Column::toSynapseColumn)
-            .collect(Collectors.toList());
     ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByAssetTemplate);
     ST queryTemplate =
         generateSnapshotParquetCreateQuery(
@@ -671,7 +651,7 @@ public class AzureSynapsePdao {
             IngestUtils.getSnapshotSliceParquetFilePath(snapshotId, rootTableName, "root"),
             datasetDataSourceName,
             snapshotDataSourceName,
-            columns,
+            rootTable.getSynapseColumns(),
             isGlobalFieldIds);
 
     AssetColumn rootColumn = assetSpec.getRootColumn();
@@ -950,8 +930,6 @@ public class AzureSynapsePdao {
 
     for (SnapshotTable table : tables) {
       ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
-      List<SynapseColumn> columns =
-          table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
 
       String query =
           generateSnapshotParquetCreateQuery(
@@ -963,7 +941,7 @@ public class AzureSynapsePdao {
                       snapshotId, table.getName(), table.getName()),
                   datasetDataSourceName,
                   snapshotDataSourceName,
-                  columns,
+                  table.getSynapseColumns(),
                   isGlobalFileIds)
               .render();
       int rows = 0;

@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
+import bio.terra.common.SynapseColumn;
 import bio.terra.common.Table;
 import com.google.cloud.bigquery.FieldValueList;
 import java.util.Collections;
@@ -82,6 +83,13 @@ public class DatasetTable implements Table, LogPrintable {
   public DatasetTable columns(List<Column> columns) {
     this.columns = columns;
     return this;
+  }
+
+  /**
+   * @return Columns formatted for use with Azure Synapse
+   */
+  public List<SynapseColumn> getSynapseColumns() {
+    return columns.stream().map(Column::toSynapseColumn).toList();
   }
 
   public Column getColumnByName(String columnName) {

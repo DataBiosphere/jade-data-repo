@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.common.Column;
+import bio.terra.common.SynapseColumn;
 import bio.terra.common.Table;
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +37,13 @@ public class SnapshotTable implements Table {
   @Override
   public List<Column> getColumns() {
     return columns;
+  }
+
+  /**
+   * @return Columns formatted for use with Azure Synapse
+   */
+  public List<SynapseColumn> getSynapseColumns() {
+    return columns.stream().map(Column::toSynapseColumn).toList();
   }
 
   public Optional<Column> getColumnByName(String columnName) {

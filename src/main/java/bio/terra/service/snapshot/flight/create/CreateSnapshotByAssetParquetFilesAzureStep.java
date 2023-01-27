@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -13,6 +14,8 @@ import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
+import java.sql.SQLException;
 import java.util.Map;
 
 public class CreateSnapshotByAssetParquetFilesAzureStep
@@ -38,15 +41,19 @@ public class CreateSnapshotByAssetParquetFilesAzureStep
 
     AssetSpecification assetSpec = source.getAssetSpecification();
 
-    Map<String, Long> tableRowCounts =
-        azureSynapsePdao.createSnapshotParquetFilesByAsset(
-            assetSpec,
-            snapshot.getId(),
-            IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
-            IngestUtils.getTargetDataSourceName(context.getFlightId()),
-            assetModel,
-            snapshotReq.isGlobalFileIds());
-    workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
+    try {
+      Map<String, Long> tableRowCounts =
+          azureSynapsePdao.createSnapshotParquetFilesByAsset(
+              assetSpec,
+              snapshot.getId(),
+              IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
+              IngestUtils.getTargetDataSourceName(context.getFlightId()),
+              assetModel,
+              snapshotReq.isGlobalFileIds());
+      workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
+    } catch (SQLException | PdaoException ex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+    }
     return StepResult.getStepResultSuccess();
   }
 }

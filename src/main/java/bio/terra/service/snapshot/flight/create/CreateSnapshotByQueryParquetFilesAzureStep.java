@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.grammar.azure.SynapseVisitor;
@@ -73,7 +74,7 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
               sqlQuery,
               snapshotReq.isGlobalFileIds());
       workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
-    } catch (SQLException ex) {
+    } catch (SQLException | PdaoException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
     return StepResult.getStepResultSuccess();

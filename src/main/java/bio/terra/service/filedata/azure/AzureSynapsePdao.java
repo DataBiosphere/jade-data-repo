@@ -558,7 +558,7 @@ public class AzureSynapsePdao {
       String snapshotDataSourceName,
       String translatedQuery,
       boolean isGlobalFieldIds)
-      throws SQLException {
+      throws SQLException, PdaoException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     // First handle root table
@@ -634,7 +634,8 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       SnapshotRequestAssetModel requestModel,
-      boolean isGlobalFieldIds) {
+      boolean isGlobalFieldIds)
+      throws SQLException, PdaoException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     // First handle root table
@@ -863,7 +864,7 @@ public class AzureSynapsePdao {
       String snapshotDataSourceName,
       SnapshotRequestRowIdModel rowIdModel,
       boolean isGlobalFileIds)
-      throws SQLException {
+      throws SQLException, PdaoException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     for (SnapshotTable table : tables) {

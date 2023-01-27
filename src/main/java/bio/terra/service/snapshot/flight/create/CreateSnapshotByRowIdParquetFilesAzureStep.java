@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -47,7 +48,7 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep
               rowIdModel,
               snapshotRequestModel.isGlobalFileIds());
       workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
-    } catch (SQLException ex) {
+    } catch (SQLException | PdaoException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
     return StepResult.getStepResultSuccess();

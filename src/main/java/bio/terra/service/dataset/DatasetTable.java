@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
-import bio.terra.common.SynapseColumn;
 import bio.terra.common.Table;
 import com.google.cloud.bigquery.FieldValueList;
 import java.util.Collections;

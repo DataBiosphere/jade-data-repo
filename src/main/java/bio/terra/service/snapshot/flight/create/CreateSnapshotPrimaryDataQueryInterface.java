@@ -14,9 +14,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import java.time.Instant;
 import java.util.List;
-import org.springframework.stereotype.Component;
 
-@Component
 public interface CreateSnapshotPrimaryDataQueryInterface {
 
   default StepResult prepareQueryAndCreateSnapshot(

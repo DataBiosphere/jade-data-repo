@@ -557,7 +557,7 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       String translatedQuery,
-      Boolean isGlobalFieldIds)
+      boolean isGlobalFieldIds)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -634,7 +634,7 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       SnapshotRequestAssetModel requestModel,
-      Boolean isGlobalFieldIds) {
+      boolean isGlobalFieldIds) {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     // First handle root table
@@ -706,7 +706,7 @@ public class AzureSynapsePdao {
       UUID startTableId,
       List<WalkRelationship> walkRelationships,
       Map<String, Long> tableRowCounts,
-      Boolean isGlobalFieldIds) {
+      boolean isGlobalFieldIds) {
     for (WalkRelationship relationship : walkRelationships) {
       if (relationship.visitRelationship(startTableId)) {
         createSnapshotParquetFilesByRelationship(
@@ -756,7 +756,7 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       Map<String, Long> tableRowCounts,
-      Boolean isGlobalFieldIds) {
+      boolean isGlobalFieldIds) {
     String fromTableName = relationship.getFromTableName();
     String toTableName = relationship.getToTableName();
     AssetTable toAssetTable = assetSpecification.getAssetTableByName(toTableName);

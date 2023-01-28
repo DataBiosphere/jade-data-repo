@@ -8,7 +8,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
@@ -119,9 +118,10 @@ public class AzureSynapsePdaoConnectedTest {
 
   private String snapshotDataSourceName;
   private String sourceDatasetDataSourceName;
-  private static final UUID snapshotId = UUID.randomUUID();
+  private UUID snapshotId;
 
   private AzureStorageAccountResource datasetStorageAccountResource;
+  private AzureStorageAccountResource snapshotStorageAccountResource;
   private BillingProfileModel billingProfile;
 
   @Autowired AzureSynapsePdao azureSynapsePdao;
@@ -132,10 +132,10 @@ public class AzureSynapsePdaoConnectedTest {
   @Autowired SynapseUtils synapseUtils;
   @Autowired SnapshotDao snapshotDao;
   @Autowired JsonLoader jsonLoader;
-  @Autowired private ConnectedTestConfiguration testConfig;
 
   @Before
   public void setup() throws Exception {
+    snapshotId = UUID.randomUUID();
     synapseUtils.synapseTestSetup();
     connectedOperations.stubOutSamCalls(samService);
 
@@ -143,6 +143,7 @@ public class AzureSynapsePdaoConnectedTest {
     datasetStorageAccountResource = synapseUtils.retrieveDatasetStorageAccountResource();
     billingProfile = synapseUtils.retrieveBillingProfileModel();
     randomFlightId = synapseUtils.retrieveRandomFlightId();
+    snapshotStorageAccountResource = synapseUtils.retrieveSnapshotStorageAccountResource();
     sourceDatasetDataSourceName = synapseUtils.retrieveSourceDatasetDataSourceName();
     snapshotDataSourceName = synapseUtils.retrieveSnapshotDataSourceName();
     snapshotSignUrlBlob = synapseUtils.retrieveSnapshotSignUrlBlob();
@@ -238,8 +239,8 @@ public class AzureSynapsePdaoConnectedTest {
             snapshotId,
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
-            randomFlightId,
             isGlobalFileIds);
+    synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
     // Test that parquet files are correctly generated
     String snapshotParquetFileName =
         IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, destinationTable.getName());
@@ -259,9 +260,11 @@ public class AzureSynapsePdaoConnectedTest {
     // Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
         snapshot.getTables(), snapshotId, snapshotDataSourceName, tableRowCounts);
+    synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE));
     // Test that parquet files are correctly generated
     String snapshotRowIdsParquetFileName =
         IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, PDAO_ROW_ID_TABLE);
+    synapseUtils.addParquetFileName(snapshotRowIdsParquetFileName, snapshotStorageAccountResource);
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(
             snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);

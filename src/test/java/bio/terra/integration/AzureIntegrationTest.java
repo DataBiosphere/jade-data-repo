@@ -54,6 +54,7 @@ import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
@@ -131,9 +132,7 @@ public class AzureIntegrationTest extends UsersBase {
   private String stewardToken;
   private User steward;
   private UUID datasetId;
-  private UUID snapshotId;
-  private UUID snapshotByRowId;
-  private UUID snapshotByAssetId;
+  private List<UUID> snapshotIds;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
   private RequestRetryOptions retryOptions;
@@ -161,23 +160,21 @@ public class AzureIntegrationTest extends UsersBase {
             testConfig.getSourceStorageAccountName(),
             null,
             retryOptions);
+    snapshotIds = new ArrayList<>();
   }
 
   @After
   public void teardown() throws Exception {
     dataRepoFixtures.resetConfig(steward);
-    if (snapshotId != null) {
-      dataRepoFixtures.deleteSnapshot(steward, snapshotId);
-      snapshotId = null;
-    }
-    if (snapshotByRowId != null) {
-      dataRepoFixtures.deleteSnapshot(steward, snapshotByRowId);
-      snapshotId = null;
-    }
-    if (snapshotByAssetId != null) {
-      dataRepoFixtures.deleteSnapshot(steward, snapshotByAssetId);
-      snapshotId = null;
-    }
+    snapshotIds.forEach(
+        snapshotId -> {
+          try {
+            dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+            snapshotIds.remove(snapshotId);
+          } catch (Exception ex) {
+            logger.warn("[Cleanup exception] Unable to delete snapshot " + snapshotId, ex);
+          }
+        });
     if (datasetId != null) {
       dataRepoFixtures.deleteDatasetLog(steward, datasetId);
       datasetId = null;
@@ -579,12 +576,13 @@ public class AzureIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), summaryModel.getName(), profileId, requestModelAll);
-    snapshotId = snapshotSummaryAll.getId();
+    UUID snapshotByFullViewId = snapshotSummaryAll.getId();
+    snapshotIds.add(snapshotByFullViewId);
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
 
     // Ensure that export works
     DataRepoResponse<SnapshotExportResponseModel> snapshotExport =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotId, false, false);
+        dataRepoFixtures.exportSnapshotLog(steward(), snapshotByFullViewId, false, false);
 
     assertThat(
         "snapshotExport is present", snapshotExport.getResponseObject().isPresent(), is(true));
@@ -601,7 +599,9 @@ public class AzureIntegrationTest extends UsersBase {
     AccessInfoParquetModel snapshotParquetAccessInfo =
         dataRepoFixtures
             .getSnapshot(
-                steward(), snapshotId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
+                steward(),
+                snapshotByFullViewId,
+                List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
             .getParquet();
 
@@ -673,11 +673,11 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(
         "record looks as expected - domain_files_custom_2 drs ids - value",
         DrsIdService.fromUri(embeddedDrsIds2.get(0)).toDrsObjectId(),
-        equalTo(String.format("v1_%s_%s", snapshotId, file2Model.getFileId())));
+        equalTo(String.format("v1_%s_%s", snapshotByFullViewId, file2Model.getFileId())));
     assertThat(
         "record looks as expected - domain_files_custom_3 drs id",
         DrsIdService.fromUri(records.get(0).get("domain_files_custom_3")).toDrsObjectId(),
-        equalTo(String.format("v1_%s_%s", snapshotId, file4Model.getFileId())));
+        equalTo(String.format("v1_%s_%s", snapshotByFullViewId, file4Model.getFileId())));
 
     // Assert that 2 drs ids were loaded
     assertThat("2 drs ids are present", drsIds, hasSize(2));
@@ -692,7 +692,7 @@ public class AzureIntegrationTest extends UsersBase {
     String filePath = result.getLoadFileResults().get(0).getTargetPath();
 
     // Do a Drs lookup
-    String drsId = String.format("v1_%s_%s", snapshotId, fileId);
+    String drsId = String.format("v1_%s_%s", snapshotByFullViewId, fileId);
     assertThat("Expected Drs object Id exists", drsObjectIds.contains(drsId));
     DRSObject drsObject = dataRepoFixtures.drsGetObject(steward(), drsId);
     assertThat("DRS object has single access method", drsObject.getAccessMethods(), hasSize(1));
@@ -712,6 +712,67 @@ public class AzureIntegrationTest extends UsersBase {
 
     TestUtils.verifyHttpAccess(signedUrl, Map.of());
     verifySignedUrl(signedUrl, steward(), "r");
+
+    // -------- Create snapshot by Query ---------
+    // Build snapshot request for snapshot by query
+    SnapshotRequestModel snapshotByQueryModel = new SnapshotRequestModel();
+    snapshotByQueryModel.setName("query_test");
+    snapshotByQueryModel.setDescription("snapshot by query test");
+
+    SnapshotRequestContentsModel snapshotRequestByQueryContentsModel =
+        new SnapshotRequestContentsModel();
+    snapshotRequestByQueryContentsModel.setDatasetName(summaryModel.getName());
+
+    snapshotRequestByQueryContentsModel.setMode(SnapshotRequestContentsModel.ModeEnum.BYQUERY);
+
+    SnapshotRequestQueryModel snapshotRequestQueryModel = new SnapshotRequestQueryModel();
+    snapshotRequestQueryModel.setAssetName("vocab_single");
+    String qualifiedTableName = datasetModel.getName() + ".vocabulary";
+    snapshotRequestQueryModel.setQuery(
+        "Select "
+            + qualifiedTableName
+            + ".datarepo_row_id FROM "
+            + qualifiedTableName
+            + " WHERE "
+            + qualifiedTableName
+            + ".vocabulary_id = '1'");
+    snapshotRequestByQueryContentsModel.setQuerySpec(snapshotRequestQueryModel);
+    snapshotByQueryModel.setContents(List.of(snapshotRequestByQueryContentsModel));
+
+    SnapshotSummaryModel snapshotSummaryByQuery =
+        dataRepoFixtures.createSnapshotWithRequest(
+            steward(), summaryModel.getName(), profileId, snapshotByQueryModel);
+    UUID snapshotByQueryId = snapshotSummaryByQuery.getId();
+    snapshotIds.add(snapshotByQueryId);
+    assertThat(
+        "Snapshot by query exists",
+        snapshotSummaryByQuery.getName(),
+        equalTo(snapshotByQueryModel.getName()));
+
+    // Read the snapshot
+    AccessInfoParquetModel snapshotByQueryParquetAccessInfo =
+        dataRepoFixtures
+            .getSnapshot(
+                steward(),
+                snapshotByQueryId,
+                List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
+            .getAccessInformation()
+            .getParquet();
+
+    String snapshotByQueryParquetUrl =
+        snapshotByQueryParquetAccessInfo.getUrl()
+            + "?"
+            + snapshotByQueryParquetAccessInfo.getSasToken();
+    TestUtils.verifyHttpAccess(snapshotByQueryParquetUrl, Map.of());
+    verifySignedUrl(snapshotByQueryParquetUrl, steward(), "rl");
+
+    for (AccessInfoParquetModelTable table : snapshotByQueryParquetAccessInfo.getTables()) {
+      if (ingest2TableName.equals(table.getName())) {
+        String tableUrl = table.getUrl() + "?" + table.getSasToken();
+        TestUtils.verifyHttpAccess(tableUrl, Map.of());
+        verifySignedUrl(tableUrl, steward(), "rl");
+      }
+    }
 
     // -------- Create snapshot by Asset ---------
     // Build snapshot request for snapshot by asset
@@ -734,7 +795,8 @@ public class AzureIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshotSummaryByAsset =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), summaryModel.getName(), profileId, snapshotByAssetModel);
-    snapshotByAssetId = snapshotSummaryByAsset.getId();
+    UUID snapshotByAssetId = snapshotSummaryByAsset.getId();
+    snapshotIds.add(snapshotByAssetId);
     assertThat(
         "Snapshot by asset exists",
         snapshotSummaryByAsset.getName(),
@@ -769,7 +831,8 @@ public class AzureIntegrationTest extends UsersBase {
     SnapshotSummaryModel snapshotSummaryByRowId =
         dataRepoFixtures.createSnapshotWithRequest(
             steward(), summaryModel.getName(), profileId, snapshotByRowIdModel);
-    snapshotByRowId = snapshotSummaryByRowId.getId();
+    UUID snapshotByRowId = snapshotSummaryByRowId.getId();
+    snapshotIds.add(snapshotByRowId);
     assertThat(
         "Snapshot exists",
         snapshotSummaryByRowId.getName(),
@@ -828,13 +891,17 @@ public class AzureIntegrationTest extends UsersBase {
     dataRepoFixtures.deleteDatasetShouldFail(steward, datasetId);
 
     // Delete snapshot
-    dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+    dataRepoFixtures.deleteSnapshot(steward, snapshotByFullViewId);
+    snapshotIds.remove(snapshotByFullViewId);
     dataRepoFixtures.deleteSnapshot(steward, snapshotByRowId);
+    snapshotIds.remove(snapshotByRowId);
     dataRepoFixtures.deleteSnapshot(steward, snapshotByAssetId);
+    snapshotIds.remove(snapshotByAssetId);
+    dataRepoFixtures.deleteSnapshot(steward, snapshotByQueryId);
+    snapshotIds.remove(snapshotByQueryId);
 
-    dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotId);
+    dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotByFullViewId);
     dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotByRowId);
-    snapshotId = null;
 
     // Delete the file we just ingested
     dataRepoFixtures.deleteFile(steward, datasetId, fileId);
@@ -1221,10 +1288,13 @@ public class AzureIntegrationTest extends UsersBase {
     clearEnvironment();
   }
 
+  // Make sure that any failure in tearing down is presented as a test failure
   private void clearEnvironment() throws Exception {
-    if (snapshotId != null) {
-      dataRepoFixtures.deleteSnapshot(steward, snapshotId);
-      snapshotId = null;
+    for (UUID snapshotId : snapshotIds) {
+      if (snapshotId != null) {
+        dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+        snapshotIds.remove(snapshotId);
+      }
     }
 
     if (datasetId != null) {

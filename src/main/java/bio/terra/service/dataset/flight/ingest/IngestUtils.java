@@ -384,13 +384,6 @@ public final class IngestUtils {
     return "parquet/" + tableName + "/*/*.parquet";
   }
 
-  public static String getSourceDatasetParquetFilePath(String tableName, String datasetFlightId) {
-    if (datasetFlightId != null) {
-      return IngestUtils.getParquetFilePath(tableName, datasetFlightId);
-    }
-    return getSourceDatasetParquetFilePath(tableName);
-  }
-
   public static String formatSnapshotTableName(UUID snapshotId, String tableName) {
     return snapshotId.toString().replaceAll("-", "") + "_" + tableName;
   }

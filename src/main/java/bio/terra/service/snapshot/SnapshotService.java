@@ -538,11 +538,7 @@ public class SnapshotService {
         String assetName = queryModel.getAssetName();
         String snapshotQuery = queryModel.getQuery();
         Query query = Query.parse(snapshotQuery);
-        List<String> datasetNames = query.getDatasetNames();
-        // TODO this makes the assumption that there is only one dataset
-        // (based on the validation flight step that already occurred.)
-        // This will change when more than 1 dataset is allowed
-        String datasetName = datasetNames.get(0);
+        String datasetName = query.getDatasetName();
         Dataset queryDataset = datasetService.retrieveByName(datasetName);
         AssetSpecification queryAssetSpecification =
             queryDataset

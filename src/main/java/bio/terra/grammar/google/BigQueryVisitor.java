@@ -5,22 +5,16 @@ import bio.terra.grammar.DatasetAwareVisitor;
 import bio.terra.grammar.SQLParser;
 import bio.terra.model.DatasetModel;
 import java.util.Map;
+import java.util.Objects;
 
 public class BigQueryVisitor extends DatasetAwareVisitor {
-
-  private static final int PRIME = 31;
 
   public BigQueryVisitor(Map<String, DatasetModel> datasetMap) {
     super(datasetMap);
   }
 
   public String generateAlias(String datasetName, String tableName) {
-    int datasetNameHash = datasetName.hashCode();
-    int tableNameHash = tableName.hashCode();
-    // there's less of a chance of collision if we multiply the first value by an odd prime before
-    // we sum them
-    int hash = datasetNameHash * PRIME + tableNameHash;
-    return "alias" + String.valueOf(hash);
+    return "alias" + Math.abs(Objects.hash(datasetName, tableName));
   }
 
   @Override

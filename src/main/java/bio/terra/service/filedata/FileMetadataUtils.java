@@ -5,6 +5,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -108,5 +109,26 @@ public class FileMetadataUtils {
       }
     }
     return pathsToCheck;
+  }
+
+  /**
+   * Given an absolute path to a file or directory, return a List of absolute paths for all parent
+   * directories
+   *
+   * @param path An absolute path
+   * @return An ordered list of paths that could potentially be created. Note: this excludes the
+   *     passed in path
+   */
+  public static List<String> extractDirectoryPaths(String path) {
+    List<String> allPaths = new ArrayList<>();
+    String interimPath = "";
+    allPaths.add("/");
+    for (String part : getDirectoryPath(path).split("/")) {
+      if (!StringUtils.isEmpty(part)) {
+        interimPath += "/" + part;
+        allPaths.add(interimPath);
+      }
+    }
+    return allPaths;
   }
 }

@@ -149,6 +149,13 @@ public class FileMetadataUtilsTest {
             "/_dr_/test/path-4"));
   }
 
+  @Test
+  public void extractDirectoryPathsTest() {
+    assertThat(
+        FileMetadataUtils.extractDirectoryPaths("/foo/bar/baz.txt"),
+        equalTo(List.of("/", "/foo", "/foo/bar")));
+  }
+
   private List<FireStoreDirectoryEntry> initTestEntries(int numDirectories) {
     List<FireStoreDirectoryEntry> testEntries = new ArrayList<>();
     // Add 4 files per different directory path

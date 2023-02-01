@@ -31,7 +31,7 @@ jobs:
           echo "Latest git hash: $LATEST_GITHASH"
           echo "::set-output name=LATEST_GITHASH::$LATEST_GITHASH"
       - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_VERSION }} branch"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "Setup Java 17"
@@ -108,7 +108,7 @@ jobs:
           k8_namespaces: 'perf'
       - name: '[Update API version on Perf] Checkout datarepo-helm-definitions repo'
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.BROADBOT_TOKEN }}

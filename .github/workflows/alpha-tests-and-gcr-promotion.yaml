@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: "Checkout jade-data-repo and latest tags"
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
     - name: "Setup Java 17"
@@ -132,7 +132,7 @@ jobs:
         echo "Cherry picking ${{ steps.configuration.outputs.alpha_version_api }} from ${DEV_IMAGE} to ${PUBLIC_IMAGE}"
         gcloud container images add-tag --quiet "${DEV_IMAGE}" "${PUBLIC_IMAGE}"
     - name: "[UI][Cherry-pick to public GCR] Checkout datarepo-helm repo"
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: 'broadinstitute/datarepo-helm'
         token: ${{ secrets.BROADBOT_TOKEN }}

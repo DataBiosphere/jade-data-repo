@@ -28,12 +28,12 @@ jobs:
     if: "!contains( github.event.sender.login, 'broadbot')"
     steps:
       - name: Checkout Develop branch of jade-data-repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: develop
           token: ${{ secrets.BROADBOT_TOKEN }}
       - name: 'Checkout datarepo-helm-definitions repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.BROADBOT_TOKEN }}
@@ -77,7 +77,7 @@ jobs:
             git fetch --all --tags
             git checkout ${{ steps.bumperstep.outputs.tag }}
       - name: 'Release Candidate Container Build: Checkout DataBiosphere/jade-data-repo-ui repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'DataBiosphere/jade-data-repo-ui'
           token: ${{ secrets.BROADBOT_TOKEN }}

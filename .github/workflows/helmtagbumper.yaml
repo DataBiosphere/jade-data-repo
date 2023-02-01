@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           ref: develop
@@ -17,7 +17,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: 'Checkout datarepo-helm-definitions repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.BROADBOT_TOKEN}}
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: 'Checkout develop branch of jade-data-repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           ref: develop
@@ -79,7 +79,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: '[datarepo-helm] Checkout repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'broadinstitute/datarepo-helm'
           path: datarepo-helm

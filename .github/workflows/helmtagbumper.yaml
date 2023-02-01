@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           ref: develop
@@ -17,7 +17,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: 'Checkout datarepo-helm-definitions repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.BROADBOT_TOKEN}}
@@ -47,7 +47,7 @@ jobs:
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-6/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: "[datarepo-helm-definitions] Merge chart version update"
-        uses: broadinstitute/datarepo-actions/actions/merger@0.65.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.66.0
         env:
           COMMIT_MESSAGE: "Datarepo api tag version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm-definitions
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: 'Checkout develop branch of jade-data-repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           ref: develop
@@ -79,7 +79,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: '[datarepo-helm] Checkout repo'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'broadinstitute/datarepo-helm'
           path: datarepo-helm
@@ -106,7 +106,7 @@ jobs:
         with:
           args: yq w -i datarepo-helm/charts/datarepo-api/Chart.yaml version ${{ steps.chartversion.outputs.chartversion }}"
       - name: "[datarepo-helm] Merge chart version update"
-        uses: broadinstitute/datarepo-actions/actions/merger@0.65.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.66.0
         env:
           COMMIT_MESSAGE: "Datarepo api version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm

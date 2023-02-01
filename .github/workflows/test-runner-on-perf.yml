@@ -93,7 +93,7 @@ jobs:
           location: ${{ env.GOOGLE_ZONE }}
           project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.65.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.66.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
@@ -102,7 +102,7 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
           google_project: broad-jade-perf
       - name: "Check that perf namespace is available and set state lock"
-        uses: broadinstitute/datarepo-actions/actions/main@0.65.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.66.0
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'perf'
@@ -120,7 +120,7 @@ jobs:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/datarepo-actions/actions/merger@0.65.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.66.0
         env:
           COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
           GITHUB_REPO: datarepo-helm-definitions
@@ -168,7 +168,7 @@ jobs:
           echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
           sleep 45
       - name: "Wait for Perf Cluster to come back up with correct version"
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.65.0
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.66.0
         env:
           NAMESPACEINUSE: perf
           IT_JADE_API_URL: "https://jade-perf.datarepo-perf.broadinstitute.org"
@@ -203,12 +203,12 @@ jobs:
           project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
       - name: "Unlock perf namespace if we locked it in this run"
         if: always() # the task always runs, but the lock is only cleared if this run set it.
-        uses: broadinstitute/datarepo-actions/actions/main@0.65.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.66.0
         with:
           actions_subcommand: 'k8_checknamespace_clean'
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.65.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.66.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:

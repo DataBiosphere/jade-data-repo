@@ -40,7 +40,7 @@ jobs:
           path: datarepo-helm-definitions
       - name: "Bump the tag to a new version"
         id: bumperstep
-        uses: broadinstitute/datarepo-actions/actions/main@0.66.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.67.0
         with:
           actions_subcommand: 'bumper'
           role_id: ${{ secrets.ROLE_ID }}
@@ -57,13 +57,13 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ENABLE_SUBPROJECT_TASKS: true
       - name: "Build new delevop docker image"
-        uses: broadinstitute/datarepo-actions/actions/main@0.66.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.67.0
         with:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Update Version in helm for Dev Env"
-        uses: broadinstitute/datarepo-actions/actions/main@0.66.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.67.0
         with:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
@@ -84,7 +84,7 @@ jobs:
           path: jade-data-repo-ui
           ref: develop
       - name: 'Release Candidate Container Build: Create release candidate images'
-        uses: broadinstitute/datarepo-actions/actions/main@0.66.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.67.0
         with:
           actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}

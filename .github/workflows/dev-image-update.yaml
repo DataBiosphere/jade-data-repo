@@ -91,13 +91,18 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
           alpharelease: ${{ steps.bumperstep.outputs.tag }}
           gcr_google_project: 'broad-jade-dev'
-      - name: "Update Version for Integration Namespaces and Helm Charts"
-        uses: broadinstitute/workflow-dispatch@v1
-        with:
-          workflow: Update API Helm Image Tags
-          token: ${{ secrets.BROADBOT_TOKEN }}
+  helm_tag_bumper:
+    needs: update_image
+    uses: ./.github/workflows/helmtagbumper.yaml
+    secrets: inherit
+  action_notify:
+    runs-on: ubuntu-latest
+    # if: always()
+    needs:
+      - update_image
+      - helm_tag_bumper
+    steps:
       - name: Slack job status
-        if: always()
         uses: broadinstitute/action-slack@v3.8.0
         with:
           status: ${{ job.status }}
@@ -108,3 +113,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+

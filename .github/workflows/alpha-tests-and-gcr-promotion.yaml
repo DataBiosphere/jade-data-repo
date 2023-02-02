@@ -39,7 +39,7 @@ jobs:
         git checkout ${{ steps.configuration.outputs.alpha_version_api }}
         echo "Current branch is ${{ github.ref }}"
     - name: "Import Vault Secrets for Alpha Test Runner Service Account"
-      uses: hashicorp/vault-action@v2.2.0
+      uses: hashicorp/vault-action@v2.5.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle
@@ -56,7 +56,7 @@ jobs:
 
         ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
     - name: "Import Vault Secrets for Dev Service Account"
-      uses: hashicorp/vault-action@v2.2.0
+      uses: hashicorp/vault-action@v2.5.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle
@@ -109,7 +109,7 @@ jobs:
         echo "[INFO] Uploading results SUCCEEDED"
         cd ${GITHUB_WORKSPACE}/${workingDir}
     - name: "[Cherry-pick to public GCR] Import Vault Secrets for GCR Service Account"
-      uses: hashicorp/vault-action@v2.2.0
+      uses: hashicorp/vault-action@v2.5.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle

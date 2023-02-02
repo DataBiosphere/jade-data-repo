@@ -34,7 +34,7 @@ jobs:
           git checkout ${{ steps.configuration.outputs.staging_version }}
           echo "Current branch is ${{ github.ref }}"
       - name: "Import Vault staging secrets"
-        uses: hashicorp/vault-action@v2.2.0
+        uses: hashicorp/vault-action@v2.5.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -51,7 +51,7 @@ jobs:
 
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.2.0
+        uses: hashicorp/vault-action@v2.5.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle

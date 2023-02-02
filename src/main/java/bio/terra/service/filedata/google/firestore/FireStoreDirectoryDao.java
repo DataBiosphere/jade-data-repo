@@ -8,6 +8,7 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.exception.FileAlreadyExistsException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
@@ -24,11 +25,14 @@ import com.google.cloud.firestore.WriteResult;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
@@ -134,6 +138,112 @@ public class FireStoreDirectoryDao {
         " creating file directory for collection Id: " + collectionId);
   }
 
+  /**
+   * Write directory entries. If attempting to write a document that has a different ID but the same
+   * load tag, leave the entry untouched and return false for that entry. If the load tags don't
+   * match, then throw an exception
+   *
+   * @param firestore Firestore connection object
+   * @param collectionId the id of the collection being updated
+   * @param loadTag the load tag of the current ingest
+   * @param directories All directories to upsert
+   * @return A list of booleans the same size as the directories parameter where if an entry is
+   *     true, the directory at that location was inserted and if an entry is false, it already
+   *     existed
+   * @throws InterruptedException If something goes wrong talking to Firestore
+   * @throws FileSystemExecutionException If the file already exists but with a different load tag
+   */
+  public List<Boolean> upsertDirectoryEntries(
+      Firestore firestore, String collectionId, String loadTag, List<String> directories)
+      throws InterruptedException {
+    return fireStoreUtils.batchOperation(
+        directories,
+        directory ->
+            firestore.runTransaction(
+                xn -> {
+                  DocumentReference docRef =
+                      getDocRef(
+                          firestore, collectionId, FileMetadataUtils.makeLookupPath(directory));
+                  // If the directory entry already exists, don't try to re-add
+                  DocumentSnapshot documentSnapshot = xn.get(docRef).get();
+                  if (documentSnapshot.exists()) {
+                    FireStoreDirectoryEntry existingEntry =
+                        documentSnapshot.toObject(FireStoreDirectoryEntry.class);
+                    if (Objects.equals(existingEntry.getLoadTag(), loadTag)) {
+                      return false;
+                    } else {
+                      throw new FileAlreadyExistsException(
+                          "Path already exists: %s with load tag %s"
+                              .formatted(directory, existingEntry.getLoadTag()));
+                    }
+                  }
+                  xn.set(
+                      docRef,
+                      new FireStoreDirectoryEntry()
+                          .fileId(UUID.randomUUID().toString())
+                          .isFileRef(false)
+                          .path(FileMetadataUtils.getDirectoryPath(directory))
+                          .name(FileMetadataUtils.getName(directory))
+                          .datasetId(collectionId)
+                          .loadTag(loadTag));
+                  return true;
+                }));
+  }
+
+  /**
+   * Write directory entries. If attempting to write a document that has a different ID but the same
+   * load tag, leave the entry untouched and add an entry to the return map. If the load tags don't
+   * match, then throw an exception
+   *
+   * @param firestore Firestore connection object
+   * @param collectionId the id of the collection being updated
+   * @param entries All entries to upsert
+   * @return A map of IDs for entries that already exist. The key is the passed in id and the value
+   *     is the existing value.
+   * @throws InterruptedException If something goes wrong talking to Firestore
+   * @throws FileSystemExecutionException If the file already exists but with a different load tag
+   */
+  public Map<UUID, UUID> upsertDirectoryEntries(
+      Firestore firestore, String collectionId, List<FireStoreDirectoryEntry> entries)
+      throws InterruptedException {
+
+    return fireStoreUtils
+        .batchOperation(
+            entries,
+            entry ->
+                firestore.runTransaction(
+                    xn -> {
+                      DocumentReference docRef =
+                          getDocRef(firestore, collectionId, entry.getPath(), entry.getName());
+                      DocumentSnapshot documentSnapshot = xn.get(docRef).get();
+                      if (documentSnapshot.exists()) {
+                        FireStoreDirectoryEntry existingEntry =
+                            documentSnapshot.toObject(FireStoreDirectoryEntry.class);
+                        // If the file exists with the same load tag, we assume that it's from
+                        // this load and that this is a recovery.  In that case, just leave the
+                        // entry unchanged and return a mapping from the attempted fileId to the
+                        // existing fileId so that the calling flight's working map can be updated
+                        if (Objects.equals(entry.getLoadTag(), existingEntry.getLoadTag())) {
+                          return new IdConflict(
+                              UUID.fromString(entry.getFileId()),
+                              UUID.fromString(documentSnapshot.get("fileId", String.class)));
+                        } else {
+                          throw new FileAlreadyExistsException(
+                              "Path already exists: %s with load tag %s"
+                                  .formatted(entry.getPath(), existingEntry.getLoadTag()));
+                        }
+                      }
+                      xn.set(docRef, entry);
+                      return null;
+                    }))
+        .stream()
+        .filter(Objects::nonNull)
+        .collect(Collectors.toMap(IdConflict::attemptedId, IdConflict::existingId));
+  }
+  // Need to declare the record class out here and not inline in the method sine that makes spotbugs
+  // mad and I can't disable the check
+  record IdConflict(UUID attemptedId, UUID existingId) {}
+
   // true - directory entry existed and was deleted; false - directory entry did not exist
   public boolean deleteDirectoryEntry(Firestore firestore, String collectionId, String fileId)
       throws InterruptedException {
@@ -182,13 +292,14 @@ public class FireStoreDirectoryDao {
     return fireStoreUtils.transactionGet("deleteDirectoryEntry", transaction);
   }
 
-  private static final int DELETE_BATCH_SIZE = 500;
-
   public void deleteDirectoryEntriesFromCollection(Firestore firestore, String collectionId)
       throws InterruptedException {
 
     fireStoreUtils.scanCollectionObjects(
-        firestore, collectionId, DELETE_BATCH_SIZE, document -> document.getReference().delete());
+        firestore,
+        collectionId,
+        FireStoreUtils.MAX_FIRESTORE_BATCH_SIZE,
+        document -> document.getReference().delete());
   }
 
   interface LookupFunction {
@@ -298,6 +409,10 @@ public class FireStoreDirectoryDao {
   private DocumentReference getDocRef(
       Firestore firestore, String collectionId, String path, String name) {
     String fullPath = FileMetadataUtils.getFullPath(path, name);
+    return getDocRef(firestore, collectionId, fullPath);
+  }
+
+  private DocumentReference getDocRef(Firestore firestore, String collectionId, String fullPath) {
     String lookupPath = FileMetadataUtils.makeLookupPath(fullPath);
     return firestore
         .collection(collectionId)
@@ -489,7 +604,7 @@ public class FireStoreDirectoryDao {
     return entries;
   }
 
-  private List<FireStoreDirectoryEntry> batchRetrieveByPath(
+  public List<FireStoreDirectoryEntry> batchRetrieveByPath(
       Firestore datasetFirestore, String datasetId, List<String> paths)
       throws InterruptedException {
 
@@ -500,14 +615,17 @@ public class FireStoreDirectoryDao {
             paths,
             path -> {
               DocumentReference docRef =
-                  datasetCollection.document(encodePathAsFirestoreDocumentName(path));
+                  datasetCollection.document(
+                      encodePathAsFirestoreDocumentName(FileMetadataUtils.makeLookupPath(path)));
               return docRef.get();
             });
 
     List<FireStoreDirectoryEntry> entries = new ArrayList<>(paths.size());
     for (DocumentSnapshot document : documents) {
-      FireStoreDirectoryEntry entry = document.toObject(FireStoreDirectoryEntry.class);
-      entries.add(entry);
+      if (document.exists()) {
+        FireStoreDirectoryEntry entry = document.toObject(FireStoreDirectoryEntry.class);
+        entries.add(entry);
+      }
     }
 
     return entries;

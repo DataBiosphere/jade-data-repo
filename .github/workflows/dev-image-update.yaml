@@ -68,7 +68,7 @@ jobs:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
       - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
-        uses: broadinstitute/retry@v2.5.1 #forked from nick-invision/retry
+        uses: broadinstitute/retry@v2.8.3 #forked from nick-fields/retry
         with:
           timeout_minutes: 1
           polling_interval_seconds: 5

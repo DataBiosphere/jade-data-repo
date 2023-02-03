@@ -451,24 +451,34 @@ public class GcsPdao implements CloudFileReader {
       String sourceFileName = getLastNameFromPath(sourceBlob.getName());
       // Our path is /<dataset-id>/<file-id>/<source-file-name>
       String targetPath = dataset.getId().toString() + "/" + effectiveFileId + "/" + sourceFileName;
+      String gspath = String.format("gs://%s/%s", bucketResource.getName(), targetPath);
 
-      // The documentation is vague whether or not it is important to copy by chunk. One set of
-      // examples does it and another doesn't.
-      //
-      // I have been seeing timeouts and I think they are due to particularly large files,
-      // so I exported the timeouts to application.properties to allow for tuning
-      // and I am changing this to copy chunks.
-      //
-      // Specify the target project of the target bucket as the payor if the source is requester
-      // pays.
-      CopyWriter writer =
-          sourceBlob.copyTo(
-              BlobId.of(bucketResource.getName(), targetPath),
-              Blob.BlobSourceOption.userProject(targetProjectId));
-      while (!writer.isDone()) {
-        writer.copyChunk();
+      // If the target blob, already exists, skip ingesting it
+      Blob targetBlob = null;
+      try {
+        targetBlob = getBlobFromGsPath(storage, gspath, targetProjectId);
+      } catch (PdaoSourceFileNotFoundException e) {
+        // NOOP.  Just swallow the exception
       }
-      Blob targetBlob = writer.getResult();
+      if (targetBlob == null || !targetBlob.exists(BlobSourceOption.userProject(targetProjectId))) {
+        // The documentation is vague whether or not it is important to copy by chunk. One set of
+        // examples does it and another doesn't.
+        //
+        // I have been seeing timeouts and I think they are due to particularly large files,
+        // so I exported the timeouts to application.properties to allow for tuning
+        // and I am changing this to copy chunks.
+        //
+        // Specify the target project of the target bucket as the payor if the source is requester
+        // pays.
+        CopyWriter writer =
+            sourceBlob.copyTo(
+                BlobId.of(bucketResource.getName(), targetPath),
+                BlobSourceOption.userProject(targetProjectId));
+        while (!writer.isDone()) {
+          writer.copyChunk();
+        }
+        targetBlob = writer.getResult();
+      }
 
       // MD5 is computed per-component. So if there are multiple components, the MD5 here is
       // not useful for validating the contents of the file on access. Therefore, we only
@@ -483,8 +493,6 @@ public class GcsPdao implements CloudFileReader {
       // Grumble! It is not documented what the meaning of the Long is.
       // From poking around I think it is a standard POSIX milliseconds since Jan 1, 1970.
       Instant createTime = Instant.ofEpochMilli(targetBlob.getCreateTime());
-
-      String gspath = String.format("gs://%s/%s", bucketResource.getName(), targetPath);
 
       return new FSFileInfo()
           .fileId(effectiveFileId)
@@ -516,6 +524,20 @@ public class GcsPdao implements CloudFileReader {
       Storage storage = gcsProjectFactory.getStorage(projectId);
       Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), projectId);
 
+      String effectiveFileId;
+      if (fileId == null) {
+        effectiveFileId =
+            fileIdService
+                .calculateFileId(
+                    true,
+                    new FSItem()
+                        .path(fileLoadModel.getTargetPath())
+                        .checksumMd5(sourceBlob.getMd5ToHexString())
+                        .size(sourceBlob.getSize()))
+                .toString();
+      } else {
+        effectiveFileId = fileId;
+      }
       // MD5 is computed per-component. So if there are multiple components, the MD5 here is
       // not useful for validating the contents of the file on access. Therefore, we only
       // return the MD5 if there is only a single component. For more details,
@@ -533,7 +555,7 @@ public class GcsPdao implements CloudFileReader {
       String gspath = String.format("gs://%s/%s", sourceBlob.getBucket(), sourceBlob.getName());
 
       return new FSFileInfo()
-          .fileId(fileId)
+          .fileId(effectiveFileId)
           .createdDate(createTime.toString())
           .cloudPath(gspath)
           .checksumCrc32c(sourceBlob.getCrc32cToHexString())

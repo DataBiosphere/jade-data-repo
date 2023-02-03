@@ -1,6 +1,7 @@
 package bio.terra.service.load;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
@@ -8,11 +9,17 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
+import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.service.load.LoadService.LoadHistoryIterator;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -29,7 +36,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 @EmbeddedDatabaseTest
-public class LoadUnitTest {
+public class LoadServiceTest {
   @Autowired private LoadService loadService;
 
   private enum LoadTagsUsedByTest {
@@ -160,5 +167,51 @@ public class LoadUnitTest {
     when(flightContext.getInputParameters()).thenReturn(inputParams);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     loadService.getLoadTag(flightContext);
+  }
+
+  @Test
+  public void getLoadHistoryIteratorFromDao() throws InterruptedException {
+    UUID loadId =
+        loadService.lockLoad(
+            LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
+
+    List<BulkLoadFileModel> loadFileModels =
+        List.of(
+            new BulkLoadFileModel().sourcePath("source1").targetPath("target1"),
+            new BulkLoadFileModel().sourcePath("source2").targetPath("target2"),
+            new BulkLoadFileModel().sourcePath("source3").targetPath("target3"));
+    loadService.populateFiles(loadId, loadFileModels);
+    LoadHistoryIterator loadHistoryIterator = loadService.loadHistoryIterator(loadId, 2);
+    List<BulkLoadHistoryModel> loadHistoryModels = new ArrayList<>();
+
+    while (loadHistoryIterator.hasNext()) {
+      loadHistoryModels.addAll(loadHistoryIterator.next());
+    }
+
+    assertThat(
+        "load history models were returned",
+        loadHistoryModels.stream().map(BulkLoadHistoryModel::getTargetPath).toList(),
+        containsInAnyOrder("target1", "target2", "target3"));
+  }
+
+  @Test
+  public void getLoadHistoryIteratorFromFlightContext() throws InterruptedException {
+
+    List<BulkLoadHistoryModel> loadHistoryInputs =
+        List.of(
+            new BulkLoadHistoryModel().sourcePath("source1").targetPath("target1"),
+            new BulkLoadHistoryModel().sourcePath("source2").targetPath("target2"),
+            new BulkLoadHistoryModel().sourcePath("source3").targetPath("target3"));
+    LoadHistoryIterator loadHistoryIterator = loadService.loadHistoryIterator(loadHistoryInputs, 2);
+    List<BulkLoadHistoryModel> loadHistoryModels = new ArrayList<>();
+
+    while (loadHistoryIterator.hasNext()) {
+      loadHistoryModels.addAll(loadHistoryIterator.next());
+    }
+
+    assertThat(
+        "load history models were returned",
+        loadHistoryModels.stream().map(BulkLoadHistoryModel::getTargetPath).toList(),
+        containsInAnyOrder("target1", "target2", "target3"));
   }
 }

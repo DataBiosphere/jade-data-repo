@@ -5,6 +5,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.iam.AuthenticatedUserRequestFactory;
 import bio.terra.controller.DuosApi;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.DuosFirecloudGroupsSyncResponse;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -54,6 +55,16 @@ public class DuosApiController implements DuosApi {
         appConfig.getResourceId(),
         IamAction.SYNC_DUOS_USERS);
     return ResponseEntity.ok(duosService.syncDuosDatasetAuthorizedUsers(duosId));
+  }
+
+  @Override
+  public ResponseEntity<DuosFirecloudGroupsSyncResponse> syncDuosDatasetsAuthorizedUsers() {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(),
+        IamResourceType.DATAREPO,
+        appConfig.getResourceId(),
+        IamAction.SYNC_DUOS_USERS);
+    return ResponseEntity.ok(duosService.syncDuosDatasetsAuthorizedUsers());
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {

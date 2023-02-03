@@ -1314,6 +1314,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/duos/syncAuthorizedUsers:
+    put:
+      tags:
+        - duos
+        - repository
+      description: >
+        Sync the members of all TDR-managed DUOS Firecloud groups with the authorized users of their
+        corresponding DUOS datasets.  Any snapshots linked to a DUOS dataset have its Firecloud
+        group as a reader, which means its members are also snapshot readers.
+        NOTE: This is an experimental feature and its response body may change.
+      operationId: syncDuosDatasetsAuthorizedUsers
+      responses:
+        200:
+          description: Sync complete - see contents to gauge overall success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DuosFirecloudGroupsSyncResponse'
+        403:
+          description: >
+            Unauthorized - the caller must be a TDR Admin or TDR-DUOS Integration Admin
+            to facilitate sync.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: >
+            An unexpected error occurred - Firecloud group contents may not have been updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/duos/{duosId}/syncAuthorizedUsers:
     put:
       tags:
@@ -3922,7 +3955,7 @@ components:
           default: false
           description: >
             If false, random ids will be created. If true, full target path (e.g. path + name), size and MD5 hash will be used
-            
+
             Note: this only applies to files.  Directories still have random ids regardless of this value
         policies:
           description: User emails to add as dataset policy members.
@@ -5739,6 +5772,23 @@ components:
           $ref: '#/components/schemas/DuosFirecloudGroupModel'
         linked:
           $ref: '#/components/schemas/DuosFirecloudGroupModel'
+    DuosFirecloudGroupsSyncResponse:
+      type: object
+      description: >
+        The outcome of a batch sync of all DUOS Firecloud groups.
+      properties:
+        synced:
+          description: >
+            The Firecloud groups whose contents were successfully updated.
+          type: array
+          items:
+            $ref: '#/components/schemas/DuosFirecloudGroupModel'
+        errors:
+          description: >
+            Errors which may have interfered in the syncing for select DUOS Firecloud groups.
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorModel'
 
     ##############################################################################
     ## DRS STANDARD MODELS

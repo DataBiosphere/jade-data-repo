@@ -20,9 +20,9 @@ jobs:
           ref: develop
       - name: 'Get Previous tag'
         id: apiprevioustag
-        uses: "broadinstitute/github-action-get-previous-tag@master"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          TAG=$(git for-each-ref --sort=-creatordate --count 1 --format="%(refname:short)" "refs/tags/")
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
         with:

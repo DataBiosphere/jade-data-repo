@@ -28,9 +28,9 @@ jobs:
           fetch-depth: 0
       - name: 'Get Previous tag'
         id: apiprevioustag
-        uses: "broadinstitute/github-action-get-previous-tag@master"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          TAG=$(git for-each-ref --sort=-creatordate --count 1 --format="%(refname:short)" "refs/tags/")
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
       - name: 'Generate IAP token to talk to Sherlock'
         id: 'auth-iap'
         uses: google-github-actions/auth@v0

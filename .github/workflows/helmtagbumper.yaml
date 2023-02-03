@@ -1,6 +1,7 @@
 name: Update API Helm Image Tags
 on:
   workflow_call: {}
+  workflow_dispatch: {}
 jobs:
 # new integration image updater
   integration_helm_tag_update:
@@ -13,9 +14,9 @@ jobs:
           ref: develop
       - name: 'Get Previous tag'
         id: apiprevioustag
-        uses: "broadinstitute/github-action-get-previous-tag@master"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          TAG=$(git for-each-ref --sort=-creatordate --count 1 --format="%(refname:short)" "refs/tags/")
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v3
         with:
@@ -63,9 +64,9 @@ jobs:
           ref: develop
       - name: 'Fetch latest jade-data-repo image tag'
         id: apiprevioustag
-        uses: "broadinstitute/github-action-get-previous-tag@master"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          TAG=$(git for-each-ref --sort=-creatordate --count 1 --format="%(refname:short)" "refs/tags/")
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
       - name: '[datarepo-helm] Checkout repo'
         uses: actions/checkout@v3
         with:

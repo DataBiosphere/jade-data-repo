@@ -33,6 +33,7 @@ import org.threeten.bp.Duration;
 public final class BigQueryFixtures {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryFixtures.class);
   private static final int SAM_TIMEOUT_SECONDS = 400;
+  private static final int WAIT_FOR_ACCESS_SECONDS = 180;
 
   private BigQueryFixtures() {}
 
@@ -148,6 +149,8 @@ public final class BigQueryFixtures {
   public static String queryForDrsId(
       BigQuery bigQuery, SnapshotModel snapshotModel, String tableName, String columnName)
       throws InterruptedException {
+    waitBeforeCheckingAccess();
+
     String sql =
         String.format(
             "SELECT %s FROM %s WHERE %s IS NOT NULL LIMIT 1",
@@ -170,6 +173,8 @@ public final class BigQueryFixtures {
   // user associated with the BigQuery instance.
   public static boolean hasAccess(BigQuery bigQuery, String dataProject, String bqDatasetName)
       throws Exception {
+    waitBeforeCheckingAccess();
+
     return TestUtils.eventualExpect(
         5,
         SAM_TIMEOUT_SECONDS,
@@ -188,5 +193,28 @@ public final class BigQueryFixtures {
             return false;
           }
         });
+  }
+
+  /**
+   * At the beginning of 2023, google rolled out some changes to IAM propagation that make detecting
+   * IAM propagation when google groups are involved tricky. At this time all access to google cloud
+   * resources involves a google group. The problem seems to be that there are multiple eventually
+   * consistent caches. If we test for access and get a denied answer, that information is cached
+   * for an unknown period of time. There is some chance that a future request will fail even though
+   * others succeed. So simple polling won't work and likely poisons the cache.
+   *
+   * <p>The new method is to wait for a fixed time then test access. A possible future improvement
+   * is to then fail immediately if access is still not available: a failure encountered when
+   * polling after the wait is susceptible to the poisoned cache issue.
+   *
+   * <p>Reference implementation:
+   * https://github.com/broadinstitute/workbench-libs/pull/1234/files#diff-f22cbe85519ed50c31f21ba7f347ed4cfb3615a564edd069b95ca79bdea56780R337
+   *
+   * @throws InterruptedException
+   */
+  private static void waitBeforeCheckingAccess() throws InterruptedException {
+    logger.info("Sleeping " + WAIT_FOR_ACCESS_SECONDS + " prior to checking BigQuery access");
+    TimeUnit.SECONDS.sleep(WAIT_FOR_ACCESS_SECONDS);
+    logger.info("Slept " + WAIT_FOR_ACCESS_SECONDS + " prior to checking BigQuery access");
   }
 }

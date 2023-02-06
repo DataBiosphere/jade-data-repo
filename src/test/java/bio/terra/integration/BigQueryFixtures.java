@@ -3,11 +3,9 @@ package bio.terra.integration;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.PdaoConstant;
-import bio.terra.common.TestUtils;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.SnapshotModel;
 import com.google.api.gax.retrying.RetrySettings;
@@ -32,7 +30,6 @@ import org.threeten.bp.Duration;
 
 public final class BigQueryFixtures {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryFixtures.class);
-  private static final int SAM_TIMEOUT_SECONDS = 400;
   private static final int WAIT_FOR_ACCESS_SECONDS = 180;
 
   private BigQueryFixtures() {}
@@ -155,7 +152,7 @@ public final class BigQueryFixtures {
         String.format(
             "SELECT %s FROM %s WHERE %s IS NOT NULL LIMIT 1",
             columnName, makeTableRef(snapshotModel, tableName), columnName);
-    TableResult ids = BigQueryFixtures.queryWithRetry(sql, bigQuery);
+    TableResult ids = BigQueryFixtures.query(sql, bigQuery);
     assertThat("Got one row", ids.getTotalRows(), equalTo(1L));
 
     String drsUri = null;
@@ -169,30 +166,16 @@ public final class BigQueryFixtures {
     return matcher.group();
   }
 
-  // Common method to use to wait for SAM to sync to a google group, allowing access by the
-  // user associated with the BigQuery instance.
-  public static boolean hasAccess(BigQuery bigQuery, String dataProject, String bqDatasetName)
-      throws Exception {
+  /**
+   * Common method to use to wait for SAM to sync to a google group, asserting access is granted to
+   * the user associated with the BigQuery instance.
+   */
+  public static void assertBqDatasetAccessible(
+      BigQuery bigQuery, String dataProject, String bqDatasetName) throws Exception {
     waitBeforeCheckingAccess();
-
-    return TestUtils.eventualExpect(
-        5,
-        SAM_TIMEOUT_SECONDS,
-        true,
-        () -> {
-          try {
-            boolean bqDatasetExists =
-                BigQueryFixtures.datasetExists(bigQuery, dataProject, bqDatasetName);
-            assertTrue("BigQuery dataset exists and is accessible", bqDatasetExists);
-            return true;
-          } catch (IllegalStateException e) {
-            assertThat(
-                "access is denied until SAM syncs the reader policy with Google",
-                e.getCause().getMessage(),
-                startsWith("Access Denied:"));
-            return false;
-          }
-        });
+    assertTrue(
+        "BigQuery dataset exists and is accessible",
+        BigQueryFixtures.datasetExists(bigQuery, dataProject, bqDatasetName));
   }
 
   /**
@@ -203,9 +186,9 @@ public final class BigQueryFixtures {
    * for an unknown period of time. There is some chance that a future request will fail even though
    * others succeed. So simple polling won't work and likely poisons the cache.
    *
-   * <p>The new method is to wait for a fixed time then test access. A possible future improvement
-   * is to then fail immediately if access is still not available: a failure encountered when
-   * polling after the wait is susceptible to the poisoned cache issue.
+   * <p>The new method is to wait for a fixed time then test access. Callers should then fail
+   * immediately if access is still not available: a failure encountered when polling after the wait
+   * is susceptible to the poisoned cache issue.
    *
    * <p>Reference implementation:
    * https://github.com/broadinstitute/workbench-libs/pull/1234/files#diff-f22cbe85519ed50c31f21ba7f347ed4cfb3615a564edd069b95ca79bdea56780R337

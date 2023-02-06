@@ -160,14 +160,8 @@ public class AccessTest extends UsersBase {
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
 
-    boolean custodianHasAccess =
-        BigQueryFixtures.hasAccess(
-            custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
-
-    assertThat(
-        "custodian can access the bq snapshot after it has been shared",
-        custodianHasAccess,
-        equalTo(true));
+    BigQueryFixtures.assertBqDatasetAccessible(
+        custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
 
     SnapshotSummaryModel snapshotSummaryModel =
         dataRepoFixtures.createSnapshot(
@@ -209,11 +203,8 @@ public class AccessTest extends UsersBase {
             IamAction.READ_DATA),
         equalTo(true));
 
-    boolean readerHasAccess =
-        BigQueryFixtures.hasAccess(
-            bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
-    assertThat(
-        "reader can access the snapshot after it has been shared", readerHasAccess, equalTo(true));
+    BigQueryFixtures.assertBqDatasetAccessible(
+        bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
   }
 
   @Test
@@ -278,7 +269,7 @@ public class AccessTest extends UsersBase {
     // so we have to use the custodian to look up the DRS id.
     BigQuery bigQueryCustodian =
         BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
-    BigQueryFixtures.hasAccess(
+    BigQueryFixtures.assertBqDatasetAccessible(
         bigQueryCustodian, snapshotModel.getDataProject(), snapshotModel.getName());
 
     /*
@@ -357,11 +348,8 @@ public class AccessTest extends UsersBase {
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
 
-    boolean custodianHasAccess =
-        BigQueryFixtures.hasAccess(
-            custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
-
-    assertTrue("custodian can access the bq snapshot after it has been shared", custodianHasAccess);
+    BigQueryFixtures.assertBqDatasetAccessible(
+        custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
 
     // gets the "sample" table and makes a table ref to use in the query
     String tableRef =

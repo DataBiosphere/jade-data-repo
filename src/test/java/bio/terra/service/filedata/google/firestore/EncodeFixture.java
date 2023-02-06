@@ -1,7 +1,5 @@
 package bio.terra.service.filedata.google.firestore;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
@@ -147,13 +145,11 @@ public class EncodeFixture {
     String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
     BigQuery bigQueryReader =
         BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
-    boolean hasAccess =
-        BigQueryFixtures.hasAccess(
-            bigQueryReader,
-            snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
-            snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
-    assertThat("has access to BQ", hasAccess);
+    BigQueryFixtures.assertBqDatasetAccessible(
+        bigQueryReader,
+        snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+        snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
     logger.info("Successfully checked access");
     return new SetupResult(profileId, datasetId, snapshotSummary);

@@ -97,7 +97,7 @@ jobs:
     secrets: inherit
   action_notify:
     runs-on: ubuntu-latest
-    # if: always()
+    if: always()
     needs:
       - update_image
       - helm_tag_bumper

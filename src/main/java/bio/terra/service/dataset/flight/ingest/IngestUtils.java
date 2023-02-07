@@ -28,6 +28,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import com.azure.storage.blob.BlobUrlParts;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.StorageException;
@@ -222,16 +223,38 @@ public final class IngestUtils {
   public static Stream<JsonNode> getJsonNodesStreamFromFile(
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
-      IngestRequestModel ingestRequest,
+      String path,
       AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
       ErrorCollector errorCollector) {
     return cloudFileReader
-        .getBlobsLinesStream(ingestRequest.getPath(), cloudEncapsulationId, userRequest)
+        .getBlobsLinesStream(path, cloudEncapsulationId, userRequest)
         .map(
             content -> {
               try {
                 return objectMapper.readTree(content);
+              } catch (JsonProcessingException ex) {
+                errorCollector.record("Format error: %s", ex.getMessage());
+                return null;
+              }
+            })
+        .filter(Objects::nonNull);
+  }
+
+  public static <T> Stream<T> getStreamFromFile(
+      CloudFileReader cloudFileReader,
+      ObjectMapper objectMapper,
+      String path,
+      AuthenticatedUserRequest userRequest,
+      String cloudEncapsulationId,
+      ErrorCollector errorCollector,
+      TypeReference<T> clazz) {
+    return cloudFileReader
+        .getBlobsLinesStream(path, cloudEncapsulationId, userRequest)
+        .map(
+            content -> {
+              try {
+                return objectMapper.readValue(content, clazz);
               } catch (JsonProcessingException ex) {
                 errorCollector.record("Format error: %s", ex.getMessage());
                 return null;
@@ -286,7 +309,7 @@ public final class IngestUtils {
     return IngestUtils.getJsonNodesStreamFromFile(
             cloudFileReader,
             objectMapper,
-            ingestRequest,
+            ingestRequest.getPath(),
             userRequest,
             cloudEncapsulationId,
             errorCollector)

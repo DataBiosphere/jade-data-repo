@@ -85,6 +85,13 @@ public class DrsTest extends UsersBase {
 
   private static final Logger logger = LoggerFactory.getLogger(DrsTest.class);
 
+  /**
+   * We are not checking that a snapshot's underlying BigQuery dataset is accessible due to
+   * unpredictable Google-side delays in IAM propagation. Test code should be able to function
+   * without this access: namely, it should not attempt to query BigQuery directly.
+   */
+  private static final boolean SHOULD_ASSERT_BQ_ACCESSIBLE = false;
+
   @Autowired private DataRepoClient dataRepoClient;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private EncodeFixture encodeFixture;
@@ -109,7 +116,7 @@ public class DrsTest extends UsersBase {
     custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
     String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     EncodeFixture.SetupResult setupResult =
-        encodeFixture.setupEncode(steward(), custodian(), reader());
+        encodeFixture.setupEncode(steward(), custodian(), reader(), SHOULD_ASSERT_BQ_ACCESSIBLE);
     datasetModel = dataRepoFixtures.getDataset(steward(), setupResult.getDatasetId());
     snapshotModel =
         dataRepoFixtures.getSnapshot(steward(), setupResult.getSummaryModel().getId(), null);

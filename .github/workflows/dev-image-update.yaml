@@ -103,7 +103,7 @@ jobs:
       - helm_tag_bumper
     steps:
       - name: Slack job status
-        uses: broadinstitute/action-slack@v3.8.0
+        uses: broadinstitute/action-slack@v3.15.0
         with:
           status: ${{ job.status }}
           fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

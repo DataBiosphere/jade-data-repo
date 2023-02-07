@@ -278,7 +278,8 @@ public class AccessTest extends UsersBase {
      */
     // Read and validate the DRS URI from the file ref column in the 'file' table.
     String drsObjectId =
-        BigQueryFixtures.queryForDrsId(bigQueryCustodian, snapshotModel, "file", "file_ref");
+        dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
+            reader(), snapshotModel.getId(), "file", "file_ref");
 
     // Use DRS API to lookup the file by DRS ID (pulled out of the URI).
     DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);

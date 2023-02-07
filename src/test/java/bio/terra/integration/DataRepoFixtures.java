@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -50,6 +51,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -59,6 +61,7 @@ import bio.terra.model.TransactionModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.filedata.DrsResponse;
+import bio.terra.service.filedata.DrsService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -69,6 +72,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -685,6 +689,50 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<SnapshotModel> response = getSnapshotRaw(user, snapshotId, include);
     return validateResponse(response, "snapshot retrieve", HttpStatus.OK, null);
+  }
+
+  /**
+   * Given a dataset, table, and column, retrieve the DRS URI from the snapshot preview and extract
+   * its DRS object ID.
+   *
+   * <p>In the past, we've queried BigQuery directly for this, but unpredictable delays in IAM
+   * propagation make going through the preview more reliable (TDR proxies its request to BigQuery
+   * here).
+   */
+  public String retrieveDrsIdFromSnapshotPreview(
+      TestConfiguration.User user, UUID snapshotId, String table, String column) throws Exception {
+    String filter = "WHERE %s IS NOT NULL".formatted(column);
+    DataRepoResponse<SnapshotPreviewModel> response =
+        retrieveSnapshotPreviewByIdRaw(user, snapshotId, table, 0, 1, filter);
+    SnapshotPreviewModel validated =
+        validateResponse(response, "snapshot preview for DRS ID", HttpStatus.OK, null);
+
+    assertThat("Got one row", validated.getResult(), hasSize(1));
+
+    String drsUri = (String) ((LinkedHashMap) validated.getResult().get(0)).get(column);
+    assertThat("DRS URI was found", drsUri, notNullValue());
+
+    return DrsService.getLastNameFromPath(drsUri);
+  }
+
+  private DataRepoResponse<SnapshotPreviewModel> retrieveSnapshotPreviewByIdRaw(
+      TestConfiguration.User user,
+      UUID snapshotId,
+      String table,
+      Integer offset,
+      Integer limit,
+      String filter)
+      throws Exception {
+    String url = "/api/repository/v1/snapshots/%s/data/%s".formatted(snapshotId, table);
+
+    offset = Objects.requireNonNullElse(offset, 0);
+    limit = Objects.requireNonNullElse(limit, 10);
+    String queryParams = "?offset=%s&limit=%s".formatted(offset, limit);
+
+    if (filter != null) {
+      queryParams += "&filter=%s".formatted(filter);
+    }
+    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
   }
 
   public void assertFailToGetSnapshot(TestConfiguration.User user, UUID snapshotId)

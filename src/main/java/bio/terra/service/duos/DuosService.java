@@ -1,7 +1,6 @@
 package bio.terra.service.duos;
 
 import bio.terra.common.ExceptionUtils;
-import bio.terra.common.FutureUtils;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.DuosFirecloudGroupsSyncResponse;
 import bio.terra.model.ErrorModel;
@@ -15,14 +14,12 @@ import bio.terra.service.duos.exception.DuosFirecloudGroupUpdateConflictExceptio
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.CannotSerializeTransactionException;
 import org.springframework.stereotype.Component;
 
@@ -33,17 +30,11 @@ public class DuosService {
   private final IamService iamService;
   private final DuosClient duosClient;
   private final DuosDao duosDao;
-  private final ExecutorService executor;
 
-  public DuosService(
-      IamService iamService,
-      DuosClient duosClient,
-      DuosDao duosDao,
-      @Qualifier("performanceThreadpool") ExecutorService executor) {
+  public DuosService(IamService iamService, DuosClient duosClient, DuosDao duosDao) {
     this.iamService = iamService;
     this.duosClient = duosClient;
     this.duosDao = duosDao;
-    this.executor = executor;
   }
 
   /**
@@ -171,16 +162,15 @@ public class DuosService {
    *     which may have interfered with syncing
    */
   public DuosFirecloudGroupsSyncResponse syncDuosDatasetsAuthorizedUsers() {
-    List<ErrorModel> errors = new ArrayList<>();
+    List<ErrorModel> errors = Collections.synchronizedList(new ArrayList<>());
 
     // 1. Parallelize our calls to external systems (DUOS, Sam) which perform the sync
     Instant lastSyncedDate = Instant.now();
-    List<Future<UUID>> futureSyncedIds =
-        duosDao.retrieveFirecloudGroups().stream()
-            .map(group -> executor.submit(() -> syncFirecloudGroupContents(group, errors)))
-            .toList();
     List<UUID> syncedIds =
-        FutureUtils.waitFor(futureSyncedIds).stream().filter(Objects::nonNull).toList();
+        duosDao.retrieveFirecloudGroups().parallelStream()
+            .map(group -> syncFirecloudGroupContents(group, errors))
+            .filter(Objects::nonNull)
+            .toList();
 
     // 2. Record successful syncs to the DB in single call to avoid deadlocks
     batchUpdateLastSynced(syncedIds, lastSyncedDate, errors);
@@ -196,8 +186,8 @@ public class DuosService {
    * @param errors collection to be supplemented with any error encountered during sync
    * @return id of the successfully synced Firecloud group's record
    */
-  private UUID syncFirecloudGroupContents(
-      DuosFirecloudGroupModel firecloudGroup, List<ErrorModel> errors) {
+  @VisibleForTesting
+  UUID syncFirecloudGroupContents(DuosFirecloudGroupModel firecloudGroup, List<ErrorModel> errors) {
     try {
       iamService.overwriteGroupPolicyEmails(
           firecloudGroup.getFirecloudGroupName(),
@@ -214,9 +204,9 @@ public class DuosService {
   }
 
   @VisibleForTesting
-  String updatedTooFewRecordsMessage(List<UUID> syncedIds, int numRecordsUpdated) {
+  String updatedTooFewRecordsMessage(int numSyncedIds, int numRecordsUpdated) {
     return "Expected to update %d records but only updated %d"
-        .formatted(syncedIds.size(), numRecordsUpdated);
+        .formatted(numSyncedIds, numRecordsUpdated);
   }
 
   /**
@@ -233,7 +223,7 @@ public class DuosService {
       int numRecordsUpdated =
           duosDao.updateFirecloudGroupsLastSyncedDate(syncedIds, lastSyncedDate);
       if (numRecordsUpdated < syncedIds.size()) {
-        String message = updatedTooFewRecordsMessage(syncedIds, numRecordsUpdated);
+        String message = updatedTooFewRecordsMessage(syncedIds.size(), numRecordsUpdated);
         errors.add(new ErrorModel().message(message));
       }
     } catch (Exception ex) {

@@ -33,7 +33,6 @@ import bio.terra.service.duos.exception.DuosInternalServerErrorException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.hamcrest.Matchers;
@@ -56,7 +55,6 @@ public class DuosServiceTest {
   @Mock private IamService iamService;
   @Mock private DuosClient duosClient;
   @Mock private DuosDao duosDao;
-  @Mock private ExecutorService executor;
   private DuosService duosService;
 
   private static final List<String> SUBSYSTEM_NAMES =
@@ -75,7 +73,7 @@ public class DuosServiceTest {
 
   @Before
   public void before() {
-    duosService = new DuosService(iamService, duosClient, duosDao, executor);
+    duosService = new DuosService(iamService, duosClient, duosDao);
   }
 
   private static SystemStatusSystems statusSubsystem(boolean healthy, String name) {

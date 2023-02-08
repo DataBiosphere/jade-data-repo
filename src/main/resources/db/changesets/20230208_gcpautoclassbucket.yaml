@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: gcpautoclassbucket
+      author: sh
+      changes:
+        - addColumn:
+            tableName: bucket_resource
+            columns:
+              name: autoclass_enabled
+              type: boolean
+              defaultValue: false

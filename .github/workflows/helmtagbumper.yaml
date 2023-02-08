@@ -1,7 +1,15 @@
 name: Update API Helm Image Tags
 on:
-  workflow_call: {}
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      notify-slack:
+        default: true
+        type: boolean
+  workflow_call:
+    inputs:
+      notify-slack:
+        default: false
+        type: boolean
 jobs:
 # new integration image updater
   integration_helm_tag_update:
@@ -55,7 +63,7 @@ jobs:
           SWITCH_DIRECTORIES: true
           MERGE_BRANCH: master
       - name: "Notify Slack"
-        if: ${{ github.event_name != 'workflow_call' && always() }} # workflow_call has own slack notification
+        if: ${{ inputs.notify-slack && always() }}
         uses: broadinstitute/action-slack@v3.8.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -112,7 +120,7 @@ jobs:
           SWITCH_DIRECTORIES: true
           MERGE_BRANCH: master
       - name: "Notify Slack"
-        if: ${{ github.event_name != 'workflow_call' && always() }} # workflow_call has own slack notification
+        if: ${{ inputs.notify-slack && always() }}
         uses: broadinstitute/action-slack@v3.8.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

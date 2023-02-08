@@ -5,7 +5,6 @@ import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
-import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -129,6 +128,12 @@ public class SnapshotCreateFlight extends Flight {
       addStep(
           new CreateSnapshotCreateAzureStorageAccountStep(
               resourceService, sourceDataset, snapshotReq));
+      addStep(
+          new CreateSnapshotSourceDatasetDataSourceAzureStep(
+              azureSynapsePdao, azureBlobStorePdao, userReq));
+      addStep(
+          new CreateSnapshotTargetDataSourceAzureStep(
+              azureSynapsePdao, azureBlobStorePdao, userReq));
     }
 
     // Make the big query dataset with views and populate row id filtering tables.
@@ -136,25 +141,15 @@ public class SnapshotCreateFlight extends Flight {
     // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
     switch (snapshotReq.getContents().get(0).getMode()) {
       case BYASSET:
+        addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
         if (platform.isGcp()) {
-          addStep(
-              new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
           addStep(
               new CreateSnapshotPrimaryDataAssetGcpStep(
                   bigQuerySnapshotPdao, snapshotDao, snapshotService, snapshotReq));
         } else {
           addStep(
-              new CreateSnapshotSourceDatasetDataSourceAzureStep(
-                  azureSynapsePdao, azureBlobStorePdao, userReq));
-          addStep(
-              new CreateSnapshotTargetDataSourceAzureStep(
-                  azureSynapsePdao, azureBlobStorePdao, userReq));
-          addStep(
               new CreateSnapshotByAssetParquetFilesAzureStep(
-                  azureSynapsePdao, snapshotDao, snapshotService, snapshotReq));
-          addStep(
-              new CreateSnapshotCountTableRowsAzureStep(
-                  azureSynapsePdao, snapshotDao, snapshotReq));
+                  azureSynapsePdao, snapshotService, snapshotReq));
         }
         break;
       case BYFULLVIEW:
@@ -164,34 +159,32 @@ public class SnapshotCreateFlight extends Flight {
                   bigQuerySnapshotPdao, datasetService, snapshotDao, snapshotService, snapshotReq));
         } else if (platform.isAzure()) {
           addStep(
-              new CreateSnapshotSourceDatasetDataSourceAzureStep(
-                  azureSynapsePdao, azureBlobStorePdao, userReq));
-          addStep(
-              new CreateSnapshotTargetDataSourceAzureStep(
-                  azureSynapsePdao, azureBlobStorePdao, userReq));
-          addStep(
-              new CreateSnapshotParquetFilesAzureStep(
+              new CreateSnapshotByFullViewParquetFilesAzureStep(
                   azureSynapsePdao, snapshotService, snapshotReq));
-          addStep(
-              new CreateSnapshotCountTableRowsAzureStep(
-                  azureSynapsePdao, snapshotDao, snapshotReq));
         }
         break;
       case BYQUERY:
+        addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
         if (platform.isGcp()) {
-          addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
           addStep(
-              new CreateSnapshotPrimaryDataQueryStep(
+              new CreateSnapshotPrimaryDataQueryGcpStep(
                   bigQuerySnapshotPdao,
-                  datasetService,
                   snapshotService,
+                  datasetService,
                   snapshotDao,
                   snapshotReq,
                   userReq));
           break;
-        } else {
-          throw new FeatureNotImplementedException(
-              "By Query Snapshots are not yet supported in Azure datasets.");
+        } else if (platform.isAzure()) {
+          addStep(
+              new CreateSnapshotByQueryParquetFilesAzureStep(
+                  azureSynapsePdao,
+                  snapshotDao,
+                  snapshotService,
+                  snapshotReq,
+                  datasetService,
+                  userReq));
+          break;
         }
 
       case BYROWID:
@@ -202,21 +195,17 @@ public class SnapshotCreateFlight extends Flight {
           break;
         } else if (platform.isAzure()) {
           addStep(
-              new CreateSnapshotSourceDatasetDataSourceAzureStep(
-                  azureSynapsePdao, azureBlobStorePdao, userReq));
-          addStep(
-              new CreateSnapshotTargetDataSourceAzureStep(
-                  azureSynapsePdao, azureBlobStorePdao, userReq));
-          addStep(
               new CreateSnapshotByRowIdParquetFilesAzureStep(
                   azureSynapsePdao, snapshotService, snapshotReq));
-          addStep(
-              new CreateSnapshotCountTableRowsAzureStep(
-                  azureSynapsePdao, snapshotDao, snapshotReq));
         }
         break;
       default:
         throw new InvalidSnapshotException("Snapshot does not have required mode information");
+    }
+    if (platform.isAzure()) {
+      addStep(new CreateSnapshotCreateRowIdParquetFileStep(azureSynapsePdao, snapshotService));
+      addStep(
+          new CreateSnapshotCountTableRowsAzureStep(azureSynapsePdao, snapshotDao, snapshotReq));
     }
 
     if (platform.isGcp()) {

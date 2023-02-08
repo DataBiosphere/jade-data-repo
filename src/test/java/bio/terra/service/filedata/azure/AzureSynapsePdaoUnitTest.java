@@ -284,12 +284,7 @@ public class AzureSynapsePdaoUnitTest {
 
     Map<String, Long> tableRowCounts =
         azureSynapsePdaoSpy.createSnapshotParquetFiles(
-            tables,
-            UUID.randomUUID(),
-            "datasetDataSourceName1",
-            "snapshotDataSourceName1",
-            "datasetFlightId1",
-            false);
+            tables, UUID.randomUUID(), "datasetDataSourceName1", "snapshotDataSourceName1", false);
     assertThat("Table has 3 rows", tableRowCounts.get("table1"), equalTo(3L));
   }
 
@@ -301,12 +296,7 @@ public class AzureSynapsePdaoUnitTest {
 
     Map<String, Long> tableRowCounts =
         azureSynapsePdaoSpy.createSnapshotParquetFiles(
-            tables,
-            UUID.randomUUID(),
-            "datasetDataSourceName1",
-            "snapshotDataSourceName1",
-            "datasetFlightId1",
-            false);
+            tables, UUID.randomUUID(), "datasetDataSourceName1", "snapshotDataSourceName1", false);
     assertThat("Table has 0 rows", tableRowCounts.get("table1"), equalTo(0L));
   }
 }

@@ -195,6 +195,10 @@ public class SynapseUtils {
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
   }
 
+  public AuthenticatedUserRequest retrieveTestUser() {
+    return TEST_USER;
+  }
+
   public BlobUrlParts retrieveSnapshotSignUrlBlob() {
     return snapshotSignUrlBlob;
   }
@@ -250,7 +254,6 @@ public class SynapseUtils {
         logger.warn("[Cleanup exception] Unable to delete storage account", ex.getMessage());
       }
     }
-
     // Parquet File delete is not currently operational
     // To be addressed in DR-2882
     //    for (var parquetFile : parquetFileNames.entrySet()) {

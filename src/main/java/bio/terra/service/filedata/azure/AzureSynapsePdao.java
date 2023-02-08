@@ -136,6 +136,9 @@ public class AzureSynapsePdao {
   private static final String createSnapshotTableByRowIdTemplate =
       createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
+  private static final String createSnapshotTableByQueryTemplate =
+      createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (<query>);";
+
   private static final String createSnapshotTableArrayRootColumnClause =
       """
           <if(isRootColumnArray)>
@@ -415,10 +418,6 @@ public class AzureSynapsePdao {
       String csvStringDelimiter)
       throws SQLException {
 
-    List<SynapseColumn> columns =
-        datasetTable.getColumns().stream()
-            .map(Column::toSynapseColumn)
-            .collect(Collectors.toList());
     boolean isCSV = ingestType == FormatEnum.CSV;
 
     ST sqlCreateTableTemplate = new ST(createTableTemplate);
@@ -439,7 +438,7 @@ public class AzureSynapsePdao {
         "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
-    sqlCreateTableTemplate.add("columns", columns);
+    sqlCreateTableTemplate.add("columns", datasetTable.getSynapseColumns());
     return executeSynapseQuery(sqlCreateTableTemplate.render());
   }
 
@@ -552,6 +551,67 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
 
+  public Map<String, Long> createSnapshotParquetFilesByQuery(
+      AssetSpecification assetSpec,
+      UUID snapshotId,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String translatedQuery,
+      boolean isGlobalFieldIds)
+      throws SQLException, PdaoException {
+    Map<String, Long> tableRowCounts = new HashMap<>();
+
+    // First handle root table
+    AssetTable rootTable = assetSpec.getRootTable();
+    String rootTableName = rootTable.getTable().getName();
+
+    ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByQueryTemplate);
+    ST queryTemplate =
+        generateSnapshotParquetCreateQuery(
+            sqlCreateSnapshotTableTemplate,
+            IngestUtils.getSourceDatasetParquetFilePath(rootTable.getTable().getName()),
+            rootTable.getTable().getName(),
+            snapshotId,
+            IngestUtils.getSnapshotSliceParquetFilePath(snapshotId, rootTableName, "root"),
+            datasetDataSourceName,
+            snapshotDataSourceName,
+            rootTable.getSynapseColumns(),
+            isGlobalFieldIds);
+
+    queryTemplate.add("query", translatedQuery);
+    int rows;
+    try {
+      rows = executeSynapseQuery(queryTemplate.render());
+    } catch (DataAccessException ex) {
+      throw new PdaoException(
+          "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case.",
+          ex);
+    }
+
+    tableRowCounts.put(rootTableName, (long) rows);
+    if (rows == 0) {
+      throw new PdaoException(
+          "Snapshot by Query - No rows included from root table due to root values that were specified. Cannot create entirely empty snapshot.");
+    } else {
+      logger.info("Snapshot by Query - {} rows included in root table {}", rows, rootTableName);
+    }
+
+    // Then walk relationships
+    UUID rootTableId = rootTable.getTable().getId();
+    List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpec);
+    walkRelationships(
+        snapshotId,
+        assetSpec,
+        datasetDataSourceName,
+        snapshotDataSourceName,
+        rootTableId,
+        walkRelationships,
+        tableRowCounts,
+        isGlobalFieldIds);
+
+    return tableRowCounts;
+  }
+
   /**
    * Create Snapshot by Asset. First, create parquet file for root table, including only rows that
    * match the root values Then, walk relationships defined by asset, creating a parquet file per
@@ -574,22 +634,14 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       SnapshotRequestAssetModel requestModel,
-      Boolean isGlobalFieldIds)
-      throws SQLException {
+      boolean isGlobalFieldIds)
+      throws SQLException, PdaoException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     // First handle root table
     AssetTable rootTable = assetSpec.getRootTable();
     String rootTableName = rootTable.getTable().getName();
 
-    // Get columns to include for root table
-    List<SynapseColumn> columns =
-        rootTable.getColumns().stream()
-            .map(c -> c.getDatasetColumn())
-            .collect(Collectors.toList())
-            .stream()
-            .map(Column::toSynapseColumn)
-            .collect(Collectors.toList());
     ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByAssetTemplate);
     ST queryTemplate =
         generateSnapshotParquetCreateQuery(
@@ -600,7 +652,7 @@ public class AzureSynapsePdao {
             IngestUtils.getSnapshotSliceParquetFilePath(snapshotId, rootTableName, "root"),
             datasetDataSourceName,
             snapshotDataSourceName,
-            columns,
+            rootTable.getSynapseColumns(),
             isGlobalFieldIds);
 
     AssetColumn rootColumn = assetSpec.getRootColumn();
@@ -655,7 +707,7 @@ public class AzureSynapsePdao {
       UUID startTableId,
       List<WalkRelationship> walkRelationships,
       Map<String, Long> tableRowCounts,
-      Boolean isGlobalFieldIds) {
+      boolean isGlobalFieldIds) {
     for (WalkRelationship relationship : walkRelationships) {
       if (relationship.visitRelationship(startTableId)) {
         createSnapshotParquetFilesByRelationship(
@@ -705,7 +757,7 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       Map<String, Long> tableRowCounts,
-      Boolean isGlobalFieldIds) {
+      boolean isGlobalFieldIds) {
     String fromTableName = relationship.getFromTableName();
     String toTableName = relationship.getToTableName();
     AssetTable toAssetTable = assetSpecification.getAssetTableByName(toTableName);
@@ -812,7 +864,7 @@ public class AzureSynapsePdao {
       String snapshotDataSourceName,
       SnapshotRequestRowIdModel rowIdModel,
       boolean isGlobalFileIds)
-      throws SQLException {
+      throws SQLException, PdaoException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     for (SnapshotTable table : tables) {
@@ -873,27 +925,24 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      String datasetFlightId,
       boolean isGlobalFileIds)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     for (SnapshotTable table : tables) {
       ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
-      List<SynapseColumn> columns =
-          table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
 
       String query =
           generateSnapshotParquetCreateQuery(
                   sqlCreateSnapshotTableTemplate,
-                  IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId),
+                  IngestUtils.getSourceDatasetParquetFilePath(table.getName()),
                   table.getName(),
                   snapshotId,
                   IngestUtils.getSnapshotSliceParquetFilePath(
                       snapshotId, table.getName(), table.getName()),
                   datasetDataSourceName,
                   snapshotDataSourceName,
-                  columns,
+                  table.getSynapseColumns(),
                   isGlobalFileIds)
               .render();
       int rows = 0;

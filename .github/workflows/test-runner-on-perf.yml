@@ -41,7 +41,7 @@ jobs:
           java-version: '17'
           cache: 'gradle'
       - name: "Import Vault perf secrets"
-        uses: hashicorp/vault-action@v2.2.0
+        uses: hashicorp/vault-action@v2.5.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -59,7 +59,7 @@ jobs:
 
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.2.0
+        uses: hashicorp/vault-action@v2.5.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -138,7 +138,7 @@ jobs:
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "[Clear Perf Database] Import Perf Database Secret"
-        uses: hashicorp/vault-action@v2.2.0
+        uses: hashicorp/vault-action@v2.5.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -216,7 +216,7 @@ jobs:
           google_project: broad-jade-perf
       - name: "Notify Jade Slack"
         if: always()
-        uses: broadinstitute/action-slack@v3.8.0
+        uses: broadinstitute/action-slack@v3.15.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

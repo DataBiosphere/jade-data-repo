@@ -1,13 +1,8 @@
 package bio.terra.integration;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.PdaoConstant;
-import bio.terra.common.TestUtils;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.SnapshotModel;
 import com.google.api.gax.retrying.RetrySettings;
@@ -19,12 +14,9 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +24,6 @@ import org.threeten.bp.Duration;
 
 public final class BigQueryFixtures {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryFixtures.class);
-  private static final int SAM_TIMEOUT_SECONDS = 400;
 
   private BigQueryFixtures() {}
 
@@ -81,6 +72,10 @@ public final class BigQueryFixtures {
     }
   }
 
+  private static final int RETRY_INITIAL_INTERVAL_SECONDS = 2;
+  private static final int RETRY_MAX_INTERVAL_SECONDS = 30;
+  private static final int RETRY_MAX_SLEEP_SECONDS = 420;
+
   /**
    * Run a query in BigQuery with retries
    *
@@ -93,11 +88,6 @@ public final class BigQueryFixtures {
    * @param bigQuery authenticated BigQuery object to use
    * @return TableResult object returned from BigQuery
    */
-  private static final int RETRY_INITIAL_INTERVAL_SECONDS = 2;
-
-  private static final int RETRY_MAX_INTERVAL_SECONDS = 30;
-  private static final int RETRY_MAX_SLEEP_SECONDS = 420;
-
   public static TableResult queryWithRetry(String sql, BigQuery bigQuery)
       throws InterruptedException {
     int sleptSeconds = 0;
@@ -142,51 +132,43 @@ public final class BigQueryFixtures {
         tableName);
   }
 
-  // Given a dataset, table, and column, query for a DRS URI and extract the DRS Object Id
-  private static final Pattern drsIdRegex = Pattern.compile("([^/]+)$");
+  private static final int WAIT_FOR_ACCESS_SECONDS = 180;
+  private static final int WAIT_FOR_ACCESS_LOGGING_INTERVAL_SECONDS = 30;
 
-  public static String queryForDrsId(
-      BigQuery bigQuery, SnapshotModel snapshotModel, String tableName, String columnName)
-      throws InterruptedException {
-    String sql =
-        String.format(
-            "SELECT %s FROM %s WHERE %s IS NOT NULL LIMIT 1",
-            columnName, makeTableRef(snapshotModel, tableName), columnName);
-    TableResult ids = BigQueryFixtures.queryWithRetry(sql, bigQuery);
-    assertThat("Got one row", ids.getTotalRows(), equalTo(1L));
-
-    String drsUri = null;
-    for (FieldValueList fieldValueList : ids.iterateAll()) {
-      drsUri = fieldValueList.get(0).getStringValue();
+  /**
+   * Common method to use to wait for SAM to sync to a google group, asserting access is granted to
+   * the user associated with the BigQuery instance.
+   *
+   * <p>At the beginning of 2023, google rolled out some changes to IAM propagation that make
+   * detecting IAM propagation when google groups are involved tricky. At this time all access to
+   * google cloud resources involves a google group. The problem seems to be that there are multiple
+   * eventually consistent caches. If we test for access and get a denied answer, that information
+   * is cached for an unknown period of time. There is some chance that a future request will fail
+   * even though others succeed. So simple polling won't work and likely poisons the cache.
+   *
+   * <p>The new method is to wait for a fixed time then test access. Callers should then fail
+   * immediately if access is still not available: a failure encountered when polling after the wait
+   * is susceptible to the poisoned cache issue.
+   *
+   * <p><a
+   * href="https://github.com/broadinstitute/workbench-libs/pull/1234/files#diff-f22cbe85519ed50c31f21ba7f347ed4cfb3615a564edd069b95ca79bdea56780R337">Reference
+   * implementation</a>
+   */
+  public static void assertBqDatasetAccessible(
+      BigQuery bigQuery, String dataProject, String bqDatasetName) throws Exception {
+    int sleptSeconds = 0;
+    while (sleptSeconds < WAIT_FOR_ACCESS_SECONDS) {
+      logger.info(
+          "Slept {} seconds prior to checking for BigQuery access at {} seconds",
+          sleptSeconds,
+          WAIT_FOR_ACCESS_SECONDS);
+      TimeUnit.SECONDS.sleep(WAIT_FOR_ACCESS_LOGGING_INTERVAL_SECONDS);
+      sleptSeconds += WAIT_FOR_ACCESS_LOGGING_INTERVAL_SECONDS;
     }
-    assertThat("DRS URI was found", drsUri, notNullValue());
+    logger.info("Slept {} seconds: checking for BigQuery access now", sleptSeconds);
 
-    Matcher matcher = drsIdRegex.matcher(drsUri);
-    assertThat("matcher found a match in the DRS URI", matcher.find(), equalTo(true));
-    return matcher.group();
-  }
-
-  // Common method to use to wait for SAM to sync to a google group, allowing access by the
-  // user associated with the BigQuery instance.
-  public static boolean hasAccess(BigQuery bigQuery, String dataProject, String bqDatasetName)
-      throws Exception {
-    return TestUtils.eventualExpect(
-        5,
-        SAM_TIMEOUT_SECONDS,
-        true,
-        () -> {
-          try {
-            boolean bqDatasetExists =
-                BigQueryFixtures.datasetExists(bigQuery, dataProject, bqDatasetName);
-            assertTrue("BigQuery dataset exists and is accessible", bqDatasetExists);
-            return true;
-          } catch (IllegalStateException e) {
-            assertThat(
-                "access is denied until SAM syncs the reader policy with Google",
-                e.getCause().getMessage(),
-                startsWith("Access Denied:"));
-            return false;
-          }
-        });
+    assertTrue(
+        "BigQuery dataset exists and is accessible",
+        BigQueryFixtures.datasetExists(bigQuery, dataProject, bqDatasetName));
   }
 }

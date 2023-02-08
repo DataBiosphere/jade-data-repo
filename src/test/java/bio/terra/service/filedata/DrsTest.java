@@ -16,7 +16,6 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.TestJobWatcher;
@@ -35,7 +34,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
 import com.google.api.services.cloudresourcemanager.model.Binding;
-import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Acl;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -87,6 +85,13 @@ public class DrsTest extends UsersBase {
 
   private static final Logger logger = LoggerFactory.getLogger(DrsTest.class);
 
+  /**
+   * We are not checking that a snapshot's underlying BigQuery dataset is accessible due to
+   * unpredictable Google-side delays in IAM propagation. Test code should be able to function
+   * without this access: namely, it should not attempt to query BigQuery directly.
+   */
+  private static final boolean SHOULD_ASSERT_BQ_ACCESSIBLE = false;
+
   @Autowired private DataRepoClient dataRepoClient;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private EncodeFixture encodeFixture;
@@ -111,7 +116,7 @@ public class DrsTest extends UsersBase {
     custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
     String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     EncodeFixture.SetupResult setupResult =
-        encodeFixture.setupEncode(steward(), custodian(), reader());
+        encodeFixture.setupEncode(steward(), custodian(), reader(), SHOULD_ASSERT_BQ_ACCESSIBLE);
     datasetModel = dataRepoFixtures.getDataset(steward(), setupResult.getDatasetId());
     snapshotModel =
         dataRepoFixtures.getSnapshot(steward(), setupResult.getSummaryModel().getId(), null);
@@ -160,12 +165,10 @@ public class DrsTest extends UsersBase {
 
   @Test
   public void drsHackyTest() throws Exception {
-    // Get a DRS ID from the dataset using the custodianToken.
-    // Note: the reader does not have permission to run big query jobs anywhere.
-    BigQuery bigQueryCustodian =
-        BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
+    // Get a DRS ID from the snapshot preview as a reader.
     String drsObjectId =
-        BigQueryFixtures.queryForDrsId(bigQueryCustodian, snapshotModel, "file", "file_ref");
+        dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
+            reader(), snapshotModel.getId(), "file", "file_ref");
 
     // DRS lookup the file and validate
     logger.info("DRS Object Id - file: {}", drsObjectId);
@@ -271,14 +274,11 @@ public class DrsTest extends UsersBase {
   @Test
   public void drsScaleTest() throws Exception {
     String failureMaxValue = "0";
-    dataRepoFixtures.resetConfig(steward());
 
-    // Get a DRS ID from the dataset using the custodianToken.
-    // Note: the reader does not have permission to run big query jobs anywhere.
-    BigQuery bigQueryCustodian =
-        BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
+    // Get a DRS ID from the snapshot preview as a reader.
     String drsObjectId =
-        BigQueryFixtures.queryForDrsId(bigQueryCustodian, snapshotModel, "file", "file_ref");
+        dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
+            reader(), snapshotModel.getId(), "file", "file_ref");
 
     // DRS lookup the file and validate
     logger.info("DRS Object Id - file: {}", drsObjectId);
@@ -311,14 +311,10 @@ public class DrsTest extends UsersBase {
 
   @Test
   public void testDrsErrorResponses() throws Exception {
-    dataRepoFixtures.resetConfig(steward());
-
-    // Get a DRS ID from the dataset using the custodianToken.
-    // Note: the reader does not have permission to run big query jobs anywhere.
-    BigQuery bigQueryCustodian =
-        BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
+    // Get a DRS ID from the snapshot preview as a reader.
     String drsObjectId =
-        BigQueryFixtures.queryForDrsId(bigQueryCustodian, snapshotModel, "file", "file_ref");
+        dataRepoFixtures.retrieveDrsIdFromSnapshotPreview(
+            reader(), snapshotModel.getId(), "file", "file_ref");
 
     String invalidDrsObjectId = drsObjectId.substring(1);
 

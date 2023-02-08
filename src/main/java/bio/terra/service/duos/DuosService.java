@@ -1,6 +1,7 @@
 package bio.terra.service.duos;
 
 import bio.terra.common.ExceptionUtils;
+import bio.terra.common.FutureUtils;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.DuosFirecloudGroupsSyncResponse;
 import bio.terra.model.ErrorModel;
@@ -14,12 +15,15 @@ import bio.terra.service.duos.exception.DuosFirecloudGroupUpdateConflictExceptio
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.CannotSerializeTransactionException;
 import org.springframework.stereotype.Component;
 
@@ -30,11 +34,17 @@ public class DuosService {
   private final IamService iamService;
   private final DuosClient duosClient;
   private final DuosDao duosDao;
+  private final ExecutorService executor;
 
-  public DuosService(IamService iamService, DuosClient duosClient, DuosDao duosDao) {
+  public DuosService(
+      IamService iamService,
+      DuosClient duosClient,
+      DuosDao duosDao,
+      @Qualifier("performanceThreadpool") ExecutorService executor) {
     this.iamService = iamService;
     this.duosClient = duosClient;
     this.duosDao = duosDao;
+    this.executor = executor;
   }
 
   /**
@@ -155,6 +165,12 @@ public class DuosService {
   }
 
   /**
+   * @param id of the DUOS Firecloud Group record if it was successfully synced, null otherwise
+   * @param error encountered if the DUOS Firecloud Group failed to sync, null otherwise
+   */
+  record SyncResult(UUID id, ErrorModel error) {}
+
+  /**
    * For all DUOS dataset IDs registered in TDR, force a sync of their Firecloud group members. A
    * failure to sync any Firecloud group(s) should not block attempts to sync the rest.
    *
@@ -162,49 +178,54 @@ public class DuosService {
    *     which may have interfered with syncing
    */
   public DuosFirecloudGroupsSyncResponse syncDuosDatasetsAuthorizedUsers() {
-    List<ErrorModel> errors = Collections.synchronizedList(new ArrayList<>());
+    List<ErrorModel> errors = new ArrayList<>();
 
     // 1. Parallelize our calls to external systems (DUOS, Sam) which perform the sync
     Instant lastSyncedDate = Instant.now();
-    List<UUID> syncedIds =
-        duosDao.retrieveFirecloudGroups().parallelStream()
-            .map(group -> syncFirecloudGroupContents(group, errors))
-            .filter(Objects::nonNull)
+    List<Future<SyncResult>> futures =
+        duosDao.retrieveFirecloudGroups().stream()
+            .map(group -> executor.submit(() -> syncFirecloudGroupContents(group)))
             .toList();
+    List<SyncResult> results = FutureUtils.waitFor(futures);
+
+    List<UUID> syncedIds = results.stream().map(SyncResult::id).filter(Objects::nonNull).toList();
+    errors.addAll(results.stream().map(SyncResult::error).filter(Objects::nonNull).toList());
 
     // 2. Record successful syncs to the DB in single call to avoid deadlocks
-    batchUpdateLastSynced(syncedIds, lastSyncedDate, errors);
+    batchUpdateLastSynced(syncedIds, lastSyncedDate).ifPresent(error -> errors.add(error));
 
     return new DuosFirecloudGroupsSyncResponse()
         .synced(duosDao.retrieveFirecloudGroups(syncedIds))
         .errors(errors);
   }
 
+  @VisibleForTesting
+  static String syncFirecloudGroupContentsErrorMessage(DuosFirecloudGroupModel firecloudGroup) {
+    return "Error syncing contents of %s".formatted(firecloudGroup.getFirecloudGroupEmail());
+  }
+
   /**
    * @param firecloudGroup DUOS Firecloud group whose members should be overwritten by the latest
    *     set of approved users
-   * @param errors collection to be supplemented with any error encountered during sync
-   * @return id of the successfully synced Firecloud group's record
+   * @return the id of the group if it synced successfully, or the error encountered if not
    */
-  @VisibleForTesting
-  UUID syncFirecloudGroupContents(DuosFirecloudGroupModel firecloudGroup, List<ErrorModel> errors) {
+  private SyncResult syncFirecloudGroupContents(DuosFirecloudGroupModel firecloudGroup) {
     try {
       iamService.overwriteGroupPolicyEmails(
           firecloudGroup.getFirecloudGroupName(),
           IamRole.MEMBER.toString(),
           getAuthorizedUsers(firecloudGroup.getDuosId()));
-      return firecloudGroup.getId();
+      return new SyncResult(firecloudGroup.getId(), null);
     } catch (Exception ex) {
-      String message =
-          "Error syncing contents of %s".formatted(firecloudGroup.getFirecloudGroupEmail());
+      String message = syncFirecloudGroupContentsErrorMessage(firecloudGroup);
       logger.error(message, ex);
-      errors.add(new ErrorModel().message(message).addErrorDetailItem(ex.getMessage()));
-      return null;
+      ErrorModel error = new ErrorModel().message(message).addErrorDetailItem(ex.getMessage());
+      return new SyncResult(null, error);
     }
   }
 
   @VisibleForTesting
-  String updatedTooFewRecordsMessage(int numSyncedIds, int numRecordsUpdated) {
+  static String updatedTooFewRecordsMessage(int numSyncedIds, int numRecordsUpdated) {
     return "Expected to update %d records but only updated %d"
         .formatted(numSyncedIds, numRecordsUpdated);
   }
@@ -215,16 +236,15 @@ public class DuosService {
    * @param syncedIds record IDs for those Firecloud groups successfully synced
    * @param lastSyncedDate DUOS Firecloud group members match the DUOS dataset's authorized users at
    *     this moment in time
-   * @param errors collection to be supplemented with any error encountered during update
+   * @return error if encountered while writing to the database
    */
-  private void batchUpdateLastSynced(
-      List<UUID> syncedIds, Instant lastSyncedDate, List<ErrorModel> errors) {
+  private Optional<ErrorModel> batchUpdateLastSynced(List<UUID> syncedIds, Instant lastSyncedDate) {
     try {
       int numRecordsUpdated =
           duosDao.updateFirecloudGroupsLastSyncedDate(syncedIds, lastSyncedDate);
       if (numRecordsUpdated < syncedIds.size()) {
         String message = updatedTooFewRecordsMessage(syncedIds.size(), numRecordsUpdated);
-        errors.add(new ErrorModel().message(message));
+        return Optional.of(new ErrorModel().message(message));
       }
     } catch (Exception ex) {
       String message =
@@ -232,8 +252,9 @@ public class DuosService {
               + "but an error occurred updating records with last_synced_time "
               + lastSyncedDate;
       logger.error(message, ex);
-      errors.add(new ErrorModel().message(message).addErrorDetailItem(ex.getMessage()));
+      return Optional.of(new ErrorModel().message(message).addErrorDetailItem(ex.getMessage()));
     }
+    return Optional.empty();
   }
 
   /**

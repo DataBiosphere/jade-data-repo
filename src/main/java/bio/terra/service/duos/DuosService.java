@@ -178,8 +178,6 @@ public class DuosService {
    *     which may have interfered with syncing
    */
   public DuosFirecloudGroupsSyncResponse syncDuosDatasetsAuthorizedUsers() {
-    List<ErrorModel> errors = new ArrayList<>();
-
     // 1. Parallelize our calls to external systems (DUOS, Sam) which perform the sync
     Instant lastSyncedDate = Instant.now();
     List<Future<SyncResult>> futures =
@@ -188,11 +186,14 @@ public class DuosService {
             .toList();
     List<SyncResult> results = FutureUtils.waitFor(futures);
 
+    // 2. Record successful syncs to the DB in a single call to avoid deadlocks
     List<UUID> syncedIds = results.stream().map(SyncResult::id).filter(Objects::nonNull).toList();
-    errors.addAll(results.stream().map(SyncResult::error).filter(Objects::nonNull).toList());
+    Optional<ErrorModel> maybeDbError = batchUpdateLastSynced(syncedIds, lastSyncedDate);
 
-    // 2. Record successful syncs to the DB in single call to avoid deadlocks
-    batchUpdateLastSynced(syncedIds, lastSyncedDate).ifPresent(error -> errors.add(error));
+    // 3. Collect any errors emitted along the way.
+    List<ErrorModel> errors =
+        new ArrayList<>(results.stream().map(SyncResult::error).filter(Objects::nonNull).toList());
+    maybeDbError.ifPresent(errors::add);
 
     return new DuosFirecloudGroupsSyncResponse()
         .synced(duosDao.retrieveFirecloudGroups(syncedIds))

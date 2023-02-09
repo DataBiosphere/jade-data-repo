@@ -142,7 +142,8 @@ public class BucketResourceTest {
             flightId,
             null,
             null,
-            null);
+            null,
+            true);
 
     // check the bucket and metadata exist
     checkBucketExists(bucketResource.getResourceId());

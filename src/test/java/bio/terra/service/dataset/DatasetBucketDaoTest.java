@@ -308,7 +308,8 @@ public class DatasetBucketDaoTest {
             projectResource2,
             (GoogleRegion)
                 dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
-            ingestFileFlightId);
+            ingestFileFlightId,
+            false);
     bucketList.put(bucketResource.getName(), ingestFileFlightId);
     return bucketResource.getResourceId();
   }

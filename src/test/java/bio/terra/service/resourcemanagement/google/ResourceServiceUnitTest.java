@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement.google;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.AzureCloudResource;
@@ -106,7 +107,8 @@ public class ResourceServiceUnitTest {
 
   @Test
   public void testGrabBucket() throws Exception {
-    when(bucketService.getOrCreateBucket(any(), any(), any(), any(), any(), any(), any()))
+    when(bucketService.getOrCreateBucket(
+            any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(bucketResource);
     dataset.projectResource(projectResource);
 

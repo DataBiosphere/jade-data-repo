@@ -96,12 +96,14 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined-array.json");
     datasetId = datasetSummaryModel.getId();
 
+    // Initial uses bulk mode
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
             .table("sample_vcf")
+            .bulkMode(true)
             .path(
                 "gs://jade-testdata-useastregion/dataset-ingest-combined-control-duplicates-array.json");
 

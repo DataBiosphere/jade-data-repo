@@ -13,8 +13,11 @@ import bio.terra.common.fixtures.Names;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
@@ -24,7 +27,11 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -33,6 +40,7 @@ import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -50,7 +58,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -71,29 +81,31 @@ public class FileTest extends UsersBase {
 
   @Autowired private TestConfiguration testConfiguration;
 
+  @MockBean private JobService jobService;
+
   @Rule @Autowired public TestJobWatcher testWatcher;
 
+  private final Storage storage = StorageOptions.getDefaultInstance().getService();
+
+  private ObjectMapper objectMapper;
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
   private UUID snapshotId;
   private List<String> fileIds;
   private UUID profileId;
+  private BlobId controlFileId;
 
   @Before
   public void setup() throws Exception {
     super.setup();
-    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
-    dataRepoFixtures.addPolicyMember(
-        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+    controlFileId = null;
 
-    datasetSummaryModel =
-        dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
-    datasetId = datasetSummaryModel.getId();
-    snapshotId = null;
-    fileIds = new ArrayList<>();
-    logger.info("created dataset " + datasetId);
-    dataRepoFixtures.addDatasetPolicyMember(
-        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+    // Make sure we can write flat json objects
+    DefaultPrettyPrinter p = new DefaultPrettyPrinter();
+    DefaultPrettyPrinter.Indenter i = new DefaultIndenter("", "");
+    p.indentArraysWith(i);
+    p.indentObjectsWith(i);
+    objectMapper = new ObjectMapper().setDefaultPrettyPrinter(p);
   }
 
   @After
@@ -114,6 +126,9 @@ public class FileTest extends UsersBase {
     }
     if (profileId != null) {
       dataRepoFixtures.deleteProfile(steward(), profileId);
+    }
+    if (controlFileId != null) {
+      storage.delete(controlFileId);
     }
   }
 
@@ -161,10 +176,129 @@ public class FileTest extends UsersBase {
     logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
   }
 
+  // The purpose of these tests is to ingest files using the bulk mode in various permutations
+  @Test
+  public void bulkFileLoadTestTdrHostedRandomIdFile() throws Exception {
+    bulkFileLoadTest(100, false, false, false);
+  }
+
+  @Test
+  public void bulkFileLoadTestTdrHostedRandomIdArray() throws Exception {
+    bulkFileLoadTest(100, false, false, true);
+  }
+
+  @Test
+  public void bulkFileLoadTestTdrHostedPredictableIdFile() throws Exception {
+    bulkFileLoadTest(100, false, true, false);
+  }
+
+  @Test
+  public void bulkFileLoadTestTdrHostedPredictableIdArray() throws Exception {
+    bulkFileLoadTest(100, false, true, true);
+  }
+
+  @Test
+  public void bulkFileLoadTestSelfHostedRandomIdFile() throws Exception {
+    bulkFileLoadTest(100, true, false, false);
+  }
+
+  @Test
+  public void bulkFileLoadTestSelfHostedRandomIdArray() throws Exception {
+    bulkFileLoadTest(100, true, false, true);
+  }
+
+  @Test
+  public void bulkFileLoadTestSelfHostedPredictableIdFile() throws Exception {
+    bulkFileLoadTest(100, true, true, false);
+  }
+
+  @Test
+  public void bulkFileLoadTestSelfHostedPredictableIdArray() throws Exception {
+    bulkFileLoadTest(100, true, true, true);
+  }
+
+  private void bulkFileLoadTest(
+      int filesToLoad, boolean selfHosted, boolean predictableFileIds, boolean arrayIngestMode)
+      throws Exception {
+    initialize(selfHosted, predictableFileIds);
+
+    String loadTag = Names.randomizeName("longtest");
+    BulkLoadResultModel loadSummary;
+    long start;
+    if (arrayIngestMode) {
+      BulkLoadArrayRequestModel arrayLoad =
+          new BulkLoadArrayRequestModel()
+              .profileId(profileId)
+              .loadTag(loadTag)
+              .bulkMode(true)
+              .maxFailedFileLoads(filesToLoad);
+
+      logger.info(
+          "bulkFileLoadTest loading " + filesToLoad + " files into dataset id " + datasetId);
+
+      for (int i = 0; i < filesToLoad; i++) {
+        String tailPath = "/fileloadprofiletest/1KBfile.txt";
+        String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
+        String targetPath = "/" + loadTag + "/" + i + tailPath;
+
+        BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
+        model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);
+        arrayLoad.addLoadArrayItem(model);
+      }
+
+      start = Instant.now().toEpochMilli();
+      BulkLoadArrayResultModel result =
+          dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
+      loadSummary = result.getLoadSummary();
+    } else {
+      String controlFilePath =
+          "gs://jade-testdata-uswestregion/scratch/file-test-control.%s.json"
+              .formatted(Instant.now().toEpochMilli());
+      BulkLoadRequestModel bulkLoad =
+          new BulkLoadRequestModel()
+              .profileId(profileId)
+              .loadTag(loadTag)
+              .bulkMode(true)
+              .maxFailedFileLoads(filesToLoad)
+              .loadControlFile(controlFilePath);
+
+      // Write ingest control file
+      controlFileId = BlobId.fromGsUtilUri(controlFilePath);
+
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < filesToLoad; i++) {
+        String tailPath = "/fileloadprofiletest/1KBfile.txt";
+        String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
+        String targetPath = "/" + loadTag + "/" + i + tailPath;
+
+        BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
+        model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);
+        sb.append(objectMapper.writeValueAsString(model)).append("\n");
+      }
+      BlobInfo controlFile =
+          BlobInfo.newBuilder(controlFileId)
+              .setContentType(MediaType.APPLICATION_JSON_VALUE)
+              .build();
+      storage.create(controlFile, sb.toString().getBytes(StandardCharsets.UTF_8));
+
+      start = Instant.now().toEpochMilli();
+      loadSummary = dataRepoFixtures.bulkLoad(steward(), datasetId, bulkLoad);
+    }
+
+    logger.info("Ingest took %s milliseconds".formatted(Instant.now().toEpochMilli() - start));
+    logger.info("Total files    : " + loadSummary.getTotalFiles());
+    logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
+    logger.info("Failed files   : " + loadSummary.getFailedFiles());
+    logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
+
+    assertThat("all files should succeed", loadSummary.getSucceededFiles(), equalTo(filesToLoad));
+  }
+
   // DR-612 filesystem corruption test; use a non-existent file to make sure everything errors
   // Do file ingests in parallel using a filename that will cause failure
   @Test
   public void fileParallelFailedLoadTest() throws Exception {
+    initialize(false, false);
     List<DataRepoResponse<JobModel>> responseList = new ArrayList<>();
     String gsPath = "gs://" + testConfiguration.getIngestbucket() + "/nonexistentfile";
     String filePath = "/foo" + UUID.randomUUID() + "/bar";
@@ -199,7 +333,7 @@ public class FileTest extends UsersBase {
       value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
       justification = "Spurious RCN check; related to Java 11")
   public void fileUnauthorizedPermissionsTest() throws Exception {
-
+    initialize(false, false);
     String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "/foo/bar";
 
@@ -273,6 +407,7 @@ public class FileTest extends UsersBase {
 
   @Test
   public void fileUncommonNameTest() throws Exception {
+    initialize(false, false);
     String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "/foo/bar";
 
@@ -335,6 +470,7 @@ public class FileTest extends UsersBase {
 
   @Test
   public void fileIngestAccessTest() throws Exception {
+    initialize(false, false);
     String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "/foo/bar";
     String gsFilePath = gsPath + "/files/file with space and #hash%percent+plus.txt";
@@ -363,6 +499,7 @@ public class FileTest extends UsersBase {
 
   @Test
   public void fileIngestBadTargetPathTest() throws Exception {
+    initialize(false, false);
     String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "foo/bar";
 
@@ -378,5 +515,31 @@ public class FileTest extends UsersBase {
         "an target path without leading '/' fails to load",
         result.getErrorObject().orElseThrow().getMessage(),
         containsString("A target path must start with"));
+  }
+
+  private void initialize(boolean selfHosted, boolean predictableFileIds) throws Exception {
+    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    dataRepoFixtures.addPolicyMember(
+        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
+
+    DataRepoResponse<JobModel> datasetCreateJob =
+        dataRepoFixtures.createDatasetRaw(
+            steward(),
+            profileId,
+            "file-acl-test-dataset.json",
+            CloudPlatform.GCP,
+            false,
+            selfHosted,
+            false,
+            predictableFileIds,
+            new DatasetRequestModelPolicies());
+
+    datasetSummaryModel = dataRepoFixtures.waitForDatasetCreate(steward(), datasetCreateJob);
+    datasetId = datasetSummaryModel.getId();
+    snapshotId = null;
+    fileIds = new ArrayList<>();
+    logger.info("created dataset " + datasetId);
+    dataRepoFixtures.addDatasetPolicyMember(
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
   }
 }

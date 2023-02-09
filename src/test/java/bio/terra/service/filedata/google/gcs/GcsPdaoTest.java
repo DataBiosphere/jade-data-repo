@@ -61,8 +61,8 @@ public class GcsPdaoTest {
   @MockBean private GoogleResourceDao googleResourceDao;
   @Autowired private GcsPdao gcsPdao;
 
-  private Storage storage = StorageOptions.getDefaultInstance().getService();
-  private String projectId = StorageOptions.getDefaultProjectId();
+  private final Storage storage = StorageOptions.getDefaultInstance().getService();
+  private final String projectId = StorageOptions.getDefaultProjectId();
 
   @Before
   public void setUp() throws Exception {

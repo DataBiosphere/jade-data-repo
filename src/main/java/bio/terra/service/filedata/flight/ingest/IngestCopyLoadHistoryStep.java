@@ -38,6 +38,7 @@ public abstract class IngestCopyLoadHistoryStep implements Step {
       if (isBulkMode) {
         List<BulkLoadHistoryModel> loadResults =
             workingMap.get(IngestMapKeys.BULK_LOAD_HISTORY_RESULT, new TypeReference<>() {});
+        // Clear the working map to save space in the DB
         workingMap.putRaw(IngestMapKeys.BULK_LOAD_HISTORY_RESULT, "");
         loadHistoryIterator = loadService.loadHistoryIterator(loadResults, loadHistoryChunkSize);
       } else {

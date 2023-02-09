@@ -115,7 +115,7 @@ public class FileIngestBulkFlight extends Flight {
           inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadArrayRequestModel.class);
       maxFailedFileLoads = loadRequest.getMaxFailedFileLoads();
       profileId = loadRequest.getProfileId();
-      isBulkMode = false;
+      isBulkMode = loadRequest.isBulkMode();
     } else {
       BulkLoadRequestModel loadRequest =
           inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
@@ -182,21 +182,38 @@ public class FileIngestBulkFlight extends Flight {
     }
 
     if (isBulkMode) {
-      addStep(
-          new IngestBulkGcpBulkFileStep(
-              loadTag,
-              profileId,
-              userReq,
-              gcsPdao,
-              appConfig.objectMapper(),
-              dataset,
-              maxFailedFileLoads,
-              appConfig.getMaxBadLoadFileLineErrorsReported(),
-              fileDao,
-              fileService,
-              executor,
-              appConfig.getMaxPerformanceThreadQueueSize()));
-      addStep(new IngestBulkBulkModeResponseStep());
+      if (isArray) {
+        addStep(
+            new IngestBulkGcpArrayStep(
+                loadTag,
+                profileId,
+                userReq,
+                gcsPdao,
+                appConfig.objectMapper(),
+                dataset,
+                maxFailedFileLoads,
+                appConfig.getMaxBadLoadFileLineErrorsReported(),
+                fileDao,
+                fileService,
+                executor,
+                appConfig.getMaxPerformanceThreadQueueSize()));
+      } else {
+        addStep(
+            new IngestBulkGcpBulkFileStep(
+                loadTag,
+                profileId,
+                userReq,
+                gcsPdao,
+                appConfig.objectMapper(),
+                dataset,
+                maxFailedFileLoads,
+                appConfig.getMaxBadLoadFileLineErrorsReported(),
+                fileDao,
+                fileService,
+                executor,
+                appConfig.getMaxPerformanceThreadQueueSize()));
+      }
+      addStep(new IngestBulkBulkModeResponseStep(isArray));
     } else {
       if (isArray) {
         addStep(new IngestPopulateFileStateFromArrayStep(loadService));

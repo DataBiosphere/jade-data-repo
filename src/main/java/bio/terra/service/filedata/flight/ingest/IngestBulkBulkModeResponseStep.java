@@ -13,13 +13,23 @@ import bio.terra.stairway.StepResult;
 //
 public class IngestBulkBulkModeResponseStep implements Step {
 
+  private final boolean isArrayMode;
+
+  public IngestBulkBulkModeResponseStep(boolean isArrayMode) {
+    this.isArrayMode = isArrayMode;
+  }
+
   @Override
   public StepResult doStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     BulkLoadArrayResultModel result =
         workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
 
-    workingMap.put(JobMapKeys.RESPONSE.getKeyName(), result.getLoadSummary());
+    if (isArrayMode) {
+      workingMap.put(JobMapKeys.RESPONSE.getKeyName(), result);
+    } else {
+      workingMap.put(JobMapKeys.RESPONSE.getKeyName(), result.getLoadSummary());
+    }
 
     return StepResult.getStepResultSuccess();
   }

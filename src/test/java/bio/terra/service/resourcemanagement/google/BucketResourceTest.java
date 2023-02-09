@@ -161,7 +161,7 @@ public class BucketResourceTest {
 
       // create the bucket and metadata
       GoogleBucketResource bucketResource =
-          createBucket(bucketName, projectResource, region, flightId, null, null, null);
+          createBucket(bucketName, projectResource, region, flightId, null, null, null, true);
 
       // Get the Bucket
       Bucket cloudBucket = bucketService.getCloudBucket(bucketName);
@@ -265,7 +265,8 @@ public class BucketResourceTest {
             flightIdA,
             null,
             null,
-            null);
+            null,
+            true);
     checkBucketExists(bucketResource.getResourceId());
 
     // delete the metadata only
@@ -294,7 +295,8 @@ public class BucketResourceTest {
           flightIdB,
           null,
           null,
-          null);
+          null,
+          true);
     } catch (CorruptMetadataException cmEx) {
       caughtCorruptMetadataException = true;
     }
@@ -312,7 +314,8 @@ public class BucketResourceTest {
             flightIdC,
             null,
             null,
-            null);
+            null,
+            true);
 
     // check the bucket and metadata exist
     checkBucketExists(bucketResource.getResourceId());
@@ -343,7 +346,8 @@ public class BucketResourceTest {
             flightIdA,
             null,
             null,
-            null);
+            null,
+            true);
     checkBucketExists(bucketResource.getResourceId());
 
     // delete the bucket cloud resource only
@@ -371,7 +375,8 @@ public class BucketResourceTest {
           flightIdB,
           null,
           null,
-          null);
+          null,
+          true);
     } catch (CorruptMetadataException cmEx) {
       caughtCorruptMetadataException = true;
     }
@@ -402,7 +407,8 @@ public class BucketResourceTest {
             flightWithTtlId,
             Duration.ofDays(1),
             null,
-            null);
+            null,
+            true);
 
     GoogleBucketResource bucketWithoutTtlResource =
         createBucket(
@@ -412,7 +418,8 @@ public class BucketResourceTest {
             flightWithoutTtlId,
             null,
             null,
-            null);
+            null,
+            true);
 
     // check the bucket and metadata exist
     Bucket bucketWithTtl = storage.get(bucketWithTtlName);
@@ -456,7 +463,8 @@ public class BucketResourceTest {
             flightId,
             null,
             () -> readerGroups,
-            null);
+            null,
+            true);
 
     Policy iamPolicy =
         storage.getIamPolicy(
@@ -479,7 +487,8 @@ public class BucketResourceTest {
       String flightId,
       Duration ttl,
       Callable<List<String>> getReaderGroups,
-      String dedicatedServiceAccount)
+      String dedicatedServiceAccount,
+      boolean autoclassEnabled)
       throws InterruptedException {
 
     GoogleBucketResource bucketResource =
@@ -490,7 +499,8 @@ public class BucketResourceTest {
             flightId,
             ttl,
             getReaderGroups,
-            dedicatedServiceAccount);
+            dedicatedServiceAccount,
+            autoclassEnabled);
 
     bucketResources.add(bucketResource);
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResource.getResourceId());

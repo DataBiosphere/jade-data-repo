@@ -79,7 +79,8 @@ public class ResourceServiceUnitTest {
       new GoogleBucketResource()
           .resourceId(bucketId)
           .name(bucketName.toString())
-          .projectResource(projectResource);
+          .projectResource(projectResource)
+          .autoclassEnabled(false);
 
   private final BillingProfileModel profileModel =
       ProfileFixtures.randomAzureBillingProfile().id(billingProfileId);

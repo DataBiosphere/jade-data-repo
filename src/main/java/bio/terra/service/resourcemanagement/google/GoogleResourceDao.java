@@ -47,7 +47,7 @@ public class GoogleResourceDao {
 
   private static final String sqlBucketRetrieve =
       "SELECT distinct p.id AS project_resource_id, google_project_id, google_project_number, profile_id,"
-          + " b.id AS bucket_resource_id, name, sr.region as region, flightid "
+          + " b.id AS bucket_resource_id, name, sr.region as region, flightid, b.autoclass_enabled "
           + "FROM bucket_resource b "
           + "JOIN project_resource p ON b.project_resource_id = p.id "
           + "LEFT JOIN dataset_bucket db on b.id = db.bucket_resource_id "
@@ -343,21 +343,23 @@ public class GoogleResourceDao {
       String bucketName,
       GoogleProjectResource projectResource,
       GoogleRegion region,
-      String flightId) {
+      String flightId,
+      boolean autoclassEnabled) {
     // Put an end to serialization errors here. We only come through here if we really need to
     // create
     // the bucket, so this is not on the path of most bucket lookups.
     jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE bucket_resource IN EXCLUSIVE MODE");
 
     String sql =
-        "INSERT INTO bucket_resource (project_resource_id, name, flightid) VALUES "
-            + "(:project_resource_id, :name, :flightid) "
+        "INSERT INTO bucket_resource (project_resource_id, name, flightid, autoclass_enabled) VALUES "
+            + "(:project_resource_id, :name, :flightid, :autoclass_enabled) "
             + "ON CONFLICT ON CONSTRAINT bucket_resource_name_key DO NOTHING";
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("project_resource_id", projectResource.getId())
             .addValue("name", bucketName)
-            .addValue("flightid", flightId);
+            .addValue("flightid", flightId)
+            .addValue("autoclass_enabled", autoclassEnabled);
     DaoKeyHolder keyHolder = new DaoKeyHolder();
 
     int numRowsUpdated = jdbcTemplate.update(sql, params, keyHolder);
@@ -368,7 +370,8 @@ public class GoogleResourceDao {
           .profileId(projectResource.getProfileId())
           .projectResource(projectResource)
           .name(bucketName)
-          .region(region);
+          .region(region)
+          .autoclassEnabled(autoclassEnabled);
     } else {
       return null;
     }
@@ -486,7 +489,8 @@ public class GoogleResourceDao {
                   .resourceId(rs.getObject("bucket_resource_id", UUID.class))
                   .name(rs.getString("name"))
                   .flightId(rs.getString("flightid"))
-                  .region(region);
+                  .region(region)
+                  .autoclassEnabled(rs.getObject("autoclass_enabled", Boolean.class));
             });
 
     if (bucketResources.size() > 1) {

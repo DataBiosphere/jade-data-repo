@@ -161,7 +161,8 @@ public class ResourceService {
         flightId,
         null,
         getReaderGroups,
-        dedicatedServiceAccount);
+        dedicatedServiceAccount,
+        true);
   }
 
   /**
@@ -187,7 +188,8 @@ public class ResourceService {
         flightId,
         null,
         null,
-        dataset.getProjectResource().getServiceAccount());
+        dataset.getProjectResource().getServiceAccount(),
+        false);
   }
 
   /**
@@ -217,7 +219,8 @@ public class ResourceService {
         flightId,
         Duration.ofDays(1),
         null,
-        null);
+        null,
+        false);
   }
 
   /**

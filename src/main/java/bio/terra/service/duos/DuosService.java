@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -192,7 +193,10 @@ public class DuosService {
 
     // 3. Collect any errors emitted along the way.
     List<ErrorModel> errors =
-        new ArrayList<>(results.stream().map(SyncResult::error).filter(Objects::nonNull).toList());
+        results.stream()
+            .map(SyncResult::error)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(ArrayList::new));
     maybeDbError.ifPresent(errors::add);
 
     return new DuosFirecloudGroupsSyncResponse()

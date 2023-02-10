@@ -1471,7 +1471,7 @@ public class BigQuerySnapshotPdao {
   }
 
   public static void logQuery(QueryJobConfiguration queryConfig) {
-    logger.info(
+    logger.debug(
         "Running query:\n#########\n{}\n#########\nwith parameters {}",
         queryConfig.getQuery(),
         queryConfig.getNamedParameters());

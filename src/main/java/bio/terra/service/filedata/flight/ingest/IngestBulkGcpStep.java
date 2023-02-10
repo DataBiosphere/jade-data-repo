@@ -42,7 +42,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -158,25 +157,20 @@ public abstract class IngestBulkGcpStep implements Step {
       List<CopyResult> copyResults =
           doFileCopy(workingMap, loadModels, fileIdsByPath, bucketResource);
 
-      fsFileInfos.addAll(
-          copyResults.stream()
-              .filter(r -> Objects.isNull(r.error()) && Objects.nonNull(r.fsFileInfo()))
-              .map(CopyResult::fsFileInfo)
-              .toList());
-      fileIdsByPath.putAll(
-          copyResults.stream()
-              .filter(r -> Objects.nonNull(r.fsFileInfo()))
-              .collect(
-                  Collectors.toMap(
-                      CopyResult::targetPath, r -> UUID.fromString(r.fsFileInfo().getFileId()))));
+      copyResults.stream()
+          .filter(r -> r.error() == null && r.fsFileInfo() != null)
+          .map(CopyResult::fsFileInfo)
+          .forEach(fsFileInfos::add);
+      copyResults.stream()
+          .filter(r -> r.fsFileInfo() != null)
+          .forEach(
+              r -> fileIdsByPath.put(r.targetPath(), UUID.fromString(r.fsFileInfo().getFileId())));
       successfulLoadModels =
           loadModels.stream().filter(m -> fileIdsByPath.containsKey(m.getTargetPath())).toList();
     } else {
       // Precalculate the fileIds to assign to new file objects (in the predictable fileIds case,
       // this variable gets set in the doFileCopy method)
-      fileIdsByPath.putAll(
-          loadModels.stream()
-              .collect(Collectors.toMap(BulkLoadFileModel::getTargetPath, f -> UUID.randomUUID())));
+      loadModels.forEach(m -> fileIdsByPath.put(m.getTargetPath(), UUID.randomUUID()));
       successfulLoadModels = loadModels;
     }
 
@@ -186,11 +180,10 @@ public abstract class IngestBulkGcpStep implements Step {
     // attempting re-copying files)
     // For the case where we use predictable file Ids, this is a noop
     if (!dataset.hasPredictableFileIds()) {
-      fsFileInfos.addAll(
-          doFileCopy(workingMap, loadModels, fileIdsByPath, bucketResource).stream()
-              .filter(r -> Objects.isNull(r.error()) && Objects.nonNull(r.fsFileInfo()))
-              .map(CopyResult::fsFileInfo)
-              .toList());
+      doFileCopy(workingMap, loadModels, fileIdsByPath, bucketResource).stream()
+          .filter(r -> r.error() == null && r.fsFileInfo() != null)
+          .map(CopyResult::fsFileInfo)
+          .forEach(fsFileInfos::add);
     }
     logger.info("Add file metadata to Firestore");
     // Finally, add the file entries
@@ -289,7 +282,7 @@ public abstract class IngestBulkGcpStep implements Step {
       copyResults.addAll(results);
     }
 
-    long succeededFiles = copyResults.stream().filter(f -> Objects.isNull(f.error())).count();
+    long succeededFiles = copyResults.stream().filter(f -> f.error() == null).count();
 
     resultModel
         .totalFiles(loadModels.size())
@@ -298,8 +291,7 @@ public abstract class IngestBulkGcpStep implements Step {
 
     // Validate that the amount files copied / linked didn't exceed the maximum allowed specified
     // by the user
-    validateErrors(
-        workingMap, copyResults.stream().filter(r -> !Objects.isNull(r.error())).toList());
+    validateErrors(workingMap, copyResults.stream().filter(r -> r.error() != null).toList());
 
     // Save the results of the ingestion to be used to load into the load history table
     List<BulkLoadHistoryModel> loadHistoryModels =

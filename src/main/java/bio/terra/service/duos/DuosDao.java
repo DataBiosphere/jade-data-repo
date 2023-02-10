@@ -65,11 +65,13 @@ public class DuosDao {
     DaoKeyHolder keyHolder = new DaoKeyHolder();
 
     jdbcTemplate.update(sql, params, keyHolder);
+    UUID id = keyHolder.getId();
     logger.info(
-        "Inserted {} -> {} into duos_firecloud_group",
+        "Inserted {} -> {} into duos_firecloud_group with id {}",
         created.getDuosId(),
-        created.getFirecloudGroupName());
-    return keyHolder.getId();
+        created.getFirecloudGroupName(),
+        id);
+    return id;
   }
 
   @Transactional(
@@ -85,6 +87,9 @@ public class DuosDao {
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
   public List<DuosFirecloudGroupModel> retrieveFirecloudGroups(List<UUID> ids) {
+    if (ids.isEmpty()) {
+      return List.of();
+    }
     String sql = DUOS_FIRECLOUD_GROUP_QUERY + " WHERE id IN (:ids)";
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("ids", ids);
     return jdbcTemplate.query(sql, params, DUOS_FIRECLOUD_GROUP_MAPPER);
@@ -124,6 +129,9 @@ public class DuosDao {
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public int updateFirecloudGroupsLastSyncedDate(List<UUID> ids, Instant lastSyncedDate) {
+    if (ids.isEmpty()) {
+      return 0;
+    }
     logger.info(
         "Updating {} Firecloud group record(s) last synced date to {}", ids.size(), lastSyncedDate);
     String sql =

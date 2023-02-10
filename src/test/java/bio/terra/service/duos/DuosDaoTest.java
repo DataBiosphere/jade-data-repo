@@ -38,7 +38,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Unit.class)
 @EmbeddedDatabaseTest
 public class DuosDaoTest {
-
   @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
   private DuosDao duosDao;
 
@@ -67,7 +66,9 @@ public class DuosDaoTest {
   @After
   public void after() {
     for (UUID duosFirecloudGroupId : duosFirecloudGroupIds) {
-      assertTrue(duosDao.deleteFirecloudGroup(duosFirecloudGroupId));
+      assertTrue(
+          "DUOS Firecloud group record %s was deleted".formatted(duosFirecloudGroupId),
+          duosDao.deleteFirecloudGroup(duosFirecloudGroupId));
     }
   }
 
@@ -75,6 +76,7 @@ public class DuosDaoTest {
   public void testRetrieveFirecloudGroupBeforeInsert() {
     assertNull(duosDao.retrieveFirecloudGroupByDuosId(DUOS_ID));
     assertThat(duosDao.retrieveFirecloudGroups(), empty());
+    assertThat(duosDao.retrieveFirecloudGroups(List.of()), empty());
   }
 
   @Test
@@ -135,6 +137,10 @@ public class DuosDaoTest {
     }
 
     Instant lastSyncedDate = Instant.parse("2022-11-17T00:00:00.00Z");
+    assertThat(
+        "No records are updated when no record IDs are passed in",
+        duosDao.updateFirecloudGroupsLastSyncedDate(List.of(), lastSyncedDate),
+        equalTo(0));
     assertThat(
         "All records have their last synced date updated",
         duosDao.updateFirecloudGroupsLastSyncedDate(duosFirecloudGroupIds, lastSyncedDate),

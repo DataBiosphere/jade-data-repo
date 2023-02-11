@@ -43,14 +43,13 @@ public class DuosDao {
     this.tdrServiceAccountEmail = tdrServiceAccountEmail;
   }
 
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public DuosFirecloudGroupModel insertAndRetrieveFirecloudGroup(DuosFirecloudGroupModel created) {
     UUID id = insertFirecloudGroup(created);
     return retrieveFirecloudGroup(id);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public UUID insertFirecloudGroup(DuosFirecloudGroupModel created) {
+  private UUID insertFirecloudGroup(DuosFirecloudGroupModel created) {
     String sql =
         """
         INSERT INTO duos_firecloud_group
@@ -66,11 +65,13 @@ public class DuosDao {
     DaoKeyHolder keyHolder = new DaoKeyHolder();
 
     jdbcTemplate.update(sql, params, keyHolder);
+    UUID id = keyHolder.getId();
     logger.info(
-        "Inserted {} -> {} into duos_firecloud_group",
+        "Inserted {} -> {} into duos_firecloud_group with id {}",
         created.getDuosId(),
-        created.getFirecloudGroupName());
-    return keyHolder.getId();
+        created.getFirecloudGroupName(),
+        id);
+    return id;
   }
 
   @Transactional(
@@ -79,6 +80,19 @@ public class DuosDao {
       readOnly = true)
   public List<DuosFirecloudGroupModel> retrieveFirecloudGroups() {
     return jdbcTemplate.query(DUOS_FIRECLOUD_GROUP_QUERY, DUOS_FIRECLOUD_GROUP_MAPPER);
+  }
+
+  @Transactional(
+      propagation = Propagation.REQUIRED,
+      isolation = Isolation.SERIALIZABLE,
+      readOnly = true)
+  public List<DuosFirecloudGroupModel> retrieveFirecloudGroups(List<UUID> ids) {
+    if (ids.isEmpty()) {
+      return List.of();
+    }
+    String sql = DUOS_FIRECLOUD_GROUP_QUERY + " WHERE id IN (:ids)";
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("ids", ids);
+    return jdbcTemplate.query(sql, params, DUOS_FIRECLOUD_GROUP_MAPPER);
   }
 
   @Transactional(
@@ -109,21 +123,28 @@ public class DuosDao {
     }
   }
 
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean updateFirecloudGroupLastSyncedDate(UUID id, Instant lastSyncedDate) {
-    logger.info("Updating Firecloud group record {} last synced date to {}", id, lastSyncedDate);
+    return updateFirecloudGroupsLastSyncedDate(List.of(id), lastSyncedDate) > 0;
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public int updateFirecloudGroupsLastSyncedDate(List<UUID> ids, Instant lastSyncedDate) {
+    if (ids.isEmpty()) {
+      return 0;
+    }
+    logger.info(
+        "Updating {} Firecloud group record(s) last synced date to {}", ids.size(), lastSyncedDate);
     String sql =
         """
             UPDATE duos_firecloud_group
             SET last_synced_date = :last_synced_date
-            WHERE id = :id
+            WHERE id IN (:ids)
             """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
-            .addValue("id", id)
+            .addValue("ids", ids)
             .addValue("last_synced_date", Timestamp.from(lastSyncedDate));
-    int rowsAffected = jdbcTemplate.update(sql, params);
-    return rowsAffected > 0;
+    return jdbcTemplate.update(sql, params);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

@@ -149,11 +149,13 @@ public class SnapshotDaoTest {
 
     duosId = UUID.randomUUID().toString();
     duosFirecloudGroupId =
-        duosDao.insertFirecloudGroup(
-            new DuosFirecloudGroupModel()
-                .duosId(duosId)
-                .firecloudGroupName("firecloudGroupName")
-                .firecloudGroupEmail("firecloudGroupEmail"));
+        duosDao
+            .insertAndRetrieveFirecloudGroup(
+                new DuosFirecloudGroupModel()
+                    .duosId(duosId)
+                    .firecloudGroupName("firecloudGroupName")
+                    .firecloudGroupEmail("firecloudGroupEmail"))
+            .getId();
   }
 
   @After

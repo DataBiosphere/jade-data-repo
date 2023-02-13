@@ -85,8 +85,14 @@ public class SamIam implements IamProviderInterface {
     ApiClient apiClient = new ApiClient();
     apiClient.setAccessToken(accessToken);
     apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java"); // only logs an error in sam
-    apiClient.setConnectTimeout(
-        configurationService.getParameterValue(ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS));
+
+    // Sometimes Sam calls can take longer than the OkHttp default of 10 seconds to return a
+    // response.  In those cases, we can see socket timeout exceptions despite the underlying Sam
+    // call continuing to execute and possibly succeeding.
+    int operationTimeoutSeconds =
+        configurationService.getParameterValue(ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS);
+    apiClient.setReadTimeout(operationTimeoutSeconds * 1000);
+
     return apiClient.setBasePath(samConfig.getBasePath());
   }
 

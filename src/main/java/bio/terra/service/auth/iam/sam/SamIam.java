@@ -28,6 +28,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
 import com.google.common.annotations.VisibleForTesting;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -91,7 +92,7 @@ public class SamIam implements IamProviderInterface {
     // call continuing to execute and possibly succeeding.
     int operationTimeoutSeconds =
         configurationService.getParameterValue(ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS);
-    apiClient.setReadTimeout(operationTimeoutSeconds * 1000);
+    apiClient.setReadTimeout((int) Duration.ofSeconds(operationTimeoutSeconds).toMillis());
 
     return apiClient.setBasePath(samConfig.getBasePath());
   }

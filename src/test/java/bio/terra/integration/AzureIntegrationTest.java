@@ -145,7 +145,6 @@ public class AzureIntegrationTest extends UsersBase {
     stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
-    datasetId = null;
     retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL,
@@ -165,24 +164,24 @@ public class AzureIntegrationTest extends UsersBase {
 
   @After
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward);
-    snapshotIds.forEach(
-        snapshotId -> {
-          try {
-            dataRepoFixtures.deleteSnapshot(steward, snapshotId);
-            snapshotIds.remove(snapshotId);
-          } catch (Exception ex) {
-            logger.warn("[Cleanup exception] Unable to delete snapshot " + snapshotId, ex);
-          }
-        });
-    if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
-      datasetId = null;
-    }
+    logger.info(
+        "Teardown: trying to delete snapshots {}, dataset {}, billing profile {}",
+        snapshotIds,
+        datasetId,
+        profileId);
 
+    dataRepoFixtures.resetConfig(steward);
+
+    if (snapshotIds != null) {
+      for (UUID snapshotId : snapshotIds) {
+        dataRepoFixtures.deleteSnapshot(steward, snapshotId);
+      }
+    }
+    if (datasetId != null) {
+      dataRepoFixtures.deleteDataset(steward, datasetId);
+    }
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward, profileId);
-      profileId = null;
+      dataRepoFixtures.deleteProfile(steward, profileId);
     }
   }
 
@@ -311,9 +310,6 @@ public class AzureIntegrationTest extends UsersBase {
         // TODO: fix bug where this shows up as a 403 and not a 404 since it's not longer in Sam
         equalTo(403));
     assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
-
-    // Make sure that any failure in tearing down is presented as a test failure
-    clearEnvironment();
   }
 
   @Test
@@ -922,7 +918,6 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
-    clearEnvironment();
   }
 
   @Test
@@ -1039,7 +1034,6 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
-    clearEnvironment();
   }
 
   @Test
@@ -1167,7 +1161,6 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
-    clearEnvironment();
   }
 
   @Test
@@ -1231,8 +1224,6 @@ public class AzureIntegrationTest extends UsersBase {
         "allowing a bad row means 2 rows still succeeded",
         ingestResponseSuccess.getRowCount(),
         equalTo(2L));
-
-    clearEnvironment();
   }
 
   @Test
@@ -1284,28 +1275,6 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
 
     dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
-
-    clearEnvironment();
-  }
-
-  // Make sure that any failure in tearing down is presented as a test failure
-  private void clearEnvironment() throws Exception {
-    for (UUID snapshotId : snapshotIds) {
-      if (snapshotId != null) {
-        dataRepoFixtures.deleteSnapshot(steward, snapshotId);
-        snapshotIds.remove(snapshotId);
-      }
-    }
-
-    if (datasetId != null) {
-      dataRepoFixtures.deleteDataset(steward, datasetId);
-      datasetId = null;
-    }
-
-    if (profileId != null) {
-      dataRepoFixtures.deleteProfile(steward, profileId);
-      profileId = null;
-    }
   }
 
   private String getSourceStorageAccountPrimarySharedKey() {

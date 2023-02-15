@@ -124,8 +124,10 @@ public class DataRepoFixtures {
     DataRepoResponse<BillingProfileModel> postResponse =
         dataRepoClient.waitForResponse(user, jobResponse, new TypeReference<>() {});
 
-    return validateResponse(
-        postResponse, "billing profile create", HttpStatus.CREATED, jobResponse);
+    BillingProfileModel billingProfile =
+        validateResponse(postResponse, "billing profile create", HttpStatus.CREATED, jobResponse);
+    logger.info("Billing profile created: {}", billingProfile);
+    return billingProfile;
   }
 
   // Create a Billing Profile model: expect successful creation
@@ -275,7 +277,10 @@ public class DataRepoFixtures {
 
     DataRepoResponse<DatasetSummaryModel> response =
         dataRepoClient.waitForResponseLog(user, jobResponse, new TypeReference<>() {});
-    return validateResponse(response, "dataset create", HttpStatus.CREATED, jobResponse);
+    DatasetSummaryModel datasetSummary =
+        validateResponse(response, "dataset create", HttpStatus.CREATED, jobResponse);
+    logger.info("Dataset created: {}", datasetSummary);
+    return datasetSummary;
   }
 
   public void createDatasetError(
@@ -662,7 +667,10 @@ public class DataRepoFixtures {
 
     DataRepoResponse<SnapshotSummaryModel> snapshotResponse =
         dataRepoClient.waitForResponse(user, jobResponse, new TypeReference<>() {});
-    return validateResponse(snapshotResponse, "snapshot create", HttpStatus.CREATED, jobResponse);
+    SnapshotSummaryModel snapshotSummary =
+        validateResponse(snapshotResponse, "snapshot create", HttpStatus.CREATED, jobResponse);
+    logger.info("Snapshot created: {}", snapshotSummary);
+    return snapshotSummary;
   }
 
   public DataRepoResponse<SnapshotModel> getSnapshotRaw(

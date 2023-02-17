@@ -12,16 +12,15 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModelPolicies;
 import bio.terra.model.PolicyModel;
@@ -43,7 +42,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
@@ -63,50 +61,50 @@ import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
+@RunWith(MockitoJUnitRunner.StrictStubs.class)
 public class SamIamTest {
 
   @Mock private SamConfiguration samConfig;
   @Mock private ConfigurationService configurationService;
-  @Mock private ApiClient apiClient;
+  @Mock private SamApiService samApiService;
   @Mock private ResourcesApi samResourceApi;
   @Mock private StatusApi samStatusApi;
   @Mock private GoogleApi samGoogleApi;
   @Mock private UsersApi samUsersApi;
   @Mock private TermsOfServiceApi samTosApi;
   @Mock private GroupApi samGroupApi;
-  @Mock private AuthenticatedUserRequest userReq;
 
   private SamIam samIam;
   private static final String ADMIN_EMAIL = "samAdminGroupEmail@a.com";
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticationFixtures.randomUserRequest();
 
   @Before
   public void setUp() throws Exception {
-    MockitoAnnotations.initMocks(this);
+    samIam = new SamIam(samConfig, configurationService, samApiService);
+
     when(samConfig.getAdminsGroupEmail()).thenReturn(ADMIN_EMAIL);
-    samIam = spy(new SamIam(samConfig, configurationService));
-    final String userToken = "some_token";
-    when(userReq.getToken()).thenReturn(userToken);
+
     when(configurationService.getParameterValue(ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS))
         .thenReturn(0);
     when(configurationService.getParameterValue(ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS))
         .thenReturn(0);
     when(configurationService.getParameterValue(ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS))
         .thenReturn(0);
-    // Mock out samApi, samStatusApi, samGoogleApi, samUsersApi, and samGroupApi
-    // in individual tests as needed
-    doAnswer(a -> samResourceApi).when(samIam).samResourcesApi(userToken);
-    doAnswer(a -> samStatusApi).when(samIam).samStatusApi();
-    doAnswer(a -> samGoogleApi).when(samIam).samGoogleApi(userToken);
-    doAnswer(a -> samUsersApi).when(samIam).samUsersApi(userToken);
-    doAnswer(a -> samGroupApi).when(samIam).samGroupApi(userToken);
-    // Mock out the lower level client in individual as needed
-    when(samResourceApi.getApiClient()).thenAnswer(a -> apiClient);
+
+    when(samApiService.resourcesApi(TEST_USER.getToken())).thenReturn(samResourceApi);
+    when(samApiService.statusApi()).thenReturn(samStatusApi);
+    when(samApiService.googleApi(TEST_USER.getToken())).thenReturn(samGoogleApi);
+    when(samApiService.usersApi(TEST_USER.getToken())).thenReturn(samUsersApi);
+    when(samApiService.termsOfServiceApi(TEST_USER.getToken())).thenReturn(samTosApi);
+    when(samApiService.groupApi(TEST_USER.getToken())).thenReturn(samGroupApi);
   }
 
   @Test
@@ -159,7 +157,7 @@ public class SamIamTest {
                 new UserResourcesResponse().resourceId(badId)));
 
     Set<UUID> uuids =
-        samIam.listAuthorizedResources(userReq, IamResourceType.SPEND_PROFILE).keySet();
+        samIam.listAuthorizedResources(TEST_USER, IamResourceType.SPEND_PROFILE).keySet();
     assertThat(uuids, contains(goodId));
   }
 
@@ -176,10 +174,11 @@ public class SamIamTest {
             IamAction.ALTER_POLICIES.toString()))
         .thenReturn(false);
     assertTrue(
-        samIam.isAuthorized(userReq, IamResourceType.SPEND_PROFILE, "my-id", IamAction.READ_DATA));
+        samIam.isAuthorized(
+            TEST_USER, IamResourceType.SPEND_PROFILE, "my-id", IamAction.READ_DATA));
     assertFalse(
         samIam.isAuthorized(
-            userReq, IamResourceType.SPEND_PROFILE, "my-id", IamAction.ALTER_POLICIES));
+            TEST_USER, IamResourceType.SPEND_PROFILE, "my-id", IamAction.ALTER_POLICIES));
   }
 
   @Test
@@ -212,7 +211,7 @@ public class SamIamTest {
     mockUserInfo(userSubjectId, userEmail);
 
     assertThat(
-        samIam.getUserInfo(userReq),
+        samIam.getUserInfo(TEST_USER),
         is(new UserStatusInfo().userSubjectId(userSubjectId).userEmail(userEmail).enabled(true)));
   }
 
@@ -224,27 +223,27 @@ public class SamIamTest {
     when(samResourceApi.resourceActionsV2(
             IamResourceType.SPEND_PROFILE.getSamResourceName(), "my-id-2"))
         .thenReturn(List.of());
-    assertTrue(samIam.hasAnyActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-1"));
-    assertFalse(samIam.hasAnyActions(userReq, IamResourceType.SPEND_PROFILE, "my-id-2"));
+    assertTrue(samIam.hasAnyActions(TEST_USER, IamResourceType.SPEND_PROFILE, "my-id-1"));
+    assertFalse(samIam.hasAnyActions(TEST_USER, IamResourceType.SPEND_PROFILE, "my-id-2"));
   }
 
   @Test
   public void testDeleteResource() throws InterruptedException, ApiException {
     final UUID datasetId = UUID.randomUUID();
-    samIam.deleteDatasetResource(userReq, datasetId);
+    samIam.deleteDatasetResource(TEST_USER, datasetId);
     // Verify that the correct Sam API call was made
     verify(samResourceApi, times(1))
         .deleteResourceV2(
             eq(IamResourceType.DATASET.getSamResourceName()), eq(datasetId.toString()));
 
     final UUID snapshotId = UUID.randomUUID();
-    samIam.deleteSnapshotResource(userReq, snapshotId);
+    samIam.deleteSnapshotResource(TEST_USER, snapshotId);
     verify(samResourceApi, times(1))
         .deleteResourceV2(
             eq(IamResourceType.DATASNAPSHOT.getSamResourceName()), eq(snapshotId.toString()));
 
     final UUID profileId = UUID.randomUUID();
-    samIam.deleteProfileResource(userReq, profileId.toString());
+    samIam.deleteProfileResource(TEST_USER, profileId.toString());
     verify(samResourceApi, times(1))
         .deleteResourceV2(
             eq(IamResourceType.SPEND_PROFILE.getSamResourceName()), eq(profileId.toString()));
@@ -265,7 +264,7 @@ public class SamIamTest {
                     .policy(new AccessPolicyMembershipV2().addMemberEmailsItem(memberEmail))));
 
     assertThat(
-        samIam.retrievePolicies(userReq, IamResourceType.SPEND_PROFILE, id),
+        samIam.retrievePolicies(TEST_USER, IamResourceType.SPEND_PROFILE, id),
         is(
             List.of(
                 new SamPolicyModel()
@@ -274,7 +273,7 @@ public class SamIamTest {
                     .memberPolicies(List.of()))));
 
     assertThat(
-        samIam.retrievePolicyEmails(userReq, IamResourceType.SPEND_PROFILE, id),
+        samIam.retrievePolicyEmails(TEST_USER, IamResourceType.SPEND_PROFILE, id),
         is(Map.of(IamRole.CUSTODIAN, policyEmail)));
   }
 
@@ -300,7 +299,7 @@ public class SamIamTest {
     }
 
     assertThat(
-        samIam.createDatasetResource(userReq, datasetId, null),
+        samIam.createDatasetResource(TEST_USER, datasetId, null),
         is(
             syncedPolicies.stream()
                 .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));
@@ -315,9 +314,10 @@ public class SamIamTest {
     final UUID datasetId = UUID.randomUUID();
 
     CreateResourceRequestV2 reqNullPolicies =
-        samIam.createDatasetResourceRequest(userReq, datasetId, null);
+        samIam.createDatasetResourceRequest(TEST_USER, datasetId, null);
     CreateResourceRequestV2 reqEmptyPolicies =
-        samIam.createDatasetResourceRequest(userReq, datasetId, new DatasetRequestModelPolicies());
+        samIam.createDatasetResourceRequest(
+            TEST_USER, datasetId, new DatasetRequestModelPolicies());
 
     for (CreateResourceRequestV2 req : List.of(reqNullPolicies, reqEmptyPolicies)) {
       assertThat(req.getResourceId(), is(datasetId.toString()));
@@ -367,7 +367,7 @@ public class SamIamTest {
             .addCustodiansItem(custodianEmail)
             .addSnapshotCreatorsItem(snapshotCreatorEmail);
     CreateResourceRequestV2 req =
-        samIam.createDatasetResourceRequest(userReq, datasetId, policySpecs);
+        samIam.createDatasetResourceRequest(TEST_USER, datasetId, policySpecs);
 
     assertThat(req.getResourceId(), is(datasetId.toString()));
 
@@ -416,7 +416,7 @@ public class SamIamTest {
     }
 
     assertThat(
-        samIam.createSnapshotResource(userReq, snapshotId, null),
+        samIam.createSnapshotResource(TEST_USER, snapshotId, null),
         is(
             syncedPolicies.stream()
                 .collect(Collectors.toMap(p -> p, p -> "policygroup-" + p + "@firecloud.org"))));
@@ -431,10 +431,10 @@ public class SamIamTest {
     final UUID snapshotId = UUID.randomUUID();
 
     CreateResourceRequestV2 reqNullPolicies =
-        samIam.createSnapshotResourceRequest(userReq, snapshotId, null);
+        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, null);
     CreateResourceRequestV2 reqEmptyPolicies =
         samIam.createSnapshotResourceRequest(
-            userReq, snapshotId, new SnapshotRequestModelPolicies());
+            TEST_USER, snapshotId, new SnapshotRequestModelPolicies());
 
     for (CreateResourceRequestV2 req : List.of(reqNullPolicies, reqEmptyPolicies)) {
       assertThat(req.getResourceId(), is(snapshotId.toString()));
@@ -482,7 +482,7 @@ public class SamIamTest {
             .addReadersItem(readerEmail)
             .addDiscoverersItem(discovererEmail);
     CreateResourceRequestV2 req =
-        samIam.createSnapshotResourceRequest(userReq, snapshotId, policySpecs);
+        samIam.createSnapshotResourceRequest(TEST_USER, snapshotId, policySpecs);
 
     assertThat(req.getResourceId(), is(snapshotId.toString()));
 
@@ -526,7 +526,7 @@ public class SamIamTest {
           .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", List.of()));
     }
 
-    samIam.createProfileResource(userReq, profileId.toString());
+    samIam.createProfileResource(TEST_USER, profileId.toString());
   }
 
   @Test
@@ -540,7 +540,7 @@ public class SamIamTest {
         .thenReturn(new AccessPolicyMembershipV2().memberEmails(List.of(userEmail)));
     final PolicyModel policyModel =
         samIam.addPolicyMember(
-            userReq, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
+            TEST_USER, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
     assertThat(
         policyModel,
         is(new PolicyModel().name(IamRole.OWNER.toString()).addMembersItem(userEmail)));
@@ -563,7 +563,7 @@ public class SamIamTest {
         .thenReturn(new AccessPolicyMembershipV2().memberEmails(List.of()));
     final PolicyModel policyModel =
         samIam.deletePolicyMember(
-            userReq, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
+            TEST_USER, IamResourceType.SPEND_PROFILE, id, IamRole.OWNER.toString(), userEmail);
     assertThat(
         policyModel, is(new PolicyModel().name(IamRole.OWNER.toString()).members(List.of())));
     verify(samResourceApi, times(1))
@@ -597,7 +597,7 @@ public class SamIamTest {
                     .resourceId(id.toString())
                     .direct(new RolesAndActions().roles(List.of(IamRole.READER.toString())))));
     Map<UUID, Set<IamRole>> uuidSetMap =
-        samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT);
+        samIam.listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT);
     assertThat(uuidSetMap, is((Map.of(id, Set.of(IamRole.OWNER, IamRole.READER)))));
   }
 
@@ -607,7 +607,7 @@ public class SamIamTest {
             IamResourceType.DATASNAPSHOT.getSamResourceName()))
         .thenThrow(IamUnauthorizedException.class);
     try {
-      samIam.listAuthorizedResources(userReq, IamResourceType.DATASNAPSHOT);
+      samIam.listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT);
     } finally {
       verify(samResourceApi, times(1))
           .listResourcesAndPoliciesV2(IamResourceType.DATASNAPSHOT.getSamResourceName());
@@ -616,29 +616,26 @@ public class SamIamTest {
 
   @Test
   public void testRegisterUser() throws InterruptedException, ApiException {
-    final String accessToken = "some_other_token";
     UserStatus userStatus =
         new UserStatus()
             .userInfo(
                 new UserInfo()
                     .userEmail("tdr-ingest-sa@my-project.iam.gserviceaccount.com")
                     .userSubjectId("subid"));
-    doAnswer(a -> samUsersApi).when(samIam).samUsersApi(accessToken);
-    doAnswer(a -> samTosApi).when(samIam).samTosApi(accessToken);
     when(samUsersApi.createUserV2()).thenReturn(userStatus);
     when(samTosApi.acceptTermsOfService(anyString())).thenReturn(userStatus);
-    UserStatus returnedUserStatus = samIam.registerUser(accessToken);
+    UserStatus returnedUserStatus = samIam.registerUser(TEST_USER.getToken());
 
     // Verify that the correct Sam API calls were made
-    verify(samUsersApi, times(1)).createUserV2();
-    verify(samTosApi, times(1)).acceptTermsOfService(eq(TOS_URL));
+    verify(samUsersApi).createUserV2();
+    verify(samTosApi).acceptTermsOfService(TOS_URL);
 
     assertThat("expected user is returned", returnedUserStatus, is(userStatus));
   }
 
   @Test
   public void testCreateGroup() throws ApiException, InterruptedException {
-    String accessToken = userReq.getToken();
+    String accessToken = TEST_USER.getToken();
     String groupName = "firecloud_group_name";
     String groupEmail = String.format("%s@dev.test.firecloud.org", groupName);
 
@@ -653,7 +650,7 @@ public class SamIamTest {
 
   @Test
   public void testCreateGroupWithCreationFailure() throws ApiException {
-    String accessToken = userReq.getToken();
+    String accessToken = TEST_USER.getToken();
     String groupName = "firecloud_group_name";
 
     ApiException samEx =
@@ -669,7 +666,7 @@ public class SamIamTest {
 
   @Test
   public void testCreateGroupWithEmailFetchFailure() throws ApiException {
-    String accessToken = userReq.getToken();
+    String accessToken = TEST_USER.getToken();
     String groupName = "firecloud_group_name";
 
     ApiException samEx = new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
@@ -684,7 +681,7 @@ public class SamIamTest {
 
   @Test
   public void testOverwriteGroupPolicyEmails() throws InterruptedException, ApiException {
-    String accessToken = userReq.getToken();
+    String accessToken = TEST_USER.getToken();
     String groupName = "firecloud_group_name";
     String policyName = IamRole.MEMBER.toString();
     List<String> emails = List.of("user@a.com");
@@ -695,7 +692,7 @@ public class SamIamTest {
 
   @Test
   public void testOverwriteGroupPolicyEmailsThrowsWhenSamGroupApiThrows() throws ApiException {
-    String accessToken = userReq.getToken();
+    String accessToken = TEST_USER.getToken();
     String groupName = "firecloud_group_name";
     String policyName = IamRole.MEMBER.toString();
     List<String> emails = List.of("user@a.com");
@@ -711,7 +708,7 @@ public class SamIamTest {
 
   @Test
   public void testDeleteGroup() throws ApiException, InterruptedException {
-    String accessToken = userReq.getToken();
+    String accessToken = TEST_USER.getToken();
     String groupName = "firecloud_group_name";
 
     samIam.deleteGroup(accessToken, groupName);
@@ -720,7 +717,7 @@ public class SamIamTest {
 
   @Test
   public void testDeleteGroupThrowsWhenSamGroupApiThrows() throws ApiException {
-    String accessToken = userReq.getToken();
+    String accessToken = TEST_USER.getToken();
     String groupName = "firecloud_group_name";
 
     ApiException samEx = new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");

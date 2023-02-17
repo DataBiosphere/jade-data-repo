@@ -1,6 +1,7 @@
 package bio.terra.service.rawls;
 
 import bio.terra.app.configuration.TerraConfiguration;
+import bio.terra.app.model.rawls.WorkspaceDetails;
 import bio.terra.app.model.rawls.WorkspaceResponse;
 import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -10,6 +11,7 @@ import bio.terra.model.ResourcePolicyModel;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamResourceType;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -52,9 +54,12 @@ public class RawlsService {
               UUID workspaceId = entry.getKey();
               List<ResourcePolicyModel> policies = entry.getValue();
               try {
-                WorkspaceResponse workspace = rawlsClient.getWorkspace(workspaceId, userRequest);
-                accessible.add(
-                    workspace.toWorkspacePolicyModel(policies, terraConfiguration.getBasePath()));
+                WorkspaceResponse response = rawlsClient.getWorkspace(workspaceId, userRequest);
+                WorkspacePolicyModel workspacePolicyModel =
+                    response
+                        .toWorkspacePolicyModel(policies)
+                        .workspaceLink(getWorkspaceLink(response));
+                accessible.add(workspacePolicyModel);
               } catch (Exception ex) {
                 inaccessible.add(toInaccessibleWorkspacePolicyModel(workspaceId, policies, ex));
               }
@@ -68,5 +73,18 @@ public class RawlsService {
         .workspaceId(workspaceId)
         .workspacePolicies(PolicyUtils.resourcePolicyToPolicyModel(policies))
         .error(new ErrorModel().message(ex.getMessage()));
+  }
+
+  /**
+   * @return a link to the workspace in Terra UI
+   */
+  @VisibleForTesting
+  String getWorkspaceLink(WorkspaceResponse workspaceResponse) {
+    WorkspaceDetails workspace = workspaceResponse.getWorkspace();
+    if (workspace == null) {
+      return null;
+    }
+    return "%s/#workspaces/%s/%s"
+        .formatted(terraConfiguration.getBasePath(), workspace.getNamespace(), workspace.getName());
   }
 }

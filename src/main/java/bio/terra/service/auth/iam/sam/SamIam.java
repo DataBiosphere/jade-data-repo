@@ -22,13 +22,11 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
 import com.google.common.annotations.VisibleForTesting;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,13 +41,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
-import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
-import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
-import org.broadinstitute.dsde.workbench.client.sam.api.TermsOfServiceApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembershipV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntryV2;
@@ -70,69 +64,22 @@ public class SamIam implements IamProviderInterface {
 
   private final SamConfiguration samConfig;
   private final ConfigurationService configurationService;
+  private final SamApiService samApiService;
 
   // This value is the same for all environments which is why this is hardcoded instead of config
   static final String TOS_URL = "app.terra.bio/#terms-of-service";
 
   @Autowired
-  public SamIam(SamConfiguration samConfig, ConfigurationService configurationService) {
+  public SamIam(
+      SamConfiguration samConfig,
+      ConfigurationService configurationService,
+      SamApiService samApiService) {
     this.samConfig = samConfig;
     this.configurationService = configurationService;
+    this.samApiService = samApiService;
   }
 
   private static final Logger logger = LoggerFactory.getLogger(SamIam.class);
-
-  private ApiClient getApiClient(String accessToken) {
-    ApiClient apiClient = new ApiClient();
-    apiClient.setAccessToken(accessToken);
-    apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java"); // only logs an error in sam
-
-    // Sometimes Sam calls can take longer than the OkHttp default of 10 seconds to return a
-    // response.  In those cases, we can see socket timeout exceptions despite the underlying Sam
-    // call continuing to execute and possibly succeeding.
-    int operationTimeoutSeconds =
-        configurationService.getParameterValue(ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS);
-    apiClient.setReadTimeout((int) Duration.ofSeconds(operationTimeoutSeconds).toMillis());
-
-    return apiClient.setBasePath(samConfig.getBasePath());
-  }
-
-  private ApiClient getUnauthApiClient() {
-    ApiClient apiClient = new ApiClient();
-    apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java"); // only logs an error in sam
-    apiClient.setBasePath(samConfig.getBasePath());
-    return apiClient;
-  }
-
-  @VisibleForTesting
-  public ResourcesApi samResourcesApi(String accessToken) {
-    return new ResourcesApi(getApiClient(accessToken));
-  }
-
-  @VisibleForTesting
-  StatusApi samStatusApi() {
-    return new StatusApi(getUnauthApiClient());
-  }
-
-  @VisibleForTesting
-  GoogleApi samGoogleApi(String accessToken) {
-    return new GoogleApi(getApiClient(accessToken));
-  }
-
-  @VisibleForTesting
-  UsersApi samUsersApi(String accessToken) {
-    return new UsersApi(getApiClient(accessToken));
-  }
-
-  @VisibleForTesting
-  TermsOfServiceApi samTosApi(String accessToken) {
-    return new TermsOfServiceApi(getApiClient(accessToken));
-  }
-
-  @VisibleForTesting
-  GroupApi samGroupApi(String accessToken) {
-    return new GroupApi(getApiClient(accessToken));
-  }
 
   /**
    * Asks SAM if a user can do an action on a resource. This method converts the SAM-specific
@@ -159,7 +106,7 @@ public class SamIam implements IamProviderInterface {
       String resourceId,
       IamAction action)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     boolean authorized =
         samResourceApi.resourcePermissionV2(
             iamResourceType.toString(), resourceId, action.toString());
@@ -177,7 +124,7 @@ public class SamIam implements IamProviderInterface {
 
   private Map<UUID, Set<IamRole>> listAuthorizedResourcesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType) throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     return samResourceApi.listResourcesAndPoliciesV2(iamResourceType.getSamResourceName()).stream()
         .filter(resource -> ValidationUtils.isValidUuid(resource.getResourceId()))
         .collect(
@@ -203,7 +150,7 @@ public class SamIam implements IamProviderInterface {
   private List<String> listActionsInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     return samResourceApi.resourceActionsV2(iamResourceType.toString(), resourceId);
   }
 
@@ -236,7 +183,7 @@ public class SamIam implements IamProviderInterface {
   private void deleteResourceInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     samResourceApi.deleteResourceV2(iamResourceType.toString(), resourceId);
   }
 
@@ -253,7 +200,7 @@ public class SamIam implements IamProviderInterface {
   private void createDatasetResourceInnerV2(
       AuthenticatedUserRequest userReq, UUID datasetId, DatasetRequestModelPolicies policies)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     CreateResourceRequestV2 req = createDatasetResourceRequest(userReq, datasetId, policies);
     samResourceApi.createResourceV2(IamResourceType.DATASET.toString(), req);
   }
@@ -321,7 +268,7 @@ public class SamIam implements IamProviderInterface {
   private void createSnapshotResourceInnerV2(
       AuthenticatedUserRequest userReq, UUID snapshotId, SnapshotRequestModelPolicies policies)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     CreateResourceRequestV2 req = createSnapshotResourceRequest(userReq, snapshotId, policies);
     samResourceApi.createResourceV2(IamResourceType.DATASNAPSHOT.toString(), req);
   }
@@ -369,7 +316,8 @@ public class SamIam implements IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType resourceType, UUID id, IamRole role)
       throws ApiException {
     Map<String, List<Object>> results =
-        samGoogleApi(userReq.getToken())
+        samApiService
+            .googleApi(userReq.getToken())
             .syncPolicy(resourceType.toString(), id.toString(), role.toString());
     String policyEmail = getPolicyGroupEmailFromResponse(results);
     logger.debug(
@@ -399,7 +347,7 @@ public class SamIam implements IamProviderInterface {
         createAccessPolicyOneV2(IamRole.OWNER, userStatusInfo.getUserEmail()));
     req.putPoliciesItem(IamRole.USER.toString(), createAccessPolicyV2(IamRole.USER, null));
 
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     logger.debug("SAM request: " + req);
 
     samResourceApi.createResourceV2(IamResourceType.SPEND_PROFILE.toString(), req);
@@ -430,7 +378,7 @@ public class SamIam implements IamProviderInterface {
   private List<String> retrieveUserRolesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     return samResourceApi.resourceRolesV2(
         iamResourceType.getSamResourceName(), resourceId.toString());
   }
@@ -438,7 +386,7 @@ public class SamIam implements IamProviderInterface {
   private List<SamPolicyModel> retrievePoliciesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     try (Stream<AccessPolicyResponseEntryV2> resultStream =
         samResourceApi
             .listResourcePoliciesV2(iamResourceType.toString(), resourceId.toString())
@@ -475,7 +423,7 @@ public class SamIam implements IamProviderInterface {
   private Map<IamRole, String> retrievePolicyEmailsInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     try (Stream<AccessPolicyResponseEntryV2> resultStream =
         samResourceApi
             .listResourcePoliciesV2(iamResourceType.toString(), resourceId.toString())
@@ -509,7 +457,7 @@ public class SamIam implements IamProviderInterface {
       String policyName,
       String userEmail)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     logger.debug(
         "addUserPolicy resourceType {} resourceId {} policyName {} userEmail {}",
         iamResourceType.toString(),
@@ -543,7 +491,7 @@ public class SamIam implements IamProviderInterface {
       String policyName,
       String userEmail)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     samResourceApi.removeUserFromPolicyV2(
         iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
   }
@@ -554,7 +502,7 @@ public class SamIam implements IamProviderInterface {
       UUID resourceId,
       String policyName)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+    ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     AccessPolicyMembershipV2 result =
         samResourceApi.getPolicyV2(iamResourceType.toString(), resourceId.toString(), policyName);
     return new PolicyModel().name(policyName).members(result.getMemberEmails());
@@ -562,7 +510,7 @@ public class SamIam implements IamProviderInterface {
 
   @Override
   public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) {
-    UsersApi samUsersApi = samUsersApi(userReq.getToken());
+    UsersApi samUsersApi = samApiService.usersApi(userReq.getToken());
     try {
       org.broadinstitute.dsde.workbench.client.sam.model.UserStatusInfo samInfo =
           samUsersApi.getUserStatusInfo();
@@ -581,7 +529,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   private String getProxyGroupInner(AuthenticatedUserRequest userReq) throws ApiException {
-    return samGoogleApi(userReq.getToken()).getProxyGroup(userReq.getEmail());
+    return samApiService.googleApi(userReq.getToken()).getProxyGroup(userReq.getEmail());
   }
 
   @Override
@@ -590,7 +538,7 @@ public class SamIam implements IamProviderInterface {
       return SamRetry.retry(
           configurationService,
           () -> {
-            StatusApi samApi = samStatusApi();
+            StatusApi samApi = samApiService.statusApi();
             SystemStatus status = samApi.getSystemStatus();
             return new RepositoryStatusModelSystems()
                 .ok(status.getOk())
@@ -613,7 +561,7 @@ public class SamIam implements IamProviderInterface {
         () -> {
           try {
             logger.info("Running the registration process");
-            samUsersApi(accessToken).createUserV2();
+            samApiService.usersApi(accessToken).createUserV2();
           } catch (ApiException e) {
             // This conflict could happen if the request timed out originally.
             // In that case, it's ok to assume that this is a success and move on
@@ -627,7 +575,8 @@ public class SamIam implements IamProviderInterface {
 
     logger.info("Accepting terms of service for the ingest service account in Terra");
     return SamRetry.retry(
-        configurationService, () -> samTosApi(accessToken).acceptTermsOfService(TOS_URL));
+        configurationService,
+        () -> samApiService.termsOfServiceApi(accessToken).acceptTermsOfService(TOS_URL));
   }
 
   @Override
@@ -637,11 +586,11 @@ public class SamIam implements IamProviderInterface {
   }
 
   private void createGroupInner(String accessToken, String groupName) throws ApiException {
-    samGroupApi(accessToken).postGroup(groupName);
+    samApiService.groupApi(accessToken).postGroup(groupName);
   }
 
   private String getGroupEmail(String accessToken, String groupName) throws ApiException {
-    return samGroupApi(accessToken).getGroup(groupName);
+    return samApiService.groupApi(accessToken).getGroup(groupName);
   }
 
   @Override
@@ -656,7 +605,9 @@ public class SamIam implements IamProviderInterface {
   private void overwriteGroupPolicyEmailsInner(
       String accessToken, String groupName, String policyName, List<String> emailAddresses)
       throws ApiException {
-    samGroupApi(accessToken).overwriteGroupPolicyEmails(groupName, policyName, emailAddresses);
+    samApiService
+        .groupApi(accessToken)
+        .overwriteGroupPolicyEmails(groupName, policyName, emailAddresses);
   }
 
   @Override
@@ -665,7 +616,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   private void deleteGroupInner(String accessToken, String groupName) throws ApiException {
-    samGroupApi(accessToken).deleteGroup(groupName);
+    samApiService.groupApi(accessToken).deleteGroup(groupName);
   }
 
   @Override
@@ -676,7 +627,7 @@ public class SamIam implements IamProviderInterface {
 
   private String getPetTokenInner(AuthenticatedUserRequest userReq, List<String> scopes)
       throws ApiException {
-    return samGoogleApi(userReq.getToken()).getArbitraryPetServiceAccountToken(scopes);
+    return samApiService.googleApi(userReq.getToken()).getArbitraryPetServiceAccountToken(scopes);
   }
 
   private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {

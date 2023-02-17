@@ -52,16 +52,12 @@ public class WorkspaceResponse {
   }
 
   public WorkspacePolicyModel toWorkspacePolicyModel(
-      List<ResourcePolicyModel> resourcePolicyModels, String terraBasePath) {
+      List<ResourcePolicyModel> resourcePolicyModels) {
     return new WorkspacePolicyModel()
         .workspaceId(UUID.fromString(workspace.getWorkspaceId()))
         .workspaceName(workspace.getName())
         .workspaceNamespace(workspace.getNamespace())
-        .workspacePolicies(PolicyUtils.resourcePolicyToPolicyModel(resourcePolicyModels))
-        .workspaceLink(
-            String.format(
-                "%s/#workspaces/%s/%s",
-                terraBasePath, workspace.getNamespace(), workspace.getName()));
+        .workspacePolicies(PolicyUtils.resourcePolicyToPolicyModel(resourcePolicyModels));
   }
 
   @Override

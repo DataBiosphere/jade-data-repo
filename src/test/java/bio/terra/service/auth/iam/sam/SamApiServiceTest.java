@@ -54,14 +54,11 @@ public class SamApiServiceTest {
             "UsersApi", samApiService.usersApi(TOKEN).getApiClient(),
             "TermsOfServiceApi", samApiService.termsOfServiceApi(TOKEN).getApiClient(),
             "GroupApi", samApiService.groupApi(TOKEN).getApiClient());
-    authorizedApiClients
-        .keySet()
-        .forEach(
-            name -> {
-              assertThat(
-                  name + " has expected read timeout",
-                  authorizedApiClients.get(name).getReadTimeout(),
-                  equalTo(OPERATION_TIMEOUT_MILLIS));
-            });
+    authorizedApiClients.forEach(
+        (name, client) ->
+            assertThat(
+                name + " has expected read timeout",
+                client.getReadTimeout(),
+                equalTo(OPERATION_TIMEOUT_MILLIS)));
   }
 }

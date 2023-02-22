@@ -2,10 +2,18 @@ package bio.terra.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.ColumnModel;
+import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.TableDataType;
+import bio.terra.model.TableModel;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
 import liquibase.util.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -14,6 +22,10 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class ValidationUtilsTest {
+
+  private TableModel personTable;
+  private TableModel carTable;
+  private List<TableModel> tables;
 
   @Test
   public void testEmailFormats() throws Exception {
@@ -75,5 +87,65 @@ public class ValidationUtilsTest {
   public void testValidationOfValidInputString() {
     // no exception is thrown
     ValidationUtils.requireNotBlank("abc", "error msg");
+  }
+
+  @Test
+  public void testRelationshipValidationDifferentDataType() {
+    RelationshipTermModel fromTerm = new RelationshipTermModel().column("hasCat").table("person");
+    RelationshipTermModel toTerm = new RelationshipTermModel().column("ownerId").table("car");
+    defineSampleTables();
+
+    LinkedHashMap errors =
+        ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables);
+    assertThat("There should be one error.", errors.size(), equalTo(1));
+  }
+
+  @Test
+  public void testRelationshipValidationSameDataType() {
+    RelationshipTermModel fromTerm = new RelationshipTermModel().column("id").table("person");
+    RelationshipTermModel toTerm = new RelationshipTermModel().column("ownerId").table("car");
+    defineSampleTables();
+
+    LinkedHashMap errors =
+        ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables);
+    assertThat("The data types match so there should not be an error.", errors.size(), equalTo(0));
+  }
+
+  @Test
+  public void validTermRelationship() {
+    RelationshipTermModel validTerm = new RelationshipTermModel().column("id").table("person");
+    defineSampleTables();
+    LinkedHashMap errors = ValidationUtils.validateRelationshipTerm(validTerm, tables);
+    assertThat("The term is valid so there should not be an error.", errors.size(), equalTo(0));
+  }
+
+  @Test
+  public void invalidTermTable() {
+    RelationshipTermModel invalidTable = new RelationshipTermModel().column("id").table("invalid");
+    defineSampleTables();
+    LinkedHashMap errors = ValidationUtils.validateRelationshipTerm(invalidTable, tables);
+    assertThat("Invalid Table", errors.size(), equalTo(1));
+  }
+
+  @Test
+  public void invalidTermColumn() {
+    RelationshipTermModel invalidColumn =
+        new RelationshipTermModel().column("invalid").table("person");
+    defineSampleTables();
+    LinkedHashMap errors = ValidationUtils.validateRelationshipTerm(invalidColumn, tables);
+    assertThat("Invalid Column", errors.size(), equalTo(1));
+  }
+
+  private void defineSampleTables() {
+    personTable =
+        new TableModel()
+            .name("person")
+            .addColumnsItem(new ColumnModel().name("id").datatype(TableDataType.INTEGER))
+            .addColumnsItem(new ColumnModel().name("hasCat").datatype(TableDataType.BOOLEAN));
+    carTable =
+        new TableModel()
+            .name("car")
+            .addColumnsItem(new ColumnModel().name("ownerId").datatype(TableDataType.INTEGER));
+    tables = List.of(personTable, carTable);
   }
 }

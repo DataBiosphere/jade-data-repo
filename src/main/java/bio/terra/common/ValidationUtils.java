@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -80,6 +81,30 @@ public final class ValidationUtils {
     return value;
   }
 
+  public static LinkedHashMap<String, String> validateMatchingColumnDataTypes(
+      RelationshipTermModel fromTerm, RelationshipTermModel toTerm, List<TableModel> tables) {
+    LinkedHashMap<String, String> termErrors = new LinkedHashMap<>();
+    Optional<ColumnModel> fromColumn = retrieveColumnModelFromTerm(fromTerm, tables);
+    Optional<ColumnModel> toColumn = retrieveColumnModelFromTerm(toTerm, tables);
+    if (fromColumn.isPresent() && toColumn.isPresent()) {
+      TableDataType fromColumnDataType = fromColumn.get().getDatatype();
+      TableDataType toColumnDataType = toColumn.get().getDatatype();
+      if (!fromColumnDataType.equals(toColumnDataType)) {
+        termErrors.put(
+            "RelationshipDatatypeMismatch",
+            String.format(
+                "Column data types in relationship must match: Column %s.%s has data type %s and Column %s.%s has data type %s",
+                fromTerm.getTable(),
+                fromTerm.getColumn(),
+                fromColumnDataType,
+                toTerm.getTable(),
+                toTerm.getColumn(),
+                toColumnDataType));
+      }
+    }
+    return termErrors;
+  }
+
   public static LinkedHashMap<String, String> validateRelationshipTerm(
       RelationshipTermModel term, List<TableModel> tables) {
     String tableName = term.getTable();
@@ -90,8 +115,7 @@ public final class ValidationUtils {
     if (table.isEmpty()) {
       termErrors.put("InvalidRelationshipTermTable", String.format("Invalid table %s", tableName));
     } else {
-      Optional<ColumnModel> columnModel =
-          table.get().getColumns().stream().filter(c -> c.getName().equals(columnName)).findFirst();
+      Optional<ColumnModel> columnModel = retrieveColumnModelFromTerm(term, tables);
       if (columnModel.isEmpty()) {
         termErrors.put(
             "InvalidRelationshipTermTableColumn",
@@ -109,6 +133,24 @@ public final class ValidationUtils {
     return termErrors;
   }
 
+  private static Optional<ColumnModel> retrieveColumnModelFromTerm(
+      RelationshipTermModel term, List<TableModel> tables) {
+    String tableName = term.getTable();
+    String columnName = term.getColumn();
+    try {
+      return tables.stream()
+          .filter(t -> t.getName().equals(tableName))
+          .findFirst()
+          .get()
+          .getColumns()
+          .stream()
+          .filter(c -> c.getName().equals(columnName))
+          .findFirst();
+    } catch (NoSuchElementException ex) {
+      return Optional.empty();
+    }
+  }
+
   public static ArrayList<LinkedHashMap<String, String>> getRelationshipValidationErrors(
       RelationshipModel relationship, List<TableModel> tables) {
     ArrayList<LinkedHashMap<String, String>> errors = new ArrayList<>();
@@ -121,6 +163,11 @@ public final class ValidationUtils {
     if (toTerm != null) {
       errors.add(validateRelationshipTerm(toTerm, tables));
     }
+
+    if (fromTerm != null && toTerm != null) {
+      validateMatchingColumnDataTypes(fromTerm, toTerm, tables);
+    }
+
     return errors;
   }
 

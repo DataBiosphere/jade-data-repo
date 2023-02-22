@@ -175,6 +175,24 @@ public class BucketResourceTest {
   }
 
   @Test
+  public void testMultiRegionalBucket() throws InterruptedException {
+    String bucketName = "testbucket_multiregiontest";
+    String flightId = "testMultiRegionalBucket";
+
+    // create the bucket and metadata
+    GoogleBucketResource bucketResource =
+        createBucket(
+            bucketName, projectResource, GoogleRegion.US, flightId, null, null, null, true);
+
+    // check the bucket and metadata exist
+    checkBucketExists(bucketResource.getResourceId());
+
+    // delete the bucket and metadata
+    deleteBucket(bucketResource);
+    checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
+  }
+
+  @Test
   // two threads compete for the bucket lock, confirm one wins and one loses. a third thread fetches
   // the bucket
   // after it's been created, confirm it succeeds.

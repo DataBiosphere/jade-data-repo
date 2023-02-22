@@ -73,6 +73,8 @@ public class DatasetBucketDaoTest {
           .setEmail("dataset@unit.com")
           .setToken("token")
           .build();
+  private String ingestFileFlightId;
+  private String bucketName;
 
   @Before
   public void setup() throws IOException {
@@ -300,16 +302,44 @@ public class DatasetBucketDaoTest {
     datasetBucketDao.createDatasetBucketLink(datasetId, randomBucketResourceId);
   }
 
+  @Test
+  public void testAutoclassEnabledFlag() {
+    boolean autoclassEnabled = true;
+    UUID bucketId = createBucketDbEntry(projectResource, autoclassEnabled);
+    GoogleBucketResource bucket = resourceDao.retrieveBucketById(bucketId);
+    assertTrue("Correct autoclass setting is returned", bucket.getAutoclassEnabled());
+    GoogleBucketResource retrievedBucket =
+        resourceDao.getBucket(bucketName, projectResource.getId());
+    assertTrue("Correct autoclass setting is returned", retrievedBucket.getAutoclassEnabled());
+  }
+
+  @Test
+  public void testAutoclassDisabledFlag() {
+    boolean autoclassEnabled = false;
+    UUID bucketId = createBucketDbEntry(projectResource, autoclassEnabled);
+    GoogleBucketResource bucket = resourceDao.retrieveBucketById(bucketId);
+    assertFalse("Correct autoclass setting is returned", bucket.getAutoclassEnabled());
+    GoogleBucketResource retrievedBucket =
+        resourceDao.getBucket(bucketName, projectResource.getId());
+    assertFalse("Correct autoclass setting is returned", retrievedBucket.getAutoclassEnabled());
+  }
+
   private UUID createBucketDbEntry(GoogleProjectResource projectResource2) {
-    String ingestFileFlightId = UUID.randomUUID().toString();
+    return createBucketDbEntry(projectResource2, true);
+  }
+
+  private UUID createBucketDbEntry(
+      GoogleProjectResource projectResource2, boolean autoclassEnabled) {
+    ingestFileFlightId = UUID.randomUUID().toString();
+    bucketName = String.format("testbucket%s", ingestFileFlightId);
     GoogleBucketResource bucketResource =
         resourceDao.createAndLockBucket(
-            String.format("testbucket%s", ingestFileFlightId),
+            bucketName,
             projectResource2,
             (GoogleRegion)
                 dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             ingestFileFlightId,
-            false);
+            autoclassEnabled);
     bucketList.put(bucketResource.getName(), ingestFileFlightId);
     return bucketResource.getResourceId();
   }

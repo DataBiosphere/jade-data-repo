@@ -184,43 +184,43 @@ public class FireStoreDirectoryDaoTest {
   // Tests that bulk filesystem ingest works  initially and when there are collisions with the same
   // load tag and failures when there are collisions with different load tags
   public void bulkDirectoryEntryOperationsTest() throws Exception {
-    List<FireStoreDirectoryEntry> directories = new ArrayList<>();
-    directories.add(makeFileObject("/adir/A1"));
-    directories.add(makeFileObject("/adir/bdir/B1"));
-    directories.add(makeFileObject("/adir/bdir/cdir"));
-    directories.add(makeFileObject("/adir/bdir/cdir/C2"));
-    directories.add(makeFileObject("/adir/bdir/B2"));
-    directories.add(makeFileObject("/adir/A2"));
+    List<FireStoreDirectoryEntry> initDirectories =
+        List.of(
+            makeFileObject("/adir/A1"),
+            makeFileObject("/adir/bdir/B1"),
+            makeFileObject("/adir/bdir/cdir"),
+            makeFileObject("/adir/bdir/cdir/C2"),
+            makeFileObject("/adir/bdir/B2"),
+            makeFileObject("/adir/A2"));
 
     String initialLoadTag = "lt1";
     String nextLoadTag = "lt2";
 
-    directories.forEach(d -> d.loadTag(initialLoadTag));
+    initDirectories.forEach(d -> d.loadTag(initialLoadTag));
 
     Map<UUID, UUID> initInsertResults =
-        directoryDao.upsertDirectoryEntries(firestore, collectionId, directories);
+        directoryDao.upsertDirectoryEntries(firestore, collectionId, initDirectories);
     assertThat(
         "the correct number were inserted (e.g. no conflicts)",
         initInsertResults.entrySet(),
         empty());
 
     // Insert a subset of objects (only the B3 directory should be new) using the same load tag
-    directories.clear();
-    directories.add(makeFileObject("/adir/A1"));
-    directories.add(makeFileObject("/adir/bdir/B3"));
-    directories.forEach(d -> d.loadTag(initialLoadTag));
+    List<FireStoreDirectoryEntry> nextDirectories =
+        List.of(makeFileObject("/adir/A1"), makeFileObject("/adir/bdir/B3"));
+    nextDirectories.forEach(d -> d.loadTag(initialLoadTag));
 
     Map<UUID, UUID> nextInsertResults =
-        directoryDao.upsertDirectoryEntries(firestore, collectionId, directories);
+        directoryDao.upsertDirectoryEntries(firestore, collectionId, nextDirectories);
     assertThat("the correct number were inserted", nextInsertResults.entrySet(), hasSize(1));
 
     // Inserts the same subset but with a different load tag.  This should throw
-    directories.forEach(d -> d.loadTag(nextLoadTag));
+    nextDirectories.forEach(d -> d.loadTag(nextLoadTag));
     FileSystemExecutionException conflictingLoadTagsFail =
         assertThrows(
             "conflicting load tags fail",
             FileSystemExecutionException.class,
-            () -> directoryDao.upsertDirectoryEntries(firestore, collectionId, directories));
+            () -> directoryDao.upsertDirectoryEntries(firestore, collectionId, nextDirectories));
     assertThat(
         "cause is correct",
         conflictingLoadTagsFail.getCause().getCause(),
@@ -232,36 +232,40 @@ public class FireStoreDirectoryDaoTest {
   // Tests that bulk directory ingest works  initially and when there are collisions with the same
   // load tag and failures when there are collisions with different load tags
   public void bulkDirectoryOperationsFSObjectsTest() throws Exception {
-    List<FireStoreDirectoryEntry> fileObjects = new ArrayList<>();
-    fileObjects.add(makeFileObject("/m/adir/A1/file"));
-    fileObjects.add(makeFileObject("/m/adir/bdir/B1/file"));
-    fileObjects.add(makeFileObject("/m/adir/bdir/cdir/C1/file"));
-    fileObjects.add(makeFileObject("/m/adir/bdir/cdir/C2/file"));
-    fileObjects.add(makeFileObject("/m/adir/bdir/B2/file"));
-    fileObjects.add(makeFileObject("/m/adir/A2/file"));
+    List<FireStoreDirectoryEntry> initialFileObjects =
+        List.of(
+            makeFileObject("/m/adir/A1/file"),
+            makeFileObject("/m/adir/bdir/B1/file"),
+            makeFileObject("/m/adir/bdir/cdir/C1/file"),
+            makeFileObject("/m/adir/bdir/cdir/C2/file"),
+            makeFileObject("/m/adir/bdir/B2/file"),
+            makeFileObject("/m/adir/A2/file"));
 
     String initialLoadTag = "lt1";
     String secondLoadTag = "lt2";
 
+    initialFileObjects.forEach(f -> f.loadTag(initialLoadTag));
+
     Map<UUID, UUID> initialConflicts =
-        directoryDao.upsertDirectoryEntries(firestore, collectionId, fileObjects);
+        directoryDao.upsertDirectoryEntries(firestore, collectionId, initialFileObjects);
     assertThat("the correct number were inserted", initialConflicts.entrySet(), hasSize(0));
 
     // Insert a subset of objects (only the B3 directory should be new) using the same load tag
-    fileObjects.clear();
-    fileObjects.add(makeFileObject("/m/adir/A1/file"));
-    fileObjects.add(makeFileObject("/m/adir/bdir/B3/file"));
+    List<FireStoreDirectoryEntry> nextFileObjects =
+        List.of(makeFileObject("/m/adir/A1/file"), makeFileObject("/m/adir/bdir/B3/file"));
+    nextFileObjects.forEach(f -> f.loadTag(initialLoadTag));
+
     Map<UUID, UUID> nextConflicts =
-        directoryDao.upsertDirectoryEntries(firestore, collectionId, fileObjects);
+        directoryDao.upsertDirectoryEntries(firestore, collectionId, nextFileObjects);
     assertThat("the correct number were inserted", nextConflicts.entrySet(), hasSize(1));
 
     // Inserts the same subset but with a different load tag. This should throw
-    fileObjects.forEach(f -> f.loadTag(secondLoadTag));
+    nextFileObjects.forEach(f -> f.loadTag(secondLoadTag));
     FileSystemExecutionException conflictingLoadTagsFail =
         assertThrows(
             "conflicting load tags fail",
             FileSystemExecutionException.class,
-            () -> directoryDao.upsertDirectoryEntries(firestore, collectionId, fileObjects));
+            () -> directoryDao.upsertDirectoryEntries(firestore, collectionId, nextFileObjects));
     assertThat(
         "cause is correct",
         conflictingLoadTagsFail.getCause().getCause(),

@@ -89,14 +89,13 @@ public class FireStoreDao {
    * @param dataset The dataset being ingested into
    * @param loadTag the load tag of the current ingest
    * @param directories All directories to upsert
-   * @return A list of booleans the same size as the directories parameter where if an entry is
-   *     true, the directory at that location was inserted and if an entry is false, it already
-   *     existed
+   * @return A map of IDs for entries that already exist. The key is the passed in id and the value
+   *     is the existing value.
    * @throws InterruptedException If something goes wrong talking to Firestore
    * @throws FileSystemExecutionException If the file already exists but with a different load tag
    */
-  public void upsertDirectoryEntries(Dataset dataset, String loadTag, List<String> directories)
-      throws InterruptedException {
+  public Map<UUID, UUID> upsertDirectoryEntries(
+      Dataset dataset, String loadTag, List<String> directories) throws InterruptedException {
     Firestore firestore =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String datasetId = dataset.getId().toString();
@@ -112,7 +111,7 @@ public class FireStoreDao {
                         .datasetId(datasetId)
                         .loadTag(loadTag))
             .toList();
-    directoryDao.upsertDirectoryEntries(firestore, datasetId, entries);
+    return directoryDao.upsertDirectoryEntries(firestore, datasetId, entries);
   }
 
   /**

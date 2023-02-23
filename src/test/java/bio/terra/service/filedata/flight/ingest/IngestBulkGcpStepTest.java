@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -64,11 +65,7 @@ public class IngestBulkGcpStepTest {
   private static final String LOAD_TAG = "loadtag";
   private static final UUID PROFILE_ID = UUID.randomUUID();
   private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
+      AuthenticationFixtures.randomUserRequest();
 
   @MockBean private GcsPdao gcsPdao;
   @MockBean private ObjectMapper objectMapper;

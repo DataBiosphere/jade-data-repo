@@ -2,16 +2,16 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
 // It expects the following working map data:
 // - BULK_LOAD_RESULT - a BulkLoadArrayResultModel object
 //
-public class IngestBulkBulkModeResponseStep implements Step {
+public class IngestBulkBulkModeResponseStep extends DefaultUndoStep {
 
   private final boolean isArrayMode;
 
@@ -31,11 +31,6 @@ public class IngestBulkBulkModeResponseStep implements Step {
       workingMap.put(JobMapKeys.RESPONSE.getKeyName(), result.getLoadSummary());
     }
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

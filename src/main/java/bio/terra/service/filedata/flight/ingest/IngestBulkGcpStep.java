@@ -28,10 +28,10 @@ import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
@@ -53,7 +53,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class IngestBulkGcpStep implements Step {
+public abstract class IngestBulkGcpStep extends DefaultUndoStep {
 
   private Logger logger = LoggerFactory.getLogger(IngestBulkGcpStep.class);
 
@@ -451,12 +451,6 @@ public abstract class IngestBulkGcpStep implements Step {
               failedFileLoads.stream().map(CopyResult::error).map(Exception::getMessage).toList());
       workingMap.put(CommonMapKeys.COMPLETION_TO_FAILURE_EXCEPTION, ex);
     }
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
-    // Do not to undo
-    return StepResult.getStepResultSuccess();
   }
 
   // Object conversion methods

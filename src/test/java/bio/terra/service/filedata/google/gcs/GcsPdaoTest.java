@@ -171,6 +171,7 @@ public class GcsPdaoTest {
     testCopyBlob(true);
   }
 
+  @Test
   public void testCopyBlobWithoutPredictableFileId() {
     testCopyBlob(false);
   }

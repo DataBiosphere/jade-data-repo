@@ -73,6 +73,8 @@ public class FileTest extends UsersBase {
 
   private static Logger logger = LoggerFactory.getLogger(FileTest.class);
 
+  private static final int NUM_FILES = 100;
+
   @Autowired private AuthService authService;
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
@@ -179,42 +181,42 @@ public class FileTest extends UsersBase {
   // The purpose of these tests is to ingest files using the bulk mode in various permutations
   @Test
   public void bulkFileLoadTestTdrHostedRandomIdFile() throws Exception {
-    bulkFileLoadTest(100, false, false, false);
+    bulkFileLoadTest(NUM_FILES, false, false, false);
   }
 
   @Test
   public void bulkFileLoadTestTdrHostedRandomIdArray() throws Exception {
-    bulkFileLoadTest(100, false, false, true);
+    bulkFileLoadTest(NUM_FILES, false, false, true);
   }
 
   @Test
   public void bulkFileLoadTestTdrHostedPredictableIdFile() throws Exception {
-    bulkFileLoadTest(100, false, true, false);
+    bulkFileLoadTest(NUM_FILES, false, true, false);
   }
 
   @Test
   public void bulkFileLoadTestTdrHostedPredictableIdArray() throws Exception {
-    bulkFileLoadTest(100, false, true, true);
+    bulkFileLoadTest(NUM_FILES, false, true, true);
   }
 
   @Test
   public void bulkFileLoadTestSelfHostedRandomIdFile() throws Exception {
-    bulkFileLoadTest(100, true, false, false);
+    bulkFileLoadTest(NUM_FILES, true, false, false);
   }
 
   @Test
   public void bulkFileLoadTestSelfHostedRandomIdArray() throws Exception {
-    bulkFileLoadTest(100, true, false, true);
+    bulkFileLoadTest(NUM_FILES, true, false, true);
   }
 
   @Test
   public void bulkFileLoadTestSelfHostedPredictableIdFile() throws Exception {
-    bulkFileLoadTest(100, true, true, false);
+    bulkFileLoadTest(NUM_FILES, true, true, false);
   }
 
   @Test
   public void bulkFileLoadTestSelfHostedPredictableIdArray() throws Exception {
-    bulkFileLoadTest(100, true, true, true);
+    bulkFileLoadTest(NUM_FILES, true, true, true);
   }
 
   private void bulkFileLoadTest(
@@ -236,9 +238,10 @@ public class FileTest extends UsersBase {
       logger.info(
           "bulkFileLoadTest loading " + filesToLoad + " files into dataset id " + datasetId);
 
+      String tailPath = "/fileloadprofiletest/1KBfile.txt";
+      String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
+
       for (int i = 0; i < filesToLoad; i++) {
-        String tailPath = "/fileloadprofiletest/1KBfile.txt";
-        String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
         String targetPath = "/" + loadTag + "/" + i + tailPath;
 
         BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");

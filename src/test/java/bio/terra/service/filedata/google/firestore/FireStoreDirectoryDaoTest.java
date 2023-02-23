@@ -181,54 +181,6 @@ public class FireStoreDirectoryDaoTest {
 
   @Test
   @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
-  // Tests that bulk directory ingest works  initially and when there are collisions with the same
-  // load tag and failures when there are collisions with different load tags
-  public void bulkDirectoryOperationsTest() throws Exception {
-    List<String> directories = new ArrayList<>();
-    directories.add("/adir/A1");
-    directories.add("/adir/bdir/B1");
-    directories.add("/adir/bdir/cdir");
-    directories.add("/adir/bdir/cdir/C2");
-    directories.add("/adir/bdir/B2");
-    directories.add("/adir/A2");
-
-    String initialLoadTag = "lt1";
-    String nextLoadTag = "lt2";
-
-    List<Boolean> initInsertResults =
-        directoryDao.upsertDirectoryEntries(firestore, collectionId, initialLoadTag, directories);
-    assertThat(
-        "the correct number were inserted",
-        initInsertResults.stream().filter(r -> r).toList(),
-        hasSize(6));
-
-    // Insert a subset of objects (only the B3 directory should be new) using the same load tag
-    directories.clear();
-    directories.add("/adir/A1");
-    directories.add("/adir/bdir/B3");
-    List<Boolean> nextInsertResults =
-        directoryDao.upsertDirectoryEntries(firestore, collectionId, initialLoadTag, directories);
-    assertThat(
-        "the correct number were inserted",
-        nextInsertResults.stream().filter(r -> r).toList(),
-        hasSize(1));
-
-    // Inserts the same subset but with a different load tag.  This should throw
-    FileSystemExecutionException conflictingLoadTagsFail =
-        assertThrows(
-            "conflicting load tags fail",
-            FileSystemExecutionException.class,
-            () ->
-                directoryDao.upsertDirectoryEntries(
-                    firestore, collectionId, nextLoadTag, directories));
-    assertThat(
-        "cause is correct",
-        conflictingLoadTagsFail.getCause().getCause(),
-        isA(FileAlreadyExistsException.class));
-  }
-
-  @Test
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   // Tests that bulk filesystem ingest works  initially and when there are collisions with the same
   // load tag and failures when there are collisions with different load tags
   public void bulkDirectoryEntryOperationsTest() throws Exception {
@@ -291,43 +243,25 @@ public class FireStoreDirectoryDaoTest {
     String initialLoadTag = "lt1";
     String secondLoadTag = "lt2";
 
-    List<Boolean> initInsertResults =
-        directoryDao.upsertDirectoryEntries(
-            firestore,
-            collectionId,
-            initialLoadTag,
-            fileObjects.stream().map(FireStoreDirectoryEntry::getPath).toList());
-    assertThat(
-        "the correct number were inserted",
-        initInsertResults.stream().filter(r -> r).toList(),
-        hasSize(6));
+    Map<UUID, UUID> initialConflicts =
+        directoryDao.upsertDirectoryEntries(firestore, collectionId, fileObjects);
+    assertThat("the correct number were inserted", initialConflicts.entrySet(), hasSize(0));
 
     // Insert a subset of objects (only the B3 directory should be new) using the same load tag
     fileObjects.clear();
     fileObjects.add(makeFileObject("/m/adir/A1/file"));
     fileObjects.add(makeFileObject("/m/adir/bdir/B3/file"));
-    List<Boolean> nextInsertResults =
-        directoryDao.upsertDirectoryEntries(
-            firestore,
-            collectionId,
-            initialLoadTag,
-            fileObjects.stream().map(FireStoreDirectoryEntry::getPath).toList());
-    assertThat(
-        "the correct number were inserted",
-        nextInsertResults.stream().filter(r -> r).toList(),
-        hasSize(1));
+    Map<UUID, UUID> nextConflicts =
+        directoryDao.upsertDirectoryEntries(firestore, collectionId, fileObjects);
+    assertThat("the correct number were inserted", nextConflicts.entrySet(), hasSize(1));
 
-    // Inserts the same subset but with a different load tag.  This should throw
+    // Inserts the same subset but with a different load tag. This should throw
+    fileObjects.forEach(f -> f.loadTag(secondLoadTag));
     FileSystemExecutionException conflictingLoadTagsFail =
         assertThrows(
             "conflicting load tags fail",
             FileSystemExecutionException.class,
-            () ->
-                directoryDao.upsertDirectoryEntries(
-                    firestore,
-                    collectionId,
-                    secondLoadTag,
-                    fileObjects.stream().map(FireStoreDirectoryEntry::getPath).toList()));
+            () -> directoryDao.upsertDirectoryEntries(firestore, collectionId, fileObjects));
     assertThat(
         "cause is correct",
         conflictingLoadTagsFail.getCause().getCause(),

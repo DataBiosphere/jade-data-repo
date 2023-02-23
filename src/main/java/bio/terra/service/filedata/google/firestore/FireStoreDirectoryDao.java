@@ -140,58 +140,6 @@ public class FireStoreDirectoryDao {
 
   /**
    * Write directory entries. If attempting to write a document that has a different ID but the same
-   * load tag, leave the entry untouched and return false for that entry. If the load tags don't
-   * match, then throw an exception
-   *
-   * @param firestore Firestore connection object
-   * @param collectionId the id of the collection being updated
-   * @param loadTag the load tag of the current ingest
-   * @param directories All directories to upsert
-   * @return A list of booleans the same size as the directories parameter where if an entry is
-   *     true, the directory at that location was inserted and if an entry is false, it already
-   *     existed
-   * @throws InterruptedException If something goes wrong talking to Firestore
-   * @throws FileSystemExecutionException If the file already exists but with a different load tag
-   */
-  public List<Boolean> upsertDirectoryEntries(
-      Firestore firestore, String collectionId, String loadTag, List<String> directories)
-      throws InterruptedException {
-    return fireStoreUtils.batchOperation(
-        directories,
-        directory ->
-            firestore.runTransaction(
-                xn -> {
-                  DocumentReference docRef =
-                      getDocRef(
-                          firestore, collectionId, FileMetadataUtils.makeLookupPath(directory));
-                  // If the directory entry already exists, don't try to re-add
-                  DocumentSnapshot documentSnapshot = xn.get(docRef).get();
-                  if (documentSnapshot.exists()) {
-                    FireStoreDirectoryEntry existingEntry =
-                        documentSnapshot.toObject(FireStoreDirectoryEntry.class);
-                    if (Objects.equals(existingEntry.getLoadTag(), loadTag)) {
-                      return false;
-                    } else {
-                      throw new FileAlreadyExistsException(
-                          "Path already exists: %s with load tag %s"
-                              .formatted(directory, existingEntry.getLoadTag()));
-                    }
-                  }
-                  xn.set(
-                      docRef,
-                      new FireStoreDirectoryEntry()
-                          .fileId(UUID.randomUUID().toString())
-                          .isFileRef(false)
-                          .path(FileMetadataUtils.getDirectoryPath(directory))
-                          .name(FileMetadataUtils.getName(directory))
-                          .datasetId(collectionId)
-                          .loadTag(loadTag));
-                  return true;
-                }));
-  }
-
-  /**
-   * Write directory entries. If attempting to write a document that has a different ID but the same
    * load tag, leave the entry untouched and add an entry to the return map. If the load tags don't
    * match, then throw an exception
    *

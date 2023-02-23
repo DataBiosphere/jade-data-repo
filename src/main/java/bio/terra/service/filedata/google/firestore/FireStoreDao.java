@@ -100,7 +100,19 @@ public class FireStoreDao {
     Firestore firestore =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String datasetId = dataset.getId().toString();
-    directoryDao.upsertDirectoryEntries(firestore, datasetId, loadTag, directories);
+    List<FireStoreDirectoryEntry> entries =
+        directories.stream()
+            .map(
+                d ->
+                    new FireStoreDirectoryEntry()
+                        .fileId(UUID.randomUUID().toString())
+                        .isFileRef(false)
+                        .path(FileMetadataUtils.getDirectoryPath(d))
+                        .name(FileMetadataUtils.getName(d))
+                        .datasetId(datasetId)
+                        .loadTag(loadTag))
+            .toList();
+    directoryDao.upsertDirectoryEntries(firestore, datasetId, entries);
   }
 
   /**

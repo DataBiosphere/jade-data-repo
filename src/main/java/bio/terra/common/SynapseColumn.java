@@ -1,6 +1,7 @@
 package bio.terra.common;
 
 import bio.terra.model.TableDataType;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import javax.ws.rs.NotSupportedException;
@@ -69,7 +70,6 @@ public class SynapseColumn extends Column {
       case FILEREF:
         return "varchar(36)";
       case FLOAT:
-        return "float";
       case FLOAT64:
         return "float";
       case INTEGER:

@@ -2,6 +2,7 @@ package bio.terra.service.filedata;
 
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -120,6 +121,7 @@ public class FileMetadataUtils {
    *     passed in path
    */
   public static List<String> extractDirectoryPaths(String path) {
+    Preconditions.checkArgument(path.startsWith("/"), "Paths should be absolute");
     List<String> allPaths = new ArrayList<>();
     String interimPath = "";
     allPaths.add("/");

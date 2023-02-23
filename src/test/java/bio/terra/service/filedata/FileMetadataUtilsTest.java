@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
@@ -156,9 +157,15 @@ public class FileMetadataUtilsTest {
 
   @Test
   public void extractDirectoryPathsTest() {
+    assertThat(FileMetadataUtils.extractDirectoryPaths("/foo.txt"), equalTo(List.of("/")));
+
+    assertThat(FileMetadataUtils.extractDirectoryPaths("/"), equalTo(List.of("/")));
+
     assertThat(
         FileMetadataUtils.extractDirectoryPaths("/foo/bar/baz.txt"),
         equalTo(List.of("/", "/foo", "/foo/bar")));
+
+    assertThrows(IllegalArgumentException.class, () -> FileMetadataUtils.extractDirectoryPaths(""));
   }
 
   private List<FireStoreDirectoryEntry> initTestEntries(int numDirectories) {

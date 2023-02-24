@@ -378,13 +378,10 @@ public class GoogleBucketService {
                   BucketInfo.LifecycleRule.LifecycleAction.newDeleteAction(),
                   BucketInfo.LifecycleRule.LifecycleCondition.newBuilder().setAge(days).build()));
     }
-    StorageClass storageClass =
-        region.isMultiRegional() ? StorageClass.MULTI_REGIONAL : StorageClass.REGIONAL;
     BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
             // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
-            // .setStorageClass(storageClass) // TODO - Can we set multi-regional and autoclass?
             .setAutoclass(Autoclass.newBuilder().setEnabled(enableAutoclass).build())
             .setLocation(region.toString())
             .setVersioningEnabled(doVersioning)

@@ -65,6 +65,13 @@ The Data Repo and [Terra](https://terra.bio/) use [Sam](https://github.com/broad
 to abstract identity and access management. To gain access to these services,
 first create a non-Broad email address through Gmail. This email address will
 specifically be used for development purposes in our non-prod environments.
+
+BITS requires that these development accounts have multi-factor authentication (MFA) enabled.
+Follow Google's instructions for enabling
+[two-step authentication](https://support.google.com/accounts/answer/185839).
+When complete, document your development account with a screenshot showing that it has MFA enabled
+[here](https://docs.google.com/document/d/1FS_DC1ysF861ZZhgGXNM-KB8_smalVeDjz1SxyOr9GM/edit#).
+
 Next, to register as a new user, click the `Sign in with Google` button in each
 of the environments with the newly created email address and follow the prompts:
 

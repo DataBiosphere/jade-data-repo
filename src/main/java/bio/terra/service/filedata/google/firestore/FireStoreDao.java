@@ -81,6 +81,59 @@ public class FireStoreDao {
     directoryDao.createDirectoryEntry(firestore, datasetId, newEntry);
   }
 
+  /**
+   * Write directory entries. If attempting to write a document that has a different ID but the same
+   * load tag, leave the entry untouched and return false for that entry. If the load tags don't
+   * match, then throw an exception
+   *
+   * @param dataset The dataset being ingested into
+   * @param loadTag the load tag of the current ingest
+   * @param directories All directories to upsert
+   * @return A map of IDs for entries that already exist. The key is the passed in id and the value
+   *     is the existing value.
+   * @throws InterruptedException If something goes wrong talking to Firestore
+   * @throws FileSystemExecutionException If the file already exists but with a different load tag
+   */
+  public Map<UUID, UUID> upsertDirectoryEntries(
+      Dataset dataset, String loadTag, List<String> directories) throws InterruptedException {
+    Firestore firestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
+    String datasetId = dataset.getId().toString();
+    List<FireStoreDirectoryEntry> entries =
+        directories.stream()
+            .map(
+                d ->
+                    new FireStoreDirectoryEntry()
+                        .fileId(UUID.randomUUID().toString())
+                        .isFileRef(false)
+                        .path(FileMetadataUtils.getDirectoryPath(d))
+                        .name(FileMetadataUtils.getName(d))
+                        .datasetId(datasetId)
+                        .loadTag(loadTag))
+            .toList();
+    return directoryDao.upsertDirectoryEntries(firestore, datasetId, entries);
+  }
+
+  /**
+   * Write directory entries. If attempting to write a document that has a different ID but the same
+   * load tag, leave the entry untouched and add an entry to the return map. If the load tags don't
+   * match, then throw an exception
+   *
+   * @param dataset The dataset being ingested into
+   * @param newEntries All entries to upsert
+   * @return A map of IDs for entries that already exist. The key is the passed in id and the value
+   *     is the existing value.
+   * @throws InterruptedException If something goes wrong talking to Firestore
+   * @throws FileSystemExecutionException If the file already exists but with a different load tag
+   */
+  public Map<UUID, UUID> upsertDirectoryEntries(
+      Dataset dataset, List<FireStoreDirectoryEntry> newEntries) throws InterruptedException {
+    Firestore firestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
+    String datasetId = dataset.getId().toString();
+    return directoryDao.upsertDirectoryEntries(firestore, datasetId, newEntries);
+  }
+
   public boolean deleteDirectoryEntry(Dataset dataset, String fileId) throws InterruptedException {
     Firestore firestore =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
@@ -88,12 +141,28 @@ public class FireStoreDao {
     return directoryDao.deleteDirectoryEntry(firestore, datasetId, fileId);
   }
 
+  /**
+   * Upserts a file metadata object into Firestore (e.g. this is the metadata that contains size,
+   * checksum, cloud location etc.) of a file, as opposed to the path information for the file
+   */
   public void createFileMetadata(Dataset dataset, FireStoreFile newFile)
       throws InterruptedException {
     Firestore firestore =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String datasetId = dataset.getId().toString();
     fileDao.createFileMetadata(firestore, datasetId, newFile);
+  }
+
+  /**
+   * Upserts file metadata objects into Firestore (e.g. this is the metadata that contains size,
+   * checksum, cloud location etc.) of a file, as opposed to the path information for the file
+   */
+  public void createFileMetadata(Dataset dataset, List<FireStoreFile> newFiles)
+      throws InterruptedException {
+    Firestore firestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
+    String datasetId = dataset.getId().toString();
+    fileDao.createFileMetadata(firestore, datasetId, newFiles);
   }
 
   public boolean deleteFileMetadata(Dataset dataset, String fileId) throws InterruptedException {
@@ -399,11 +468,12 @@ public class FireStoreDao {
     return directoryDao.validateRefIds(firestore, datasetId, refIdArray);
   }
 
-  /** Retrieve all fileIds (including directories) from a snapshot */
-  public List<String> retrieveAllFileIds(Snapshot snapshot) throws InterruptedException {
+  /** Retrieve all fileIds (including directories) from a dataset or snapshot */
+  public List<String> retrieveAllFileIds(FSContainerInterface container)
+      throws InterruptedException {
     Firestore firestore =
-        FireStoreProject.get(snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
-    return directoryDao.enumerateAll(firestore, snapshot.getId().toString()).stream()
+        FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
+    return directoryDao.enumerateAll(firestore, container.getId().toString()).stream()
         .map(FireStoreDirectoryEntry::getFileId)
         .toList();
   }

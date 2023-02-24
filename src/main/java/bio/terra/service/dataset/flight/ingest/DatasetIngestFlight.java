@@ -68,6 +68,7 @@ import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.Step;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import org.springframework.context.ApplicationContext;
 
 public class DatasetIngestFlight extends Flight {
@@ -292,11 +293,15 @@ public class DatasetIngestFlight extends Flight {
   }
 
   private void addOptionalCombinedIngestStep(Step step, RetryRule retryRule) {
-    addStep(new CombinedFileIngestOptionalStep(step), retryRule);
+    if (retryRule == null) {
+      addStep(new CombinedFileIngestOptionalStep(step));
+    } else {
+      addStep(new CombinedFileIngestOptionalStep(step), retryRule);
+    }
   }
 
   private void addOptionalCombinedIngestStep(Step step) {
-    addStep(new CombinedFileIngestOptionalStep(step));
+    addOptionalCombinedIngestStep(step, null);
   }
 
   /**
@@ -330,6 +335,8 @@ public class DatasetIngestFlight extends Flight {
     GoogleProjectService projectService = appContext.getBean(GoogleProjectService.class);
     GoogleBillingService googleBillingService = appContext.getBean(GoogleBillingService.class);
     IamService iamService = appContext.getBean(IamService.class);
+    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
+    ExecutorService executor = appContext.getBean("performanceThreadpool", ExecutorService.class);
 
     var platform = CloudPlatform.GCP;
 
@@ -377,36 +384,54 @@ public class DatasetIngestFlight extends Flight {
           new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
     }
 
-    // Populate the load table in our database with files to be loaded.
-    addOptionalCombinedIngestStep(
-        new IngestPopulateFileStateFromFlightMapGcpStep(
-            loadService,
-            fileService,
-            gcsPdao,
-            appConfig.objectMapper(),
-            dataset,
-            appConfig.getLoadFilePopulateBatchSize(),
-            userReq,
-            appConfig.getMaxBadLoadFileLineErrorsReported()));
+    if (ingestRequest.isBulkMode()) {
+      // Load the files!
+      addStep(
+          new IngestBulkGcpCombinedIngestStep(
+              ingestRequest.getLoadTag(),
+              profileId,
+              userReq,
+              gcsPdao,
+              appConfig.objectMapper(),
+              dataset,
+              ingestRequest.getMaxFailedFileLoads(),
+              appConfig.getMaxBadLoadFileLineErrorsReported(),
+              fileDao,
+              fileService,
+              executor,
+              appConfig.getMaxPerformanceThreadQueueSize()));
+    } else {
+      // Populate the load table in our database with files to be loaded.
+      addOptionalCombinedIngestStep(
+          new IngestPopulateFileStateFromFlightMapGcpStep(
+              loadService,
+              fileService,
+              gcsPdao,
+              appConfig.objectMapper(),
+              dataset,
+              appConfig.getLoadFilePopulateBatchSize(),
+              userReq,
+              appConfig.getMaxBadLoadFileLineErrorsReported()));
 
-    // Load the files!
-    addOptionalCombinedIngestStep(
-        new IngestDriverStep(
-            loadService,
-            configService,
-            jobService,
-            dataset.getId().toString(),
-            ingestRequest.getLoadTag(),
-            Objects.requireNonNullElse(ingestRequest.getMaxFailedFileLoads(), 0),
-            driverWaitSeconds,
-            profileId,
-            platform,
-            userReq),
-        driverRetry);
+      // Load the files!
+      addOptionalCombinedIngestStep(
+          new IngestDriverStep(
+              loadService,
+              configService,
+              jobService,
+              dataset.getId().toString(),
+              ingestRequest.getLoadTag(),
+              Objects.requireNonNullElse(ingestRequest.getMaxFailedFileLoads(), 0),
+              driverWaitSeconds,
+              profileId,
+              platform,
+              userReq),
+          driverRetry);
 
-    // Create the job result with the results of the bulk file load.
-    addOptionalCombinedIngestStep(
-        new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag()));
+      // Create the job result with the results of the bulk file load.
+      addOptionalCombinedIngestStep(
+          new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag()));
+    }
 
     // Create a bucket for the scratch file to be written to.
     addOptionalCombinedIngestStep(
@@ -431,7 +456,8 @@ public class DatasetIngestFlight extends Flight {
             dataset.getId(),
             ingestRequest.getLoadTag(),
             loadHistoryWaitSeconds,
-            loadHistoryChunkSize),
+            loadHistoryChunkSize,
+            ingestRequest.isBulkMode()),
         randomBackoffRetry);
 
     // Clean up the load table.

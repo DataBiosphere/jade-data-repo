@@ -37,7 +37,7 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
     return IngestUtils.getJsonNodesStreamFromFile(
         gcsPdao,
         objectMapper,
-        ingestRequest,
+        ingestRequest.getPath(),
         userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
         errorCollector);

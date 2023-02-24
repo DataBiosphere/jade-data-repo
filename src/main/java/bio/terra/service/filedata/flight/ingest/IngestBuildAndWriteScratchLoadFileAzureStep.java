@@ -48,7 +48,12 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
             .getTenantId()
             .toString();
     return IngestUtils.getJsonNodesStreamFromFile(
-        azureBlobStorePdao, objectMapper, ingestRequest, userRequest, tenantId, errorCollector);
+        azureBlobStorePdao,
+        objectMapper,
+        ingestRequest.getPath(),
+        userRequest,
+        tenantId,
+        errorCollector);
   }
 
   @Override

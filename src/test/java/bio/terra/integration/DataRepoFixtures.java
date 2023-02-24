@@ -183,6 +183,7 @@ public class DataRepoFixtures {
       boolean usePetAccount,
       boolean selfHosted,
       boolean dedicatedServiceAccount,
+      boolean predictableIds,
       DatasetRequestModelPolicies policies)
       throws Exception {
     DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
@@ -192,6 +193,7 @@ public class DataRepoFixtures {
       requestModel.setCloudPlatform(cloudPlatform);
     }
     requestModel.experimentalSelfHosted(selfHosted);
+    requestModel.experimentalPredictableFileIds(predictableIds);
     requestModel.dedicatedIngestServiceAccount(dedicatedServiceAccount);
     requestModel.policies(policies);
     String json = TestUtils.mapToJson(requestModel);
@@ -233,6 +235,7 @@ public class DataRepoFixtures {
             false,
             true,
             dedicatedServiceAccount,
+            false,
             null);
     return waitForDatasetCreate(user, jobResponse);
   }
@@ -240,7 +243,8 @@ public class DataRepoFixtures {
   public DatasetSummaryModel createDatasetWithOwnServiceAccount(
       TestConfiguration.User user, UUID profileId, String fileName) throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, fileName, CloudPlatform.GCP, false, false, true, null);
+        createDatasetRaw(
+            user, profileId, fileName, CloudPlatform.GCP, false, false, true, false, null);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -253,7 +257,7 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         createDatasetRaw(
-            user, profileId, filename, cloudPlatform, usePetAccount, false, false, null);
+            user, profileId, filename, cloudPlatform, usePetAccount, false, false, false, null);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -265,7 +269,7 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         createDatasetRaw(
-            user, profileId, filename, CloudPlatform.GCP, false, false, false, policies);
+            user, profileId, filename, CloudPlatform.GCP, false, false, false, false, policies);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -297,7 +301,8 @@ public class DataRepoFixtures {
       CloudPlatform cloudPlatform)
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
-        createDatasetRaw(user, profileId, filename, cloudPlatform, false, false, false, null);
+        createDatasetRaw(
+            user, profileId, filename, cloudPlatform, false, false, false, false, null);
     assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
     assertTrue(
         "dataset create launch response is present", jobResponse.getResponseObject().isPresent());

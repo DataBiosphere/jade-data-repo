@@ -5,9 +5,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,6 +21,10 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
+@SuppressFBWarnings(
+    value = "DMI",
+    justification =
+        "This fails with not allowing absolute paths but they're not file paths in our case")
 public class FileMetadataUtilsTest {
 
   @Test
@@ -147,6 +153,19 @@ public class FileMetadataUtilsTest {
             "/_dr_/test/path-2",
             "/_dr_/test/path-3",
             "/_dr_/test/path-4"));
+  }
+
+  @Test
+  public void extractDirectoryPathsTest() {
+    assertThat(FileMetadataUtils.extractDirectoryPaths("/foo.txt"), equalTo(List.of("/")));
+
+    assertThat(FileMetadataUtils.extractDirectoryPaths("/"), equalTo(List.of("/")));
+
+    assertThat(
+        FileMetadataUtils.extractDirectoryPaths("/foo/bar/baz.txt"),
+        equalTo(List.of("/", "/foo", "/foo/bar")));
+
+    assertThrows(IllegalArgumentException.class, () -> FileMetadataUtils.extractDirectoryPaths(""));
   }
 
   private List<FireStoreDirectoryEntry> initTestEntries(int numDirectories) {

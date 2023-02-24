@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -10,7 +11,6 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
-import bio.terra.common.fixtures.StringListCompare;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
@@ -22,7 +22,7 @@ import io.grpc.StatusRuntimeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -98,27 +98,36 @@ public class FireStoreFileDaoTest {
   @Test
   public void deleteAllFilesTest() throws Exception {
     // Make some files
-    List<FireStoreFile> fileList = new ArrayList<>();
-    for (int i = 0; i < 5; i++) {
-      FireStoreFile fsf = makeFile();
-      fileDao.createFileMetadata(firestore, datasetId, fsf);
-      fileList.add(fsf);
-    }
+    List<FireStoreFile> fileList = IntStream.range(0, 5).boxed().map(i -> makeFile()).toList();
+    fileDao.createFileMetadata(firestore, datasetId, fileList);
 
-    List<String> fileIds =
-        fileList.stream().map(fsf -> fsf.getFileId()).collect(Collectors.toList());
+    List<String> fileIds = fileList.stream().map(FireStoreFile::getFileId).toList();
+
+    for (String fileId : fileIds) {
+      FireStoreFile existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, fileId);
+      assertNotNull("File entry was created", existCheck);
+    }
 
     List<String> deleteIds = new ArrayList<>();
 
     // Delete the files; our function collects the deleted object ids in a list
-    fileDao.deleteFilesFromDataset(firestore, datasetId, fsf -> deleteIds.add(fsf.getFileId()));
+    fileDao.deleteFilesFromDataset(
+        firestore,
+        datasetId,
+        fsf -> {
+          synchronized ((deleteIds)) {
+            deleteIds.add(fsf.getFileId());
+          }
+        });
 
-    StringListCompare listCompare = new StringListCompare(fileIds, deleteIds);
-    assertTrue("Deleted id list matched created id list", listCompare.compare());
+    assertThat(
+        "Deleted id list matched created id list",
+        deleteIds,
+        containsInAnyOrder(fileIds.toArray(new String[0])));
 
     for (String fileId : fileIds) {
       FireStoreFile existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, fileId);
-      assertNull("File is deleted", existCheck);
+      assertNull("File entry was deleted", existCheck);
     }
   }
 

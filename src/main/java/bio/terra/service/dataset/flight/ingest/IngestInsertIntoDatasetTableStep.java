@@ -17,12 +17,15 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
+import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IngestInsertIntoDatasetTableStep implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(IngestInsertIntoDatasetTableStep.class);
+
+  private static final int MAX_FILE_RESULTS = 1000;
 
   private final DatasetService datasetService;
   private final BigQueryTransactionPdao bigQueryTransactionPdao;
@@ -65,9 +68,14 @@ public class IngestInsertIntoDatasetTableStep implements Step {
             .rowCount(loadStatistics.getRowCount());
 
     if (IngestUtils.isCombinedFileIngest(context)) {
-      BulkLoadArrayResultModel fileLoadResults =
+      BulkLoadArrayResultModel fileResults =
           workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
-      ingestResponse.loadResult(fileLoadResults);
+      // Truncate file results if needed to keep the response from exploding in size
+      if (CollectionUtils.size(fileResults.getLoadFileResults()) > MAX_FILE_RESULTS) {
+        fileResults.loadFileResults(fileResults.getLoadFileResults().subList(0, MAX_FILE_RESULTS));
+      }
+      ingestResponse.loadResult(fileResults);
+
       long failedRowCount = workingMap.get(IngestMapKeys.COMBINED_FAILED_ROW_COUNT, Long.class);
       ingestResponse.badRowCount(ingestResponse.getBadRowCount() + failedRowCount);
       ingestResponse.rowCount(ingestResponse.getRowCount() + failedRowCount);

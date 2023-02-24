@@ -39,6 +39,18 @@ public class FileIdServiceTest {
   }
 
   @Test
+  public void testPredictableUUIDWithNoMD5Equals() {
+    when(dataset.hasPredictableFileIds()).thenReturn(true);
+    FSItem fsItem1 = new FSFile().path("/foo/bar").size(123L).checksumMd5(null);
+
+    FSItem fsItem2 = new FSFile().path("/foo/bar").size(123L).checksumMd5(null);
+    assertEquals(
+        "IDs match",
+        service.calculateFileId(dataset, fsItem1),
+        service.calculateFileId(dataset, fsItem2));
+  }
+
+  @Test
   public void testPredictableUUIDNotEqualsWhenRandom() {
     when(dataset.hasPredictableFileIds()).thenReturn(false);
     FSItem fsItem1 = new FSFile().path("/foo/bar").size(123L).checksumMd5("foo");

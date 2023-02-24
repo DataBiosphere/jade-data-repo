@@ -33,6 +33,9 @@ public class FireStoreUtils {
 
   private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
   private static final int SLEEP_BASE_SECONDS = 1;
+  private static final int SLEEP_MAX_SECONDS = 20;
+  // Firestore limits batches to 500
+  public static final int MAX_FIRESTORE_BATCH_SIZE = 500;
 
   private ConfigurationService configurationService;
 
@@ -232,7 +235,8 @@ public class FireStoreUtils {
         break;
       }
 
-      final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, noProgressCount));
+      final long retryWait =
+          (long) Math.min(SLEEP_MAX_SECONDS, (SLEEP_BASE_SECONDS * Math.pow(2.5, noProgressCount)));
       if (completeCount == 0) {
         noProgressCount++;
         if (noProgressCount > getFirestoreRetries()) {
@@ -284,7 +288,8 @@ public class FireStoreUtils {
 
         return transactionGet(transactionOp, transaction);
       } catch (Exception ex) {
-        final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry));
+        final long retryWait =
+            Math.min(SLEEP_MAX_SECONDS, (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry)));
         if (retry < getFirestoreRetries() && FireStoreUtils.shouldRetry(ex, false)) {
           // perform retry
           retry++;

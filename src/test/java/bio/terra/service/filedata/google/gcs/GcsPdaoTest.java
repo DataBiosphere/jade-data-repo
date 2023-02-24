@@ -3,13 +3,20 @@ package bio.terra.service.filedata.google.gcs;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyCollectionOf;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Connected;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import com.google.cloud.storage.Blob;
@@ -21,8 +28,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.junit.Assert;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -53,8 +61,8 @@ public class GcsPdaoTest {
   @MockBean private GoogleResourceDao googleResourceDao;
   @Autowired private GcsPdao gcsPdao;
 
-  private Storage storage = StorageOptions.getDefaultInstance().getService();
-  private String projectId = StorageOptions.getDefaultProjectId();
+  private final Storage storage = StorageOptions.getDefaultInstance().getService();
+  private final String projectId = StorageOptions.getDefaultProjectId();
 
   @Before
   public void setUp() throws Exception {
@@ -71,11 +79,11 @@ public class GcsPdaoTest {
       Blob blob =
           GcsPdao.getBlobFromGsPath(
               storage, "gs://" + testBlob.getBucket() + "/" + testBlob.getName(), projectId);
-      Assert.assertNotNull(blob);
+      assertNotNull(blob);
 
       BlobId actualId = blob.getBlobId();
-      Assert.assertEquals(testBlob.getBucket(), actualId.getBucket());
-      Assert.assertEquals(testBlob.getName(), actualId.getName());
+      assertEquals(testBlob.getBucket(), actualId.getBucket());
+      assertEquals(testBlob.getName(), actualId.getName());
     } finally {
       storage.delete(testBlob);
     }
@@ -91,11 +99,11 @@ public class GcsPdaoTest {
       Blob blob =
           GcsPdao.getBlobFromGsPath(
               storage, "gs://" + testBlob.getBucket() + "/" + testBlob.getName(), projectId);
-      Assert.assertNotNull(blob);
+      assertNotNull(blob);
 
       BlobId actualId = blob.getBlobId();
-      Assert.assertEquals(testBlob.getBucket(), actualId.getBucket());
-      Assert.assertEquals(testBlob.getName(), actualId.getName());
+      assertEquals(testBlob.getBucket(), actualId.getBucket());
+      assertEquals(testBlob.getName(), actualId.getName());
     } finally {
       storage.delete(testBlob);
     }
@@ -155,6 +163,56 @@ public class GcsPdaoTest {
 
     } finally {
       storage.delete(blobIds);
+    }
+  }
+
+  @Test
+  public void testCopyBlobWithPredictableFileId() {
+    testCopyBlob(true);
+  }
+
+  @Test
+  public void testCopyBlobWithoutPredictableFileId() {
+    testCopyBlob(false);
+  }
+
+  private void testCopyBlob(boolean usePredictableFileId) {
+    BlobId sourceBlob =
+        BlobId.of(testConfig.getIngestbucket(), UUID.randomUUID() + "#" + UUID.randomUUID());
+    String sourcePath = "gs://" + sourceBlob.getBucket() + "/" + sourceBlob.getName();
+    FileLoadModel fileLoadModel = new FileLoadModel().sourcePath(sourcePath).targetPath("/foo/bar");
+    try {
+      String fileId = usePredictableFileId ? null : UUID.randomUUID().toString();
+      Dataset dataset =
+          new Dataset()
+              .id(UUID.randomUUID())
+              .predictableFileIds(usePredictableFileId)
+              .name("test_dataset");
+      // Try to copy using predictable and non-predicatble file ids
+      gcsPdao.createGcsFile(sourceBlob, projectId);
+      gcsPdao.writeStreamToCloudFile(sourcePath, Stream.of("foo", "bar"), projectId);
+      // Copy the file once:
+      GoogleBucketResource targetBucket =
+          new GoogleBucketResource()
+              .resourceId(UUID.randomUUID())
+              .name(sourceBlob.getBucket())
+              .projectResource(new GoogleProjectResource().googleProjectId(projectId));
+      FSFileInfo fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, targetBucket);
+      String initialTime = fsFileInfo.getCreatedDate();
+      TimeUnit.SECONDS.sleep(1);
+      assertThat(
+          "times between copies are the same since the file is the same",
+          gcsPdao.copyFile(dataset, fileLoadModel, fileId, targetBucket).getCreatedDate(),
+          equalTo(initialTime));
+      storage.delete(BlobId.fromGsUtilUri(fsFileInfo.getCloudPath()));
+      assertThat(
+          "times between copies is different since file was deleted",
+          gcsPdao.copyFile(dataset, fileLoadModel, fileId, targetBucket).getCreatedDate(),
+          not(equalTo(initialTime)));
+    } catch (InterruptedException e) {
+      storage.delete(sourceBlob);
+    } finally {
+      storage.delete(sourceBlob);
     }
   }
 

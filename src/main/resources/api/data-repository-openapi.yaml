@@ -4334,6 +4334,17 @@ components:
                          in the matching table row.  Each ingest row must match exactly one table row,
                          and no duplicate IDs should be found in your ingest, otherwise the ingest job
                          will fail.
+        bulkMode:
+          type: boolean
+          default: false
+          description: >
+            If true, file ingest will be performed in bulk mode.  The tradeoff for the performance
+            improvements are that:
+            - the dataset will be locked exclusively
+            - some safeguards can not be enforced during loads.  Given that, it's recommended that
+              you use a max_failed_file_loads value of 0
+            - the assumption is that file metadata must all fit into memory so configure the
+              deployment accordingly
       description: >
         Request to ingest data from a file in GCS into a table in a dataset.
         The ingest source must be readable by the DR manager.
@@ -4555,6 +4566,17 @@ components:
             Manager. Each line of the file is interpreted as the JSON form of one
             BulkLoadFileModel. For example, one line might look like
               '{ "sourcePath":"gs:/bucket/path/file", "targetPath":"/target/path/file" }'
+        bulkMode:
+          type: boolean
+          default: false
+          description: >
+            If true, file ingest will be performed in bulk mode.  The tradeoff for the performance
+            improvements are that:
+            - the dataset will be locked exclusively
+            - some safeguards can not be enforced during loads.  Given that, it's recommended that
+              you use a maxFailedFileLoads value of 0
+            - the assumption is that file metadata must all fit into memory so configure the
+              deployment accordingly
       description: >-
         Body of a bulk file load request. This variant of a bulk load provides the set of
         files to be loaded in a file containing the JSON form of a BulkLoadFileModel.
@@ -4582,6 +4604,17 @@ components:
           description: Array files to load
           items:
             $ref: '#/components/schemas/BulkLoadFileModel'
+        bulkMode:
+          type: boolean
+          default: false
+          description: >
+            If true, file ingest will be performed in bulk mode.  The tradeoff for the performance
+            improvements are that:
+            - the dataset will be locked exclusively
+            - some safeguards can not be enforced during loads.  Given that, it's recommended that
+              you use a maxFailedFileLoads value of 0
+            - the assumption is that file metadata must all fit into memory so configure the
+              deployment accordingly
       description: >-
         Body of a bulk file load request. This variant of a bulk load provides the set of
         files to be loaded in the body of the request. Both the summary of the load and the

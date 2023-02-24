@@ -52,6 +52,10 @@ class FireStoreFileDao {
     this.executor = executor;
   }
 
+  /**
+   * Upserts a file metadata object into Firestore (e.g. this is the metadata that contains size,
+   * checksum, cloud location etc.) of a file, as opposed to the path information for the file
+   */
   void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile)
       throws InterruptedException {
     String collectionId = makeCollectionId(datasetId);
@@ -63,6 +67,23 @@ class FireStoreFileDao {
         },
         "createFileMetadata",
         " creating file metadata for dataset Id: " + datasetId);
+  }
+
+  /**
+   * Upserts file metadata objects into Firestore (e.g. this is the metadata that contains size,
+   * checksum, cloud location etc.) of a file, as opposed to the path information for the file
+   */
+  void createFileMetadata(Firestore firestore, String datasetId, List<FireStoreFile> newFiles)
+      throws InterruptedException {
+    String collectionId = makeCollectionId(datasetId);
+    fireStoreUtils.batchOperation(
+        newFiles,
+        newFile ->
+            firestore.runTransaction(
+                xn -> {
+                  xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
+                  return null;
+                }));
   }
 
   boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId)
@@ -138,7 +159,12 @@ class FireStoreFileDao {
     List<FireStoreFile> files = new ArrayList<>();
     for (DocumentSnapshot documentSnapshot : documentSnapshotList) {
       if (documentSnapshot == null || !documentSnapshot.exists()) {
-        throw new FileSystemCorruptException("Directory entry refers to non-existent file");
+        throw new FileSystemCorruptException(
+            "Directory entry refers to non-existent file (fileId = %s)"
+                .formatted(
+                    Optional.ofNullable(documentSnapshot)
+                        .map(DocumentSnapshot::getId)
+                        .orElse("unknown")));
       }
       files.add(documentSnapshot.toObject(FireStoreFile.class));
     }
@@ -158,9 +184,6 @@ class FireStoreFileDao {
     }
   }
 
-  // See comment in FireStoreUtils.java for an explanation of the batch size setting.
-  private static final int DELETE_BATCH_SIZE = 500;
-
   void deleteFilesFromDataset(
       Firestore firestore, String datasetId, InterruptibleConsumer<FireStoreFile> func)
       throws InterruptedException {
@@ -169,7 +192,7 @@ class FireStoreFileDao {
     fireStoreUtils.scanCollectionObjects(
         firestore,
         collectionId,
-        DELETE_BATCH_SIZE,
+        FireStoreUtils.MAX_FIRESTORE_BATCH_SIZE,
         document -> {
           SettableApiFuture<WriteResult> future = SettableApiFuture.create();
           executor.execute(

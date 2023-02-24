@@ -145,7 +145,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test
-  public void TestGetProjectForDatasetProfileCombo() throws Exception {
+  public void testGetProjectForDatasetProfileCombo() throws Exception {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
     datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
@@ -197,7 +197,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test
-  public void TestDatasetBucketLink() {
+  public void testDatasetBucketLink() {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
     // initial check - link should not yet exist
@@ -217,7 +217,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test
-  public void TestMultipleLinks() {
+  public void testMultipleLinks() {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
     // initial check - link should not yet exist
@@ -248,7 +248,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test
-  public void TestDecrementLink() {
+  public void testDecrementLink() {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
     // initial check - link should not yet exist
@@ -272,7 +272,7 @@ public class DatasetBucketDaoTest {
   // Test key restraints - There must be entries in the dataset table and bucket_resource table
   // in order to create a link in the dataset_bucket table
   @Test(expected = Exception.class)
-  public void DatasetMustExistToLink() {
+  public void datasetMustExistToLink() {
     // create bucket for dataset
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
@@ -289,7 +289,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test(expected = Exception.class)
-  public void BucketMustExistToLink() {
+  public void bucketMustExistToLink() {
     // fake datasetId
     UUID randomBucketResourceId = UUID.randomUUID();
 

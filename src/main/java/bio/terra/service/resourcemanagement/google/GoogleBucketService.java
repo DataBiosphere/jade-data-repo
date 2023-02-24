@@ -18,7 +18,6 @@ import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.BucketInfo.Autoclass;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;

@@ -11,10 +11,12 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DatasetFixtures;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSchemaColumnUpdateModel;
 import bio.terra.model.DatasetSchemaUpdateModel;
@@ -64,6 +66,8 @@ public class DatasetSchemaUpdateValidationTest {
   private static final String EXISTING_TABLE_2 = "existing_table_2";
   private static final String EXISTING_COLUMN_2 = "existing_column_2";
   private static final String EXISTING_RELATIONSHIP = "existing_relationship";
+  private static final CloudPlatformWrapper gcpCloudPlatform =
+      CloudPlatformWrapper.of(CloudPlatform.GCP);
 
   @Before
   public void setup() {
@@ -131,7 +135,8 @@ public class DatasetSchemaUpdateValidationTest {
                                             .datatype(TableDataType.STRING))))));
 
     DatasetSchemaUpdateValidateModelStep validateModelStep =
-        new DatasetSchemaUpdateValidateModelStep(datasetService, datasetId, updateModel);
+        new DatasetSchemaUpdateValidateModelStep(
+            datasetService, datasetId, updateModel, gcpCloudPlatform);
 
     FlightContext flightContext = mock(FlightContext.class);
 
@@ -184,7 +189,7 @@ public class DatasetSchemaUpdateValidationTest {
 
     DatasetSchemaUpdateValidateModelStep validateModelStep =
         new DatasetSchemaUpdateValidateModelStep(
-            datasetService, datasetId, duplicateColumnsUpdateModel);
+            datasetService, datasetId, duplicateColumnsUpdateModel, gcpCloudPlatform);
 
     FlightContext flightContext = mock(FlightContext.class);
 
@@ -219,7 +224,7 @@ public class DatasetSchemaUpdateValidationTest {
 
     DatasetSchemaUpdateValidateModelStep validateModelStep =
         new DatasetSchemaUpdateValidateModelStep(
-            datasetService, datasetId, missingTableUpdateModel);
+            datasetService, datasetId, missingTableUpdateModel, gcpCloudPlatform);
 
     FlightContext flightContext = mock(FlightContext.class);
 
@@ -247,7 +252,7 @@ public class DatasetSchemaUpdateValidationTest {
 
     DatasetSchemaUpdateValidateModelStep validateModelStep =
         new DatasetSchemaUpdateValidateModelStep(
-            datasetService, datasetId, relationshipUpdateModel);
+            datasetService, datasetId, relationshipUpdateModel, gcpCloudPlatform);
 
     FlightContext flightContext = mock(FlightContext.class);
 
@@ -283,7 +288,7 @@ public class DatasetSchemaUpdateValidationTest {
 
     DatasetSchemaUpdateValidateModelStep validateModelStep =
         new DatasetSchemaUpdateValidateModelStep(
-            datasetService, datasetId, relationshipUpdateModel);
+            datasetService, datasetId, relationshipUpdateModel, gcpCloudPlatform);
 
     FlightContext flightContext = mock(FlightContext.class);
 
@@ -319,7 +324,7 @@ public class DatasetSchemaUpdateValidationTest {
 
     DatasetSchemaUpdateValidateModelStep validateModelStep =
         new DatasetSchemaUpdateValidateModelStep(
-            datasetService, datasetId, relationshipUpdateModel);
+            datasetService, datasetId, relationshipUpdateModel, gcpCloudPlatform);
 
     FlightContext flightContext = mock(FlightContext.class);
 
@@ -362,7 +367,7 @@ public class DatasetSchemaUpdateValidationTest {
 
     DatasetSchemaUpdateValidateModelStep validateModelStep =
         new DatasetSchemaUpdateValidateModelStep(
-            datasetService, datasetId, relationshipUpdateModel);
+            datasetService, datasetId, relationshipUpdateModel, gcpCloudPlatform);
 
     FlightContext flightContext = mock(FlightContext.class);
 

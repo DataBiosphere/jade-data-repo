@@ -327,7 +327,7 @@ public class DatasetRequestValidator implements Validator {
       SchemaValidationContext context,
       CloudPlatformWrapper cloudPlatformWrapper) {
     ArrayList<LinkedHashMap<String, String>> validationErrors =
-        ValidationUtils.getRelationshipValidationErrors(relationship, tables, cloud);
+        ValidationUtils.getRelationshipValidationErrors(relationship, tables, cloudPlatformWrapper);
     validationErrors.forEach(e -> rejectValues(errors, e));
 
     String relationshipName = relationship.getName();
@@ -415,7 +415,8 @@ public class DatasetRequestValidator implements Validator {
     // been left out to avoid complexity before we know if we're going keep using this or not.
   }
 
-  private void validateSchema(DatasetSpecificationModel schema, CloudPlatformWrapper cloudPlatformWrapper, Errors errors) {
+  private void validateSchema(
+      DatasetSpecificationModel schema, CloudPlatformWrapper cloudPlatformWrapper, Errors errors) {
     SchemaValidationContext context = new SchemaValidationContext();
     List<TableModel> tables = schema.getTables();
     if (tables.isEmpty()) {
@@ -438,7 +439,8 @@ public class DatasetRequestValidator implements Validator {
         errors.rejectValue("schema", "DuplicateRelationshipNames");
       }
       relationships.forEach(
-          (relationship) -> validateRelationship(relationship, tables, errors, context, cloudPlatformWrapper));
+          (relationship) ->
+              validateRelationship(relationship, tables, errors, context, cloudPlatformWrapper));
     }
 
     List<AssetModel> assets = schema.getAssets();
@@ -456,9 +458,10 @@ public class DatasetRequestValidator implements Validator {
     }
   }
 
-  private void validateRegion(DatasetRequestModel datasetRequest, CloudPlatformWrapper cloudWrapper, Errors errors) {
+  private void validateRegion(
+      DatasetRequestModel datasetRequest, CloudPlatformWrapper cloudWrapper, Errors errors) {
     if (datasetRequest.getRegion() != null) {
-        cloudWrapper.ensureValidRegion(datasetRequest.getRegion(), errors);
+      cloudWrapper.ensureValidRegion(datasetRequest.getRegion(), errors);
     }
   }
 
@@ -468,11 +471,9 @@ public class DatasetRequestValidator implements Validator {
       DatasetRequestModel datasetRequest = (DatasetRequestModel) target;
       validateDatasetName(datasetRequest.getName(), errors);
       DatasetSpecificationModel schema = datasetRequest.getSchema();
-      if (datasetRequest.getCloudPlatform() == null ) {
+      if (datasetRequest.getCloudPlatform() == null) {
         errors.rejectValue(
-            "cloudPlatform",
-            "InvalidCloudPlatform",
-            "cloudPlatform must be provided.");
+            "cloudPlatform", "InvalidCloudPlatform", "cloudPlatform must be provided.");
       } else {
         CloudPlatformWrapper cloudWrapper =
             CloudPlatformWrapper.of(datasetRequest.getCloudPlatform());
@@ -481,7 +482,6 @@ public class DatasetRequestValidator implements Validator {
         }
         validateRegion(datasetRequest, cloudWrapper, errors);
       }
-
     }
   }
 }

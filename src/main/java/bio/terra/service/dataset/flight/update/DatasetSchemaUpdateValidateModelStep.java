@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.update;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.ValidationUtils;
@@ -28,12 +29,17 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
   private final UUID datasetId;
   private final DatasetService datasetService;
   private final DatasetSchemaUpdateModel updateModel;
+  private final CloudPlatformWrapper cloudPlatform;
 
   public DatasetSchemaUpdateValidateModelStep(
-      DatasetService datasetService, UUID datasetId, DatasetSchemaUpdateModel updateModel) {
+      DatasetService datasetService,
+      UUID datasetId,
+      DatasetSchemaUpdateModel updateModel,
+      CloudPlatformWrapper cloudPlatform) {
     this.datasetId = datasetId;
     this.datasetService = datasetService;
     this.updateModel = updateModel;
+    this.cloudPlatform = cloudPlatform;
   }
 
   @Override
@@ -110,7 +116,7 @@ public class DatasetSchemaUpdateValidateModelStep implements Step {
       ArrayList<String> validationErrors = new ArrayList<>();
       for (var relationship : newRelationships) {
         ArrayList<LinkedHashMap<String, String>> errors =
-            ValidationUtils.getRelationshipValidationErrors(relationship, allTables);
+            ValidationUtils.getRelationshipValidationErrors(relationship, allTables, cloudPlatform);
         validationErrors.addAll(formatValidationErrors(errors));
       }
       if (!validationErrors.isEmpty()) {

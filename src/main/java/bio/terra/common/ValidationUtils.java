@@ -81,46 +81,133 @@ public final class ValidationUtils {
     return value;
   }
 
-  // Following rules for implicit conversion as defined here:
-  // https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-type-conversion-database-engine?view=sql-server-ver16
-  private boolean compatibleDataType(TableDataType fromDataType, TableDataType toDataType) {
-    switch(fromDataType) {
-      case BOOLEAN:
-      case FLOAT:
-      case FLOAT64:
-      case INTEGER:
-      case INT64:
-      case NUMERIC:
-        return List.of(TableDataType.BOOLEAN, TableDataType.BYTES, TableDataType.FLOAT, TableDataType.FLOAT64, TableDataType.INTEGER, TableDataType.INT64, TableDataType.NUMERIC, TableDataType.TEXT, TableDataType.STRING).contains(toDataType);
-      case BYTES:
-        return List.of(TableDataType.BOOLEAN, TableDataType.BYTES, TableDataType.INTEGER, TableDataType.INT64,  TableDataType.TEXT, TableDataType.STRING).contains(toDataType);
-      case DATE:
-        return List.of(TableDataType.DATE, TableDataType.DATETIME, TableDataType.TIMESTAMP, TableDataType.STRING, TableDataType.TEXT).contains(toDataType);
-      case DATETIME:
-      case TIMESTAMP:
-        return List.of(TableDataType.DATE, TableDataType.DATETIME, TableDataType.TIMESTAMP, TableDataType.STRING, TableDataType.TEXT, TableDataType.TIME).contains(toDataType);
-      case DIRREF:
-      case FILEREF:
-        return List.of(TableDataType.DIRREF, TableDataType.FILEREF).contains(toDataType);
-      case TEXT:
-      case STRING:
-        return List.of(TableDataType.BOOLEAN, TableDataType.BYTES, TableDataType.FLOAT, TableDataType.FLOAT64, TableDataType.INTEGER, TableDataType.INT64, TableDataType.NUMERIC, TableDataType.TEXT, TableDataType.STRING, TableDataType.DATE, TableDataType.DATETIME, TableDataType.TIMESTAMP, TableDataType.TIME).contains(toDataType);
-      case TIME:
-        return List.of(TableDataType.DATETIME, TableDataType.TIMESTAMP, TableDataType.STRING, TableDataType.TEXT, TableDataType.TIME).contains(toDataType);
-      default:
-        return false;
+  private static boolean compatibleDataType(
+      TableDataType fromDataType,
+      TableDataType toDataType,
+      CloudPlatformWrapper cloudPlatformWrapper) {
+    if (cloudPlatformWrapper.isGcp()) {
+      // https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules
+      switch (fromDataType) {
+        case DATE:
+        case DATETIME:
+          return List.of(TableDataType.DATE, TableDataType.DATETIME).contains(toDataType);
+        case DIRREF:
+        case FILEREF:
+          return List.of(TableDataType.DIRREF, TableDataType.FILEREF).contains(toDataType);
+        case FLOAT:
+        case FLOAT64:
+        case INTEGER:
+        case INT64:
+        case NUMERIC:
+          return List.of(
+                  TableDataType.FLOAT,
+                  TableDataType.FLOAT64,
+                  TableDataType.INTEGER,
+                  TableDataType.INT64,
+                  TableDataType.NUMERIC)
+              .contains(toDataType);
+        case STRING:
+        case TEXT:
+          return List.of(TableDataType.STRING, TableDataType.TEXT).contains(toDataType);
+        default:
+          return fromDataType.equals(toDataType);
+      }
     }
+    if (cloudPlatformWrapper.isAzure()) {
+      // Following rules for implicit conversion as defined here:
+      // https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-type-conversion-database-engine?view=sql-server-ver16
+      switch (fromDataType) {
+        case BOOLEAN:
+        case FLOAT:
+        case FLOAT64:
+        case INTEGER:
+        case INT64:
+        case NUMERIC:
+          return List.of(
+                  TableDataType.BOOLEAN,
+                  TableDataType.BYTES,
+                  TableDataType.FLOAT,
+                  TableDataType.FLOAT64,
+                  TableDataType.INTEGER,
+                  TableDataType.INT64,
+                  TableDataType.NUMERIC,
+                  TableDataType.TEXT,
+                  TableDataType.STRING)
+              .contains(toDataType);
+        case BYTES:
+          return List.of(
+                  TableDataType.BOOLEAN,
+                  TableDataType.BYTES,
+                  TableDataType.INTEGER,
+                  TableDataType.INT64,
+                  TableDataType.TEXT,
+                  TableDataType.STRING)
+              .contains(toDataType);
+        case DATE:
+          return List.of(
+                  TableDataType.DATE,
+                  TableDataType.DATETIME,
+                  TableDataType.TIMESTAMP,
+                  TableDataType.STRING,
+                  TableDataType.TEXT)
+              .contains(toDataType);
+        case DATETIME:
+        case TIMESTAMP:
+          return List.of(
+                  TableDataType.DATE,
+                  TableDataType.DATETIME,
+                  TableDataType.TIMESTAMP,
+                  TableDataType.STRING,
+                  TableDataType.TEXT,
+                  TableDataType.TIME)
+              .contains(toDataType);
+        case DIRREF:
+        case FILEREF:
+          return List.of(TableDataType.DIRREF, TableDataType.FILEREF).contains(toDataType);
+        case TEXT:
+        case STRING:
+          return List.of(
+                  TableDataType.BOOLEAN,
+                  TableDataType.BYTES,
+                  TableDataType.FLOAT,
+                  TableDataType.FLOAT64,
+                  TableDataType.INTEGER,
+                  TableDataType.INT64,
+                  TableDataType.NUMERIC,
+                  TableDataType.TEXT,
+                  TableDataType.STRING,
+                  TableDataType.DATE,
+                  TableDataType.DATETIME,
+                  TableDataType.TIMESTAMP,
+                  TableDataType.TIME)
+              .contains(toDataType);
+        case TIME:
+          return List.of(
+                  TableDataType.DATETIME,
+                  TableDataType.TIMESTAMP,
+                  TableDataType.STRING,
+                  TableDataType.TEXT,
+                  TableDataType.TIME)
+              .contains(toDataType);
+        default:
+          return false;
+      }
+    }
+    return false;
   }
 
   public static LinkedHashMap<String, String> validateMatchingColumnDataTypes(
-      RelationshipTermModel fromTerm, RelationshipTermModel toTerm, List<TableModel> tables) {
+      RelationshipTermModel fromTerm,
+      RelationshipTermModel toTerm,
+      List<TableModel> tables,
+      CloudPlatformWrapper cloudPlatformWrapper) {
     LinkedHashMap<String, String> termErrors = new LinkedHashMap<>();
     Optional<ColumnModel> fromColumn = retrieveColumnModelFromTerm(fromTerm, tables);
     Optional<ColumnModel> toColumn = retrieveColumnModelFromTerm(toTerm, tables);
     if (fromColumn.isPresent() && toColumn.isPresent()) {
       TableDataType fromColumnDataType = fromColumn.get().getDatatype();
       TableDataType toColumnDataType = toColumn.get().getDatatype();
-      if (!fromColumnDataType.equals(toColumnDataType)) {
+      if (!compatibleDataType(fromColumnDataType, toColumnDataType, cloudPlatformWrapper)) {
         termErrors.put(
             "RelationshipDatatypeMismatch",
             String.format(
@@ -183,7 +270,9 @@ public final class ValidationUtils {
   }
 
   public static ArrayList<LinkedHashMap<String, String>> getRelationshipValidationErrors(
-      RelationshipModel relationship, List<TableModel> tables) {
+      RelationshipModel relationship,
+      List<TableModel> tables,
+      CloudPlatformWrapper cloudPlatformWrapper) {
     ArrayList<LinkedHashMap<String, String>> errors = new ArrayList<>();
     RelationshipTermModel fromTerm = relationship.getFrom();
     if (fromTerm != null) {
@@ -196,7 +285,7 @@ public final class ValidationUtils {
     }
 
     if (fromTerm != null && toTerm != null) {
-      validateMatchingColumnDataTypes(fromTerm, toTerm, tables);
+      validateMatchingColumnDataTypes(fromTerm, toTerm, tables, cloudPlatformWrapper);
     }
 
     return errors;

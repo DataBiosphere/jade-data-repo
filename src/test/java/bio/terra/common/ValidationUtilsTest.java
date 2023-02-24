@@ -6,6 +6,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
@@ -26,6 +27,7 @@ public class ValidationUtilsTest {
   private TableModel personTable;
   private TableModel carTable;
   private List<TableModel> tables;
+  private final CloudPlatformWrapper gcpCloudPlatform = CloudPlatformWrapper.of(CloudPlatform.GCP);
 
   @Test
   public void testEmailFormats() throws Exception {
@@ -96,7 +98,7 @@ public class ValidationUtilsTest {
     defineSampleTables();
 
     LinkedHashMap errors =
-        ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables);
+        ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables, gcpCloudPlatform);
     assertThat("There should be one error.", errors.size(), equalTo(1));
   }
 
@@ -107,7 +109,7 @@ public class ValidationUtilsTest {
     defineSampleTables();
 
     LinkedHashMap errors =
-        ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables);
+        ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables, gcpCloudPlatform);
     assertThat("The data types match so there should not be an error.", errors.size(), equalTo(0));
   }
 

@@ -381,7 +381,6 @@ public class GoogleBucketService {
     BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
-            // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
             .setAutoclass(Autoclass.newBuilder().setEnabled(enableAutoclass).build())
             .setLocation(region.toString())
             .setVersioningEnabled(doVersioning)

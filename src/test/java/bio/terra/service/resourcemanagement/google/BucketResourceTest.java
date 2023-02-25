@@ -187,6 +187,11 @@ public class BucketResourceTest {
     // check the bucket and metadata exist
     checkBucketExists(bucketResource.getResourceId());
 
+    // autoclass
+    assertTrue("autoclass should be enabled", bucketResource.getAutoclassEnabled());
+    Bucket bucket = storage.get(bucketResource.getName());
+    assertTrue("Autoclass", bucket.getAutoclass().getEnabled());
+
     // delete the bucket and metadata
     deleteBucket(bucketResource);
     checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
@@ -334,7 +339,7 @@ public class BucketResourceTest {
             null,
             null,
             null,
-            true);
+            false);
 
     // check the bucket and metadata exist
     checkBucketExists(bucketResource.getResourceId());
@@ -366,11 +371,16 @@ public class BucketResourceTest {
             null,
             null,
             null,
-            true);
+            false);
     checkBucketExists(bucketResource.getResourceId());
 
-    // delete the bucket cloud resource only
     Bucket bucket = storage.get(bucketName);
+
+    // autoclass test
+    assertFalse("autoclass should not be enabled", bucketResource.getAutoclassEnabled());
+    assertNull("Autoclass setting on bucket is null", bucket.getAutoclass());
+
+    // delete the bucket cloud resource only
     boolean bucketDeleted = bucket.delete();
     assertTrue("bucket cloud resource deleted", bucketDeleted);
 

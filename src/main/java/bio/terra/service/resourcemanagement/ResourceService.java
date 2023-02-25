@@ -138,6 +138,8 @@ public class ResourceService {
   /**
    * Fetch/create a project, then use that to fetch/create a bucket.
    *
+   * <p>Autoclass will be enabled on the bucket by default
+   *
    * @param flightId used to lock the bucket metadata during possible creation
    * @return a reference to the bucket as a POJO GoogleBucketResource
    * @throws CorruptMetadataException in two cases.
@@ -168,6 +170,9 @@ public class ResourceService {
   /**
    * Get or create a bucket for the ingest scratch files
    *
+   * <p>Autoclass is disabled by default on scratch file buckets Cost of Autoclass would most likely
+   * outweigh savings due to usage pattern of files in scratch file buckets
+   *
    * @param flightId used to lock the bucket metadata during possible creation
    * @return a reference to the bucket as a POJO GoogleBucketResource
    * @throws CorruptMetadataException in two cases.
@@ -194,6 +199,9 @@ public class ResourceService {
 
   /**
    * Get or create a bucket for snapshot export files
+   *
+   * <p>Autoclass disabled by default for snapshot export buckets Cost of Autoclass would most
+   * likely outweigh savings due to usage pattern of files in snapshot export buckets
    *
    * @param flightId used to lock the bucket metadata during possible creation
    * @return a reference to the bucket as a POJO GoogleBucketResource

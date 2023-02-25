@@ -248,7 +248,8 @@ public class GoogleBucketService {
 
     // insert a new bucket_resource row and lock it
     GoogleBucketResource googleBucketResource =
-        resourceDao.createAndLockBucket(bucketName, projectResource, region, flightId, true);
+        resourceDao.createAndLockBucket(
+            bucketName, projectResource, region, flightId, autoclassEnabled);
     if (googleBucketResource == null) {
       // We tried and failed to get the lock. So we ended up in CASE 2 after all.
       GoogleBucketResource lockingGoogleBucketResource =

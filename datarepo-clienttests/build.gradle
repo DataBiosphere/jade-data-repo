@@ -28,10 +28,6 @@ dependencies {
         hamcrest = "2.1"
         apacheMath = "3.0"
 
-        googleApi = "1.23.0"
-        googlePeople = "v1-rev277-1.23.0"
-        googleOauth2 = "0.20.0"
-
         swaggerAnnotations = "2.1.5"
         jersey = "2.32"
 
@@ -51,11 +47,11 @@ dependencies {
     implementation "org.hamcrest:hamcrest:${hamcrest}"
     implementation "org.apache.commons:commons-math3:${apacheMath}"
 
-    implementation "com.google.api-client:google-api-client:${googleApi}"
-    implementation "com.google.oauth-client:google-oauth-client-jetty:${googleApi}"
-    implementation "com.google.apis:google-api-services-people:${googlePeople}"
-    implementation "com.google.auth:google-auth-library-oauth2-http:${googleOauth2}"
-    implementation platform('com.google.cloud:libraries-bom:25.3.0')
+    implementation "com.google.api-client:google-api-client:2.0.0"
+    implementation "com.google.oauth-client:google-oauth-client-jetty:1.34.1"
+    implementation "com.google.apis:google-api-services-people:v1-rev20230103-2.0.0"
+    implementation "com.google.auth:google-auth-library-oauth2-http:1.6.1"
+    implementation platform('com.google.cloud:libraries-bom:26.3.0')
     implementation "com.google.cloud:google-cloud-bigquery"
     implementation "com.google.cloud:google-cloud-storage"
     implementation "com.google.cloud:google-cloud-monitoring"

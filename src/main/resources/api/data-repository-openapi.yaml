@@ -13,6 +13,7 @@ info:
      * /configuration - provides the basic configuration and information about the service
      * /api - is the authenticated and authorized Data Repository API
      * /ga4gh/drs/v1 - is a transcription of the Data Repository Service API
+     * /scheduled - powers scheduled background tasks
 
     The API endpoints are organized by interface. Each interface is separately versioned.
     <p>
@@ -82,6 +83,7 @@ paths:
       description: >
         Requests that this instance of DR Manager shut down. In production, this must be configured to
         only be callable by Kubernetes.
+        TODO: how do we handle this configuration? Could it be applicable for our DUOS sync via k8s cron?
       operationId: shutdownRequest
       responses:
         204:
@@ -3655,6 +3657,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+
+
+#################################################################
+#####                    SCHEDULED TASKS                    #####
+#################################################################
+  # TODO: do we really need a new endpoint here, or should we just expand the existing endpoint's
+  # authorization check to allow the env's SA to call?
+  # If not, should we remove the existing endpoint entirely?
+  /scheduled/duos/syncAuthorizedUsers:
+    put:
+      tags:
+        - scheduled
+      description: >
+        Sync the members of all TDR-managed DUOS Firecloud groups with the authorized users of their
+        corresponding DUOS datasets.  Any snapshots linked to a DUOS dataset have its Firecloud
+        group as a reader, which means its members are also snapshot readers.
+        NOTE: This is an experimental feature and its response body may change.
+      operationId: syncDuosDatasetsAuthorizedUsers
+      responses:
+        200:
+          description: Sync complete - see contents to gauge overall success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DuosFirecloudGroupsSyncResponse'
+        403:
+          description: >
+            Unauthorized - the caller must be the environment's TDR SA to facilitate sync.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: >
+            An unexpected error occurred - Firecloud group contents may not have been updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
 components:
   schemas:
     TableDataType:

@@ -73,6 +73,8 @@ public class DatasetBucketDaoTest {
           .setEmail("dataset@unit.com")
           .setToken("token")
           .build();
+  private String ingestFileFlightId;
+  private String bucketName;
 
   @Before
   public void setup() throws IOException {
@@ -143,7 +145,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test
-  public void TestGetProjectForDatasetProfileCombo() throws Exception {
+  public void testGetProjectForDatasetProfileCombo() throws Exception {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
     datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
@@ -195,7 +197,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test
-  public void TestDatasetBucketLink() {
+  public void testDatasetBucketLink() {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
     // initial check - link should not yet exist
@@ -215,7 +217,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test
-  public void TestMultipleLinks() {
+  public void testMultipleLinks() {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
     // initial check - link should not yet exist
@@ -246,7 +248,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test
-  public void TestDecrementLink() {
+  public void testDecrementLink() {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
     // initial check - link should not yet exist
@@ -270,7 +272,7 @@ public class DatasetBucketDaoTest {
   // Test key restraints - There must be entries in the dataset table and bucket_resource table
   // in order to create a link in the dataset_bucket table
   @Test(expected = Exception.class)
-  public void DatasetMustExistToLink() {
+  public void datasetMustExistToLink() {
     // create bucket for dataset
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
@@ -287,7 +289,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test(expected = Exception.class)
-  public void BucketMustExistToLink() {
+  public void bucketMustExistToLink() {
     // fake datasetId
     UUID randomBucketResourceId = UUID.randomUUID();
 
@@ -300,15 +302,44 @@ public class DatasetBucketDaoTest {
     datasetBucketDao.createDatasetBucketLink(datasetId, randomBucketResourceId);
   }
 
+  @Test
+  public void testAutoclassEnabledFlag() {
+    boolean autoclassEnabled = true;
+    UUID bucketId = createBucketDbEntry(projectResource, autoclassEnabled);
+    GoogleBucketResource bucket = resourceDao.retrieveBucketById(bucketId);
+    assertTrue("Correct autoclass setting is returned", bucket.getAutoclassEnabled());
+    GoogleBucketResource retrievedBucket =
+        resourceDao.getBucket(bucketName, projectResource.getId());
+    assertTrue("Correct autoclass setting is returned", retrievedBucket.getAutoclassEnabled());
+  }
+
+  @Test
+  public void testAutoclassDisabledFlag() {
+    boolean autoclassEnabled = false;
+    UUID bucketId = createBucketDbEntry(projectResource, autoclassEnabled);
+    GoogleBucketResource bucket = resourceDao.retrieveBucketById(bucketId);
+    assertFalse("Correct autoclass setting is returned", bucket.getAutoclassEnabled());
+    GoogleBucketResource retrievedBucket =
+        resourceDao.getBucket(bucketName, projectResource.getId());
+    assertFalse("Correct autoclass setting is returned", retrievedBucket.getAutoclassEnabled());
+  }
+
   private UUID createBucketDbEntry(GoogleProjectResource projectResource2) {
-    String ingestFileFlightId = UUID.randomUUID().toString();
+    return createBucketDbEntry(projectResource2, true);
+  }
+
+  private UUID createBucketDbEntry(
+      GoogleProjectResource projectResource2, boolean autoclassEnabled) {
+    ingestFileFlightId = UUID.randomUUID().toString();
+    bucketName = String.format("testbucket%s", ingestFileFlightId);
     GoogleBucketResource bucketResource =
         resourceDao.createAndLockBucket(
-            String.format("testbucket%s", ingestFileFlightId),
+            bucketName,
             projectResource2,
             (GoogleRegion)
                 dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
-            ingestFileFlightId);
+            ingestFileFlightId,
+            autoclassEnabled);
     bucketList.put(bucketResource.getName(), ingestFileFlightId);
     return bucketResource.getResourceId();
   }

@@ -16,8 +16,8 @@ import com.google.cloud.Policy;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
+import com.google.cloud.storage.BucketInfo.Autoclass;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
@@ -149,7 +149,8 @@ public class GoogleBucketService {
       String flightId,
       Duration daysToLive,
       Callable<List<String>> getReaderGroups,
-      String dedicatedServiceAccount)
+      String dedicatedServiceAccount,
+      boolean autoclassEnabled)
       throws InterruptedException {
 
     boolean allowReuseExistingBuckets =
@@ -160,7 +161,6 @@ public class GoogleBucketService {
     GoogleBucketResource googleBucketResource =
         resourceDao.getBucket(bucketName, projectResource.getId());
     Bucket bucket = getCloudBucket(bucketName);
-
     // Test all of the cases
     if (bucket != null) {
       if (googleBucketResource != null) {
@@ -186,7 +186,8 @@ public class GoogleBucketService {
               flightId,
               daysToLive,
               getReaderGroups,
-              dedicatedServiceAccount);
+              dedicatedServiceAccount,
+              autoclassEnabled);
         } else {
           // CASE 5:
           throw new CorruptMetadataException(
@@ -208,7 +209,12 @@ public class GoogleBucketService {
         }
         // CASE 8: this flight has the metadata locked, but didn't finish creating the bucket
         return createCloudBucket(
-            googleBucketResource, flightId, daysToLive, getReaderGroups, dedicatedServiceAccount);
+            googleBucketResource,
+            flightId,
+            daysToLive,
+            getReaderGroups,
+            dedicatedServiceAccount,
+            autoclassEnabled);
       } else {
         // CASE 9: no bucket and no record
         return createMetadataRecord(
@@ -218,7 +224,8 @@ public class GoogleBucketService {
             flightId,
             daysToLive,
             getReaderGroups,
-            dedicatedServiceAccount);
+            dedicatedServiceAccount,
+            autoclassEnabled);
       }
     }
   }
@@ -235,12 +242,14 @@ public class GoogleBucketService {
       String flightId,
       Duration daysToLive,
       Callable<List<String>> getReaderGroups,
-      String dedicatedServiceAccount)
+      String dedicatedServiceAccount,
+      boolean autoclassEnabled)
       throws InterruptedException {
 
     // insert a new bucket_resource row and lock it
     GoogleBucketResource googleBucketResource =
-        resourceDao.createAndLockBucket(bucketName, projectResource, region, flightId);
+        resourceDao.createAndLockBucket(
+            bucketName, projectResource, region, flightId, autoclassEnabled);
     if (googleBucketResource == null) {
       // We tried and failed to get the lock. So we ended up in CASE 2 after all.
       GoogleBucketResource lockingGoogleBucketResource =
@@ -266,7 +275,12 @@ public class GoogleBucketService {
     }
 
     return createCloudBucket(
-        googleBucketResource, flightId, daysToLive, getReaderGroups, dedicatedServiceAccount);
+        googleBucketResource,
+        flightId,
+        daysToLive,
+        getReaderGroups,
+        dedicatedServiceAccount,
+        autoclassEnabled);
   }
 
   // Step 2 of creating a new bucket
@@ -275,11 +289,18 @@ public class GoogleBucketService {
       String flightId,
       Duration daysToLive,
       Callable<List<String>> getReaderGroups,
-      String dedicatedServiceAccount) {
+      String dedicatedServiceAccount,
+      boolean enableAutoclass) {
     // If the bucket doesn't exist, create it
     Bucket bucket = getCloudBucket(bucketResource.getName());
     if (bucket == null) {
-      bucket = newCloudBucket(bucketResource, daysToLive, getReaderGroups, dedicatedServiceAccount);
+      bucket =
+          newCloudBucket(
+              bucketResource,
+              daysToLive,
+              getReaderGroups,
+              dedicatedServiceAccount,
+              enableAutoclass);
     }
     return createFinish(bucket, flightId, bucketResource);
   }
@@ -332,7 +353,8 @@ public class GoogleBucketService {
       GoogleBucketResource bucketResource,
       Duration daysToLive,
       Callable<List<String>> getReaderGroups,
-      String dedicatedServiceAccount) {
+      String dedicatedServiceAccount,
+      Boolean enableAutoclass) {
     final List<String> readerGroups;
     try {
       if (getReaderGroups != null) {
@@ -356,13 +378,10 @@ public class GoogleBucketService {
                   BucketInfo.LifecycleRule.LifecycleAction.newDeleteAction(),
                   BucketInfo.LifecycleRule.LifecycleCondition.newBuilder().setAge(days).build()));
     }
-    StorageClass storageClass =
-        region.isMultiRegional() ? StorageClass.MULTI_REGIONAL : StorageClass.REGIONAL;
     BucketInfo bucketInfo =
         BucketInfo.newBuilder(bucketName)
             // .setRequesterPays()
-            // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
-            .setStorageClass(storageClass)
+            .setAutoclass(Autoclass.newBuilder().setEnabled(enableAutoclass).build())
             .setLocation(region.toString())
             .setVersioningEnabled(doVersioning)
             .setLifecycleRules(lifecycleRules)

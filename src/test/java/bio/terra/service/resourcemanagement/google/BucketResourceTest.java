@@ -142,7 +142,8 @@ public class BucketResourceTest {
             flightId,
             null,
             null,
-            null);
+            null,
+            true);
 
     // check the bucket and metadata exist
     checkBucketExists(bucketResource.getResourceId());
@@ -161,7 +162,7 @@ public class BucketResourceTest {
 
       // create the bucket and metadata
       GoogleBucketResource bucketResource =
-          createBucket(bucketName, projectResource, region, flightId, null, null, null);
+          createBucket(bucketName, projectResource, region, flightId, null, null, null, true);
 
       // Get the Bucket
       Bucket cloudBucket = bucketService.getCloudBucket(bucketName);
@@ -171,6 +172,29 @@ public class BucketResourceTest {
           cloudBucket.getLocation(),
           equalToIgnoringCase(region.toString()));
     }
+  }
+
+  @Test
+  public void testMultiRegionalBucket() throws InterruptedException {
+    String bucketName = "testbucket_multiregiontest";
+    String flightId = "testMultiRegionalBucket";
+
+    // create the bucket and metadata
+    GoogleBucketResource bucketResource =
+        createBucket(
+            bucketName, projectResource, GoogleRegion.US, flightId, null, null, null, true);
+
+    // check the bucket and metadata exist
+    checkBucketExists(bucketResource.getResourceId());
+
+    // autoclass
+    assertTrue("autoclass should be enabled", bucketResource.getAutoclassEnabled());
+    Bucket bucket = storage.get(bucketResource.getName());
+    assertTrue("Autoclass", bucket.getAutoclass().getEnabled());
+
+    // delete the bucket and metadata
+    deleteBucket(bucketResource);
+    checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
   }
 
   @Test
@@ -265,7 +289,8 @@ public class BucketResourceTest {
             flightIdA,
             null,
             null,
-            null);
+            null,
+            true);
     checkBucketExists(bucketResource.getResourceId());
 
     // delete the metadata only
@@ -294,7 +319,8 @@ public class BucketResourceTest {
           flightIdB,
           null,
           null,
-          null);
+          null,
+          true);
     } catch (CorruptMetadataException cmEx) {
       caughtCorruptMetadataException = true;
     }
@@ -312,7 +338,8 @@ public class BucketResourceTest {
             flightIdC,
             null,
             null,
-            null);
+            null,
+            false);
 
     // check the bucket and metadata exist
     checkBucketExists(bucketResource.getResourceId());
@@ -343,11 +370,17 @@ public class BucketResourceTest {
             flightIdA,
             null,
             null,
-            null);
+            null,
+            false);
     checkBucketExists(bucketResource.getResourceId());
 
-    // delete the bucket cloud resource only
     Bucket bucket = storage.get(bucketName);
+
+    // autoclass test
+    assertFalse("autoclass should not be enabled", bucketResource.getAutoclassEnabled());
+    assertNull("Autoclass setting on bucket is null", bucket.getAutoclass());
+
+    // delete the bucket cloud resource only
     boolean bucketDeleted = bucket.delete();
     assertTrue("bucket cloud resource deleted", bucketDeleted);
 
@@ -371,7 +404,8 @@ public class BucketResourceTest {
           flightIdB,
           null,
           null,
-          null);
+          null,
+          true);
     } catch (CorruptMetadataException cmEx) {
       caughtCorruptMetadataException = true;
     }
@@ -402,7 +436,8 @@ public class BucketResourceTest {
             flightWithTtlId,
             Duration.ofDays(1),
             null,
-            null);
+            null,
+            true);
 
     GoogleBucketResource bucketWithoutTtlResource =
         createBucket(
@@ -412,7 +447,8 @@ public class BucketResourceTest {
             flightWithoutTtlId,
             null,
             null,
-            null);
+            null,
+            true);
 
     // check the bucket and metadata exist
     Bucket bucketWithTtl = storage.get(bucketWithTtlName);
@@ -456,7 +492,8 @@ public class BucketResourceTest {
             flightId,
             null,
             () -> readerGroups,
-            null);
+            null,
+            true);
 
     Policy iamPolicy =
         storage.getIamPolicy(
@@ -479,7 +516,8 @@ public class BucketResourceTest {
       String flightId,
       Duration ttl,
       Callable<List<String>> getReaderGroups,
-      String dedicatedServiceAccount)
+      String dedicatedServiceAccount,
+      boolean autoclassEnabled)
       throws InterruptedException {
 
     GoogleBucketResource bucketResource =
@@ -490,7 +528,8 @@ public class BucketResourceTest {
             flightId,
             ttl,
             getReaderGroups,
-            dedicatedServiceAccount);
+            dedicatedServiceAccount,
+            autoclassEnabled);
 
     bucketResources.add(bucketResource);
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResource.getResourceId());

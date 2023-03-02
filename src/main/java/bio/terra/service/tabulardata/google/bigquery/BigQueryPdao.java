@@ -11,10 +11,15 @@ import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.stringtemplate.v4.ST;
 
@@ -91,5 +96,40 @@ public abstract class BigQueryPdao {
     return ex.getCause() instanceof BigQueryException
         && (ex.getCause().getMessage().contains("Too many DML statements outstanding against table")
             || ((BigQueryException) ex.getCause()).getReason().contains("jobRateLimitExceeded"));
+  }
+
+  // VIEW DATA
+  public static final String DATA_TEMPLATE = "SELECT <columns> FROM <table> <filterParams>";
+
+  public static final String DATA_FILTER_TEMPLATE =
+      "<whereClause> ORDER BY <sort> <direction> LIMIT <limit> OFFSET <offset>";
+
+  public static List<Map<String, Object>> aggregateTableData(TableResult result) {
+    final FieldList columns = result.getSchema().getFields();
+    final List<Map<String, Object>> values = new ArrayList<>();
+    result
+        .iterateAll()
+        .forEach(
+            rows -> {
+              final Map<String, Object> rowData = new HashMap<>();
+              columns.forEach(
+                  column -> {
+                    String columnName = column.getName();
+                    FieldValue fieldValue = rows.get(columnName);
+                    Object value;
+                    if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
+                      value =
+                          fieldValue.getRepeatedValue().stream()
+                              .map(FieldValue::getValue)
+                              .collect(Collectors.toList());
+                    } else {
+                      value = fieldValue.getValue();
+                    }
+                    rowData.put(columnName, value);
+                  });
+              values.add(rowData);
+            });
+
+    return values;
   }
 }

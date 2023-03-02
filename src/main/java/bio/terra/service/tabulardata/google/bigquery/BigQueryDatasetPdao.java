@@ -15,6 +15,9 @@ import static bio.terra.common.PdaoConstant.PDAO_TRANSACTIONS_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_STATUS_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_TERMINATED_AT_COLUMN;
+import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.DATA_FILTER_TEMPLATE;
+import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.DATA_TEMPLATE;
+import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.aggregateTableData;
 import static bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao.logQuery;
 
 import bio.terra.app.model.GoogleCloudResource;
@@ -49,7 +52,6 @@ import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
-import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
@@ -69,7 +71,6 @@ import com.google.common.annotations.VisibleForTesting;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1205,44 +1206,10 @@ public class BigQueryDatasetPdao {
     }
   }
 
-  // VIEW DATA
-  public static List<Map<String, Object>> aggregateDatasetTable(TableResult result) {
-    final FieldList columns = result.getSchema().getFields();
-    final List<Map<String, Object>> values = new ArrayList<>();
-    result
-        .iterateAll()
-        .forEach(
-            rows -> {
-              final Map<String, Object> rowData = new HashMap<>();
-              columns.forEach(
-                  column -> {
-                    String columnName = column.getName();
-                    FieldValue fieldValue = rows.get(columnName);
-                    Object value;
-                    if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
-                      value =
-                          fieldValue.getRepeatedValue().stream()
-                              .map(FieldValue::getValue)
-                              .collect(Collectors.toList());
-                    } else {
-                      value = fieldValue.getValue();
-                    }
-                    rowData.put(columnName, value);
-                  });
-              values.add(rowData);
-            });
-
-    return values;
-  }
-
-  private static final String DATASET_DATA_TEMPLATE =
-      "SELECT <columns> FROM <table> <filterParams>";
-
-  private static final String DATASET_DATA_FILTER_TEMPLATE =
-      "<whereClause> ORDER BY <sort> <direction> LIMIT <limit> OFFSET <offset>";
   /*
    * WARNING: Ensure input parameters are validated before executing this method!
    */
+  // TODO - see if we can share this code with snapshot
   public List<Map<String, Object>> getDatasetTable(
       Dataset dataset,
       String tableName,
@@ -1261,7 +1228,7 @@ public class BigQueryDatasetPdao {
     String columns = String.join(",", columnNames);
     // Parse before querying because the where clause is user-provided
     final String sql =
-        new ST(DATASET_DATA_TEMPLATE)
+        new ST(DATA_TEMPLATE)
             .add("columns", columns)
             .add("table", table)
             .add("filterParams", whereClause)
@@ -1271,7 +1238,7 @@ public class BigQueryDatasetPdao {
     // The bigquery sql table name must be enclosed in backticks
     String bigQueryTable = "`" + datasetProjectId + "." + table + "`";
     final String filterParams =
-        new ST(DATASET_DATA_FILTER_TEMPLATE)
+        new ST(DATA_FILTER_TEMPLATE)
             .add("whereClause", whereClause)
             .add("sort", sort)
             .add("direction", direction)
@@ -1279,13 +1246,13 @@ public class BigQueryDatasetPdao {
             .add("offset", offset)
             .render();
     final String bigQuerySQL =
-        new ST(DATASET_DATA_TEMPLATE)
+        new ST(DATA_TEMPLATE)
             .add("columns", columns)
             .add("table", bigQueryTable)
             .add("filterParams", filterParams)
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
-    return aggregateDatasetTable(result);
+    return aggregateTableData(result);
   }
 
   // MIGRATIONS

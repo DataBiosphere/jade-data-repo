@@ -1071,7 +1071,7 @@ public class BigQueryPdaoUnitTest {
 
     TableResult table = new TableResult(schema, 10, page);
 
-    List<Map<String, Object>> result = BigQuerySnapshotPdao.aggregateSnapshotTable(table);
+    List<Map<String, Object>> result = BigQueryPdao.aggregateTableData(table);
 
     assertEquals(stringTest, result.get(0).get("STRING"));
     assertEquals(intTest, result.get(0).get("INT64"));

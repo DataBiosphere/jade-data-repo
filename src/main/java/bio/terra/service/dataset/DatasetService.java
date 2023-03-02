@@ -1,9 +1,13 @@
 package bio.terra.service.dataset;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+
 import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.Column;
+import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AssetModel;
@@ -11,6 +15,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
@@ -28,6 +33,9 @@ import bio.terra.model.TransactionModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.auth.iam.exception.IamForbiddenException;
+import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
@@ -56,6 +64,7 @@ import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
+import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
@@ -73,13 +82,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DatasetService {
-
+  private static final Logger logger = LoggerFactory.getLogger(DatasetService.class);
   private final DatasetDao datasetDao;
   private final JobService jobService; // for handling flight response
   private final LoadService loadService;
@@ -94,6 +106,8 @@ public class DatasetService {
   private final AzureBlobStorePdao azureBlobStorePdao;
   private final ProfileService profileService;
   private final UserLoggingMetrics loggingMetrics;
+  private final IamService iamService;
+  private final DatasetTableDao datasetTableDao;
 
   @Autowired
   public DatasetService(
@@ -110,7 +124,9 @@ public class DatasetService {
       ObjectMapper objectMapper,
       AzureBlobStorePdao azureBlobStorePdao,
       ProfileService profileService,
-      UserLoggingMetrics loggingMetrics) {
+      UserLoggingMetrics loggingMetrics,
+      IamService iamService,
+      DatasetTableDao datasetTableDao) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
@@ -125,6 +141,8 @@ public class DatasetService {
     this.azureBlobStorePdao = azureBlobStorePdao;
     this.profileService = profileService;
     this.loggingMetrics = loggingMetrics;
+    this.iamService = iamService;
+    this.datasetTableDao = datasetTableDao;
   }
 
   public String createDataset(
@@ -436,6 +454,96 @@ public class DatasetService {
       return bigQueryDatasetPdao.getLoadHistory(dataset, loadTag, offset, limit);
     } else {
       throw new InvalidCloudPlatformException();
+    }
+  }
+
+  @FunctionalInterface
+  public interface IamAuthorizedCall {
+    void get() throws IamForbiddenException;
+  }
+
+  /**
+   * Throw if the user cannot access the dataset via SAM permissions.
+   *
+   * @param datasetId snapshot UUID
+   * @param userReq authenticated user
+   * @param iamAuthorizedCall throws if dataset inaccessible via SAM permissions
+   */
+  void verifyDatasetAccessible(
+      UUID datasetId, AuthenticatedUserRequest userReq, IamAuthorizedCall iamAuthorizedCall) {
+    boolean iamAuthorized = false;
+    String error = "";
+    try {
+      iamAuthorizedCall.get();
+      iamAuthorized = true;
+    } catch (Exception iamEx) {
+      logger.warn("Snapshot {} inaccessible via SAM for {}", datasetId, userReq.getEmail(), iamEx);
+      error = iamEx.getMessage();
+    } finally {
+      if (!iamAuthorized) {
+        throw new ForbiddenException("Error accessing snapshot: see errorDetails", List.of(error));
+      }
+    }
+  }
+
+  /** Throw if the user cannot read the dataset. */
+  public void verifyDatasetReadable(UUID datasetId, AuthenticatedUserRequest userReq) {
+    IamAuthorizedCall canRead =
+        () ->
+            iamService.verifyAuthorization(
+                userReq, IamResourceType.DATASET, datasetId.toString(), IamAction.READ_DATA);
+    verifyDatasetAccessible(datasetId, userReq, canRead);
+  }
+
+  public DatasetDataModel retrieveData(
+      AuthenticatedUserRequest userRequest,
+      UUID datasetId,
+      String tableName,
+      int limit,
+      int offset,
+      String sort,
+      SqlSortDirection direction,
+      String filter) {
+    Dataset dataset = retrieve(datasetId);
+
+    DatasetTable table =
+        dataset
+            .getTableByName(tableName)
+            .orElseThrow(
+                () ->
+                    new DatasetDataException(
+                        "No dataset table exists with the name: " + tableName));
+
+    if (!sort.equalsIgnoreCase(PDAO_ROW_ID_COLUMN)) {
+      table
+          .getColumnByName(sort)
+          .orElseThrow(
+              () ->
+                  new SnapshotPreviewException(
+                      "No dataset table column exists with the name: " + sort));
+    }
+
+    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+
+    if (cloudPlatformWrapper.isGcp()) {
+      try {
+        List<String> columns =
+            datasetTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
+
+        List<Map<String, Object>> values =
+            bigQueryDatasetPdao.getDatasetTable(
+                dataset, tableName, columns, limit, offset, sort, direction, filter);
+
+        return new DatasetDataModel().result(List.copyOf(values));
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
+      }
+    } else if (cloudPlatformWrapper.isAzure()) {
+      throw new NotImplementedException(
+          "Azure datasets are not yet supported for the preview endpoint");
+    } else {
+      throw new SnapshotPreviewException("Cloud not supported");
     }
   }
 

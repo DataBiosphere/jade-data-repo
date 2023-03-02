@@ -16,6 +16,7 @@ import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
@@ -55,6 +56,7 @@ import io.swagger.annotations.Api;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -175,6 +177,24 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(userRequest, IamResourceType.DATASET, id.toString());
     return ResponseEntity.ok(datasetService.retrieveDatasetSummary(id));
+  }
+
+  @Override
+  public ResponseEntity<DatasetDataModel> lookupDatasetDataById(
+      UUID id,
+      String table,
+      Integer offset,
+      Integer limit,
+      String sort,
+      SqlSortDirection direction,
+      String filter) {
+    datasetService.verifyDatasetReadable(id, getAuthenticatedInfo());
+    // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
+    SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
+    DatasetDataModel previewModel =
+        datasetService.retrieveData(
+            getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
+    return ResponseEntity.ok(previewModel);
   }
 
   @Override

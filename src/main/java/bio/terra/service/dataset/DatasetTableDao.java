@@ -214,7 +214,7 @@ public class DatasetTableDao {
         });
   }
 
-  private List<Column> retrieveColumns(Table table) {
+  List<Column> retrieveColumns(Table table) {
     return jdbcTemplate.query(
         sqlSelectColumn,
         new MapSqlParameterSource().addValue("table_id", table.getId()),

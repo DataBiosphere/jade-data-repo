@@ -23,10 +23,12 @@ import bio.terra.common.Column;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.grammar.Query;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
@@ -47,6 +49,7 @@ import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
@@ -66,6 +69,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -73,6 +77,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -1198,6 +1203,89 @@ public class BigQueryDatasetPdao {
       default:
         throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
     }
+  }
+
+  // VIEW DATA
+  public static List<Map<String, Object>> aggregateDatasetTable(TableResult result) {
+    final FieldList columns = result.getSchema().getFields();
+    final List<Map<String, Object>> values = new ArrayList<>();
+    result
+        .iterateAll()
+        .forEach(
+            rows -> {
+              final Map<String, Object> rowData = new HashMap<>();
+              columns.forEach(
+                  column -> {
+                    String columnName = column.getName();
+                    FieldValue fieldValue = rows.get(columnName);
+                    Object value;
+                    if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
+                      value =
+                          fieldValue.getRepeatedValue().stream()
+                              .map(FieldValue::getValue)
+                              .collect(Collectors.toList());
+                    } else {
+                      value = fieldValue.getValue();
+                    }
+                    rowData.put(columnName, value);
+                  });
+              values.add(rowData);
+            });
+
+    return values;
+  }
+
+  private static final String DATASET_DATA_TEMPLATE =
+      "SELECT <columns> FROM <table> <filterParams>";
+
+  private static final String DATASET_DATA_FILTER_TEMPLATE =
+      "<whereClause> ORDER BY <sort> <direction> LIMIT <limit> OFFSET <offset>";
+  /*
+   * WARNING: Ensure input parameters are validated before executing this method!
+   */
+  public List<Map<String, Object>> getDatasetTable(
+      Dataset dataset,
+      String tableName,
+      List<String> columnNames,
+      int limit,
+      int offset,
+      String sort,
+      SqlSortDirection direction,
+      String filter)
+      throws InterruptedException {
+    final BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    final String datasetProjectId = bigQueryProject.getProjectId();
+    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
+
+    String table = dataset.getName() + "." + tableName;
+    String columns = String.join(",", columnNames);
+    // Parse before querying because the where clause is user-provided
+    final String sql =
+        new ST(DATASET_DATA_TEMPLATE)
+            .add("columns", columns)
+            .add("table", table)
+            .add("filterParams", whereClause)
+            .render();
+    Query.parse(sql);
+
+    // The bigquery sql table name must be enclosed in backticks
+    String bigQueryTable = "`" + datasetProjectId + "." + table + "`";
+    final String filterParams =
+        new ST(DATASET_DATA_FILTER_TEMPLATE)
+            .add("whereClause", whereClause)
+            .add("sort", sort)
+            .add("direction", direction)
+            .add("limit", limit)
+            .add("offset", offset)
+            .render();
+    final String bigQuerySQL =
+        new ST(DATASET_DATA_TEMPLATE)
+            .add("columns", columns)
+            .add("table", bigQueryTable)
+            .add("filterParams", filterParams)
+            .render();
+    final TableResult result = bigQueryProject.query(bigQuerySQL);
+    return aggregateDatasetTable(result);
   }
 
   // MIGRATIONS

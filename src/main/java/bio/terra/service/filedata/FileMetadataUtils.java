@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult.Md5Type;
 import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import com.google.common.annotations.VisibleForTesting;
@@ -137,6 +138,20 @@ public class FileMetadataUtils {
   }
 
   /**
+   * Results of the successful md5 comparison of user a specified MD5 against a cloud provided MD5
+   *
+   * @param effectiveMd5 The final md5 to record
+   * @param type Which md5 was actually used
+   */
+  public record Md5ValidationResult(String effectiveMd5, Md5Type type) {
+    public enum Md5Type {
+      USER_PROVIDED, // When the user md5 is used (e.g. when it's not present in the cloud)
+      CLOUD_PROVIDED, // When the cloud md5 is used
+      NEITHER // When neither value is provided
+    }
+  }
+
+  /**
    * Validates that a user specified MD5 checksum matches with a cloud provided MD5 checksum. If the
    * user provided checksum is null or empty, then assume the cloud checksum is valid and return
    * that
@@ -147,17 +162,22 @@ public class FileMetadataUtils {
    * @return A hex representation of the file's md5 hash
    * @throws InvalidFileChecksumException if the specified checksums don't match
    */
-  public static String validateFileMd5ForIngest(
+  public static Md5ValidationResult validateFileMd5ForIngest(
       String userSpecifiedMd5, String cloudMd5, String sourcePath)
       throws InvalidFileChecksumException {
-    if (userSpecifiedMd5 != null) {
+    if (!StringUtils.isEmpty(userSpecifiedMd5)) {
       if (!StringUtils.isEmpty(cloudMd5) && !Objects.equals(cloudMd5, userSpecifiedMd5)) {
         throw new InvalidFileChecksumException(
             "Checksums do not match for file %s".formatted(sourcePath));
       }
-      return userSpecifiedMd5;
+      return new Md5ValidationResult(
+          userSpecifiedMd5,
+          Objects.equals(cloudMd5, userSpecifiedMd5)
+              ? Md5Type.CLOUD_PROVIDED
+              : Md5Type.USER_PROVIDED);
     } else {
-      return cloudMd5;
+      return new Md5ValidationResult(
+          cloudMd5, StringUtils.isEmpty(cloudMd5) ? Md5Type.NEITHER : Md5Type.CLOUD_PROVIDED);
     }
   }
 }

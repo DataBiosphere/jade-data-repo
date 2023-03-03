@@ -5,11 +5,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult;
+import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult.Md5Type;
 import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -163,21 +164,27 @@ public class FileMetadataUtilsTest {
     assertThat(
         "matching md5s pass",
         FileMetadataUtils.validateFileMd5ForIngest("foo", "foo", "gs://bucket/path.txt"),
-        equalTo("foo"));
+        equalTo(new Md5ValidationResult("foo", Md5Type.CLOUD_PROVIDED)));
 
     assertThat(
         "user specified md5 returns if no cloud md5 is present",
         FileMetadataUtils.validateFileMd5ForIngest("foo", null, "gs://bucket/path.txt"),
-        equalTo("foo"));
+        equalTo(new Md5ValidationResult("foo", Md5Type.USER_PROVIDED)));
 
     assertThat(
         "cloud md5 returns if no user specified md5 is present",
         FileMetadataUtils.validateFileMd5ForIngest(null, "foo", "gs://bucket/path.txt"),
-        equalTo("foo"));
+        equalTo(new Md5ValidationResult("foo", Md5Type.CLOUD_PROVIDED)));
 
-    assertNull(
+    assertThat(
         "null returned if both inputs are null",
-        FileMetadataUtils.validateFileMd5ForIngest(null, null, "gs://bucket/path.txt"));
+        FileMetadataUtils.validateFileMd5ForIngest(null, null, "gs://bucket/path.txt"),
+        equalTo(new Md5ValidationResult(null, Md5Type.NEITHER)));
+
+    assertThat(
+        "empty string returned if both inputs are empty strings",
+        FileMetadataUtils.validateFileMd5ForIngest("", "", "gs://bucket/path.txt"),
+        equalTo(new Md5ValidationResult("", Md5Type.NEITHER)));
 
     TestUtils.assertError(
         InvalidFileChecksumException.class,

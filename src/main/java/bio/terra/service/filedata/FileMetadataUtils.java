@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -9,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.collections4.map.LRUMap;
@@ -132,5 +134,30 @@ public class FileMetadataUtils {
       }
     }
     return allPaths;
+  }
+
+  /**
+   * Validates that a user specified MD5 checksum matches with a cloud provided MD5 checksum. If the
+   * user provided checksum is null or empty, then assume the cloud checksum is valid and return
+   * that
+   *
+   * @param userSpecifiedMd5 A hex representation of the user specified MD5 file checksum
+   * @param cloudMd5 A hex representation of the MD5 file checksum for the file object
+   * @param sourcePath The cloud path where the file lives
+   * @return A hex representation of the file's md5 hash
+   * @throws InvalidFileChecksumException if the specified checksums don't match
+   */
+  public static String validateFileMd5ForIngest(
+      String userSpecifiedMd5, String cloudMd5, String sourcePath)
+      throws InvalidFileChecksumException {
+    if (userSpecifiedMd5 != null) {
+      if (!StringUtils.isEmpty(cloudMd5) && !Objects.equals(cloudMd5, userSpecifiedMd5)) {
+        throw new InvalidFileChecksumException(
+            "Checksums do not match for file %s".formatted(sourcePath));
+      }
+      return userSpecifiedMd5;
+    } else {
+      return cloudMd5;
+    }
   }
 }

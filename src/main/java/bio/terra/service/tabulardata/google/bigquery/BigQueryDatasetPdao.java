@@ -1224,7 +1224,7 @@ public class BigQueryDatasetPdao {
     final String datasetProjectId = bigQueryProject.getProjectId();
     String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
 
-    String table = dataset.getName() + "." + tableName;
+    String table = "datarepo_" + dataset.getName() + "." + tableName;
     String columns = String.join(",", columnNames);
     // Parse before querying because the where clause is user-provided
     final String sql =

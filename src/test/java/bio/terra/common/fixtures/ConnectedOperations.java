@@ -31,6 +31,7 @@ import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -831,6 +832,33 @@ public class ConnectedOperations {
     MockHttpServletResponse response = lookupSnapshotFileByPathRaw(snapshotId, path, depth);
     assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
     return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
+  }
+
+  public MockHttpServletResponse retrieveDatasetDataByIdRaw(
+      UUID datasetId, String tableName, int limit, int offset, String filter, String sort)
+      throws Exception {
+    String url = "/api/repository/v1/datasets/{id}/data/{table}";
+    MockHttpServletRequestBuilder request =
+        get(url, datasetId, tableName)
+            .param("limit", String.valueOf(limit))
+            .param("offset", String.valueOf(offset));
+    if (sort != null) {
+      request.param("sort", sort);
+    }
+    if (filter != null) {
+      request.param("filter", filter);
+    }
+    MvcResult result = mvc.perform(request).andReturn();
+    return result.getResponse();
+  }
+
+  public DatasetDataModel retrieveDatasetDataByIdSuccess(
+      UUID datasetId, String tableName, int limit, int offset, String filter, String sort)
+      throws Exception {
+    MockHttpServletResponse response =
+        retrieveDatasetDataByIdRaw(datasetId, tableName, limit, offset, filter, sort);
+    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+    return TestUtils.mapFromJson(response.getContentAsString(), DatasetDataModel.class);
   }
 
   public MockHttpServletResponse retrieveSnapshotPreviewByIdRaw(

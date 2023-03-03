@@ -22,6 +22,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -46,6 +47,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -94,6 +96,8 @@ public class DatasetConnectedTest {
   private DatasetRequestModel datasetRequest;
   private DatasetSummaryModel summaryModel;
   private static final Logger logger = LoggerFactory.getLogger(DatasetConnectedTest.class);
+  private String tableName;
+  private String columnName;
 
   @Before
   public void setup() throws Exception {
@@ -108,6 +112,8 @@ public class DatasetConnectedTest {
         .name(Names.randomizeName(datasetRequest.getName()))
         .defaultProfileId(billingProfile.getId());
     summaryModel = connectedOperations.createDataset(datasetRequest);
+    tableName = "thetable";
+    columnName = "thecolumn";
     logger.info("--------begin test---------");
   }
 
@@ -215,23 +221,7 @@ public class DatasetConnectedTest {
             .path(tableIngestInputFilePath)
             .csvGenerateRowIds(true);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
-
-    String columns = PdaoConstant.PDAO_ROW_ID_COLUMN + ",thecolumn";
-    TableResult bqQueryResult =
-        TestUtils.selectFromBigQueryDataset(
-            datasetDao, dataLocationService, datasetRequest.getName(), tableName, columns);
-    List<UUID> rowIds = new ArrayList<>();
-    Set<String> expectedNames = Set.of("Andrea", "Dan", "Rori", "Jeremy");
-    Set<String> datasetNames = new HashSet<>();
-    bqQueryResult
-        .iterateAll()
-        .forEach(
-            r -> {
-              rowIds.add(UUID.fromString(r.get(PdaoConstant.PDAO_ROW_ID_COLUMN).getStringValue()));
-              datasetNames.add(r.get("thecolumn").getStringValue());
-            });
-    assertEquals(rowIds.size(), 4);
-    assertEquals(expectedNames, datasetNames);
+    assertSuccessfulIngest();
   }
 
   @Test
@@ -240,7 +230,6 @@ public class DatasetConnectedTest {
     String dirInCloud = "scratch/testAddRowIds/" + UUID.randomUUID();
     String tableIngestInputFilePath = uploadIngestInputFile(resourceFileName, dirInCloud);
     // ingest the table
-    String tableName = "thetable";
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
             .table(tableName)
@@ -249,23 +238,21 @@ public class DatasetConnectedTest {
             .path(tableIngestInputFilePath)
             .csvGenerateRowIds(true);
     connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+    assertSuccessfulIngest();
+  }
 
-    String columns = PdaoConstant.PDAO_ROW_ID_COLUMN + ",thecolumn";
-    TableResult bqQueryResult =
-        TestUtils.selectFromBigQueryDataset(
-            datasetDao, dataLocationService, datasetRequest.getName(), tableName, columns);
-    List<UUID> rowIds = new ArrayList<>();
-    Set<String> expectedNames = Set.of("Andrea", "Dan", "Rori", "Jeremy");
-    Set<String> datasetNames = new HashSet<>();
-    bqQueryResult
-        .iterateAll()
+  private void assertSuccessfulIngest() throws Exception {
+    DatasetDataModel datasetDataModel =
+        connectedOperations.retrieveDatasetDataByIdSuccess(
+            summaryModel.getId(), tableName, 100, 0, null, columnName);
+    List<String> retrieveEndpointDatasetNames = new ArrayList<>();
+    datasetDataModel
+        .getResult()
         .forEach(
-            r -> {
-              rowIds.add(UUID.fromString(r.get(PdaoConstant.PDAO_ROW_ID_COLUMN).getStringValue()));
-              datasetNames.add(r.get("thecolumn").getStringValue());
-            });
-    assertEquals(rowIds.size(), 4);
-    assertEquals(expectedNames, datasetNames);
+            r -> retrieveEndpointDatasetNames.add(((LinkedHashMap) r).get(columnName).toString()));
+    assertEquals(datasetDataModel.getResult().size(), 4);
+    List<String> sortedNames = List.of("Andrea", "Dan", "Rori", "Jeremy");
+    assertEquals(sortedNames, retrieveEndpointDatasetNames);
   }
 
   @Test

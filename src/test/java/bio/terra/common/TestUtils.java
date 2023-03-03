@@ -2,8 +2,10 @@ package bio.terra.common;
 
 import static bio.terra.service.filedata.google.gcs.GcsPdao.getBlobFromGsPath;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -55,6 +57,7 @@ import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.junit.function.ThrowingRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
@@ -325,5 +328,22 @@ public final class TestUtils {
       sb.append('\n');
     }
     return sb.toString();
+  }
+
+  /**
+   * Asserts that a command fails with the type passed in with a message that contains the expected
+   * message
+   *
+   * @param expectedThrowable The class that should be thrown. Note: this is the top level exception
+   *     and not the cause exception
+   * @param expectedMessage The partial message that should be present in the exception
+   * @param runnable The code to test
+   */
+  public static void assertError(
+      Class<? extends Throwable> expectedThrowable,
+      String expectedMessage,
+      ThrowingRunnable runnable) {
+    Throwable throwable = assertThrows("expect a failure", expectedThrowable, runnable);
+    assertThat(throwable.getMessage(), containsString(expectedMessage));
   }
 }

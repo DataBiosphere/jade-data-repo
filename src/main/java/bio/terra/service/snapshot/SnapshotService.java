@@ -787,7 +787,7 @@ public class SnapshotService {
         String bqFormattedTableName = snapshot.getName() + "." + tableName;
         List<Map<String, Object>> values =
             BigQueryPdao.getTable(
-                snapshot,  bqFormattedTableName, columns, limit, offset, sort, direction, filter);
+                snapshot, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
 
         return new SnapshotPreviewModel().result(List.copyOf(values));
       } catch (InterruptedException e) {

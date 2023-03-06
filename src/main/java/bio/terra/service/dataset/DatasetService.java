@@ -531,7 +531,7 @@ public class DatasetService {
       try {
         List<String> columns =
             datasetTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
-        String bqFormattedTableName =  PDAO_PREFIX + dataset.getName() + "." + tableName;
+        String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
         List<Map<String, Object>> values =
             BigQueryPdao.getTable(
                 dataset, bqFormattedTableName, columns, limit, offset, sort, direction, filter);

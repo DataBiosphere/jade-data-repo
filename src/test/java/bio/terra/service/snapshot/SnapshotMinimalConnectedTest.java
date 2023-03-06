@@ -153,7 +153,7 @@ public class SnapshotMinimalConnectedTest {
 
     SnapshotPreviewModel snapshotPreviewModel =
         SnapshotConnectedTestUtils.getTablePreview(
-            connectedOperations, summaryModel.getId(), "participant", 10, 0, null);
+            connectedOperations, summaryModel.getId(), "participant", 10, 0, null, null);
 
     assertThat(
         "participant has the correct age",
@@ -162,14 +162,19 @@ public class SnapshotMinimalConnectedTest {
   }
 
   @Test
-  public void testPreview() throws Exception {
+  public void testDatasetAndSnapshotDataView() throws Exception {
     DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
+    validateDataView(
+        ConnectedOperations.TDRResourceType.DATASET,
+        datasetMinimalSummary.getId(),
+        datasetMinimalSummary.getName());
+
     UUID datasetMinimalSummaryProfileId = datasetMinimalSummary.getDefaultProfileId();
     SnapshotRequestModel snapshotRequest =
         SnapshotConnectedTestUtils.makeSnapshotTestRequest(
             jsonLoader,
             datasetMinimalSummary,
-            "dataset-minimal-snapshot.json",
+            "dataset-minimal-snapshot-full-view.json",
             datasetMinimalSummary.getDefaultProfileId());
 
     assertThat(
@@ -184,39 +189,45 @@ public class SnapshotMinimalConnectedTest {
         SnapshotConnectedTestUtils.validateSnapshotCreated(
             connectedOperations, snapshotRequest, response);
 
-    SnapshotPreviewModel snapshotPreviewModel =
-        SnapshotConnectedTestUtils.getTablePreview(
-            connectedOperations, summaryModel.getId(), "participant", 10, 0, "WHERE age > 1");
+    validateDataView(
+        ConnectedOperations.TDRResourceType.SNAPSHOT, summaryModel.getId(), summaryModel.getName());
+  }
+
+  private void validateDataView(
+      ConnectedOperations.TDRResourceType resourceType, UUID resourceId, String resourceName)
+      throws Exception {
+    List<Object> ageGreaterThanOneResult =
+        connectedOperations.retrieveDataSuccess(
+            resourceType, resourceId, "participant", 10, 0, "WHERE age > 1", null);
 
     assertThat(
-        "participant preview has one record", snapshotPreviewModel.getResult().size(), equalTo(1));
+        "participant dataset data has 2 records", ageGreaterThanOneResult.size(), equalTo(2));
 
-    SnapshotPreviewModel snapshotEmptyPreviewModel =
-        SnapshotConnectedTestUtils.getTablePreview(
-            connectedOperations, summaryModel.getId(), "participant", 10, 0, "WHERE age > 23");
-
-    assertThat(
-        "participant preview is empty", snapshotEmptyPreviewModel.getResult().size(), equalTo(0));
+    List<Object> ageGreaterThan23Result =
+        connectedOperations.retrieveDataSuccess(
+            resourceType, resourceId, "participant", 10, 0, "WHERE age > 23", null);
 
     assertThat(
-        "preview model uses provided id",
-        summaryModel.getProfileId(),
-        equalTo(datasetMinimalSummaryProfileId));
+        "participant dataset view has one record", ageGreaterThan23Result.size(), equalTo(1));
 
-    String joinClause = "JOIN " + summaryModel.getName() + ".sample ON sample.participant_id = id";
-    ErrorModel snapshotPreviewError =
-        SnapshotConnectedTestUtils.getTablePreviewFailure(
-            connectedOperations,
-            summaryModel.getId(),
+    String prefix =
+        resourceType.equals(ConnectedOperations.TDRResourceType.DATASET) ? PDAO_PREFIX : "";
+    String joinClause =
+        "JOIN " + prefix + resourceName + ".sample ON " + prefix + "sample.participant_id = id";
+    ErrorModel previewError =
+        connectedOperations.retrieveDataFailure(
+            resourceType,
+            resourceId,
             "participant",
             10,
             0,
             joinClause,
+            null,
             HttpStatus.INTERNAL_SERVER_ERROR);
 
     assertTrue(
         "JOIN with sample table fails",
-        snapshotPreviewError.getMessage().contains("Failure executing query"));
+        previewError.getMessage().contains("Failure executing query"));
   }
 
   @Test

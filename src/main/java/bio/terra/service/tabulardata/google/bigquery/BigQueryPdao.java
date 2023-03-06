@@ -7,6 +7,9 @@ import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.grammar.Query;
+import bio.terra.model.SqlSortDirection;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Acl;
@@ -21,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.stringtemplate.v4.ST;
 
 public abstract class BigQueryPdao {
@@ -103,6 +107,53 @@ public abstract class BigQueryPdao {
 
   public static final String DATA_FILTER_TEMPLATE =
       "<whereClause> ORDER BY <sort> <direction> LIMIT <limit> OFFSET <offset>";
+
+  /*
+   * WARNING: Ensure input parameters are validated before executing this method!
+   */
+  public static List<Map<String, Object>> getTable(
+      FSContainerInterface tdrResource,
+      String bqFormattedTableName,
+      List<String> columnNames,
+      int limit,
+      int offset,
+      String sort,
+      SqlSortDirection direction,
+      String filter)
+      throws InterruptedException {
+    final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
+    final String datasetProjectId = bigQueryProject.getProjectId();
+    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
+
+    String columns = String.join(",", columnNames);
+    // Parse before querying because the where clause is user-provided
+    final String sql =
+        new ST(DATA_TEMPLATE)
+            .add("columns", columns)
+            .add("table", bqFormattedTableName)
+            .add("filterParams", whereClause)
+            .render();
+    Query.parse(sql);
+
+    // The bigquery sql table name must be enclosed in backticks
+    String bigQueryTable = "`" + datasetProjectId + "." + bqFormattedTableName + "`";
+    final String filterParams =
+        new ST(DATA_FILTER_TEMPLATE)
+            .add("whereClause", whereClause)
+            .add("sort", sort)
+            .add("direction", direction)
+            .add("limit", limit)
+            .add("offset", offset)
+            .render();
+    final String bigQuerySQL =
+        new ST(DATA_TEMPLATE)
+            .add("columns", columns)
+            .add("table", bigQueryTable)
+            .add("filterParams", filterParams)
+            .render();
+    final TableResult result = bigQueryProject.query(bigQuerySQL);
+    return aggregateTableData(result);
+  }
 
   public static List<Map<String, Object>> aggregateTableData(TableResult result) {
     final FieldList columns = result.getSchema().getFields();

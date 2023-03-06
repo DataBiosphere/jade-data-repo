@@ -15,9 +15,6 @@ import static bio.terra.common.PdaoConstant.PDAO_TRANSACTIONS_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_STATUS_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TRANSACTION_TERMINATED_AT_COLUMN;
-import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.DATA_FILTER_TEMPLATE;
-import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.DATA_TEMPLATE;
-import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.aggregateTableData;
 import static bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao.logQuery;
 
 import bio.terra.app.model.GoogleCloudResource;
@@ -26,12 +23,10 @@ import bio.terra.common.Column;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.grammar.Query;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TransactionModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
@@ -78,7 +73,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -1204,55 +1198,6 @@ public class BigQueryDatasetPdao {
       default:
         throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
     }
-  }
-
-  /*
-   * WARNING: Ensure input parameters are validated before executing this method!
-   */
-  // TODO - see if we can share this code with snapshot
-  public List<Map<String, Object>> getDatasetTable(
-      Dataset dataset,
-      String tableName,
-      List<String> columnNames,
-      int limit,
-      int offset,
-      String sort,
-      SqlSortDirection direction,
-      String filter)
-      throws InterruptedException {
-    final BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
-    final String datasetProjectId = bigQueryProject.getProjectId();
-    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
-
-    String table = "datarepo_" + dataset.getName() + "." + tableName;
-    String columns = String.join(",", columnNames);
-    // Parse before querying because the where clause is user-provided
-    final String sql =
-        new ST(DATA_TEMPLATE)
-            .add("columns", columns)
-            .add("table", table)
-            .add("filterParams", whereClause)
-            .render();
-    Query.parse(sql);
-
-    // The bigquery sql table name must be enclosed in backticks
-    String bigQueryTable = "`" + datasetProjectId + "." + table + "`";
-    final String filterParams =
-        new ST(DATA_FILTER_TEMPLATE)
-            .add("whereClause", whereClause)
-            .add("sort", sort)
-            .add("direction", direction)
-            .add("limit", limit)
-            .add("offset", offset)
-            .render();
-    final String bigQuerySQL =
-        new ST(DATA_TEMPLATE)
-            .add("columns", columns)
-            .add("table", bigQueryTable)
-            .add("filterParams", filterParams)
-            .render();
-    final TableResult result = bigQueryProject.query(bigQuerySQL);
-    return aggregateTableData(result);
   }
 
   // MIGRATIONS

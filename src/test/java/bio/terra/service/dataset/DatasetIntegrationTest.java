@@ -515,8 +515,9 @@ public class DatasetIntegrationTest extends UsersBase {
 
   static void assertTableCount(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)
       throws InterruptedException {
-
+    // swape this in for the view data endpoint
     String sql = "SELECT count(*) FROM " + BigQueryFixtures.makeTableRef(dataset, tableName);
+
     TableResult result = BigQueryFixtures.queryWithRetry(sql, bigQuery);
     assertThat(
         "count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));

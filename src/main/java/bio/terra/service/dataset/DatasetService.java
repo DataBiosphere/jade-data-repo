@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 
 import bio.terra.app.controller.DatasetsApiController;
@@ -67,6 +68,7 @@ import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
 import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.sas.BlobSasPermission;
@@ -529,10 +531,10 @@ public class DatasetService {
       try {
         List<String> columns =
             datasetTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
-
+        String bqFormattedTableName =  PDAO_PREFIX + dataset.getName() + "." + tableName;
         List<Map<String, Object>> values =
-            bigQueryDatasetPdao.getDatasetTable(
-                dataset, tableName, columns, limit, offset, sort, direction, filter);
+            BigQueryPdao.getTable(
+                dataset, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
 
         return new DatasetDataModel().result(List.copyOf(values));
       } catch (InterruptedException e) {

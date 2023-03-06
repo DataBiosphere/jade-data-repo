@@ -793,54 +793,6 @@ public class BigQuerySnapshotPdao {
   }
 
   /*
-   * WARNING: Ensure input parameters are validated before executing this method!
-   */
-  public List<Map<String, Object>> getSnapshotTable(
-      Snapshot snapshot,
-      String tableName,
-      List<String> columnNames,
-      int limit,
-      int offset,
-      String sort,
-      SqlSortDirection direction,
-      String filter)
-      throws InterruptedException {
-    final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
-    final String snapshotProjectId = bigQueryProject.getProjectId();
-    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
-
-    String table = snapshot.getName() + "." + tableName;
-    String columns = String.join(",", columnNames);
-    // Parse before querying because the where clause is user-provided
-    final String sql =
-        new ST(DATA_TEMPLATE)
-            .add("columns", columns)
-            .add("table", table)
-            .add("filterParams", whereClause)
-            .render();
-    Query.parse(sql);
-
-    // The bigquery sql table name must be enclosed in backticks
-    String bigQueryTable = "`" + snapshotProjectId + "." + table + "`";
-    final String filterParams =
-        new ST(DATA_FILTER_TEMPLATE)
-            .add("whereClause", whereClause)
-            .add("sort", sort)
-            .add("direction", direction)
-            .add("limit", limit)
-            .add("offset", offset)
-            .render();
-    final String bigQuerySQL =
-        new ST(DATA_TEMPLATE)
-            .add("columns", columns)
-            .add("table", bigQueryTable)
-            .add("filterParams", filterParams)
-            .render();
-    final TableResult result = bigQueryProject.query(bigQuerySQL);
-    return aggregateTableData(result);
-  }
-
-  /*
    * WARNING: Ensure SQL is validated before executing this method!
    */
   public List<Map<String, Object>> getSnapshotTableUnsafe(Snapshot snapshot, String sql)

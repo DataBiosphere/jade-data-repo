@@ -8,9 +8,14 @@ import bio.terra.controller.RepositoryApi;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.Cohort;
+import bio.terra.model.CohortCreateInfo;
+import bio.terra.model.CohortList;
+import bio.terra.model.CohortUpdateInfo;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
+import bio.terra.model.CountQuery;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -19,10 +24,13 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.InstanceCountList;
+import bio.terra.model.InstanceList;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
+import bio.terra.model.Query;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.UserStatusInfo;
@@ -530,6 +538,40 @@ public class RepositoryApiController implements RepositoryApi {
                                              Boolean enable) {
         configurationService.setFault(name, enable);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @Override
+    public ResponseEntity<CohortList> listCohorts(@RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+                                                  @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+        return new ResponseEntity<>(new CohortList(), HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<Cohort> createCohort(CohortCreateInfo cohortCreateInfo) {
+        return new ResponseEntity<>(new Cohort(), HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<Cohort> getCohort(String cohortId) {
+        return new ResponseEntity<>(new Cohort(), HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<Cohort> updateCohort(String cohortId, CohortUpdateInfo cohortUpdateInfo) {
+        return new ResponseEntity<>(new Cohort(), HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<Void> deleteCohort(String cohortId) {
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    public ResponseEntity<InstanceCountList> countInstances(String entityName, CountQuery countQuery) {
+        return new ResponseEntity<>(new InstanceCountList(), HttpStatus.OK);
+    }
+
+    public ResponseEntity<InstanceList> queryInstances(String entityName, Query query) {
+        return new ResponseEntity<>(new InstanceList(), HttpStatus.OK);
     }
 
     private void validiateOffsetAndLimit(Integer offset, Integer limit) {

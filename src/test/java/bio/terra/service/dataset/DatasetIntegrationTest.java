@@ -18,7 +18,6 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.TestJobWatcher;
@@ -45,12 +44,6 @@ import com.google.cloud.Identity;
 import com.google.cloud.Policy;
 import com.google.cloud.Role;
 import com.google.cloud.WriteChannel;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.FieldList;
-import com.google.cloud.bigquery.FieldValue;
-import com.google.cloud.bigquery.FieldValueList;
-import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobWriteOption;
@@ -59,8 +52,6 @@ import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -495,32 +486,5 @@ public class DatasetIntegrationTest extends UsersBase {
         bucket,
         iamPolicy.toBuilder().removeIdentity(role, Identity.serviceAccount(serviceAccount)).build(),
         options);
-  }
-
-  static List<Map<String, List<String>>> transformStringResults(
-      BigQuery bigQuery, DatasetModel dataset, String tableName) throws InterruptedException {
-    String sql = "SELECT * FROM " + BigQueryFixtures.makeTableRef(dataset, tableName);
-    TableResult tableResult = BigQueryFixtures.queryWithRetry(sql, bigQuery);
-    List<Map<String, List<String>>> result = new ArrayList<>();
-    FieldList fields = tableResult.getSchema().getFields();
-    for (FieldValueList valueList : tableResult.getValues()) {
-      Map<String, List<String>> transformed = new HashMap<>();
-      for (Field field : fields) {
-        String name = field.getName();
-        FieldValue value = valueList.get(name);
-        final List<String> values;
-        if (field.getMode().equals(Field.Mode.REPEATED)) {
-          values =
-              value.getRepeatedValue().stream()
-                  .map(FieldValue::getStringValue)
-                  .collect(Collectors.toList());
-        } else {
-          values = List.of(value.getStringValue());
-        }
-        transformed.put(name, values);
-      }
-      result.add(transformed);
-    }
-    return result;
   }
 }

@@ -7,7 +7,6 @@ import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.Column;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -75,7 +74,6 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -530,10 +528,7 @@ public class DatasetService {
 
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        List<String> columns = new ArrayList<>();
-        columns.add(PDAO_ROW_ID_COLUMN);
-        columns.addAll(
-            datasetTableDao.retrieveColumns(table).stream().map(Column::getName).toList());
+        List<String> columns = datasetTableDao.retrieveColumnNames(table, true);
         String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
         List<Map<String, Object>> values =
             BigQueryPdao.getTable(

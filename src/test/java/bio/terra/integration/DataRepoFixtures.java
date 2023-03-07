@@ -27,6 +27,7 @@ import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnModel;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
@@ -73,7 +74,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -765,6 +768,38 @@ public class DataRepoFixtures {
       TestConfiguration.User user, DatasetModel dataset, String tableName, int n) throws Exception {
     int tableCount = retrieveDatasetData(user, dataset.getId(), tableName, 0, n + 1, null).size();
     assertThat("count matches", tableCount, equalTo(n));
+  }
+
+  public List<Map<String, List<String>>> transformStringResults(
+      TestConfiguration.User user, DatasetModel dataset, String tableName) throws Exception {
+    List<Object> dataModel = retrieveDatasetData(user, dataset.getId(), tableName, 0, 100, null);
+    List<String> columnNamesFromResults =
+        ((LinkedHashMap) dataModel.get(0)).keySet().stream().toList();
+    List<ColumnModel> columns =
+        dataset.getSchema().getTables().stream()
+            .filter(t -> t.getName().equals(tableName))
+            .findFirst()
+            .get()
+            .getColumns();
+    List<Map<String, List<String>>> result = new ArrayList<>();
+    for (Object val : dataModel) {
+      Map<String, List<String>> transformed = new HashMap<>();
+      for (String columnName : columnNamesFromResults) {
+        String colVal = ((LinkedHashMap) val).get(columnName).toString();
+        final List<String> values;
+        Optional<ColumnModel> columnModel =
+            columns.stream().filter(c -> c.getName().equals(columnName)).findFirst();
+        if (columnModel.isPresent() && columnModel.get().isArrayOf()) {
+          String subStringVal = colVal.substring(1, colVal.length() - 1);
+          values = Arrays.stream(subStringVal.split(",")).toList();
+        } else {
+          values = List.of(colVal);
+        }
+        transformed.put(columnName, values);
+      }
+      result.add(transformed);
+    }
+    return result;
   }
 
   public List<Object> retrieveDatasetData(

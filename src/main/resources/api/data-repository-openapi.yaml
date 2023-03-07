@@ -3852,7 +3852,7 @@ components:
           type: boolean
           default: false
           description: >
-            If false, random ids will be created. If true, full target path (e.g. path + name), size and MD5 hash will be used
+            If false, random ids will be created. If true, full target path (e.g. path + name), size and md5 hash will be used
 
             Note: this only applies to files.  Directories still have random ids regardless of this value
       description: >
@@ -3897,7 +3897,7 @@ components:
           type: boolean
           default: false
           description: >
-            If false, random ids will be created. If true, full target path (e.g. path + name), size and MD5 hash will be used
+            If false, random ids will be created. If true, full target path (e.g. path + name), size and md5 hash will be used
 
             Note: this only applies to files.  Directories still have random ids regardless of this value
       description: >
@@ -3954,7 +3954,7 @@ components:
           type: boolean
           default: false
           description: >
-            If false, random ids will be created. If true, full target path (e.g. path + name), size and MD5 hash will be used
+            If false, random ids will be created. If true, full target path (e.g. path + name), size and md5 hash will be used
 
             Note: this only applies to files.  Directories still have random ids regardless of this value
         policies:
@@ -4451,6 +4451,14 @@ components:
         description:
           type: string
           description: A human readable description of the contents of the Data Object.
+        md5:
+          type: string
+          description: >
+            A hex representation of the  md5 for the file.  If an md5 exists for the file being
+            ingested, it will be validated against this value and the file's ingest will fail if the
+            values do not match.  If no md5 hash is present on the file being ingested, this value
+            will be stored for the file.  If this value is not specified, then the md5 from the file
+            being ingested will be used stored
       description: >
         Information needed to copy a file from a source bucket into the
         dataset bucket.
@@ -4487,7 +4495,7 @@ components:
         checksums:
           type: array
           description: >
-            Always present for files - checksums; always includes crc32c. May include md5.
+            Always present for files - checksums; May include md5 or crc32c.
             Present for directories in snapshots - see DRS spec for algorithm for combining checksums of
             underlying directory contents.
           items:
@@ -4644,6 +4652,14 @@ components:
         description:
           type: string
           description: A human readable description of the contents of the Data Object.
+        md5:
+          type: string
+          description: >
+            A hex representation of the  md5 for the file.  If an md5 exists for the file being
+            ingested, it will be validated against this value and the file's ingest will fail if the
+            values do not match.  If no md5 hash is present on the file being ingested, this value
+            will be stored for the file.  If this value is not specified, then the md5 from the file
+            being ingested will be used stored
       description: Describes one file within a bulk file load
     BulkLoadResultModel:
       type: object
@@ -4718,7 +4734,7 @@ components:
           description: The checksum crc of the loaded file; non-null if state is SUCCEEDED
         checksumMD5:
           type: string
-          description: The checksum mD5 of the loaded file; non-null if state is SUCCEEDED
+          description: The checksum md5 of the loaded file; non-null if state is SUCCEEDED
         error:
           type: string
           description: The error message if state is FAILED

@@ -33,6 +33,7 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import com.azure.core.credential.TokenCredential;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
@@ -292,6 +293,12 @@ public class AzureBlobStorePdaoTest {
     when(blobCrl.createBlobContainerCopier(any(), anyString(), anyString())).thenReturn(copier);
     String targetBlobName = fileId + "/" + SOURCE_FILE_NAME;
     when(blobCrl.getBlobProperties(targetBlobName)).thenReturn(blobProperties);
+    BlobContainerClient sourceBlobContainerClient = mock(BlobContainerClient.class);
+    BlobClient blobClient = mock(BlobClient.class);
+    // use the same blob properties for the source and for the target
+    when(blobClient.getProperties()).thenReturn(blobProperties);
+    when(sourceBlobContainerClient.getBlobClient(any())).thenReturn(blobClient);
+    when(sourceBlobContainerFactory.getBlobContainerClient()).thenReturn(sourceBlobContainerClient);
     BlobContainerClient targetBlobContainerClient = mock(BlobContainerClient.class);
     when(targetBlobContainerFactory.getBlobContainerClient()).thenReturn(targetBlobContainerClient);
     String targetContainerUrl = "https://" + STORAGE_ACCOUNT_NAME + ".blob.core.windows.net/data";

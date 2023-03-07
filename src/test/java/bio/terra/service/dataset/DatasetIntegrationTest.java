@@ -14,7 +14,6 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -68,7 +67,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -445,20 +443,6 @@ public class DatasetIntegrationTest extends UsersBase {
     return new DataDeletionRequest()
         .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)
         .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE);
-  }
-
-  static List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)
-      throws InterruptedException {
-
-    String tableRef = BigQueryFixtures.makeTableRef(dataset, tableName);
-    String sql =
-        String.format("SELECT %s FROM %s LIMIT %s", PdaoConstant.PDAO_ROW_ID_COLUMN, tableRef, n);
-    TableResult result = BigQueryFixtures.queryWithRetry(sql, bigQuery);
-
-    assertThat("got right num of row ids back", result.getTotalRows(), equalTo(n));
-    return StreamSupport.stream(result.getValues().spliterator(), false)
-        .map(fieldValues -> fieldValues.get(0).getStringValue())
-        .collect(Collectors.toList());
   }
 
   static String writeListToScratch(String bucket, String prefix, List<String> contents)

@@ -75,6 +75,7 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -529,8 +530,10 @@ public class DatasetService {
 
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        List<String> columns =
-            datasetTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
+        List<String> columns = new ArrayList<>();
+        columns.add(PDAO_ROW_ID_COLUMN);
+        columns.addAll(
+            datasetTableDao.retrieveColumns(table).stream().map(Column::getName).toList());
         String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
         List<Map<String, Object>> values =
             BigQueryPdao.getTable(

@@ -1,5 +1,6 @@
 package bio.terra.integration;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -747,6 +748,17 @@ public class DataRepoFixtures {
       queryParams += "&filter=%s".formatted(filter);
     }
     return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+  }
+
+  public List<String> getRowIds(
+      TestConfiguration.User user, DatasetModel dataset, String tableName, int limitRowsReturned)
+      throws Exception {
+    List<Object> dataModel =
+        retrieveDatasetData(user, dataset.getId(), tableName, 0, limitRowsReturned, null);
+    assertThat("got right num of row ids back", dataModel.size(), equalTo(limitRowsReturned));
+    return dataModel.stream()
+        .map(r -> ((LinkedHashMap) r).get(PDAO_ROW_ID_COLUMN).toString())
+        .toList();
   }
 
   public void assertTableCount(

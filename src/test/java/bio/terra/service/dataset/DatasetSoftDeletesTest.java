@@ -91,10 +91,9 @@ public class DatasetSoftDeletesTest extends UsersBase {
 
     // get row ids
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
     List<String> participantRowIds =
-        DatasetIntegrationTest.getRowIds(bigQuery, dataset, "participant", 3L);
-    List<String> sampleRowIds = DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample", 2L);
+        dataRepoFixtures.getRowIds(steward(), dataset, "participant", 3);
+    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample", 2);
 
     // write them to GCS
     String participantPath =
@@ -126,13 +125,12 @@ public class DatasetSoftDeletesTest extends UsersBase {
 
     // get row ids
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
     List<UUID> participantRowIds =
-        DatasetIntegrationTest.getRowIds(bigQuery, dataset, "participant", 3L).stream()
+        dataRepoFixtures.getRowIds(steward(), dataset, "participant", 3).stream()
             .map(UUID::fromString)
             .collect(Collectors.toList());
     List<UUID> sampleRowIds =
-        DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample", 2L).stream()
+        dataRepoFixtures.getRowIds(steward(), dataset, "sample", 2).stream()
             .map(UUID::fromString)
             .collect(Collectors.toList());
 
@@ -161,8 +159,7 @@ public class DatasetSoftDeletesTest extends UsersBase {
 
     // get 5 row ids, we'll write them out to 5 separate files
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    List<String> sampleRowIds = DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample", 5L);
+    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample", 5);
     for (String rowId : sampleRowIds) {
       DatasetIntegrationTest.writeListToScratch(
           testConfiguration.getIngestbucket(), pathPrefix, Collections.singletonList(rowId));
@@ -190,10 +187,9 @@ public class DatasetSoftDeletesTest extends UsersBase {
 
     // get row ids
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
     List<String> participantRowIds =
-        DatasetIntegrationTest.getRowIds(bigQuery, dataset, "participant", 3L);
-    List<String> sampleRowIds = DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample", 2L);
+        dataRepoFixtures.getRowIds(steward(), dataset, "participant", 3);
+    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample", 2);
 
     // swap in these row ids in the request
     SnapshotRequestModel requestModelAll =

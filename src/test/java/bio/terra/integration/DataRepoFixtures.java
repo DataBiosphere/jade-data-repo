@@ -32,6 +32,7 @@ import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
@@ -737,6 +738,47 @@ public class DataRepoFixtures {
       String filter)
       throws Exception {
     String url = "/api/repository/v1/snapshots/%s/data/%s".formatted(snapshotId, table);
+
+    offset = Objects.requireNonNullElse(offset, 0);
+    limit = Objects.requireNonNullElse(limit, 10);
+    String queryParams = "?offset=%s&limit=%s".formatted(offset, limit);
+
+    if (filter != null) {
+      queryParams += "&filter=%s".formatted(filter);
+    }
+    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+  }
+
+  public void assertTableCount(
+      TestConfiguration.User user, DatasetModel dataset, String tableName, int n) throws Exception {
+    int tableCount = retrieveDatasetData(user, dataset.getId(), tableName, 0, n + 1, null).size();
+    assertThat("count matches", tableCount, equalTo(n));
+  }
+
+  public List<Object> retrieveDatasetData(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String table,
+      int offset,
+      int limit,
+      String filter)
+      throws Exception {
+    DataRepoResponse<DatasetDataModel> response =
+        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter);
+    DatasetDataModel validated = validateResponse(response, "dataset data", HttpStatus.OK, null);
+
+    return validated.getResult();
+  }
+
+  private DataRepoResponse<DatasetDataModel> retrieveDatasetDataByIdRaw(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String table,
+      Integer offset,
+      Integer limit,
+      String filter)
+      throws Exception {
+    String url = "/api/repository/v1/datasets/%s/data/%s".formatted(datasetId, table);
 
     offset = Objects.requireNonNullElse(offset, 0);
     limit = Objects.requireNonNullElse(limit, 10);

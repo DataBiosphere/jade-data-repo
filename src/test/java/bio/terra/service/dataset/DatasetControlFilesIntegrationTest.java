@@ -141,9 +141,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         equalTo(2));
 
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 6L);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "sample_vcf", 6);
 
     IngestRequestModel thirdIngestRequest =
         new IngestRequestModel()
@@ -304,7 +302,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // We should see that one row was deleted.
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 3L);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "sample_vcf", 3);
   }
 
   @Test
@@ -343,7 +341,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // We should see that one row was deleted.
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 3L);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "sample_vcf", 3);
   }
 
   @Test

@@ -116,8 +116,8 @@ public class DatasetSoftDeletesTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // make sure the new counts make sense
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "participant", 2L);
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample", 5L);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "participant", 2);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "sample", 5);
   }
 
   @Test
@@ -150,8 +150,8 @@ public class DatasetSoftDeletesTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // make sure the new counts make sense
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "participant", 2L);
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample", 5L);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "participant", 2);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "sample", 5);
   }
 
   @Test
@@ -181,7 +181,7 @@ public class DatasetSoftDeletesTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // there should be (7 - 5) = 2 rows "visible" in the sample table
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample", 2L);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "sample", 2);
   }
 
   @Test
@@ -232,8 +232,8 @@ public class DatasetSoftDeletesTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // make sure the new counts make sense
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "participant", 2L);
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample", 5L);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "participant", 2);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "sample", 5);
 
     // make full views snapshot
     SnapshotRequestModel requestModelLess =

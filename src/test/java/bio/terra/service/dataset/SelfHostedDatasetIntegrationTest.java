@@ -267,7 +267,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
     dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
     BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 2L);
+    dataRepoFixtures.assertTableCount(steward(), dataset, "sample_vcf", 2);
 
     List<Map<String, List<String>>> sampleVcfResults =
         DatasetIntegrationTest.transformStringResults(bigQuery, dataset, "sample_vcf");

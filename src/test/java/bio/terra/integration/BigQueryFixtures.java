@@ -88,6 +88,7 @@ public final class BigQueryFixtures {
    * @param bigQuery authenticated BigQuery object to use
    * @return TableResult object returned from BigQuery
    */
+  // TODO - see if we can replace anything with this reference
   public static TableResult queryWithRetry(String sql, BigQuery bigQuery)
       throws InterruptedException {
     int sleptSeconds = 0;

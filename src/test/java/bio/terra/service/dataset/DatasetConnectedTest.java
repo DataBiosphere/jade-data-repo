@@ -251,7 +251,7 @@ public class DatasetConnectedTest {
         .forEach(
             r -> retrieveEndpointDatasetNames.add(((LinkedHashMap) r).get(columnName).toString()));
     assertEquals(datasetDataModel.getResult().size(), 4);
-    List<String> sortedNames = List.of("Andrea", "Dan", "Rori", "Jeremy");
+    List<String> sortedNames = List.of("Andrea", "Dan", "Jeremy", "Rori");
     assertEquals(sortedNames, retrieveEndpointDatasetNames);
   }
 

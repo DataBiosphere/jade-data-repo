@@ -2,22 +2,15 @@ package bio.terra.integration;
 
 import static org.junit.Assert.assertTrue;
 
-import bio.terra.common.PdaoConstant;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.SnapshotModel;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.TableResult;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.threeten.bp.Duration;
@@ -60,77 +53,6 @@ public final class BigQueryFixtures {
     } catch (Exception ex) {
       throw new IllegalStateException("existence check failed for " + datasetName, ex);
     }
-  }
-
-  public static TableResult query(String sql, BigQuery bigQuery) {
-    try {
-      QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
-      return bigQuery.query(queryConfig);
-    } catch (InterruptedException | BigQueryException e) {
-      e.printStackTrace(System.out);
-      throw new IllegalStateException("Query failed", e);
-    }
-  }
-
-  private static final int RETRY_INITIAL_INTERVAL_SECONDS = 2;
-  private static final int RETRY_MAX_INTERVAL_SECONDS = 30;
-  private static final int RETRY_MAX_SLEEP_SECONDS = 420;
-
-  /**
-   * Run a query in BigQuery with retries
-   *
-   * <p>The BigQuery query is in an exponential backoff loop so that it tolerates access failures
-   * due to GCP IAM update propagation. See DR-875 and the document: <a
-   * href="https://docs.google.com/document/d/18j1ldbbXn-5Zyji5pHjx3CEg-SRQan2P2olY_6gAPUA">IAM
-   * Propagation Note </a>
-   *
-   * @param sql query string to execute
-   * @param bigQuery authenticated BigQuery object to use
-   * @return TableResult object returned from BigQuery
-   */
-  // TODO - see if we can replace anything with this reference
-  public static TableResult queryWithRetry(String sql, BigQuery bigQuery)
-      throws InterruptedException {
-    int sleptSeconds = 0;
-    int sleepSeconds = RETRY_INITIAL_INTERVAL_SECONDS;
-    while (true) {
-      try {
-        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
-        return bigQuery.query(queryConfig);
-      } catch (BigQueryException ex) {
-        logger.info(
-            "Caught BQ exception: code="
-                + ex.getCode()
-                + " reason="
-                + ex.getReason()
-                + " msg="
-                + ex.getMessage());
-        if ((sleptSeconds < RETRY_MAX_SLEEP_SECONDS)
-            && (ex.getCode() == 403)
-            && StringUtils.equals(ex.getReason(), "accessDenied")) {
-
-          TimeUnit.SECONDS.sleep(sleepSeconds);
-          sleptSeconds += sleepSeconds;
-          logger.info("Slept " + sleepSeconds + " total slept " + sleptSeconds);
-          sleepSeconds = Math.min(2 * sleepSeconds, RETRY_MAX_INTERVAL_SECONDS);
-        } else {
-          throw ex;
-        }
-      }
-    }
-  }
-
-  public static String makeTableRef(SnapshotModel snapshotModel, String tableName) {
-    return String.format(
-        "`%s.%s.%s`", snapshotModel.getDataProject(), snapshotModel.getName(), tableName);
-  }
-
-  public static String makeTableRef(DatasetModel datasetModel, String tableName) {
-    return String.format(
-        "`%s.%s.%s`",
-        datasetModel.getDataProject(),
-        PdaoConstant.PDAO_PREFIX + datasetModel.getName(),
-        tableName);
   }
 
   private static final int WAIT_FOR_ACCESS_SECONDS = 180;

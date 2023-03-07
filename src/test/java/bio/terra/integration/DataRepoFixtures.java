@@ -733,6 +733,22 @@ public class DataRepoFixtures {
     return DrsService.getLastNameFromPath(drsUri);
   }
 
+  public List<Object> retrieveSnapshotPreviewById(
+      TestConfiguration.User user,
+      UUID snapshotId,
+      String table,
+      int offset,
+      int limit,
+      String filter)
+      throws Exception {
+    DataRepoResponse<SnapshotPreviewModel> response =
+        retrieveSnapshotPreviewByIdRaw(user, snapshotId, table, offset, limit, filter);
+    SnapshotPreviewModel validated =
+        validateResponse(response, "snapshot data", HttpStatus.OK, null);
+
+    return validated.getResult();
+  }
+
   private DataRepoResponse<SnapshotPreviewModel> retrieveSnapshotPreviewByIdRaw(
       TestConfiguration.User user,
       UUID snapshotId,
@@ -764,7 +780,15 @@ public class DataRepoFixtures {
         .toList();
   }
 
-  public void assertTableCount(
+  public void assertSnapshotTableCount(
+      TestConfiguration.User user, SnapshotModel snapshotModel, String tableName, int n)
+      throws Exception {
+    int tableCount =
+        retrieveSnapshotPreviewById(user, snapshotModel.getId(), tableName, 0, n + 1, null).size();
+    assertThat("count matches", tableCount, equalTo(n));
+  }
+
+  public void assertDatasetTableCount(
       TestConfiguration.User user, DatasetModel dataset, String tableName, int n) throws Exception {
     int tableCount = retrieveDatasetData(user, dataset.getId(), tableName, 0, n + 1, null).size();
     assertThat("count matches", tableCount, equalTo(n));

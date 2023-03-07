@@ -264,7 +264,7 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-    dataRepoFixtures.assertTableCount(steward(), dataset, "sample_vcf", 2);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 2);
 
     List<Map<String, List<String>>> sampleVcfResults =
         dataRepoFixtures.transformStringResults(steward(), dataset, "sample_vcf");

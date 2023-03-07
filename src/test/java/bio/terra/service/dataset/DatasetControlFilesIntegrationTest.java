@@ -137,7 +137,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
         equalTo(2));
 
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    dataRepoFixtures.assertTableCount(steward(), dataset, "sample_vcf", 6);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 6);
 
     IngestRequestModel thirdIngestRequest =
         new IngestRequestModel()
@@ -296,7 +296,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // We should see that one row was deleted.
-    dataRepoFixtures.assertTableCount(steward(), dataset, "sample_vcf", 3);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 3);
   }
 
   @Test
@@ -333,7 +333,7 @@ public class DatasetControlFilesIntegrationTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // We should see that one row was deleted.
-    dataRepoFixtures.assertTableCount(steward(), dataset, "sample_vcf", 3);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 3);
   }
 
   @Test

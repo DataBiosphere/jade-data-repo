@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.Dataset;
 import java.util.List;
@@ -39,15 +40,19 @@ public class FileIdServiceTest {
   }
 
   @Test
-  public void testPredictableUUIDWithNoMD5Equals() {
-    when(dataset.hasPredictableFileIds()).thenReturn(true);
-    FSItem fsItem1 = new FSFile().path("/foo/bar").size(123L).checksumMd5(null);
-
-    FSItem fsItem2 = new FSFile().path("/foo/bar").size(123L).checksumMd5(null);
-    assertEquals(
-        "IDs match",
-        service.calculateFileId(dataset, fsItem1),
-        service.calculateFileId(dataset, fsItem2));
+  public void testPredictableUUIDWithMissingFieldsFails() {
+    TestUtils.assertError(
+        NullPointerException.class,
+        "A target path is required to create a file id",
+        () -> service.calculateFileId(true, new FSFile().path(null).checksumMd5("md5").size(1L)));
+    TestUtils.assertError(
+        NullPointerException.class,
+        "An MD5 checksum is required to create a file id",
+        () -> service.calculateFileId(true, new FSFile().path("/p").checksumMd5(null).size(1L)));
+    TestUtils.assertError(
+        NullPointerException.class,
+        "A size is required to create a file id",
+        () -> service.calculateFileId(true, new FSFile().path("/p").checksumMd5("md5").size(null)));
   }
 
   @Test

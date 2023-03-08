@@ -25,6 +25,8 @@ import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.FSItem;
 import bio.terra.service.filedata.FileIdService;
+import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
@@ -433,6 +435,12 @@ public class GcsPdao implements CloudFileReader {
       String targetProjectId = bucketResource.projectIdForBucket();
       Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), targetProjectId);
 
+      Md5ValidationResult finalMd5 =
+          FileMetadataUtils.validateFileMd5ForIngest(
+              fileLoadModel.getMd5(),
+              sourceBlob.getMd5ToHexString(),
+              fileLoadModel.getSourcePath());
+
       String effectiveFileId;
       if (fileId == null) {
         effectiveFileId =
@@ -441,7 +449,7 @@ public class GcsPdao implements CloudFileReader {
                     dataset,
                     new FSItem()
                         .path(fileLoadModel.getTargetPath())
-                        .checksumMd5(sourceBlob.getMd5ToHexString())
+                        .checksumMd5(finalMd5.effectiveMd5())
                         .size(sourceBlob.getSize()))
                 .toString();
       } else {
@@ -482,13 +490,9 @@ public class GcsPdao implements CloudFileReader {
 
       // MD5 is computed per-component. So if there are multiple components, the MD5 here is
       // not useful for validating the contents of the file on access. Therefore, we only
-      // return the MD5 if there is only a single component. For more details,
-      // see https://cloud.google.com/storage/docs/hashes-etags
-      Integer componentCount = targetBlob.getComponentCount();
-      String checksumMd5 = null;
-      if (componentCount == null || componentCount == 1) {
-        checksumMd5 = targetBlob.getMd5ToHexString();
-      }
+      // return the MD5 if there is only a single component or if it's been specified by the user.
+      // For more details, see https://cloud.google.com/storage/docs/hashes-etags
+      String checksumMd5 = getMd5ToUse(finalMd5, targetBlob);
 
       // Grumble! It is not documented what the meaning of the Long is.
       // From poking around I think it is a standard POSIX milliseconds since Jan 1, 1970.
@@ -500,6 +504,7 @@ public class GcsPdao implements CloudFileReader {
           .cloudPath(gspath)
           .checksumCrc32c(targetBlob.getCrc32cToHexString())
           .checksumMd5(checksumMd5)
+          .userSpecifiedMd5(finalMd5.isUserProvided())
           .size(targetBlob.getSize())
           .bucketResourceId(bucketResource.getResourceId().toString());
 
@@ -524,6 +529,12 @@ public class GcsPdao implements CloudFileReader {
       Storage storage = gcsProjectFactory.getStorage(projectId);
       Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), projectId);
 
+      Md5ValidationResult finalMd5 =
+          FileMetadataUtils.validateFileMd5ForIngest(
+              fileLoadModel.getMd5(),
+              sourceBlob.getMd5ToHexString(),
+              fileLoadModel.getSourcePath());
+
       String effectiveFileId;
       if (fileId == null) {
         effectiveFileId =
@@ -532,7 +543,7 @@ public class GcsPdao implements CloudFileReader {
                     true,
                     new FSItem()
                         .path(fileLoadModel.getTargetPath())
-                        .checksumMd5(sourceBlob.getMd5ToHexString())
+                        .checksumMd5(finalMd5.effectiveMd5())
                         .size(sourceBlob.getSize()))
                 .toString();
       } else {
@@ -540,13 +551,9 @@ public class GcsPdao implements CloudFileReader {
       }
       // MD5 is computed per-component. So if there are multiple components, the MD5 here is
       // not useful for validating the contents of the file on access. Therefore, we only
-      // return the MD5 if there is only a single component. For more details,
-      // see https://cloud.google.com/storage/docs/hashes-etags
-      Integer componentCount = sourceBlob.getComponentCount();
-      String checksumMd5 = null;
-      if (componentCount == null || componentCount == 1) {
-        checksumMd5 = sourceBlob.getMd5ToHexString();
-      }
+      // return the MD5 if there is only a single component or if it's been specified by the user.
+      // For more details, see https://cloud.google.com/storage/docs/hashes-etags
+      String checksumMd5 = getMd5ToUse(finalMd5, sourceBlob);
 
       // Grumble! It is not documented what the meaning of the Long is.
       // From poking around I think it is a standard POSIX milliseconds since Jan 1, 1970.
@@ -560,6 +567,7 @@ public class GcsPdao implements CloudFileReader {
           .cloudPath(gspath)
           .checksumCrc32c(sourceBlob.getCrc32cToHexString())
           .checksumMd5(checksumMd5)
+          .userSpecifiedMd5(finalMd5.isUserProvided())
           .size(sourceBlob.getSize())
           .bucketResourceId(null);
 
@@ -812,6 +820,22 @@ public class GcsPdao implements CloudFileReader {
           }
         };
     return () -> AclUtils.aclUpdateRetry(aclUpdate);
+  }
+
+  /**
+   * MD5 is computed per-component. So if there are multiple components, the MD5 here is not useful
+   * for validating the contents of the file on access. Therefore, we only return the MD5 if there
+   * is only a single component or if it's been specified by the user. For more details, see
+   * https://cloud.google.com/storage/docs/hashes-etags
+   */
+  private String getMd5ToUse(Md5ValidationResult md5, Blob blob) {
+    Integer componentCount = blob.getComponentCount();
+    if (md5.isUserProvided()) {
+      return md5.effectiveMd5();
+    } else if (componentCount == null || componentCount == 1) {
+      return blob.getMd5ToHexString();
+    }
+    return null;
   }
 
   /**

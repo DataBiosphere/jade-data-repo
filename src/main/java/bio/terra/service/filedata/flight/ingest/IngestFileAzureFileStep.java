@@ -57,6 +57,7 @@ public class IngestFileAzureFileStep implements Step {
               .gspath(fsFileInfo.getCloudPath())
               .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
               .checksumMd5(fsFileInfo.getChecksumMd5())
+              .userSpecifiedMd5(fsFileInfo.isUserSpecifiedMd5())
               .size(fsFileInfo.getSize())
               .loadTag(fileLoadModel.getLoadTag());
 

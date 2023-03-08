@@ -281,6 +281,7 @@ public class TableDaoConnectedTest {
             .fileCreatedDate(Instant.now().toString())
             .gspath(endpoint + "/" + fullPath)
             .checksumMd5(SnapshotCompute.computeMd5(fullPath))
+            .userSpecifiedMd5(false)
             .size(size);
 
     tableFileDao.createFileMetadata(tableServiceClient, newFile);

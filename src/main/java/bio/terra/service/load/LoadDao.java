@@ -176,9 +176,11 @@ public class LoadDao {
   @Transactional
   public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {
     final String sql =
-        "INSERT INTO load_file "
-            + " (load_id, source_path, target_path, mime_type, description, state)"
-            + " VALUES(?,?,?,?,?,?)";
+        """
+        INSERT INTO load_file
+        (load_id, source_path, target_path, mime_type, description, state, checksum_md5)
+        VALUES(?,?,?,?,?,?,?)
+        """;
 
     JdbcTemplate baseJdbcTemplate = jdbcTemplate.getJdbcTemplate();
     baseJdbcTemplate.batchUpdate(
@@ -191,6 +193,7 @@ public class LoadDao {
             ps.setString(4, loadFileModelList.get(i).getMimeType());
             ps.setString(5, loadFileModelList.get(i).getDescription());
             ps.setString(6, BulkLoadFileState.NOT_TRIED.toString());
+            ps.setString(7, loadFileModelList.get(i).getMd5());
           }
 
           public int getBatchSize() {
@@ -367,23 +370,25 @@ public class LoadDao {
     return jdbcTemplate.query(
         sql,
         params,
-        (rs, rowNum) -> {
-          return new BulkLoadHistoryModel()
-              .sourcePath(rs.getString("source_path"))
-              .targetPath(rs.getString("target_path"))
-              .state(BulkLoadFileState.fromValue(rs.getString("state")))
-              .fileId(rs.getString("file_id"))
-              .checksumCRC(rs.getString("checksum_crc32c"))
-              .checksumMD5(rs.getString("checksum_md5"))
-              .error(rs.getString("error"));
-        });
+        (rs, rowNum) ->
+            new BulkLoadHistoryModel()
+                .sourcePath(rs.getString("source_path"))
+                .targetPath(rs.getString("target_path"))
+                .state(BulkLoadFileState.fromValue(rs.getString("state")))
+                .fileId(rs.getString("file_id"))
+                .checksumCRC(rs.getString("checksum_crc32c"))
+                .checksumMD5(rs.getString("checksum_md5"))
+                .error(rs.getString("error")));
   }
 
   // -- private methods --
   private List<LoadFile> queryByState(UUID loadId, BulkLoadFileState state, Integer limit) {
     String sql =
-        "SELECT source_path, target_path, mime_type, description, state, flight_id, file_id, error"
-            + " FROM load_file WHERE load_id = :load_id AND state = :state";
+        """
+      SELECT source_path, target_path, mime_type, description, state, flight_id, file_id, error,
+      checksum_md5
+      FROM load_file WHERE load_id = :load_id AND state = :state
+      """;
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("load_id", loadId).addValue("state", state.toString());
 
@@ -405,7 +410,8 @@ public class LoadDao {
                 .state(BulkLoadFileState.fromValue(rs.getString("state")))
                 .flightId(rs.getString("flight_id"))
                 .fileId(rs.getString("file_id"))
-                .error(rs.getString("error")));
+                .error(rs.getString("error"))
+                .md5(rs.getString("checksum_md5")));
   }
 
   private void updateLoadFile(

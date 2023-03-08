@@ -23,6 +23,7 @@ public class FireStoreFile {
   private String gspath;
   private String checksumCrc32c;
   private String checksumMd5;
+  private boolean userSpecifiedMd5;
   private Long size;
 
   // Azure table entity field names
@@ -35,6 +36,7 @@ public class FireStoreFile {
   public static final String GS_PATH_FIELD_NAME = "gspath";
   public static final String CHECKSUM_CRC32C_FIELD_NAME = "checksum_crc32c";
   public static final String CHECKSUM_MD5_FIELD_NAME = "checksum_md5";
+  public static final String USER_SPECIFIED_MD5_FIELD_NAME = "userSpecifiedMd5";
   public static final String SIZE_FIELD_NAME = "size";
 
   public FireStoreFile() {}
@@ -81,6 +83,15 @@ public class FireStoreFile {
 
   public FireStoreFile checksumMd5(String checksumMd5) {
     this.checksumMd5 = checksumMd5;
+    return this;
+  }
+
+  public boolean isUserSpecifiedMd5() {
+    return userSpecifiedMd5;
+  }
+
+  public FireStoreFile userSpecifiedMd5(boolean userSpecifiedMd5) {
+    this.userSpecifiedMd5 = userSpecifiedMd5;
     return this;
   }
 
@@ -141,6 +152,7 @@ public class FireStoreFile {
         .append("gspath", gspath)
         .append("checksumCrc32c", checksumCrc32c)
         .append("checksumMd5", checksumMd5)
+        .append("userSpecifiedMd5", userSpecifiedMd5)
         .append("size", size)
         .toString();
   }
@@ -163,6 +175,7 @@ public class FireStoreFile {
         && Objects.equals(gspath, that.gspath)
         && Objects.equals(checksumCrc32c, that.checksumCrc32c)
         && Objects.equals(checksumMd5, that.checksumMd5)
+        && Objects.equals(userSpecifiedMd5, that.userSpecifiedMd5)
         && Objects.equals(size, that.size);
   }
 
@@ -178,6 +191,7 @@ public class FireStoreFile {
         gspath,
         checksumCrc32c,
         checksumMd5,
+        userSpecifiedMd5,
         size);
   }
 
@@ -192,6 +206,10 @@ public class FireStoreFile {
         .gspath(entity.getProperty(GS_PATH_FIELD_NAME).toString())
         .checksumCrc32c((String) entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME))
         .checksumMd5((String) entity.getProperty(CHECKSUM_MD5_FIELD_NAME))
+        .userSpecifiedMd5(
+            (boolean)
+                Objects.requireNonNullElse(
+                    entity.getProperty(USER_SPECIFIED_MD5_FIELD_NAME), false))
         .size((Long) entity.getProperty(SIZE_FIELD_NAME));
   }
 
@@ -206,6 +224,7 @@ public class FireStoreFile {
         .addProperty(GS_PATH_FIELD_NAME, f.getGspath())
         .addProperty(CHECKSUM_CRC32C_FIELD_NAME, f.getChecksumCrc32c())
         .addProperty(CHECKSUM_MD5_FIELD_NAME, f.getChecksumMd5())
+        .addProperty(USER_SPECIFIED_MD5_FIELD_NAME, f.isUserSpecifiedMd5())
         .addProperty(SIZE_FIELD_NAME, f.getSize());
   }
 }

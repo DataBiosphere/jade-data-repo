@@ -405,6 +405,7 @@ public abstract class IngestBulkGcpStep extends DefaultUndoStep {
                       .gspath(fsFileInfo.getCloudPath())
                       .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
                       .checksumMd5(fsFileInfo.getChecksumMd5())
+                      .userSpecifiedMd5(fsFileInfo.isUserSpecifiedMd5())
                       .size(fsFileInfo.getSize())
                       .loadTag(loadTag);
                 })
@@ -461,6 +462,7 @@ public abstract class IngestBulkGcpStep extends DefaultUndoStep {
         .loadTag(loadTag)
         .targetPath(bulkLoadFileModel.getTargetPath())
         .sourcePath(bulkLoadFileModel.getSourcePath())
+        .md5(bulkLoadFileModel.getMd5())
         .profileId(profileId);
   }
 

@@ -11,6 +11,8 @@ import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.FSItem;
 import bio.terra.service.filedata.FileIdService;
+import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedWriter;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
@@ -40,6 +42,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -126,20 +129,28 @@ public class AzureBlobStorePdao implements CloudFileReader {
     BlobUrlParts blobUrl = BlobUrlParts.parse(fileLoadModel.getSourcePath());
     String fileName = getLastNameFromPath(blobUrl.getBlobName());
 
+    BlobProperties sourceBlobProperties =
+        sourceClientFactory
+            .getBlobContainerClient()
+            .getBlobClient(blobUrl.getBlobName())
+            .getProperties();
+    Md5ValidationResult finalMd5 =
+        FileMetadataUtils.validateFileMd5ForIngest(
+            fileLoadModel.getMd5(),
+            Optional.ofNullable(sourceBlobProperties.getContentMd5())
+                .map(Hex::encodeHexString)
+                .orElse(null),
+            fileLoadModel.getSourcePath());
+
     String effectiveFileId;
     if (fileId == null) {
-      BlobProperties sourceBlobProperties =
-          sourceClientFactory
-              .getBlobContainerClient()
-              .getBlobClient(blobUrl.getBlobName())
-              .getProperties();
       effectiveFileId =
           fileIdService
               .calculateFileId(
                   dataset,
                   new FSItem()
                       .path(fileLoadModel.getTargetPath())
-                      .checksumMd5(Hex.encodeHexString(sourceBlobProperties.getContentMd5()))
+                      .checksumMd5(finalMd5.effectiveMd5())
                       .size(sourceBlobProperties.getBlobSize()))
               .toString();
     } else {
@@ -154,6 +165,16 @@ public class AzureBlobStorePdao implements CloudFileReader {
 
     BlobProperties blobProperties = blobCrl.getBlobProperties(blobName);
     Instant createTime = blobProperties.getCreationTime().toInstant();
+
+    String checksumMd5;
+    if (finalMd5.isUserProvided()) {
+      checksumMd5 = finalMd5.effectiveMd5();
+    } else {
+      checksumMd5 =
+          Optional.ofNullable(blobProperties.getContentMd5())
+              .map(Hex::encodeHexString)
+              .orElse(null);
+    }
     return new FSFileInfo()
         .fileId(effectiveFileId)
         .createdDate(createTime.toString())
@@ -161,7 +182,8 @@ public class AzureBlobStorePdao implements CloudFileReader {
             String.format(
                 "%s/%s",
                 targetClientFactory.getBlobContainerClient().getBlobContainerUrl(), blobName))
-        .checksumMd5(Hex.encodeHexString(blobProperties.getContentMd5()))
+        .checksumMd5(checksumMd5)
+        .userSpecifiedMd5(finalMd5.isUserProvided())
         .size(blobProperties.getBlobSize())
         .bucketResourceId(storageAccountResource.getResourceId().toString());
   }

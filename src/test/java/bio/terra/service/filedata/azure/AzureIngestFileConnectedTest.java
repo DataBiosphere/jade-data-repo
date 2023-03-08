@@ -9,6 +9,7 @@ import bio.terra.common.AzureUtils;
 import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.SynapseUtils;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
@@ -28,13 +29,21 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
+import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.resourcemanagement.azure.*;
+import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,6 +82,7 @@ public class AzureIngestFileConnectedTest {
   private AzureStorageAuthInfo storageAuthInfo;
   private AzureStorageAccountResource storageAccountResource;
   private BillingProfileModel billingProfile;
+  private String exampleAzureFileToIngest;
   private FileLoadModel fileLoadModel;
   private TableServiceClient tableServiceClient;
 
@@ -140,7 +150,7 @@ public class AzureIngestFileConnectedTest {
                 "https://" + testConfig.getSourceStorageAccountName() + ".table.core.windows.net")
             .buildClient();
 
-    String exampleAzureFileToIngest =
+    exampleAzureFileToIngest =
         synapseUtils.ingestRequestURL(
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
@@ -209,6 +219,40 @@ public class AzureIngestFileConnectedTest {
     assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
 
     // 5 - IngestFileAzurePrimaryDataStep
+    // First try is with an invalid user provided md5
+    TestUtils.assertError(
+        InvalidFileChecksumException.class,
+        "Checksums do not match for file",
+        () -> {
+          fileLoadModel.md5("foo");
+          azureBlobStorePdao.copyFile(
+              new Dataset().id(datasetId).predictableFileIds(false),
+              billingProfile,
+              fileLoadModel,
+              fileId,
+              storageAccountResource,
+              TEST_USER);
+        });
+
+    // Second try is with a valid md5 specified
+    String actualMd5;
+    try (Stream<String> contents =
+        azureBlobStorePdao.getBlobsLinesStream(
+            exampleAzureFileToIngest, testConfig.getTargetTenantId().toString(), TEST_USER)) {
+      actualMd5 = DigestUtils.md5Hex(contents.collect(Collectors.joining("\n")));
+    }
+    fileLoadModel.md5(actualMd5);
+    FSFileInfo fsFileInfoWithUserMd5 =
+        azureBlobStorePdao.copyFile(
+            new Dataset().id(datasetId).predictableFileIds(false),
+            billingProfile,
+            fileLoadModel,
+            fileId,
+            storageAccountResource,
+            TEST_USER);
+    assertThat("md5 is valid", fsFileInfoWithUserMd5.getChecksumMd5(), equalTo(actualMd5));
+    // Finally attempt to copy with no user provided md5
+    fileLoadModel.md5(null);
     FSFileInfo fsFileInfo =
         azureBlobStorePdao.copyFile(
             new Dataset().id(datasetId).predictableFileIds(false),
@@ -217,6 +261,7 @@ public class AzureIngestFileConnectedTest {
             fileId,
             storageAccountResource,
             TEST_USER);
+    assertThat("md5 is valid", fsFileInfo.getChecksumMd5(), equalTo(actualMd5));
 
     // 6 - IngestFileAzureFileStep
     FireStoreFile newFile =
@@ -229,6 +274,7 @@ public class AzureIngestFileConnectedTest {
             .gspath(fsFileInfo.getCloudPath())
             .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
             .checksumMd5(fsFileInfo.getChecksumMd5())
+            .userSpecifiedMd5(fsFileInfo.isUserSpecifiedMd5())
             .size(fsFileInfo.getSize())
             .loadTag(fileLoadModel.getLoadTag());
 

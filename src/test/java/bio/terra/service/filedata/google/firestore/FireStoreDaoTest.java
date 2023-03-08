@@ -182,6 +182,7 @@ public class FireStoreDaoTest {
             .gspath("gs://" + datasetId + "/" + fileId)
             .checksumCrc32c(SnapshotCompute.computeCrc32c(fullPath))
             .checksumMd5(SnapshotCompute.computeMd5(fullPath))
+            .userSpecifiedMd5(false)
             .size(size);
 
     fileDao.createFileMetadata(firestore, datasetId, newFile);

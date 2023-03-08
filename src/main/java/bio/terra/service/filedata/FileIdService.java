@@ -27,8 +27,12 @@ public class FileIdService {
     return String.join(
         HASH_SEPARATOR,
         List.of(
-            fsItem.getPath(),
-            Objects.requireNonNullElse(fsItem.getChecksumMd5(), ""),
-            String.valueOf(fsItem.getSize())));
+            Objects.requireNonNull(
+                fsItem.getPath(), "A target path is required to create a file id"),
+            Objects.requireNonNull(
+                fsItem.getChecksumMd5(), "An MD5 checksum is required to create a file id"),
+            String.valueOf(
+                Objects.requireNonNull(
+                    fsItem.getSize(), "A size is required to create a file id"))));
   }
 }

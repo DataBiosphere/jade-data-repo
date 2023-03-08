@@ -15,6 +15,7 @@ public class LoadFile {
   private String flightId;
   private String fileId;
   private String error;
+  private String md5;
 
   public UUID getLoadId() {
     return loadId;
@@ -97,6 +98,15 @@ public class LoadFile {
     return this;
   }
 
+  public String getMd5() {
+    return md5;
+  }
+
+  public LoadFile md5(String md5) {
+    this.md5 = md5;
+    return this;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
@@ -106,6 +116,7 @@ public class LoadFile {
         .append("state", state)
         .append("fileId", fileId)
         .append("error", error)
+        .append("md5", md5)
         .toString();
   }
 }

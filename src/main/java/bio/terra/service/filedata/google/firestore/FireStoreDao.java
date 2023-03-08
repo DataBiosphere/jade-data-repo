@@ -108,6 +108,7 @@ public class FireStoreDao {
                         .isFileRef(false)
                         .path(FileMetadataUtils.getDirectoryPath(d))
                         .name(FileMetadataUtils.getName(d))
+                        .fileCreatedDate(Instant.now().toString())
                         .datasetId(datasetId)
                         .loadTag(loadTag))
             .toList();

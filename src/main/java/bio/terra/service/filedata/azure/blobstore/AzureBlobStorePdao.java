@@ -13,7 +13,6 @@ import bio.terra.service.filedata.FSItem;
 import bio.terra.service.filedata.FileIdService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult;
-import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult.Md5Type;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedWriter;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
@@ -168,7 +167,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
     Instant createTime = blobProperties.getCreationTime().toInstant();
 
     String checksumMd5;
-    if (finalMd5.type().equals(Md5Type.USER_PROVIDED)) {
+    if (finalMd5.isUserProvided()) {
       checksumMd5 = finalMd5.effectiveMd5();
     } else {
       checksumMd5 =
@@ -184,7 +183,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
                 "%s/%s",
                 targetClientFactory.getBlobContainerClient().getBlobContainerUrl(), blobName))
         .checksumMd5(checksumMd5)
-        .userSpecifiedMd5(finalMd5.type().equals(Md5Type.USER_PROVIDED))
+        .userSpecifiedMd5(finalMd5.isUserProvided())
         .size(blobProperties.getBlobSize())
         .bucketResourceId(storageAccountResource.getResourceId().toString());
   }

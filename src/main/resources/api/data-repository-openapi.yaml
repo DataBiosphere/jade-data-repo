@@ -4452,13 +4452,7 @@ components:
           type: string
           description: A human readable description of the contents of the Data Object.
         md5:
-          type: string
-          description: >
-            A hex representation of the  md5 for the file.  If an md5 exists for the file being
-            ingested, it will be validated against this value and the file's ingest will fail if the
-            values do not match.  If no md5 hash is present on the file being ingested, this value
-            will be stored for the file.  If this value is not specified, then the md5 from the file
-            being ingested will be used stored
+          $ref: '#/components/schemas/Md5OverrideModel'
       description: >
         Information needed to copy a file from a source bucket into the
         dataset bucket.
@@ -4495,7 +4489,7 @@ components:
         checksums:
           type: array
           description: >
-            Always present for files - checksums; May include md5 or crc32c.
+            Always present for files - checksums; May include md5 and/or crc32c.
             Present for directories in snapshots - see DRS spec for algorithm for combining checksums of
             underlying directory contents.
           items:
@@ -4552,6 +4546,14 @@ components:
       description: >
         client-specified tag for a data or file load. If no id is specified, we use the
         string form of the job create time as the tag.
+    Md5OverrideModel:
+      type: string
+      description: >
+        A hex representation of the  md5 for the file.  If an md5 exists for the file being
+        ingested, it will be validated against this value and the file's ingest will fail if the
+        values do not match.  If no md5 hash is present on the file being ingested, this value
+        will be stored for the file.  If this value is not specified, then the md5 from the file
+        being ingested (from the cloud provider) will be used
     BulkLoadRequestModel:
       required:
         - loadControlFile
@@ -4653,13 +4655,7 @@ components:
           type: string
           description: A human readable description of the contents of the Data Object.
         md5:
-          type: string
-          description: >
-            A hex representation of the  md5 for the file.  If an md5 exists for the file being
-            ingested, it will be validated against this value and the file's ingest will fail if the
-            values do not match.  If no md5 hash is present on the file being ingested, this value
-            will be stored for the file.  If this value is not specified, then the md5 from the file
-            being ingested will be used stored
+          $ref: '#/components/schemas/Md5OverrideModel'
       description: Describes one file within a bulk file load
     BulkLoadResultModel:
       type: object

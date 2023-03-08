@@ -144,6 +144,10 @@ public class FileMetadataUtils {
    * @param type Which md5 was actually used
    */
   public record Md5ValidationResult(String effectiveMd5, Md5Type type) {
+    public boolean isUserProvided() {
+      return type().equals(Md5Type.USER_PROVIDED);
+    }
+
     public enum Md5Type {
       USER_PROVIDED, // When the user md5 is used (e.g. when it's not present in the cloud)
       CLOUD_PROVIDED, // When the cloud md5 is used

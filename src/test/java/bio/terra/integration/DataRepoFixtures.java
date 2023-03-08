@@ -826,6 +826,23 @@ public class DataRepoFixtures {
     return result;
   }
 
+  public void retrieveDatasetDataExpectFailure(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String table,
+      int offset,
+      int limit,
+      String filter,
+      HttpStatus expectedStatus)
+      throws Exception {
+    DataRepoResponse<DatasetDataModel> response =
+        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter);
+    assertThat(
+        "retrieve dataset data by Id should fail",
+        response.getStatusCode(),
+        equalTo(expectedStatus));
+  }
+
   public List<Object> retrieveDatasetData(
       TestConfiguration.User user,
       UUID datasetId,

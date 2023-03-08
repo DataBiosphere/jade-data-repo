@@ -75,6 +75,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -466,24 +467,15 @@ public class DatasetService {
   /**
    * Throw if the user cannot access the dataset via SAM permissions.
    *
-   * @param datasetId snapshot UUID
-   * @param userReq authenticated user
    * @param iamAuthorizedCall throws if dataset inaccessible via SAM permissions
    */
-  void verifyDatasetAccessible(
-      UUID datasetId, AuthenticatedUserRequest userReq, IamAuthorizedCall iamAuthorizedCall) {
-    boolean iamAuthorized = false;
-    String error = "";
+  void verifyDatasetAccessible(IamAuthorizedCall iamAuthorizedCall) {
     try {
       iamAuthorizedCall.get();
-      iamAuthorized = true;
     } catch (Exception iamEx) {
-      logger.warn("Snapshot {} inaccessible via SAM for {}", datasetId, userReq.getEmail(), iamEx);
-      error = iamEx.getMessage();
-    } finally {
-      if (!iamAuthorized) {
-        throw new ForbiddenException("Error accessing snapshot: see errorDetails", List.of(error));
-      }
+      throw new ForbiddenException(
+          "Error accessing dataset: see errorDetails",
+          Collections.singletonList(iamEx.getMessage()));
     }
   }
 
@@ -493,7 +485,7 @@ public class DatasetService {
         () ->
             iamService.verifyAuthorization(
                 userReq, IamResourceType.DATASET, datasetId.toString(), IamAction.READ_DATA);
-    verifyDatasetAccessible(datasetId, userReq, canRead);
+    verifyDatasetAccessible(canRead);
   }
 
   public DatasetDataModel retrieveData(

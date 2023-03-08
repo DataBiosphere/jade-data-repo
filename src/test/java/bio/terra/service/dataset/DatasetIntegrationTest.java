@@ -202,8 +202,19 @@ public class DatasetIntegrationTest extends UsersBase {
 
     assertTrue("dataset was found in enumeration", metExpectation);
 
-    // test allowable permissions
+    // Check permissions on lookupDatasetDataById
+    dataRepoFixtures.retrieveDatasetData(
+        steward(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
+    dataRepoFixtures.retrieveDatasetDataExpectFailure(
+        custodian(),
+        datasetId,
+        datasetModel.getSchema().getTables().get(0).getName(),
+        0,
+        1,
+        null,
+        HttpStatus.FORBIDDEN);
 
+    // test allowable permissions
     dataRepoFixtures.addDatasetPolicyMember(
         steward(), summaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
     DataRepoResponse<EnumerateDatasetModel> enumDatasets =
@@ -212,6 +223,18 @@ public class DatasetIntegrationTest extends UsersBase {
         "Custodian is authorized to enumerate datasets",
         enumDatasets.getStatusCode(),
         equalTo(HttpStatus.OK));
+
+    // Check permissions on lookupDatasetDataById now that the custodian has been given permission
+    dataRepoFixtures.retrieveDatasetData(
+        custodian(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null);
+    dataRepoFixtures.retrieveDatasetDataExpectFailure(
+        reader(),
+        datasetId,
+        datasetModel.getSchema().getTables().get(0).getName(),
+        0,
+        1,
+        null,
+        HttpStatus.FORBIDDEN);
 
     List<String> custodianRoles = dataRepoFixtures.retrieveUserDatasetRoles(custodian(), datasetId);
     assertThat("The Custodian was given custodian access", custodianRoles, hasItem("custodian"));

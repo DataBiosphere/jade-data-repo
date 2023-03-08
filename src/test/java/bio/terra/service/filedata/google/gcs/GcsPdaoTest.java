@@ -268,7 +268,7 @@ public class GcsPdaoTest {
         assertThat(
             "file created with no md5", fsFileInfo.getChecksumMd5(), is(emptyOrNullString()));
         // Delete the target file
-        storage.delete(fsFileInfo.getCloudPath());
+        storage.delete(BlobId.fromGsUtilUri(fsFileInfo.getCloudPath()));
       }
       // Copy the file with the md5 specified (it should work).  Note: while this will work, this
       // isn't representative of how this *should* be used.  Typically, the MD5 would be

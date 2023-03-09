@@ -111,7 +111,6 @@ public class DatasetsApiControllerTest {
       throws Exception {
     var list = List.of("hello", "world");
     var result = new DatasetDataModel().result(List.copyOf(list));
-    // when(datasetService.retrieve(id)).thenReturn(new Dataset().id(id));
     when(datasetService.retrieveData(
             any(AuthenticatedUserRequest.class),
             eq(id),

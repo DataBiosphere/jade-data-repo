@@ -894,13 +894,13 @@ public class ConnectedOperations {
     return result.getResponse();
   }
 
-  public enum TDRResourceType {
+  public enum TdrResourceType {
     SNAPSHOT,
     DATASET
   };
 
   public List<Object> retrieveDataSuccess(
-      TDRResourceType resourceType,
+      TdrResourceType resourceType,
       UUID resourceId,
       String tableName,
       int limit,
@@ -922,7 +922,7 @@ public class ConnectedOperations {
   }
 
   public ErrorModel retrieveDataFailure(
-      TDRResourceType resourceType,
+      TdrResourceType resourceType,
       UUID resourceId,
       String tableName,
       int limit,

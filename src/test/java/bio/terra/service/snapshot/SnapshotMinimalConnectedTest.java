@@ -165,7 +165,7 @@ public class SnapshotMinimalConnectedTest {
   public void testDatasetAndSnapshotDataView() throws Exception {
     DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
     validateDataView(
-        ConnectedOperations.TDRResourceType.DATASET,
+        ConnectedOperations.TdrResourceType.DATASET,
         datasetMinimalSummary.getId(),
         datasetMinimalSummary.getName());
 
@@ -190,11 +190,11 @@ public class SnapshotMinimalConnectedTest {
             connectedOperations, snapshotRequest, response);
 
     validateDataView(
-        ConnectedOperations.TDRResourceType.SNAPSHOT, summaryModel.getId(), summaryModel.getName());
+        ConnectedOperations.TdrResourceType.SNAPSHOT, summaryModel.getId(), summaryModel.getName());
   }
 
   private void validateDataView(
-      ConnectedOperations.TDRResourceType resourceType, UUID resourceId, String resourceName)
+      ConnectedOperations.TdrResourceType resourceType, UUID resourceId, String resourceName)
       throws Exception {
     List<Object> ageGreaterThanOneResult =
         connectedOperations.retrieveDataSuccess(
@@ -211,7 +211,7 @@ public class SnapshotMinimalConnectedTest {
         "participant dataset view has one record", ageGreaterThan23Result.size(), equalTo(1));
 
     String prefix =
-        resourceType.equals(ConnectedOperations.TDRResourceType.DATASET) ? PDAO_PREFIX : "";
+        resourceType.equals(ConnectedOperations.TdrResourceType.DATASET) ? PDAO_PREFIX : "";
     String joinClause =
         "JOIN " + prefix + resourceName + ".sample ON " + prefix + "sample.participant_id = id";
     ErrorModel previewError =

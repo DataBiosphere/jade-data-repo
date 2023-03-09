@@ -533,7 +533,7 @@ public class DatasetService {
       }
     } else if (cloudPlatformWrapper.isAzure()) {
       throw new NotImplementedException(
-          "Azure datasets are not yet supported for the preview endpoint");
+          "Azure datasets are not yet supported for the data endpoint");
     } else {
       throw new SnapshotPreviewException("Cloud not supported");
     }

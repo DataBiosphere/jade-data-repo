@@ -218,6 +218,10 @@ dependencies {
 
     implementation group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '9.2.1.jre11'
 
+    // For distributed locking of Spring @Scheduled tasks across multiple instances
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.2.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.2.0'
+
     // This allows you to build with a local Stairway JAR file, instead of the one from the repository
     // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
     // Or define the environment variable ORG_GRADLE_PROJECT_stairwayjar

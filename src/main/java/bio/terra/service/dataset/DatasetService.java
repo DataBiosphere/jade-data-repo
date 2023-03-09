@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 
 import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
@@ -505,11 +506,16 @@ public class DatasetService {
                     new DatasetDataException(
                         "No dataset table exists with the name: " + tableName));
 
-    table
-        .getColumnByName(sort)
-        .orElseThrow(
-            () ->
-                new DatasetDataException("No dataset table column exists with the name: " + sort));
+    // Assert column name provided by user is valid
+    // By default sort is set to the pdao_row_id_column
+    if (!sort.equalsIgnoreCase(PDAO_ROW_ID_COLUMN)) {
+      table
+          .getColumnByName(sort)
+          .orElseThrow(
+              () ->
+                  new DatasetDataException(
+                      "No dataset table column exists with the name: " + sort));
+    }
 
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
 

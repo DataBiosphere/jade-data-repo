@@ -1425,9 +1425,125 @@ paths:
 
   # -- Cohort Builder Endpoints --
 
-  "/api/repository/v1/entities/{entityName}/counts":
+  '/api/repository/v1/cohort-builder/entities/{entityName}/hints':
     parameters:
-      - $ref: "#/parameters/EntityName"
+      - $ref: '#/parameters/EntityName'
+      - in: body
+        required: true
+        name: hintQuery
+        schema:
+          $ref: '#/definitions/HintQuery'
+    post:
+      summary: Query entity display hints
+      operationId: queryHints
+      tags:
+      - repository
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/DisplayHintList'
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/concept-sets':
+    get:
+      parameters:
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          type: integer
+          description: The numbers of items to return.
+          default: 10
+      summary: List all concept sets in a study
+      operationId: listConceptSets
+      tags:
+      - repository
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ConceptSetList'
+        500:
+          $ref: '#/definitions/ErrorModel'
+    post:
+      parameters:
+        - in: body
+          required: true
+          name: conceptSetCreateInfo
+          schema:
+            $ref: '#/definitions/ConceptSetCreateInfo'
+      summary: Create a new concept set
+      operationId: createConceptSet
+      tags:
+      - repository
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ConceptSet'
+        500:
+          $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/concept-sets/{conceptSetId}':
+    parameters:
+      - $ref: '#/parameters/ConceptSetId'
+    get:
+      summary: Get an existing concept set
+      operationId: getConceptSet
+      tags:
+      - repository
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ConceptSet'
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+    patch:
+      parameters:
+        - in: body
+          required: true
+          name: conceptSetUpdateInfo
+          schema:
+            $ref: '#/definitions/ConceptSetUpdateInfo'
+      summary: Update an existing concept set
+      operationId: updateConceptSet
+      tags:
+      - repository
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ConceptSet'
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+    delete:
+      summary: Delete a concept set
+      operationId: deleteConceptSet
+      tags:
+      - repository
+      responses:
+        204:
+          description: OK
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/entities/{entityName}/counts':
+    parameters:
+      - $ref: '#/parameters/EntityName'
       - in: body
         required: true
         name: countQuery
@@ -1442,15 +1558,15 @@ paths:
         200:
           description: OK
           schema:
-            $ref: "#/definitions/InstanceCountList"
+            $ref: '#/definitions/InstanceCountList'
         404:
           $ref: '#/definitions/ErrorModel'
         500:
           $ref: '#/definitions/ErrorModel'
 
-  "/api/repository/v1/entities/{entityName}/instances":
+  '/api/repository/v1/cohort-builder/entities/{entityName}/instances':
     parameters:
-      - $ref: "#/parameters/EntityName"
+      - $ref: '#/parameters/EntityName'
       - in: body
         name: query
         required: true
@@ -1465,7 +1581,7 @@ paths:
         200:
           description: OK
           schema:
-            $ref: "#/definitions/InstanceList"
+            $ref: '#/definitions/InstanceList'
         404:
           $ref: '#/definitions/ErrorModel'
         500:
@@ -1886,6 +2002,12 @@ parameters:
     name: entityName
     in: path
     description: Name of the entity
+    required: true
+    type: string
+  ConceptSetId:
+    name: conceptSetId
+    in: path
+    description: ID of the concept set
     required: true
     type: string
 
@@ -2924,10 +3046,170 @@ definitions:
           $ref: '#/definitions/PolicyModel'
 
   # -- Cohort Builder definitions --
+  Attribute:
+    type: object
+    description: Entity attribute
+    properties:
+      name:
+        description: Name
+        type: string
+      type:
+        description: Attribute type
+        type: string
+        enum: [ 'SIMPLE', 'KEY_AND_DISPLAY' ]
+      dataType:
+        $ref: '#/definitions/DataType'
+
+  EntityName:
+    type: string
+    description: Name of the entity (e.g. condition_occurrence)
+
+  ConceptSetDisplayName:
+    type: string
+    description: Human readable name of the concept set
+
+  ConceptSetDescription:
+    type: string
+    description: Description of the concept set
+
+  ConceptSetList:
+    type: array
+    items:
+      $ref: '#/definitions/ConceptSet'
+
+  DisplayHint:
+    type: object
+    description: Display hint for entity attribute
+    properties:
+      attribute:
+        $ref: '#/definitions/Attribute'
+      displayHint:
+        type: object
+        description: Display hint calculated from source data
+        properties:
+          enumHint:
+            $ref: '#/definitions/DisplayHintEnum'
+          numericRangeHint:
+            $ref: '#/definitions/DisplayHintNumericRange'
+
+  DisplayHintEnum:
+    type: object
+    description: Enumeration of possible values, display strings, and counts
+    properties:
+      enumHintValues:
+        type: array
+        items:
+          type: object
+          description: Enum value and count
+          properties:
+            enumVal:
+              $ref: '#/definitions/ValueDisplay'
+            count:
+              type: integer
+
+  DisplayHintNumericRange:
+    type: object
+    description: Maximum and minimum values
+    properties:
+      min:
+        description: Max value
+        type: number
+        format: double
+      max:
+        description: Min value
+        type: number
+        format: double
+
+  DisplayHintList:
+    type: object
+    description: List of display hints
+    properties:
+      sql:
+        type: string
+      displayHints:
+        type: array
+        items:
+          $ref: '#/definitions/DisplayHint'
+
+  HintQuery:
+    type: object
+    description: Get display hints
+    properties:
+      relatedEntity:
+        description: |
+          Optional related entity.
+          If specified, then we return hints computed across related instances (e.g. condition occurrences where condition id=11).
+          Otherwise, we return hints computed across all instances (e.g. all persons).
+        type: object
+        properties:
+          name:
+            type: string
+            description: Related entity name
+          id:
+            $ref: '#/definitions/Literal'
+
+  ConceptSet:
+    type: object
+    properties:
+      id:
+        description: ID of the concept set, immutable
+        type: string
+      entity:
+        $ref: '#/definitions/EntityName'
+      displayName:
+        $ref: '#/definitions/ConceptSetDisplayName'
+      description:
+        $ref: '#/definitions/ConceptSetDescription'
+      criteria:
+        $ref: '#/definitions/Criteria'
+      created:
+        description: Timestamp of when the concept set was created
+        type: string
+        format: date-time
+      createdBy:
+        description: Email of user who created the concept set
+        type: string
+      lastModified:
+        description: Timestamp of when the concept set was last modified
+        type: string
+        format: date-time
+    required:
+      - id
+      - entity
+      - displayName
+      - criteria
+      - created
+      - createdBy
+      - lastModified
+
+  ConceptSetCreateInfo:
+    type: object
+    properties:
+      entity:
+        $ref: '#/definitions/EntityName'
+      displayName:
+        $ref: '#/definitions/ConceptSetDisplayName'
+      description:
+        $ref: '#/definitions/ConceptSetDescription'
+      criteria:
+        $ref: '#/definitions/Criteria'
+
+  ConceptSetUpdateInfo:
+    type: object
+    properties:
+      entity:
+        $ref: '#/definitions/EntityName'
+      displayName:
+        $ref: '#/definitions/ConceptSetDisplayName'
+      description:
+        $ref: '#/definitions/ConceptSetDescription'
+      criteria:
+        $ref: '#/definitions/Criteria'
+
   OrderByDirection:
     type: string
     description: Defaults to ascending
-    enum: ["ASCENDING", "DESCENDING"]
+    enum: ['ASCENDING', 'DESCENDING']
 
   Limit:
     type: integer
@@ -2956,7 +3238,7 @@ definitions:
             type: array
             items:
               type: string
-              enum: [ "IS_MEMBER", "PATH", "NUM_CHILDREN", "IS_ROOT" ]
+              enum: [ 'IS_MEMBER', 'PATH', 'NUM_CHILDREN', 'IS_ROOT' ]
       includeRelationshipFields:
         description: Relationship (count) fields to include in the returned instances.
         type: array
@@ -2972,7 +3254,7 @@ definitions:
               items:
                 type: string
       filter:
-        $ref: "#/definitions/Filter"
+        $ref: '#/definitions/Filter'
       orderBys:
         type: array
         description: Attributes and direction to order the results by
@@ -2990,9 +3272,9 @@ definitions:
                 hierarchy:
                   type: string
             direction:
-              $ref: "#/definitions/OrderByDirection"
+              $ref: '#/definitions/OrderByDirection'
       limit:
-        $ref: "#/definitions/Limit"
+        $ref: '#/definitions/Limit'
 
   InstanceList:
     type: object
@@ -3003,7 +3285,7 @@ definitions:
       instances:
         type: array
         items:
-          $ref: "#/definitions/Instance"
+          $ref: '#/definitions/Instance'
 
   Instance:
     type: object
@@ -3013,7 +3295,7 @@ definitions:
         type: object
         additionalProperties:
           type: object
-          $ref: "#/definitions/ValueDisplay"
+          $ref: '#/definitions/ValueDisplay'
       hierarchyFields:
         description: Hierarchy field values for this instance. One set of values per hierarchy. Only the values requested are populated.
         type: array
@@ -3054,7 +3336,7 @@ definitions:
       instanceCounts:
         type: array
         items:
-          $ref: "#/definitions/InstanceCount"
+          $ref: '#/definitions/InstanceCount'
 
   InstanceCount:
     type: object
@@ -3066,7 +3348,7 @@ definitions:
         type: object
         additionalProperties:
           type: object
-          $ref: "#/definitions/ValueDisplay"
+          $ref: '#/definitions/ValueDisplay'
 
   ValueDisplay:
     type: object
@@ -3074,7 +3356,7 @@ definitions:
     properties:
       value:
         description: Literal value
-        $ref: "#/definitions/Literal"
+        $ref: '#/definitions/Literal'
       display:
         type: string
         description: Optional display string
@@ -3091,18 +3373,18 @@ definitions:
         items:
           type: string
       filter:
-        $ref: "#/definitions/Filter"
+        $ref: '#/definitions/Filter'
 
   DataType:
     type: string
-    enum: [ "INT64", "STRING", "BOOLEAN", "DATE" ]
+    enum: [ 'INT64', 'STRING', 'BOOLEAN', 'DATE' ]
 
   Literal:
     type: object
     description: Union of references to each value type. Exactly one will be populated based on the dataType.
     properties:
       dataType:
-        $ref: "#/definitions/DataType"
+        $ref: '#/definitions/DataType'
       valueUnion:
         type: object
         properties:
@@ -3123,20 +3405,20 @@ definitions:
     properties:
       filterType:
         type: string
-        enum: [ "ATTRIBUTE", "TEXT", "HIERARCHY", "RELATIONSHIP", "BOOLEAN_LOGIC" ]
+        enum: [ 'ATTRIBUTE', 'TEXT', 'HIERARCHY', 'RELATIONSHIP', 'BOOLEAN_LOGIC' ]
       filterUnion:
         type: object
         properties:
           attributeFilter:
-            $ref: "#/definitions/AttributeFilter"
+            $ref: '#/definitions/AttributeFilter'
           textFilter:
-            $ref: "#/definitions/TextFilter"
+            $ref: '#/definitions/TextFilter'
           hierarchyFilter:
-            $ref: "#/definitions/HierarchyFilter"
+            $ref: '#/definitions/HierarchyFilter'
           relationshipFilter:
-            $ref: "#/definitions/RelationshipFilter"
+            $ref: '#/definitions/RelationshipFilter'
           booleanLogicFilter:
-            $ref: "#/definitions/BooleanLogicFilter"
+            $ref: '#/definitions/BooleanLogicFilter'
 
   AttributeFilter:
     type: object
@@ -3146,9 +3428,9 @@ definitions:
         type: string
       operator:
         type: string
-        enum: ["EQUALS", "NOT_EQUALS", "LESS_THAN", "GREATER_THAN"]
+        enum: ['EQUALS', 'NOT_EQUALS', 'LESS_THAN', 'GREATER_THAN']
       value:
-        $ref: "#/definitions/Literal"
+        $ref: '#/definitions/Literal'
 
   TextFilter:
     type: object
@@ -3156,7 +3438,7 @@ definitions:
     properties:
       matchType:
         type: string
-        enum: [ "EXACT_MATCH", "FUZZY_MATCH" ]
+        enum: [ 'EXACT_MATCH', 'FUZZY_MATCH' ]
       attribute:
         type: string
         description: |
@@ -3174,9 +3456,9 @@ definitions:
         type: string
       operator:
         type: string
-        enum: [ "CHILD_OF", "DESCENDANT_OF_INCLUSIVE", "IS_ROOT", "IS_MEMBER" ]
+        enum: [ 'CHILD_OF', 'DESCENDANT_OF_INCLUSIVE', 'IS_ROOT', 'IS_MEMBER' ]
       value:
-        $ref: "#/definitions/Literal"
+        $ref: '#/definitions/Literal'
 
   RelationshipFilter:
     type: object
@@ -3185,7 +3467,7 @@ definitions:
       entity:
         type: string
       subfilter:
-        $ref: "#/definitions/Filter"
+        $ref: '#/definitions/Filter'
 
   BooleanLogicFilter:
     type: object
@@ -3195,11 +3477,11 @@ definitions:
     properties:
       operator:
         type: string
-        enum: [ "AND", "OR", "NOT" ]
+        enum: [ 'AND', 'OR', 'NOT' ]
       subfilters:
         type: array
         items:
-          $ref: "#/definitions/Filter"
+          $ref: '#/definitions/Filter'
 
   Cohort:
     type: object
@@ -3314,6 +3596,9 @@ definitions:
       selectionData:
         type: string # JSON formatted
         description: Serialized plugin-specific representation of the user's selection
+      uiConfig:
+        type: string # JSON formatted
+        description: Serialized plugin-specific UI configuration for the criteria
     required:
       - id
       - displayName

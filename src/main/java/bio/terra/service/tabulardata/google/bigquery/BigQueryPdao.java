@@ -126,6 +126,7 @@ public abstract class BigQueryPdao {
 
     String columns = String.join(",", columnNames);
     // Parse before querying because the where clause is user-provided
+    // TODO - This code should be shared with Azure equivalent call (DR-2937)
     final String sql =
         new ST(DATA_TEMPLATE)
             .add("columns", columns)

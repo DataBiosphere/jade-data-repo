@@ -1,7 +1,6 @@
 package bio.terra.service.dataset;
 
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
-import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 
 import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
@@ -64,7 +63,6 @@ import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
@@ -507,14 +505,11 @@ public class DatasetService {
                     new DatasetDataException(
                         "No dataset table exists with the name: " + tableName));
 
-    if (!sort.equalsIgnoreCase(PDAO_ROW_ID_COLUMN)) {
-      table
-          .getColumnByName(sort)
-          .orElseThrow(
-              () ->
-                  new SnapshotPreviewException(
-                      "No dataset table column exists with the name: " + sort));
-    }
+    table
+        .getColumnByName(sort)
+        .orElseThrow(
+            () ->
+                new DatasetDataException("No dataset table column exists with the name: " + sort));
 
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
 
@@ -535,7 +530,7 @@ public class DatasetService {
       throw new NotImplementedException(
           "Azure datasets are not yet supported for the data endpoint");
     } else {
-      throw new SnapshotPreviewException("Cloud not supported");
+      throw new DatasetDataException("Cloud not supported");
     }
   }
 

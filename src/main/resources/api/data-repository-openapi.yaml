@@ -3102,6 +3102,287 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: upgrade
 
+  # -- Cohort Builder Endpoints --
+
+  '/api/repository/v1/cohort-builder/entities/{entityName}/hints':
+    parameters:
+      - $ref: '#/parameters/EntityName'
+    post:
+      summary: Query entity display hints
+      operationId: queryHints
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HintQuery'
+      tags:
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/DisplayHintList'
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/concept-sets':
+    get:
+      parameters:
+        - name: offset
+          in: query
+          description: The number of entries to skip before when retrieving the next
+            page
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          description: The numbers of items to return.
+          schema:
+            type: integer
+            default: 10
+      summary: List all concept sets in a study
+      operationId: listConceptSets
+      tags:
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/ConceptSetList'
+        500:
+          $ref: '#/definitions/ErrorModel'
+    post:
+      summary: Create a new concept set
+      operationId: createConceptSet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/definitions/ConceptSetCreateInfo'
+      tags:
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/ConceptSet'
+        500:
+          $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/concept-sets/{conceptSetId}':
+    parameters:
+      - $ref: '#/parameters/ConceptSetId'
+    get:
+      summary: Get an existing concept set
+      operationId: getConceptSet
+      tags:
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/ConceptSet'
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+    patch:
+      parameters:
+      summary: Update an existing concept set
+      operationId: updateConceptSet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/definitions/ConceptSetUpdateInfo'
+      tags:
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/ConceptSet'
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+    delete:
+      summary: Delete a concept set
+      operationId: deleteConceptSet
+      tags:
+        - repository
+      responses:
+        204:
+          description: OK
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/entities/{entityName}/counts':
+    parameters:
+      - $ref: '#/parameters/EntityName'
+    post:
+      summary: Count entity instances
+      operationId: countInstances
+      tags:
+        - repository
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/definitions/CountQuery'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/InstanceCountList'
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/entities/{entityName}/instances':
+    parameters:
+      - $ref: '#/parameters/EntityName'
+    post:
+      summary: Query entity instances
+      operationId: queryInstances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/definitions/Query'
+      tags:
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/InstanceList'
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/cohorts':
+    get:
+      parameters:
+        - in: query
+          name: offset
+          description: The number of items to skip before starting to collect the result set.
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: limit
+          description: The numbers of items to return.
+          schema:
+            type: integer
+            default: 10
+      summary: List all user cohorts
+      operationId: listCohorts
+      tags:
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/CohortList'
+        500:
+          $ref: '#/definitions/ErrorModel'
+    post:
+      summary: Create a new cohort
+      operationId: createCohort
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/definitions/CohortCreateInfo'
+      tags:
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/Cohort'
+        500:
+          $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/cohorts/{cohortId}':
+    parameters:
+      - $ref: '#/parameters/CohortId'
+    get:
+      summary: Get an existing cohort
+      operationId: getCohort
+      tags:
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/Cohort'
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+    patch:
+      summary: Update an existing cohort
+      operationId: updateCohort
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/definitions/CohortUpdateInfo'
+      tags:
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/definitions/Cohort'
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+    delete:
+      summary: Delete a cohort
+      operationId: deleteCohort
+      tags:
+        - repository
+      responses:
+        204:
+          description: OK
+        404:
+          $ref: '#/definitions/ErrorModel'
+        500:
+          $ref: '#/definitions/ErrorModel'
+
 ##############################################################################
 ## SEARCH API STANDARD ENDPOINTS
 ##############################################################################

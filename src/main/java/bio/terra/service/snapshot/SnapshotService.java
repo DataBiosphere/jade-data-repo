@@ -76,6 +76,7 @@ import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
@@ -783,10 +784,10 @@ public class SnapshotService {
       try {
         List<String> columns =
             snapshotTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
-
+        String bqFormattedTableName = snapshot.getName() + "." + tableName;
         List<Map<String, Object>> values =
-            bigQuerySnapshotPdao.getSnapshotTable(
-                snapshot, tableName, columns, limit, offset, sort, direction, filter);
+            BigQueryPdao.getTable(
+                snapshot, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
 
         return new SnapshotPreviewModel().result(List.copyOf(values));
       } catch (InterruptedException e) {

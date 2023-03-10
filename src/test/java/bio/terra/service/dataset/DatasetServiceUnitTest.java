@@ -15,6 +15,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobService;
@@ -64,6 +65,8 @@ public class DatasetServiceUnitTest {
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockBean private ProfileService profileService;
   @MockBean private UserLoggingMetrics loggingMetrics;
+  @MockBean private IamService iamService;
+  @MockBean private DatasetTableDao datasetTableDao;
 
   @Test
   public void enumerate() {

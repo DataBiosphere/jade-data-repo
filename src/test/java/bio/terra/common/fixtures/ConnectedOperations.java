@@ -31,6 +31,7 @@ import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -69,6 +70,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.CoreMatchers;
 import org.slf4j.Logger;
@@ -833,8 +835,50 @@ public class ConnectedOperations {
     return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
   }
 
+  public MockHttpServletResponse retrieveDatasetDataByIdRaw(
+      UUID datasetId, String tableName, int limit, int offset, String filter, String sort)
+      throws Exception {
+    String url = "/api/repository/v1/datasets/{id}/data/{table}";
+    MockHttpServletRequestBuilder request =
+        get(url, datasetId, tableName)
+            .param("limit", String.valueOf(limit))
+            .param("offset", String.valueOf(offset));
+    if (sort != null) {
+      request.param("sort", sort);
+    }
+    if (filter != null) {
+      request.param("filter", filter);
+    }
+    MvcResult result = mvc.perform(request).andReturn();
+    return result.getResponse();
+  }
+
+  public DatasetDataModel retrieveDatasetDataByIdSuccess(
+      UUID datasetId, String tableName, int limit, int offset, String filter, String sort)
+      throws Exception {
+    MockHttpServletResponse response =
+        retrieveDatasetDataByIdRaw(datasetId, tableName, limit, offset, filter, sort);
+    assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+    return TestUtils.mapFromJson(response.getContentAsString(), DatasetDataModel.class);
+  }
+
+  public ErrorModel retrieveDatasetDataByIdFailure(
+      UUID datasetId,
+      String tableName,
+      int limit,
+      int offset,
+      String filter,
+      String sort,
+      HttpStatus expectedStatus)
+      throws Exception {
+    MockHttpServletResponse response =
+        retrieveDatasetDataByIdRaw(datasetId, tableName, limit, offset, filter, sort);
+    return handleFailureCase(response, expectedStatus);
+  }
+
   public MockHttpServletResponse retrieveSnapshotPreviewByIdRaw(
-      UUID snapshotId, String tableName, int limit, int offset, String filter) throws Exception {
+      UUID snapshotId, String tableName, int limit, int offset, String filter, String sort)
+      throws Exception {
     String url = "/api/repository/v1/snapshots/{id}/data/{table}";
     MockHttpServletRequestBuilder request =
         get(url, snapshotId, tableName)
@@ -843,14 +887,67 @@ public class ConnectedOperations {
     if (filter != null) {
       request.param("filter", filter);
     }
+    if (sort != null) {
+      request.param("sort", sort);
+    }
     MvcResult result = mvc.perform(request).andReturn();
     return result.getResponse();
   }
 
+  public enum TdrResourceType {
+    SNAPSHOT,
+    DATASET
+  };
+
+  public List<Object> retrieveDataSuccess(
+      TdrResourceType resourceType,
+      UUID resourceId,
+      String tableName,
+      int limit,
+      int offset,
+      String filter,
+      String sort)
+      throws Exception {
+    switch (resourceType) {
+      case SNAPSHOT:
+        return retrieveSnapshotPreviewByIdSuccess(
+                resourceId, tableName, limit, offset, filter, sort)
+            .getResult();
+      case DATASET:
+        return retrieveDatasetDataByIdSuccess(resourceId, tableName, limit, offset, filter, sort)
+            .getResult();
+      default:
+        throw new NotImplementedException();
+    }
+  }
+
+  public ErrorModel retrieveDataFailure(
+      TdrResourceType resourceType,
+      UUID resourceId,
+      String tableName,
+      int limit,
+      int offset,
+      String filter,
+      String sort,
+      HttpStatus expectedStatus)
+      throws Exception {
+    switch (resourceType) {
+      case SNAPSHOT:
+        return retrieveSnapshotPreviewByIdFailure(
+            resourceId, tableName, limit, offset, filter, sort, expectedStatus);
+      case DATASET:
+        return retrieveDatasetDataByIdFailure(
+            resourceId, tableName, limit, offset, filter, sort, expectedStatus);
+      default:
+        throw new NotImplementedException();
+    }
+  }
+
   public SnapshotPreviewModel retrieveSnapshotPreviewByIdSuccess(
-      UUID snapshotId, String tableName, int limit, int offset, String filter) throws Exception {
+      UUID snapshotId, String tableName, int limit, int offset, String filter, String sort)
+      throws Exception {
     MockHttpServletResponse response =
-        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset, filter);
+        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset, filter, sort);
     assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
     return TestUtils.mapFromJson(response.getContentAsString(), SnapshotPreviewModel.class);
   }
@@ -861,10 +958,11 @@ public class ConnectedOperations {
       int limit,
       int offset,
       String filter,
+      String sort,
       HttpStatus expectedStatus)
       throws Exception {
     MockHttpServletResponse response =
-        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset, filter);
+        retrieveSnapshotPreviewByIdRaw(snapshotId, tableName, limit, offset, filter, sort);
     return handleFailureCase(response, expectedStatus);
   }
 

@@ -7,7 +7,6 @@ import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
@@ -20,8 +19,6 @@ import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.TableResult;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -54,7 +51,6 @@ public class DatasetSoftDeletesTest extends UsersBase {
   @Autowired private TestConfiguration testConfiguration;
   @Rule @Autowired public TestJobWatcher testWatcher;
 
-  private String stewardToken;
   private UUID datasetId;
   private UUID profileId;
   private List<UUID> snapshotIds;
@@ -62,7 +58,6 @@ public class DatasetSoftDeletesTest extends UsersBase {
   @Before
   public void setup() throws Exception {
     super.setup();
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     datasetId = null;
@@ -91,10 +86,9 @@ public class DatasetSoftDeletesTest extends UsersBase {
 
     // get row ids
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
     List<String> participantRowIds =
-        DatasetIntegrationTest.getRowIds(bigQuery, dataset, "participant", 3L);
-    List<String> sampleRowIds = DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample", 2L);
+        dataRepoFixtures.getRowIds(steward(), dataset, "participant", 3);
+    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample", 2);
 
     // write them to GCS
     String participantPath =
@@ -116,8 +110,8 @@ public class DatasetSoftDeletesTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // make sure the new counts make sense
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "participant", 2L);
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample", 5L);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "participant", 2);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample", 5);
   }
 
   @Test
@@ -126,13 +120,12 @@ public class DatasetSoftDeletesTest extends UsersBase {
 
     // get row ids
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
     List<UUID> participantRowIds =
-        DatasetIntegrationTest.getRowIds(bigQuery, dataset, "participant", 3L).stream()
+        dataRepoFixtures.getRowIds(steward(), dataset, "participant", 3).stream()
             .map(UUID::fromString)
             .collect(Collectors.toList());
     List<UUID> sampleRowIds =
-        DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample", 2L).stream()
+        dataRepoFixtures.getRowIds(steward(), dataset, "sample", 2).stream()
             .map(UUID::fromString)
             .collect(Collectors.toList());
 
@@ -150,8 +143,8 @@ public class DatasetSoftDeletesTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // make sure the new counts make sense
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "participant", 2L);
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample", 5L);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "participant", 2);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample", 5);
   }
 
   @Test
@@ -161,8 +154,7 @@ public class DatasetSoftDeletesTest extends UsersBase {
 
     // get 5 row ids, we'll write them out to 5 separate files
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    List<String> sampleRowIds = DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample", 5L);
+    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample", 5);
     for (String rowId : sampleRowIds) {
       DatasetIntegrationTest.writeListToScratch(
           testConfiguration.getIngestbucket(), pathPrefix, Collections.singletonList(rowId));
@@ -181,7 +173,7 @@ public class DatasetSoftDeletesTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // there should be (7 - 5) = 2 rows "visible" in the sample table
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample", 2L);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample", 2);
   }
 
   @Test
@@ -190,10 +182,9 @@ public class DatasetSoftDeletesTest extends UsersBase {
 
     // get row ids
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
     List<String> participantRowIds =
-        DatasetIntegrationTest.getRowIds(bigQuery, dataset, "participant", 3L);
-    List<String> sampleRowIds = DatasetIntegrationTest.getRowIds(bigQuery, dataset, "sample", 2L);
+        dataRepoFixtures.getRowIds(steward(), dataset, "participant", 3);
+    List<String> sampleRowIds = dataRepoFixtures.getRowIds(steward(), dataset, "sample", 2);
 
     // swap in these row ids in the request
     SnapshotRequestModel requestModelAll =
@@ -206,11 +197,8 @@ public class DatasetSoftDeletesTest extends UsersBase {
     snapshotIds.add(snapshotSummaryAll.getId());
     SnapshotModel snapshotAll =
         dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId(), null);
-    // The steward is the custodian in this case, so is a reader in big query.
-    BigQuery bigQueryAll = BigQueryFixtures.getBigQuery(snapshotAll.getDataProject(), stewardToken);
-
-    assertSnapshotTableCount(bigQueryAll, snapshotAll, "participant", 5L);
-    assertSnapshotTableCount(bigQueryAll, snapshotAll, "sample", 7L);
+    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotAll, "participant", 5);
+    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotAll, "sample", 7);
 
     // write them to GCS
     String participantPath =
@@ -232,8 +220,8 @@ public class DatasetSoftDeletesTest extends UsersBase {
     dataRepoFixtures.deleteData(steward(), datasetId, request);
 
     // make sure the new counts make sense
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "participant", 2L);
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample", 5L);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "participant", 2);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample", 5);
 
     // make full views snapshot
     SnapshotRequestModel requestModelLess =
@@ -247,26 +235,14 @@ public class DatasetSoftDeletesTest extends UsersBase {
 
     SnapshotModel snapshotLess =
         dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId(), null);
-    BigQuery bigQueryLess =
-        BigQueryFixtures.getBigQuery(snapshotLess.getDataProject(), stewardToken);
 
     // make sure the old counts stayed the same
-    assertSnapshotTableCount(bigQueryAll, snapshotAll, "participant", 5L);
-    assertSnapshotTableCount(bigQueryAll, snapshotAll, "sample", 7L);
+    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotAll, "participant", 5);
+    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotAll, "sample", 7);
 
     // make sure the new counts make sense
-    assertSnapshotTableCount(bigQueryLess, snapshotLess, "participant", 2L);
-    assertSnapshotTableCount(bigQueryLess, snapshotLess, "sample", 5L);
-  }
-
-  private void assertSnapshotTableCount(
-      BigQuery bigQuery, SnapshotModel snapshot, String tableName, Long n)
-      throws InterruptedException {
-
-    String sql = "SELECT count(*) FROM " + BigQueryFixtures.makeTableRef(snapshot, tableName);
-    TableResult result = BigQueryFixtures.queryWithRetry(sql, bigQuery);
-    assertThat(
-        "count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
+    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotLess, "participant", 2);
+    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshotLess, "sample", 5);
   }
 
   private UUID ingestedDataset() throws Exception {

@@ -33,7 +33,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -47,7 +46,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -353,11 +351,8 @@ public class AccessTest extends UsersBase {
         custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
 
     // gets the "sample" table and makes a table ref to use in the query
-    String tableRef =
-        BigQueryFixtures.makeTableRef(dataset, dataset.getSchema().getTables().get(1).getName());
-    String sql = String.format("SELECT * FROM %s LIMIT %s", tableRef, 1000);
-    TableResult results = BigQueryFixtures.query(sql, custodianBigQuery);
-    Assert.assertEquals(7, results.getTotalRows());
+    dataRepoFixtures.assertDatasetTableCount(
+        custodian(), dataset, dataset.getSchema().getTables().get(1).getName(), 7);
   }
 
   private boolean canReadBlob(Storage storage, BlobId blobId) throws Exception {

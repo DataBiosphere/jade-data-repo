@@ -1650,6 +1650,61 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/data/{table}:
+    get:
+      tags:
+        - datasets
+        - search
+        - repository
+      description: Retrieve data for a table in a dataset
+      operationId: lookupDatasetDataById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: table
+          in: path
+          description: Name of table to get data from
+          required: true
+          schema:
+            type: string
+        - name: offset
+          in: query
+          description: The number of rows to skip when retrieving the next page
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: limit
+          in: query
+          description: The number of rows to return for the data
+          schema:
+            type: integer
+            default: 30
+            minimum: 1
+            maximum: 1000
+        - name: sort
+          in: query
+          description: The table column to sort by
+          schema:
+            type: string
+            default: "datarepo_row_id"
+        - name: direction
+          in: query
+          description: The direction to sort.
+          schema:
+            default: asc
+            $ref: '#/components/schemas/SqlSortDirection'
+        - name: filter
+          in: query
+          description: A SQL WHERE clause to filter the table results.
+          schema:
+            type: string
+      responses:
+        200:
+          description: Returns the table data from a dataset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetDataModel'
   /api/repository/v1/datasets/{id}/summary:
     get:
       tags:
@@ -4458,6 +4513,16 @@ components:
         dataset bucket.
         Eventually, this will include attributes of the storage including
         billing, temperature, geography, etc. But for now...
+    DatasetDataModel:
+      type: object
+      properties:
+        result:
+          type: array
+          items:
+            type: object
+          description: Data from a dataset table
+      description: >
+       Data from a dataset table
     SnapshotPreviewModel:
       type: object
       properties:

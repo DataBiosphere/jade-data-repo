@@ -10,6 +10,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.model.AssetModel;
 import bio.terra.model.TableDataType;
+import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -57,6 +58,8 @@ public class ValidateAssetUnitTest {
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
   @MockBean private ProfileService profileService;
   @MockBean private UserLoggingMetrics loggingMetrics;
+  @MockBean private IamService iamService;
+  @MockBean private DatasetTableDao datasetTableDao;
 
   private String tableName = "tableName1";
   private String tableName2 = "tableName2";

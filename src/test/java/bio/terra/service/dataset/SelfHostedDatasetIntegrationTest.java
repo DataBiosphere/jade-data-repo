@@ -13,7 +13,6 @@ import bio.terra.common.GcsUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
-import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
@@ -41,7 +40,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.StorageRoles;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -266,11 +264,10 @@ public class SelfHostedDatasetIntegrationTest extends UsersBase {
 
     dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    DatasetIntegrationTest.assertTableCount(bigQuery, dataset, "sample_vcf", 2L);
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "sample_vcf", 2);
 
     List<Map<String, List<String>>> sampleVcfResults =
-        DatasetIntegrationTest.transformStringResults(bigQuery, dataset, "sample_vcf");
+        dataRepoFixtures.transformStringResults(steward(), dataset, "sample_vcf");
     Set<String> ingestedFileIds =
         sampleVcfResults.stream()
             .flatMap(

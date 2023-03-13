@@ -477,16 +477,32 @@ public class FileTest extends UsersBase {
     String gsPath = "gs://" + testConfiguration.getIngestbucket();
     String filePath = "/foo/bar";
     String gsFilePath = gsPath + "/files/file with space and #hash%percent+plus.txt";
+    // Adding reader as custodian on dataset
     dataRepoFixtures.addDatasetPolicyMember(
         steward(), datasetId, IamRole.CUSTODIAN, reader().getEmail());
+    // Adding reader as user on spend profile
     dataRepoFixtures.addPolicyMember(
         steward(), profileId, IamRole.USER, reader().getEmail(), IamResourceType.SPEND_PROFILE);
+
+    // Reader has access on the dataset, but their proxy group does not have access on the source
+    // bucket
     DataRepoResponse<JobModel> ingestJob =
         dataRepoFixtures.ingestFileLaunch(
             // note: reader's proxy group should not have access to the source bucket
             reader(), datasetId, profileId, gsFilePath, filePath);
     DataRepoResponse<FileModel> error =
-        dataRepoClient.waitForResponse(steward(), ingestJob, new TypeReference<>() {});
+        dataRepoClient.waitForResponse(reader(), ingestJob, new TypeReference<>() {});
+    if (!error.getErrorObject().isPresent()) {
+      // This is the case we've seen occasionally return false. Why?
+      logger.info(
+          "ERROR: The error object was not present, but should have been. Status code of request: {}",
+          error.getStatusCode());
+      if (error.getResponseObject().isPresent()) {
+        logger.info(
+            "ERROR: The response FileModel object was present: {}",
+            error.getResponseObject().get().getFileId());
+      }
+    }
 
     assertThat(error.getErrorObject().isPresent(), equalTo(true));
     assertThat(

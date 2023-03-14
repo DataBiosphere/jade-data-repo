@@ -361,7 +361,7 @@ public class CohortBuilderApiController implements CohortBuilderApi {
                             .numericRangeHint(
                                 new DisplayHintNumericRange().min(1909.0D).max(1983.0D))));
 
-    return new ResponseEntity<>(new DisplayHintList(), HttpStatus.NOT_IMPLEMENTED);
+    return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
   // Our stubs have the same count for everything

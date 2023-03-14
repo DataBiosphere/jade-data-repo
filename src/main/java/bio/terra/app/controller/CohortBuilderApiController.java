@@ -33,10 +33,11 @@ import bio.terra.model.Query;
 import bio.terra.model.ValueDisplay;
 import io.swagger.annotations.Api;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,9 +52,7 @@ public class CohortBuilderApiController implements CohortBuilderApi {
   public CohortBuilderApiController() {}
 
   @Override
-  public ResponseEntity<CohortList> listCohorts(
-      @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-      @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+  public ResponseEntity<CohortList> listCohorts(Integer offset, Integer limit) {
     CohortList response = new CohortList();
     response.add(generateStubCohort());
     return new ResponseEntity<>(response, HttpStatus.OK);
@@ -83,17 +82,7 @@ public class CohortBuilderApiController implements CohortBuilderApi {
   @Override
   public ResponseEntity<InstanceCountList> countInstances(
       String entityName, CountQuery countQuery) {
-    // Stub values based on what the API synthetic data returns in the other API - not
-    // representative of life
-    List<ValueDisplay> yearsOfBirth = new ArrayList<>();
-    for (long i = 1909; i <= 1983; i++) {
-      yearsOfBirth.add(
-          new ValueDisplay()
-              .value(
-                  new Literal()
-                      .dataType(DataType.INT64)
-                      .valueUnion(new LiteralValueUnion().int64Val(i))));
-    }
+
     return new ResponseEntity<>(
         new InstanceCountList()
             .sql(
@@ -134,7 +123,16 @@ public class CohortBuilderApiController implements CohortBuilderApi {
                                     .dataType(DataType.INT64)
                                     .valueUnion(new LiteralValueUnion().int64Val(8527L)))
                             .display("White")),
-                    yearsOfBirth)),
+                    LongStream.range(1909, 1984)
+                        .mapToObj(
+                            yearOfBirth ->
+                                new ValueDisplay()
+                                    .value(
+                                        new Literal()
+                                            .dataType(DataType.INT64)
+                                            .valueUnion(
+                                                new LiteralValueUnion().int64Val(yearOfBirth))))
+                        .collect(Collectors.toList()))),
         HttpStatus.OK);
   }
 
@@ -369,64 +367,58 @@ public class CohortBuilderApiController implements CohortBuilderApi {
   // Our stubs have the same count for everything
   private List<InstanceCount> createInstanceCountsYearGenderRace(
       List<ValueDisplay> genders, List<ValueDisplay> races, List<ValueDisplay> yearsOfBirth) {
-    List<InstanceCount> instanceCounts = new ArrayList<>();
-    genders.forEach(
-        (ValueDisplay gender) ->
-            races.forEach(
-                race ->
-                    yearsOfBirth.forEach(
-                        (ValueDisplay yearOfBirth) -> {
-                          instanceCounts.add(
-                              new InstanceCount()
-                                  .count(20000)
-                                  .attributes(
-                                      Map.of(
-                                          "gender",
-                                              new ValueDisplay()
-                                                  .value(gender.getValue())
-                                                  .display(gender.getDisplay()),
-                                          "race",
-                                              new ValueDisplay()
-                                                  .value(race.getValue())
-                                                  .display(race.getDisplay()),
-                                          "year_of_birth",
-                                              new ValueDisplay()
-                                                  .value(yearOfBirth.getValue())
-                                                  .display(yearOfBirth.getDisplay()))));
-                        })));
-    return instanceCounts;
+    record GR(ValueDisplay gender, ValueDisplay race) {}
+    record GRY(ValueDisplay gender, ValueDisplay race, ValueDisplay year) {}
+
+    return genders.stream()
+        .flatMap(gender -> races.stream().map(race -> new GR(gender, race)))
+        .flatMap(
+            gr ->
+                yearsOfBirth.stream().map(yearOfBirth -> new GRY(gr.gender, gr.race, yearOfBirth)))
+        .map(
+            gry ->
+                new InstanceCount()
+                    .count(20000)
+                    .attributes(
+                        Map.of("gender", gry.gender, "race", gry.race, "year_of_birth", gry.year)))
+        .collect(Collectors.toList());
   }
 
   private Cohort generateStubCohort() {
-    List<CriteriaGroup> criteriaGroups = new java.util.ArrayList<>();
-    List<Criteria> criteria = new java.util.ArrayList<>();
-    criteria.add(
-        new Criteria()
-            .id("Q1Ng787e")
-            .displayName("")
-            .pluginName("classification")
-            .selectionData("{\"selected\":[{\"key\":4047779,\"name\":\"Disorder by body site\"}]}")
-            .uiConfig(
-                "{\"type\":\"classification\",\"id\":\"tanagra-conditions\",\"title\":\"Condition\",\"conceptSet\":true,\"category\":\"Domains\",\"columns\":[{\"key\":\"name\",\"width\":\"100%\",\"title\":\"Concept name\"},{\"key\":\"id\",\"width\":100,\"title\":\"Concept ID\"},{\"key\":\"standard_concept\",\"width\":120,\"title\":\"Source/standard\"},{\"key\":\"vocabulary_t_value\",\"width\":120,\"title\":\"Vocab\"},{\"key\":\"concept_code\",\"width\":120,\"title\":\"Code\"},{\"key\":\"t_rollup_count\",\"width\":120,\"title\":\"Roll-up count\"}],\"hierarchyColumns\":[{\"key\":\"name\",\"width\":\"100%\",\"title\":\"Condition\"},{\"key\":\"id\",\"width\":120,\"title\":\"Concept ID\"},{\"key\":\"t_rollup_count\",\"width\":120,\"title\":\"Roll-up count\"}],\"occurrence\":\"condition_occurrence\",\"classification\":\"condition\"}"));
-    criteriaGroups.add(new CriteriaGroup().id("A3FJlc87").displayName("").criteria(criteria));
-    return new Cohort().id("42VHg43VxA").displayName("My Cohort").criteriaGroups(criteriaGroups);
+    return new Cohort()
+        .id("42VHg43VxA")
+        .displayName("My Cohort")
+        .criteriaGroups(
+            List.of(
+                new CriteriaGroup()
+                    .id("A3FJlc87")
+                    .displayName("")
+                    .criteria(
+                        List.of(
+                            new Criteria()
+                                .id("Q1Ng787e")
+                                .displayName("")
+                                .pluginName("classification")
+                                .selectionData(
+                                    "{\"selected\":[{\"key\":4047779,\"name\":\"Disorder by body site\"}]}")
+                                .uiConfig(
+                                    "{\"type\":\"classification\",\"id\":\"tanagra-conditions\",\"title\":\"Condition\",\"conceptSet\":true,\"category\":\"Domains\",\"columns\":[{\"key\":\"name\",\"width\":\"100%\",\"title\":\"Concept name\"},{\"key\":\"id\",\"width\":100,\"title\":\"Concept ID\"},{\"key\":\"standard_concept\",\"width\":120,\"title\":\"Source/standard\"},{\"key\":\"vocabulary_t_value\",\"width\":120,\"title\":\"Vocab\"},{\"key\":\"concept_code\",\"width\":120,\"title\":\"Code\"},{\"key\":\"t_rollup_count\",\"width\":120,\"title\":\"Roll-up count\"}],\"hierarchyColumns\":[{\"key\":\"name\",\"width\":\"100%\",\"title\":\"Condition\"},{\"key\":\"id\",\"width\":120,\"title\":\"Concept ID\"},{\"key\":\"t_rollup_count\",\"width\":120,\"title\":\"Roll-up count\"}],\"occurrence\":\"condition_occurrence\",\"classification\":\"condition\"}")))));
   }
 
   private ConceptSet generateStubConceptSet() {
-    Criteria criteria =
-        new Criteria()
-            .id("DrX3z0V9")
-            .displayName("")
-            .pluginName("classification")
-            .selectionData("{\"selected\":[{\"key\":441840,\"name\":\"Clinical finding\"}]}")
-            .uiConfig(
-                "{\"type\":\"classification\",\"id\":\"tanagra-conditions\",\"title\":\"Condition\",\"conceptSet\":true,\"category\":\"Domains\",\"columns\":[{\"key\":\"name\",\"width\":\"100%\",\"title\":\"Concept name\"},{\"key\":\"id\",\"width\":100,\"title\":\"Concept ID\"},{\"key\":\"standard_concept\",\"width\":120,\"title\":\"Source/standard\"},{\"key\":\"vocabulary_t_value\",\"width\":120,\"title\":\"Vocab\"},{\"key\":\"concept_code\",\"width\":120,\"title\":\"Code\"},{\"key\":\"t_rollup_count\",\"width\":120,\"title\":\"Roll-up count\"}],\"hierarchyColumns\":[{\"key\":\"name\",\"width\":\"100%\",\"title\":\"Condition\"},{\"key\":\"id\",\"width\":120,\"title\":\"Concept ID\"},{\"key\":\"t_rollup_count\",\"width\":120,\"title\":\"Roll-up count\"}],\"occurrence\":\"condition_occurrence\",\"classification\":\"condition\"}");
     return new ConceptSet()
         .id("Mu6OSPzPdp")
         .entity("condition_occurrence")
         .created(OffsetDateTime.now())
         .lastModified(OffsetDateTime.now())
-        .criteria(criteria)
+        .criteria(
+            new Criteria()
+                .id("DrX3z0V9")
+                .displayName("")
+                .pluginName("classification")
+                .selectionData("{\"selected\":[{\"key\":441840,\"name\":\"Clinical finding\"}]}")
+                .uiConfig(
+                    "{\"type\":\"classification\",\"id\":\"tanagra-conditions\",\"title\":\"Condition\",\"conceptSet\":true,\"category\":\"Domains\",\"columns\":[{\"key\":\"name\",\"width\":\"100%\",\"title\":\"Concept name\"},{\"key\":\"id\",\"width\":100,\"title\":\"Concept ID\"},{\"key\":\"standard_concept\",\"width\":120,\"title\":\"Source/standard\"},{\"key\":\"vocabulary_t_value\",\"width\":120,\"title\":\"Vocab\"},{\"key\":\"concept_code\",\"width\":120,\"title\":\"Code\"},{\"key\":\"t_rollup_count\",\"width\":120,\"title\":\"Roll-up count\"}],\"hierarchyColumns\":[{\"key\":\"name\",\"width\":\"100%\",\"title\":\"Condition\"},{\"key\":\"id\",\"width\":120,\"title\":\"Concept ID\"},{\"key\":\"t_rollup_count\",\"width\":120,\"title\":\"Roll-up count\"}],\"occurrence\":\"condition_occurrence\",\"classification\":\"condition\"}"))
         .createdBy("authentication-disabled");
   }
 }

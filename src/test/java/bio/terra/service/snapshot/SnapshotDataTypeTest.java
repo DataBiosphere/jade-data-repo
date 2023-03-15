@@ -116,9 +116,6 @@ public class SnapshotDataTypeTest extends UsersBase {
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-    assertEquals(
-        "new snapshot has the correct number of tables",
-        2,
-        snapshot.getTables().size());
+    assertEquals("new snapshot has the correct number of tables", 2, snapshot.getTables().size());
   }
 }

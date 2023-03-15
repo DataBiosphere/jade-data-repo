@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
@@ -149,5 +151,36 @@ public class ValidationUtilsTest {
             .name("car")
             .addColumnsItem(new ColumnModel().name("ownerId").datatype(TableDataType.INTEGER));
     tables = List.of(personTable, carTable);
+  }
+
+  @Test
+  public void testIsCompatibleDataType() {
+    assertTrue(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.STRING, TableDataType.TEXT, CloudPlatformWrapper.of(CloudPlatform.GCP)));
+    assertTrue(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.DATE,
+            TableDataType.DATETIME,
+            CloudPlatformWrapper.of(CloudPlatform.GCP)));
+    assertTrue(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.DATE,
+            TableDataType.DATETIME,
+            CloudPlatformWrapper.of(CloudPlatform.AZURE)));
+    assertTrue(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.TIME,
+            TableDataType.TIMESTAMP,
+            CloudPlatformWrapper.of(CloudPlatform.AZURE)));
+
+    assertFalse(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.BYTES,
+            TableDataType.BOOLEAN,
+            CloudPlatformWrapper.of(CloudPlatform.GCP)));
+    assertFalse(
+        ValidationUtils.isCompatibleDataType(
+            TableDataType.DATE, TableDataType.FLOAT, CloudPlatformWrapper.of(CloudPlatform.AZURE)));
   }
 }

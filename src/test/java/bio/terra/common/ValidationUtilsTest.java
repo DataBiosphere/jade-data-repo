@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
@@ -28,7 +29,12 @@ import org.springframework.test.context.ActiveProfiles;
 public class ValidationUtilsTest {
 
   private TableModel personTable;
+  private static final String PERSON_TABLE_NAME = "person";
+  private static final String PERSON_BOOLEAN_COLUMN = "hasCat";
+  private static final String PERSON_INTEGER_COLUMN = "id";
   private TableModel carTable;
+  private static final String CAR_TABLE_NAME = "car";
+  private static final String CAR_INTEGER_COLUMN = "ownerId";
   private List<TableModel> tables;
   private final CloudPlatformWrapper gcpCloudPlatform = CloudPlatformWrapper.of(CloudPlatform.GCP);
 
@@ -96,8 +102,10 @@ public class ValidationUtilsTest {
 
   @Test
   public void testRelationshipValidationDifferentDataType() {
-    RelationshipTermModel fromTerm = new RelationshipTermModel().column("hasCat").table("person");
-    RelationshipTermModel toTerm = new RelationshipTermModel().column("ownerId").table("car");
+    RelationshipTermModel fromTerm =
+        new RelationshipTermModel().column(PERSON_BOOLEAN_COLUMN).table(PERSON_TABLE_NAME);
+    RelationshipTermModel toTerm =
+        new RelationshipTermModel().column(CAR_INTEGER_COLUMN).table(CAR_TABLE_NAME);
     defineSampleTables();
 
     Map errors =
@@ -107,8 +115,10 @@ public class ValidationUtilsTest {
 
   @Test
   public void testRelationshipValidationSameDataType() {
-    RelationshipTermModel fromTerm = new RelationshipTermModel().column("id").table("person");
-    RelationshipTermModel toTerm = new RelationshipTermModel().column("ownerId").table("car");
+    RelationshipTermModel fromTerm =
+        new RelationshipTermModel().column(PERSON_INTEGER_COLUMN).table(PERSON_TABLE_NAME);
+    RelationshipTermModel toTerm =
+        new RelationshipTermModel().column(CAR_INTEGER_COLUMN).table(CAR_TABLE_NAME);
     defineSampleTables();
 
     Map errors =
@@ -118,7 +128,8 @@ public class ValidationUtilsTest {
 
   @Test
   public void validTermRelationship() {
-    RelationshipTermModel validTerm = new RelationshipTermModel().column("id").table("person");
+    RelationshipTermModel validTerm =
+        new RelationshipTermModel().column(PERSON_INTEGER_COLUMN).table(PERSON_TABLE_NAME);
     defineSampleTables();
     Map errors = ValidationUtils.validateRelationshipTerm(validTerm, tables);
     assertThat("The term is valid so there should not be an error.", errors.size(), equalTo(0));
@@ -126,7 +137,8 @@ public class ValidationUtilsTest {
 
   @Test
   public void invalidTermTable() {
-    RelationshipTermModel invalidTable = new RelationshipTermModel().column("id").table("invalid");
+    RelationshipTermModel invalidTable =
+        new RelationshipTermModel().column(PERSON_INTEGER_COLUMN).table("invalid");
     defineSampleTables();
     Map errors = ValidationUtils.validateRelationshipTerm(invalidTable, tables);
     assertThat("Invalid Table", errors.size(), equalTo(1));
@@ -135,7 +147,7 @@ public class ValidationUtilsTest {
   @Test
   public void invalidTermColumn() {
     RelationshipTermModel invalidColumn =
-        new RelationshipTermModel().column("invalid").table("person");
+        new RelationshipTermModel().column("invalid").table(PERSON_TABLE_NAME);
     defineSampleTables();
     Map errors = ValidationUtils.validateRelationshipTerm(invalidColumn, tables);
     assertThat("Invalid Column", errors.size(), equalTo(1));
@@ -144,13 +156,16 @@ public class ValidationUtilsTest {
   private void defineSampleTables() {
     personTable =
         new TableModel()
-            .name("person")
-            .addColumnsItem(new ColumnModel().name("id").datatype(TableDataType.INTEGER))
-            .addColumnsItem(new ColumnModel().name("hasCat").datatype(TableDataType.BOOLEAN));
+            .name(PERSON_TABLE_NAME)
+            .addColumnsItem(
+                new ColumnModel().name(PERSON_INTEGER_COLUMN).datatype(TableDataType.INTEGER))
+            .addColumnsItem(
+                new ColumnModel().name(PERSON_BOOLEAN_COLUMN).datatype(TableDataType.BOOLEAN));
     carTable =
         new TableModel()
-            .name("car")
-            .addColumnsItem(new ColumnModel().name("ownerId").datatype(TableDataType.INTEGER));
+            .name(CAR_TABLE_NAME)
+            .addColumnsItem(
+                new ColumnModel().name(CAR_INTEGER_COLUMN).datatype(TableDataType.INTEGER));
     tables = List.of(personTable, carTable);
   }
 
@@ -189,17 +204,36 @@ public class ValidationUtilsTest {
   public void testRetrieveColumnModelFromTerm() {
     defineSampleTables();
 
-    String columnName = "hasCat";
     RelationshipTermModel hasCatTerm =
-        new RelationshipTermModel().column(columnName).table("person");
+        new RelationshipTermModel().column(PERSON_BOOLEAN_COLUMN).table(PERSON_TABLE_NAME);
     Optional<ColumnModel> col = ValidationUtils.retrieveColumnModelFromTerm(hasCatTerm, tables);
-    assertThat("Returns correct column", col.get().getName(), equalTo(columnName));
+    assertThat("Returns correct column", col.get().getName(), equalTo(PERSON_BOOLEAN_COLUMN));
 
     String invalidColumnName = "invalid";
     RelationshipTermModel invalidTerm =
-        new RelationshipTermModel().column(invalidColumnName).table("person");
+        new RelationshipTermModel().column(invalidColumnName).table(PERSON_TABLE_NAME);
     Optional<ColumnModel> invalidCol =
         ValidationUtils.retrieveColumnModelFromTerm(invalidTerm, tables);
     assertFalse(invalidCol.isPresent());
+  }
+
+  @Test
+  public void testGetRelationshipValidationErrors() {
+    defineSampleTables();
+    RelationshipTermModel fromTerm =
+        new RelationshipTermModel().column(PERSON_BOOLEAN_COLUMN).table(PERSON_TABLE_NAME);
+    RelationshipTermModel toTerm =
+        new RelationshipTermModel().column(CAR_INTEGER_COLUMN).table(CAR_TABLE_NAME);
+    RelationshipModel relationshipModel =
+        new RelationshipModel().from(fromTerm).to(toTerm).name("rel");
+
+    List<Map<String, String>> errors =
+        ValidationUtils.getRelationshipValidationErrors(
+            relationshipModel, tables, CloudPlatformWrapper.of(CloudPlatform.GCP));
+    List<String> errorList =
+        errors.stream().flatMap(m -> m.entrySet().stream()).map(s -> s.getKey()).toList();
+    assertThat("Error count", errorList.size(), equalTo(1));
+    assertThat(
+        "correct error is returned", errorList.get(0), equalTo("RelationshipDatatypeMismatch"));
   }
 }

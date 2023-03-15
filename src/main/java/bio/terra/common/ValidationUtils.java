@@ -253,7 +253,7 @@ public final class ValidationUtils {
     }
 
     if (fromTerm != null && toTerm != null) {
-      validateMatchingColumnDataTypes(fromTerm, toTerm, tables, cloudPlatformWrapper);
+      errors.add(validateMatchingColumnDataTypes(fromTerm, toTerm, tables, cloudPlatformWrapper));
     }
 
     return errors;

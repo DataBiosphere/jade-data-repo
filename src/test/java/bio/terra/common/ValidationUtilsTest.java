@@ -3,6 +3,7 @@ package bio.terra.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -111,6 +112,11 @@ public class ValidationUtilsTest {
     Map errors =
         ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables, gcpCloudPlatform);
     assertThat("There should be one error.", errors.size(), equalTo(1));
+    String errorMessage = errors.get("RelationshipDatatypeMismatch").toString();
+    assertThat(
+        "RelationshipDatatypeMismatch error is returned",
+        errorMessage,
+        containsString("Column data types in relationship must match"));
   }
 
   @Test

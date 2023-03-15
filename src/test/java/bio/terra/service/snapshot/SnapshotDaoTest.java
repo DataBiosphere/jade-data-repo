@@ -189,7 +189,9 @@ public class SnapshotDaoTest {
             .makeSnapshotFromSnapshotRequest(snapshotRequest)
             .projectResourceId(projectId)
             .id(snapshotId);
-    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, "happyInOutTest_flightId");
+    String flightId = "happyInOutTest_flightId";
+    snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
+    snapshotDao.unlock(snapshot.getId(), flightId);
     List<SnapshotSummary> snapshots = snapshotDao.retrieveSnapshotsForDataset(datasetId);
     assertThat("there should exist one snapshot", snapshots, hasSize(1));
   }

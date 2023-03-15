@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertNull;
@@ -177,6 +178,20 @@ public class SnapshotDaoTest {
     snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
     snapshotDao.unlock(snapshot.getId(), flightId);
     return snapshotDao.retrieveSnapshot(snapshot.getId());
+  }
+
+  @Test
+  public void testRetrieveSnapshotsForDataset() {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+
+    Snapshot snapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(snapshotRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, "happyInOutTest_flightId");
+    List<SnapshotSummary> snapshots = snapshotDao.retrieveSnapshotsForDataset(datasetId);
+    assertThat("there should exist one snapshot", snapshots, hasSize(1));
   }
 
   @Test

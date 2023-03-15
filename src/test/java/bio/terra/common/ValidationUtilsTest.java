@@ -15,8 +15,8 @@ import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import liquibase.util.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -99,7 +99,7 @@ public class ValidationUtilsTest {
     RelationshipTermModel toTerm = new RelationshipTermModel().column("ownerId").table("car");
     defineSampleTables();
 
-    LinkedHashMap errors =
+    Map errors =
         ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables, gcpCloudPlatform);
     assertThat("There should be one error.", errors.size(), equalTo(1));
   }
@@ -110,7 +110,7 @@ public class ValidationUtilsTest {
     RelationshipTermModel toTerm = new RelationshipTermModel().column("ownerId").table("car");
     defineSampleTables();
 
-    LinkedHashMap errors =
+    Map errors =
         ValidationUtils.validateMatchingColumnDataTypes(fromTerm, toTerm, tables, gcpCloudPlatform);
     assertThat("The data types match so there should not be an error.", errors.size(), equalTo(0));
   }
@@ -119,7 +119,7 @@ public class ValidationUtilsTest {
   public void validTermRelationship() {
     RelationshipTermModel validTerm = new RelationshipTermModel().column("id").table("person");
     defineSampleTables();
-    LinkedHashMap errors = ValidationUtils.validateRelationshipTerm(validTerm, tables);
+    Map errors = ValidationUtils.validateRelationshipTerm(validTerm, tables);
     assertThat("The term is valid so there should not be an error.", errors.size(), equalTo(0));
   }
 
@@ -127,7 +127,7 @@ public class ValidationUtilsTest {
   public void invalidTermTable() {
     RelationshipTermModel invalidTable = new RelationshipTermModel().column("id").table("invalid");
     defineSampleTables();
-    LinkedHashMap errors = ValidationUtils.validateRelationshipTerm(invalidTable, tables);
+    Map errors = ValidationUtils.validateRelationshipTerm(invalidTable, tables);
     assertThat("Invalid Table", errors.size(), equalTo(1));
   }
 
@@ -136,7 +136,7 @@ public class ValidationUtilsTest {
     RelationshipTermModel invalidColumn =
         new RelationshipTermModel().column("invalid").table("person");
     defineSampleTables();
-    LinkedHashMap errors = ValidationUtils.validateRelationshipTerm(invalidColumn, tables);
+    Map errors = ValidationUtils.validateRelationshipTerm(invalidColumn, tables);
     assertThat("Invalid Column", errors.size(), equalTo(1));
   }
 

@@ -7,8 +7,8 @@ import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -164,12 +164,12 @@ public final class ValidationUtils {
     return compatibleTypes.contains(toDataType);
   }
 
-  public static LinkedHashMap<String, String> validateMatchingColumnDataTypes(
+  public static Map<String, String> validateMatchingColumnDataTypes(
       RelationshipTermModel fromTerm,
       RelationshipTermModel toTerm,
       List<TableModel> tables,
       CloudPlatformWrapper cloudPlatformWrapper) {
-    LinkedHashMap<String, String> termErrors = new LinkedHashMap<>();
+    Map<String, String> termErrors = new HashMap<>();
     retrieveColumnModelFromTerm(fromTerm, tables)
         .ifPresent(
             fromColumn ->
@@ -195,11 +195,11 @@ public final class ValidationUtils {
     return termErrors;
   }
 
-  public static LinkedHashMap<String, String> validateRelationshipTerm(
+  public static Map<String, String> validateRelationshipTerm(
       RelationshipTermModel term, List<TableModel> tables) {
     String tableName = term.getTable();
     String columnName = term.getColumn();
-    LinkedHashMap<String, String> termErrors = new LinkedHashMap<>();
+    Map<String, String> termErrors = new HashMap<>();
     Optional<TableModel> table =
         tables.stream().filter(t -> t.getName().equals(tableName)).findFirst();
     if (table.isEmpty()) {
@@ -241,11 +241,11 @@ public final class ValidationUtils {
     }
   }
 
-  public static ArrayList<LinkedHashMap<String, String>> getRelationshipValidationErrors(
+  public static List<Map<String, String>> getRelationshipValidationErrors(
       RelationshipModel relationship,
       List<TableModel> tables,
       CloudPlatformWrapper cloudPlatformWrapper) {
-    ArrayList<LinkedHashMap<String, String>> errors = new ArrayList<>();
+    List<Map<String, String>> errors = new ArrayList<>();
     RelationshipTermModel fromTerm = relationship.getFrom();
     if (fromTerm != null) {
       errors.add(validateRelationshipTerm(fromTerm, tables));

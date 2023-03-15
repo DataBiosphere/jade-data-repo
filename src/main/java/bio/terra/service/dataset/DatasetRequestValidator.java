@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -326,7 +325,7 @@ public class DatasetRequestValidator implements Validator {
       Errors errors,
       SchemaValidationContext context,
       CloudPlatformWrapper cloudPlatformWrapper) {
-    ArrayList<LinkedHashMap<String, String>> validationErrors =
+    List<Map<String, String>> validationErrors =
         ValidationUtils.getRelationshipValidationErrors(relationship, tables, cloudPlatformWrapper);
     validationErrors.forEach(e -> rejectValues(errors, e));
 

@@ -170,24 +170,28 @@ public final class ValidationUtils {
       List<TableModel> tables,
       CloudPlatformWrapper cloudPlatformWrapper) {
     LinkedHashMap<String, String> termErrors = new LinkedHashMap<>();
-    Optional<ColumnModel> fromColumn = retrieveColumnModelFromTerm(fromTerm, tables);
-    Optional<ColumnModel> toColumn = retrieveColumnModelFromTerm(toTerm, tables);
-    if (fromColumn.isPresent() && toColumn.isPresent()) {
-      TableDataType fromColumnDataType = fromColumn.get().getDatatype();
-      TableDataType toColumnDataType = toColumn.get().getDatatype();
-      if (!isCompatibleDataType(fromColumnDataType, toColumnDataType, cloudPlatformWrapper)) {
-        termErrors.put(
-            "RelationshipDatatypeMismatch",
-            String.format(
-                "Column data types in relationship must match: Column %s.%s has data type %s and Column %s.%s has data type %s",
-                fromTerm.getTable(),
-                fromTerm.getColumn(),
-                fromColumnDataType,
-                toTerm.getTable(),
-                toTerm.getColumn(),
-                toColumnDataType));
-      }
-    }
+    retrieveColumnModelFromTerm(fromTerm, tables)
+        .ifPresent(
+            fromColumn ->
+                retrieveColumnModelFromTerm(toTerm, tables)
+                    .ifPresent(
+                        toColumn -> {
+                          TableDataType fromColumnDataType = fromColumn.getDatatype();
+                          TableDataType toColumnDataType = toColumn.getDatatype();
+                          if (!isCompatibleDataType(
+                              fromColumnDataType, toColumnDataType, cloudPlatformWrapper)) {
+                            termErrors.put(
+                                "RelationshipDatatypeMismatch",
+                                String.format(
+                                    "Column data types in relationship must match: Column %s.%s has data type %s and Column %s.%s has data type %s",
+                                    fromTerm.getTable(),
+                                    fromTerm.getColumn(),
+                                    fromColumnDataType,
+                                    toTerm.getTable(),
+                                    toTerm.getColumn(),
+                                    toColumnDataType));
+                          }
+                        }));
     return termErrors;
   }
 

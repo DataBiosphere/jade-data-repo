@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import liquibase.util.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -182,5 +183,23 @@ public class ValidationUtilsTest {
     assertFalse(
         ValidationUtils.isCompatibleDataType(
             TableDataType.DATE, TableDataType.FLOAT, CloudPlatformWrapper.of(CloudPlatform.AZURE)));
+  }
+
+  @Test
+  public void testRetrieveColumnModelFromTerm() {
+    defineSampleTables();
+
+    String columnName = "hasCat";
+    RelationshipTermModel hasCatTerm =
+        new RelationshipTermModel().column(columnName).table("person");
+    Optional<ColumnModel> col = ValidationUtils.retrieveColumnModelFromTerm(hasCatTerm, tables);
+    assertThat("Returns correct column", col.get().getName(), equalTo(columnName));
+
+    String invalidColumnName = "invalid";
+    RelationshipTermModel invalidTerm =
+        new RelationshipTermModel().column(invalidColumnName).table("person");
+    Optional<ColumnModel> invalidCol =
+        ValidationUtils.retrieveColumnModelFromTerm(invalidTerm, tables);
+    assertFalse(invalidCol.isPresent());
   }
 }

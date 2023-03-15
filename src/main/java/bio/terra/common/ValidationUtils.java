@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -223,22 +222,19 @@ public final class ValidationUtils {
     return termErrors;
   }
 
-  private static Optional<ColumnModel> retrieveColumnModelFromTerm(
+  @VisibleForTesting
+  static Optional<ColumnModel> retrieveColumnModelFromTerm(
       RelationshipTermModel term, List<TableModel> tables) {
     String tableName = term.getTable();
     String columnName = term.getColumn();
-    try {
-      return tables.stream()
-          .filter(t -> t.getName().equals(tableName))
-          .findFirst()
-          .get()
-          .getColumns()
-          .stream()
-          .filter(c -> c.getName().equals(columnName))
-          .findFirst();
-    } catch (NoSuchElementException ex) {
-      return Optional.empty();
-    }
+    return tables.stream()
+        .filter(t -> t.getName().equals(tableName))
+        .findFirst()
+        .flatMap(
+            tableModel ->
+                tableModel.getColumns().stream()
+                    .filter(c -> c.getName().equals(columnName))
+                    .findFirst());
   }
 
   public static List<Map<String, String>> getRelationshipValidationErrors(

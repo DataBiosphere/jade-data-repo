@@ -28,6 +28,8 @@ public class WebConfig implements WebMvcConfigurer {
   }
 
   @Override
+  // This should be removed before this code comes out of prototype phase, only important to power
+  // the Tanagra UI, which doesn't handle CORS to other localhosts properly
   public void addCorsMappings(CorsRegistry registry) {
     registry
         .addMapping("/**")

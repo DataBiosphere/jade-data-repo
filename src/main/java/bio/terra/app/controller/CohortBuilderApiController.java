@@ -86,7 +86,7 @@ public class CohortBuilderApiController implements CohortBuilderApi {
     return new ResponseEntity<>(
         new InstanceCountList()
             .sql(
-                "SELECT p.gender AS gender, p.race AS race, COUNT(p.id) AS t_count, p.t_display_gender AS t_display_gender, p.t_display_race AS t_display_race, p.year_of_birth AS year_of_birth FROM `broad-tanagra-dev.cmssynpuf_index_011523`.person AS p GROUP BY p.gender, p.t_display_gender, p.race, p.t_display_race, p.year_of_birth ORDER BY p.gender ASC, p.t_display_gender ASC, p.race ASC, p.t_display_race ASC, p.year_of_birth ASC")
+                "SQL goes here")
             .instanceCounts(
                 createInstanceCountsYearGenderRace(
                     // Stub values based on what the API synthetic data returns in the other API -
@@ -193,8 +193,7 @@ public class CohortBuilderApiController implements CohortBuilderApi {
 
     return new ResponseEntity<>(
         new InstanceList()
-            .sql(
-                "SELECT c.concept_code AS concept_code, c.id AS id, c.name AS name, c.standard_concept AS standard_concept, c.t_count_person AS t_count_person, c.t_count_person_standard AS t_count_person_standard, c.t_display_standard_concept AS t_display_standard_concept, c.t_display_vocabulary AS t_display_vocabulary, c.t_standard_num_children AS t_standard_num_children, c.t_standard_path AS t_standard_path, c.vocabulary AS vocabulary FROM `broad-tanagra-dev.cmssynpuf_index_011523`.condition AS c WHERE (c.t_standard_path IS NOT NULL AND c.t_standard_path = '') ORDER BY c.t_count_person_standard DESC LIMIT 250")
+            .sql("SQL Goes here")
             .instances(instances),
         HttpStatus.OK);
   }

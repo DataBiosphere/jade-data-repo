@@ -177,18 +177,22 @@ public final class ValidationUtils {
                         toColumn -> {
                           TableDataType fromColumnDataType = fromColumn.getDatatype();
                           TableDataType toColumnDataType = toColumn.getDatatype();
-                          if (!isCompatibleDataType(
-                              fromColumnDataType, toColumnDataType, cloudPlatformWrapper)) {
-                            termErrors.put(
-                                "RelationshipDatatypeMismatch",
-                                String.format(
-                                    "Column data types in relationship must match: Column %s.%s has data type %s and Column %s.%s has data type %s",
-                                    fromTerm.getTable(),
-                                    fromTerm.getColumn(),
-                                    fromColumnDataType,
-                                    toTerm.getTable(),
-                                    toTerm.getColumn(),
-                                    toColumnDataType));
+                          // If either of the data types are null, then the data type is invalid
+                          // this would have already been caught when validating the table
+                          if (fromColumnDataType != null && toColumnDataType != null) {
+                            if (!isCompatibleDataType(
+                                fromColumnDataType, toColumnDataType, cloudPlatformWrapper)) {
+                              termErrors.put(
+                                  "RelationshipDatatypeMismatch",
+                                  String.format(
+                                      "Column data types in relationship must match: Column %s.%s has data type %s and Column %s.%s has data type %s",
+                                      fromTerm.getTable(),
+                                      fromTerm.getColumn(),
+                                      fromColumnDataType,
+                                      toTerm.getTable(),
+                                      toTerm.getColumn(),
+                                      toColumnDataType));
+                            }
                           }
                         }));
     return termErrors;

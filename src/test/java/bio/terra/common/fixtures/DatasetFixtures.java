@@ -3,6 +3,7 @@ package bio.terra.common.fixtures;
 import bio.terra.common.Column;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSchemaColumnUpdateModel;
@@ -100,6 +101,7 @@ public final class DatasetFixtures {
         .name("Minimal")
         .description("This is a sample dataset definition")
         .defaultProfileId(UUID.randomUUID())
+        .cloudPlatform(CloudPlatform.GCP)
         .schema(buildSchema());
   }
 

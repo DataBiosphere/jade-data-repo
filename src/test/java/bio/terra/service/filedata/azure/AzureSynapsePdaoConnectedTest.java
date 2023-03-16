@@ -292,9 +292,9 @@ public class AzureSynapsePdaoConnectedTest {
     List<Map<String, Optional<Object>>> tableData =
         prepQueryResultForComparison(
             azureSynapsePdao.getSnapshotTableData(
-                TEST_USER,
-                snapshot,
+                snapshotTable,
                 snapshotTable.getName(),
+                snapshotQueryDataSourceName,
                 10,
                 0,
                 "first_name",
@@ -310,9 +310,9 @@ public class AzureSynapsePdaoConnectedTest {
     tableData =
         prepQueryResultForComparison(
             azureSynapsePdao.getSnapshotTableData(
-                TEST_USER,
-                snapshot,
+                snapshotTable,
                 snapshotTable.getName(),
+                snapshotQueryDataSourceName,
                 10,
                 0,
                 "first_name",
@@ -328,9 +328,9 @@ public class AzureSynapsePdaoConnectedTest {
     tableData =
         prepQueryResultForComparison(
             azureSynapsePdao.getSnapshotTableData(
-                TEST_USER,
-                snapshot,
+                snapshotTable,
                 snapshotTable.getName(),
+                snapshotQueryDataSourceName,
                 10,
                 0,
                 "first_name",

@@ -9,8 +9,8 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
+import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestAssetModel;
@@ -23,7 +23,6 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidColumnException;
-import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.DrsId;
@@ -1000,23 +999,14 @@ public class AzureSynapsePdao {
   }
 
   public List<Map<String, Optional<Object>>> getSnapshotTableData(
-      AuthenticatedUserRequest userRequest,
-      Snapshot snapshot,
+      Table table,
       String tableName,
+      String datasetSourceName,
       int limit,
       int offset,
       String sort,
       SqlSortDirection direction,
       String filter) {
-
-    // Ensure that the table is a valid table
-    SnapshotTable table =
-        snapshot
-            .getTableByName(tableName)
-            .orElseThrow(
-                () ->
-                    new InvalidTableException(
-                        "Table %s was not found in the snapshot".formatted(tableName)));
 
     // Ensure that the sort column is a valid column
     if (!sort.equals(PDAO_ROW_ID_COLUMN)) {
@@ -1041,7 +1031,7 @@ public class AzureSynapsePdao {
     final String sql =
         new ST(queryFromDatasourceTemplate)
             .add("columns", columns.stream().map(Column::getName).toList())
-            .add("datasource", getDataSourceName(snapshot, userRequest.getEmail()))
+            .add("datasource", datasetSourceName)
             .add("tableName", tableName)
             .add("sort", sort)
             .add("direction", direction)

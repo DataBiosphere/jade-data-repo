@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
@@ -799,7 +800,7 @@ public class SnapshotService {
       AccessInfoModel accessInfoModel =
           metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest, tableName);
       String credName = AzureSynapsePdao.getCredentialName(snapshot, userRequest.getEmail());
-      String datasourceName = AzureSynapsePdao.getDataSourceName(snapshot, userRequest.getEmail());
+      String datasourceName = getDataSourceName(snapshot, userRequest.getEmail());
       String metadataUrl =
           "%s?%s"
               .formatted(
@@ -814,7 +815,7 @@ public class SnapshotService {
 
       List<Map<String, Optional<Object>>> values =
           azureSynapsePdao.getSnapshotTableData(
-              userRequest, snapshot, tableName, limit, offset, sort, direction, filter);
+              table, tableName, datasourceName, limit, offset, sort, direction, filter);
       return new SnapshotPreviewModel().result(List.copyOf(values));
     } else {
       throw new SnapshotPreviewException("Cloud not supported");

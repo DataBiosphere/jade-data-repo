@@ -17,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.ParquetUtils;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -63,12 +62,10 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
-import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobUrlParts;
-import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -77,6 +74,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -454,6 +452,10 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestJSON);
     assertThat("1 row was ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
 
+    // TODO: retrieve data and ensure right data was ingested
+    List<Object> results =
+        dataRepoFixtures.retrieveDatasetData(steward, datasetId, jsonIngestTableName, 0, 2, "");
+
     // Ingest 2 rows from CSV
     String ingest2TableName = "vocabulary";
     String csvDatasetIngestFlightId = UUID.randomUUID().toString();
@@ -480,10 +482,12 @@ public class AzureIntegrationTest extends UsersBase {
     IngestResponseModel ingestResponseCSV =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestCSV);
     assertThat("2 row were ingested", ingestResponseCSV.getRowCount(), equalTo(2L));
+    // TODO: retrieve data and ensure right data was ingested
+    List<Object> results2 =
+        dataRepoFixtures.retrieveDatasetData(steward, datasetId, ingest2TableName, 0, 2, "");
 
     // Only check the subset of tables that have rows
     Set<String> tablesToCheck = Set.of(jsonIngestTableName, ingest2TableName);
-    //  Read the ingested metadata
 
     DatasetModel datasetModel =
         dataRepoFixtures.getDataset(
@@ -520,16 +524,6 @@ public class AzureIntegrationTest extends UsersBase {
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
         verifySignedUrl(tableUrl, steward(), "rl");
 
-        BlobContainerClientFactory fact = new BlobContainerClientFactory(tableUrl, retryOptions);
-
-        List<BlobItem> blobItems =
-            fact
-                .getBlobContainerClient()
-                .listBlobsByHierarchy(String.format("parquet/%s/", table.getName()))
-                .stream()
-                .collect(Collectors.toList());
-
-        List<UUID> rowIds = new ArrayList<>();
         SnapshotRequestRowIdTableModel tableModel = new SnapshotRequestRowIdTableModel();
         tableModel.setTableName(table.getName());
         tableModel.setColumns(
@@ -537,26 +531,10 @@ public class AzureIntegrationTest extends UsersBase {
                 .filter(t -> t.getName().equals(table.getName()))
                 .flatMap(t -> t.getColumns().stream().map(c -> c.getName()))
                 .collect(Collectors.toList()));
-
-        // for each ingest in the dataset, read the associated parquet file
-        // in this test, should only be one
-        blobItems.stream()
-            .forEach(
-                item -> {
-                  BlobUrlParts url = BlobUrlParts.parse(table.getUrl());
-                  String container = item.getName();
-                  url.setBlobName(container);
-                  String newUrl = url.toUrl() + "?" + table.getSasToken();
-
-                  List<Map<String, String>> records = ParquetUtils.readParquetRecords(newUrl);
-                  records.stream()
-                      .map(r -> r.get("datarepo_row_id"))
-                      .forEach(
-                          rowId -> {
-                            rowIds.add(UUID.fromString(rowId));
-                          });
-                });
-        tableModel.setRowIds(rowIds);
+        tableModel.setRowIds(
+            dataRepoFixtures.getRowIds(steward, datasetModel, table.getName(), 2).stream()
+                .map(id -> UUID.fromString(id))
+                .toList());
         snapshotRequestRowIdModel.addTablesItem(tableModel);
       }
     }
@@ -606,62 +584,47 @@ public class AzureIntegrationTest extends UsersBase {
     TestUtils.verifyHttpAccess(snapshotParquetUrl, Map.of());
     verifySignedUrl(snapshotParquetUrl, steward(), "rl");
 
-    List<String> drsIds = new ArrayList<>();
-    for (AccessInfoParquetModelTable table : snapshotParquetAccessInfo.getTables()) {
-      if (tablesToCheck.contains(table.getName())) {
-        String tableUrl = table.getUrl() + "?" + table.getSasToken();
-        TestUtils.verifyHttpAccess(tableUrl, Map.of(), true);
-        verifySignedUrl(tableUrl, steward(), "rl");
+    // Vocabulary Table
+    dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "vocabulary", 2);
+    List<Object> vocabRows =
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "vocabulary", 0, 2, null);
+    List<String> drsIds =
+        vocabRows.stream()
+            .map(r -> ((LinkedHashMap) r).get("vocabulary_reference").toString())
+            .toList();
 
-        // The vocabulary table has file data so test Drs on that one
-        // TODO: once we have an endpoint to expose parquet data, we should use that mechanism here
-        if (table.getName().equals("vocabulary")) {
-          String individualTableUrl =
-              table.getUrl() + "/" + table.getName() + ".parquet?" + table.getSasToken();
-          List<Map<String, String>> records = ParquetUtils.readParquetRecords(individualTableUrl);
-          assertThat("2 rows are present", records, hasSize(2));
-
-          // Extract the DRS Ids
-          records.stream().map(r -> r.get("vocabulary_reference")).forEach(drsIds::add);
-        }
-      }
-    }
-
-    AccessInfoParquetModelTable domainTable =
-        snapshotParquetAccessInfo.getTables().stream()
-            .filter(t -> t.getName().equals("domain"))
-            .findAny()
-            .orElseThrow();
-
-    String domainTableUrl = domainTable.getUrl() + "/domain.parquet?" + domainTable.getSasToken();
-    List<Map<String, String>> records = ParquetUtils.readParquetRecords(domainTableUrl);
-    assertThat("1 row is present", records, hasSize(1));
+    // Domain Table
+    dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "domain", 1);
+    Object firstDomainRow =
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "domain", 0, 1, null).get(0);
     assertThat(
         "record looks as expected - domain_id",
-        records.get(0).get("domain_id"),
+        ((LinkedHashMap) firstDomainRow).get("domain_id").toString(),
         equalTo(domainRowData.get("domain_id")));
     assertThat(
         "record looks as expected - domain_name",
-        records.get(0).get("domain_name"),
+        ((LinkedHashMap) firstDomainRow).get("domain_name").toString(),
         equalTo(domainRowData.get("domain_name")));
     assertThat(
         "record looks as expected - domain_concept_id",
-        records.get(0).get("domain_concept_id"),
+        ((LinkedHashMap) firstDomainRow).get("domain_concept_id").toString(),
         equalTo(domainRowData.get("domain_concept_id").toString()));
     assertThat(
         "record looks as expected - domain_array_tags_custom",
-        records.get(0).get("domain_array_tags_custom"),
+        ((LinkedHashMap) firstDomainRow).get("domain_array_tags_custom").toString(),
         equalTo("[\"tag1\",\"tag2\"]"));
     List<String> embeddedDrsIds1 =
         TestUtils.mapFromJson(
-            records.get(0).get("domain_files_custom_1"), new TypeReference<>() {});
+            ((LinkedHashMap) firstDomainRow).get("domain_files_custom_1").toString(),
+            new TypeReference<>() {});
     assertThat(
         "record looks as expected - domain_files_custom_1 drs ids",
         embeddedDrsIds1,
         containsInAnyOrder(drsIds.toArray()));
     List<String> embeddedDrsIds2 =
         TestUtils.mapFromJson(
-            records.get(0).get("domain_files_custom_2"), new TypeReference<>() {});
+            ((LinkedHashMap) firstDomainRow).get("domain_files_custom_2").toString(),
+            new TypeReference<>() {});
     assertThat(
         "record looks as expected - domain_files_custom_2 drs ids - size",
         embeddedDrsIds2,
@@ -672,7 +635,9 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo(String.format("v1_%s_%s", snapshotByFullViewId, file2Model.getFileId())));
     assertThat(
         "record looks as expected - domain_files_custom_3 drs id",
-        DrsIdService.fromUri(records.get(0).get("domain_files_custom_3")).toDrsObjectId(),
+        DrsIdService.fromUri(
+                ((LinkedHashMap) firstDomainRow).get("domain_files_custom_3").toString())
+            .toDrsObjectId(),
         equalTo(String.format("v1_%s_%s", snapshotByFullViewId, file4Model.getFileId())));
 
     // Assert that 2 drs ids were loaded
@@ -746,6 +711,7 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo(snapshotByQueryModel.getName()));
 
     // Read the snapshot
+    // TODO - here
     AccessInfoParquetModel snapshotByQueryParquetAccessInfo =
         dataRepoFixtures
             .getSnapshot(

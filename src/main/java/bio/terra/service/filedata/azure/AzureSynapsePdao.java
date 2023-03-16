@@ -276,7 +276,7 @@ public class AzureSynapsePdao {
       SELECT <columns:{c|tbl.[<c>]}; separator=",">
         FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
                      <columns:{c|rows.[<c>]}; separator=",">
-                FROM OPENROWSET(BULK 'parquet/*/<tableName>/*.parquet/*',
+                FROM OPENROWSET(BULK '<parquetFileLocation>',
                                 DATA_SOURCE = '<datasource>',
                                 FORMAT='PARQUET') AS rows
                 WHERE (<userFilter>)
@@ -998,10 +998,11 @@ public class AzureSynapsePdao {
     cleanup(credentialNames, dropScopedCredentialTemplate);
   }
 
-  public List<Map<String, Optional<Object>>> getSnapshotTableData(
+  public List<Map<String, Optional<Object>>> getTableData(
       Table table,
       String tableName,
       String datasetSourceName,
+      String parquetFileLocation,
       int limit,
       int offset,
       String sort,
@@ -1032,6 +1033,7 @@ public class AzureSynapsePdao {
         new ST(queryFromDatasourceTemplate)
             .add("columns", columns.stream().map(Column::getName).toList())
             .add("datasource", datasetSourceName)
+            .add("parquetFileLocation", parquetFileLocation)
             .add("tableName", tableName)
             .add("sort", sort)
             .add("direction", direction)

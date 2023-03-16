@@ -61,6 +61,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
@@ -815,8 +816,16 @@ public class SnapshotService {
       }
 
       List<Map<String, Optional<Object>>> values =
-          azureSynapsePdao.getSnapshotTableData(
-              table, tableName, datasourceName, limit, offset, sort, direction, filter);
+          azureSynapsePdao.getTableData(
+              table,
+              tableName,
+              datasourceName,
+              IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, tableName),
+              limit,
+              offset,
+              sort,
+              direction,
+              filter);
       return new SnapshotPreviewModel().result(List.copyOf(values));
     } else {
       throw new SnapshotPreviewException("Cloud not supported");

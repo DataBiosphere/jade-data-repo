@@ -291,10 +291,11 @@ public class AzureSynapsePdaoConnectedTest {
         snapshotSignUrlBlob, snapshotQueryCredentialName, snapshotQueryDataSourceName);
     List<Map<String, Optional<Object>>> tableData =
         prepQueryResultForComparison(
-            azureSynapsePdao.getSnapshotTableData(
+            azureSynapsePdao.getTableData(
                 snapshotTable,
                 snapshotTable.getName(),
                 snapshotQueryDataSourceName,
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, snapshotTable.getName()),
                 10,
                 0,
                 "first_name",
@@ -309,10 +310,11 @@ public class AzureSynapsePdaoConnectedTest {
     // now swap the order
     tableData =
         prepQueryResultForComparison(
-            azureSynapsePdao.getSnapshotTableData(
+            azureSynapsePdao.getTableData(
                 snapshotTable,
                 snapshotTable.getName(),
                 snapshotQueryDataSourceName,
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, snapshotTable.getName()),
                 10,
                 0,
                 "first_name",
@@ -327,10 +329,11 @@ public class AzureSynapsePdaoConnectedTest {
     // now read a single value
     tableData =
         prepQueryResultForComparison(
-            azureSynapsePdao.getSnapshotTableData(
+            azureSynapsePdao.getTableData(
                 snapshotTable,
                 snapshotTable.getName(),
                 snapshotQueryDataSourceName,
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, snapshotTable.getName()),
                 10,
                 0,
                 "first_name",

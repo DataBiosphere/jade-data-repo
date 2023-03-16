@@ -47,6 +47,7 @@ import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
 import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
@@ -555,8 +556,16 @@ public class DatasetService {
       }
 
       List<Map<String, Optional<Object>>> values =
-          azureSynapsePdao.getSnapshotTableData(
-              table, tableName, datasourceName, limit, offset, sort, direction, filter);
+          azureSynapsePdao.getTableData(
+              table,
+              tableName,
+              datasourceName,
+              IngestUtils.getSourceDatasetParquetFilePath(tableName),
+              limit,
+              offset,
+              sort,
+              direction,
+              filter);
       return new DatasetDataModel().result(List.copyOf(values));
     } else {
       throw new DatasetDataException("Cloud not supported");

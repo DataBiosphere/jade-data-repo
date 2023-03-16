@@ -85,8 +85,7 @@ public class CohortBuilderApiController implements CohortBuilderApi {
 
     return new ResponseEntity<>(
         new InstanceCountList()
-            .sql(
-                "SQL goes here")
+            .sql("SQL goes here")
             .instanceCounts(
                 createInstanceCountsYearGenderRace(
                     // Stub values based on what the API synthetic data returns in the other API -
@@ -192,10 +191,7 @@ public class CohortBuilderApiController implements CohortBuilderApi {
                 .attributes(attributes));
 
     return new ResponseEntity<>(
-        new InstanceList()
-            .sql("SQL Goes here")
-            .instances(instances),
-        HttpStatus.OK);
+        new InstanceList().sql("SQL Goes here").instances(instances), HttpStatus.OK);
   }
 
   @Override

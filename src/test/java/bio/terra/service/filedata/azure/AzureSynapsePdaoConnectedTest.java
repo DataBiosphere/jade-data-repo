@@ -284,9 +284,9 @@ public class AzureSynapsePdaoConnectedTest {
 
     // do a basic query of the data
     snapshotQueryCredentialName =
-        AzureSynapsePdao.getCredentialName(snapshot, TEST_USER.getEmail());
+        AzureSynapsePdao.getCredentialName(snapshot.getId(), TEST_USER.getEmail());
     snapshotQueryDataSourceName =
-        AzureSynapsePdao.getDataSourceName(snapshot, TEST_USER.getEmail());
+        AzureSynapsePdao.getDataSourceName(snapshot.getId(), TEST_USER.getEmail());
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotQueryCredentialName, snapshotQueryDataSourceName);
     List<Map<String, Optional<Object>>> tableData =

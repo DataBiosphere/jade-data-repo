@@ -799,8 +799,9 @@ public class SnapshotService {
     } else if (cloudPlatformWrapper.isAzure()) {
       AccessInfoModel accessInfoModel =
           metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest, tableName);
-      String credName = AzureSynapsePdao.getCredentialName(snapshot, userRequest.getEmail());
-      String datasourceName = getDataSourceName(snapshot, userRequest.getEmail());
+      String credName =
+          AzureSynapsePdao.getCredentialName(snapshot.getId(), userRequest.getEmail());
+      String datasourceName = getDataSourceName(snapshot.getId(), userRequest.getEmail());
       String metadataUrl =
           "%s?%s"
               .formatted(

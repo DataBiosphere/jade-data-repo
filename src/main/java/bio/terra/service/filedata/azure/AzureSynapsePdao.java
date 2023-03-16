@@ -1096,12 +1096,12 @@ public class AzureSynapsePdao {
             });
   }
 
-  public static String getCredentialName(Snapshot snapshot, String email) {
-    return "cred-%s-%s".formatted(snapshot.getId(), email);
+  public static String getCredentialName(UUID id, String email) {
+    return "cred-%s-%s".formatted(id, email);
   }
 
-  public static String getDataSourceName(Snapshot snapshot, String email) {
-    return "ds-%s-%s".formatted(snapshot.getId(), email);
+  public static String getDataSourceName(UUID id, String email) {
+    return "ds-%s-%s".formatted(id, email);
   }
 
   private String sanitizeStringForSql(String value) {

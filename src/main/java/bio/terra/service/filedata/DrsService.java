@@ -36,7 +36,6 @@ import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
@@ -517,7 +516,6 @@ public class DrsService {
                 profileModel,
                 storageAccountResource,
                 ((FSFile) fsItem).getCloudPath(),
-                ContainerType.DATA,
                 new BlobSasTokenOptions(
                     URL_TTL,
                     new BlobSasPermission().setReadPermission(true),
@@ -589,10 +587,11 @@ public class DrsService {
                 ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT,
                 azureRegion,
                 passportAuth,
-                null);
+                billingSnapshot);
       } else {
         accessMethods =
-            getDrsSignedURLAccessMethods(ACCESS_ID_PREFIX_AZURE, azureRegion, passportAuth, null);
+            getDrsSignedURLAccessMethods(
+                ACCESS_ID_PREFIX_AZURE, azureRegion, passportAuth, billingSnapshot);
       }
     } else {
       throw new InvalidCloudPlatformException();

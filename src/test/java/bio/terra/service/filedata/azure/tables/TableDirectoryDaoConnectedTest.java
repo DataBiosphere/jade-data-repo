@@ -85,7 +85,7 @@ public class TableDirectoryDaoConnectedTest {
     for (String entry : directoryEntriesToCleanup) {
       try {
         tableDirectoryDao.deleteDirectoryEntry(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), entry);
+            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(datasetId), entry);
       } catch (Exception ex) {
         logger.debug("Directory entry either already deleted or unable to delete {}", entry, ex);
       }
@@ -156,14 +156,14 @@ public class TableDirectoryDaoConnectedTest {
         tableDirectoryDao.deleteDirectoryEntry(
             tableServiceClient,
             datasetId,
-            StorageTableName.DATASET.toTableName(),
+            StorageTableName.DATASET.toTableName(datasetId),
             fileEntry1.getFileId());
     assertThat("Delete Entry 1", deleteEntry, equalTo(true));
     FireStoreDirectoryEntry shouldbeNull =
         tableDirectoryDao.retrieveByPath(
             tableServiceClient,
             datasetId,
-            StorageTableName.DATASET.toTableName(),
+            StorageTableName.DATASET.toTableName(datasetId),
             sharedTargetPath + fileName1);
     assertThat("File1 reference no longer exists", shouldbeNull, equalTo(null));
 
@@ -171,7 +171,7 @@ public class TableDirectoryDaoConnectedTest {
         tableDirectoryDao.retrieveByPath(
             tableServiceClient,
             datasetId,
-            StorageTableName.DATASET.toTableName(),
+            StorageTableName.DATASET.toTableName(datasetId),
             sharedTargetPath + fileName2);
     assertThat(
         "File2's directory still exists",
@@ -183,7 +183,7 @@ public class TableDirectoryDaoConnectedTest {
         tableDirectoryDao.retrieveByPath(
             tableServiceClient,
             datasetId,
-            StorageTableName.DATASET.toTableName(),
+            StorageTableName.DATASET.toTableName(datasetId),
             sharedTargetPath);
     assertThat(
         String.format(
@@ -194,7 +194,10 @@ public class TableDirectoryDaoConnectedTest {
 
     FireStoreDirectoryEntry parentEntryStillPresent =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), sharedParentDir);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(datasetId),
+            sharedParentDir);
     assertThat(
         String.format(
             "Shared subdirectory '/%s' should still exist after single file delete",
@@ -204,7 +207,7 @@ public class TableDirectoryDaoConnectedTest {
 
     FireStoreDirectoryEntry blankEntryStillPresent =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), "/");
+            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(datasetId), "/");
     assertThat(
         "Shared subdirectory should still exist after single file delete",
         blankEntryStillPresent.getPath(),
@@ -215,14 +218,14 @@ public class TableDirectoryDaoConnectedTest {
         tableDirectoryDao.deleteDirectoryEntry(
             tableServiceClient,
             datasetId,
-            StorageTableName.DATASET.toTableName(),
+            StorageTableName.DATASET.toTableName(datasetId),
             fileEntry2.getFileId());
     assertThat("Delete Entry 2", deleteEntry2, equalTo(true));
     FireStoreDirectoryEntry file2ShouldbeNull =
         tableDirectoryDao.retrieveByPath(
             tableServiceClient,
             datasetId,
-            StorageTableName.DATASET.toTableName(),
+            StorageTableName.DATASET.toTableName(datasetId),
             sharedTargetPath + fileName2);
     assertThat("File2 reference no longer exists", file2ShouldbeNull, equalTo(null));
 
@@ -230,7 +233,7 @@ public class TableDirectoryDaoConnectedTest {
         tableDirectoryDao.retrieveByPath(
             tableServiceClient,
             datasetId,
-            StorageTableName.DATASET.toTableName(),
+            StorageTableName.DATASET.toTableName(datasetId),
             sharedTargetPath);
     assertNull(
         String.format(
@@ -239,7 +242,10 @@ public class TableDirectoryDaoConnectedTest {
         testEntryNotPresent);
     FireStoreDirectoryEntry parentEntryNotPresent =
         tableDirectoryDao.retrieveByPath(
-            tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), sharedParentDir);
+            tableServiceClient,
+            datasetId,
+            StorageTableName.DATASET.toTableName(datasetId),
+            sharedParentDir);
     assertNull(
         String.format(
             "Shared subdirectory '/%s' should not exist after remaining file delete",
@@ -264,14 +270,14 @@ public class TableDirectoryDaoConnectedTest {
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
     tableDirectoryDao.createDirectoryEntry(
-        tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(), newEntry);
+        tableServiceClient, datasetId, StorageTableName.DATASET.toTableName(datasetId), newEntry);
     directoryEntriesToCleanup.add(fileId.toString());
 
     // test that directory entry now exists
     return tableDirectoryDao.retrieveByPath(
         tableServiceClient,
         datasetId,
-        StorageTableName.DATASET.toTableName(),
+        StorageTableName.DATASET.toTableName(datasetId),
         sharedTargetPath + fileName);
   }
 

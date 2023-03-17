@@ -13,6 +13,7 @@ import bio.terra.service.profile.ProfileDao;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
@@ -43,6 +44,9 @@ public class AzureResourceDaoTest {
 
   @Before
   public void setup() throws IOException, InterruptedException {
+    UUID datasetId = UUID.randomUUID();
+    UUID snapshotId = UUID.randomUUID();
+
     // Initialize list;
     applicationDeployments = new ArrayList<>();
     storageAccounts = new ArrayList<>();
@@ -60,6 +64,7 @@ public class AzureResourceDaoTest {
     var sa1 =
         azureResourceDao.createAndLockStorage(
             ProfileFixtures.randomizeName("sa1"),
+            datasetId.toString(),
             appDeployment,
             AzureRegion.DEFAULT_AZURE_REGION,
             null);
@@ -68,6 +73,7 @@ public class AzureResourceDaoTest {
     var sa2 =
         azureResourceDao.createAndLockStorage(
             ProfileFixtures.randomizeName("sa2"),
+            snapshotId.toString(),
             appDeployment,
             AzureRegion.DEFAULT_AZURE_REGION,
             null);
@@ -125,9 +131,11 @@ public class AzureResourceDaoTest {
               azureResourceDao.retrieveStorageAccountById(sa.getResourceId()),
               equalTo(sa));
           assertThat(
-              "Can fetch storage account by name",
+              "Can fetch storage account by name and container",
               azureResourceDao.getStorageAccount(
-                  sa.getName(), sa.getApplicationResource().getAzureApplicationDeploymentName()),
+                  sa.getName(),
+                  sa.getTopLevelContainer(),
+                  sa.getApplicationResource().getAzureApplicationDeploymentName()),
               equalTo(sa));
         });
   }

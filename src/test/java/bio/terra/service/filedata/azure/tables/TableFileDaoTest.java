@@ -40,6 +40,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @EmbeddedDatabaseTest
 public class TableFileDaoTest {
   private static final String PARTITION_KEY = "partitionKey";
+  private static final String DATASET_ID = UUID.randomUUID().toString();
   private static final String FILE_ID = UUID.randomUUID().toString();
   private final TableEntity entity =
       new TableEntity(PARTITION_KEY, FILE_ID)
@@ -77,16 +78,16 @@ public class TableFileDaoTest {
 
   @Test
   public void testRetrieveFileMetadata() {
-    FireStoreFile fileMetadata = dao.retrieveFileMetadata(tableServiceClient, FILE_ID);
+    FireStoreFile fileMetadata = dao.retrieveFileMetadata(tableServiceClient, DATASET_ID, FILE_ID);
     FireStoreFile expected = FireStoreFile.fromTableEntity(entity);
     assertEquals("The same object is returned", fileMetadata, expected);
   }
 
   @Test
   public void testDeleteFileMetadata() {
-    boolean exists = dao.deleteFileMetadata(tableServiceClient, FILE_ID);
+    boolean exists = dao.deleteFileMetadata(tableServiceClient, DATASET_ID, FILE_ID);
     assertTrue("Existing row is deleted", exists);
-    boolean result = dao.deleteFileMetadata(tableServiceClient, "nonexistentFile");
+    boolean result = dao.deleteFileMetadata(tableServiceClient, DATASET_ID, "nonexistentFile");
     assertFalse("Non-existent row is not deleted", result);
   }
 
@@ -95,7 +96,8 @@ public class TableFileDaoTest {
     FireStoreDirectoryEntry fsDirectoryEntry = new FireStoreDirectoryEntry().fileId(FILE_ID);
     List<FireStoreDirectoryEntry> directoryEntries = List.of(fsDirectoryEntry);
     List<FireStoreFile> expectedFiles = List.of(FireStoreFile.fromTableEntity(entity));
-    List<FireStoreFile> files = dao.batchRetrieveFileMetadata(tableServiceClient, directoryEntries);
+    List<FireStoreFile> files =
+        dao.batchRetrieveFileMetadata(tableServiceClient, DATASET_ID, directoryEntries);
     assertEquals(
         "A file record is found for each directory entry", files.size(), expectedFiles.size());
     assertEquals("The same object is returned", files.get(0), expectedFiles.get(0));

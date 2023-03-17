@@ -17,7 +17,6 @@ import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
@@ -186,7 +185,6 @@ public final class MetadataDataAccessUtils {
             profileModel,
             storageAccountResource,
             unsignedUrl,
-            ContainerType.METADATA,
             blobSasTokenOptions);
 
     UrlParts urlParts = UrlParts.fromUrl(signedURL);
@@ -216,7 +214,6 @@ public final class MetadataDataAccessUtils {
                                   profileModel,
                                   storageAccountResource,
                                   unsignedTableUrl,
-                                  ContainerType.METADATA,
                                   blobSasTokenOptions);
                           UrlParts tableUrlParts = UrlParts.fromUrl(tableUrl);
                           return new AccessInfoParquetModelTable()

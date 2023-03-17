@@ -31,8 +31,7 @@ public class CreateScratchFileForAzureStep extends DefaultUndoStep {
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
     BlobContainerClient containerClient =
-        azureContainerPdao.getOrCreateContainer(
-            billingProfile, storageAccount, AzureStorageAccountResource.ContainerType.SCRATCH);
+        azureContainerPdao.getOrCreateContainer(billingProfile, storageAccount);
 
     String path =
         containerClient

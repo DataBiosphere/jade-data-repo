@@ -19,7 +19,6 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import java.util.List;
 import java.util.UUID;
 import org.junit.Before;
@@ -87,14 +86,12 @@ public class MetadataDataAccessUtilsTest {
             any(),
             any(),
             eq("https://michaelstorage.blob.core.windows.net/metadata/parquet"),
-            eq(ContainerType.METADATA),
             any()))
         .thenReturn("https://michaelstorage.blob.core.windows.net/metadata/parquet/signedUrl?sast");
     when(azureBlobStorePdao.signFile(
             any(),
             any(),
             eq("https://michaelstorage.blob.core.windows.net/metadata/parquet/sample"),
-            eq(ContainerType.METADATA),
             any()))
         .thenReturn(
             "https://michaelstorage.blob.core.windows.net/metadata/parquet/sample/signedUrl?sast");

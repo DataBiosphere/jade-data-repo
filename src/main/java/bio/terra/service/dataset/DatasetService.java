@@ -667,7 +667,6 @@ public class DatasetService {
               profile,
               storageAccount,
               tempFilePath,
-              AzureStorageAccountResource.ContainerType.SCRATCH,
               new BlobSasTokenOptions(
                   Duration.ofHours(1),
                   new BlobSasPermission().setReadPermission(true).setWritePermission(true),

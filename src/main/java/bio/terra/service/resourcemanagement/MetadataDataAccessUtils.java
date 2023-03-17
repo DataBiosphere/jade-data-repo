@@ -182,10 +182,7 @@ public final class MetadataDataAccessUtils {
             .render();
     String signedURL =
         azureBlobStorePdao.signFile(
-            profileModel,
-            storageAccountResource,
-            unsignedUrl,
-            blobSasTokenOptions);
+            profileModel, storageAccountResource, unsignedUrl, blobSasTokenOptions);
 
     UrlParts urlParts = UrlParts.fromUrl(signedURL);
     accessInfoModel.parquet(

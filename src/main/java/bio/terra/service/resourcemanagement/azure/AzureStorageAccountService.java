@@ -202,13 +202,6 @@ public class AzureStorageAccountService {
     return resourceDao.retrieveStorageAccountById(storageAccountId);
   }
 
-  public void deleteCloudStorageAccount(AzureStorageAccountResource storageAccountResource) {
-    BillingProfileModel profileModel =
-        profileDao.getBillingProfileById(storageAccountResource.getProfileId());
-    logger.info("Deleting Azure storage account");
-    deleteCloudStorageAccount(profileModel, storageAccountResource);
-  }
-
   public void deleteCloudStorageAccountMetadata(
       String storageAccountResourceName, String topLevelContainer, String flightId) {
     logger.info(

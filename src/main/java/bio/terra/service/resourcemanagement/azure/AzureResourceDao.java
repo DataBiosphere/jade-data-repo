@@ -49,7 +49,7 @@ public class AzureResourceDao {
           + " azure_application_deployment_name, azure_resource_group_name, azure_synapse_workspace, "
           + " default_region, storage_account_prefix, storage_account_sku_type, "
           + " profile_id, sa.id AS storage_account_resource_id, name, datacontainer, metadatacontainer, dbname, "
-          + " sr.region as region, flightid "
+          + " sr.region as region, flightid, toplevelcontainer "
           + "FROM storage_account_resource sa "
           + "JOIN application_deployment_resource da ON sa.application_resource_id = da.id "
           + "LEFT JOIN dataset_storage_account dsa on sa.id = dsa.storage_account_resource_id "
@@ -58,7 +58,8 @@ public class AzureResourceDao {
   private static final String sqlStorageAccountRetrievedById =
       sqlStorageAccountRetrieve + " AND sa.id = :id";
   private static final String sqlStorageAccountRetrievedByName =
-      sqlStorageAccountRetrieve + " AND sa.name = :name";
+      sqlStorageAccountRetrieve
+          + " AND sa.name = :name AND sa.toplevelcontainer = :toplevelcontainer";
 
   // Given a profile id, compute the count of all references to projects associated with the profile
   private static final String sqlProfileProjectRefs =
@@ -288,31 +289,35 @@ public class AzureResourceDao {
   /**
    * Insert a new row into the storage_account_resource metadata table and give the provided flight
    * the lock by setting the flightid column. If there already exists a row with this storage
-   * account name, return null instead of throwing an exception.
+   * account name and top level container, return null instead of throwing an exception.
    *
    * @return an AzureStorageAccountResource if the insert succeeded, null otherwise
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public AzureStorageAccountResource createAndLockStorageAccount(
+  public AzureStorageAccountResource createAndLockStorage(
       String storageAccountName,
+      String containerId,
       AzureApplicationDeploymentResource applicationResource,
       AzureRegion region,
       String flightId) {
     // Put an end to serialization errors here. We only come through here if we really need to
-    // create
-    // the storage, so this is not on the path of most storage account lookups.
+    // create the storage, so this is not on the path of most storage account lookups.
     jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE storage_account_resource IN EXCLUSIVE MODE");
 
     String sql =
-        "INSERT INTO storage_account_resource (application_resource_id, name, datacontainer, "
-            + "metadatacontainer, dbname, flightid) VALUES "
-            + "(:application_resource_id, :name, :datacontainer, :metadatacontainer, :dbname, :flightid) "
-            + "ON CONFLICT ON CONSTRAINT storage_account_resource_name_key DO NOTHING";
+        """
+      INSERT INTO storage_account_resource (application_resource_id, name, toplevelcontainer,
+        datacontainer, metadatacontainer, dbname, flightid) VALUES
+        (:application_resource_id, :name, :toplevelcontainer, :datacontainer, :metadatacontainer,
+        :dbname, :flightid)
+      ON CONFLICT ON CONSTRAINT storage_account_resource_name_toplevelcontainer_key DO NOTHING
+    """;
+
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("application_resource_id", applicationResource.getId())
             .addValue("name", storageAccountName)
-            // TODO<muscles>: move to constants
+            .addValue("toplevelcontainer", containerId)
             .addValue("datacontainer", "data")
             .addValue("metadatacontainer", "metadata")
             .addValue("dbname", storageAccountName)
@@ -327,6 +332,7 @@ public class AzureResourceDao {
           .profileId(applicationResource.getProfileId())
           .applicationResource(applicationResource)
           .name(storageAccountName)
+          .topLevelContainer(containerId)
           .dataContainer("data")
           .metadataContainer("metadata")
           .dbName(storageAccountName)
@@ -345,18 +351,25 @@ public class AzureResourceDao {
    * @param flightId flight trying to unlock it
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void unlockStorageAccount(String storageAccountName, String flightId) {
+  public void unlockStorageAccount(
+      String storageAccountName, String collectionId, String flightId) {
     String sql =
-        "UPDATE storage_account_resource SET flightid = NULL "
-            + "WHERE name = :name AND flightid = :flightid";
+        """
+        UPDATE storage_account_resource SET flightid = NULL
+        WHERE name = :name
+        AND toplevelcontainer = :toplevelcontainer
+        AND flightid = :flightid
+        """;
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("name", storageAccountName)
+            .addValue("toplevelcontainer", collectionId)
             .addValue("flightid", flightId);
     int numRowsUpdated = jdbcTemplate.update(sql, params);
     logger.info(
-        "Storage account {} was {}",
+        "Storage account {} with container {} was {}",
         storageAccountName,
+        collectionId,
         (numRowsUpdated > 0 ? "unlocked" : "not locked"));
   }
 
@@ -366,6 +379,7 @@ public class AzureResourceDao {
    * and application name.
    *
    * @param storageAccountName name of the storage account
+   * @param collectionId id of the collection (e.g. dataset or snapshot)
    * @param applicationName application name in which we are searching for the storage account
    * @return a reference to the storage account as a POJO {@link AzureStorageAccountResource} or
    *     null if not found
@@ -375,8 +389,11 @@ public class AzureResourceDao {
    */
   @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
   public AzureStorageAccountResource getStorageAccount(
-      String storageAccountName, String applicationName) {
-    MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", storageAccountName);
+      String storageAccountName, String collectionId, String applicationName) {
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("name", storageAccountName)
+            .addValue("toplevelcontainer", collectionId);
     AzureStorageAccountResource storageAccountResource =
         retrieveStorageAccountBy(sqlStorageAccountRetrievedByName, params);
     if (storageAccountResource == null) {
@@ -426,13 +443,20 @@ public class AzureResourceDao {
    * @return true if a row is deleted, false otherwise
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean deleteStorageAccountMetadata(String storageAccountName, String flightId) {
+  public boolean deleteStorageAccountMetadata(
+      String storageAccountName, String topLevelContainer, String flightId) {
     String sql =
-        "DELETE FROM storage_account_resource "
-            + "WHERE name = :name AND (flightid = :flightid OR flightid IS NULL)";
+        """
+      DELETE FROM storage_account_resource
+      WHERE name = :name
+      AND toplevelcontainer = :topLevelContainer
+      AND (flightid = :flightid OR flightid IS NULL)
+      """;
+
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("name", storageAccountName)
+            .addValue("topLevelContainer", topLevelContainer)
             .addValue("flightid", flightId);
     int numRowsUpdated = jdbcTemplate.update(sql, params);
     return (numRowsUpdated == 1);
@@ -474,6 +498,7 @@ public class AzureResourceDao {
                   .profileId(rs.getObject("profile_id", UUID.class))
                   .resourceId(rs.getObject("storage_account_resource_id", UUID.class))
                   .name(rs.getString("name"))
+                  .topLevelContainer(rs.getString("toplevelcontainer"))
                   .dataContainer(rs.getString("datacontainer"))
                   .metadataContainer(rs.getString("metadatacontainer"))
                   .dbName(rs.getString("dbname"))

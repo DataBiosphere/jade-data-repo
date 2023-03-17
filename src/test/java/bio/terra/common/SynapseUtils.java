@@ -334,10 +334,7 @@ public class SynapseUtils {
       BlobSasTokenOptions blobSasTokenOptions) {
     BlobContainerClientFactory targetDataClientFactory =
         azureBlobStorePdao.getTargetDataClientFactory(
-            profileModel,
-            storageAccount,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            blobSasTokenOptions);
+            profileModel, storageAccount, blobSasTokenOptions);
 
     var result =
         targetDataClientFactory

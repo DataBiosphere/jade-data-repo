@@ -659,7 +659,7 @@ public class DrsServiceTest {
     when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(azureFsFile);
     when(resourceService.lookupStorageAccountMetadata(any())).thenReturn(storageAccountResource);
     String urlString = "https://blahblah.core.windows.com/data/file.json";
-    when(azureBlobStorePdao.signFile(any(), any(), any(), any(), any())).thenReturn(urlString);
+    when(azureBlobStorePdao.signFile(any(), any(), any(), any())).thenReturn(urlString);
 
     DRSAccessURL result =
         drsService.getAccessUrlForObjectId(authUser, azureDrsObjectId, "az-centralus");

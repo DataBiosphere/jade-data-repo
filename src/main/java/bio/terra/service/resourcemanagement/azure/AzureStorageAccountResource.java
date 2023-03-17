@@ -12,6 +12,7 @@ public class AzureStorageAccountResource {
   private UUID profileId;
   private AzureApplicationDeploymentResource applicationResource;
   private String name;
+  private String topLevelContainer;
   private String dataContainer;
   private String metadataContainer;
   private String dbName;
@@ -62,6 +63,15 @@ public class AzureStorageAccountResource {
 
   public AzureStorageAccountResource name(String name) {
     this.name = name;
+    return this;
+  }
+
+  public String getTopLevelContainer() {
+    return topLevelContainer;
+  }
+
+  public AzureStorageAccountResource topLevelContainer(String topLevelContainer) {
+    this.topLevelContainer = topLevelContainer;
     return this;
   }
 
@@ -163,6 +173,11 @@ public class AzureStorageAccountResource {
   }
 
   public enum ContainerType {
+    TOPLEVEL() {
+      String getContainer(AzureStorageAccountResource account) {
+        return account.getTopLevelContainer();
+      }
+    },
     DATA() {
       String getContainer(AzureStorageAccountResource account) {
         return account.getDataContainer();

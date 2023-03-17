@@ -283,7 +283,7 @@ public class DatasetJsonConversionTest {
                                             .required(true)
                                             .arrayOf(false))))));
 
-    var dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel);
+    var dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel, DATASET_ID);
     var columnMap = dataset.getTables().get(0).getColumnsMap();
     var pkColumn = columnMap.get(DATASET_COLUMN_NAME);
     var defaultColumn = columnMap.get(defaultColumnName);

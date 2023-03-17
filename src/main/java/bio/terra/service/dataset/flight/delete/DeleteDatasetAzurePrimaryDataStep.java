@@ -64,7 +64,7 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
             "No Azure storage auth info found");
 
     tableDao.deleteFilesFromDataset(
-        storageAuthInfo, f -> azureBlobStorePdao.deleteFile(f, userRequest));
+        storageAuthInfo, datasetId, f -> azureBlobStorePdao.deleteFile(f, userRequest));
 
     // this fault is used by the DatasetConnectedTest > testOverlappingDeletes
     if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT)) {

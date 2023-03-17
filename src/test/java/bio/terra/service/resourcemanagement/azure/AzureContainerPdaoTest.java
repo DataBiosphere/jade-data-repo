@@ -41,9 +41,9 @@ public class AzureContainerPdaoTest {
         new AzureStorageAccountResource()
             .name("mystorageaccount")
             .metadataContainer("md")
-            .dataContainer("d");
-    when(authService.getBlobContainerClient(any(), any(), eq("d"))).thenReturn(blobContainerClient);
-    when(authService.getBlobContainerClient(any(), any(), eq("md")))
+            .dataContainer("d")
+            .topLevelContainer("tld");
+    when(authService.getBlobContainerClient(any(), any(), eq("tld")))
         .thenReturn(blobContainerClient);
     dao = new AzureContainerPdao(authService);
   }

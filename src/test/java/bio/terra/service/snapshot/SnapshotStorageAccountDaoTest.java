@@ -87,7 +87,7 @@ public class SnapshotStorageAccountDaoTest {
                 .id(azureApplicationDeploymentResourceId)
                 .profileId(billingProfileId)
                 .storageAccountPrefix("tdr"));
-    when(storageAccountService.getOrCreateStorageAccount(any(), any(), any(), any()))
+    when(storageAccountService.getOrCreateStorageAccount(any(), any(), any(), any(), any()))
         .thenReturn(
             new AzureStorageAccountResource()
                 .region(AzureRegion.DEFAULT_AZURE_REGION)
@@ -97,11 +97,7 @@ public class SnapshotStorageAccountDaoTest {
 
     AzureStorageAccountResource azureStorageAccountResource =
         resourceService.createSnapshotStorageAccount(
-            snapshot.getName(),
-            snapshotId,
-            dataset.getStorageAccountRegion(),
-            billingProfile,
-            flightId);
+            snapshotId, dataset.getStorageAccountRegion(), billingProfile, flightId);
 
     assertThat(
         "Returns the new storage account resource", azureStorageAccountResource, notNullValue());

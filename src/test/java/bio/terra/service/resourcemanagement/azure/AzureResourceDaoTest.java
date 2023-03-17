@@ -58,7 +58,7 @@ public class AzureResourceDaoTest {
     applicationDeployments.add(appDeployment);
 
     var sa1 =
-        azureResourceDao.createAndLockStorageAccount(
+        azureResourceDao.createAndLockStorage(
             ProfileFixtures.randomizeName("sa1"),
             appDeployment,
             AzureRegion.DEFAULT_AZURE_REGION,
@@ -66,7 +66,7 @@ public class AzureResourceDaoTest {
     storageAccounts.add(sa1);
 
     var sa2 =
-        azureResourceDao.createAndLockStorageAccount(
+        azureResourceDao.createAndLockStorage(
             ProfileFixtures.randomizeName("sa2"),
             appDeployment,
             AzureRegion.DEFAULT_AZURE_REGION,
@@ -78,7 +78,10 @@ public class AzureResourceDaoTest {
   public void teardown() {
     boolean allStorageDeleted =
         storageAccounts.stream()
-            .allMatch(sa -> azureResourceDao.deleteStorageAccountMetadata(sa.getName(), null));
+            .allMatch(
+                sa ->
+                    azureResourceDao.deleteStorageAccountMetadata(
+                        sa.getName(), sa.getTopLevelContainer(), null));
 
     azureResourceDao.markUnusedApplicationDeploymentsForDelete(billingProfile.getId());
     azureResourceDao.deleteApplicationDeploymentMetadata(

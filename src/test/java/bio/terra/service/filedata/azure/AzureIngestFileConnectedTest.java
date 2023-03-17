@@ -134,8 +134,7 @@ public class AzureIngestFileConnectedTest {
             .resourceId(storageAccountId)
             .name(testConfig.getSourceStorageAccountName())
             .applicationResource(applicationResource)
-            .metadataContainer("metadata")
-            .dataContainer("data");
+            .topLevelContainer(datasetId.toString());
 
     storageAuthInfo =
         AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);

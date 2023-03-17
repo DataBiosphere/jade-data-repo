@@ -126,8 +126,7 @@ public class SnapshotCreateFlight extends Flight {
 
     if (platform.isAzure()) {
       addStep(
-          new CreateSnapshotCreateAzureStorageAccountStep(
-              resourceService, sourceDataset, snapshotReq));
+          new CreateSnapshotCreateAzureStorageAccountStep(resourceService, sourceDataset));
       addStep(
           new CreateSnapshotSourceDatasetDataSourceAzureStep(
               azureSynapsePdao, azureBlobStorePdao, userReq));

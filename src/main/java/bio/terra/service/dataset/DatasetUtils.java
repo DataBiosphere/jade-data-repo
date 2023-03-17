@@ -52,7 +52,7 @@ public final class DatasetUtils {
    * method twice on the same request will produce different results.
    */
   public static Dataset convertRequestWithGeneratedNames(DatasetRequestModel request) {
-    Dataset baseDataset = DatasetJsonConversion.datasetRequestToDataset(request);
+    Dataset baseDataset = DatasetJsonConversion.datasetRequestToDataset(request, null);
     fillGeneratedTableNames(baseDataset.getTables());
     return baseDataset;
   }

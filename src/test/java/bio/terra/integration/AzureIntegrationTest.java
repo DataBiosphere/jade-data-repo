@@ -74,10 +74,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -320,6 +322,8 @@ public class AzureIntegrationTest extends UsersBase {
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
 
+    Map<String, Integer> tableRowCount = new HashMap<>();
+
     BulkLoadFileModel fileLoadModel =
         new BulkLoadFileModel()
             .mimeType("text/plain")
@@ -451,10 +455,7 @@ public class AzureIntegrationTest extends UsersBase {
     IngestResponseModel ingestResponseJSON =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestJSON);
     assertThat("1 row was ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
-
-    // TODO: retrieve data and ensure right data was ingested
-    List<Object> results =
-        dataRepoFixtures.retrieveDatasetData(steward, datasetId, jsonIngestTableName, 0, 2, "");
+    tableRowCount.put(jsonIngestTableName, 1);
 
     // Ingest 2 rows from CSV
     String ingest2TableName = "vocabulary";
@@ -482,12 +483,7 @@ public class AzureIntegrationTest extends UsersBase {
     IngestResponseModel ingestResponseCSV =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestCSV);
     assertThat("2 row were ingested", ingestResponseCSV.getRowCount(), equalTo(2L));
-    // TODO: retrieve data and ensure right data was ingested
-    List<Object> results2 =
-        dataRepoFixtures.retrieveDatasetData(steward, datasetId, ingest2TableName, 0, 2, "");
-
-    // Only check the subset of tables that have rows
-    Set<String> tablesToCheck = Set.of(jsonIngestTableName, ingest2TableName);
+    tableRowCount.put(ingest2TableName, 2);
 
     DatasetModel datasetModel =
         dataRepoFixtures.getDataset(
@@ -519,7 +515,7 @@ public class AzureIntegrationTest extends UsersBase {
     SnapshotRequestRowIdModel snapshotRequestRowIdModel = new SnapshotRequestRowIdModel();
 
     for (AccessInfoParquetModelTable table : datasetParquetAccessInfo.getTables()) {
-      if (tablesToCheck.contains(table.getName())) {
+      if (tableRowCount.containsKey(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
         verifySignedUrl(tableUrl, steward(), "rl");
@@ -532,7 +528,7 @@ public class AzureIntegrationTest extends UsersBase {
                 .flatMap(t -> t.getColumns().stream().map(c -> c.getName()))
                 .collect(Collectors.toList()));
         tableModel.setRowIds(
-            dataRepoFixtures.getRowIds(steward, datasetModel, table.getName(), 2).stream()
+            dataRepoFixtures.getRowIds(steward, datasetModel, table.getName(), tableRowCount.get(table.getName())).stream()
                 .map(id -> UUID.fromString(id))
                 .toList());
         snapshotRequestRowIdModel.addTablesItem(tableModel);
@@ -587,16 +583,27 @@ public class AzureIntegrationTest extends UsersBase {
     // Vocabulary Table
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "vocabulary", 2);
     List<Object> vocabRows =
-        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "vocabulary", 0, 2, null);
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "vocabulary", 0, 2, null, "vocabulary_id");
     List<String> drsIds =
         vocabRows.stream()
             .map(r -> ((LinkedHashMap) r).get("vocabulary_reference").toString())
             .toList();
 
+    Object firstVocabRow = vocabRows.get(0);
+    assertThat(
+        "record looks as expected - vocabulary_id",
+        ((LinkedHashMap) firstVocabRow).get("vocabulary_id").toString(),
+        equalTo("1"));
+    Object secondVocabRow = vocabRows.get(1);
+    assertThat(
+        "record looks as expected - vocabulary_id",
+        ((LinkedHashMap) secondVocabRow).get("vocabulary_id").toString(),
+        equalTo("2"));
+
     // Domain Table
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "domain", 1);
     Object firstDomainRow =
-        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "domain", 0, 1, null).get(0);
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "domain", 0, 1, null, null).get(0);
     assertThat(
         "record looks as expected - domain_id",
         ((LinkedHashMap) firstDomainRow).get("domain_id").toString(),
@@ -711,7 +718,6 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo(snapshotByQueryModel.getName()));
 
     // Read the snapshot
-    // TODO - here
     AccessInfoParquetModel snapshotByQueryParquetAccessInfo =
         dataRepoFixtures
             .getSnapshot(
@@ -818,7 +824,7 @@ public class AzureIntegrationTest extends UsersBase {
     verifySignedUrl(snapshotByRowIdParquetUrl, steward(), "rl");
 
     for (AccessInfoParquetModelTable table : snapshotByRowIdParquetAccessInfo.getTables()) {
-      if (tablesToCheck.contains(table.getName())) {
+      if (tableRowCount.get(table.getName()) != null) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
         verifySignedUrl(tableUrl, steward(), "rl");

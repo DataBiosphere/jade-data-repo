@@ -773,7 +773,7 @@ public class DataRepoFixtures {
       TestConfiguration.User user, DatasetModel dataset, String tableName, int limitRowsReturned)
       throws Exception {
     List<Object> dataModel =
-        retrieveDatasetData(user, dataset.getId(), tableName, 0, limitRowsReturned, null);
+        retrieveDatasetData(user, dataset.getId(), tableName, 0, limitRowsReturned, null, null);
     assertThat("got right num of row ids back", dataModel.size(), equalTo(limitRowsReturned));
     return dataModel.stream()
         .map(r -> ((LinkedHashMap) r).get(PDAO_ROW_ID_COLUMN).toString())
@@ -790,13 +790,13 @@ public class DataRepoFixtures {
 
   public void assertDatasetTableCount(
       TestConfiguration.User user, DatasetModel dataset, String tableName, int n) throws Exception {
-    int tableCount = retrieveDatasetData(user, dataset.getId(), tableName, 0, n + 1, null).size();
+    int tableCount = retrieveDatasetData(user, dataset.getId(), tableName, 0, n + 1, null, null).size();
     assertThat("count matches", tableCount, equalTo(n));
   }
 
   public List<Map<String, List<String>>> transformStringResults(
       TestConfiguration.User user, DatasetModel dataset, String tableName) throws Exception {
-    List<Object> dataModel = retrieveDatasetData(user, dataset.getId(), tableName, 0, 100, null);
+    List<Object> dataModel = retrieveDatasetData(user, dataset.getId(), tableName, 0, 100, null, null);
     List<String> columnNamesFromResults =
         ((LinkedHashMap) dataModel.get(0)).keySet().stream().toList();
     List<ColumnModel> columns =
@@ -836,7 +836,7 @@ public class DataRepoFixtures {
       HttpStatus expectedStatus)
       throws Exception {
     DataRepoResponse<DatasetDataModel> response =
-        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter);
+        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, null);
     assertThat(
         "retrieve dataset data by Id should fail",
         response.getStatusCode(),
@@ -849,10 +849,11 @@ public class DataRepoFixtures {
       String table,
       int offset,
       int limit,
-      String filter)
+      String filter,
+      String sort)
       throws Exception {
     DataRepoResponse<DatasetDataModel> response =
-        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter);
+        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, sort);
     DatasetDataModel validated = validateResponse(response, "dataset data", HttpStatus.OK, null);
 
     return validated.getResult();
@@ -864,7 +865,8 @@ public class DataRepoFixtures {
       String table,
       Integer offset,
       Integer limit,
-      String filter)
+      String filter,
+      String sort)
       throws Exception {
     String url = "/api/repository/v1/datasets/%s/data/%s".formatted(datasetId, table);
 
@@ -874,6 +876,9 @@ public class DataRepoFixtures {
 
     if (filter != null) {
       queryParams += "&filter=%s".formatted(filter);
+    }
+    if (sort != null) {
+      queryParams += "&sort=%s".formatted(sort);
     }
     return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
   }

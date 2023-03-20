@@ -111,10 +111,6 @@ public class AzureStorageAccountResource {
     return this;
   }
 
-  public String determineContainer(ContainerType containerType) {
-    return containerType.getContainer(this);
-  }
-
   public String getStorageAccountUrl() {
     String storageAccountURLTemplate = "https://<storageAccount>.blob.core.windows.net";
 
@@ -172,28 +168,29 @@ public class AzureStorageAccountResource {
         .toString();
   }
 
-  public enum ContainerType {
-    TOPLEVEL() {
-      String getContainer(AzureStorageAccountResource account) {
-        return account.getTopLevelContainer();
-      }
-    },
+  public enum FolderType {
     DATA() {
-      String getContainer(AzureStorageAccountResource account) {
-        return account.getDataContainer();
+      public String getPath(String path) {
+        return "data/" + path;
       }
     },
     METADATA() {
-      String getContainer(AzureStorageAccountResource account) {
-        return account.getMetadataContainer();
+      public String getPath(String path) {
+        return "metadata/" + path;
       }
     },
     SCRATCH() {
-      String getContainer(AzureStorageAccountResource accountResource) {
-        return "ingest-scratch-container";
+      public String getPath(String path) {
+        return "scratch/" + path;
       }
     };
 
-    abstract String getContainer(AzureStorageAccountResource account);
+    /**
+     * Given a blob path, will prepend the correct top level directory
+     *
+     * @param path the blob path to qualify
+     * @return the path with the proper folder path prepended
+     */
+    public abstract String getPath(String path);
   }
 }

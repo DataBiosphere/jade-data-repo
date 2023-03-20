@@ -25,7 +25,7 @@ import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobUrlParts;
@@ -321,10 +321,8 @@ public class AzureBlobStorePdao implements CloudFileReader {
 
     String blobUrl =
         String.format(
-            "%s/%s/%s",
-            storageAccountResource.getStorageAccountUrl(),
-            storageAccountResource.determineContainer(ContainerType.SCRATCH),
-            blobPath);
+            "%s/%s",
+            storageAccountResource.getStorageAccountUrl(), FolderType.SCRATCH.getPath(blobPath));
     BlobUrlParts blobParts = BlobUrlParts.parse(blobUrl);
 
     BillingProfileModel profileModel =
@@ -456,18 +454,16 @@ public class AzureBlobStorePdao implements CloudFileReader {
       String dataSourceUrl,
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccount,
-      ContainerType containerType,
       AuthenticatedUserRequest userRequest) {
     return BlobUrlParts.parse(
         getOrSignUrlStringForTargetFactory(
-            dataSourceUrl, profileModel, storageAccount, containerType, userRequest));
+            dataSourceUrl, profileModel, storageAccount, userRequest));
   }
 
   public String getOrSignUrlStringForTargetFactory(
       String dataSourceUrl,
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccount,
-      ContainerType containerType,
       AuthenticatedUserRequest userRequest) {
     BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
     String blobName = ingestControlFileBlobUrl.getBlobName();
@@ -515,6 +511,6 @@ public class AzureBlobStorePdao implements CloudFileReader {
   }
 
   private String getBlobName(String fileId, String fileName) {
-    return String.format("%s/%s/%s", ContainerType.DATA.name().toLowerCase(), fileId, fileName);
+    return FolderType.DATA.getPath("%s/%s".formatted(fileId, fileName));
   }
 }

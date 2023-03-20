@@ -30,6 +30,7 @@ import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
@@ -277,7 +278,7 @@ public class AzureSynapsePdao {
       SELECT <columns:{c|tbl.[<c>]}; separator=",">
         FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
                      <columns:{c|rows.[<c>]}; separator=",">
-                FROM OPENROWSET(BULK 'parquet/*/<tableName>/*.parquet/*',
+                FROM OPENROWSET(BULK '<filePath>',
                                 DATA_SOURCE = '<datasource>',
                                 FORMAT='PARQUET') AS rows
                 WHERE (<userFilter>)
@@ -1038,11 +1039,13 @@ public class AzureSynapsePdao {
             List.of(new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING)),
             table.getColumns());
 
+    String filePath = FolderType.METADATA.getPath("parquet/*/" + tableName + "/*.parquet/*");
+
     final String sql =
         new ST(queryFromDatasourceTemplate)
             .add("columns", columns.stream().map(Column::getName).toList())
             .add("datasource", getDataSourceName(snapshot, userRequest.getEmail()))
-            .add("tableName", tableName)
+            .add("filePath", filePath)
             .add("sort", sort)
             .add("direction", direction)
             .add("userFilter", userFilter)

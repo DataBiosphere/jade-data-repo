@@ -20,6 +20,7 @@ import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.stairway.ShortUUID;
 import com.azure.core.management.Region;
 import com.azure.resourcemanager.AzureResourceManager;
@@ -148,7 +149,7 @@ public class SynapseUtils {
             .resourceId(UUID.randomUUID())
             .name(datasetStorageAccount.name())
             .applicationResource(applicationResource)
-            .metadataContainer("metadata");
+            .topLevelContainer(UUID.randomUUID().toString());
 
     StorageAccount snapshotStorageAccount =
         client
@@ -164,7 +165,7 @@ public class SynapseUtils {
             .resourceId(UUID.randomUUID())
             .name(snapshotStorageAccount.name())
             .applicationResource(applicationResource)
-            .metadataContainer("metadata");
+            .topLevelContainer(UUID.randomUUID().toString());
 
     // -- CreateSnapshotSourceDatasetDataSourceAzureStep --
     // Create external data source for the source dataset
@@ -172,11 +173,7 @@ public class SynapseUtils {
     String parquetDatasetSourceLocation = datasetStorageAccountResource.getStorageAccountUrl();
     BlobUrlParts datasetSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetDatasetSourceLocation,
-            billingProfile,
-            datasetStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            TEST_USER);
+            parquetDatasetSourceLocation, billingProfile, datasetStorageAccountResource, TEST_USER);
     azureSynapsePdao.getOrCreateExternalDataSource(
         datasetSignUrlBlob, sourceDatasetScopedCredentialName, sourceDatasetDataSourceName);
 
@@ -186,11 +183,7 @@ public class SynapseUtils {
     String parquetSnapshotLocation = snapshotStorageAccountResource.getStorageAccountUrl();
     snapshotSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetSnapshotLocation,
-            billingProfile,
-            snapshotStorageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            TEST_USER);
+            parquetSnapshotLocation, billingProfile, snapshotStorageAccountResource, TEST_USER);
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
   }
@@ -401,11 +394,7 @@ public class SynapseUtils {
 
     BlobUrlParts destinationSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetDestinationLocation,
-            billingProfile,
-            storageAccountResource,
-            AzureStorageAccountResource.ContainerType.METADATA,
-            TEST_USER);
+            parquetDestinationLocation, billingProfile, storageAccountResource, TEST_USER);
     azureSynapsePdao.getOrCreateExternalDataSource(
         destinationSignUrlBlob,
         IngestUtils.getTargetScopedCredentialName(ingestFlightId),
@@ -413,10 +402,12 @@ public class SynapseUtils {
 
     // 3 - Retrieve info about database schema so that we can populate the parquet create query
     String tableName = destinationTable.getName();
-    String destinationParquetFile = "parquet/" + tableName + "/" + ingestFlightId + ".parquet";
+    String destinationParquetFile =
+        FolderType.METADATA.getPath("parquet/" + tableName + "/" + ingestFlightId + ".parquet");
 
     String scratchParquetFile =
-        "parquet/" + SCRATCH_TABLE_NAME_PREFIX + tableName + "/" + ingestFlightId + ".parquet";
+        FolderType.SCRATCH.getPath(
+            "parquet/" + SCRATCH_TABLE_NAME_PREFIX + tableName + "/" + ingestFlightId + ".parquet");
 
     // 4 - Create parquet files via external table
     // All inputs should be sanitized before passed into this method
@@ -443,8 +434,7 @@ public class SynapseUtils {
     azureSynapsePdao.createFinalParquetFiles(
         IngestUtils.getSynapseIngestTableName(ingestFlightId),
         destinationParquetFile,
-        IngestUtils.getDataSourceName(
-            AzureStorageAccountResource.ContainerType.METADATA, ingestFlightId),
+        IngestUtils.getTargetDataSourceName(ingestFlightId),
         IngestUtils.getSynapseScratchTableName(ingestFlightId),
         destinationTable);
   }

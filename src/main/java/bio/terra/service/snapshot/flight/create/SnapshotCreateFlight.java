@@ -125,8 +125,7 @@ public class SnapshotCreateFlight extends Flight {
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isAzure()) {
-      addStep(
-          new CreateSnapshotCreateAzureStorageAccountStep(resourceService, sourceDataset));
+      addStep(new CreateSnapshotCreateAzureStorageAccountStep(resourceService, sourceDataset));
       addStep(
           new CreateSnapshotSourceDatasetDataSourceAzureStep(
               azureSynapsePdao, azureBlobStorePdao, userReq));

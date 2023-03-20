@@ -204,7 +204,13 @@ public class DatasetIntegrationTest extends UsersBase {
 
     // Check permissions on lookupDatasetDataById
     dataRepoFixtures.retrieveDatasetData(
-        steward(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null, null);
+        steward(),
+        datasetId,
+        datasetModel.getSchema().getTables().get(0).getName(),
+        0,
+        1,
+        null,
+        null);
     dataRepoFixtures.retrieveDatasetDataExpectFailure(
         custodian(),
         datasetId,
@@ -226,7 +232,13 @@ public class DatasetIntegrationTest extends UsersBase {
 
     // Check permissions on lookupDatasetDataById now that the custodian has been given permission
     dataRepoFixtures.retrieveDatasetData(
-        custodian(), datasetId, datasetModel.getSchema().getTables().get(0).getName(), 0, 1, null, null);
+        custodian(),
+        datasetId,
+        datasetModel.getSchema().getTables().get(0).getName(),
+        0,
+        1,
+        null,
+        null);
     dataRepoFixtures.retrieveDatasetDataExpectFailure(
         reader(),
         datasetId,

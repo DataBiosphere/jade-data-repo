@@ -50,6 +50,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
+import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -79,7 +80,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -528,7 +528,10 @@ public class AzureIntegrationTest extends UsersBase {
                 .flatMap(t -> t.getColumns().stream().map(c -> c.getName()))
                 .collect(Collectors.toList()));
         tableModel.setRowIds(
-            dataRepoFixtures.getRowIds(steward, datasetModel, table.getName(), tableRowCount.get(table.getName())).stream()
+            dataRepoFixtures
+                .getRowIds(
+                    steward, datasetModel, table.getName(), tableRowCount.get(table.getName()))
+                .stream()
                 .map(id -> UUID.fromString(id))
                 .toList());
         snapshotRequestRowIdModel.addTablesItem(tableModel);
@@ -566,14 +569,13 @@ public class AzureIntegrationTest extends UsersBase {
         .forEach(this::verifyUrlIsAccessible);
 
     // Read the ingested metadata
+    SnapshotModel snapshotAll =
+        dataRepoFixtures.getSnapshot(
+            steward(),
+            snapshotByFullViewId,
+            List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
     AccessInfoParquetModel snapshotParquetAccessInfo =
-        dataRepoFixtures
-            .getSnapshot(
-                steward(),
-                snapshotByFullViewId,
-                List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
-            .getAccessInformation()
-            .getParquet();
+        snapshotAll.getAccessInformation().getParquet();
 
     String snapshotParquetUrl =
         snapshotParquetAccessInfo.getUrl() + "?" + snapshotParquetAccessInfo.getSasToken();
@@ -581,9 +583,10 @@ public class AzureIntegrationTest extends UsersBase {
     verifySignedUrl(snapshotParquetUrl, steward(), "rl");
 
     // Vocabulary Table
-    dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "vocabulary", 2);
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "vocabulary", 2);
     List<Object> vocabRows =
-        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "vocabulary", 0, 2, null, "vocabulary_id");
+        dataRepoFixtures.retrieveSnapshotPreviewById(
+            steward(), snapshotAll.getId(), "vocabulary", 0, 2, null, "vocabulary_id");
     List<String> drsIds =
         vocabRows.stream()
             .map(r -> ((LinkedHashMap) r).get("vocabulary_reference").toString())
@@ -601,9 +604,11 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo("2"));
 
     // Domain Table
-    dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "domain", 1);
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "domain", 1);
     Object firstDomainRow =
-        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "domain", 0, 1, null, null).get(0);
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(steward(), snapshotAll.getId(), "domain", 0, 1, null)
+            .get(0);
     assertThat(
         "record looks as expected - domain_id",
         ((LinkedHashMap) firstDomainRow).get("domain_id").toString(),
@@ -619,19 +624,13 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(
         "record looks as expected - domain_array_tags_custom",
         ((LinkedHashMap) firstDomainRow).get("domain_array_tags_custom").toString(),
-        equalTo("[\"tag1\",\"tag2\"]"));
-    List<String> embeddedDrsIds1 =
-        TestUtils.mapFromJson(
-            ((LinkedHashMap) firstDomainRow).get("domain_files_custom_1").toString(),
-            new TypeReference<>() {});
+        equalTo("[tag1, tag2]"));
     assertThat(
         "record looks as expected - domain_files_custom_1 drs ids",
-        embeddedDrsIds1,
+        (ArrayList<String>) ((LinkedHashMap) firstDomainRow).get("domain_files_custom_1"),
         containsInAnyOrder(drsIds.toArray()));
     List<String> embeddedDrsIds2 =
-        TestUtils.mapFromJson(
-            ((LinkedHashMap) firstDomainRow).get("domain_files_custom_2").toString(),
-            new TypeReference<>() {});
+        (ArrayList<String>) ((LinkedHashMap) firstDomainRow).get("domain_files_custom_2");
     assertThat(
         "record looks as expected - domain_files_custom_2 drs ids - size",
         embeddedDrsIds2,
@@ -824,7 +823,8 @@ public class AzureIntegrationTest extends UsersBase {
     verifySignedUrl(snapshotByRowIdParquetUrl, steward(), "rl");
 
     for (AccessInfoParquetModelTable table : snapshotByRowIdParquetAccessInfo.getTables()) {
-      if (tableRowCount.get(table.getName()) != null) {
+      // only run check for tables that have ingested data
+      if (tableRowCount.containsKey(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
         verifySignedUrl(tableUrl, steward(), "rl");

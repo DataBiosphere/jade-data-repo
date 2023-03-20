@@ -789,7 +789,7 @@ public class DataRepoFixtures {
       TestConfiguration.User user, DatasetModel dataset, String tableName, int limitRowsReturned)
       throws Exception {
     List<Object> dataModel =
-        retrieveDatasetData(user, dataset.getId(), tableName, 0, limitRowsReturned, null, null);
+        retrieveDatasetData(user, dataset.getId(), tableName, 0, limitRowsReturned, null);
     assertThat("got right num of row ids back", dataModel.size(), equalTo(limitRowsReturned));
     return dataModel.stream()
         .map(r -> ((LinkedHashMap) r).get(PDAO_ROW_ID_COLUMN).toString())
@@ -806,15 +806,13 @@ public class DataRepoFixtures {
 
   public void assertDatasetTableCount(
       TestConfiguration.User user, DatasetModel dataset, String tableName, int n) throws Exception {
-    int tableCount =
-        retrieveDatasetData(user, dataset.getId(), tableName, 0, n + 1, null, null).size();
+    int tableCount = retrieveDatasetData(user, dataset.getId(), tableName, 0, n + 1, null).size();
     assertThat("count matches", tableCount, equalTo(n));
   }
 
   public List<Map<String, List<String>>> transformStringResults(
       TestConfiguration.User user, DatasetModel dataset, String tableName) throws Exception {
-    List<Object> dataModel =
-        retrieveDatasetData(user, dataset.getId(), tableName, 0, 100, null, null);
+    List<Object> dataModel = retrieveDatasetData(user, dataset.getId(), tableName, 0, 100, null);
     List<String> columnNamesFromResults =
         ((LinkedHashMap) dataModel.get(0)).keySet().stream().toList();
     List<ColumnModel> columns =
@@ -859,6 +857,17 @@ public class DataRepoFixtures {
         "retrieve dataset data by Id should fail",
         response.getStatusCode(),
         equalTo(expectedStatus));
+  }
+
+  public List<Object> retrieveDatasetData(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String table,
+      int offset,
+      int limit,
+      String filter)
+      throws Exception {
+    return retrieveDatasetData(user, datasetId, table, offset, limit, filter, null);
   }
 
   public List<Object> retrieveDatasetData(

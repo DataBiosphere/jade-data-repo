@@ -123,8 +123,7 @@ public class SnapshotIntegrationTest extends UsersBase {
     String sampleTable = "sample";
 
     List<Object> participantResults =
-        dataRepoFixtures.retrieveDatasetData(
-            steward(), datasetId, participantTable, 0, 1000, null, null);
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, participantTable, 0, 1000, null);
     List<UUID> participantIds =
         participantResults.stream()
             .map(
@@ -133,8 +132,7 @@ public class SnapshotIntegrationTest extends UsersBase {
                         ((LinkedHashMap) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
             .toList();
     List<Object> sampleResults =
-        dataRepoFixtures.retrieveDatasetData(
-            steward(), datasetId, sampleTable, 0, 1000, null, null);
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, sampleTable, 0, 1000, null);
     List<UUID> sampleIds =
         sampleResults.stream()
             .map(

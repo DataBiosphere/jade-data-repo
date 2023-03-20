@@ -422,6 +422,17 @@ public class AzureIntegrationTest extends UsersBase {
       assertNotNull(dataRepoFixtures.getFileById(steward(), datasetId, bulkFileEntry.getFileId()));
     }
 
+    DatasetModel datasetModel =
+        dataRepoFixtures.getDataset(
+            steward(),
+            datasetId,
+            List.of(
+                DatasetRequestAccessIncludeModel.ACCESS_INFORMATION,
+                DatasetRequestAccessIncludeModel.SCHEMA));
+    AccessInfoParquetModel datasetParquetAccessInfo =
+        datasetModel.getAccessInformation().getParquet();
+
+    DatasetSpecificationModel datasetSchema = datasetModel.getSchema();
     // dataset ingest
     // Ingest Metadata - 1 row from JSON file
     String datasetIngestFlightId = UUID.randomUUID().toString();
@@ -456,6 +467,24 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestJSON);
     assertThat("1 row was ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
     tableRowCount.put(jsonIngestTableName, 1);
+    // assert correct row data was ingested into domain table
+    dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "domain", 1);
+    Object firstDomainRow =
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(steward(), datasetId, "domain", 0, 1, null)
+            .get(0);
+    assertThat(
+        "record looks as expected - domain_id",
+        ((LinkedHashMap) firstDomainRow).get("domain_id").toString(),
+        equalTo(domainRowData.get("domain_id")));
+    assertThat(
+        "record looks as expected - domain_files_custom_2 file id- value",
+        ((ArrayList<String>) ((LinkedHashMap) firstDomainRow).get("domain_files_custom_2")).get(0),
+        equalTo(file2Model.getFileId()));
+    assertThat(
+        "record looks as expected - domain_files_custom_3 file id- value",
+        ((ArrayList<String>) ((LinkedHashMap) firstDomainRow).get("domain_files_custom_3")).get(0),
+        equalTo(file4Model.getFileId()));
 
     // Ingest 2 rows from CSV
     String ingest2TableName = "vocabulary";
@@ -484,19 +513,19 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestCSV);
     assertThat("2 row were ingested", ingestResponseCSV.getRowCount(), equalTo(2L));
     tableRowCount.put(ingest2TableName, 2);
-
-    DatasetModel datasetModel =
-        dataRepoFixtures.getDataset(
-            steward(),
-            datasetId,
-            List.of(
-                DatasetRequestAccessIncludeModel.ACCESS_INFORMATION,
-                DatasetRequestAccessIncludeModel.SCHEMA));
-
-    AccessInfoParquetModel datasetParquetAccessInfo =
-        datasetModel.getAccessInformation().getParquet();
-
-    DatasetSpecificationModel datasetSchema = datasetModel.getSchema();
+    // assert correct data returns from view data endpoint
+    dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "vocabulary", 2);
+    List<Object> vocabRows =
+        dataRepoFixtures.retrieveDatasetData(
+            steward(), datasetId, "vocabulary", 0, 2, null, "vocabulary_id");
+    assertThat(
+        "record looks as expected - vocabulary_id",
+        ((LinkedHashMap) vocabRows.get(0)).get("vocabulary_id").toString(),
+        equalTo("1"));
+    assertThat(
+        "record looks as expected - vocabulary_id",
+        ((LinkedHashMap) vocabRows.get(1)).get("vocabulary_id").toString(),
+        equalTo("2"));
 
     // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
@@ -584,20 +613,20 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Vocabulary Table
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "vocabulary", 2);
-    List<Object> vocabRows =
+    List<Object> vocabSnapshotRows =
         dataRepoFixtures.retrieveSnapshotPreviewById(
             steward(), snapshotAll.getId(), "vocabulary", 0, 2, null, "vocabulary_id");
     List<String> drsIds =
-        vocabRows.stream()
+        vocabSnapshotRows.stream()
             .map(r -> ((LinkedHashMap) r).get("vocabulary_reference").toString())
             .toList();
 
-    Object firstVocabRow = vocabRows.get(0);
+    Object firstVocabRow = vocabSnapshotRows.get(0);
     assertThat(
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) firstVocabRow).get("vocabulary_id").toString(),
         equalTo("1"));
-    Object secondVocabRow = vocabRows.get(1);
+    Object secondVocabRow = vocabSnapshotRows.get(1);
     assertThat(
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) secondVocabRow).get("vocabulary_id").toString(),
@@ -605,32 +634,32 @@ public class AzureIntegrationTest extends UsersBase {
 
     // Domain Table
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "domain", 1);
-    Object firstDomainRow =
+    Object firstSnapshotDomainRow =
         dataRepoFixtures
             .retrieveSnapshotPreviewById(steward(), snapshotAll.getId(), "domain", 0, 1, null)
             .get(0);
     assertThat(
         "record looks as expected - domain_id",
-        ((LinkedHashMap) firstDomainRow).get("domain_id").toString(),
+        ((LinkedHashMap) firstSnapshotDomainRow).get("domain_id").toString(),
         equalTo(domainRowData.get("domain_id")));
     assertThat(
         "record looks as expected - domain_name",
-        ((LinkedHashMap) firstDomainRow).get("domain_name").toString(),
+        ((LinkedHashMap) firstSnapshotDomainRow).get("domain_name").toString(),
         equalTo(domainRowData.get("domain_name")));
     assertThat(
         "record looks as expected - domain_concept_id",
-        ((LinkedHashMap) firstDomainRow).get("domain_concept_id").toString(),
+        ((LinkedHashMap) firstSnapshotDomainRow).get("domain_concept_id").toString(),
         equalTo(domainRowData.get("domain_concept_id").toString()));
     assertThat(
         "record looks as expected - domain_array_tags_custom",
-        ((LinkedHashMap) firstDomainRow).get("domain_array_tags_custom").toString(),
+        ((LinkedHashMap) firstSnapshotDomainRow).get("domain_array_tags_custom").toString(),
         equalTo("[tag1, tag2]"));
     assertThat(
         "record looks as expected - domain_files_custom_1 drs ids",
-        (ArrayList<String>) ((LinkedHashMap) firstDomainRow).get("domain_files_custom_1"),
+        (ArrayList<String>) ((LinkedHashMap) firstSnapshotDomainRow).get("domain_files_custom_1"),
         containsInAnyOrder(drsIds.toArray()));
     List<String> embeddedDrsIds2 =
-        (ArrayList<String>) ((LinkedHashMap) firstDomainRow).get("domain_files_custom_2");
+        (ArrayList<String>) ((LinkedHashMap) firstSnapshotDomainRow).get("domain_files_custom_2");
     assertThat(
         "record looks as expected - domain_files_custom_2 drs ids - size",
         embeddedDrsIds2,
@@ -642,7 +671,7 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat(
         "record looks as expected - domain_files_custom_3 drs id",
         DrsIdService.fromUri(
-                ((LinkedHashMap) firstDomainRow).get("domain_files_custom_3").toString())
+                ((LinkedHashMap) firstSnapshotDomainRow).get("domain_files_custom_3").toString())
             .toDrsObjectId(),
         equalTo(String.format("v1_%s_%s", snapshotByFullViewId, file4Model.getFileId())));
 

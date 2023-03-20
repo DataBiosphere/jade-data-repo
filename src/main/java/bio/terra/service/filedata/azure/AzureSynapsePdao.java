@@ -282,7 +282,7 @@ public class AzureSynapsePdao {
                 WHERE (<userFilter>)
              ) AS tbl
        WHERE tbl.datarepo_row_number >= :offset
-         AND tbl.datarepo_row_number \\< :offset + :limit;""";
+         AND tbl.datarepo_row_number \\<= :offset + :limit;""";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 

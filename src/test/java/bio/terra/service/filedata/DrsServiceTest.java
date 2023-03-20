@@ -662,7 +662,8 @@ public class DrsServiceTest {
     when(azureBlobStorePdao.signFile(any(), any(), any(), any())).thenReturn(urlString);
 
     DRSAccessURL result =
-        drsService.getAccessUrlForObjectId(authUser, azureDrsObjectId, "az-centralus");
+        drsService.getAccessUrlForObjectId(
+            authUser, azureDrsObjectId, "az-centralus*" + snapshotId);
     assertEquals(urlString, result.getUrl());
   }
 

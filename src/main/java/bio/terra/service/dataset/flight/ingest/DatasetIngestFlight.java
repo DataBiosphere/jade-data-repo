@@ -235,10 +235,11 @@ public class DatasetIngestFlight extends Flight {
             new IngestSoftDeleteExistingRowsStep(
                 datasetService, bigQueryTransactionPdao, bigQueryDatasetPdao, userReq, autocommit));
       }
-      // Only appended records may specify their own row IDs: if specified for other ingest types,
-      // they are ignored and new ones are generated
-      boolean unsetExistingRowIds = replaceIngest || mergeIngest;
-      addStep(new IngestRowIdsStep(datasetService, bigQueryDatasetPdao, unsetExistingRowIds));
+      addStep(
+          new IngestRowIdsStep(
+              datasetService,
+              bigQueryDatasetPdao,
+              IngestUtils.shouldUnsetExistingRowIds(inputParameters)));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryDatasetPdao, fileDao));
       // Loads data into the final target raw data table
       addStep(

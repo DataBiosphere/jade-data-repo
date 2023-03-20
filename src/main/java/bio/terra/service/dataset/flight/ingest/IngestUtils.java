@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.StorageException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -218,6 +219,21 @@ public final class IngestUtils {
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
     return ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON
         || ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.ARRAY;
+  }
+
+  /**
+   * @return whether ingest should ignore any user-specified row IDs and generate new ones
+   */
+  public static boolean shouldUnsetExistingRowIds(FlightMap inputParameters) {
+    var updateStrategy =
+        inputParameters
+            .get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class)
+            .getUpdateStrategy();
+    // For historical reasons, ingests in append mode may specify their own row IDs.
+    return EnumSet.of(
+            IngestRequestModel.UpdateStrategyEnum.REPLACE,
+            IngestRequestModel.UpdateStrategyEnum.MERGE)
+        .contains(updateStrategy);
   }
 
   public static Stream<JsonNode> getJsonNodesStreamFromFile(

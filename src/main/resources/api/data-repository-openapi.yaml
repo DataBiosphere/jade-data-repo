@@ -3101,6 +3101,299 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: upgrade
+  #################################################################
+  #####                  COHORT BUILDER ROUTES
+  #################################################################
+  '/api/repository/v1/cohort-builder/entities/{entityName}/hints':
+    parameters:
+      - $ref: '#/components/parameters/EntityName'
+    post:
+      summary: Query entity display hints
+      operationId: queryHints
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HintQuery'
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayHintList'
+        404:
+          $ref: '#/components/schemas/ErrorModel'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/concept-sets':
+    get:
+      parameters:
+        - name: offset
+          in: query
+          description: The number of entries to skip before when retrieving the next
+            page
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          description: The numbers of items to return.
+          schema:
+            type: integer
+            default: 10
+      summary: List all concept sets in a study
+      operationId: listConceptSets
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConceptSetList'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+    post:
+      summary: Create a new concept set
+      operationId: createConceptSet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConceptSetCreateInfo'
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConceptSet'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/concept-sets/{conceptSetId}':
+    parameters:
+      - $ref: '#/components/parameters/ConceptSetId'
+    get:
+      summary: Get an existing concept set
+      operationId: getConceptSet
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConceptSet'
+        404:
+          $ref: '#/components/schemas/ErrorModel'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+    patch:
+      summary: Update an existing concept set
+      operationId: updateConceptSet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConceptSetUpdateInfo'
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConceptSet'
+        404:
+          $ref: '#/components/schemas/ErrorModel'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+    delete:
+      summary: Delete a concept set
+      operationId: deleteConceptSet
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        204:
+          description: OK
+        404:
+          $ref: '#/components/schemas/ErrorModel'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/entities/{entityName}/counts':
+    parameters:
+      - $ref: '#/components/parameters/EntityName'
+    post:
+      summary: Count entity instances
+      operationId: countInstances
+      tags:
+        - cohort-builder
+        - repository
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CountQuery'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceCountList'
+        404:
+          $ref: '#/components/schemas/ErrorModel'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/entities/{entityName}/instances':
+    parameters:
+      - $ref: '#/components/parameters/EntityName'
+    post:
+      summary: Query entity instances
+      operationId: queryInstances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Query'
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceList'
+        404:
+          $ref: '#/components/schemas/ErrorModel'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/cohorts':
+    get:
+      parameters:
+        - in: query
+          name: offset
+          description: The number of items to skip before starting to collect the result set.
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: limit
+          description: The numbers of items to return.
+          schema:
+            type: integer
+            default: 10
+      summary: List all user cohorts
+      operationId: listCohorts
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CohortList'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+    post:
+      summary: Create a new cohort
+      operationId: createCohort
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CohortCreateInfo'
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cohort'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+
+  '/api/repository/v1/cohort-builder/cohorts/{cohortId}':
+    parameters:
+      - $ref: '#/components/parameters/CohortId'
+    get:
+      summary: Get an existing cohort
+      operationId: getCohort
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cohort'
+        404:
+          $ref: '#/components/schemas/ErrorModel'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+    patch:
+      summary: Update an existing cohort
+      operationId: updateCohort
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CohortUpdateInfo'
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cohort'
+        404:
+          $ref: '#/components/schemas/ErrorModel'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
+    delete:
+      summary: Delete a cohort
+      operationId: deleteCohort
+      tags:
+        - cohort-builder
+        - repository
+      responses:
+        204:
+          description: OK
+        404:
+          $ref: '#/components/schemas/ErrorModel'
+        500:
+          $ref: '#/components/schemas/ErrorModel'
 
 ##############################################################################
 ## SEARCH API STANDARD ENDPOINTS
@@ -6123,6 +6416,564 @@ components:
             which token to send via other means. It is strongly recommended that the caller
             validate that it is appropriate to send the requested token to the DRS server to mitigate attacks
             by malicious DRS servers requesting credentials they should not have.
+    #################################################################
+    #####                  COHORT BUILDER MODELS
+    #################################################################
+    Attribute:
+      type: object
+      description: Entity attribute
+      properties:
+        name:
+          description: Name
+          type: string
+        type:
+          description: Attribute type
+          type: string
+          enum: [ 'SIMPLE', 'KEY_AND_DISPLAY' ]
+        dataType:
+          $ref: '#/components/schemas/DataType'
+
+    EntityName:
+      type: string
+      description: Name of the entity (e.g. condition_occurrence)
+
+    ConceptSetDisplayName:
+      type: string
+      description: Human readable name of the concept set
+
+    ConceptSetDescription:
+      type: string
+      description: Description of the concept set
+
+    ConceptSetList:
+      type: array
+      items:
+        $ref: '#/components/schemas/ConceptSet'
+
+    DisplayHint:
+      type: object
+      description: Display hint for entity attribute
+      properties:
+        attribute:
+          $ref: '#/components/schemas/Attribute'
+        displayHint:
+          type: object
+          description: Display hint calculated from source data
+          properties:
+            enumHint:
+              $ref: '#/components/schemas/DisplayHintEnum'
+            numericRangeHint:
+              $ref: '#/components/schemas/DisplayHintNumericRange'
+
+    DisplayHintEnum:
+      type: object
+      description: Enumeration of possible values, display strings, and counts
+      properties:
+        enumHintValues:
+          type: array
+          items:
+            type: object
+            description: Enum value and count
+            properties:
+              enumVal:
+                $ref: '#/components/schemas/ValueDisplay'
+              count:
+                type: integer
+
+    DisplayHintNumericRange:
+      type: object
+      description: Maximum and minimum values
+      properties:
+        min:
+          description: Max value
+          type: number
+          format: double
+        max:
+          description: Min value
+          type: number
+          format: double
+
+    DisplayHintList:
+      type: object
+      description: List of display hints
+      properties:
+        sql:
+          type: string
+        displayHints:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayHint'
+
+    HintQuery:
+      type: object
+      description: Get display hints
+      properties:
+        relatedEntity:
+          description: |
+            Optional related entity.
+            If specified, then we return hints computed across related instances (e.g. condition occurrences where condition id=11).
+            Otherwise, we return hints computed across all instances (e.g. all persons).
+          type: object
+          properties:
+            name:
+              type: string
+              description: Related entity name
+            id:
+              $ref: '#/components/schemas/Literal'
+
+    ConceptSet:
+      type: object
+      properties:
+        id:
+          description: ID of the concept set, immutable
+          type: string
+        entity:
+          $ref: '#/components/schemas/EntityName'
+        displayName:
+          $ref: '#/components/schemas/ConceptSetDisplayName'
+        description:
+          $ref: '#/components/schemas/ConceptSetDescription'
+        criteria:
+          $ref: '#/components/schemas/Criteria'
+        created:
+          description: Timestamp of when the concept set was created
+          type: string
+          format: date-time
+        createdBy:
+          description: Email of user who created the concept set
+          type: string
+        lastModified:
+          description: Timestamp of when the concept set was last modified
+          type: string
+          format: date-time
+      required:
+        - id
+        - entity
+        - displayName
+        - criteria
+        - created
+        - createdBy
+        - lastModified
+
+    ConceptSetCreateInfo:
+      type: object
+      properties:
+        entity:
+          $ref: '#/components/schemas/EntityName'
+        displayName:
+          $ref: '#/components/schemas/ConceptSetDisplayName'
+        description:
+          $ref: '#/components/schemas/ConceptSetDescription'
+        criteria:
+          $ref: '#/components/schemas/Criteria'
+
+    ConceptSetUpdateInfo:
+      type: object
+      properties:
+        entity:
+          $ref: '#/components/schemas/EntityName'
+        displayName:
+          $ref: '#/components/schemas/ConceptSetDisplayName'
+        description:
+          $ref: '#/components/schemas/ConceptSetDescription'
+        criteria:
+          $ref: '#/components/schemas/Criteria'
+
+    OrderByDirection:
+      type: string
+      description: Defaults to ascending
+      enum: [ 'ASCENDING', 'DESCENDING' ]
+
+    Limit:
+      type: integer
+      description: Maximum number of results to return. Defaults to 250.
+      default: 250
+
+    Query:
+      type: object
+      description: Query for entity instances
+      properties:
+        includeAttributes:
+          description: Attributes to include in the returned instances
+          type: array
+          items:
+            type: string
+        includeHierarchyFields:
+          description: Hierarchy fields to include in the returned instances. All fields will be returned for each hierarchy specified.
+          type: object
+          properties:
+            hierarchies:
+              type: array
+              description: Hierarchy names
+              items:
+                type: string
+            fields:
+              type: array
+              items:
+                type: string
+                enum: [ 'IS_MEMBER', 'PATH', 'NUM_CHILDREN', 'IS_ROOT' ]
+        includeRelationshipFields:
+          description: Relationship (count) fields to include in the returned instances.
+          type: array
+          items:
+            type: object
+            description: Related entity and optional hierarchies. Per-node rollups are always returned.
+            properties:
+              relatedEntity:
+                type: string
+              hierarchies:
+                type: array
+                description: Hierarchy names
+                items:
+                  type: string
+        filter:
+          $ref: '#/components/schemas/Filter'
+        orderBys:
+          type: array
+          description: Attributes and direction to order the results by
+          items:
+            type: object
+            description: Attribute or relationship (count) field and the direction
+            properties:
+              attribute:
+                type: string
+              relationshipField:
+                type: object
+                properties:
+                  relatedEntity:
+                    type: string
+                  hierarchy:
+                    type: string
+              direction:
+                $ref: '#/components/schemas/OrderByDirection'
+        limit:
+          $ref: '#/components/schemas/Limit'
+
+    InstanceList:
+      type: object
+      description: List of instances
+      properties:
+        sql:
+          type: string
+        instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/Instance'
+
+    Instance:
+      type: object
+      properties:
+        attributes:
+          description: A map of entity attribute names to their value for this instance. Only the attributes requested are populated.
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ValueDisplay'
+        hierarchyFields:
+          description: Hierarchy field values for this instance. One set of values per hierarchy. Only the values requested are populated.
+          type: array
+          items:
+            type: object
+            properties:
+              hierarchy:
+                type: string
+              isMember:
+                type: boolean
+              path:
+                type: string
+              numChildren:
+                type: integer
+              isRoot:
+                type: boolean
+        relationshipFields:
+          description: Relationship field values for this instance. Only the values requested are populated.
+          type: array
+          items:
+            type: object
+            properties:
+              relatedEntity:
+                type: string
+              hierarchy:
+                type: string
+              count:
+                type: integer
+              displayHints:
+                type: string
+
+    InstanceCountList:
+      type: object
+      description: List of instance counts
+      properties:
+        sql:
+          type: string
+        instanceCounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstanceCount'
+
+    InstanceCount:
+      type: object
+      properties:
+        count:
+          type: integer
+        attributes:
+          description: A map of entity attribute names to their value for this group
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ValueDisplay'
+
+    ValueDisplay:
+      type: object
+      description: Attribute value and optional display string
+      properties:
+        value:
+          $ref: '#/components/schemas/Literal'
+        display:
+          type: string
+          description: Optional display string
+
+    CountQuery:
+      type: object
+      description: Count entity instances
+      properties:
+        attributes:
+          description: |
+            Attributes to group by. One count will be returned for each possible combination of attribute values
+            (e.g. [gender, hair_color] will return counts for man+red, man+black, woman+red, woman+black).
+          type: array
+          items:
+            type: string
+        filter:
+          $ref: '#/components/schemas/Filter'
+
+    DataType:
+      type: string
+      enum: [ 'INT64', 'STRING', 'BOOLEAN', 'DATE' ]
+
+    Literal:
+      type: object
+      description: Union of references to each value type. Exactly one will be populated based on the dataType.
+      properties:
+        dataType:
+          $ref: '#/components/schemas/DataType'
+        valueUnion:
+          type: object
+          properties:
+            boolVal:
+              type: boolean
+            int64Val:
+              type: integer
+              format: int64
+            stringVal:
+              type: string
+            dateVal:
+              type: string
+              description: Format YYYY-MM-DD
+
+    Filter:
+      type: object
+      description: Union of references to each filter type. Exactly one should be specified based on the filterType.
+      properties:
+        filterType:
+          type: string
+          enum: [ 'ATTRIBUTE', 'TEXT', 'HIERARCHY', 'RELATIONSHIP', 'BOOLEAN_LOGIC' ]
+        filterUnion:
+          type: object
+          properties:
+            attributeFilter:
+              $ref: '#/components/schemas/AttributeFilter'
+            textFilter:
+              $ref: '#/components/schemas/TextFilter'
+            hierarchyFilter:
+              $ref: '#/components/schemas/HierarchyFilter'
+            relationshipFilter:
+              $ref: '#/components/schemas/RelationshipFilter'
+            booleanLogicFilter:
+              $ref: '#/components/schemas/BooleanLogicFilter'
+
+    AttributeFilter:
+      type: object
+      description: Filter on an attribute value (e.g. color=red)
+      properties:
+        attribute:
+          type: string
+        operator:
+          type: string
+          enum: [ 'EQUALS', 'NOT_EQUALS', 'LESS_THAN', 'GREATER_THAN' ]
+        value:
+          $ref: '#/components/schemas/Literal'
+
+    TextFilter:
+      type: object
+      description: Filter on a text search (e.g. person sounds like Joe)
+      properties:
+        matchType:
+          type: string
+          enum: [ 'EXACT_MATCH', 'FUZZY_MATCH' ]
+        attribute:
+          type: string
+          description: |
+            Attribute to match on. If not specified, then we match on whatever is specified in the text search mapping config.
+            Currently, fuzzy match only works on a single attribute (i.e. you must specify this field for fuzzy match).
+        text:
+          type: string
+
+    HierarchyFilter:
+      type: object
+      description: Filter on a hierarchy (e.g. descendant of id=12)
+      properties:
+        hierarchy:
+          description: Name of the hierarchy
+          type: string
+        operator:
+          type: string
+          enum: [ 'CHILD_OF', 'DESCENDANT_OF_INCLUSIVE', 'IS_ROOT', 'IS_MEMBER' ]
+        value:
+          $ref: '#/components/schemas/Literal'
+
+    RelationshipFilter:
+      type: object
+      description: Filter on a relationship between entities (e.g. condition occurrences where condition=diabetes)
+      properties:
+        entity:
+          type: string
+        subfilter:
+          $ref: '#/components/schemas/Filter'
+
+    BooleanLogicFilter:
+      type: object
+      description: |
+        Compose multiple filters (e.g. color=red AND capacity=3, NOT color=red).
+        The NOT operator only allows a single subfilter. The OR and AND operators require more than one subfilter.
+      properties:
+        operator:
+          type: string
+          enum: [ 'AND', 'OR', 'NOT' ]
+        subfilters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Filter'
+
+    Cohort:
+      type: object
+      properties:
+        id:
+          description: ID of the cohort, immutable
+          type: string
+        displayName:
+          $ref: '#/components/schemas/CohortDisplayName'
+        description:
+          $ref: '#/components/schemas/CohortDescription'
+        criteriaGroups:
+          type: array
+          description: Groups of criteria that define the entity filter
+          items:
+            $ref: '#/components/schemas/CriteriaGroup'
+        created:
+          description: Timestamp of when the cohort was created
+          type: string
+          format: date-time
+        createdBy:
+          description: Email of user who created cohort
+          type: string
+        lastModified:
+          description: Timestamp of when the cohort was last modified
+          type: string
+          format: date-time
+      required:
+        - id
+        - displayName
+        - criteriaGroups
+        - created
+        - createdBy
+        - lastModified
+
+    CohortList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Cohort'
+
+    CohortCreateInfo:
+      type: object
+      properties:
+        displayName:
+          $ref: '#/components/schemas/CohortDisplayName'
+        description:
+          $ref: '#/components/schemas/CohortDescription'
+
+    CohortUpdateInfo:
+      type: object
+      properties:
+        displayName:
+          $ref: '#/components/schemas/CohortDisplayName'
+        description:
+          $ref: '#/components/schemas/CohortDescription'
+        criteriaGroups:
+          type: array
+          description: Groups of criteria that define the entity filter
+          items:
+            $ref: '#/components/schemas/CriteriaGroup'
+
+    CohortDisplayName:
+      type: string
+      description: Human readable name of the cohort
+
+    CohortDescription:
+      type: string
+      description: Description of the cohort
+
+    CriteriaGroup:
+      type: object
+      description: Group of criteria for a cohort definition
+      properties:
+        id:
+          type: string
+          description: ID of the group, immutable
+        displayName:
+          type: string
+          description: Name of the group
+        criteria:
+          type: array
+          description: Set of criteria in the group
+          items:
+            $ref: '#/components/schemas/Criteria'
+        operator:
+          type: string
+          description: Operator to use when combining the criteria in the group
+          enum: [ 'AND', 'OR' ]
+        excluded:
+          type: boolean
+          description: True to exclude the group, false to include it
+      required:
+        - id
+        - displayName
+        - criteria
+        - operator
+        - excluded
+
+    Criteria:
+      type: object
+      description: Single criteria for a cohort or concept set definition
+      properties:
+        id:
+          type: string
+          description: ID of the criteria, immutable
+        displayName:
+          type: string
+          description: Name of the criteria
+        pluginName:
+          type: string
+          description: Name of the plugin that generated this criteria
+        selectionData:
+          type: string # JSON formatted
+          description: Serialized plugin-specific representation of the user's selection
+        uiConfig:
+          type: string # JSON formatted
+          description: Serialized plugin-specific UI configuration for the criteria
+      required:
+        - id
+        - displayName
+        - pluginName
+        - selectionData
 #################################################################
 #####                  JOURNAL MODELS
 #################################################################
@@ -6258,6 +7109,27 @@ components:
       schema:
         type: string
         format: uuid
+    CohortId:
+      name: cohortId
+      description: A UUID to used to identify an object in the repository
+      required: true
+      schema:
+        type: string
+      in: path
+    EntityName:
+      name: entityName
+      in: path
+      description: Name of the entity
+      required: true
+      schema:
+        type: string
+    ConceptSetId:
+      name: conceptSetId
+      in: path
+      description: ID of the concept set
+      required: true
+      schema:
+        type: string
   securitySchemes:
     googleoauth:
       type: oauth2
@@ -6279,3 +7151,4 @@ components:
             openid: open id authorization
             email: email authorization
             profile: profile authorization
+

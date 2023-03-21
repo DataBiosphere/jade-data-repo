@@ -252,7 +252,7 @@ public class AzureStorageAccountService {
     // If the storage account doesn't exist, create it
     StorageAccount storageAccount = getCloudStorageAccount(profileModel, storageAccountResource);
     if (storageAccount == null) {
-      storageAccount = newCloudStorageAccount(profileModel, storageAccountResource);
+      newCloudStorageAccount(profileModel, storageAccountResource);
     }
 
     return createFinish(flightId, storageAccountResource, containerId);

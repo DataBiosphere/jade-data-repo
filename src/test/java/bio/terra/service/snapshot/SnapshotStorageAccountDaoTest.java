@@ -65,13 +65,6 @@ public class SnapshotStorageAccountDaoTest {
                         AzureCloudResource.STORAGE_ACCOUNT,
                         AzureRegion.DEFAULT_AZURE_REGION)));
     Dataset dataset = new Dataset(summary);
-    Snapshot snapshot =
-        new Snapshot()
-            .id(snapshotId)
-            .profileId(billingProfileId)
-            .name("snapshotName")
-            .snapshotSources(
-                List.of(new SnapshotSource().dataset(new Dataset(summary).id(datasetId))));
     when(snapshotStorageAccountDao.getStorageAccountResourceIdForSnapshotId(snapshotId))
         .thenReturn(Optional.of(azureStorageAccountResourceId));
     when(storageAccountService.getStorageAccountResourceById(any(), anyBoolean()))

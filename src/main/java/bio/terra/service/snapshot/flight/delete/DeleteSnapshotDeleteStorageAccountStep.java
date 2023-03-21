@@ -12,6 +12,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.UUID;
 
 public class DeleteSnapshotDeleteStorageAccountStep implements Step {
@@ -33,6 +34,9 @@ public class DeleteSnapshotDeleteStorageAccountStep implements Step {
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "RCN",
+      justification = "Spotbugs doesn't believe snapshotStorageAccountResource can be null")
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
 

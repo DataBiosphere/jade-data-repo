@@ -3910,6 +3910,10 @@ components:
             If false, random ids will be created. If true, full target path (e.g. path + name), size and md5 hash will be used
 
             Note: this only applies to files.  Directories still have random ids regardless of this value
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -3955,6 +3959,10 @@ components:
             If false, random ids will be created. If true, full target path (e.g. path + name), size and md5 hash will be used
 
             Note: this only applies to files.  Directories still have random ids regardless of this value
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -5031,6 +5039,10 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -5130,6 +5142,10 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:
@@ -5786,6 +5802,11 @@ components:
       type: string
       description: DUOS dataset identifier
       example: DUOS-123456
+
+    Tag:
+      type: string
+      description: A tag associated with a TDR resource (dataset, snapshot)
+      example: a-resource-tag
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

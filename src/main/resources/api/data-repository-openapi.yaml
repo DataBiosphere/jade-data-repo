@@ -4383,12 +4383,15 @@ components:
              * `append` - Default: only ever insert rows, regardless of whether or not the primary key value exists
              * `replace` - If a primary key is present on the table, treat rows with matching primary keys
                          as updates. If duplicate IDs are found in your ingest, the ingest job
-                         will fail. Note: the full new record must be specified.
+                         will fail. If your rows specify `datarepo_row_id`, it will be ignored and
+                         TDR will generate new row IDs for your new records. Note: the full new
+                         record must be specified.
              * `merge` - If a primary key is present on the table, treat rows with matching primary keys
                          as partial updates. Any fields specified will overwrite their current values
-                         in the matching table row.  Each ingest row must match exactly one table row,
-                         and no duplicate IDs should be found in your ingest, otherwise the ingest job
-                         will fail.
+                         in the matching table row. If your rows specify `datarepo_row_id`, it will
+                         be ignored and TDR will generate new row IDs for your new records. Each
+                         ingest row must match exactly one table row, and no duplicate IDs should be
+                         found in your ingest, otherwise the ingest job will fail.
         bulkMode:
           type: boolean
           default: false

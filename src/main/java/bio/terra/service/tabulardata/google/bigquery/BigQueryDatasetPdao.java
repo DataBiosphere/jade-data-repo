@@ -483,11 +483,11 @@ public class BigQueryDatasetPdao {
   }
 
   /**
-   * @param unsetExistingRowIds true if we should generate new row IDs for all staged records,
+   * @param ignoreUserSpecifiedRowIds true if we should generate new row IDs for all staged records,
    *     otherwise only generate row IDs where they don't already exist.
    */
   public void addRowIdsToStagingTable(
-      Dataset dataset, String stagingTableName, boolean unsetExistingRowIds)
+      Dataset dataset, String stagingTableName, boolean ignoreUserSpecifiedRowIds)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
@@ -499,7 +499,7 @@ public class BigQueryDatasetPdao {
             """;
     // BigQuery updates require WHERE clauses to protect against erroneous full-table updates,
     // but we intend to run a full-table update when generating all new row IDs.
-    String whereClause = (unsetExistingRowIds) ? "true" : PDAO_ROW_ID_COLUMN + " IS NULL";
+    String whereClause = (ignoreUserSpecifiedRowIds) ? "true" : PDAO_ROW_ID_COLUMN + " IS NULL";
 
     ST sqlTemplate =
         new ST(addRowIdsToStagingTableTemplate)

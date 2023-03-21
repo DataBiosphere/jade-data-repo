@@ -224,7 +224,7 @@ public final class IngestUtils {
   /**
    * @return whether ingest should ignore any user-specified row IDs and generate new ones
    */
-  public static boolean shouldUnsetExistingRowIds(FlightMap inputParameters) {
+  public static boolean shouldIgnoreUserSpecifiedRowIds(FlightMap inputParameters) {
     var updateStrategy =
         inputParameters
             .get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class)

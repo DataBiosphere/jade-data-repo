@@ -87,27 +87,27 @@ public class IngestUtilsTest {
   }
 
   @Test
-  public void testShouldUnsetExistingRowIds() {
+  public void testShouldIgnoreUserSpecifiedRowIds() {
     // We should not find ourselves here: ingests default to append mode if unspecified.
     FlightMap flightMapNoUpdateStrategy = createFlightMap(null);
     assertFalse(
         "Ingests with unspecified update strategy can specify their own row IDs",
-        IngestUtils.shouldUnsetExistingRowIds(flightMapNoUpdateStrategy));
+        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapNoUpdateStrategy));
 
     FlightMap flightMapAppend = createFlightMap(IngestRequestModel.UpdateStrategyEnum.APPEND);
     assertFalse(
         "Ingests in append mode can specify their own row IDs",
-        IngestUtils.shouldUnsetExistingRowIds(flightMapAppend));
+        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapAppend));
 
     FlightMap flightMapReplace = createFlightMap(IngestRequestModel.UpdateStrategyEnum.REPLACE);
     assertTrue(
         "Ingests in replace mode will have any specified row IDs unset",
-        IngestUtils.shouldUnsetExistingRowIds(flightMapReplace));
+        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapReplace));
 
     FlightMap flightMapMerge = createFlightMap(IngestRequestModel.UpdateStrategyEnum.MERGE);
     assertTrue(
         "Ingests in merge mode will have any specified row IDs unset",
-        IngestUtils.shouldUnsetExistingRowIds(flightMapMerge));
+        IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapMerge));
   }
 
   /**

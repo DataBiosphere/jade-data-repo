@@ -10,22 +10,23 @@ import bio.terra.stairway.StepResult;
 public class IngestRowIdsStep implements Step {
   private DatasetService datasetService;
   private BigQueryDatasetPdao bigQueryDatasetPdao;
-  private boolean unsetExistingRowIds;
+  private boolean ignoreUserSpecifiedRowIds;
 
   public IngestRowIdsStep(
       DatasetService datasetService,
       BigQueryDatasetPdao bigQueryDatasetPdao,
-      boolean unsetExistingRowIds) {
+      boolean ignoreUserSpecifiedRowIds) {
     this.datasetService = datasetService;
     this.bigQueryDatasetPdao = bigQueryDatasetPdao;
-    this.unsetExistingRowIds = unsetExistingRowIds;
+    this.ignoreUserSpecifiedRowIds = ignoreUserSpecifiedRowIds;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     String stagingTableName = IngestUtils.getStagingTableName(context);
-    bigQueryDatasetPdao.addRowIdsToStagingTable(dataset, stagingTableName, unsetExistingRowIds);
+    bigQueryDatasetPdao.addRowIdsToStagingTable(
+        dataset, stagingTableName, ignoreUserSpecifiedRowIds);
     return StepResult.getStepResultSuccess();
   }
 

@@ -239,7 +239,7 @@ public class DatasetIngestFlight extends Flight {
           new IngestRowIdsStep(
               datasetService,
               bigQueryDatasetPdao,
-              IngestUtils.shouldUnsetExistingRowIds(inputParameters)));
+              IngestUtils.shouldIgnoreUserSpecifiedRowIds(inputParameters)));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryDatasetPdao, fileDao));
       // Loads data into the final target raw data table
       addStep(

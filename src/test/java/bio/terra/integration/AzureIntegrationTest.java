@@ -420,12 +420,12 @@ public class AzureIntegrationTest extends UsersBase {
     BulkLoadHistoryModelList controlFileLoadResults =
         dataRepoFixtures.getLoadHistory(steward, datasetId, bulkLoadTag, 0, 2);
     for (BulkLoadHistoryModel bulkFileEntry : controlFileLoadResults.getItems()) {
-      assertNotNull(dataRepoFixtures.getFileById(steward(), datasetId, bulkFileEntry.getFileId()));
+      assertNotNull(dataRepoFixtures.getFileById(steward, datasetId, bulkFileEntry.getFileId()));
     }
 
     DatasetModel datasetModel =
         dataRepoFixtures.getDataset(
-            steward(),
+            steward,
             datasetId,
             List.of(
                 DatasetRequestAccessIncludeModel.ACCESS_INFORMATION,
@@ -471,7 +471,7 @@ public class AzureIntegrationTest extends UsersBase {
     // assert correct row data was ingested into domain table
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "domain", 1);
     Object firstDomainRow =
-        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "domain", 0, 1, null).get(0);
+        dataRepoFixtures.retrieveDatasetData(steward, datasetId, "domain", 0, 1, null).get(0);
     assertThat(
         "record looks as expected - domain_id",
         ((LinkedHashMap) firstDomainRow).get("domain_id").toString(),
@@ -516,7 +516,7 @@ public class AzureIntegrationTest extends UsersBase {
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "vocabulary", 2);
     List<Object> vocabRows =
         dataRepoFixtures.retrieveDatasetData(
-            steward(),
+            steward,
             datasetId,
             "vocabulary",
             0,
@@ -534,7 +534,7 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo("2"));
     List<Object> flippedVocabRows =
         dataRepoFixtures.retrieveDatasetData(
-            steward(),
+            steward,
             datasetId,
             "vocabulary",
             0,
@@ -549,7 +549,7 @@ public class AzureIntegrationTest extends UsersBase {
     String qualifiedVocabTableName = datasetModel.getName() + ".vocabulary";
     List<Object> filteredVocabRows =
         dataRepoFixtures.retrieveDatasetData(
-            steward(), datasetId, "vocabulary", 0, 2, "vocabulary_id = '1'");
+            steward, datasetId, "vocabulary", 0, 2, "vocabulary_id = '1'");
     assertThat("correct number of rows returned after filtering", filteredVocabRows, hasSize(1));
     assertThat(
         "Correct row is returned",
@@ -558,14 +558,14 @@ public class AzureIntegrationTest extends UsersBase {
 
     // test handling of empty dataset table
     List<Object> emptyTable =
-        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "concept", 0, 2, null);
+        dataRepoFixtures.retrieveDatasetData(steward, datasetId, "concept", 0, 2, null);
     assertThat("empty table should return an empty list", emptyTable, hasSize(0));
 
     // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
         datasetParquetAccessInfo.getUrl() + "?" + datasetParquetAccessInfo.getSasToken();
     TestUtils.verifyHttpAccess(datasetParquetUrl, Map.of());
-    verifySignedUrl(datasetParquetUrl, steward(), "rl");
+    verifySignedUrl(datasetParquetUrl, steward, "rl");
 
     SnapshotRequestModel snapshotByRowIdModel = new SnapshotRequestModel();
     snapshotByRowIdModel.setName("row_id_test");
@@ -581,7 +581,7 @@ public class AzureIntegrationTest extends UsersBase {
       if (tableRowCount.containsKey(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
-        verifySignedUrl(tableUrl, steward(), "rl");
+        verifySignedUrl(tableUrl, steward, "rl");
 
         SnapshotRequestRowIdTableModel tableModel = new SnapshotRequestRowIdTableModel();
         tableModel.setTableName(table.getName());
@@ -611,14 +611,14 @@ public class AzureIntegrationTest extends UsersBase {
 
     SnapshotSummaryModel snapshotSummaryAll =
         dataRepoFixtures.createSnapshotWithRequest(
-            steward(), summaryModel.getName(), profileId, requestModelAll);
+            steward, summaryModel.getName(), profileId, requestModelAll);
     UUID snapshotByFullViewId = snapshotSummaryAll.getId();
     snapshotIds.add(snapshotByFullViewId);
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
 
     // Ensure that export works
     DataRepoResponse<SnapshotExportResponseModel> snapshotExport =
-        dataRepoFixtures.exportSnapshotLog(steward(), snapshotByFullViewId, false, false);
+        dataRepoFixtures.exportSnapshotLog(steward, snapshotByFullViewId, false, false);
 
     assertThat(
         "snapshotExport is present", snapshotExport.getResponseObject().isPresent(), is(true));
@@ -634,7 +634,7 @@ public class AzureIntegrationTest extends UsersBase {
     // Read the ingested metadata
     SnapshotModel snapshotAll =
         dataRepoFixtures.getSnapshot(
-            steward(),
+            steward,
             snapshotByFullViewId,
             List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
     AccessInfoParquetModel snapshotParquetAccessInfo =
@@ -643,13 +643,13 @@ public class AzureIntegrationTest extends UsersBase {
     String snapshotParquetUrl =
         snapshotParquetAccessInfo.getUrl() + "?" + snapshotParquetAccessInfo.getSasToken();
     TestUtils.verifyHttpAccess(snapshotParquetUrl, Map.of());
-    verifySignedUrl(snapshotParquetUrl, steward(), "rl");
+    verifySignedUrl(snapshotParquetUrl, steward, "rl");
 
     // Vocabulary Table
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "vocabulary", 2);
     List<Object> vocabSnapshotRows =
         dataRepoFixtures.retrieveSnapshotPreviewById(
-            steward(), snapshotAll.getId(), "vocabulary", 0, 2, null, "vocabulary_id");
+            steward, snapshotAll.getId(), "vocabulary", 0, 2, null, "vocabulary_id");
     List<String> drsIds =
         vocabSnapshotRows.stream()
             .map(r -> ((LinkedHashMap) r).get("vocabulary_reference").toString())
@@ -670,7 +670,7 @@ public class AzureIntegrationTest extends UsersBase {
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "domain", 1);
     Object firstSnapshotDomainRow =
         dataRepoFixtures
-            .retrieveSnapshotPreviewById(steward(), snapshotAll.getId(), "domain", 0, 1, null)
+            .retrieveSnapshotPreviewById(steward, snapshotAll.getId(), "domain", 0, 1, null)
             .get(0);
     assertThat(
         "record looks as expected - domain_id",
@@ -724,7 +724,7 @@ public class AzureIntegrationTest extends UsersBase {
     // Do a Drs lookup
     String drsId = String.format("v1_%s_%s", snapshotByFullViewId, fileId);
     assertThat("Expected Drs object Id exists", drsObjectIds.contains(drsId));
-    DRSObject drsObject = dataRepoFixtures.drsGetObject(steward(), drsId);
+    DRSObject drsObject = dataRepoFixtures.drsGetObject(steward, drsId);
     assertThat("DRS object has single access method", drsObject.getAccessMethods(), hasSize(1));
     assertThat(
         "DRS object has HTTPS",
@@ -736,12 +736,12 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo("az-centralus"));
     // Make sure we can read the drs object
     DrsResponse<DRSAccessURL> access =
-        dataRepoFixtures.getObjectAccessUrl(steward(), drsId, "az-centralus");
+        dataRepoFixtures.getObjectAccessUrl(steward, drsId, "az-centralus");
     assertThat("Returns DRS access", access.getResponseObject().isPresent(), is(true));
     String signedUrl = access.getResponseObject().get().getUrl();
 
     TestUtils.verifyHttpAccess(signedUrl, Map.of());
-    verifySignedUrl(signedUrl, steward(), "r");
+    verifySignedUrl(signedUrl, steward, "r");
 
     // -------- Create snapshot by Query ---------
     // Build snapshot request for snapshot by query
@@ -770,7 +770,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     SnapshotSummaryModel snapshotSummaryByQuery =
         dataRepoFixtures.createSnapshotWithRequest(
-            steward(), summaryModel.getName(), profileId, snapshotByQueryModel);
+            steward, summaryModel.getName(), profileId, snapshotByQueryModel);
     UUID snapshotByQueryId = snapshotSummaryByQuery.getId();
     snapshotIds.add(snapshotByQueryId);
     assertThat(
@@ -782,7 +782,7 @@ public class AzureIntegrationTest extends UsersBase {
     AccessInfoParquetModel snapshotByQueryParquetAccessInfo =
         dataRepoFixtures
             .getSnapshot(
-                steward(),
+                steward,
                 snapshotByQueryId,
                 List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
@@ -793,13 +793,13 @@ public class AzureIntegrationTest extends UsersBase {
             + "?"
             + snapshotByQueryParquetAccessInfo.getSasToken();
     TestUtils.verifyHttpAccess(snapshotByQueryParquetUrl, Map.of());
-    verifySignedUrl(snapshotByQueryParquetUrl, steward(), "rl");
+    verifySignedUrl(snapshotByQueryParquetUrl, steward, "rl");
 
     for (AccessInfoParquetModelTable table : snapshotByQueryParquetAccessInfo.getTables()) {
       if (ingest2TableName.equals(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
-        verifySignedUrl(tableUrl, steward(), "rl");
+        verifySignedUrl(tableUrl, steward, "rl");
       }
     }
 
@@ -823,7 +823,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     SnapshotSummaryModel snapshotSummaryByAsset =
         dataRepoFixtures.createSnapshotWithRequest(
-            steward(), summaryModel.getName(), profileId, snapshotByAssetModel);
+            steward, summaryModel.getName(), profileId, snapshotByAssetModel);
     UUID snapshotByAssetId = snapshotSummaryByAsset.getId();
     snapshotIds.add(snapshotByAssetId);
     assertThat(
@@ -835,7 +835,7 @@ public class AzureIntegrationTest extends UsersBase {
     AccessInfoParquetModel snapshotByAssetParquetAccessInfo =
         dataRepoFixtures
             .getSnapshot(
-                steward(),
+                steward,
                 snapshotByAssetId,
                 List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
@@ -846,20 +846,20 @@ public class AzureIntegrationTest extends UsersBase {
             + "?"
             + snapshotByAssetParquetAccessInfo.getSasToken();
     TestUtils.verifyHttpAccess(snapshotByAssetParquetUrl, Map.of());
-    verifySignedUrl(snapshotByAssetParquetUrl, steward(), "rl");
+    verifySignedUrl(snapshotByAssetParquetUrl, steward, "rl");
 
     for (AccessInfoParquetModelTable table : snapshotByAssetParquetAccessInfo.getTables()) {
       if (ingest2TableName.equals(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
-        verifySignedUrl(tableUrl, steward(), "rl");
+        verifySignedUrl(tableUrl, steward, "rl");
       }
     }
 
     // -------- Create snapshot by row id --------
     SnapshotSummaryModel snapshotSummaryByRowId =
         dataRepoFixtures.createSnapshotWithRequest(
-            steward(), summaryModel.getName(), profileId, snapshotByRowIdModel);
+            steward, summaryModel.getName(), profileId, snapshotByRowIdModel);
     UUID snapshotByRowId = snapshotSummaryByRowId.getId();
     snapshotIds.add(snapshotByRowId);
     assertThat(
@@ -871,9 +871,7 @@ public class AzureIntegrationTest extends UsersBase {
     AccessInfoParquetModel snapshotByRowIdParquetAccessInfo =
         dataRepoFixtures
             .getSnapshot(
-                steward(),
-                snapshotByRowId,
-                List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
+                steward, snapshotByRowId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
             .getParquet();
 
@@ -882,20 +880,20 @@ public class AzureIntegrationTest extends UsersBase {
             + "?"
             + snapshotByRowIdParquetAccessInfo.getSasToken();
     TestUtils.verifyHttpAccess(snapshotByRowIdParquetUrl, Map.of());
-    verifySignedUrl(snapshotByRowIdParquetUrl, steward(), "rl");
+    verifySignedUrl(snapshotByRowIdParquetUrl, steward, "rl");
 
     for (AccessInfoParquetModelTable table : snapshotByRowIdParquetAccessInfo.getTables()) {
       // only run check for tables that have ingested data
       if (tableRowCount.containsKey(table.getName())) {
         String tableUrl = table.getUrl() + "?" + table.getSasToken();
         TestUtils.verifyHttpAccess(tableUrl, Map.of());
-        verifySignedUrl(tableUrl, steward(), "rl");
+        verifySignedUrl(tableUrl, steward, "rl");
       }
     }
 
     // Do a Drs lookup
     String drsIdByRowId = String.format("v1_%s_%s", snapshotByRowId, fileId);
-    DRSObject drsObjectByRowId = dataRepoFixtures.drsGetObject(steward(), drsIdByRowId);
+    DRSObject drsObjectByRowId = dataRepoFixtures.drsGetObject(steward, drsIdByRowId);
     assertThat(
         "DRS object has single access method",
         drsObjectByRowId.getAccessMethods().size(),
@@ -910,12 +908,12 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo("az-centralus"));
     // Make sure we can read the drs object
     DrsResponse<DRSAccessURL> accessForByRowId =
-        dataRepoFixtures.getObjectAccessUrl(steward(), drsIdByRowId, "az-centralus");
+        dataRepoFixtures.getObjectAccessUrl(steward, drsIdByRowId, "az-centralus");
     assertThat("Returns DRS access", accessForByRowId.getResponseObject().isPresent(), is(true));
     String signedUrlForByRowId = accessForByRowId.getResponseObject().get().getUrl();
 
     TestUtils.verifyHttpAccess(signedUrlForByRowId, Map.of());
-    verifySignedUrl(signedUrlForByRowId, steward(), "r");
+    verifySignedUrl(signedUrlForByRowId, steward, "r");
 
     // Delete dataset should fail
     dataRepoFixtures.deleteDatasetShouldFail(steward, datasetId);
@@ -930,8 +928,8 @@ public class AzureIntegrationTest extends UsersBase {
     dataRepoFixtures.deleteSnapshot(steward, snapshotByQueryId);
     snapshotIds.remove(snapshotByQueryId);
 
-    dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotByFullViewId);
-    dataRepoFixtures.assertFailToGetSnapshot(steward(), snapshotByRowId);
+    dataRepoFixtures.assertFailToGetSnapshot(steward, snapshotByFullViewId);
+    dataRepoFixtures.assertFailToGetSnapshot(steward, snapshotByRowId);
 
     // Delete the file we just ingested
     dataRepoFixtures.deleteFile(steward, datasetId, fileId);

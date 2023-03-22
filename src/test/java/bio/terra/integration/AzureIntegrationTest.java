@@ -59,6 +59,7 @@ import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
@@ -470,9 +471,7 @@ public class AzureIntegrationTest extends UsersBase {
     // assert correct row data was ingested into domain table
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "domain", 1);
     Object firstDomainRow =
-        dataRepoFixtures
-            .retrieveSnapshotPreviewById(steward(), datasetId, "domain", 0, 1, null)
-            .get(0);
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "domain", 0, 1, null).get(0);
     assertThat(
         "record looks as expected - domain_id",
         ((LinkedHashMap) firstDomainRow).get("domain_id").toString(),
@@ -483,7 +482,7 @@ public class AzureIntegrationTest extends UsersBase {
         equalTo(file2Model.getFileId()));
     assertThat(
         "record looks as expected - domain_files_custom_3 file id- value",
-        ((ArrayList<String>) ((LinkedHashMap) firstDomainRow).get("domain_files_custom_3")).get(0),
+        ((LinkedHashMap) firstDomainRow).get("domain_files_custom_3").toString(),
         equalTo(file4Model.getFileId()));
 
     // Ingest 2 rows from CSV
@@ -517,7 +516,14 @@ public class AzureIntegrationTest extends UsersBase {
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "vocabulary", 2);
     List<Object> vocabRows =
         dataRepoFixtures.retrieveDatasetData(
-            steward(), datasetId, "vocabulary", 0, 2, null, "vocabulary_id");
+            steward(),
+            datasetId,
+            "vocabulary",
+            0,
+            2,
+            null,
+            "vocabulary_id",
+            String.valueOf(SqlSortDirection.ASC));
     assertThat(
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) vocabRows.get(0)).get("vocabulary_id").toString(),
@@ -526,6 +532,34 @@ public class AzureIntegrationTest extends UsersBase {
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) vocabRows.get(1)).get("vocabulary_id").toString(),
         equalTo("2"));
+    List<Object> flippedVocabRows =
+        dataRepoFixtures.retrieveDatasetData(
+            steward(),
+            datasetId,
+            "vocabulary",
+            0,
+            2,
+            null,
+            "vocabulary_id",
+            String.valueOf(SqlSortDirection.DESC));
+    assertThat(
+        "correct vocabulary_id returned",
+        ((LinkedHashMap) flippedVocabRows.get(0)).get("vocabulary_id").toString(),
+        equalTo("2"));
+    String qualifiedVocabTableName = datasetModel.getName() + ".vocabulary";
+    List<Object> filteredVocabRows =
+        dataRepoFixtures.retrieveDatasetData(
+            steward(), datasetId, "vocabulary", 0, 2, "vocabulary_id = '1'");
+    assertThat("correct number of rows returned after filtering", filteredVocabRows, hasSize(1));
+    assertThat(
+        "Correct row is returned",
+        ((LinkedHashMap) filteredVocabRows.get(0)).get("vocabulary_id").toString(),
+        equalTo("1"));
+
+    // test handling of empty dataset table
+    List<Object> emptyTable =
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, "concept", 0, 2, null);
+    assertThat("empty table should return an empty list", emptyTable, hasSize(0));
 
     // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
@@ -723,14 +757,13 @@ public class AzureIntegrationTest extends UsersBase {
 
     SnapshotRequestQueryModel snapshotRequestQueryModel = new SnapshotRequestQueryModel();
     snapshotRequestQueryModel.setAssetName("vocab_single");
-    String qualifiedTableName = datasetModel.getName() + ".vocabulary";
     snapshotRequestQueryModel.setQuery(
         "Select "
-            + qualifiedTableName
+            + qualifiedVocabTableName
             + ".datarepo_row_id FROM "
-            + qualifiedTableName
+            + qualifiedVocabTableName
             + " WHERE "
-            + qualifiedTableName
+            + qualifiedVocabTableName
             + ".vocabulary_id = '1'");
     snapshotRequestByQueryContentsModel.setQuerySpec(snapshotRequestQueryModel);
     snapshotByQueryModel.setContents(List.of(snapshotRequestByQueryContentsModel));

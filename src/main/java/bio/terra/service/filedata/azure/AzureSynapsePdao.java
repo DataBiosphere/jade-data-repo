@@ -1040,16 +1040,20 @@ public class AzureSynapsePdao {
             .add("userFilter", userFilter)
             .render();
 
-    return synapseJdbcTemplate.query(
-        sql,
-        Map.of(
-            "offset", offset,
-            "limit", limit),
-        (rs, rowNum) ->
-            columns.stream()
-                .collect(
-                    Collectors.toMap(
-                        Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))));
+    try {
+      return synapseJdbcTemplate.query(
+          sql,
+          Map.of(
+              "offset", offset,
+              "limit", limit),
+          (rs, rowNum) ->
+              columns.stream()
+                  .collect(
+                      Collectors.toMap(
+                          Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))));
+    } catch (DataAccessException ex) {
+      return new ArrayList<>();
+    }
   }
 
   public int executeSynapseQuery(String query) throws SQLException {

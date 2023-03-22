@@ -852,7 +852,7 @@ public class DataRepoFixtures {
       HttpStatus expectedStatus)
       throws Exception {
     DataRepoResponse<DatasetDataModel> response =
-        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, null);
+        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, null, null);
     assertThat(
         "retrieve dataset data by Id should fail",
         response.getStatusCode(),
@@ -867,7 +867,7 @@ public class DataRepoFixtures {
       int limit,
       String filter)
       throws Exception {
-    return retrieveDatasetData(user, datasetId, table, offset, limit, filter, null);
+    return retrieveDatasetData(user, datasetId, table, offset, limit, filter, null, null);
   }
 
   public List<Object> retrieveDatasetData(
@@ -877,10 +877,11 @@ public class DataRepoFixtures {
       int offset,
       int limit,
       String filter,
-      String sort)
+      String sort,
+      String direction)
       throws Exception {
     DataRepoResponse<DatasetDataModel> response =
-        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, sort);
+        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, sort, direction);
     DatasetDataModel validated = validateResponse(response, "dataset data", HttpStatus.OK, null);
 
     return validated.getResult();
@@ -893,7 +894,8 @@ public class DataRepoFixtures {
       Integer offset,
       Integer limit,
       String filter,
-      String sort)
+      String sort,
+      String direction)
       throws Exception {
     String url = "/api/repository/v1/datasets/%s/data/%s".formatted(datasetId, table);
 
@@ -906,6 +908,9 @@ public class DataRepoFixtures {
     }
     if (sort != null) {
       queryParams += "&sort=%s".formatted(sort);
+    }
+    if (direction != null) {
+      queryParams += "&direction=%s".formatted(direction);
     }
     return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
   }

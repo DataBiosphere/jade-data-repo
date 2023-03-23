@@ -439,6 +439,9 @@ public class AzureIntegrationTest extends UsersBase {
     AccessInfoParquetModel datasetParquetAccessInfo =
         datasetModel.getAccessInformation().getParquet();
 
+    // record the storage account
+    storageAccounts.add(getStorageAccountName(datasetParquetAccessInfo));
+
     DatasetSpecificationModel datasetSchema = datasetModel.getSchema();
     // dataset ingest
     // Ingest Metadata - 1 row from JSON file
@@ -561,12 +564,6 @@ public class AzureIntegrationTest extends UsersBase {
         "Correct row is returned",
         ((LinkedHashMap) filteredVocabRows.get(0)).get("vocabulary_id").toString(),
         equalTo("1"));
-
-    AccessInfoParquetModel datasetParquetAccessInfo =
-        datasetModel.getAccessInformation().getParquet();
-
-    // record the storage account
-    storageAccounts.add(getStorageAccountName(datasetParquetAccessInfo));
 
     // test handling of empty dataset table
     List<Object> emptyTable =

@@ -79,22 +79,26 @@ public class MetadataDataAccessUtilsTest {
   @Test
   public void testAzureAccessInfo() {
     AzureStorageAccountResource storageAccountResource =
-        new AzureStorageAccountResource().resourceId(UUID.randomUUID()).name("michaelstorage");
+        new AzureStorageAccountResource()
+            .resourceId(UUID.randomUUID())
+            .name("michaelstorage")
+            .topLevelContainer("tlc");
     when(resourceService.getDatasetStorageAccount(any(), any())).thenReturn(storageAccountResource);
 
     when(azureBlobStorePdao.signFile(
             any(),
             any(),
-            eq("https://michaelstorage.blob.core.windows.net/metadata/parquet"),
+            eq("https://michaelstorage.blob.core.windows.net/tlc/metadata/parquet"),
             any()))
-        .thenReturn("https://michaelstorage.blob.core.windows.net/metadata/parquet/signedUrl?sast");
+        .thenReturn(
+            "https://michaelstorage.blob.core.windows.net/tlc/metadata/parquet/signedUrl?sast");
     when(azureBlobStorePdao.signFile(
             any(),
             any(),
-            eq("https://michaelstorage.blob.core.windows.net/metadata/parquet/sample"),
+            eq("https://michaelstorage.blob.core.windows.net/tlc/metadata/parquet/sample"),
             any()))
         .thenReturn(
-            "https://michaelstorage.blob.core.windows.net/metadata/parquet/sample/signedUrl?sast");
+            "https://michaelstorage.blob.core.windows.net/tlc/metadata/parquet/sample/signedUrl?sast");
 
     AccessInfoParquetModel infoModel =
         metadataDataAccessUtils.accessInfoFromDataset(azureDataset, TEST_USER).getParquet();
@@ -103,7 +107,7 @@ public class MetadataDataAccessUtilsTest {
     assertThat(infoModel.getDatasetId(), equalTo("michaelstorage.test-dataset"));
     assertThat(
         infoModel.getUrl(),
-        equalTo("https://michaelstorage.blob.core.windows.net/metadata/parquet/signedUrl"));
+        equalTo("https://michaelstorage.blob.core.windows.net/tlc/metadata/parquet/signedUrl"));
     assertThat(infoModel.getSasToken(), equalTo("sast"));
   }
 }

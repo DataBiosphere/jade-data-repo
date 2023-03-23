@@ -1104,12 +1104,12 @@ public class AzureSynapsePdao {
             });
   }
 
-  public static String getCredentialName(UUID id, String email) {
-    return "cred-%s-%s".formatted(id, email);
+  public static String getCredentialName(UUID collectionId, String email) {
+    return "cred-%s-%s".formatted(collectionId, email);
   }
 
-  public static String getDataSourceName(UUID id, String email) {
-    return "ds-%s-%s".formatted(id, email);
+  public static String getDataSourceName(UUID collectionId, String email) {
+    return "ds-%s-%s".formatted(collectionId, email);
   }
 
   private String sanitizeStringForSql(String value) {

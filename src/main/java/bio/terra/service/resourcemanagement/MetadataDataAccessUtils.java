@@ -17,6 +17,7 @@ import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
@@ -45,9 +46,11 @@ public final class MetadataDataAccessUtils {
   private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>`";
 
   private static final String AZURE_PARQUET_LINK =
-      "https://<storageAccount>.blob.core.windows.net/metadata/<blob>";
-  private static final String AZURE_BLOB_TEMPLATE_DATASET = "parquet/<table>";
-  private static final String AZURE_BLOB_TEMPLATE_SNAPSHOT = "parquet/<collectionId>/<table>";
+      "https://<storageAccount>.blob.core.windows.net/<container>/<blob>";
+  private static final String AZURE_BLOB_TEMPLATE_DATASET =
+      FolderType.METADATA.getPath("parquet/<table>");
+  private static final String AZURE_BLOB_TEMPLATE_SNAPSHOT =
+      FolderType.METADATA.getPath("parquet/<collectionId>/<table>");
   private static final String AZURE_DATASET_ID = "<storageAccount>.<dataset>";
 
   private static final String DEPLOYED_APPLICATION_RESOURCE_ID =
@@ -159,11 +162,11 @@ public final class MetadataDataAccessUtils {
     String blobName;
     BiFunction<FSContainerInterface, Table, String> tableBlobGenerator;
     if (collection.getCollectionType() == CollectionType.DATASET) {
-      blobName = "parquet";
+      blobName = FolderType.METADATA.getPath("parquet");
       tableBlobGenerator =
           (c, t) -> new ST(AZURE_BLOB_TEMPLATE_DATASET).add("table", t.getName()).render();
     } else if (collection.getCollectionType() == CollectionType.SNAPSHOT) {
-      blobName = "parquet/" + collection.getId();
+      blobName = FolderType.METADATA.getPath("parquet/" + collection.getId());
       tableBlobGenerator =
           (c, t) ->
               new ST(AZURE_BLOB_TEMPLATE_SNAPSHOT)
@@ -178,6 +181,7 @@ public final class MetadataDataAccessUtils {
     String unsignedUrl =
         new ST(AZURE_PARQUET_LINK)
             .add("storageAccount", storageAccountResource.getName())
+            .add("container", storageAccountResource.getTopLevelContainer())
             .add("blob", blobName)
             .render();
     String signedURL =
@@ -204,6 +208,7 @@ public final class MetadataDataAccessUtils {
                           String unsignedTableUrl =
                               new ST(AZURE_PARQUET_LINK)
                                   .add("storageAccount", storageAccountResource.getName())
+                                  .add("container", storageAccountResource.getTopLevelContainer())
                                   .add("blob", tableBlob)
                                   .render();
                           String tableUrl =

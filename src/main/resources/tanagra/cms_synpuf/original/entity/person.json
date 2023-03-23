@@ -1,0 +1,42 @@
+{
+  "name": "person",
+  "idAttribute": "id",
+  "attributes": [
+    { "type": "SIMPLE", "name": "id" },
+    { "type": "SIMPLE", "name": "year_of_birth" },
+    { "type": "KEY_AND_DISPLAY", "name": "gender" },
+    { "type": "KEY_AND_DISPLAY", "name": "race" },
+    { "type": "KEY_AND_DISPLAY", "name": "ethnicity" } ],
+
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "tablePointer": { "table": "person" },
+    "attributeMappings": {
+      "id": { "value": { "column": "person_id" } },
+      "gender": {
+        "value": { "column": "gender_concept_id" },
+        "display": {
+          "column": "gender_concept_id",
+          "foreignTable": "concept",
+          "foreignKey": "concept_id",
+          "foreignColumn": "concept_name" } },
+      "race": {
+        "value": { "column": "race_concept_id" },
+        "display": {
+          "column": "race_concept_id",
+          "foreignTable": "concept",
+          "foreignKey": "concept_id",
+          "foreignColumn": "concept_name" } },
+      "ethnicity": {
+        "value": { "column": "ethnicity_concept_id" },
+        "display": {
+          "column": "ethnicity_concept_id",
+          "foreignTable": "concept",
+          "foreignKey": "concept_id",
+          "foreignColumn": "concept_name" } }
+    } },
+
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

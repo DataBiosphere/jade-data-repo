@@ -1,0 +1,37 @@
+{
+  "name": "condition_occurrence",
+  "idAttribute": "id",
+  "attributes": [
+    { "type": "SIMPLE", "name": "id" },
+    { "type": "SIMPLE", "name": "person_id" },
+    { "type": "KEY_AND_DISPLAY", "name": "condition" },
+    { "type": "SIMPLE", "name": "start_date" },
+    { "type": "SIMPLE", "name": "end_date" },
+    { "type": "SIMPLE", "name": "stop_reason" },
+    { "type": "SIMPLE", "name": "visit_occurrence_id" },
+    { "type": "SIMPLE", "name": "source_value" },
+    { "type": "SIMPLE", "name": "source_criteria_id" } ],
+
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "tablePointer": { "table": "condition_occurrence" },
+    "attributeMappings": {
+      "id": { "value": { "column": "condition_occurrence_id" } },
+      "condition": {
+        "value": { "column": "condition_concept_id" },
+        "display": {
+          "column": "condition_concept_id",
+          "foreignTable": "concept",
+          "foreignKey": "concept_id",
+          "foreignColumn": "concept_name" } },
+      "start_date": { "value": { "column": "condition_start_date" } },
+      "end_date": { "value": { "column": "condition_end_date" } },
+      "source_value": { "value": { "column": "condition_source_value" } },
+      "source_criteria_id": { "value": { "column": "condition_source_concept_id" } }
+    }
+  },
+
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

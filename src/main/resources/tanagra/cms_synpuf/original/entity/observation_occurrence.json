@@ -1,0 +1,51 @@
+{
+  "name": "observation_occurrence",
+  "idAttribute": "id",
+  "attributes": [
+    { "type": "SIMPLE", "name": "id" },
+    { "type": "SIMPLE", "name": "person_id" },
+    { "type": "KEY_AND_DISPLAY", "name": "observation" },
+    { "type": "SIMPLE", "name": "date" },
+    { "type": "SIMPLE", "name": "value_as_string" },
+    { "type": "KEY_AND_DISPLAY", "name": "value" },
+    { "type": "KEY_AND_DISPLAY", "name": "unit" },
+    { "type": "SIMPLE", "name": "visit_occurrence_id" },
+    { "type": "SIMPLE", "name": "source_value" },
+    { "type": "SIMPLE", "name": "source_criteria_id" } ],
+
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "tablePointer": { "table": "observation" },
+    "attributeMappings": {
+      "id": { "value": { "column": "observation_id" } },
+      "observation": {
+        "value": { "column": "observation_concept_id" },
+        "display": {
+          "column": "observation_concept_id",
+          "foreignTable": "concept",
+          "foreignKey": "concept_id",
+          "foreignColumn": "concept_name" } },
+      "date": { "value": { "column": "observation_date" } },
+      "value": {
+        "value": { "column": "value_as_concept_id" },
+        "display": {
+          "column": "value_as_concept_id",
+          "foreignTable": "concept",
+          "foreignKey": "concept_id",
+          "foreignColumn": "concept_name" } },
+      "unit": {
+        "value": { "column": "unit_concept_id" },
+        "display": {
+          "column": "unit_concept_id",
+          "foreignTable": "concept",
+          "foreignKey": "concept_id",
+          "foreignColumn": "concept_name" } },
+      "source_value": { "value": { "column": "observation_source_value" } },
+      "source_criteria_id": { "value": { "column": "observation_source_concept_id" } }
+    }
+  },
+
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

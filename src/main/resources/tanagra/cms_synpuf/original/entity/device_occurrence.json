@@ -1,0 +1,36 @@
+{
+  "name": "device_occurrence",
+  "idAttribute": "id",
+  "attributes": [
+    { "type": "SIMPLE", "name": "id" },
+    { "type": "SIMPLE", "name": "person_id" },
+    { "type": "KEY_AND_DISPLAY", "name": "device" },
+    { "type": "SIMPLE", "name": "start_date" },
+    { "type": "SIMPLE", "name": "end_date" },
+    { "type": "SIMPLE", "name": "visit_occurrence_id" },
+    { "type": "SIMPLE", "name": "source_value" },
+    { "type": "SIMPLE", "name": "source_criteria_id" } ],
+
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "tablePointer": { "table": "device_exposure" },
+    "attributeMappings": {
+      "id": { "value": { "column": "device_exposure_id" } },
+      "device": {
+        "value": { "column": "device_concept_id" },
+        "display": {
+          "column": "device_concept_id",
+          "foreignTable": "concept",
+          "foreignKey": "concept_id",
+          "foreignColumn": "concept_name" } },
+      "start_date": { "value": { "column": "device_exposure_start_date" } },
+      "end_date": { "value": { "column": "device_exposure_end_date" } },
+      "source_value": { "value": { "column": "device_source_value" } },
+      "source_criteria_id": { "value": { "column": "device_source_concept_id" } }
+    }
+  },
+
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

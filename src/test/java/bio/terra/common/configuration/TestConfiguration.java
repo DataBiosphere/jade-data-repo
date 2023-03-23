@@ -29,6 +29,7 @@ public class TestConfiguration {
   private UUID targetTenantId;
   private UUID targetSubscriptionId;
   private String targetResourceGroupName;
+  private String targetManagedResourceGroupName;
   private String targetApplicationName;
   private String sourceStorageAccountName;
   private String ingestRequestContainer;
@@ -150,6 +151,14 @@ public class TestConfiguration {
 
   public void setTargetResourceGroupName(String targetResourceGroupName) {
     this.targetResourceGroupName = targetResourceGroupName;
+  }
+
+  public String getTargetManagedResourceGroupName() {
+    return targetManagedResourceGroupName;
+  }
+
+  public void setTargetManagedResourceGroupName(String targetManagedResourceGroupName) {
+    this.targetManagedResourceGroupName = targetManagedResourceGroupName;
   }
 
   public String getTargetApplicationName() {

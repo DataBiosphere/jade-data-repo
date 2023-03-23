@@ -81,6 +81,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -136,6 +137,7 @@ public class AzureIntegrationTest extends UsersBase {
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
   private RequestRetryOptions retryOptions;
+  private Set<String> storageAccounts;
 
   @Before
   public void setup() throws Exception {
@@ -160,6 +162,7 @@ public class AzureIntegrationTest extends UsersBase {
             null,
             retryOptions);
     snapshotIds = new ArrayList<>();
+    storageAccounts = new TreeSet<>();
   }
 
   @After
@@ -182,6 +185,9 @@ public class AzureIntegrationTest extends UsersBase {
     }
     if (profileId != null) {
       dataRepoFixtures.deleteProfile(steward, profileId);
+    }
+    if (storageAccounts != null) {
+      storageAccounts.forEach(this::deleteStorageAccount);
     }
   }
 
@@ -496,6 +502,9 @@ public class AzureIntegrationTest extends UsersBase {
     AccessInfoParquetModel datasetParquetAccessInfo =
         datasetModel.getAccessInformation().getParquet();
 
+    // record the storage account
+    storageAccounts.add(getStorageAccountName(datasetParquetAccessInfo));
+
     DatasetSpecificationModel datasetSchema = datasetModel.getSchema();
 
     // Create snapshot request for snapshot by row id
@@ -525,7 +534,7 @@ public class AzureIntegrationTest extends UsersBase {
         List<BlobItem> blobItems =
             fact
                 .getBlobContainerClient()
-                .listBlobsByHierarchy(String.format("parquet/%s/", table.getName()))
+                .listBlobsByHierarchy(String.format("metadata/parquet/%s/", table.getName()))
                 .stream()
                 .collect(Collectors.toList());
 
@@ -600,6 +609,9 @@ public class AzureIntegrationTest extends UsersBase {
                 List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
             .getParquet();
+
+    // record the storage account
+    storageAccounts.add(getStorageAccountName(snapshotParquetAccessInfo));
 
     String snapshotParquetUrl =
         snapshotParquetAccessInfo.getUrl() + "?" + snapshotParquetAccessInfo.getSasToken();
@@ -679,10 +691,7 @@ public class AzureIntegrationTest extends UsersBase {
     assertThat("2 drs ids are present", drsIds, hasSize(2));
     // Ensure that all DRS can be parsed
     List<String> drsObjectIds =
-        drsIds.stream()
-            .map(DrsIdService::fromUri)
-            .map(DrsId::toDrsObjectId)
-            .collect(Collectors.toList());
+        drsIds.stream().map(DrsIdService::fromUri).map(DrsId::toDrsObjectId).toList();
 
     String fileId = result.getLoadFileResults().get(0).getFileId();
     String filePath = result.getLoadFileResults().get(0).getTargetPath();
@@ -755,6 +764,9 @@ public class AzureIntegrationTest extends UsersBase {
             .getAccessInformation()
             .getParquet();
 
+    // record the storage account
+    storageAccounts.add(getStorageAccountName(snapshotByQueryParquetAccessInfo));
+
     String snapshotByQueryParquetUrl =
         snapshotByQueryParquetAccessInfo.getUrl()
             + "?"
@@ -808,6 +820,9 @@ public class AzureIntegrationTest extends UsersBase {
             .getAccessInformation()
             .getParquet();
 
+    // record the storage account
+    storageAccounts.add(getStorageAccountName(snapshotByAssetParquetAccessInfo));
+
     String snapshotByAssetParquetUrl =
         snapshotByAssetParquetAccessInfo.getUrl()
             + "?"
@@ -843,6 +858,9 @@ public class AzureIntegrationTest extends UsersBase {
                 List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
             .getParquet();
+
+    // record the storage account
+    storageAccounts.add(getStorageAccountName(snapshotByRowIdParquetAccessInfo));
 
     String snapshotByRowIdParquetUrl =
         snapshotByRowIdParquetAccessInfo.getUrl()
@@ -882,6 +900,10 @@ public class AzureIntegrationTest extends UsersBase {
 
     TestUtils.verifyHttpAccess(signedUrlForByRowId, Map.of());
     verifySignedUrl(signedUrlForByRowId, steward(), "r");
+
+    // Make sure that only 1 storage account was created
+    // record the storage account
+    assertThat("only one storage account exists", storageAccounts, hasSize(1));
 
     // Delete dataset should fail
     dataRepoFixtures.deleteDatasetShouldFail(steward, datasetId);
@@ -1290,6 +1312,19 @@ public class AzureIntegrationTest extends UsersBase {
         .iterator()
         .next()
         .value();
+  }
+
+  private String getStorageAccountName(AccessInfoParquetModel accessInfo) {
+    return accessInfo.getDatasetId().split("\\.")[0];
+  }
+
+  private void deleteStorageAccount(String storageAccount) {
+    logger.info("Deleting storage account {}", storageAccount);
+    AzureResourceManager client =
+        this.azureResourceConfiguration.getClient(testConfig.getTargetSubscriptionId());
+    client
+        .storageAccounts()
+        .deleteByResourceGroup(testConfig.getTargetManagedResourceGroupName(), storageAccount);
   }
 
   private void verifySignedUrl(String signedUrl, User user, String expectedPermissions) {

@@ -9,8 +9,8 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
+import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.grammar.Query;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestAssetModel;
@@ -23,14 +23,12 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidColumnException;
-import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
@@ -278,13 +276,13 @@ public class AzureSynapsePdao {
       SELECT <columns:{c|tbl.[<c>]}; separator=",">
         FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
                      <columns:{c|rows.[<c>]}; separator=",">
-                FROM OPENROWSET(BULK '<filePath>',
+                FROM OPENROWSET(BULK '<parquetFileLocation>',
                                 DATA_SOURCE = '<datasource>',
                                 FORMAT='PARQUET') AS rows
                 WHERE (<userFilter>)
              ) AS tbl
        WHERE tbl.datarepo_row_number >= :offset
-         AND tbl.datarepo_row_number \\< :offset + :limit;""";
+         AND tbl.datarepo_row_number \\<= :offset + :limit;""";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
@@ -1000,24 +998,16 @@ public class AzureSynapsePdao {
     cleanup(credentialNames, dropScopedCredentialTemplate);
   }
 
-  public List<Map<String, Optional<Object>>> getSnapshotTableData(
-      AuthenticatedUserRequest userRequest,
-      Snapshot snapshot,
+  public List<Map<String, Optional<Object>>> getTableData(
+      Table table,
       String tableName,
+      String datasetSourceName,
+      String parquetFileLocation,
       int limit,
       int offset,
       String sort,
       SqlSortDirection direction,
       String filter) {
-
-    // Ensure that the table is a valid table
-    SnapshotTable table =
-        snapshot
-            .getTableByName(tableName)
-            .orElseThrow(
-                () ->
-                    new InvalidTableException(
-                        "Table %s was not found in the snapshot".formatted(tableName)));
 
     // Ensure that the sort column is a valid column
     if (!sort.equals(PDAO_ROW_ID_COLUMN)) {
@@ -1039,28 +1029,33 @@ public class AzureSynapsePdao {
             List.of(new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING)),
             table.getColumns());
 
-    String filePath = FolderType.METADATA.getPath("parquet/*/" + tableName + "/*.parquet/*");
-
     final String sql =
         new ST(queryFromDatasourceTemplate)
             .add("columns", columns.stream().map(Column::getName).toList())
-            .add("datasource", getDataSourceName(snapshot, userRequest.getEmail()))
-            .add("filePath", filePath)
+            .add("datasource", datasetSourceName)
+            .add("parquetFileLocation", parquetFileLocation)
             .add("sort", sort)
             .add("direction", direction)
             .add("userFilter", userFilter)
             .render();
 
-    return synapseJdbcTemplate.query(
-        sql,
-        Map.of(
-            "offset", offset,
-            "limit", limit),
-        (rs, rowNum) ->
-            columns.stream()
-                .collect(
-                    Collectors.toMap(
-                        Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))));
+    try {
+      return synapseJdbcTemplate.query(
+          sql,
+          Map.of(
+              "offset", offset,
+              "limit", limit),
+          (rs, rowNum) ->
+              columns.stream()
+                  .collect(
+                      Collectors.toMap(
+                          Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))));
+    } catch (DataAccessException ex) {
+      logger.warn(
+          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
+          ex);
+      return new ArrayList<>();
+    }
   }
 
   public int executeSynapseQuery(String query) throws SQLException {
@@ -1109,12 +1104,12 @@ public class AzureSynapsePdao {
             });
   }
 
-  public static String getCredentialName(Snapshot snapshot, String email) {
-    return "cred-%s-%s".formatted(snapshot.getId(), email);
+  public static String getCredentialName(UUID id, String email) {
+    return "cred-%s-%s".formatted(id, email);
   }
 
-  public static String getDataSourceName(Snapshot snapshot, String email) {
-    return "ds-%s-%s".formatted(snapshot.getId(), email);
+  public static String getDataSourceName(UUID id, String email) {
+    return "ds-%s-%s".formatted(id, email);
   }
 
   private String sanitizeStringForSql(String value) {

@@ -1052,6 +1052,9 @@ public class AzureSynapsePdao {
                       Collectors.toMap(
                           Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))));
     } catch (DataAccessException ex) {
+      logger.warn(
+          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
+          ex);
       return new ArrayList<>();
     }
   }

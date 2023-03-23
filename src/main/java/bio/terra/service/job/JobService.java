@@ -33,6 +33,7 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sentry.Sentry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -102,6 +103,14 @@ public class JobService {
    * encapsulates all Stairway interaction.
    */
   public void initialize() {
+    // Throw test sentry error
+    logger.info("TEST SENTRY ERROR");
+    try {
+      throw new Exception("This is a test.");
+    } catch (Exception e) {
+      Sentry.captureException(e);
+    }
+
     migrate.migrateDatabase();
 
     // Initialize stairway - only do the stairway migration if we did the data repo migration

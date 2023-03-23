@@ -487,7 +487,8 @@ public class SynapseUtils {
     jsonLoader.loadObject("ingest-test-dataset-table-all-data-types.json", DatasetTable.class);
 
     String scratchParquetFile =
-        "parquet/scratch_" + destinationTable.getName() + "/" + randomFlightId + ".parquet";
+        FolderType.SCRATCH.getPath(
+            "parquet/scratch_" + destinationTable.getName() + "/" + randomFlightId + ".parquet");
     addParquetFileName(scratchParquetFile, datasetStorageAccountResource);
     addParquetFileName(
         IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId),
@@ -496,7 +497,8 @@ public class SynapseUtils {
     // Check that the parquet files were successfully created.
     List<String> firstNames =
         readParquetFileStringColumn(
-            IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId),
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId)),
             IngestUtils.getTargetDataSourceName(randomFlightId),
             "first_name",
             true);

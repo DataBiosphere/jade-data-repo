@@ -587,11 +587,14 @@ public class DrsService {
                 ACCESS_ID_PREFIX_AZURE + ACCESS_ID_PREFIX_PASSPORT,
                 azureRegion,
                 passportAuth,
-                billingSnapshot);
+                cachedSnapshot.globalFileIds ? billingSnapshot : null);
       } else {
         accessMethods =
             getDrsSignedURLAccessMethods(
-                ACCESS_ID_PREFIX_AZURE, azureRegion, passportAuth, billingSnapshot);
+                ACCESS_ID_PREFIX_AZURE,
+                azureRegion,
+                passportAuth,
+                cachedSnapshot.globalFileIds ? billingSnapshot : null);
       }
     } else {
       throw new InvalidCloudPlatformException();

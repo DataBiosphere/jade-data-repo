@@ -652,6 +652,8 @@ public class DrsServiceTest {
     UUID defaultProfileModelId = UUID.randomUUID();
     Snapshot snapshot =
         mockSnapshot(snapshotId, defaultProfileModelId, CloudPlatform.AZURE, "google-project");
+    // Make this a global file id snapshot to test access ids
+    snapshot.globalFileIds(true);
     DrsId drsId = drsIdService.fromObjectId(azureDrsObjectId);
     when(snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()))).thenReturn(snapshot);
     AzureStorageAccountResource storageAccountResource =

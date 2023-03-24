@@ -20,7 +20,6 @@ import bio.terra.service.cohortbuilder.ConceptSetService;
 import bio.terra.service.cohortbuilder.HintsService;
 import bio.terra.service.cohortbuilder.InstancesService;
 import io.swagger.annotations.Api;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
@@ -32,7 +31,6 @@ public class CohortBuilderApiController implements CohortBuilderApi {
   private final HintsService hintsService;
   private final InstancesService instancesService;
 
-  @Autowired
   public CohortBuilderApiController(
       CohortService cohortService,
       ConceptSetService conceptSetService,

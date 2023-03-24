@@ -26,6 +26,7 @@ import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotTable;
@@ -187,7 +188,8 @@ public class AzureSynapsePdaoConnectedTest {
 
     List<String> textCols =
         synapseUtils.readParquetFileStringColumn(
-            IngestUtils.getParquetFilePath("all_data_types", randomFlightId),
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath("all_data_types", randomFlightId)),
             IngestUtils.getTargetDataSourceName(randomFlightId),
             "textCol",
             true);

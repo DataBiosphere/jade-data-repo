@@ -1,0 +1,289 @@
+{
+  "name" : "procedure",
+  "idAttribute" : "id",
+  "attributes" : [ {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "standard_concept",
+    "dataType" : "STRING",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : { },
+          "display" : "Source"
+        },
+        "count" : 0
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "C"
+          },
+          "display" : "Unknown"
+        },
+        "count" : 2990
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "S"
+          },
+          "display" : "Standard"
+        },
+        "count" : 61581
+      } ]
+    }
+  }, {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "vocabulary",
+    "dataType" : "STRING",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "CPT4"
+          },
+          "display" : "Current Procedural Terminology version 4 (AMA)"
+        },
+        "count" : 13070
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "HCPCS"
+          },
+          "display" : "Healthcare Common Procedure Coding System (CMS)"
+        },
+        "count" : 981
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "ICD9CM"
+          },
+          "display" : "International Classification of Diseases, Ninth Revision, Clinical Modification, Volume 1 and 2 (NCHS)"
+        },
+        "count" : 1318
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "ICD9Proc"
+          },
+          "display" : "International Classification of Diseases, Ninth Revision, Clinical Modification, Volume 3 (NCHS)"
+        },
+        "count" : 4657
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "ICD10CM"
+          },
+          "display" : "International Classification of Diseases, Tenth Revision, Clinical Modification (NCHS)"
+        },
+        "count" : 6
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "SNOMED"
+          },
+          "display" : "Systematic Nomenclature of Medicine - Clinical Terms (IHTSDO)"
+        },
+        "count" : 74959
+      } ]
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "name",
+    "dataType" : "STRING"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "concept_code",
+    "dataType" : "STRING"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "id",
+    "dataType" : "INT64"
+  } ],
+  "sourceDataMapping" : {
+    "dataPointer" : "omop_dataset",
+    "tablePointer" : {
+      "table" : "concept",
+      "filter" : {
+        "type" : "BINARY",
+        "field" : {
+          "column" : "domain_id"
+        },
+        "operator" : "EQUALS",
+        "value" : {
+          "stringVal" : "Procedure"
+        }
+      }
+    },
+    "attributeMappings" : {
+      "standard_concept" : {
+        "value" : {
+          "column" : "standard_concept"
+        },
+        "display" : {
+          "column" : "standard_concept",
+          "sqlFunctionWrapper" : "(CASE WHEN ${fieldSql} IS NULL THEN 'Source' WHEN ${fieldSql} = 'S' THEN 'Standard' ELSE 'Unknown' END)"
+        }
+      },
+      "vocabulary" : {
+        "value" : {
+          "column" : "vocabulary_id"
+        },
+        "display" : {
+          "column" : "vocabulary_id",
+          "foreignTable" : "vocabulary",
+          "foreignKey" : "vocabulary_id",
+          "foreignColumn" : "vocabulary_name"
+        }
+      },
+      "name" : {
+        "value" : {
+          "column" : "concept_name"
+        }
+      },
+      "concept_code" : {
+        "value" : {
+          "column" : "concept_code"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "concept_id"
+        }
+      }
+    },
+    "textSearchMapping" : {
+      "attributes" : [ "name", "concept_code" ]
+    },
+    "hierarchyMappings" : {
+      "standard" : {
+        "childParent" : {
+          "tablePointer" : {
+            "rawSql" : "SELECT   cr.concept_id_1 AS parent,   cr.concept_id_2 AS child, FROM `bigquery-public-data.cms_synthetic_patient_data_omop.concept_relationship` cr JOIN `bigquery-public-data.cms_synthetic_patient_data_omop.concept` c1  ON c1.concept_id = cr.concept_id_1 JOIN `bigquery-public-data.cms_synthetic_patient_data_omop.concept` c2  ON c2.concept_id = cr.concept_id_2 WHERE   cr.relationship_id = 'Subsumes'   AND c1.domain_id = c2.domain_id   AND c2.domain_id = 'Procedure'   AND c1.vocabulary_id = c2.vocabulary_id   AND c2.vocabulary_id = 'SNOMED'"
+          },
+          "fieldPointers" : {
+            "parent" : {
+              "column" : "parent"
+            },
+            "child" : {
+              "column" : "child"
+            }
+          }
+        },
+        "rootNodesFilter" : {
+          "tablePointer" : {
+            "table" : "concept",
+            "filter" : {
+              "type" : "BINARY",
+              "field" : {
+                "column" : "concept_id"
+              },
+              "operator" : "EQUALS",
+              "value" : {
+                "int64Val" : 4322976
+              }
+            }
+          },
+          "fieldPointers" : {
+            "id" : {
+              "column" : "concept_id"
+            }
+          }
+        },
+        "maxHierarchyDepth" : 19
+      }
+    }
+  },
+  "indexDataMapping" : {
+    "dataPointer" : "index_dataset",
+    "tablePointer" : {
+      "table" : "procedure"
+    },
+    "attributeMappings" : {
+      "standard_concept" : {
+        "value" : {
+          "column" : "standard_concept"
+        },
+        "display" : {
+          "column" : "t_display_standard_concept"
+        }
+      },
+      "vocabulary" : {
+        "value" : {
+          "column" : "vocabulary"
+        },
+        "display" : {
+          "column" : "t_display_vocabulary"
+        }
+      },
+      "name" : {
+        "value" : {
+          "column" : "name"
+        }
+      },
+      "concept_code" : {
+        "value" : {
+          "column" : "concept_code"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "id"
+        }
+      }
+    },
+    "textSearchMapping" : {
+      "searchString" : {
+        "column" : "text"
+      }
+    },
+    "hierarchyMappings" : {
+      "standard" : {
+        "childParent" : {
+          "tablePointer" : {
+            "table" : "procedure_standard_childParent"
+          },
+          "fieldPointers" : {
+            "parent" : {
+              "column" : "parent"
+            },
+            "child" : {
+              "column" : "child"
+            }
+          }
+        },
+        "ancestorDescendant" : {
+          "tablePointer" : {
+            "table" : "procedure_standard_ancestorDescendant"
+          },
+          "fieldPointers" : {
+            "ancestor" : {
+              "column" : "ancestor"
+            },
+            "descendant" : {
+              "column" : "descendant"
+            }
+          }
+        },
+        "pathNumChildren" : {
+          "tablePointer" : {
+            "table" : "procedure"
+          },
+          "fieldPointers" : {
+            "path" : {
+              "column" : "t_standard_path"
+            },
+            "num_children" : {
+              "column" : "t_standard_num_children"
+            },
+            "id" : {
+              "column" : "id"
+            }
+          }
+        },
+        "maxHierarchyDepth" : 19
+      }
+    }
+  },
+  "sourceStartDateColumn" : null
+}

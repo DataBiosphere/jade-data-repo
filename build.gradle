@@ -164,6 +164,9 @@ repositories {
     maven {
         url 'https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot-local/'
     }
+    maven {
+        url "https://packages.confluent.io/maven/"
+    }
 }
 
 configurations {
@@ -333,6 +336,7 @@ dependencies {
             because '1.66 has security vulnerabilities'
         }
     }
+    implementation group: "org.apache.commons", name: "commons-text", version: "1.9"
 }
 
 def getGitHash = { ->

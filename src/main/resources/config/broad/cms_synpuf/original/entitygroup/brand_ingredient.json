@@ -1,0 +1,19 @@
+{
+  "name": "brand_ingredient",
+  "type": "GROUP_ITEMS",
+  "groupEntity": "brand",
+  "itemsEntity": "ingredient",
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "relationshipMappings": {
+      "groupToItems": {
+        "idPairsTable": { "table": "concept_relationship" },
+        "idPairsIdA": { "column": "concept_id_1" },
+        "idPairsIdB":  { "column": "concept_id_2" }
+      }
+    }
+  },
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

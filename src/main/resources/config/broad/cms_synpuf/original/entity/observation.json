@@ -1,0 +1,57 @@
+{
+  "name": "observation",
+  "idAttribute": "id",
+  "attributes": [
+    { "type": "SIMPLE", "name": "id" },
+    { "type": "SIMPLE", "name": "name" },
+    { "type": "KEY_AND_DISPLAY", "name": "vocabulary" },
+    { "type": "KEY_AND_DISPLAY", "name": "standard_concept" },
+    { "type": "SIMPLE", "name": "concept_code" } ],
+
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "tablePointer": {
+      "table": "concept",
+      "filter": {
+        "type": "BOOLEAN_AND_OR",
+        "operator": "AND",
+        "subfilters": [
+          { "type": "BINARY",
+            "field": { "column": "domain_id" },
+            "operator": "EQUALS",
+            "value": { "stringVal": "Observation" } },
+          { "type": "BINARY",
+            "field": { "column": "standard_concept" },
+            "operator": "EQUALS",
+            "value": { "stringVal": "S" } },
+          { "type": "BINARY",
+            "field": { "column": "vocabulary_id" },
+            "operator": "NOT_EQUALS",
+            "value": { "stringVal": "PPI" } },
+          { "type": "BINARY",
+            "field": { "column": "concept_class_id" },
+            "operator": "NOT_EQUALS",
+            "value": { "stringVal": "Survey" } }
+        ] } },
+    "attributeMappings": {
+      "id": { "value": { "column": "concept_id" } },
+      "name": { "value": { "column": "concept_name" } },
+      "vocabulary": {
+        "value": { "column": "vocabulary_id" },
+        "display": {
+          "column": "vocabulary_id",
+          "foreignTable": "vocabulary",
+          "foreignKey": "vocabulary_id",
+          "foreignColumn": "vocabulary_name" } },
+      "standard_concept": {
+        "value": { "column": "standard_concept" },
+        "display": {
+          "column": "standard_concept",
+          "sqlFunctionWrapper": "(CASE WHEN ${fieldSql} IS NULL THEN 'Source' WHEN ${fieldSql} = 'S' THEN 'Standard' ELSE 'Unknown' END)" } } },
+    "textSearchMapping": { "attributes": [ "name", "concept_code" ] }
+  },
+
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

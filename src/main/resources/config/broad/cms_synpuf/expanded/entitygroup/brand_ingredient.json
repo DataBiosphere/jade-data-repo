@@ -1,0 +1,88 @@
+{
+  "type" : "GROUP_ITEMS",
+  "name" : "brand_ingredient",
+  "sourceDataMapping" : {
+    "dataPointer" : "omop_dataset",
+    "relationshipMappings" : {
+      "groupToItems" : {
+        "idPairsTable" : {
+          "table" : "concept_relationship"
+        },
+        "idPairsIdA" : {
+          "column" : "concept_id_1"
+        },
+        "idPairsIdB" : {
+          "column" : "concept_id_2"
+        },
+        "rollupInformationMapA" : { },
+        "rollupInformationMapB" : { }
+      }
+    },
+    "auxiliaryDataMappings" : { }
+  },
+  "indexDataMapping" : {
+    "dataPointer" : "index_dataset",
+    "relationshipMappings" : {
+      "groupToItems" : {
+        "idPairsTable" : {
+          "table" : "idpairs_brand_ingredient"
+        },
+        "idPairsIdA" : {
+          "column" : "id_brand"
+        },
+        "idPairsIdB" : {
+          "column" : "id_ingredient"
+        },
+        "rollupInformationMapA" : {
+          "NO_HIERARCHY" : {
+            "table" : {
+              "table" : "brand"
+            },
+            "id" : {
+              "column" : "id"
+            },
+            "count" : {
+              "column" : "t_count_ingredient"
+            },
+            "displayHints" : {
+              "column" : "t_displayhints_ingredient"
+            }
+          }
+        },
+        "rollupInformationMapB" : {
+          "standard" : {
+            "table" : {
+              "table" : "ingredient"
+            },
+            "id" : {
+              "column" : "id"
+            },
+            "count" : {
+              "column" : "t_count_brand_standard"
+            },
+            "displayHints" : {
+              "column" : "t_displayhints_brand_standard"
+            }
+          },
+          "NO_HIERARCHY" : {
+            "table" : {
+              "table" : "ingredient"
+            },
+            "id" : {
+              "column" : "id"
+            },
+            "count" : {
+              "column" : "t_count_brand"
+            },
+            "displayHints" : {
+              "column" : "t_displayhints_brand"
+            }
+          }
+        }
+      }
+    },
+    "auxiliaryDataMappings" : { }
+  },
+  "groupEntity" : "brand",
+  "itemsEntity" : "ingredient"
+}

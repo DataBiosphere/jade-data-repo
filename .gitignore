@@ -62,3 +62,6 @@ jade-dev-account.pem
 
 # Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json
+
+# Ignore copied tanagra credentials
+rendered

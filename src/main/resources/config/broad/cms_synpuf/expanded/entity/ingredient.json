@@ -1,0 +1,277 @@
+{
+  "name" : "ingredient",
+  "idAttribute" : "id",
+  "attributes" : [ {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "standard_concept",
+    "dataType" : "STRING",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : { },
+          "display" : "Source"
+        },
+        "count" : 0
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "C"
+          },
+          "display" : "Unknown"
+        },
+        "count" : 6082
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "S"
+          },
+          "display" : "Standard"
+        },
+        "count" : 12997
+      } ]
+    }
+  }, {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "vocabulary",
+    "dataType" : "STRING",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "RxNorm"
+          },
+          "display" : "RxNorm (NLM)"
+        },
+        "count" : 14139
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "RxNorm Extension"
+          },
+          "display" : "RxNorm Extension (OMOP)"
+        },
+        "count" : 1558
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "ATC"
+          },
+          "display" : "WHO Anatomic Therapeutic Chemical Classification"
+        },
+        "count" : 6082
+      } ]
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "name",
+    "dataType" : "STRING"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "concept_code",
+    "dataType" : "STRING"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "id",
+    "dataType" : "INT64"
+  } ],
+  "sourceDataMapping" : {
+    "dataPointer" : "omop_dataset",
+    "tablePointer" : {
+      "rawSql" : "SELECT   c.concept_id AS id, c.concept_name AS name, c.vocabulary_id, c.standard_concept, c.concept_code FROM  `bigquery-public-data.cms_synthetic_patient_data_omop.concept` c WHERE c.domain_id = 'Drug' AND ((c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')         AND c.concept_class_id = 'Ingredient'         AND c.standard_concept = 'S')     OR (c.vocabulary_id = 'RxNorm'         AND c.concept_class_id = 'Precise Ingredient')     OR (c.vocabulary_id = 'ATC'         AND c.concept_class_id IN ('ATC 1st', 'ATC 2nd', 'ATC 3rd', 'ATC 4th', 'ATC 5th')         AND c.standard_concept = 'C'))"
+    },
+    "attributeMappings" : {
+      "standard_concept" : {
+        "value" : {
+          "column" : "standard_concept"
+        },
+        "display" : {
+          "column" : "standard_concept",
+          "sqlFunctionWrapper" : "(CASE WHEN ${fieldSql} IS NULL THEN 'Source' WHEN ${fieldSql} = 'S' THEN 'Standard' ELSE 'Unknown' END)"
+        }
+      },
+      "vocabulary" : {
+        "value" : {
+          "column" : "vocabulary_id"
+        },
+        "display" : {
+          "column" : "vocabulary_id",
+          "foreignTable" : "vocabulary",
+          "foreignKey" : "vocabulary_id",
+          "foreignColumn" : "vocabulary_name"
+        }
+      },
+      "name" : {
+        "value" : {
+          "column" : "name"
+        }
+      },
+      "concept_code" : {
+        "value" : {
+          "column" : "concept_code"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "id"
+        }
+      }
+    },
+    "textSearchMapping" : {
+      "attributes" : [ "name", "concept_code" ]
+    },
+    "hierarchyMappings" : {
+      "standard" : {
+        "childParent" : {
+          "tablePointer" : {
+            "rawSql" : "SELECT   cr.concept_id_1 AS parent,   cr.concept_id_2 AS child, FROM `bigquery-public-data.cms_synthetic_patient_data_omop.concept_relationship` cr JOIN `bigquery-public-data.cms_synthetic_patient_data_omop.concept` c1  ON c1.concept_id = cr.concept_id_1 JOIN `bigquery-public-data.cms_synthetic_patient_data_omop.concept` c2  ON c2.concept_id = cr.concept_id_2 WHERE   cr.relationship_id IN ('Has form', 'RxNorm - ATC', 'RxNorm - ATC name', 'Mapped from', 'Subsumes')   AND c1.concept_id != c2.concept_id    AND ((c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')           AND c1.concept_class_id = 'Ingredient'           AND c1.standard_concept = 'S')       OR (c1.vocabulary_id = 'RxNorm'           AND c1.concept_class_id = 'Precise Ingredient')       OR (c1.vocabulary_id = 'ATC'           AND c1.concept_class_id IN ('ATC 1st', 'ATC 2nd', 'ATC 3rd', 'ATC 4th', 'ATC 5th')           AND c1.standard_concept = 'C'))    AND ((c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')           AND c2.concept_class_id = 'Ingredient'           AND c2.standard_concept = 'S')       OR (c2.vocabulary_id = 'RxNorm'           AND c2.concept_class_id = 'Precise Ingredient')       OR (c2.vocabulary_id = 'ATC'           AND c2.concept_class_id IN ('ATC 1st', 'ATC 2nd', 'ATC 3rd', 'ATC 4th', 'ATC 5th')           AND c2.standard_concept = 'C'))  UNION ALL  SELECT   ca.ancestor_concept_id AS parent,   ca.descendant_concept_id AS child, FROM `bigquery-public-data.cms_synthetic_patient_data_omop.concept_ancestor` ca JOIN `bigquery-public-data.cms_synthetic_patient_data_omop.concept` c1  ON c1.concept_id = ca.ancestor_concept_id JOIN `bigquery-public-data.cms_synthetic_patient_data_omop.concept` c2  ON c2.concept_id = ca.descendant_concept_id WHERE   ca.min_levels_of_separation = 1   AND ca.max_levels_of_separation = 1    AND ((c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')           AND c1.concept_class_id = 'Ingredient'           AND c1.standard_concept = 'S')       OR (c1.vocabulary_id = 'RxNorm'           AND c1.concept_class_id = 'Precise Ingredient')       OR (c1.vocabulary_id = 'ATC'           AND c1.concept_class_id IN ('ATC 1st', 'ATC 2nd', 'ATC 3rd', 'ATC 4th', 'ATC 5th')           AND c1.standard_concept = 'C'))    AND ((c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')           AND c2.concept_class_id = 'Ingredient'           AND c2.standard_concept = 'S')       OR (c2.vocabulary_id = 'RxNorm'           AND c2.concept_class_id = 'Precise Ingredient')       OR (c2.vocabulary_id = 'ATC'           AND c2.concept_class_id IN ('ATC 1st', 'ATC 2nd', 'ATC 3rd', 'ATC 4th', 'ATC 5th')           AND c2.standard_concept = 'C'))"
+          },
+          "fieldPointers" : {
+            "parent" : {
+              "column" : "parent"
+            },
+            "child" : {
+              "column" : "child"
+            }
+          }
+        },
+        "rootNodesFilter" : {
+          "tablePointer" : {
+            "table" : "concept",
+            "filter" : {
+              "type" : "BOOLEAN_AND_OR",
+              "operator" : "AND",
+              "subfilters" : [ {
+                "type" : "BINARY",
+                "field" : {
+                  "column" : "vocabulary_id"
+                },
+                "operator" : "EQUALS",
+                "value" : {
+                  "stringVal" : "ATC"
+                }
+              }, {
+                "type" : "BINARY",
+                "field" : {
+                  "column" : "concept_class_id"
+                },
+                "operator" : "EQUALS",
+                "value" : {
+                  "stringVal" : "ATC 1st"
+                }
+              }, {
+                "type" : "BINARY",
+                "field" : {
+                  "column" : "standard_concept"
+                },
+                "operator" : "EQUALS",
+                "value" : {
+                  "stringVal" : "C"
+                }
+              } ]
+            }
+          },
+          "fieldPointers" : {
+            "id" : {
+              "column" : "concept_id"
+            }
+          }
+        },
+        "maxHierarchyDepth" : 8
+      }
+    }
+  },
+  "indexDataMapping" : {
+    "dataPointer" : "index_dataset",
+    "tablePointer" : {
+      "table" : "ingredient"
+    },
+    "attributeMappings" : {
+      "standard_concept" : {
+        "value" : {
+          "column" : "standard_concept"
+        },
+        "display" : {
+          "column" : "t_display_standard_concept"
+        }
+      },
+      "vocabulary" : {
+        "value" : {
+          "column" : "vocabulary"
+        },
+        "display" : {
+          "column" : "t_display_vocabulary"
+        }
+      },
+      "name" : {
+        "value" : {
+          "column" : "name"
+        }
+      },
+      "concept_code" : {
+        "value" : {
+          "column" : "concept_code"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "id"
+        }
+      }
+    },
+    "textSearchMapping" : {
+      "searchString" : {
+        "column" : "text"
+      }
+    },
+    "hierarchyMappings" : {
+      "standard" : {
+        "childParent" : {
+          "tablePointer" : {
+            "table" : "ingredient_standard_childParent"
+          },
+          "fieldPointers" : {
+            "parent" : {
+              "column" : "parent"
+            },
+            "child" : {
+              "column" : "child"
+            }
+          }
+        },
+        "ancestorDescendant" : {
+          "tablePointer" : {
+            "table" : "ingredient_standard_ancestorDescendant"
+          },
+          "fieldPointers" : {
+            "ancestor" : {
+              "column" : "ancestor"
+            },
+            "descendant" : {
+              "column" : "descendant"
+            }
+          }
+        },
+        "pathNumChildren" : {
+          "tablePointer" : {
+            "table" : "ingredient"
+          },
+          "fieldPointers" : {
+            "path" : {
+              "column" : "t_standard_path"
+            },
+            "num_children" : {
+              "column" : "t_standard_num_children"
+            },
+            "id" : {
+              "column" : "id"
+            }
+          }
+        },
+        "maxHierarchyDepth" : 8
+      }
+    }
+  },
+  "sourceStartDateColumn" : null
+}

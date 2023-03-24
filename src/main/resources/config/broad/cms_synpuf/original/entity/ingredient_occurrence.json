@@ -1,0 +1,38 @@
+{
+  "name": "ingredient_occurrence",
+  "idAttribute": "id",
+  "attributes": [
+    { "type": "SIMPLE", "name": "id" },
+    { "type": "SIMPLE", "name": "person_id" },
+    { "type": "KEY_AND_DISPLAY", "name": "ingredient" },
+    { "type": "SIMPLE", "name": "start_date" },
+    { "type": "SIMPLE", "name": "end_date" },
+    { "type": "SIMPLE", "name": "stop_reason" },
+    { "type": "SIMPLE", "name": "days_supply" },
+    { "type": "SIMPLE", "name": "visit_occurrence_id" },
+    { "type": "SIMPLE", "name": "source_value" },
+    { "type": "SIMPLE", "name": "source_criteria_id" } ],
+
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "tablePointer": { "table": "drug_exposure" },
+    "attributeMappings": {
+      "id": { "value": { "column": "drug_exposure_id" } },
+      "ingredient": {
+        "value": { "column": "drug_concept_id" },
+        "display": {
+          "column": "drug_concept_id",
+          "foreignTable": "concept",
+          "foreignKey": "concept_id",
+          "foreignColumn": "concept_name" } },
+      "start_date": { "value": { "column": "drug_exposure_start_date" } },
+      "end_date": { "value": { "column": "drug_exposure_end_date" } },
+      "source_value": { "value": { "column": "drug_source_value" } },
+      "source_criteria_id": { "value": { "column": "drug_source_concept_id" } }
+    }
+  },
+
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

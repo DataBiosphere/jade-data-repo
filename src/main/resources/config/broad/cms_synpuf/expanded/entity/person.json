@@ -1,0 +1,194 @@
+{
+  "name" : "person",
+  "idAttribute" : "id",
+  "attributes" : [ {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "gender",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 8532
+          },
+          "display" : "FEMALE"
+        },
+        "count" : 1292861
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 8507
+          },
+          "display" : "MALE"
+        },
+        "count" : 1033995
+      } ]
+    }
+  }, {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "race",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 8516
+          },
+          "display" : "Black or African American"
+        },
+        "count" : 247723
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 0
+          },
+          "display" : "No matching concept"
+        },
+        "count" : 152425
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 8527
+          },
+          "display" : "White"
+        },
+        "count" : 1926708
+      } ]
+    }
+  }, {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "ethnicity",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 38003563
+          },
+          "display" : "Hispanic or Latino"
+        },
+        "count" : 54453
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 38003564
+          },
+          "display" : "Not Hispanic or Latino"
+        },
+        "count" : 2272403
+      } ]
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "id",
+    "dataType" : "INT64"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "year_of_birth",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "RANGE",
+      "minVal" : 1909.0,
+      "maxVal" : 1983.0
+    }
+  } ],
+  "sourceDataMapping" : {
+    "dataPointer" : "omop_dataset",
+    "tablePointer" : {
+      "table" : "person"
+    },
+    "attributeMappings" : {
+      "gender" : {
+        "value" : {
+          "column" : "gender_concept_id"
+        },
+        "display" : {
+          "column" : "gender_concept_id",
+          "foreignTable" : "concept",
+          "foreignKey" : "concept_id",
+          "foreignColumn" : "concept_name"
+        }
+      },
+      "race" : {
+        "value" : {
+          "column" : "race_concept_id"
+        },
+        "display" : {
+          "column" : "race_concept_id",
+          "foreignTable" : "concept",
+          "foreignKey" : "concept_id",
+          "foreignColumn" : "concept_name"
+        }
+      },
+      "ethnicity" : {
+        "value" : {
+          "column" : "ethnicity_concept_id"
+        },
+        "display" : {
+          "column" : "ethnicity_concept_id",
+          "foreignTable" : "concept",
+          "foreignKey" : "concept_id",
+          "foreignColumn" : "concept_name"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "person_id"
+        }
+      },
+      "year_of_birth" : {
+        "value" : {
+          "column" : "year_of_birth"
+        }
+      }
+    },
+    "hierarchyMappings" : { }
+  },
+  "indexDataMapping" : {
+    "dataPointer" : "index_dataset",
+    "tablePointer" : {
+      "table" : "person"
+    },
+    "attributeMappings" : {
+      "gender" : {
+        "value" : {
+          "column" : "gender"
+        },
+        "display" : {
+          "column" : "t_display_gender"
+        }
+      },
+      "race" : {
+        "value" : {
+          "column" : "race"
+        },
+        "display" : {
+          "column" : "t_display_race"
+        }
+      },
+      "ethnicity" : {
+        "value" : {
+          "column" : "ethnicity"
+        },
+        "display" : {
+          "column" : "t_display_ethnicity"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "id"
+        }
+      },
+      "year_of_birth" : {
+        "value" : {
+          "column" : "year_of_birth"
+        }
+      }
+    },
+    "hierarchyMappings" : { }
+  },
+  "sourceStartDateColumn" : null
+}

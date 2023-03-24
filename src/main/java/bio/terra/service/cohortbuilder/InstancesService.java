@@ -3,7 +3,6 @@ package bio.terra.service.cohortbuilder;
 import bio.terra.model.CountQuery;
 import bio.terra.model.DataType;
 import bio.terra.model.Instance;
-import bio.terra.model.InstanceCount;
 import bio.terra.model.InstanceCountList;
 import bio.terra.model.InstanceHierarchyFields;
 import bio.terra.model.InstanceList;
@@ -12,63 +11,68 @@ import bio.terra.model.Literal;
 import bio.terra.model.LiteralValueUnion;
 import bio.terra.model.Query;
 import bio.terra.model.ValueDisplay;
+import bio.terra.service.cohortbuilder.tanagra.FromApiConversionService;
+import bio.terra.service.cohortbuilder.tanagra.instances.EntityInstanceCount;
+import bio.terra.service.cohortbuilder.tanagra.instances.filter.EntityFilter;
+import bio.terra.service.cohortbuilder.tanagra.service.QuerysService;
+import bio.terra.service.cohortbuilder.tanagra.service.UnderlaysService;
+import bio.terra.service.cohortbuilder.tanagra.utils.ToApiConversionUtils;
+import bio.terra.tanagra.underlay.Attribute;
+import bio.terra.tanagra.underlay.Underlay;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.LongStream;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InstancesService {
+  private final UnderlaysService underlaysService;
+  private final QuerysService querysService;
+  private final FromApiConversionService fromApiConversionService;
+
+  @Autowired
+  public InstancesService(
+      UnderlaysService underlaysService,
+      QuerysService querysService,
+      FromApiConversionService fromApiConversionService) {
+    this.underlaysService = underlaysService;
+    this.querysService = querysService;
+    this.fromApiConversionService = fromApiConversionService;
+  }
 
   public InstanceCountList countInstances(String entityName, CountQuery countQuery) {
+    bio.terra.tanagra.underlay.Entity entity = underlaysService.getEntity(entityName);
+
+    List<Attribute> attributes = new ArrayList<>();
+    if (countQuery.getAttributes() != null) {
+      attributes =
+          countQuery.getAttributes().stream()
+              .map(attrName -> querysService.getAttribute(entity, attrName))
+              .collect(Collectors.toList());
+    }
+
+    EntityFilter entityFilter = null;
+    if (countQuery.getFilter() != null) {
+      entityFilter = fromApiConversionService.fromApiObject(countQuery.getFilter(), entity);
+    }
+
+    bio.terra.tanagra.query.QueryRequest queryRequest =
+        querysService.buildInstanceCountsQuery(
+            entity, Underlay.MappingType.INDEX, attributes, entityFilter);
+    List<EntityInstanceCount> entityInstanceCounts =
+        querysService.runInstanceCountsQuery(
+            entity.getMapping(Underlay.MappingType.INDEX).getTablePointer().getDataPointer(),
+            attributes,
+            queryRequest);
+
     return new InstanceCountList()
-        .sql("SQL goes here")
         .instanceCounts(
-            createInstanceCountsYearGenderRace(
-                // Stub values based on what the API synthetic data returns in the other API -
-                // not representative of life
-                List.of(
-                    new ValueDisplay()
-                        .value(
-                            new Literal()
-                                .dataType(DataType.INT64)
-                                .valueUnion(new LiteralValueUnion().int64Val(8507L)))
-                        .display("MALE"),
-                    new ValueDisplay()
-                        .value(
-                            new Literal()
-                                .dataType(DataType.INT64)
-                                .valueUnion(new LiteralValueUnion().int64Val(8532L)))
-                        .display("FEMALE")),
-                List.of(
-                    new ValueDisplay()
-                        .value(
-                            new Literal()
-                                .dataType(DataType.INT64)
-                                .valueUnion(new LiteralValueUnion().int64Val(0L)))
-                        .display("No matching concept"),
-                    new ValueDisplay()
-                        .value(
-                            new Literal()
-                                .dataType(DataType.INT64)
-                                .valueUnion(new LiteralValueUnion().int64Val(8516L)))
-                        .display("Black or African American"),
-                    new ValueDisplay()
-                        .value(
-                            new Literal()
-                                .dataType(DataType.INT64)
-                                .valueUnion(new LiteralValueUnion().int64Val(8527L)))
-                        .display("White")),
-                LongStream.range(1909, 1984)
-                    .mapToObj(
-                        yearOfBirth ->
-                            new ValueDisplay()
-                                .value(
-                                    new Literal()
-                                        .dataType(DataType.INT64)
-                                        .valueUnion(new LiteralValueUnion().int64Val(yearOfBirth))))
-                    .collect(Collectors.toList())));
+            entityInstanceCounts.stream()
+                .map(ToApiConversionUtils::toApiObject)
+                .collect(Collectors.toList()))
+        .sql(queryRequest.getSql());
   }
 
   public InstanceList queryInstances(String entityName, Query query) {
@@ -125,25 +129,5 @@ public class InstancesService {
                 .hierarchyFields(hierarchyFields)
                 .attributes(attributes));
     return new InstanceList().sql("SQL Goes here").instances(instances);
-  }
-
-  // Our stubs have the same count for everything
-  private List<InstanceCount> createInstanceCountsYearGenderRace(
-      List<ValueDisplay> genders, List<ValueDisplay> races, List<ValueDisplay> yearsOfBirth) {
-    record GR(ValueDisplay gender, ValueDisplay race) {}
-    record GRY(ValueDisplay gender, ValueDisplay race, ValueDisplay year) {}
-
-    return genders.stream()
-        .flatMap(gender -> races.stream().map(race -> new GR(gender, race)))
-        .flatMap(
-            gr ->
-                yearsOfBirth.stream().map(yearOfBirth -> new GRY(gr.gender, gr.race, yearOfBirth)))
-        .map(
-            gry ->
-                new InstanceCount()
-                    .count(20000)
-                    .attributes(
-                        Map.of("gender", gry.gender, "race", gry.race, "year_of_birth", gry.year)))
-        .collect(Collectors.toList());
   }
 }

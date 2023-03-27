@@ -41,13 +41,14 @@ public final class FromApiConversionService {
 
   public EntityFilter fromApiObject(Filter apiFilter, Entity entity) {
     switch (apiFilter.getFilterType()) {
-      case ATTRIBUTE:
+      case ATTRIBUTE -> {
         AttributeFilter apiAttributeFilter = apiFilter.getFilterUnion().getAttributeFilter();
         return new bio.terra.tanagra.service.instances.filter.AttributeFilter(
             querysService.getAttribute(entity, apiAttributeFilter.getAttribute()),
             FromApiConversionService.fromApiObject(apiAttributeFilter.getOperator()),
             FromApiConversionService.fromApiObject(apiAttributeFilter.getValue()));
-      case TEXT:
+      }
+      case TEXT -> {
         TextFilter apiTextFilter = apiFilter.getFilterUnion().getTextFilter();
         bio.terra.tanagra.service.instances.filter.TextFilter.Builder textFilterBuilder =
             new bio.terra.tanagra.service.instances.filter.TextFilter.Builder()
@@ -60,36 +61,31 @@ public final class FromApiConversionService {
               querysService.getAttribute(entity, apiTextFilter.getAttribute()));
         }
         return textFilterBuilder.build();
-      case HIERARCHY:
+      }
+      case HIERARCHY -> {
         HierarchyFilter apiHierarchyFilter = apiFilter.getFilterUnion().getHierarchyFilter();
         Hierarchy hierarchy = querysService.getHierarchy(entity, apiHierarchyFilter.getHierarchy());
-        switch (apiHierarchyFilter.getOperator()) {
-          case IS_ROOT:
-            return new HierarchyRootFilter(hierarchy);
-          case IS_MEMBER:
-            return new HierarchyMemberFilter(hierarchy);
-          case CHILD_OF:
-            return new HierarchyParentFilter(
-                hierarchy, FromApiConversionService.fromApiObject(apiHierarchyFilter.getValue()));
-          case DESCENDANT_OF_INCLUSIVE:
-            return new HierarchyAncestorFilter(
-                hierarchy, FromApiConversionService.fromApiObject(apiHierarchyFilter.getValue()));
-          default:
-            throw new SystemException(
-                "Unknown API hierarchy filter operator: " + apiHierarchyFilter.getOperator());
-        }
-      case RELATIONSHIP:
+        return switch (apiHierarchyFilter.getOperator()) {
+          case IS_ROOT -> new HierarchyRootFilter(hierarchy);
+          case IS_MEMBER -> new HierarchyMemberFilter(hierarchy);
+          case CHILD_OF -> new HierarchyParentFilter(
+              hierarchy, FromApiConversionService.fromApiObject(apiHierarchyFilter.getValue()));
+          case DESCENDANT_OF_INCLUSIVE -> new HierarchyAncestorFilter(
+              hierarchy, FromApiConversionService.fromApiObject(apiHierarchyFilter.getValue()));
+        };
+      }
+      case RELATIONSHIP -> {
         RelationshipFilter apiRelationshipFilter =
             apiFilter.getFilterUnion().getRelationshipFilter();
         Entity relatedEntity = underlaysService.getEntity(apiRelationshipFilter.getEntity());
         // TODO: Allow building queries against the source data mapping also.
         EntityFilter subFilter = fromApiObject(apiRelationshipFilter.getSubfilter(), relatedEntity);
-
         Collection<EntityGroup> entityGroups =
             underlaysService.getUnderlay(UnderlaysService.UNDERLAY_NAME).getEntityGroups().values();
         return new bio.terra.tanagra.service.instances.filter.RelationshipFilter(
             entity, querysService.getRelationship(entityGroups, entity, relatedEntity), subFilter);
-      case BOOLEAN_LOGIC:
+      }
+      case BOOLEAN_LOGIC -> {
         BooleanLogicFilter apiBooleanLogicFilter =
             apiFilter.getFilterUnion().getBooleanLogicFilter();
         List<EntityFilter> subFilters =
@@ -117,24 +113,18 @@ public final class FromApiConversionService {
           default -> throw new SystemException(
               "Unknown boolean logic operator: " + apiBooleanLogicFilter.getOperator());
         }
-      default:
-        throw new SystemException("Unknown API filter type: " + apiFilter.getFilterType());
+      }
+      default -> throw new SystemException("Unknown API filter type: " + apiFilter.getFilterType());
     }
   }
 
   public static bio.terra.tanagra.query.Literal fromApiObject(Literal apiLiteral) {
-    switch (apiLiteral.getDataType()) {
-      case INT64:
-        return new bio.terra.tanagra.query.Literal(apiLiteral.getValueUnion().getInt64Val());
-      case STRING:
-        return new bio.terra.tanagra.query.Literal(apiLiteral.getValueUnion().getStringVal());
-      case BOOLEAN:
-        return new bio.terra.tanagra.query.Literal(apiLiteral.getValueUnion().isBoolVal());
-      case DATE:
-        return bio.terra.tanagra.query.Literal.forDate(apiLiteral.getValueUnion().getDateVal());
-      default:
-        throw new SystemException("Unknown API data type: " + apiLiteral.getDataType());
-    }
+    return switch (apiLiteral.getDataType()) {
+      case INT64 -> new bio.terra.tanagra.query.Literal(apiLiteral.getValueUnion().getInt64Val());
+      case STRING -> new bio.terra.tanagra.query.Literal(apiLiteral.getValueUnion().getStringVal());
+      case BOOLEAN -> new bio.terra.tanagra.query.Literal(apiLiteral.getValueUnion().isBoolVal());
+      case DATE -> bio.terra.tanagra.query.Literal.forDate(apiLiteral.getValueUnion().getDateVal());
+    };
   }
 
   public static BinaryFilterVariable.BinaryOperator fromApiObject(
@@ -144,13 +134,9 @@ public final class FromApiConversionService {
 
   public static FunctionFilterVariable.FunctionTemplate fromApiObject(
       TextFilter.MatchTypeEnum apiMatchType) {
-    switch (apiMatchType) {
-      case EXACT_MATCH:
-        return FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH;
-      case FUZZY_MATCH:
-        return FunctionFilterVariable.FunctionTemplate.TEXT_FUZZY_MATCH;
-      default:
-        throw new SystemException("Unknown API text match type: " + apiMatchType.name());
-    }
+    return switch (apiMatchType) {
+      case EXACT_MATCH -> FunctionFilterVariable.FunctionTemplate.TEXT_EXACT_MATCH;
+      case FUZZY_MATCH -> FunctionFilterVariable.FunctionTemplate.TEXT_FUZZY_MATCH;
+    };
   }
 }

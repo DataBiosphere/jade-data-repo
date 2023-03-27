@@ -20,7 +20,6 @@ public class UnderlaysService {
   private final Map<String, Underlay> underlaysMap;
   public static final String UNDERLAY_NAME = "cms_synpuf";
 
-
   @Autowired
   public UnderlaysService(UnderlayConfiguration underlayConfiguration) {
     // read in underlays from resource files

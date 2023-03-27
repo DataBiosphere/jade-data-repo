@@ -712,7 +712,7 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-              + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
+              + "dataset.secure_monitoring, snapshot.consent_code, snapshot.global_file_ids, dataset.phs_id, dataset.self_hosted,"
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "

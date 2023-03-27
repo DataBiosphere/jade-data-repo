@@ -1,5 +1,7 @@
 package bio.terra.service.dataset;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.Column;
 import bio.terra.common.DaoKeyHolder;
@@ -11,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -214,7 +217,16 @@ public class DatasetTableDao {
         });
   }
 
-  private List<Column> retrieveColumns(Table table) {
+  List<String> retrieveColumnNames(Table table, boolean includeDataRepoRowId) {
+    List<String> columns = new ArrayList<>();
+    if (includeDataRepoRowId) {
+      columns.add(PDAO_ROW_ID_COLUMN);
+    }
+    columns.addAll(retrieveColumns(table).stream().map(Column::getName).toList());
+    return columns;
+  }
+
+  List<Column> retrieveColumns(Table table) {
     return jdbcTemplate.query(
         sqlSelectColumn,
         new MapSqlParameterSource().addValue("table_id", table.getId()),

@@ -284,17 +284,18 @@ public class AzureSynapsePdaoConnectedTest {
 
     // do a basic query of the data
     snapshotQueryCredentialName =
-        AzureSynapsePdao.getCredentialName(snapshot, TEST_USER.getEmail());
+        AzureSynapsePdao.getCredentialName(snapshot.getId(), TEST_USER.getEmail());
     snapshotQueryDataSourceName =
-        AzureSynapsePdao.getDataSourceName(snapshot, TEST_USER.getEmail());
+        AzureSynapsePdao.getDataSourceName(snapshot.getId(), TEST_USER.getEmail());
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotQueryCredentialName, snapshotQueryDataSourceName);
     List<Map<String, Optional<Object>>> tableData =
         prepQueryResultForComparison(
-            azureSynapsePdao.getSnapshotTableData(
-                TEST_USER,
-                snapshot,
+            azureSynapsePdao.getTableData(
+                snapshotTable,
                 snapshotTable.getName(),
+                snapshotQueryDataSourceName,
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, snapshotTable.getName()),
                 10,
                 0,
                 "first_name",
@@ -309,10 +310,11 @@ public class AzureSynapsePdaoConnectedTest {
     // now swap the order
     tableData =
         prepQueryResultForComparison(
-            azureSynapsePdao.getSnapshotTableData(
-                TEST_USER,
-                snapshot,
+            azureSynapsePdao.getTableData(
+                snapshotTable,
                 snapshotTable.getName(),
+                snapshotQueryDataSourceName,
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, snapshotTable.getName()),
                 10,
                 0,
                 "first_name",
@@ -327,10 +329,11 @@ public class AzureSynapsePdaoConnectedTest {
     // now read a single value
     tableData =
         prepQueryResultForComparison(
-            azureSynapsePdao.getSnapshotTableData(
-                TEST_USER,
-                snapshot,
+            azureSynapsePdao.getTableData(
+                snapshotTable,
                 snapshotTable.getName(),
+                snapshotQueryDataSourceName,
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, snapshotTable.getName()),
                 10,
                 0,
                 "first_name",

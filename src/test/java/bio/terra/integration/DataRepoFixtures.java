@@ -1,5 +1,6 @@
 package bio.terra.integration;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -26,12 +27,14 @@ import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnModel;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
@@ -71,7 +74,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -716,7 +721,7 @@ public class DataRepoFixtures {
       TestConfiguration.User user, UUID snapshotId, String table, String column) throws Exception {
     String filter = "WHERE %s IS NOT NULL".formatted(column);
     DataRepoResponse<SnapshotPreviewModel> response =
-        retrieveSnapshotPreviewByIdRaw(user, snapshotId, table, 0, 1, filter);
+        retrieveSnapshotPreviewByIdRaw(user, snapshotId, table, 0, 1, filter, null);
     SnapshotPreviewModel validated =
         validateResponse(response, "snapshot preview for DRS ID", HttpStatus.OK, null);
 
@@ -728,13 +733,42 @@ public class DataRepoFixtures {
     return DrsService.getLastNameFromPath(drsUri);
   }
 
+  public List<Object> retrieveSnapshotPreviewById(
+      TestConfiguration.User user,
+      UUID snapshotId,
+      String table,
+      int offset,
+      int limit,
+      String filter)
+      throws Exception {
+    return retrieveSnapshotPreviewById(user, snapshotId, table, offset, limit, filter, null);
+  }
+
+  public List<Object> retrieveSnapshotPreviewById(
+      TestConfiguration.User user,
+      UUID snapshotId,
+      String table,
+      int offset,
+      int limit,
+      String filter,
+      String sort)
+      throws Exception {
+    DataRepoResponse<SnapshotPreviewModel> response =
+        retrieveSnapshotPreviewByIdRaw(user, snapshotId, table, offset, limit, filter, sort);
+    SnapshotPreviewModel validated =
+        validateResponse(response, "snapshot data", HttpStatus.OK, null);
+
+    return validated.getResult();
+  }
+
   private DataRepoResponse<SnapshotPreviewModel> retrieveSnapshotPreviewByIdRaw(
       TestConfiguration.User user,
       UUID snapshotId,
       String table,
       Integer offset,
       Integer limit,
-      String filter)
+      String filter,
+      String sort)
       throws Exception {
     String url = "/api/repository/v1/snapshots/%s/data/%s".formatted(snapshotId, table);
 
@@ -744,6 +778,139 @@ public class DataRepoFixtures {
 
     if (filter != null) {
       queryParams += "&filter=%s".formatted(filter);
+    }
+    if (sort != null) {
+      queryParams += "&sort=%s".formatted(sort);
+    }
+    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+  }
+
+  public List<String> getRowIds(
+      TestConfiguration.User user, DatasetModel dataset, String tableName, int limitRowsReturned)
+      throws Exception {
+    List<Object> dataModel =
+        retrieveDatasetData(user, dataset.getId(), tableName, 0, limitRowsReturned, null);
+    assertThat("got right num of row ids back", dataModel.size(), equalTo(limitRowsReturned));
+    return dataModel.stream()
+        .map(r -> ((LinkedHashMap) r).get(PDAO_ROW_ID_COLUMN).toString())
+        .toList();
+  }
+
+  public void assertSnapshotTableCount(
+      TestConfiguration.User user, SnapshotModel snapshotModel, String tableName, int n)
+      throws Exception {
+    int tableCount =
+        retrieveSnapshotPreviewById(user, snapshotModel.getId(), tableName, 0, n + 1, null).size();
+    assertThat("count matches", tableCount, equalTo(n));
+  }
+
+  public void assertDatasetTableCount(
+      TestConfiguration.User user, DatasetModel dataset, String tableName, int n) throws Exception {
+    int tableCount = retrieveDatasetData(user, dataset.getId(), tableName, 0, n + 1, null).size();
+    assertThat("count matches", tableCount, equalTo(n));
+  }
+
+  public List<Map<String, List<String>>> transformStringResults(
+      TestConfiguration.User user, DatasetModel dataset, String tableName) throws Exception {
+    List<Object> dataModel = retrieveDatasetData(user, dataset.getId(), tableName, 0, 100, null);
+    List<String> columnNamesFromResults =
+        ((LinkedHashMap) dataModel.get(0)).keySet().stream().toList();
+    List<ColumnModel> columns =
+        dataset.getSchema().getTables().stream()
+            .filter(t -> t.getName().equals(tableName))
+            .findFirst()
+            .get()
+            .getColumns();
+    List<Map<String, List<String>>> result = new ArrayList<>();
+    for (Object val : dataModel) {
+      Map<String, List<String>> transformed = new HashMap<>();
+      for (String columnName : columnNamesFromResults) {
+        String colVal = ((LinkedHashMap) val).get(columnName).toString();
+        final List<String> values;
+        Optional<ColumnModel> columnModel =
+            columns.stream().filter(c -> c.getName().equals(columnName)).findFirst();
+        if (columnModel.isPresent() && columnModel.get().isArrayOf()) {
+          String subStringVal = colVal.substring(1, colVal.length() - 1);
+          values = Arrays.stream(subStringVal.split(",")).toList();
+        } else {
+          values = List.of(colVal);
+        }
+        transformed.put(columnName, values);
+      }
+      result.add(transformed);
+    }
+    return result;
+  }
+
+  public void retrieveDatasetDataExpectFailure(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String table,
+      int offset,
+      int limit,
+      String filter,
+      HttpStatus expectedStatus)
+      throws Exception {
+    DataRepoResponse<DatasetDataModel> response =
+        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, null, null);
+    assertThat(
+        "retrieve dataset data by Id should fail",
+        response.getStatusCode(),
+        equalTo(expectedStatus));
+  }
+
+  public List<Object> retrieveDatasetData(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String table,
+      int offset,
+      int limit,
+      String filter)
+      throws Exception {
+    return retrieveDatasetData(user, datasetId, table, offset, limit, filter, null, null);
+  }
+
+  public List<Object> retrieveDatasetData(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String table,
+      int offset,
+      int limit,
+      String filter,
+      String sort,
+      String direction)
+      throws Exception {
+    DataRepoResponse<DatasetDataModel> response =
+        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, sort, direction);
+    DatasetDataModel validated = validateResponse(response, "dataset data", HttpStatus.OK, null);
+
+    return validated.getResult();
+  }
+
+  private DataRepoResponse<DatasetDataModel> retrieveDatasetDataByIdRaw(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String table,
+      Integer offset,
+      Integer limit,
+      String filter,
+      String sort,
+      String direction)
+      throws Exception {
+    String url = "/api/repository/v1/datasets/%s/data/%s".formatted(datasetId, table);
+
+    offset = Objects.requireNonNullElse(offset, 0);
+    limit = Objects.requireNonNullElse(limit, 10);
+    String queryParams = "?offset=%s&limit=%s".formatted(offset, limit);
+
+    if (filter != null) {
+      queryParams += "&filter=%s".formatted(filter);
+    }
+    if (sort != null) {
+      queryParams += "&sort=%s".formatted(sort);
+    }
+    if (direction != null) {
+      queryParams += "&direction=%s".formatted(direction);
     }
     return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
   }

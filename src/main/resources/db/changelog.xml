@@ -69,4 +69,5 @@
     <include file="changesets/20221104_predictablefileidsoption.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20221104_v2drsids.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20230208_gcpautoclassbucket.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230307_shedlock.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

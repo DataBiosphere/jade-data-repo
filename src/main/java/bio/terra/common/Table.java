@@ -36,4 +36,6 @@ public interface Table {
   default List<SynapseColumn> getSynapseColumns() {
     return getColumns().stream().map(Column::toSynapseColumn).toList();
   }
+
+  Optional<Column> getColumnByName(String columnName);
 }

@@ -18,6 +18,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class UnderlaysService {
   private final Map<String, Underlay> underlaysMap;
+  public static final String UNDERLAY_NAME = "cms_synpuf";
+
 
   @Autowired
   public UnderlaysService(UnderlayConfiguration underlayConfiguration) {
@@ -46,7 +48,8 @@ public class UnderlaysService {
   /** Retrieves a list of underlays by name. */
   public List<Underlay> getUnderlays(List<String> names) {
     return underlaysMap.values().stream()
-        .filter(underlay -> names.contains(underlay.getName())).toList();
+        .filter(underlay -> names.contains(underlay.getName()))
+        .toList();
   }
 
   /** Retrieves an underlay by name. */
@@ -59,7 +62,7 @@ public class UnderlaysService {
 
   /** Retrieves an entity by name for an underlay. */
   public Entity getEntity(String entityName) {
-    Underlay underlay = getUnderlay("cms_synpuf");
+    Underlay underlay = getUnderlay(UNDERLAY_NAME);
     if (!underlay.getEntities().containsKey(entityName)) {
       throw new NotFoundException("Entity not found: cms_synpuf, " + entityName);
     }

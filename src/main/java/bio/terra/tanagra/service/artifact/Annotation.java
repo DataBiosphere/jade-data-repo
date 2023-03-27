@@ -2,15 +2,14 @@ package bio.terra.tanagra.service.artifact;
 
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.tanagra.query.Literal;
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nullable;
 
 public class Annotation {
   private final String cohortId;
   private final String annotationId;
-  private final @Nullable
-  String displayName;
+  private final @Nullable String displayName;
   private final @Nullable String description;
   private final Literal.DataType dataType;
   private final List<String> enumVals;

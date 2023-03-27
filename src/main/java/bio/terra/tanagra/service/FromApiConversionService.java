@@ -86,7 +86,7 @@ public final class FromApiConversionService {
         EntityFilter subFilter = fromApiObject(apiRelationshipFilter.getSubfilter(), relatedEntity);
 
         Collection<EntityGroup> entityGroups =
-            underlaysService.getUnderlay("cms_synpuf").getEntityGroups().values();
+            underlaysService.getUnderlay(UnderlaysService.UNDERLAY_NAME).getEntityGroups().values();
         return new bio.terra.tanagra.service.instances.filter.RelationshipFilter(
             entity, querysService.getRelationship(entityGroups, entity, relatedEntity), subFilter);
       case BOOLEAN_LOGIC:

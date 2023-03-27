@@ -1,11 +1,11 @@
 package bio.terra.tanagra.service.artifact;
 
 import bio.terra.tanagra.exception.SystemException;
-import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nullable;
 
 public class Cohort {
   public static final int STARTING_VERSION = 1;
@@ -20,8 +20,7 @@ public class Cohort {
   private final OffsetDateTime created;
   private final String createdBy;
   private final OffsetDateTime lastModified;
-  private final @Nullable
-  String displayName;
+  private final @Nullable String displayName;
   private final @Nullable String description;
   private final List<CriteriaGroup> criteriaGroups;
 

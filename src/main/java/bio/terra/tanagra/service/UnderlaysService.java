@@ -25,8 +25,8 @@ public class UnderlaysService {
     // read in underlays from resource files
     Map<String, Underlay> underlaysMapBuilder = new HashMap<>();
     FileIO.setToReadResourceFiles();
-    for (String underlayFile : List.of("broad/cms_synpuf/expanded/cms_synpuf.json")) {
-      Path resourceConfigPath = Path.of("config").resolve(underlayFile);
+    for (String underlayFile : List.of("cms_synpuf/expanded/cms_synpuf.json")) {
+      Path resourceConfigPath = Path.of("tanagra").resolve(underlayFile);
       FileIO.setInputParentDir(resourceConfigPath.getParent());
       try {
         Underlay underlay = Underlay.fromJSON(resourceConfigPath.getFileName().toString());

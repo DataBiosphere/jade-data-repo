@@ -1,7 +1,6 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.CollectionType;
 import bio.terra.common.Table;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -47,10 +46,7 @@ public final class MetadataDataAccessUtils {
 
   private static final String AZURE_PARQUET_LINK =
       "https://<storageAccount>.blob.core.windows.net/<container>/<blob>";
-  private static final String AZURE_BLOB_TEMPLATE_DATASET =
-      FolderType.METADATA.getPath("parquet/<table>");
-  private static final String AZURE_BLOB_TEMPLATE_SNAPSHOT =
-      FolderType.METADATA.getPath("parquet/<collectionId>/<table>");
+  private static final String AZURE_BLOB_TEMPLATE = FolderType.METADATA.getPath("parquet/<table>");
   private static final String AZURE_DATASET_ID = "<storageAccount>.<dataset>";
 
   private static final String DEPLOYED_APPLICATION_RESOURCE_ID =
@@ -159,24 +155,9 @@ public final class MetadataDataAccessUtils {
             new BlobSasPermission().setReadPermission(true).setListPermission(true),
             userRequest.getEmail());
 
-    String blobName;
-    BiFunction<FSContainerInterface, Table, String> tableBlobGenerator;
-    if (collection.getCollectionType() == CollectionType.DATASET) {
-      blobName = FolderType.METADATA.getPath("parquet");
-      tableBlobGenerator =
-          (c, t) -> new ST(AZURE_BLOB_TEMPLATE_DATASET).add("table", t.getName()).render();
-    } else if (collection.getCollectionType() == CollectionType.SNAPSHOT) {
-      blobName = FolderType.METADATA.getPath("parquet/" + collection.getId());
-      tableBlobGenerator =
-          (c, t) ->
-              new ST(AZURE_BLOB_TEMPLATE_SNAPSHOT)
-                  .add("collectionId", c.getId())
-                  .add("table", t.getName())
-                  .render();
-    } else {
-      throw new IllegalArgumentException(
-          String.format("Invalid collection type: %s", collection.getClass().getName()));
-    }
+    String blobName = FolderType.METADATA.getPath("parquet");
+    BiFunction<FSContainerInterface, Table, String> tableBlobGenerator =
+        (c, t) -> new ST(AZURE_BLOB_TEMPLATE).add("table", t.getName()).render();
 
     String unsignedUrl =
         new ST(AZURE_PARQUET_LINK)

@@ -1,0 +1,34 @@
+{
+  "name": "procedure_occurrence",
+  "idAttribute": "id",
+  "attributes": [
+    { "type": "SIMPLE", "name": "id" },
+    { "type": "SIMPLE", "name": "person_id" },
+    { "type": "KEY_AND_DISPLAY", "name": "procedure" },
+    { "type": "SIMPLE", "name": "date" },
+    { "type": "SIMPLE", "name": "visit_occurrence_id" },
+    { "type": "SIMPLE", "name": "source_value" },
+    { "type": "SIMPLE", "name": "source_criteria_id" } ],
+
+  "sourceDataMapping": {
+    "dataPointer": "omop_dataset",
+    "tablePointer": { "table": "procedure_occurrence" },
+    "attributeMappings": {
+      "id": { "value": { "column": "procedure_occurrence_id" } },
+      "procedure": {
+        "value": { "column": "procedure_concept_id" },
+        "display": {
+          "column": "procedure_concept_id",
+          "foreignTable": "concept",
+          "foreignKey": "concept_id",
+          "foreignColumn": "concept_name" } },
+      "date": { "value": { "column": "procedure_dat" } },
+      "source_value": { "value": { "column": "procedure_source_value" } },
+      "source_criteria_id": { "value": { "column": "procedure_source_concept_id" } }
+    }
+  },
+
+  "indexDataMapping": {
+    "dataPointer": "index_dataset"
+  }
+}

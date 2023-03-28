@@ -1,0 +1,36 @@
+{
+  "name": "cms_synpuf",
+  "dataPointers": [
+    { "type": "BQ_DATASET",
+      "name": "omop_dataset",
+      "projectId": "bigquery-public-data",
+      "datasetId": "cms_synthetic_patient_data_omop",
+      "queryProjectId": "broad-tanagra-dev" },
+    { "type": "BQ_DATASET",
+      "name": "index_dataset",
+      "projectId": "broad-tanagra-dev",
+      "datasetId": "cmssynpuf_index_011523" } ],
+  "entities": [
+    "brand.json",
+    "condition.json",
+    "condition_occurrence.json",
+    "device.json",
+    "device_occurrence.json",
+    "ingredient.json",
+    "ingredient_occurrence.json",
+    "observation.json",
+    "observation_occurrence.json",
+    "person.json",
+    "procedure.json",
+    "procedure_occurrence.json" ],
+  "primaryEntity": "person",
+  "entityGroups": [
+    "brand_ingredient.json",
+    "condition_person_occurrence.json",
+    "device_person_occurrence.json",
+    "ingredient_person_occurrence.json",
+    "observation_person_occurrence.json",
+    "procedure_person_occurrence.json"
+  ],
+  "uiConfigFile": "top_level.json"
+}

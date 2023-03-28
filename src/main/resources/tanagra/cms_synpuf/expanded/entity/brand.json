@@ -1,0 +1,157 @@
+{
+  "name" : "brand",
+  "idAttribute" : "id",
+  "attributes" : [ {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "standard_concept",
+    "dataType" : "STRING",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : { },
+          "display" : "Source"
+        },
+        "count" : 0
+      } ]
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "name",
+    "dataType" : "STRING"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "concept_code",
+    "dataType" : "STRING"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "id",
+    "dataType" : "INT64"
+  } ],
+  "sourceDataMapping" : {
+    "dataPointer" : "omop_dataset",
+    "tablePointer" : {
+      "table" : "concept",
+      "filter" : {
+        "type" : "BOOLEAN_AND_OR",
+        "operator" : "AND",
+        "subfilters" : [ {
+          "type" : "BINARY",
+          "field" : {
+            "column" : "domain_id"
+          },
+          "operator" : "EQUALS",
+          "value" : {
+            "stringVal" : "Drug"
+          }
+        }, {
+          "type" : "BINARY",
+          "field" : {
+            "column" : "concept_class_id"
+          },
+          "operator" : "EQUALS",
+          "value" : {
+            "stringVal" : "Brand Name"
+          }
+        }, {
+          "type" : "BINARY",
+          "field" : {
+            "column" : "invalid_reason"
+          },
+          "operator" : "IS",
+          "value" : { }
+        }, {
+          "type" : "BOOLEAN_AND_OR",
+          "operator" : "OR",
+          "subfilters" : [ {
+            "type" : "BINARY",
+            "field" : {
+              "column" : "vocabulary_id"
+            },
+            "operator" : "EQUALS",
+            "value" : {
+              "stringVal" : "RxNorm"
+            }
+          }, {
+            "type" : "BINARY",
+            "field" : {
+              "column" : "vocabulary_id"
+            },
+            "operator" : "EQUALS",
+            "value" : {
+              "stringVal" : "RxNorm Extension"
+            }
+          } ]
+        } ]
+      }
+    },
+    "attributeMappings" : {
+      "standard_concept" : {
+        "value" : {
+          "column" : "standard_concept"
+        },
+        "display" : {
+          "column" : "standard_concept",
+          "sqlFunctionWrapper" : "(CASE WHEN ${fieldSql} IS NULL THEN 'Source' WHEN ${fieldSql} = 'S' THEN 'Standard' ELSE 'Unknown' END)"
+        }
+      },
+      "name" : {
+        "value" : {
+          "column" : "concept_name"
+        }
+      },
+      "concept_code" : {
+        "value" : {
+          "column" : "concept_code"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "concept_id"
+        }
+      }
+    },
+    "textSearchMapping" : {
+      "attributes" : [ "name", "id", "concept_code" ]
+    },
+    "hierarchyMappings" : { }
+  },
+  "indexDataMapping" : {
+    "dataPointer" : "index_dataset",
+    "tablePointer" : {
+      "table" : "brand"
+    },
+    "attributeMappings" : {
+      "standard_concept" : {
+        "value" : {
+          "column" : "standard_concept"
+        },
+        "display" : {
+          "column" : "t_display_standard_concept"
+        }
+      },
+      "name" : {
+        "value" : {
+          "column" : "name"
+        }
+      },
+      "concept_code" : {
+        "value" : {
+          "column" : "concept_code"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "id"
+        }
+      }
+    },
+    "textSearchMapping" : {
+      "searchString" : {
+        "column" : "text"
+      }
+    },
+    "hierarchyMappings" : { }
+  },
+  "sourceStartDateColumn" : null
+}

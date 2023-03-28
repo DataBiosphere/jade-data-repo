@@ -1,0 +1,232 @@
+{
+  "name" : "observation_occurrence",
+  "idAttribute" : "id",
+  "attributes" : [ {
+    "type" : "SIMPLE",
+    "name" : "date",
+    "dataType" : "DATE"
+  }, {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "unit",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ ]
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "source_criteria_id",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "RANGE",
+      "minVal" : 2101829.0,
+      "maxVal" : 4.5890981E7
+    }
+  }, {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "observation",
+    "dataType" : "INT64"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "value_as_string",
+    "dataType" : "STRING",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : { },
+          "display" : null
+        },
+        "count" : 0
+      } ]
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "visit_occurrence_id",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "RANGE",
+      "minVal" : 1.0,
+      "maxVal" : 1.11638269E8
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "id",
+    "dataType" : "INT64"
+  }, {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "value",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 0
+          },
+          "display" : "No matching concept"
+        },
+        "count" : 37531051
+      } ]
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "source_value",
+    "dataType" : "STRING"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "person_id",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "RANGE",
+      "minVal" : 1.0,
+      "maxVal" : 2326856.0
+    }
+  } ],
+  "sourceDataMapping" : {
+    "dataPointer" : "omop_dataset",
+    "tablePointer" : {
+      "table" : "observation"
+    },
+    "attributeMappings" : {
+      "date" : {
+        "value" : {
+          "column" : "observation_date"
+        }
+      },
+      "unit" : {
+        "value" : {
+          "column" : "unit_concept_id"
+        },
+        "display" : {
+          "column" : "unit_concept_id",
+          "foreignTable" : "concept",
+          "foreignKey" : "concept_id",
+          "foreignColumn" : "concept_name"
+        }
+      },
+      "source_criteria_id" : {
+        "value" : {
+          "column" : "observation_source_concept_id"
+        }
+      },
+      "observation" : {
+        "value" : {
+          "column" : "observation_concept_id"
+        },
+        "display" : {
+          "column" : "observation_concept_id",
+          "foreignTable" : "concept",
+          "foreignKey" : "concept_id",
+          "foreignColumn" : "concept_name"
+        }
+      },
+      "value_as_string" : {
+        "value" : {
+          "column" : "value_as_string"
+        }
+      },
+      "visit_occurrence_id" : {
+        "value" : {
+          "column" : "visit_occurrence_id"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "observation_id"
+        }
+      },
+      "value" : {
+        "value" : {
+          "column" : "value_as_concept_id"
+        },
+        "display" : {
+          "column" : "value_as_concept_id",
+          "foreignTable" : "concept",
+          "foreignKey" : "concept_id",
+          "foreignColumn" : "concept_name"
+        }
+      },
+      "source_value" : {
+        "value" : {
+          "column" : "observation_source_value"
+        }
+      },
+      "person_id" : {
+        "value" : {
+          "column" : "person_id"
+        }
+      }
+    },
+    "hierarchyMappings" : { }
+  },
+  "indexDataMapping" : {
+    "dataPointer" : "index_dataset",
+    "tablePointer" : {
+      "table" : "observation_occurrence"
+    },
+    "attributeMappings" : {
+      "date" : {
+        "value" : {
+          "column" : "date"
+        }
+      },
+      "unit" : {
+        "value" : {
+          "column" : "unit"
+        },
+        "display" : {
+          "column" : "t_display_unit"
+        }
+      },
+      "source_criteria_id" : {
+        "value" : {
+          "column" : "source_criteria_id"
+        }
+      },
+      "observation" : {
+        "value" : {
+          "column" : "observation"
+        },
+        "display" : {
+          "column" : "t_display_observation"
+        }
+      },
+      "value_as_string" : {
+        "value" : {
+          "column" : "value_as_string"
+        }
+      },
+      "visit_occurrence_id" : {
+        "value" : {
+          "column" : "visit_occurrence_id"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "id"
+        }
+      },
+      "value" : {
+        "value" : {
+          "column" : "value"
+        },
+        "display" : {
+          "column" : "t_display_value"
+        }
+      },
+      "source_value" : {
+        "value" : {
+          "column" : "source_value"
+        }
+      },
+      "person_id" : {
+        "value" : {
+          "column" : "person_id"
+        }
+      }
+    },
+    "hierarchyMappings" : { }
+  },
+  "sourceStartDateColumn" : null
+}

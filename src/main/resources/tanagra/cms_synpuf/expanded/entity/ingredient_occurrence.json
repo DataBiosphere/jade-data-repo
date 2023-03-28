@@ -1,0 +1,203 @@
+{
+  "name" : "ingredient_occurrence",
+  "idAttribute" : "id",
+  "attributes" : [ {
+    "type" : "SIMPLE",
+    "name" : "end_date",
+    "dataType" : "DATE"
+  }, {
+    "type" : "KEY_AND_DISPLAY",
+    "name" : "ingredient",
+    "dataType" : "INT64"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "source_criteria_id",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "RANGE",
+      "minVal" : 0.0,
+      "maxVal" : 4.5383587E7
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "stop_reason",
+    "dataType" : "STRING",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : { },
+          "display" : null
+        },
+        "count" : 0
+      } ]
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "visit_occurrence_id",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "RANGE",
+      "minVal" : 43.0,
+      "maxVal" : 1.11638243E8
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "id",
+    "dataType" : "INT64"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "days_supply",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "RANGE",
+      "minVal" : 0.0,
+      "maxVal" : 90.0
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "source_value",
+    "dataType" : "STRING"
+  }, {
+    "type" : "SIMPLE",
+    "name" : "person_id",
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "RANGE",
+      "minVal" : 1.0,
+      "maxVal" : 2326856.0
+    }
+  }, {
+    "type" : "SIMPLE",
+    "name" : "start_date",
+    "dataType" : "DATE"
+  } ],
+  "sourceDataMapping" : {
+    "dataPointer" : "omop_dataset",
+    "tablePointer" : {
+      "table" : "drug_exposure"
+    },
+    "attributeMappings" : {
+      "end_date" : {
+        "value" : {
+          "column" : "drug_exposure_end_date"
+        }
+      },
+      "ingredient" : {
+        "value" : {
+          "column" : "drug_concept_id"
+        },
+        "display" : {
+          "column" : "drug_concept_id",
+          "foreignTable" : "concept",
+          "foreignKey" : "concept_id",
+          "foreignColumn" : "concept_name"
+        }
+      },
+      "source_criteria_id" : {
+        "value" : {
+          "column" : "drug_source_concept_id"
+        }
+      },
+      "stop_reason" : {
+        "value" : {
+          "column" : "stop_reason"
+        }
+      },
+      "visit_occurrence_id" : {
+        "value" : {
+          "column" : "visit_occurrence_id"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "drug_exposure_id"
+        }
+      },
+      "days_supply" : {
+        "value" : {
+          "column" : "days_supply"
+        }
+      },
+      "source_value" : {
+        "value" : {
+          "column" : "drug_source_value"
+        }
+      },
+      "person_id" : {
+        "value" : {
+          "column" : "person_id"
+        }
+      },
+      "start_date" : {
+        "value" : {
+          "column" : "drug_exposure_start_date"
+        }
+      }
+    },
+    "hierarchyMappings" : { }
+  },
+  "indexDataMapping" : {
+    "dataPointer" : "index_dataset",
+    "tablePointer" : {
+      "table" : "ingredient_occurrence"
+    },
+    "attributeMappings" : {
+      "end_date" : {
+        "value" : {
+          "column" : "end_date"
+        }
+      },
+      "ingredient" : {
+        "value" : {
+          "column" : "ingredient"
+        },
+        "display" : {
+          "column" : "t_display_ingredient"
+        }
+      },
+      "source_criteria_id" : {
+        "value" : {
+          "column" : "source_criteria_id"
+        }
+      },
+      "stop_reason" : {
+        "value" : {
+          "column" : "stop_reason"
+        }
+      },
+      "visit_occurrence_id" : {
+        "value" : {
+          "column" : "visit_occurrence_id"
+        }
+      },
+      "id" : {
+        "value" : {
+          "column" : "id"
+        }
+      },
+      "days_supply" : {
+        "value" : {
+          "column" : "days_supply"
+        }
+      },
+      "source_value" : {
+        "value" : {
+          "column" : "source_value"
+        }
+      },
+      "person_id" : {
+        "value" : {
+          "column" : "person_id"
+        }
+      },
+      "start_date" : {
+        "value" : {
+          "column" : "start_date"
+        }
+      }
+    },
+    "hierarchyMappings" : { }
+  },
+  "sourceStartDateColumn" : null
+}

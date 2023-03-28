@@ -46,7 +46,8 @@ public class CreateSnapshotByRowIdParquetFilesAzureStep
               IngestUtils.getSourceDatasetDataSourceName(context.getFlightId()),
               IngestUtils.getTargetDataSourceName(context.getFlightId()),
               rowIdModel,
-              snapshotRequestModel.isGlobalFileIds());
+              snapshotRequestModel.isGlobalFileIds(),
+              snapshotRequestModel.getCompactIdPrefix());
       workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
     } catch (SQLException | PdaoException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

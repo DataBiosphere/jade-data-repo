@@ -27,7 +27,6 @@ import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
-import bio.terra.service.filedata.DrsService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;
@@ -42,7 +41,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import java.net.URI;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -111,15 +109,15 @@ public class AzureSynapsePdao {
                     <if(c.isFileType)>
                        <if(c.arrayOf)>
                          <if(isGlobalFileIds)>
-                           (SELECT '[' + STRING_AGG('"drs://<hostname>/v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v2_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
                          <else>
-                           (SELECT '[' + STRING_AGG('"drs://<hostname>/v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
+                           (SELECT '[' + STRING_AGG('"drs://<drsLocator>v1_<snapshotId>_' + [file_id] + '"', ',') + ']' FROM OPENJSON([<c.name>]) WITH ([file_id] VARCHAR(36) '$') WHERE [<c.name>] != '') AS [<c.name>]
                          <endif>
                        <else>
                          <if(isGlobalFileIds)>
-                           'drs://<hostname>/v2_' + [<c.name>] AS [<c.name>]
+                           'drs://<drsLocator>v2_' + [<c.name>] AS [<c.name>]
                          <else>
-                           'drs://<hostname>/v1_<snapshotId>_' + [<c.name>] AS [<c.name>]
+                           'drs://<drsLocator>v1_<snapshotId>_' + [<c.name>] AS [<c.name>]
                          <endif>
                        <endif>
                     <else>
@@ -352,10 +350,7 @@ public class AzureSynapsePdao {
     if (StringUtils.isEmpty(drsUri)) {
       return Optional.empty();
     }
-    URI uri = URI.create(drsUri);
-    String fileName = DrsService.getLastNameFromPath(uri.getPath());
-    DrsId drsId = drsIdService.fromObjectId(fileName);
-
+    DrsId drsId = DrsIdService.fromUri(drsUri);
     return Optional.of(drsId.getFsObjectId());
   }
 
@@ -556,7 +551,8 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       String translatedQuery,
-      boolean isGlobalFieldIds)
+      boolean isGlobalFieldIds,
+      String compactIdPrefix)
       throws SQLException, PdaoException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -575,7 +571,8 @@ public class AzureSynapsePdao {
             datasetDataSourceName,
             snapshotDataSourceName,
             rootTable.getSynapseColumns(),
-            isGlobalFieldIds);
+            isGlobalFieldIds,
+            compactIdPrefix);
 
     queryTemplate.add("query", translatedQuery);
     int rows;
@@ -606,7 +603,8 @@ public class AzureSynapsePdao {
         rootTableId,
         walkRelationships,
         tableRowCounts,
-        isGlobalFieldIds);
+        isGlobalFieldIds,
+        compactIdPrefix);
 
     return tableRowCounts;
   }
@@ -633,7 +631,8 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       SnapshotRequestAssetModel requestModel,
-      boolean isGlobalFieldIds)
+      boolean isGlobalFieldIds,
+      String compactIdPrefix)
       throws SQLException, PdaoException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -652,7 +651,8 @@ public class AzureSynapsePdao {
             datasetDataSourceName,
             snapshotDataSourceName,
             rootTable.getSynapseColumns(),
-            isGlobalFieldIds);
+            isGlobalFieldIds,
+            compactIdPrefix);
 
     AssetColumn rootColumn = assetSpec.getRootColumn();
 
@@ -693,7 +693,8 @@ public class AzureSynapsePdao {
         rootTableId,
         walkRelationships,
         tableRowCounts,
-        isGlobalFieldIds);
+        isGlobalFieldIds,
+        compactIdPrefix);
 
     return tableRowCounts;
   }
@@ -706,7 +707,8 @@ public class AzureSynapsePdao {
       UUID startTableId,
       List<WalkRelationship> walkRelationships,
       Map<String, Long> tableRowCounts,
-      boolean isGlobalFieldIds) {
+      boolean isGlobalFieldIds,
+      String compactIdPrefix) {
     for (WalkRelationship relationship : walkRelationships) {
       if (relationship.visitRelationship(startTableId)) {
         createSnapshotParquetFilesByRelationship(
@@ -716,7 +718,8 @@ public class AzureSynapsePdao {
             datasetDataSourceName,
             snapshotDataSourceName,
             tableRowCounts,
-            isGlobalFieldIds);
+            isGlobalFieldIds,
+            compactIdPrefix);
         walkRelationships(
             snapshotId,
             assetSpec,
@@ -725,7 +728,8 @@ public class AzureSynapsePdao {
             relationship.getToTableId(),
             walkRelationships,
             tableRowCounts,
-            isGlobalFieldIds);
+            isGlobalFieldIds,
+            compactIdPrefix);
       }
     }
   }
@@ -747,6 +751,8 @@ public class AzureSynapsePdao {
    * @param datasetDataSourceName Azure data source associated with parent dataset
    * @param snapshotDataSourceName Azure data source associated with destination snapshot
    * @param tableRowCounts Map tracking the number of rows included in each table of the snapshot
+   * @param isGlobalFieldIds If true, configure query to use the global drs id format
+   * @param compactIdPrefix If specified, configure the query to use a compact drs id format
    * @throws SQLException
    */
   public void createSnapshotParquetFilesByRelationship(
@@ -756,7 +762,8 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       Map<String, Long> tableRowCounts,
-      boolean isGlobalFieldIds) {
+      boolean isGlobalFieldIds,
+      String compactIdPrefix) {
     String fromTableName = relationship.getFromTableName();
     String toTableName = relationship.getToTableName();
     AssetTable toAssetTable = assetSpecification.getAssetTableByName(toTableName);
@@ -797,7 +804,8 @@ public class AzureSynapsePdao {
             datasetDataSourceName,
             snapshotDataSourceName,
             toAssetTable.getSynapseColumns(),
-            isGlobalFieldIds);
+            isGlobalFieldIds,
+            compactIdPrefix);
 
     queryTemplate.add("rootColumn", relationship.getToColumnName());
     queryTemplate.add("isRootColumnArray", toTableColumn.getDatasetColumn().isArrayOf());
@@ -862,7 +870,8 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       SnapshotRequestRowIdModel rowIdModel,
-      boolean isGlobalFileIds)
+      boolean isGlobalFileIds,
+      String compactIdPrefix)
       throws SQLException, PdaoException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -896,7 +905,8 @@ public class AzureSynapsePdao {
                     datasetDataSourceName,
                     snapshotDataSourceName,
                     columns,
-                    isGlobalFileIds)
+                    isGlobalFileIds,
+                    compactIdPrefix)
                 .render();
 
         List<UUID> rowIds = rowIdTableModel.get().getRowIds();
@@ -924,7 +934,8 @@ public class AzureSynapsePdao {
       UUID snapshotId,
       String datasetDataSourceName,
       String snapshotDataSourceName,
-      boolean isGlobalFileIds)
+      boolean isGlobalFileIds,
+      String compactIdPrefix)
       throws SQLException {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
@@ -942,7 +953,8 @@ public class AzureSynapsePdao {
                   datasetDataSourceName,
                   snapshotDataSourceName,
                   table.getSynapseColumns(),
-                  isGlobalFileIds)
+                  isGlobalFileIds,
+                  compactIdPrefix)
               .render();
       int rows = 0;
       try {
@@ -968,9 +980,16 @@ public class AzureSynapsePdao {
       String datasetDataSourceName,
       String snapshotDataSourceName,
       List<SynapseColumn> columns,
-      boolean isGlobalFileIds) {
+      boolean isGlobalFileIds,
+      String compactIdPrefix) {
     String snapshotTableName = IngestUtils.formatSnapshotTableName(snapshotId, tableName);
 
+    String drsLocator;
+    if (StringUtils.isEmpty(compactIdPrefix)) {
+      drsLocator = applicationConfiguration.getDnsName() + "/";
+    } else {
+      drsLocator = compactIdPrefix + ":";
+    }
     sqlCreateSnapshotTableTemplate
         .add("columns", columns)
         .add("tableName", snapshotTableName)
@@ -979,7 +998,7 @@ public class AzureSynapsePdao {
         .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
         .add("ingestFileName", datasetParquetFileName)
         .add("ingestFileDataSourceName", datasetDataSourceName)
-        .add("hostname", applicationConfiguration.getDnsName())
+        .add("drsLocator", drsLocator)
         .add("snapshotId", snapshotId)
         .add("isGlobalFileIds", isGlobalFileIds);
 

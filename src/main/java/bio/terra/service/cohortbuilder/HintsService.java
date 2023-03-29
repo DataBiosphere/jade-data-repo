@@ -1,151 +1,124 @@
 package bio.terra.service.cohortbuilder;
 
-import bio.terra.model.Attribute;
-import bio.terra.model.DataType;
-import bio.terra.model.DisplayHint;
 import bio.terra.model.DisplayHintDisplayHint;
 import bio.terra.model.DisplayHintEnum;
 import bio.terra.model.DisplayHintEnumEnumHintValues;
 import bio.terra.model.DisplayHintList;
 import bio.terra.model.DisplayHintNumericRange;
 import bio.terra.model.HintQuery;
-import bio.terra.model.Literal;
-import bio.terra.model.LiteralValueUnion;
-import bio.terra.model.ValueDisplay;
-import java.util.Arrays;
-import java.util.List;
+import bio.terra.tanagra.exception.SystemException;
+import bio.terra.tanagra.query.Literal;
+import bio.terra.tanagra.query.QueryRequest;
+import bio.terra.tanagra.service.FromApiConversionService;
+import bio.terra.tanagra.service.QuerysService;
+import bio.terra.tanagra.service.UnderlaysService;
+import bio.terra.tanagra.service.utils.ToApiConversionUtils;
+import bio.terra.tanagra.underlay.Attribute;
+import bio.terra.tanagra.underlay.DisplayHint;
+import bio.terra.tanagra.underlay.Entity;
+import bio.terra.tanagra.underlay.Underlay;
+import bio.terra.tanagra.underlay.displayhint.EnumVals;
+import bio.terra.tanagra.underlay.displayhint.NumericRange;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class HintsService {
+  private final UnderlaysService underlaysService;
+  private final QuerysService querysService;
+
+  @Autowired
+  public HintsService(UnderlaysService underlaysService, QuerysService querysService) {
+    this.underlaysService = underlaysService;
+    this.querysService = querysService;
+  }
+
   public DisplayHintList queryHints(String entityId, HintQuery hintQuery) {
+    Entity entity = underlaysService.getEntity(entityId);
+
+    if (hintQuery == null || hintQuery.getRelatedEntity() == null) {
+      // Return display hints computed across all entity instances (e.g. enum values for
+      // person.gender).
+      Map<String, bio.terra.tanagra.underlay.DisplayHint> displayHints = new HashMap<>();
+      entity
+          .getAttributes()
+          .forEach(
+              attr -> {
+                if (attr.getDisplayHint() != null) {
+                  displayHints.put(attr.getName(), attr.getDisplayHint());
+                }
+              });
+      // Currently, these display hints are stored in the underlay config files, so no SQL query is
+      // necessary to look them up.
+      return toApiObject(entity, displayHints, null);
+    } else {
+      // Return display hints for entity instances that are related to an instance of another entity
+      // (e.g. numeric range for measurement_occurrence.value_numeric, computed across
+      // measurement_occurrence instances that are related to measurement=BodyHeight).
+      Entity relatedEntity = underlaysService.getEntity(hintQuery.getRelatedEntity().getName());
+      Literal relatedEntityId =
+          FromApiConversionService.fromApiObject(hintQuery.getRelatedEntity().getId());
+      QueryRequest queryRequest =
+          querysService.buildDisplayHintsQuery(
+              underlaysService.getUnderlay(UnderlaysService.UNDERLAY_NAME),
+              entity,
+              Underlay.MappingType.INDEX,
+              relatedEntity,
+              relatedEntityId);
+      Map<String, DisplayHint> displayHints =
+          querysService.runDisplayHintsQuery(
+              entity.getMapping(Underlay.MappingType.INDEX).getTablePointer().getDataPointer(),
+              queryRequest);
+      return toApiObject(entity, displayHints, queryRequest.getSql());
+    }
+  }
+
+  private DisplayHintList toApiObject(
+      Entity entity, Map<String, DisplayHint> displayHints, String sql) {
     return new DisplayHintList()
-        .addDisplayHintsItem(
-            new DisplayHint()
-                .attribute(
-                    new Attribute()
-                        .name("gender")
-                        .type(Attribute.TypeEnum.KEY_AND_DISPLAY)
-                        .dataType(DataType.INT64))
-                .displayHint(
-                    new DisplayHintDisplayHint()
-                        .enumHint(
-                            new DisplayHintEnum()
-                                .enumHintValues(
-                                    List.of(
-                                        new DisplayHintEnumEnumHintValues()
-                                            .enumVal(
-                                                new ValueDisplay()
-                                                    .display("FEMALE")
-                                                    .value(
-                                                        new Literal()
-                                                            .dataType(DataType.INT64)
-                                                            .valueUnion(
-                                                                new LiteralValueUnion()
-                                                                    .int64Val(8532L))))
-                                            .count(1292861),
-                                        new DisplayHintEnumEnumHintValues()
-                                            .enumVal(
-                                                new ValueDisplay()
-                                                    .display("MALE")
-                                                    .value(
-                                                        new Literal()
-                                                            .dataType(DataType.INT64)
-                                                            .valueUnion(
-                                                                new LiteralValueUnion()
-                                                                    .int64Val(8507L))))
-                                            .count(1033995))))))
-        .addDisplayHintsItem(
-            new DisplayHint()
-                .attribute(
-                    new Attribute()
-                        .name("race")
-                        .type(Attribute.TypeEnum.KEY_AND_DISPLAY)
-                        .dataType(DataType.INT64))
-                .displayHint(
-                    new DisplayHintDisplayHint()
-                        .enumHint(
-                            new DisplayHintEnum()
-                                .enumHintValues(
-                                    Arrays.asList(
-                                        new DisplayHintEnumEnumHintValues()
-                                            .enumVal(
-                                                new ValueDisplay()
-                                                    .display("Black or African American")
-                                                    .value(
-                                                        new Literal()
-                                                            .dataType(DataType.INT64)
-                                                            .valueUnion(
-                                                                new LiteralValueUnion()
-                                                                    .int64Val(8516L))))
-                                            .count(247723),
-                                        new DisplayHintEnumEnumHintValues()
-                                            .enumVal(
-                                                new ValueDisplay()
-                                                    .display("No matching concept")
-                                                    .value(
-                                                        new Literal()
-                                                            .dataType(DataType.INT64)
-                                                            .valueUnion(
-                                                                new LiteralValueUnion()
-                                                                    .int64Val(0L))))
-                                            .count(152425),
-                                        new DisplayHintEnumEnumHintValues()
-                                            .enumVal(
-                                                new ValueDisplay()
-                                                    .display("White")
-                                                    .value(
-                                                        new Literal()
-                                                            .dataType(DataType.INT64)
-                                                            .valueUnion(
-                                                                new LiteralValueUnion()
-                                                                    .int64Val(8527L))))
-                                            .count(1926708))))))
-        .addDisplayHintsItem(
-            new DisplayHint()
-                .attribute(
-                    new Attribute()
-                        .name("ethnicity")
-                        .type(Attribute.TypeEnum.KEY_AND_DISPLAY)
-                        .dataType(DataType.INT64))
-                .displayHint(
-                    new DisplayHintDisplayHint()
-                        .enumHint(
-                            new DisplayHintEnum()
-                                .enumHintValues(
-                                    Arrays.asList(
-                                        new DisplayHintEnumEnumHintValues()
-                                            .enumVal(
-                                                new ValueDisplay()
-                                                    .display("Hispanic or Latino")
-                                                    .value(
-                                                        new Literal()
-                                                            .dataType(DataType.INT64)
-                                                            .valueUnion(
-                                                                new LiteralValueUnion()
-                                                                    .int64Val(38003563L))))
-                                            .count(54453),
-                                        new DisplayHintEnumEnumHintValues()
-                                            .enumVal(
-                                                new ValueDisplay()
-                                                    .display("Not Hispanic or Latino")
-                                                    .value(
-                                                        new Literal()
-                                                            .dataType(DataType.INT64)
-                                                            .valueUnion(
-                                                                new LiteralValueUnion()
-                                                                    .int64Val(38003564L))))
-                                            .count(2272403))))))
-        .addDisplayHintsItem(
-            new DisplayHint()
-                .attribute(
-                    new Attribute()
-                        .name("year_of_birth")
-                        .type(Attribute.TypeEnum.SIMPLE)
-                        .dataType(DataType.INT64))
-                .displayHint(
-                    new DisplayHintDisplayHint()
-                        .numericRangeHint(
-                            new DisplayHintNumericRange().min(1909.0D).max(1983.0D))));
+        .sql(sql)
+        .displayHints(
+            displayHints.entrySet().stream()
+                .map(
+                    attrHint -> {
+                      Attribute attr = entity.getAttribute(attrHint.getKey());
+                      DisplayHint hint = attrHint.getValue();
+                      return new bio.terra.model.DisplayHint()
+                          .attribute(ToApiConversionUtils.toApiObject(attr))
+                          .displayHint(hint == null ? null : toApiObject(hint));
+                    })
+                .collect(Collectors.toList()));
+  }
+
+  private DisplayHintDisplayHint toApiObject(DisplayHint displayHint) {
+    switch (displayHint.getType()) {
+      case ENUM -> {
+        EnumVals enumVals = (EnumVals) displayHint;
+        return new DisplayHintDisplayHint()
+            .enumHint(
+                new DisplayHintEnum()
+                    .enumHintValues(
+                        enumVals.getEnumValsList().stream()
+                            .map(
+                                ev ->
+                                    new DisplayHintEnumEnumHintValues()
+                                        .enumVal(
+                                            ToApiConversionUtils.toApiObject(ev.getValueDisplay()))
+                                        .count(Math.toIntExact(ev.getCount())))
+                            .collect(Collectors.toList())));
+      }
+      case RANGE -> {
+        NumericRange numericRange = (NumericRange) displayHint;
+        return new DisplayHintDisplayHint()
+            .numericRangeHint(
+                new DisplayHintNumericRange()
+                    .min(numericRange.getMinVal())
+                    .max(numericRange.getMaxVal()));
+      }
+      default -> throw new SystemException("Unknown display hint type: " + displayHint.getType());
+    }
   }
 }

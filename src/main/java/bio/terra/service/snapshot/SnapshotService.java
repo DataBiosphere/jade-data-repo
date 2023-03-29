@@ -63,6 +63,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.duos.DuosClient;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
@@ -821,7 +822,7 @@ public class SnapshotService {
         throw new RuntimeException("Could not configure external datasource", e);
       }
 
-      List<Map<String, Optional<Object>>> values =
+      List<DataResultModel> values =
           azureSynapsePdao.getTableData(
               table,
               tableName,
@@ -832,7 +833,12 @@ public class SnapshotService {
               sort,
               direction,
               filter);
-      return new SnapshotPreviewModel().result(List.copyOf(values));
+      int totalRowCount = values.isEmpty() ? 0 : values.get(0).getTotalCount();
+      int filteredRowCount = values.isEmpty() ? 0 : values.get(0).getFilteredCount();
+      return new SnapshotPreviewModel()
+          .result(List.copyOf(values.stream().map(DataResultModel::getRowResult).toList()))
+          .totalRowCount(totalRowCount)
+          .filteredRowCount(filteredRowCount);
     } else {
       throw new SnapshotPreviewException("Cloud not supported");
     }

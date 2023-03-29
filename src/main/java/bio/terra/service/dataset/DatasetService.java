@@ -53,6 +53,7 @@ import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
@@ -560,7 +561,7 @@ public class DatasetService {
         throw new RuntimeException("Could not configure external datasource", e);
       }
 
-      List<Map<String, Optional<Object>>> values =
+      List<DataResultModel> values =
           azureSynapsePdao.getTableData(
               table,
               tableName,
@@ -571,7 +572,12 @@ public class DatasetService {
               sort,
               direction,
               filter);
-      return new DatasetDataModel().result(List.copyOf(values));
+      int totalRowCount = values.isEmpty() ? 0 : values.get(0).getTotalCount();
+      int filteredRowCount = values.isEmpty() ? 0 : values.get(0).getFilteredCount();
+      return new DatasetDataModel()
+          .result(List.copyOf(values.stream().map(DataResultModel::getRowResult).toList()))
+          .totalRowCount(totalRowCount)
+          .filteredRowCount(filteredRowCount);
     } else {
       throw new DatasetDataException("Cloud not supported");
     }

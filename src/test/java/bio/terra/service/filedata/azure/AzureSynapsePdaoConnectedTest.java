@@ -22,6 +22,7 @@ import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -381,8 +382,9 @@ public class AzureSynapsePdaoConnectedTest {
   }
 
   private List<Map<String, Optional<Object>>> prepQueryResultForComparison(
-      List<Map<String, Optional<Object>>> tableData, Boolean isGlobalFileIds) {
+      List<DataResultModel> tableData, Boolean isGlobalFileIds) {
     return tableData.stream()
+        .map(DataResultModel::getRowResult)
         // Remove datarepo_row_id since it's random
         .peek(r -> r.remove(PDAO_ROW_ID_COLUMN))
         // Replace the DRS id with its file ID for easier comparison

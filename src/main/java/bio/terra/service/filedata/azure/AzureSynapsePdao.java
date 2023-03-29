@@ -1,9 +1,11 @@
 package bio.terra.service.filedata.azure;
 
+import static bio.terra.common.PdaoConstant.PDAO_FILTERED_ROW_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_PARQUET_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TOTAL_ROW_COUNT_COLUMN_NAME;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CollectionType;
@@ -25,6 +27,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidColumnException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -271,16 +274,20 @@ public class AzureSynapsePdao {
 
   private static final String queryFromDatasourceTemplate =
       """
-      SELECT <columns:{c|tbl.[<c>]}; separator=",">
-        FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
-                     <columns:{c|rows.[<c>]}; separator=",">
-                FROM OPENROWSET(BULK '<parquetFileLocation>',
-                                DATA_SOURCE = '<datasource>',
-                                FORMAT='PARQUET') AS rows
-                WHERE (<userFilter>)
-             ) AS tbl
-       WHERE tbl.datarepo_row_number >= :offset
-         AND tbl.datarepo_row_number \\<= :offset + :limit;""";
+          SELECT <columns:{c|tbl.[<c>]}; separator=",">,count(*) over () <filteredRowCountColumnName>,tbl.[<totalRowCountColumnName>]
+            FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
+                         <columns:{c|all_rows.[<c>]}; separator=",">,all_rows.[<totalRowCountColumnName>]
+                    FROM (
+                      SELECT <columns:{c|rows.[<c>]}; separator=",">,
+                      count(*) over () <totalRowCountColumnName>
+                      FROM OPENROWSET(BULK '<parquetFileLocation>',
+                                    DATA_SOURCE = '<datasource>',
+                                    FORMAT='PARQUET') AS rows
+                      ) AS all_rows
+                    WHERE (<userFilter>)
+                 ) AS tbl
+           WHERE tbl.datarepo_row_number >= :offset
+             AND tbl.datarepo_row_number \\<= :offset + :limit;""";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
@@ -1011,7 +1018,7 @@ public class AzureSynapsePdao {
     cleanup(credentialNames, dropScopedCredentialTemplate);
   }
 
-  public List<Map<String, Optional<Object>>> getTableData(
+  public List<DataResultModel> getTableData(
       Table table,
       String tableName,
       String datasetSourceName,
@@ -1050,6 +1057,8 @@ public class AzureSynapsePdao {
             .add("sort", sort)
             .add("direction", direction)
             .add("userFilter", userFilter)
+            .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
+            .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
             .render();
 
     try {
@@ -1059,10 +1068,14 @@ public class AzureSynapsePdao {
               "offset", offset,
               "limit", limit),
           (rs, rowNum) ->
-              columns.stream()
-                  .collect(
-                      Collectors.toMap(
-                          Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))));
+              new DataResultModel(
+                  columns.stream()
+                      .collect(
+                          Collectors.toMap(
+                              Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))),
+                  rs.getInt(PDAO_TOTAL_ROW_COUNT_COLUMN_NAME),
+                  rs.getInt(PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)));
+
     } catch (DataAccessException ex) {
       logger.warn(
           "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",

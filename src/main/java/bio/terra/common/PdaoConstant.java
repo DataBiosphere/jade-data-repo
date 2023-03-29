@@ -9,6 +9,8 @@ public final class PdaoConstant {
   public static final String PDAO_ROW_ID_COLUMN = PDAO_PREFIX + "row_id";
   public static final String PDAO_ROW_ID_TABLE = PDAO_PREFIX + "row_ids";
   public static final String PDAO_ROW_ID_PARQUET_NAME = PDAO_PREFIX + "row_ids";
+  public static final String PDAO_TOTAL_ROW_COUNT_COLUMN_NAME = "total_row_count";
+  public static final String PDAO_FILTERED_ROW_COUNT_COLUMN_NAME = "filtered_row_count";
   public static final String PDAO_TEMP_TABLE = PDAO_PREFIX + "temp";
   public static final String PDAO_TABLE_ID_COLUMN = PDAO_PREFIX + "table_id";
   public static final String PDAO_INGEST_DATE_COLUMN_ALIAS = PDAO_PREFIX + "ingest_date";

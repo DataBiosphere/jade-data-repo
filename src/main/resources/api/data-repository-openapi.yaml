@@ -6838,6 +6838,17 @@ components:
           type: string
         subfilter:
           $ref: '#/components/schemas/Filter'
+        group_by_count_attribute:
+          type: string
+        group_by_count_operator:
+          $ref: "#/components/schemas/BinaryOperator"
+        group_by_count_value:
+          type: integer
+          nullable: true
+
+    BinaryOperator:
+      type: string
+      enum: [ "EQUALS", "NOT_EQUALS", "LESS_THAN", "GREATER_THAN" ]
 
     BooleanLogicFilter:
       type: object

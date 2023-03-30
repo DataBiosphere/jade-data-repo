@@ -6,7 +6,6 @@ import bio.terra.model.DisplayHintEnumEnumHintValues;
 import bio.terra.model.DisplayHintList;
 import bio.terra.model.DisplayHintNumericRange;
 import bio.terra.model.HintQuery;
-import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.service.FromApiConversionService;

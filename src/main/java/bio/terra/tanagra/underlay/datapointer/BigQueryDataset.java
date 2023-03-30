@@ -7,9 +7,10 @@ import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.Query;
+import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
-import bio.terra.tanagra.query.azure.AzureExecutor;
+import bio.terra.tanagra.query.bigquery.BigQueryExecutor;
 import bio.terra.tanagra.serialization.datapointer.UFBigQueryDataset;
 import bio.terra.tanagra.underlay.DataPointer;
 import bio.terra.tanagra.utils.GoogleBigQuery;
@@ -102,7 +103,7 @@ public final class BigQueryDataset extends DataPointer {
   }
 
   @Override
-  public Literal.DataType lookupDatatype(FieldPointer fieldPointer, AzureExecutor executor) {
+  public Literal.DataType lookupDatatype(FieldPointer fieldPointer, QueryExecutor executor) {
     // If this is a foreign-key field pointer, then we want the data type of the foreign table
     // field, not the key field.
     TablePointer tablePointer =
@@ -177,6 +178,10 @@ public final class BigQueryDataset extends DataPointer {
       bigQueryService = new GoogleBigQuery(credentials, queryProjectId);
     }
     return bigQueryService;
+  }
+
+  public BigQueryExecutor getQueryExecutor() {
+    return new BigQueryExecutor((this).getBigQueryService());
   }
 
   public String getProjectId() {

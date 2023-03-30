@@ -2,7 +2,7 @@ package bio.terra.tanagra.underlay;
 
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.Literal;
-import bio.terra.tanagra.query.azure.AzureExecutor;
+import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.serialization.UFDataPointer;
 import bio.terra.tanagra.serialization.datapointer.UFAzureDataset;
 import bio.terra.tanagra.serialization.datapointer.UFBigQueryDataset;
@@ -41,5 +41,5 @@ public abstract class DataPointer {
   }
 
   public abstract Literal.DataType lookupDatatype(
-      FieldPointer fieldPointer, AzureExecutor executor);
+      FieldPointer fieldPointer, QueryExecutor executor);
 }

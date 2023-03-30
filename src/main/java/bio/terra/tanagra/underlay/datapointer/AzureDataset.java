@@ -7,6 +7,7 @@ import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.Query;
+import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
 import bio.terra.tanagra.query.azure.AzureExecutor;
@@ -50,7 +51,7 @@ public final class AzureDataset extends DataPointer {
   }
 
   @Override
-  public Literal.DataType lookupDatatype(FieldPointer fieldPointer, AzureExecutor executor) {
+  public Literal.DataType lookupDatatype(FieldPointer fieldPointer, QueryExecutor executor) {
     // If this is a foreign-key field pointer, then we want the data type of the foreign table
     // field, not the key field.
     TablePointer tablePointer =
@@ -76,7 +77,7 @@ public final class AzureDataset extends DataPointer {
       throw new NotImplementedException();
     } else {
       // If the table is not a raw SQL string, then just fetch the table schema directly.
-      tableSchema = executor.getSchema(datasetId, tablePointer.getTableName());
+      tableSchema = ((AzureExecutor) executor).getSchema(datasetId, tablePointer.getTableName());
     }
 
     return toDataType(tableSchema.getColumnByName(columnName).orElseThrow().getType());

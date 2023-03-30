@@ -83,7 +83,7 @@ public class InstancesService {
             entityInstanceCounts.stream()
                 .map(ToApiConversionUtils::toApiObject)
                 .collect(Collectors.toList()))
-        .sql(queryRequest.getSql());
+        .sql(queryRequest.query().renderSQL());
   }
 
   public InstanceList queryInstances(String entityName, Query query) {
@@ -124,7 +124,7 @@ public class InstancesService {
 
     return new InstanceList()
         .instances(entityInstances.stream().map(this::toApiObject).collect(Collectors.toList()))
-        .sql(queryRequest.getSql());
+        .sql(queryRequest.query().renderSQL());
   }
 
   private List<Attribute> selectAttributesFromRequest(Query body, Entity entity) {

@@ -60,10 +60,20 @@ expr : number
                 )
     | expr AND expr
     | expr OR expr
-    | function_name '(' ((expr (',' expr)*) | '*') ')'
+    | function_name '(' ((expr (',' expr)*) | '*') ')' over_clause?
     | '(' expr ')'
     | column_expr
     | keyword
+    ;
+
+over_clause
+    : OVER '(' (PARTITION BY expr)? order_by_clause? ')'
+    ;
+order_by_clause :
+  ORDER BY order_bys+=order_by_expression (',' order_bys+=order_by_expression)*;
+
+order_by_expression
+    : order_by=expr (ascending=ASC | descending=DESC)?
     ;
 
 column_expr : dataset_name '.' table_name '.' column_name

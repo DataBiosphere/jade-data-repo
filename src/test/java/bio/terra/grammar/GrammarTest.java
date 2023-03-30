@@ -284,4 +284,14 @@ public class GrammarTest {
     Query.parse(
         "SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM GOOGLEPROJECT.DATABASE.TABLE");
   }
+
+  @Test
+  public void testOverClause() {
+    Query.parse(
+        """
+            SELECT datarepo_row_id, file_id, sample_id, sample_vcf, total_row_count, count(*) over() as filtered_row_count FROM (
+                          Select datarepo_row_id, file_id, sample_id, sample_vcf, count(*) over () as total_row_count FROM datarepo-dev-fd1105fa.datarepo_test_v2_drs_anvil_v3.file
+                        ) WHERE file_id = 'TEST_File_002' LIMIT 1000
+            """);
+  }
 }

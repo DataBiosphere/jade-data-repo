@@ -278,4 +278,10 @@ public class GrammarTest {
         """
           SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM ( SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM DATABASE.TABLE ) """);
   }
+
+  @Test
+  public void testExtendedTableDefinition() {
+    Query.parse(
+        "SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM GOOGLEPROJECT.DATABASE.TABLE");
+  }
 }

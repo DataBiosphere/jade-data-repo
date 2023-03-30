@@ -18,7 +18,7 @@ from_statement : FROM from_item (',' from_item )* ;
 
 from_item : table_expr (AS? alias_name)?  (FOR SYSTEM TIME AS OF string)?
     | from_item join_type? JOIN from_item (on_clause | using_clause)
-    | '(' query_statement ')' (AS? alias_name)?
+    | '(' query_expr ')' (AS? alias_name)?
     | UNNEST'(' array_expr ')' (AS? alias_name)? (WITH OFFSET (AS? alias_name))?
     ;
 

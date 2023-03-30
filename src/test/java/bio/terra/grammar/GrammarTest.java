@@ -271,4 +271,11 @@ public class GrammarTest {
     Query query = Query.parse("INSERT INTO foo.bar (x, y, z) VALUES 1 2 3");
     query.getDatasetNames();
   }
+
+  @Test
+  public void testNestedQuery() {
+    Query.parse(
+        """
+          SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM ( SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM DATABASE.TABLE ) """);
+  }
 }

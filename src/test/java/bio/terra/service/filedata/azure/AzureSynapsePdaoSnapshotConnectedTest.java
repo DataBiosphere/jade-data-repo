@@ -141,7 +141,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
         sourceDatasetDataSourceName,
         snapshotDataSourceName,
         new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
-        false);
+        false,
+        null);
   }
 
   @Test
@@ -187,7 +188,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
-            false);
+            false,
+            null);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "sample"));
 
@@ -228,7 +230,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
-            false);
+            false,
+            null);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "date_of_birth"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
@@ -279,7 +282,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
             translatedQuery,
-            false);
+            false,
+            null);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "date_of_birth"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));

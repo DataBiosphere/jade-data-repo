@@ -1,0 +1,27 @@
+{
+  "name":        "SimpleWithArrayAndSingleFilerefs",
+  "description": "This is a sample dataset definition with filerefs",
+  "schema":      {
+    "tables":        [
+      {
+        "name":    "tableA",
+        "columns": [
+          {"name": "name", "datatype": "string"},
+          {"name": "file_ref", "datatype": "fileref", "array_of": false },
+          {"name": "file_ref_a", "datatype": "fileref", "array_of": true }
+        ]
+      }
+    ],
+    "assets":
+    [
+      {
+        "name":   "simpleasset",
+        "rootTable": "tableA",
+        "rootColumn": "name",
+        "tables": [
+          {"name": "tableA", "columns": []}
+        ]
+      }
+    ]
+  }
+}

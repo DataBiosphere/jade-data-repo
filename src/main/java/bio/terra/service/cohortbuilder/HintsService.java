@@ -94,10 +94,10 @@ public class HintsService {
   }
 
   private DisplayHintDisplayHint toApiObject(DisplayHint displayHint) {
-    switch (displayHint.getType()) {
+    return switch (displayHint.getType()) {
       case ENUM -> {
         EnumVals enumVals = (EnumVals) displayHint;
-        return new DisplayHintDisplayHint()
+        yield new DisplayHintDisplayHint()
             .enumHint(
                 new DisplayHintEnum()
                     .enumHintValues(
@@ -112,13 +112,12 @@ public class HintsService {
       }
       case RANGE -> {
         NumericRange numericRange = (NumericRange) displayHint;
-        return new DisplayHintDisplayHint()
+        yield new DisplayHintDisplayHint()
             .numericRangeHint(
                 new DisplayHintNumericRange()
                     .min(numericRange.getMinVal())
                     .max(numericRange.getMaxVal()));
       }
-      default -> throw new SystemException("Unknown display hint type: " + displayHint.getType());
-    }
+    };
   }
 }

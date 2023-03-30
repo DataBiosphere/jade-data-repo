@@ -535,11 +535,16 @@ public class DatasetService {
       try {
         List<String> columns = datasetTableDao.retrieveColumnNames(table, true);
         String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
-        List<Map<String, Object>> values =
+        List<DataResultModel> values =
             BigQueryPdao.getTable(
                 dataset, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
 
-        return new DatasetDataModel().result(List.copyOf(values));
+        int totalRowCount = values.isEmpty() ? 0 : values.get(0).getTotalCount();
+        int filteredRowCount = values.isEmpty() ? 0 : values.get(0).getFilteredCount();
+        return new DatasetDataModel()
+            .result(List.copyOf(values.stream().map(DataResultModel::getRowResult).toList()))
+            .totalRowCount(totalRowCount)
+            .filteredRowCount(filteredRowCount);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);

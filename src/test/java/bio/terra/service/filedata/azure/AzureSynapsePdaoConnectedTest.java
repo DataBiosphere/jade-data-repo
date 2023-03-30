@@ -305,7 +305,7 @@ public class AzureSynapsePdaoConnectedTest {
         AzureSynapsePdao.getDataSourceName(snapshot.getId(), TEST_USER.getEmail());
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotQueryCredentialName, snapshotQueryDataSourceName);
-    List<Map<String, Optional<Object>>> tableData =
+    List<Map<String, Object>> tableData =
         prepQueryResultForComparison(
             azureSynapsePdao.getTableData(
                 snapshotTable,
@@ -364,7 +364,7 @@ public class AzureSynapsePdaoConnectedTest {
 
   }
 
-  private Optional<Object> extractFileId(Optional<Object> drsUri, boolean isGlobalFileIds) {
+  private Object extractFileId(Optional<Object> drsUri, boolean isGlobalFileIds) {
     return drsUri.map(
         d -> {
           DrsId drsId = DrsIdService.fromUri(d.toString());
@@ -381,15 +381,20 @@ public class AzureSynapsePdaoConnectedTest {
         });
   }
 
-  private List<Map<String, Optional<Object>>> prepQueryResultForComparison(
+  private List<Map<String, Object>> prepQueryResultForComparison(
       List<DataResultModel> tableData, Boolean isGlobalFileIds) {
     return tableData.stream()
         .map(DataResultModel::getRowResult)
         // Remove datarepo_row_id since it's random
         .peek(r -> r.remove(PDAO_ROW_ID_COLUMN))
         // Replace the DRS id with its file ID for easier comparison
-        .peek(r -> r.put("file", extractFileId(r.get("file"), isGlobalFileIds)))
-        .peek(r -> r.put("dirRefCol", extractFileId(r.get("dirRefCol"), isGlobalFileIds)))
+        .peek(
+            r -> r.put("file", extractFileId(Optional.ofNullable(r.get("file")), isGlobalFileIds)))
+        .peek(
+            r ->
+                r.put(
+                    "dirRefCol",
+                    extractFileId(Optional.ofNullable(r.get("dirRefCol")), isGlobalFileIds)))
         .toList();
   }
 }

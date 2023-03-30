@@ -5,6 +5,7 @@ import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.search.exception.SearchException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -57,7 +58,7 @@ public class SearchService {
     this.client = client;
   }
 
-  private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {
+  private void validateSnapshotDataNotEmpty(List<DataResultModel> values) {
     if (values.isEmpty()) {
       throw new SearchException("Snapshot data returned from SQL query is empty");
     }
@@ -84,10 +85,10 @@ public class SearchService {
     return indexName;
   }
 
-  private void createIndexMapping(String indexName, List<Map<String, Object>> values) {
+  private void createIndexMapping(String indexName, List<DataResultModel> values) {
     PutMappingRequest request = new PutMappingRequest(indexName);
     Map<String, Object> properties =
-        values.get(0).keySet().stream()
+        values.stream().findFirst().orElseThrow().getRowResult().keySet().stream()
             .collect(Collectors.toMap(Function.identity(), v -> Map.of("type", "text")));
 
     Map<String, Object> source = Map.of("properties", properties);
@@ -99,15 +100,17 @@ public class SearchService {
     }
   }
 
-  private void addIndexData(String indexName, List<Map<String, Object>> values) {
+  private void addIndexData(String indexName, List<DataResultModel> values) {
     BulkRequest request = new BulkRequest();
-    values.forEach(
-        v -> {
-          request.add(
-              new IndexRequest(indexName)
-                  .id(v.get("uuid").toString())
-                  .source(v, XContentType.JSON));
-        });
+    values.stream()
+        .forEach(
+            v -> {
+              var rr = v.getRowResult();
+              request.add(
+                  new IndexRequest(indexName)
+                      .id(rr.get("uuid").toString())
+                      .source(rr, XContentType.JSON));
+            });
     try {
       client.bulk(request, RequestOptions.DEFAULT);
     } catch (final IOException e) {
@@ -131,7 +134,8 @@ public class SearchService {
       throws InterruptedException {
 
     String sql = TimUtils.encodeSqlColumns(searchIndexRequest.getSql());
-    List<Map<String, Object>> values = bigQuerySnapshotPdao.getSnapshotTableUnsafe(snapshot, sql);
+    List<DataResultModel> values = bigQuerySnapshotPdao.getSnapshotTableUnsafe(snapshot, sql);
+
     validateSnapshotDataNotEmpty(values);
     String indexName = createEmptyIndex(snapshot);
     createIndexMapping(indexName, values);

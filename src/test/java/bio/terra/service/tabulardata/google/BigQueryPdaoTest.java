@@ -36,6 +36,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -377,10 +378,12 @@ public class BigQueryPdaoTest {
         new Snapshot()
             .projectResource(
                 new GoogleProjectResource().profileId(profileId).googleProjectId(dataProjectId));
-    List<Map<String, Object>> expected = getExampleSnapshotTableData();
-    List<Map<String, Object>> actual =
+    List<DataResultModel> expected = getExampleSnapshotTableData();
+    List<DataResultModel> actual =
         bigQuerySnapshotPdao.getSnapshotTableUnsafe(snapshot, snapshotTableDataSqlExample);
-    assertEquals(expected, actual);
+    for (int i = 0; i < 3; i++) {
+      assertEquals(expected.get(i).getRowResult(), actual.get(i).getRowResult());
+    }
   }
 
   @Test
@@ -487,12 +490,11 @@ public class BigQueryPdaoTest {
     return ids;
   }
 
-  private List<Map<String, Object>> getExampleSnapshotTableData() {
-    List<Map<String, Object>> values = new ArrayList<>();
+  private List<DataResultModel> getExampleSnapshotTableData() {
+    List<DataResultModel> values = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
-      values.add(Map.of("id", String.valueOf(i + 1), "text", "hello"));
+      values.add(new DataResultModel(Map.of("id", String.valueOf(i + 1), "text", "hello"), 3, 3));
     }
-
     return values;
   }
 

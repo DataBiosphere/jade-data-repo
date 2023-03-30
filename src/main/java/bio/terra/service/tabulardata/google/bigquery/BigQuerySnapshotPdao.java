@@ -22,6 +22,7 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
@@ -803,7 +804,7 @@ public class BigQuerySnapshotPdao {
   /*
    * WARNING: Ensure SQL is validated before executing this method!
    */
-  public List<Map<String, Object>> getSnapshotTableUnsafe(Snapshot snapshot, String sql)
+  public List<DataResultModel> getSnapshotTableUnsafe(Snapshot snapshot, String sql)
       throws InterruptedException {
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final TableResult result = bigQueryProject.query(sql);

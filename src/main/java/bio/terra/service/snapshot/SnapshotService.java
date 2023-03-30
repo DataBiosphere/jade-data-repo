@@ -794,11 +794,16 @@ public class SnapshotService {
         List<String> columns =
             snapshotTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
         String bqFormattedTableName = snapshot.getName() + "." + tableName;
-        List<Map<String, Object>> values =
+        List<DataResultModel> values =
             BigQueryPdao.getTable(
                 snapshot, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
 
-        return new SnapshotPreviewModel().result(List.copyOf(values));
+        int totalRowCount = values.isEmpty() ? 0 : values.get(0).getTotalCount();
+        int filteredRowCount = values.isEmpty() ? 0 : values.get(0).getFilteredCount();
+        return new SnapshotPreviewModel()
+            .result(List.copyOf(values.stream().map(DataResultModel::getRowResult).toList()))
+            .totalRowCount(totalRowCount)
+            .filteredRowCount(filteredRowCount);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new SnapshotPreviewException(

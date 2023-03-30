@@ -12,6 +12,7 @@ import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
@@ -72,7 +73,7 @@ public class SearchServiceTest {
 
   private SearchIndexRequest searchIndexRequest;
   private Snapshot snapshot;
-  private List<Map<String, Object>> values;
+  private List<DataResultModel> values;
 
   @Before
   public void setup() throws Exception {
@@ -156,12 +157,17 @@ public class SearchServiceTest {
     return new SearchIndexRequest().sql(sqlQuery);
   }
 
-  private List<Map<String, Object>> getSnapshotTableData() {
-    List<Map<String, Object>> values = new ArrayList<>();
+  private List<DataResultModel> getSnapshotTableData() {
+    List<DataResultModel> values = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       Instant now = Instant.now();
       String ts = String.format("%f", now.getEpochSecond() + now.getNano() / 1E9);
-      values.add(Map.of("uuid", UUID.randomUUID().toString(), timEncodedName, ts));
+      DataResultModel result = new DataResultModel();
+      result
+          .rowResult(Map.of("uuid", UUID.randomUUID().toString(), timEncodedName, ts))
+          .filteredCount(3)
+          .totalCount(3);
+      values.add(result);
     }
 
     return values;

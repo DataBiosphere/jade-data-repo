@@ -38,6 +38,7 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.GoogleStorageResource;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -1101,11 +1102,11 @@ public class BigQueryPdaoUnitTest {
 
     TableResult table = new TableResult(schema, 10, page);
 
-    List<Map<String, Object>> result = BigQueryPdao.aggregateTableData(table);
+    List<DataResultModel> result = BigQueryPdao.aggregateTableData(table);
 
-    assertEquals(stringTest, result.get(0).get("STRING"));
-    assertEquals(intTest, result.get(0).get("INT64"));
-    assertEquals(listTest, result.get(0).get("ARRAY"));
+    assertEquals(stringTest, result.get(0).getRowResult().get("STRING"));
+    assertEquals(intTest, result.get(0).getRowResult().get("INT64"));
+    assertEquals(listTest, result.get(0).getRowResult().get("ARRAY"));
   }
 
   private Dataset mockDataset() {

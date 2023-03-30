@@ -27,9 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
 public abstract class BigQueryPdao {
+  private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
 
   static void grantReadAccessWorker(
       BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails)
@@ -119,6 +122,38 @@ public abstract class BigQueryPdao {
   public static final String DATA_FILTER_TEMPLATE =
       "<whereClause> ORDER BY <sort> <direction> LIMIT <limit> OFFSET <offset>";
 
+  public static final String TABLE_ROW_COUNT_TEMPLATE =
+      """
+        SELECT count(*) <totalRowCountColumnName> FROM <table>
+      """;
+
+  public static int getTableTotalRowCount(
+      FSContainerInterface tdrResource, String bqFormattedTableName) {
+    final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
+    final String datasetProjectId = bigQueryProject.getProjectId();
+    String bigQueryTable = "`" + datasetProjectId + "." + bqFormattedTableName + "`";
+    final String bigQuerySQL =
+        new ST(TABLE_ROW_COUNT_TEMPLATE)
+            .add("table", bigQueryTable)
+            .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
+            .render();
+    try {
+      final TableResult result = bigQueryProject.query(bigQuerySQL);
+      return (int)
+          result
+              .iterateAll()
+              .iterator()
+              .next()
+              .get(PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
+              .getLongValue();
+    } catch (InterruptedException ex) {
+      logger.warn(
+          "BQ request to get total row count for table {} was interupted. Defaulting to 0.",
+          bigQueryTable,
+          ex);
+      return 0;
+    }
+  }
   /*
    * WARNING: Ensure input parameters are validated before executing this method!
    */

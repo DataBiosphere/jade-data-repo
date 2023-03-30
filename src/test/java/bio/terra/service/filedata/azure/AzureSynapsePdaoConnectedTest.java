@@ -267,10 +267,18 @@ public class AzureSynapsePdaoConnectedTest {
         "List of names in snapshot should equal the dataset names",
         snapshotFirstNames,
         equalTo(List.of("Bob", "Sally")));
+    long expectedNumberOfRows = 2L;
     assertThat(
         "Table row count should equal 2 for destination table",
         tableRowCounts.get(destinationTable.getName()),
         equalTo(2L));
+    int rowCount =
+        azureSynapsePdao.getTableTotalRowCount(
+            destinationTable.getName(), snapshotDataSourceName, snapshotParquetFileName);
+    assertThat(
+        "Correct number of rows are returned from table",
+        rowCount,
+        equalTo((int) expectedNumberOfRows));
 
     // CreateSnapshotParquetFilesAzureStep part 2
     // Create snapshot row ids parquet file via external table

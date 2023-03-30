@@ -581,6 +581,18 @@ public class AzureIntegrationTest extends UsersBase {
     // test handling of empty dataset table
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "concept", 0);
 
+    // test handling of not-empty dataset table filtered to empty
+    DatasetDataModel emptyFilteredVocabRows =
+        dataRepoFixtures.retrieveDatasetData(
+            steward, datasetId, "vocabulary", 0, 2, "vocabulary_id = 'xy'");
+    assertThat(
+        "correct number of rows returned after filtering",
+        emptyFilteredVocabRows.getResult(),
+        hasSize(0));
+    assertThat(
+        "filter row count is correct", emptyFilteredVocabRows.getFilteredRowCount(), equalTo(0));
+    assertThat("total row count is correct", emptyFilteredVocabRows.getTotalRowCount(), equalTo(2));
+
     // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
         datasetParquetAccessInfo.getUrl() + "?" + datasetParquetAccessInfo.getSasToken();

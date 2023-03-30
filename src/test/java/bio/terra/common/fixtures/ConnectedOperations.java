@@ -56,6 +56,8 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetDaoUtils;
+import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.azure.data.tables.TableServiceClient;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -558,6 +560,13 @@ public class ConnectedOperations {
 
     IngestResponseModel ingestResponse = checkIngestTableResponse(response);
     return ingestResponse;
+  }
+
+  public void checkTableRowCount(
+      FSContainerInterface tdrResource, String tableName, String prefix, int expectedRowCount) {
+    String participantBQFormattedTableName = prefix + tdrResource.getName() + "." + tableName;
+    int rowCount = BigQueryPdao.getTableTotalRowCount(tdrResource, participantBQFormattedTableName);
+    assertThat("Expected row count", rowCount, equalTo(expectedRowCount));
   }
 
   public IngestResponseModel checkIngestTableResponse(MockHttpServletResponse response)

@@ -473,7 +473,7 @@ public class SynapseUtils {
       AzureStorageAccountResource datasetStorageAccountResource,
       BillingProfileModel billingProfile)
       throws IOException, SQLException {
-
+    int expectedNumberOfRowToIngest = 2;
     DatasetTable destinationTable =
         ingestIntoTable(
             "ingest-test-dataset-table-all-data-types.json",
@@ -481,7 +481,7 @@ public class SynapseUtils {
             ingestFileLocation,
             randomFlightId,
             testConfig.getIngestRequestContainer(),
-            2,
+            expectedNumberOfRowToIngest,
             datasetStorageAccountResource,
             billingProfile);
     jsonLoader.loadObject("ingest-test-dataset-table-all-data-types.json", DatasetTable.class);
@@ -504,6 +504,16 @@ public class SynapseUtils {
             true);
     assertThat(
         "List of names should equal the input", firstNames, equalTo(List.of("Bob", "Sally")));
+
+    int rowCount =
+        azureSynapsePdao.getTableTotalRowCount(
+            destinationTable.getName(),
+            IngestUtils.getTargetDataSourceName(randomFlightId),
+            IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId));
+    assertThat(
+        "Correct number of rows are returned from table",
+        rowCount,
+        equalTo(expectedNumberOfRowToIngest));
     return destinationTable;
   }
 }

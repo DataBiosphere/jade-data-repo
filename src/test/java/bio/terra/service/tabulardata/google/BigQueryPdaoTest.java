@@ -2,6 +2,7 @@ package bio.terra.service.tabulardata.google;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -43,6 +44,7 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
@@ -102,6 +104,7 @@ public class BigQueryPdaoTest {
   @Autowired private ResourceService resourceService;
   @Autowired private GoogleResourceManagerService resourceManagerService;
   @Autowired private BufferService bufferService;
+  @Autowired private SnapshotService snapshotService;
 
   @MockBean private IamProviderInterface samService;
 
@@ -306,19 +309,31 @@ public class BigQueryPdaoTest {
           new IngestRequestModel().format(IngestRequestModel.FormatEnum.JSON);
 
       UUID datasetId = dataset.getId();
+      // participant table
+      String participantTableName = "participant";
       connectedOperations.ingestTableSuccess(
-          datasetId, ingestRequest.table("participant").path(gsPath(participantBlob)));
+          datasetId, ingestRequest.table(participantTableName).path(gsPath(participantBlob)));
+      connectedOperations.checkTableRowCount(dataset, participantTableName, PDAO_PREFIX, 5);
+      // sample table
+      String sampleTableName = "sample";
       connectedOperations.ingestTableSuccess(
-          datasetId, ingestRequest.table("sample").path(gsPath(sampleBlob)));
+          datasetId, ingestRequest.table(sampleTableName).path(gsPath(sampleBlob)));
+      connectedOperations.checkTableRowCount(dataset, sampleTableName, PDAO_PREFIX, 7);
+      // file table
+      String fileTableName = "file";
       connectedOperations.ingestTableSuccess(
-          datasetId, ingestRequest.table("file").path(gsPath(fileBlob)));
+          datasetId, ingestRequest.table(fileTableName).path(gsPath(fileBlob)));
+      connectedOperations.checkTableRowCount(dataset, fileTableName, PDAO_PREFIX, 1);
 
       // Create a full-view snapshot!
       DatasetSummaryModel datasetSummary = dataset.getDatasetSummary().toModel();
       SnapshotSummaryModel snapshotSummary =
           connectedOperations.createSnapshot(
               datasetSummary, "snapshot-fullviews-test-snapshot.json", "");
-      SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
+      Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
+      connectedOperations.checkTableRowCount(snapshot, participantTableName, "", 5);
+      connectedOperations.checkTableRowCount(snapshot, sampleTableName, "", 7);
+      connectedOperations.checkTableRowCount(snapshot, fileTableName, "", 1);
 
       BigQueryProject bigQuerySnapshotProject =
           TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());

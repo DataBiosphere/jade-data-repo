@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
@@ -24,6 +25,7 @@ import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
@@ -36,6 +38,8 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
+import bio.terra.service.filedata.DataResultModel;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobService;
@@ -47,6 +51,7 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import java.io.IOException;
@@ -54,6 +59,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -65,7 +71,11 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.skyscreamer.jsonassert.JSONAssert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -111,10 +121,11 @@ public class DatasetServiceTest {
   @MockBean private GcsPdao gcsPdao;
   @MockBean private AzureContainerPdao azureContainerPdao;
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
+  @MockBean private AzureSynapsePdao azureSynapsePdao;
 
   @Captor private ArgumentCaptor<List<String>> listCaptor;
   @Captor private ArgumentCaptor<IngestRequestModel> requestCaptor;
-
+  private static final Logger logger = LoggerFactory.getLogger(DatasetServiceTest.class);
   private BillingProfileModel billingProfile;
   private UUID projectId;
   private ArrayList<String> flightIdsList;
@@ -629,5 +640,73 @@ public class DatasetServiceTest {
     verify(jobService, times(1))
         .newJob(any(), eq(DatasetIngestFlight.class), requestCaptor.capture(), any());
     assertThat("payload is stripped out", requestCaptor.getValue().getRecords(), empty());
+  }
+
+  @Test
+  public void testTranslateDataResult() {
+    testTranslateDataResultGCP(12, 0);
+    testTranslateDataResultGCP(0, 0);
+    testTranslateDataResultGCP(8, 4);
+    testTranslateDataResultAzure(12, 0);
+    testTranslateDataResultAzure(0, 0);
+    testTranslateDataResultAzure(8, 4);
+  }
+
+  private void testTranslateDataResultGCP(int totalRowCount, int filteredRowCount) {
+    List<DataResultModel> values = new ArrayList<>();
+    if (filteredRowCount > 0) {
+      values.add(
+          new DataResultModel()
+              .filteredCount(filteredRowCount)
+              .totalCount(totalRowCount)
+              .rowResult(new HashMap<>()));
+    }
+    try (MockedStatic<BigQueryPdao> utilities = Mockito.mockStatic(BigQueryPdao.class)) {
+      utilities
+          .when(() -> BigQueryPdao.getTableTotalRowCount(any(), any()))
+          .thenReturn(totalRowCount);
+      DatasetDataModel datasetDataModel =
+          datasetService.translateDataResult(
+              values,
+              "table1",
+              new Dataset().projectResource(new GoogleProjectResource().googleProjectId("blah")),
+              "bqFormattedTableName",
+              null,
+              null,
+              CloudPlatformWrapper.of(CloudPlatform.GCP));
+      assertThat(
+          "Correct total row count", datasetDataModel.getTotalRowCount(), equalTo(totalRowCount));
+      assertThat(
+          "Correct filtered row count",
+          datasetDataModel.getFilteredRowCount(),
+          equalTo(filteredRowCount));
+    }
+  }
+
+  private void testTranslateDataResultAzure(int totalRowCount, int filteredRowCount) {
+    List<DataResultModel> values = new ArrayList<>();
+    if (filteredRowCount > 0) {
+      values.add(
+          new DataResultModel()
+              .filteredCount(filteredRowCount)
+              .totalCount(totalRowCount)
+              .rowResult(new HashMap<>()));
+    }
+    when(azureSynapsePdao.getTableTotalRowCount(any(), any(), any())).thenReturn(totalRowCount);
+    DatasetDataModel datasetDataModel =
+        datasetService.translateDataResult(
+            values,
+            "table1",
+            null,
+            null,
+            "datasourceName",
+            "parquetFilePathForTable",
+            CloudPlatformWrapper.of(CloudPlatform.AZURE));
+    assertThat(
+        "Correct total row count", datasetDataModel.getTotalRowCount(), equalTo(totalRowCount));
+    assertThat(
+        "Correct filtered row count",
+        datasetDataModel.getFilteredRowCount(),
+        equalTo(filteredRowCount));
   }
 }

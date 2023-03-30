@@ -272,6 +272,15 @@ public class AzureSynapsePdao {
           WHERE [<refCol>] IS NOT NULL
           AND [Element] IS NOT NULL;""";
 
+  private static final String queryTableTotalRowCountTemplate =
+      """
+          SELECT count(*) <totalRowCountColumnName>
+            FROM OPENROWSET(
+              BULK '<parquetFileLocation>',
+              DATA_SOURCE = '<datasource>',
+              FORMAT='PARQUET'
+            ) AS rows;
+          """;
   private static final String queryFromDatasourceTemplate =
       """
           SELECT <columns:{c|tbl.[<c>]}; separator=",">,count(*) over () <filteredRowCountColumnName>,tbl.[<totalRowCountColumnName>]
@@ -1018,10 +1027,29 @@ public class AzureSynapsePdao {
     cleanup(credentialNames, dropScopedCredentialTemplate);
   }
 
+  public int getTableTotalRowCount(
+      String tableName, String dataSourceName, String parquetFileLocation) {
+    try {
+      final String sql =
+          new ST(queryTableTotalRowCountTemplate)
+              .add("datasource", dataSourceName)
+              .add("parquetFileLocation", parquetFileLocation)
+              .add("tableName", tableName)
+              .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
+              .render();
+      return executeCountQuery(sql);
+    } catch (SQLException ex) {
+      logger.warn(
+          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
+          ex);
+      return 0;
+    }
+  }
+
   public List<DataResultModel> getTableData(
       Table table,
       String tableName,
-      String datasetSourceName,
+      String dataSourceName,
       String parquetFileLocation,
       int limit,
       int offset,
@@ -1052,7 +1080,7 @@ public class AzureSynapsePdao {
     final String sql =
         new ST(queryFromDatasourceTemplate)
             .add("columns", columns.stream().map(Column::getName).toList())
-            .add("datasource", datasetSourceName)
+            .add("datasource", dataSourceName)
             .add("parquetFileLocation", parquetFileLocation)
             .add("sort", sort)
             .add("direction", direction)

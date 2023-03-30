@@ -1,5 +1,7 @@
 package bio.terra.tanagra.query.bigquery;
 
+import bio.terra.model.CloudPlatform;
+import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
@@ -9,6 +11,7 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import com.google.common.collect.Iterables;
+import java.util.Collection;
 import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +29,7 @@ public class BigQueryExecutor implements QueryExecutor {
 
   @Override
   public QueryResult execute(QueryRequest queryRequest) {
-    String sql = queryRequest.getSql();
+    String sql = renderSQL(queryRequest.query());
     LOGGER.info("Running SQL against BigQuery: {}", sql);
     TableResult tableResult = bigQuery.queryBigQuery(sql);
 
@@ -34,13 +37,26 @@ public class BigQueryExecutor implements QueryExecutor {
         Iterables.transform(
             tableResult.getValues(),
             (FieldValueList fieldValueList) ->
-                new BigQueryRowResult(fieldValueList, queryRequest.getColumnHeaderSchema()));
+                new BigQueryRowResult(fieldValueList, queryRequest.columnHeaderSchema()));
 
-    return new QueryResult(rowResults, queryRequest.getColumnHeaderSchema());
+    return new QueryResult(rowResults, queryRequest.columnHeaderSchema());
   }
 
   @Override
   public void createTableFromQuery(TableId destinationTable, String sql, boolean isDryRun) {
     throw new NotImplementedException();
+  }
+
+  @Override
+  public Collection<RowResult> readTableRows(Query query) {
+    if (true) {
+      throw new NotImplementedException();
+    }
+    return null;
+  }
+
+  @Override
+  public CloudPlatform getCloudPlatform() {
+    return CloudPlatform.GCP;
   }
 }

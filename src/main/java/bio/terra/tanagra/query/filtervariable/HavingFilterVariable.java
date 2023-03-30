@@ -1,5 +1,6 @@
 package bio.terra.tanagra.query.filtervariable;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.query.SQLExpression;
 
 /** Example: HAVING COUNT(*) > 1 */
@@ -13,7 +14,7 @@ public class HavingFilterVariable implements SQLExpression {
   }
 
   @Override
-  public String renderSQL() {
-    return String.format("HAVING COUNT(*) %s %s", operator.renderSQL(), value);
+  public String renderSQL(CloudPlatform platform) {
+    return String.format("HAVING COUNT(*) %s %s", operator.renderSQL(platform), value);
   }
 }

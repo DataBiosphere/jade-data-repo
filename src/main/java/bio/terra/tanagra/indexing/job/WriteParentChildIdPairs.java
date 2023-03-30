@@ -32,7 +32,7 @@ public class WriteParentChildIdPairs extends BigQueryIndexingJob {
             .getHierarchy(hierarchyName)
             .getMapping(Underlay.MappingType.SOURCE)
             .queryChildParentPairs("child", "parent");
-    String sql = selectChildParentIdPairs.renderSQL();
+    String sql = executor.renderSQL(selectChildParentIdPairs);
     LOGGER.info("select all child-parent id pairs SQL: {}", sql);
 
     TableId destinationTable =

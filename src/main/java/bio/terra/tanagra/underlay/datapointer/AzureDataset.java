@@ -2,7 +2,6 @@ package bio.terra.tanagra.underlay.datapointer;
 
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
@@ -11,29 +10,26 @@ import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
 import bio.terra.tanagra.query.azure.AzureExecutor;
-import bio.terra.tanagra.serialization.datapointer.UFAzureDataset;
 import bio.terra.tanagra.underlay.DataPointer;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.text.StringSubstitutor;
 
 public final class AzureDataset extends DataPointer {
+  private static final String TABLE_SQL =
+      "OPENROWSET(BULK 'parquet/${tableName}/*/*.parquet', DATA_SOURCE = 'ds-${datasetId}-${userName}', FORMAT='PARQUET')";
   private final UUID datasetId;
   private final String datasetName;
+  private final String userName;
 
-  private AzureDataset(String name, UUID datasetId, String datasetName) {
+  public AzureDataset(String name, UUID datasetId, String datasetName, String userName) {
     super(name);
-    this.datasetId = datasetId;
+    this.datasetId = Objects.requireNonNull(datasetId, "No dataset ID defined");
     this.datasetName = datasetName;
-  }
-
-  public static AzureDataset fromSerialized(UFAzureDataset serialized) {
-    if (serialized.getDatasetId() == null) {
-      throw new InvalidConfigException("No dataset ID defined");
-    }
-
-    return new AzureDataset(
-        serialized.getName(), serialized.getDatasetId(), serialized.getDatasetName());
+    this.userName = userName;
   }
 
   @Override
@@ -43,12 +39,14 @@ public final class AzureDataset extends DataPointer {
 
   @Override
   public String getTableSQL(String tableName) {
-    return tableName;
+    return StringSubstitutor.replace(
+        TABLE_SQL, Map.of("tableName", tableName, "datasetId", datasetId, "userName", userName));
   }
 
   @Override
   public String getTablePathForIndexing(String tableName) {
-    return tableName;
+    // API used for indexing output.
+    throw new NotImplementedException();
   }
 
   @Override
@@ -81,7 +79,7 @@ public final class AzureDataset extends DataPointer {
       tableSchema = executor.getSchema(datasetId, tablePointer.getTableName());
     }
 
-    return toDataType(tableSchema.getColumnByName(columnName).getType());
+    return toDataType(tableSchema.getColumnByName(columnName).orElseThrow().getType());
   }
 
   private static Literal.DataType toDataType(TableDataType fieldType) {
@@ -91,8 +89,7 @@ public final class AzureDataset extends DataPointer {
       case DATE, DATETIME, TIME, TIMESTAMP -> Literal.DataType.DATE;
       case INTEGER, INT64 -> Literal.DataType.INT64;
       case FLOAT, FLOAT64, NUMERIC -> Literal.DataType.DOUBLE;
-      case BYTES, RECORD -> throw new SystemException(
-          "BigQuery SQL data type not supported: " + fieldType);
+      case BYTES, RECORD -> throw new SystemException("Data type not supported: " + fieldType);
     };
   }
 
@@ -102,5 +99,9 @@ public final class AzureDataset extends DataPointer {
 
   public String getDatasetName() {
     return datasetName;
+  }
+
+  public String getUserName() {
+    return userName;
   }
 }

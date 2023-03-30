@@ -44,7 +44,7 @@ public class BuildTextSearchStrings extends BigQueryIndexingJob {
         getEntity()
             .getTextSearch()
             .getMapping(Underlay.MappingType.SOURCE)
-            .queryTextSearchStrings();
+            .queryTextSearchStrings(executor);
 
     // Build a map of (output) update field name -> (input) selected FieldVariable.
     // This map only contains one item, because we're only updating the text field.

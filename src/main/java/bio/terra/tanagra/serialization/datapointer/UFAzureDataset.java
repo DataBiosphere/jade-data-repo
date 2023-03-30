@@ -17,23 +17,27 @@ import java.util.UUID;
 public class UFAzureDataset extends UFDataPointer {
   private final UUID datasetId;
   private final String datasetName;
+  private final String userName;
 
   public UFAzureDataset(AzureDataset dataPointer) {
     super(dataPointer);
     this.datasetId = dataPointer.getDatasetId();
     this.datasetName = dataPointer.getDatasetName();
+    this.userName = dataPointer.getUserName();
   }
 
   private UFAzureDataset(Builder builder) {
     super(builder);
     this.datasetId = builder.datasetId;
     this.datasetName = builder.datasetName;
+    this.userName = builder.userName;
   }
 
   @JsonPOJOBuilder(buildMethodName = "build", withPrefix = "")
   public static class Builder extends UFDataPointer.Builder {
     private UUID datasetId;
     private String datasetName;
+    private String userName;
 
     public Builder datasetId(UUID datasetId) {
       this.datasetId = datasetId;
@@ -42,6 +46,11 @@ public class UFAzureDataset extends UFDataPointer {
 
     public Builder datasetName(String datasetName) {
       this.datasetName = datasetName;
+      return this;
+    }
+
+    public Builder userName(String userName) {
+      this.userName = userName;
       return this;
     }
 
@@ -55,7 +64,7 @@ public class UFAzureDataset extends UFDataPointer {
   /** Deserialize to the internal representation of the data pointer. */
   @Override
   public AzureDataset deserializeToInternal() {
-    return AzureDataset.fromSerialized(this);
+    return new AzureDataset(getName(), datasetId, datasetName, userName);
   }
 
   public UUID getDatasetId() {
@@ -64,5 +73,9 @@ public class UFAzureDataset extends UFDataPointer {
 
   public String getDatasetName() {
     return datasetName;
+  }
+
+  public String getUserName() {
+    return userName;
   }
 }

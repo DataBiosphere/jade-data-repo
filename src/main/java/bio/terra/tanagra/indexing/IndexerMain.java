@@ -3,6 +3,7 @@ package bio.terra.tanagra.indexing;
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.indexing.jobexecutor.JobRunner;
 import bio.terra.tanagra.query.azure.AzureExecutor;
+import bio.terra.tanagra.underlay.datapointer.AzureDataset;
 import bio.terra.tanagra.utils.FileIO;
 import bio.terra.tanagra.utils.FileUtils;
 import java.nio.file.Path;
@@ -42,6 +43,9 @@ public final class IndexerMain {
     Indexer indexer =
         Indexer.deserializeUnderlay(Path.of(underlayFilePath).getFileName().toString());
 
+    azureExecutor.setupAccess(
+        (AzureDataset) indexer.getUnderlay().getDataPointers().get("omop_dataset"));
+
     switch (cmd) {
       case EXPAND_CONFIG:
         String outputDirPath = args[2];
@@ -58,7 +62,7 @@ public final class IndexerMain {
       case INDEX_ENTITY:
       case CLEAN_ENTITY:
         IndexingJob.RunType runTypeEntity =
-            Command.INDEX_ENTITY.equals(cmd) ? IndexingJob.RunType.RUN : IndexingJob.RunType.CLEAN;
+            Command.INDEX_ENTITY == cmd ? IndexingJob.RunType.RUN : IndexingJob.RunType.CLEAN;
         String nameEntity = args[2];
         boolean isAllEntities = "*".equals(nameEntity);
         boolean isDryRunEntity = isDryRun(3, args);
@@ -81,9 +85,7 @@ public final class IndexerMain {
       case INDEX_ENTITY_GROUP:
       case CLEAN_ENTITY_GROUP:
         IndexingJob.RunType runTypeEntityGroup =
-            Command.INDEX_ENTITY_GROUP.equals(cmd)
-                ? IndexingJob.RunType.RUN
-                : IndexingJob.RunType.CLEAN;
+            Command.INDEX_ENTITY_GROUP == cmd ? IndexingJob.RunType.RUN : IndexingJob.RunType.CLEAN;
         String nameEntityGroup = args[2];
         boolean isAllEntityGroups = "*".equals(nameEntityGroup);
         boolean isDryRunEntityGroup = isDryRun(3, args);
@@ -110,7 +112,7 @@ public final class IndexerMain {
       case INDEX_ALL:
       case CLEAN_ALL:
         IndexingJob.RunType runTypeAll =
-            Command.INDEX_ALL.equals(cmd) ? IndexingJob.RunType.RUN : IndexingJob.RunType.CLEAN;
+            Command.INDEX_ALL == cmd ? IndexingJob.RunType.RUN : IndexingJob.RunType.CLEAN;
         boolean isDryRunAll = isDryRun(2, args);
         Indexer.JobExecutor jobExecAll = getJobExec(3, args);
 

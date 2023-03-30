@@ -124,7 +124,7 @@ public final class BigQueryDataset extends DataPointer {
           FieldPointer.allFields(tablePointer).buildVariable(tableVar, tableVars);
       Query queryOneRow =
           new Query.Builder().select(List.of(fieldVarStar)).tables(tableVars).limit(1).build();
-      tableSchema = getBigQueryService().getQuerySchemaWithCaching(queryOneRow.renderSQL());
+      tableSchema = getBigQueryService().getQuerySchemaWithCaching(executor.renderSQL(queryOneRow));
     } else {
       // If the table is not a raw SQL string, then just fetch the table schema directly.
       tableSchema =

@@ -1,5 +1,6 @@
 package bio.terra.tanagra.query.filtervariable;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.Literal;
@@ -22,11 +23,13 @@ public class FunctionFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate() {
+  protected String getSubstitutionTemplate(CloudPlatform platform) {
     String valuesSQL =
         values.size() > 1
-            ? values.stream().map(Literal::renderSQL).collect(Collectors.joining(","))
-            : values.get(0).renderSQL();
+            ? values.stream()
+                .map(literal -> literal.renderSQL(platform))
+                .collect(Collectors.joining(","))
+            : values.get(0).renderSQL(platform);
     Map<String, String> params =
         ImmutableMap.<String, String>builder().put("value", valuesSQL).build();
     return StringSubstitutor.replace(functionTemplate.getSqlTemplate(), params);
@@ -43,7 +46,7 @@ public class FunctionFilterVariable extends FilterVariable {
     IN("${fieldVariable} IN (${value})"),
     NOT_IN("${fieldVariable} NOT IN (${value})");
 
-    private String sqlTemplate;
+    private final String sqlTemplate;
 
     FunctionTemplate(String sqlTemplate) {
       this.sqlTemplate = sqlTemplate;

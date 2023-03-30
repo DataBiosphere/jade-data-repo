@@ -1,5 +1,6 @@
 package bio.terra.tanagra.query;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.filtervariable.HavingFilterVariable;
 import com.google.common.collect.ImmutableMap;
@@ -10,29 +11,19 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.text.StringSubstitutor;
 
-public class Query implements SQLExpression {
+public record Query(
+    List<FieldVariable> select,
+    List<TableVariable> tables,
+    FilterVariable where,
+    List<OrderByVariable> orderBy,
+    List<FieldVariable> groupBy,
+    HavingFilterVariable having,
+    Integer limit)
+    implements SQLExpression {
   public static final String TANAGRA_FIELD_PREFIX = "t_";
 
-  private final List<FieldVariable> select;
-  private final List<TableVariable> tables;
-  private final FilterVariable where;
-  private final List<OrderByVariable> orderBy;
-  private final List<FieldVariable> groupBy;
-  private final HavingFilterVariable having;
-  private final Integer limit;
-
-  private Query(Builder builder) {
-    this.select = builder.select;
-    this.tables = builder.tables;
-    this.where = builder.where;
-    this.orderBy = builder.orderBy;
-    this.groupBy = builder.groupBy;
-    this.having = builder.having;
-    this.limit = builder.limit;
-  }
-
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatform platform) {
     // generate a unique alias for each TableVariable
     TableVariable.generateAliases(tables);
 
@@ -40,23 +31,25 @@ public class Query implements SQLExpression {
     String selectSQL =
         select.stream()
             .sorted(Comparator.comparing(FieldVariable::getAlias))
-            .map(fv -> fv.renderSQL())
+            .map(fieldVariable -> fieldVariable.renderSQL(platform))
             .collect(Collectors.joining(", "));
+
+    if (platform == CloudPlatform.GCP && limit != null) {
+      selectSQL += " TOP " + limit;
+    }
 
     // render the primary TableVariable
     String template = "SELECT ${selectSQL} FROM ${primaryTableFromSQL}";
     Map<String, String> params =
-        ImmutableMap.<String, String>builder()
-            .put("selectSQL", selectSQL)
-            .put("primaryTableFromSQL", getPrimaryTable().renderSQL())
-            .build();
+        Map.of(
+            "selectSQL", selectSQL, "primaryTableFromSQL", getPrimaryTable().renderSQL(platform));
     String sql = StringSubstitutor.replace(template, params);
 
     // render the join TableVariables
     if (tables.size() > 1) {
       String joinTablesFromSQL =
           tables.stream()
-              .map(tv -> tv.isPrimary() ? "" : tv.renderSQL())
+              .map(tv -> tv.isPrimary() ? "" : tv.renderSQL(platform))
               .collect(Collectors.joining(" "));
       template = "${sql} ${joinTablesFromSQL}";
       params =
@@ -73,7 +66,7 @@ public class Query implements SQLExpression {
       params =
           ImmutableMap.<String, String>builder()
               .put("sql", sql)
-              .put("whereSQL", where.renderSQL())
+              .put("whereSQL", where.renderSQL(platform))
               .build();
       sql = StringSubstitutor.replace(template, params);
     }
@@ -81,7 +74,9 @@ public class Query implements SQLExpression {
     if (groupBy != null && !groupBy.isEmpty()) {
       // render each GROUP BY FieldVariable and join them into a single string
       String groupBySQL =
-          groupBy.stream().map(fv -> fv.renderSqlForOrderBy()).collect(Collectors.joining(", "));
+          groupBy.stream()
+              .map(FieldVariable::renderSqlForOrderBy)
+              .collect(Collectors.joining(", "));
 
       template = "${sql} GROUP BY ${groupBySQL}";
       params =
@@ -93,13 +88,15 @@ public class Query implements SQLExpression {
     }
 
     if (having != null) {
-      sql += " " + having.renderSQL();
+      sql += " " + having.renderSQL(platform);
     }
 
-    if (orderBy != null && !orderBy.isEmpty()) {
+    if (platform == CloudPlatform.GCP && orderBy != null && !orderBy.isEmpty()) {
       // render each ORDER BY FieldVariable and join them into a single string
       String orderBySQL =
-          orderBy.stream().map(obv -> obv.renderSQL()).collect(Collectors.joining(", "));
+          orderBy.stream()
+              .map(orderByVariable -> orderByVariable.renderSQL(platform))
+              .collect(Collectors.joining(", "));
 
       template = "${sql} ORDER BY ${orderBySQL}";
       params =
@@ -110,7 +107,7 @@ public class Query implements SQLExpression {
       sql = StringSubstitutor.replace(template, params);
     }
 
-    if (limit != null) {
+    if (platform == CloudPlatform.GCP && limit != null) {
       template = "${sql} LIMIT ${limit}";
       params =
           ImmutableMap.<String, String>builder()
@@ -128,8 +125,7 @@ public class Query implements SQLExpression {
   }
 
   public TableVariable getPrimaryTable() {
-    List<TableVariable> primaryTable =
-        tables.stream().filter(table -> table.isPrimary()).collect(Collectors.toList());
+    List<TableVariable> primaryTable = tables.stream().filter(TableVariable::isPrimary).toList();
     if (primaryTable.size() != 1) {
       throw new SystemException(
           "Query can only have one primary table, but found " + primaryTable.size());
@@ -182,7 +178,7 @@ public class Query implements SQLExpression {
     }
 
     public Query build() {
-      return new Query(this);
+      return new Query(select, tables, where, orderBy, groupBy, having, limit);
     }
   }
 }

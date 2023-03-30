@@ -72,7 +72,7 @@ public class WriteAncestorDescendantIdPairs extends BigQueryIndexingJob {
         getEntity().getHierarchy(hierarchyName).getMapping(Underlay.MappingType.SOURCE);
     SQLExpression selectChildParentIdPairs =
         sourceHierarchyMapping.queryChildParentPairs(CHILD_COLUMN_NAME, PARENT_COLUMN_NAME);
-    String sql = selectChildParentIdPairs.renderSQL();
+    String sql = executor.renderSQL(selectChildParentIdPairs);
     LOGGER.info("select all child-parent id pairs SQL: {}", sql);
 
     Pipeline pipeline =

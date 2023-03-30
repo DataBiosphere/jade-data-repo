@@ -184,9 +184,9 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
     // Read in the rollup entity ids from BQ.
     Query rollupIds =
         getRollupEntity().getMapping(Underlay.MappingType.SOURCE).queryIds(ID_COLUMN_NAME);
-    LOGGER.info("select all rollup entity ids SQL: {}", rollupIds.renderSQL());
+    LOGGER.info("select all rollup entity ids SQL: {}", rollupIds);
     PCollection<Long> rollupIdsPC =
-        BigQueryUtils.readNodesFromBQ(pipeline, rollupIds.renderSQL(), "rollupIds");
+        BigQueryUtils.readNodesFromBQ(pipeline, executor.renderSQL(rollupIds), "rollupIds");
 
     // Read in the rollup-counted entity id pairs from BQ.
     boolean rollupEntityIsA = relationship.getEntityA().equals(getEntity());
@@ -196,9 +196,9 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
         relationship
             .getMapping(Underlay.MappingType.SOURCE)
             .queryIdPairs(rollupEntityIdAlias, countedEntityIdAlias);
-    LOGGER.info("select all rollup-counted id pairs SQL: {}", rollupCountedIdPairs.renderSQL());
+    LOGGER.info("select all rollup-counted id pairs SQL: {}", rollupCountedIdPairs);
     PCollection<KV<Long, Long>> rollupCountedIdPairsPC =
-        BigQueryUtils.readOccurrencesFromBQ(pipeline, rollupCountedIdPairs.renderSQL());
+        BigQueryUtils.readOccurrencesFromBQ(pipeline, executor.renderSQL(rollupCountedIdPairs));
 
     // Optionally handle a hierarchy for the rollup entity.
     if (hierarchy != null) {
@@ -208,13 +208,13 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
               .queryAncestorDescendantPairs(ANCESTOR_COLUMN_NAME, DESCENDANT_COLUMN_NAME);
       LOGGER.info(
           "select all rollup entity ancestor-descendant id pairs SQL: {}",
-          rollupAncestorDescendantPairs.renderSQL());
+          rollupAncestorDescendantPairs);
 
       // Read in the ancestor-descendant relationships from BQ and build (descendant, ancestor) KV
       // pairs.
       PCollection<KV<Long, Long>> rollupAncestorDescendantKVsPC =
           BigQueryUtils.readAncestorDescendantRelationshipsFromBQ(
-              pipeline, rollupAncestorDescendantPairs.renderSQL());
+              pipeline, executor.renderSQL(rollupAncestorDescendantPairs));
 
       // Expand the set of occurrences to include a repeat for each ancestor.
       rollupCountedIdPairsPC =
@@ -268,8 +268,7 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
   private void copyFieldsToEntityTable(boolean isDryRun, QueryExecutor executor) {
     // Build a query for the id-rollup_count-rollup_displayHints tuples that we want to select.
     Query idCountDisplayHintsTuples = queryIdRollupTuples(getTempTable());
-    LOGGER.info(
-        "select all id-count-displayHints tuples SQL: {}", idCountDisplayHintsTuples.renderSQL());
+    LOGGER.info("select all id-count-displayHints tuples SQL: {}", idCountDisplayHintsTuples);
 
     // Build a map of (output) update field name -> (input) selected FieldVariable.
     // This map only contains two items, because we're only updating the count and display_hints
@@ -283,7 +282,7 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
         idCountDisplayHintsTuples.getSelect().stream()
             .filter(fv -> fv.getAliasOrColumnName().equals(ROLLUP_COUNT_COLUMN_NAME))
             .findFirst()
-            .get();
+            .orElseThrow();
     updateFields.put(updateCountFieldName, selectCountField);
 
     String updateDisplayHintsFieldName =
@@ -292,7 +291,7 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
         idCountDisplayHintsTuples.getSelect().stream()
             .filter(fv -> fv.getAliasOrColumnName().equals(ROLLUP_DISPLAY_HINTS_COLUMN_NAME))
             .findFirst()
-            .get();
+            .orElseThrow();
     updateFields.put(updateDisplayHintsFieldName, selectDisplayHintsField);
 
     // Check that the count and display_hints fields are not in a different table from the entity

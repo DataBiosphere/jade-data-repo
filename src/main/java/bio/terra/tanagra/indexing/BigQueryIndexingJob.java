@@ -124,7 +124,7 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
     FieldVariable fieldVar = fieldPointer.buildVariable(outputTableVar, tableVars);
     FilterVariable fieldNotNull =
         new BinaryFilterVariable(
-            fieldVar, BinaryFilterVariable.BinaryOperator.IS_NOT, new Literal((String) null));
+            fieldVar, BinaryFilterVariable.BinaryOperator.IS_NOT, new Literal(null));
     Query query =
         new Query.Builder()
             .select(List.of(fieldVar))
@@ -134,7 +134,7 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
             .build();
 
     ColumnHeaderSchema columnHeaderSchema = new ColumnHeaderSchema(List.of(columnSchema));
-    QueryRequest queryRequest = new QueryRequest(query.renderSQL(), columnHeaderSchema);
+    QueryRequest queryRequest = new QueryRequest(query, columnHeaderSchema);
     QueryResult queryResult = executor.execute(queryRequest);
 
     return queryResult.getRowResults().iterator().hasNext();
@@ -186,9 +186,9 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
 
     UpdateFromSelect updateQuery =
         new UpdateFromSelect(entityTable, updateFields, selectQuery, updateIdField, selectIdField);
-    LOGGER.info("Generated SQL: {}", updateQuery.renderSQL());
+    LOGGER.info("Generated SQL: {}", updateQuery);
     try {
-      insertUpdateTableFromSelect(updateQuery.renderSQL(), isDryRun);
+      insertUpdateTableFromSelect(executor.renderSQL(updateQuery), isDryRun);
     } catch (BigQueryException bqEx) {
       if (bqEx.getCode() == HttpStatus.SC_NOT_FOUND) {
         LOGGER.info(

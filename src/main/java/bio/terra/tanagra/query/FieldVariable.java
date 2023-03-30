@@ -1,5 +1,6 @@
 package bio.terra.tanagra.query;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.SystemException;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
@@ -25,7 +26,7 @@ public class FieldVariable implements SQLExpression {
   }
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatform platform) {
     return renderSQL(true, true);
   }
 

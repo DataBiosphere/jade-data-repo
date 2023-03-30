@@ -1,5 +1,7 @@
 package bio.terra.tanagra.query;
 
+import bio.terra.model.CloudPlatform;
+
 public class OrderByVariable implements SQLExpression {
   private final FieldVariable fieldVariable;
   private final OrderByDirection direction;
@@ -28,7 +30,9 @@ public class OrderByVariable implements SQLExpression {
   }
 
   @Override
-  public String renderSQL() {
-    return isRandom ? "RAND()" : fieldVariable.renderSqlForOrderBy() + " " + direction.renderSQL();
+  public String renderSQL(CloudPlatform platform) {
+    return isRandom
+        ? "RAND()"
+        : fieldVariable.renderSqlForOrderBy() + " " + direction.renderSQL(platform);
   }
 }

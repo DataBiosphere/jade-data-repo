@@ -1,6 +1,5 @@
 package bio.terra.tanagra.underlay;
 
-import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.azure.AzureExecutor;
@@ -38,7 +37,6 @@ public abstract class DataPointer {
     return switch (getType()) {
       case BQ_DATASET -> new UFBigQueryDataset((BigQueryDataset) this);
       case AZURE_DATASET -> new UFAzureDataset((AzureDataset) this);
-      default -> throw new InvalidConfigException("Unknown data pointer type: " + getType());
     };
   }
 

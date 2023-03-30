@@ -1,5 +1,6 @@
 package bio.terra.tanagra.query;
 
+import bio.terra.model.CloudPlatform;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.List;
@@ -48,15 +49,14 @@ public final class TableVariable implements SQLExpression {
   }
 
   @Override
-  public String renderSQL() {
-    String sql = tablePointer.renderSQL();
+  public String renderSQL(CloudPlatform platform) {
+    String sql = tablePointer.renderSQL(platform);
 
     String template;
     Map<String, String> params;
     if (alias != null) {
       template = "${sql} AS ${tableAlias}";
-      params =
-          ImmutableMap.<String, String>builder().put("sql", sql).put("tableAlias", alias).build();
+      params = Map.of("sql", sql, "tableAlias", alias);
       sql = StringSubstitutor.replace(template, params);
     }
 
@@ -69,7 +69,7 @@ public final class TableVariable implements SQLExpression {
               .put("tableReference", sql)
               .put("tableAlias", alias)
               .put("joinField", joinField)
-              .put("joinFieldOnParent", joinFieldOnParent.renderSQL())
+              .put("joinFieldOnParent", joinFieldOnParent.renderSQL(platform))
               .build();
       sql = StringSubstitutor.replace(template, params);
     }

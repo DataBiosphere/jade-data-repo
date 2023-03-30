@@ -2,6 +2,7 @@ package bio.terra.tanagra.serialization;
 
 import static bio.terra.tanagra.underlay.Underlay.OUTPUT_UNDERLAY_FILE_EXTENSION;
 
+import bio.terra.tanagra.underlay.DataPointer;
 import bio.terra.tanagra.underlay.Underlay;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -31,7 +32,7 @@ public class UFUnderlay {
     this.name = underlay.getName();
     this.dataPointers =
         underlay.getDataPointers().values().stream()
-            .map(dp -> dp.serialize())
+            .map(DataPointer::serialize)
             .collect(Collectors.toList());
     this.entities =
         underlay.getEntities().keySet().stream()

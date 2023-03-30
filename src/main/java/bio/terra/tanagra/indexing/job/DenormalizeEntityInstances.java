@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +59,7 @@ public class DenormalizeEntityInstances extends BigQueryIndexingJob {
               .buildVariable(primaryInputTable, inputTables, attribute.getName());
       insertFields.put(insertColumnName, selectField);
 
-      if (Attribute.Type.KEY_AND_DISPLAY.equals(attribute.getType())) {
+      if (Attribute.Type.KEY_AND_DISPLAY == attribute.getType()) {
         // Attribute display.
         insertColumnName =
             attribute.getMapping(Underlay.MappingType.INDEX).getDisplay().getColumnName();
@@ -78,10 +77,7 @@ public class DenormalizeEntityInstances extends BigQueryIndexingJob {
 
     // Build a query to select all the attributes from the input table.
     Query inputQuery =
-        new Query.Builder()
-            .select(insertFields.values().stream().collect(Collectors.toList()))
-            .tables(inputTables)
-            .build();
+        new Query.Builder().select(List.copyOf(insertFields.values())).tables(inputTables).build();
 
     // Build a TableVariable for the output table that we want to update.
     TableVariable outputTable =
@@ -89,9 +85,9 @@ public class DenormalizeEntityInstances extends BigQueryIndexingJob {
             getEntity().getMapping(Underlay.MappingType.INDEX).getTablePointer());
 
     InsertFromSelect insertQuery = new InsertFromSelect(outputTable, insertFields, inputQuery);
-    LOGGER.info("Generated SQL: {}", insertQuery.renderSQL());
+    LOGGER.info("Generated SQL: {}", insertQuery);
     try {
-      insertUpdateTableFromSelect(insertQuery.renderSQL(), isDryRun);
+      insertUpdateTableFromSelect(executor.renderSQL(insertQuery), isDryRun);
     } catch (BigQueryException bqEx) {
       if (bqEx.getCode() == HttpStatus.SC_NOT_FOUND) {
         LOGGER.info(

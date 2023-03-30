@@ -71,7 +71,7 @@ public final class NumericRange extends DisplayHint {
 
     DataPointer dataPointer = value.getTablePointer().getDataPointer();
     TablePointer possibleValsTable =
-        TablePointer.fromRawSql(possibleValuesQuery.renderSQL(), dataPointer);
+        TablePointer.fromRawSql(executor.renderSQL(possibleValuesQuery), dataPointer);
 
     // build the outer query for the list of (possible value, display) pairs
     List<TableVariable> tables = new ArrayList<>();
@@ -103,8 +103,7 @@ public final class NumericRange extends DisplayHint {
             new ColumnSchema(minValAlias, CellValue.SQLDataType.INT64),
             new ColumnSchema(maxValAlias, CellValue.SQLDataType.INT64));
 
-    QueryRequest queryRequest =
-        new QueryRequest(query.renderSQL(), new ColumnHeaderSchema(columnSchemas));
+    QueryRequest queryRequest = new QueryRequest(query, new ColumnHeaderSchema(columnSchemas));
     QueryResult queryResult = executor.execute(queryRequest);
     RowResult rowResult = queryResult.getSingleRowResult();
     return new NumericRange(

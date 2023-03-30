@@ -89,8 +89,7 @@ public final class EnumVals extends DisplayHint {
             new ColumnSchema(ENUM_COUNT_COLUMN_ALIAS, CellValue.SQLDataType.INT64));
 
     DataPointer dataPointer = value.getTablePointer().getDataPointer();
-    QueryRequest queryRequest =
-        new QueryRequest(query.renderSQL(), new ColumnHeaderSchema(columnSchemas));
+    QueryRequest queryRequest = new QueryRequest(query, new ColumnHeaderSchema(columnSchemas));
     QueryResult queryResult = executor.execute(queryRequest);
 
     List<EnumVal> enumVals = new ArrayList<>();
@@ -136,7 +135,7 @@ public final class EnumVals extends DisplayHint {
     Query possibleValuesQuery = queryPossibleEnumVals(value);
     DataPointer dataPointer = value.getTablePointer().getDataPointer();
     TablePointer possibleValsTable =
-        TablePointer.fromRawSql(possibleValuesQuery.renderSQL(), dataPointer);
+        TablePointer.fromRawSql(executor.renderSQL(possibleValuesQuery), dataPointer);
     FieldPointer possibleValField =
         new FieldPointer.Builder()
             .tablePointer(possibleValsTable)
@@ -186,22 +185,19 @@ public final class EnumVals extends DisplayHint {
             new ColumnSchema(ENUM_DISPLAY_COLUMN_ALIAS, CellValue.SQLDataType.STRING));
 
     // run the query
-    QueryRequest queryRequest =
-        new QueryRequest(query.renderSQL(), new ColumnHeaderSchema(columnSchemas));
+    QueryRequest queryRequest = new QueryRequest(query, new ColumnHeaderSchema(columnSchemas));
     QueryResult queryResult = executor.execute(queryRequest);
 
     // iterate through the query results, building the list of enum values
     List<EnumVal> enumVals = new ArrayList<>();
-    Iterator<RowResult> rowResultIter = queryResult.getRowResults().iterator();
-    while (rowResultIter.hasNext()) {
-      RowResult rowResult = rowResultIter.next();
+    for (RowResult rowResult : queryResult.getRowResults()) {
       CellValue cellValue = rowResult.get(ENUM_VALUE_COLUMN_ALIAS);
       enumVals.add(
           new EnumVal(
               new ValueDisplay(
                   // TODO: Make a static NULL Literal instance, instead of overloading the String
                   // value.
-                  cellValue.getLiteral().orElse(new Literal((String) null)),
+                  cellValue.getLiteral().orElse(new Literal(null)),
                   rowResult.get(ENUM_DISPLAY_COLUMN_ALIAS).getString().orElse(null)),
               rowResult.get(ENUM_COUNT_COLUMN_ALIAS).getLong().getAsLong()));
       if (enumVals.size() > MAX_ENUM_VALS_FOR_DISPLAY_HINT) {

@@ -173,7 +173,7 @@ public class ComputeDisplayHints extends BigQueryIndexingJob {
   private PCollection<KV<Long, Long>> readInIdPairs(
       RelationshipMapping relationshipMapping, Pipeline pipeline, QueryExecutor executor) {
     Query idPairsQ = relationshipMapping.queryIdPairs("idA", "idB");
-    LOGGER.info("idPairsQ: {}", idPairsQ.renderSQL());
+    LOGGER.info("idPairsQ: {}", idPairsQ);
     return pipeline
         .apply(
             BigQueryIO.readTableRows()

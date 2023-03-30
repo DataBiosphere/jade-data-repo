@@ -29,7 +29,9 @@ public class AzureCellValue implements CellValue {
   public OptionalLong getLong() {
     assertDataTypeIs(SQLDataType.INT64);
     try {
-      return fieldValue.map(o -> OptionalLong.of((long) o)).orElseGet(OptionalLong::empty);
+      return fieldValue
+          .map(o -> OptionalLong.of(((Number) o).longValue()))
+          .orElseGet(OptionalLong::empty);
     } catch (NumberFormatException nfEx) {
       throw new SystemException("Unable to format as number", nfEx);
     }
@@ -45,7 +47,9 @@ public class AzureCellValue implements CellValue {
   @SuppressWarnings("PMD.PreserveStackTrace")
   public OptionalDouble getDouble() {
     try {
-      return fieldValue.map(o -> OptionalDouble.of((double) o)).orElseGet(OptionalDouble::empty);
+      return fieldValue
+          .map(o -> OptionalDouble.of(((Number) o).doubleValue()))
+          .orElseGet(OptionalDouble::empty);
     } catch (NumberFormatException nfEx) {
       throw new SystemException("Unable to format as number", nfEx);
     }
@@ -56,7 +60,7 @@ public class AzureCellValue implements CellValue {
     return fieldValue.map(
         value ->
             switch (dataType().toUnderlayDataType()) {
-              case INT64 -> new Literal((long) value);
+              case INT64 -> new Literal(((Number) value).longValue());
               case STRING -> new Literal((String) value);
               case BOOLEAN -> new Literal((boolean) value);
               case DATE -> Literal.forDate((String) value);
@@ -69,7 +73,7 @@ public class AzureCellValue implements CellValue {
    * SystemException}.
    */
   private void assertDataTypeIs(SQLDataType expected) {
-    if (!dataType().equals(expected)) {
+    if (dataType() != expected) {
       throw new SystemException(
           String.format("SQLDataType is %s, not the expected %s", dataType(), expected));
     }

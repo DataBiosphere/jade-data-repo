@@ -35,10 +35,10 @@ public abstract class AzureIndexingJob implements IndexingJob {
     return getEntity().getMapping(Underlay.MappingType.INDEX).getTablePointer();
   }
 
-  protected AzureDataset getAzureDataPointer(TablePointer tablePointer) {
+  protected static AzureDataset getAzureDataPointer(TablePointer tablePointer) {
     DataPointer outputDataPointer = tablePointer.getDataPointer();
     if (!(outputDataPointer instanceof AzureDataset)) {
-      throw new InvalidConfigException("Entity indexing job only supports BigQuery");
+      throw new InvalidConfigException("Entity indexing job only supports Azure");
     }
     return (AzureDataset) outputDataPointer;
   }

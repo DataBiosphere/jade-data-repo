@@ -10,11 +10,11 @@ import bio.terra.tanagra.utils.JacksonMapper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 public final class Entity {
@@ -117,11 +117,13 @@ public final class Entity {
             indexDataMapping,
             attributes.get(serialized.getIdAttribute()).getMapping(Underlay.MappingType.INDEX));
 
-    FieldPointer sourceStartDateColumn = null;
+    FieldPointer sourceStartDateColumn;
     if (serialized.getSourceStartDateColumn() != null) {
       sourceStartDateColumn =
           FieldPointer.fromSerialized(
               serialized.getSourceStartDateColumn(), sourceDataMapping.getTablePointer());
+    } else {
+      sourceStartDateColumn = null;
     }
 
     Entity entity =
@@ -137,10 +139,8 @@ public final class Entity {
 
     sourceDataMapping.initialize(entity);
     indexDataMapping.initialize(entity);
-    if (textSearch != null) {
-      textSearch.initialize(entity);
-    }
-    hierarchies.values().stream().forEach(hierarchy -> hierarchy.initialize(entity));
+    textSearch.initialize(entity);
+    hierarchies.values().forEach(hierarchy -> hierarchy.initialize(entity));
 
     return entity;
   }
@@ -165,7 +165,10 @@ public final class Entity {
               : AttributeMapping.fromSerialized(null, indexMapping.getTablePointer(), attribute);
       attribute.initialize(sourceAttributeMapping, indexAttributeMapping);
     }
-    serialized.getSourceDataMapping().getAttributeMappings().keySet().stream()
+    serialized
+        .getSourceDataMapping()
+        .getAttributeMappings()
+        .keySet()
         .forEach(
             serializedAttributeName -> {
               if (!attributes.containsKey(serializedAttributeName)) {
@@ -212,31 +215,26 @@ public final class Entity {
         serialized.getIndexDataMapping().getHierarchyMappings();
     Map<String, Hierarchy> hierarchies = new HashMap<>();
     if (sourceHierarchyMappingsSerialized != null) {
-      sourceHierarchyMappingsSerialized.entrySet().stream()
-          .forEach(
-              sourceHierarchyMappingSerialized -> {
-                HierarchyMapping sourceMapping =
-                    HierarchyMapping.fromSerialized(
-                        sourceHierarchyMappingSerialized.getValue(),
-                        sourceEntityMapping.getTablePointer().getDataPointer(),
-                        Underlay.MappingType.SOURCE);
-                HierarchyMapping indexMapping =
-                    indexHierarchyMappingsSerialized == null
-                        ? HierarchyMapping.defaultIndexMapping(
-                            serialized.getName(),
-                            sourceHierarchyMappingSerialized.getKey(),
-                            idAttribute.getValue(),
-                            sourceHierarchyMappingSerialized.getValue().getMaxHierarchyDepth())
-                        : HierarchyMapping.fromSerialized(
-                            indexHierarchyMappingsSerialized.get(
-                                sourceHierarchyMappingSerialized.getKey()),
-                            indexEntityMapping.getTablePointer().getDataPointer(),
-                            Underlay.MappingType.INDEX);
-                hierarchies.put(
-                    sourceHierarchyMappingSerialized.getKey(),
-                    new Hierarchy(
-                        sourceHierarchyMappingSerialized.getKey(), sourceMapping, indexMapping));
-              });
+      sourceHierarchyMappingsSerialized.forEach(
+          (key, value) -> {
+            HierarchyMapping sourceMapping =
+                HierarchyMapping.fromSerialized(
+                    value,
+                    sourceEntityMapping.getTablePointer().getDataPointer(),
+                    Underlay.MappingType.SOURCE);
+            HierarchyMapping indexMapping =
+                indexHierarchyMappingsSerialized == null
+                    ? HierarchyMapping.defaultIndexMapping(
+                        serialized.getName(),
+                        key,
+                        idAttribute.getValue(),
+                        value.getMaxHierarchyDepth())
+                    : HierarchyMapping.fromSerialized(
+                        indexHierarchyMappingsSerialized.get(key),
+                        indexEntityMapping.getTablePointer().getDataPointer(),
+                        Underlay.MappingType.INDEX);
+            hierarchies.put(key, new Hierarchy(key, sourceMapping, indexMapping));
+          });
     }
     return hierarchies;
   }
@@ -272,8 +270,8 @@ public final class Entity {
     return attributes.get(name);
   }
 
-  public List<Attribute> getAttributes() {
-    return Collections.unmodifiableList(attributes.values().stream().collect(Collectors.toList()));
+  public Collection<Attribute> getAttributes() {
+    return Collections.unmodifiableCollection(attributes.values());
   }
 
   public void addAttribute(String name, Attribute attribute) {
@@ -284,8 +282,8 @@ public final class Entity {
     return hierarchies.get(name);
   }
 
-  public List<Hierarchy> getHierarchies() {
-    return Collections.unmodifiableList(hierarchies.values().stream().collect(Collectors.toList()));
+  public Collection<Hierarchy> getHierarchies() {
+    return Collections.unmodifiableCollection(hierarchies.values());
   }
 
   public boolean hasHierarchies() {
@@ -298,12 +296,11 @@ public final class Entity {
 
   public List<Relationship> getRelationships() {
     List<Relationship> relationships = new ArrayList<>();
-    underlay.getEntityGroups().values().stream()
-        .forEach(
-            entityGroup ->
-                entityGroup.getRelationships().values().stream()
-                    .filter(relationship -> relationship.includesEntity(this))
-                    .forEach(relationship -> relationships.add(relationship)));
+    for (EntityGroup entityGroup : underlay.getEntityGroups().values()) {
+      entityGroup.getRelationships().values().stream()
+          .filter(relationship -> relationship.includesEntity(this))
+          .forEach(relationships::add);
+    }
     return relationships;
   }
 
@@ -311,7 +308,7 @@ public final class Entity {
     return getRelationships().stream()
         .filter(relationship -> relationship.includesEntity(relatedEntity))
         .findFirst()
-        .get();
+        .orElseThrow();
   }
 
   public Underlay getUnderlay() {
@@ -319,10 +316,10 @@ public final class Entity {
   }
 
   public EntityMapping getMapping(Underlay.MappingType mappingType) {
-    return Underlay.MappingType.SOURCE.equals(mappingType) ? sourceDataMapping : indexDataMapping;
+    return Underlay.MappingType.SOURCE == mappingType ? sourceDataMapping : indexDataMapping;
   }
 
-  public FieldPointer getSourceStartDateColumn() {
+  public @Nullable FieldPointer getSourceStartDateColumn() {
     return sourceStartDateColumn;
   }
 }

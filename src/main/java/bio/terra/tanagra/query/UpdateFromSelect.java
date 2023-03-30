@@ -1,5 +1,6 @@
 package bio.terra.tanagra.query;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.SystemException;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ public class UpdateFromSelect implements SQLExpression {
   }
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatform platform) {
     // Check that the select join field is part of the query.
     if (!selectQuery.getSelect().contains(selectJoinField)) {
       throw new SystemException("Select join field is not part of the query selected fields");
@@ -41,7 +42,7 @@ public class UpdateFromSelect implements SQLExpression {
     List<TableVariable> tableVars = new ArrayList<>();
     TablePointer nestedTable =
         TablePointer.fromRawSql(
-            selectQuery.renderSQL(),
+            selectQuery.renderSQL(platform),
             selectQuery.getPrimaryTable().getTablePointer().getDataPointer());
     TableVariable nestedTableVar = TableVariable.forPrimary(nestedTable);
     tableVars.add(nestedTableVar);
@@ -85,8 +86,8 @@ public class UpdateFromSelect implements SQLExpression {
                   String template = "${updateFieldSQL} = ${selectFieldSQL}";
                   Map<String, String> params =
                       ImmutableMap.<String, String>builder()
-                          .put("updateFieldSQL", setField.getKey().renderSQL())
-                          .put("selectFieldSQL", setField.getValue().renderSQL())
+                          .put("updateFieldSQL", setField.getKey().renderSQL(platform))
+                          .put("selectFieldSQL", setField.getValue().renderSQL(platform))
                           .build();
                   return StringSubstitutor.replace(template, params);
                 })
@@ -96,11 +97,11 @@ public class UpdateFromSelect implements SQLExpression {
         "UPDATE ${updateTableSQL} SET ${setFieldsSQL} FROM ${selectTableSQL} WHERE ${updateJoinFieldSQL} = ${selectJoinField}";
     Map<String, String> params =
         ImmutableMap.<String, String>builder()
-            .put("updateTableSQL", updateTable.renderSQL())
+            .put("updateTableSQL", updateTable.renderSQL(platform))
             .put("setFieldsSQL", setFieldsSQL)
-            .put("selectTableSQL", nestedTableVar.renderSQL())
-            .put("updateJoinFieldSQL", updateJoinField.renderSQL())
-            .put("selectJoinField", selectJoinFieldForNestedVar.renderSQL())
+            .put("selectTableSQL", nestedTableVar.renderSQL(platform))
+            .put("updateJoinFieldSQL", updateJoinField.renderSQL(platform))
+            .put("selectJoinField", selectJoinFieldForNestedVar.renderSQL(platform))
             .build();
     return StringSubstitutor.replace(template, params);
   }

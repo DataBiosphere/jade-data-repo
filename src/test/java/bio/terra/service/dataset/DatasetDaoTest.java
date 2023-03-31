@@ -905,6 +905,19 @@ public class DatasetDaoTest {
   }
 
   @Test
+  public void updatePredictableFileIdsFlag() throws Exception {
+    UUID datasetId = createDataset("dataset-minimal.json");
+    assertFalse(
+        "predictable file ids flag is false",
+        datasetDao.retrieve(datasetId).hasPredictableFileIds());
+    datasetDao.setPredictableFileId(datasetId, true);
+    assertTrue(
+        "predictable file ids flag is false",
+        datasetDao.retrieve(datasetId).hasPredictableFileIds());
+    datasetDao.delete(datasetId, TEST_USER);
+  }
+
+  @Test
   public void patchDatasetProperties() throws Exception {
     UUID datasetId = createDataset("dataset-create-test.json");
     String defaultDesc = datasetDao.retrieve(datasetId).getDescription();

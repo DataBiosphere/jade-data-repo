@@ -7,12 +7,16 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
 import bio.terra.model.DatasetPatchRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
@@ -109,5 +113,16 @@ public class DatasetServiceUnitTest {
         datasetService.patchDatasetIamActions(
             new DatasetPatchRequestModel().description("an updated description")),
         containsInAnyOrder(IamAction.MANAGE_SCHEMA));
+  }
+
+  @Test
+  public void updatePredictableIdsFlag() {
+    UUID datasetId = UUID.randomUUID();
+    DatasetSummary summary = mock(DatasetSummary.class);
+    when(summary.toModel()).thenReturn(new DatasetSummaryModel().id(datasetId));
+    when(datasetDao.retrieveSummaryById(datasetId)).thenReturn(summary);
+    datasetService.setPredictableFileIds(datasetId, true);
+    verify(datasetDao, times(1)).setPredictableFileId(eq(datasetId), eq(true));
+    verify(datasetDao, times(1)).retrieveSummaryById(eq(datasetId));
   }
 }

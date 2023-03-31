@@ -2,16 +2,16 @@ package bio.terra.service.dataset.flight.upgrade.predictableFileIds;
 
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConvertToPredictableFileIdsBqDropStageTableStep implements Step {
+public class ConvertToPredictableFileIdsBqDropStageTableStep extends DefaultUndoStep {
   private static final Logger logger =
       LoggerFactory.getLogger(ConvertToPredictableFileIdsBqDropStageTableStep.class);
 
@@ -33,11 +33,6 @@ public class ConvertToPredictableFileIdsBqDropStageTableStep implements Step {
     // Drop the table
     bigQueryDatasetPdao.deleteStagingFileIdMappingTable(dataset);
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
     return StepResult.getStepResultSuccess();
   }
 }

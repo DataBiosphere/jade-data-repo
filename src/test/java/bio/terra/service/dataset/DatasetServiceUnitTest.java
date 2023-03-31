@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -122,7 +121,7 @@ public class DatasetServiceUnitTest {
     when(summary.toModel()).thenReturn(new DatasetSummaryModel().id(datasetId));
     when(datasetDao.retrieveSummaryById(datasetId)).thenReturn(summary);
     datasetService.setPredictableFileIds(datasetId, true);
-    verify(datasetDao, times(1)).setPredictableFileId(eq(datasetId), eq(true));
-    verify(datasetDao, times(1)).retrieveSummaryById(eq(datasetId));
+    verify(datasetDao).setPredictableFileId(datasetId, true);
+    verify(datasetDao).retrieveSummaryById(datasetId);
   }
 }

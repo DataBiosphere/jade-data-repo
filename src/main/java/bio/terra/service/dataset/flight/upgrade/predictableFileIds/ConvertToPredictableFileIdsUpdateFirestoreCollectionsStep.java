@@ -40,11 +40,11 @@ public class ConvertToPredictableFileIdsUpdateFirestoreCollectionsStep implement
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     Dataset dataset = datasetService.retrieve(datasetId);
     // Reverse the id mapping to revert
-    Map<UUID, UUID> oldToNewMappings =
+    Map<UUID, UUID> newToOldMappings =
         ConvertFileIdUtils.readFlightMappings(context.getWorkingMap()).entrySet().stream()
             .collect(Collectors.toMap(Entry::getValue, Entry::getKey));
 
-    fileDao.moveFileMetadata(dataset, oldToNewMappings);
+    fileDao.moveFileMetadata(dataset, newToOldMappings);
     return StepResult.getStepResultSuccess();
   }
 }

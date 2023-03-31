@@ -55,12 +55,13 @@ public abstract class BigQueryPdao {
 
     String bqDatasetName = prefixContainerName(container);
 
-    ST sqlTemplate = new ST(selectHasDuplicateStagingIdsTemplate);
-    sqlTemplate.add("count", PDAO_COUNT_ALIAS);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", bqDatasetName);
-    sqlTemplate.add("tableName", tableName);
-    sqlTemplate.add("pkColumns", pkColumns);
+    ST sqlTemplate =
+        new ST(selectHasDuplicateStagingIdsTemplate)
+            .add("count", PDAO_COUNT_ALIAS)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", bqDatasetName)
+            .add("tableName", tableName)
+            .add("pkColumns", pkColumns);
 
     return bigQueryProject.query(sqlTemplate.render());
   }

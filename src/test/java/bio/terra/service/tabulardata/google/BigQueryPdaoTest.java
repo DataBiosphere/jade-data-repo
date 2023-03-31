@@ -108,6 +108,9 @@ public class BigQueryPdaoTest {
 
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
 
+  private final List<UUID> datasetIdsToDelete = new ArrayList<>();
+  private final List<Dataset> bqDatasetsToDelete = new ArrayList<>();
+
   @Rule public ExpectedException exceptionGrabber = ExpectedException.none();
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
@@ -185,7 +188,6 @@ public class BigQueryPdaoTest {
   @Test
   public void nonStringAssetRootTest() throws Exception {
     Dataset dataset = readDataset("ingest-test-dataset.json");
-    connectedOperations.addDataset(dataset.getId());
 
     // Stage tabular data for ingest.
     String targetPath = "scratch/file" + UUID.randomUUID() + "/";
@@ -605,6 +607,7 @@ public class BigQueryPdaoTest {
     dataset.id(datasetId);
     datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
+    connectedOperations.addDataset(dataset.getId());
     return dataset;
   }
 

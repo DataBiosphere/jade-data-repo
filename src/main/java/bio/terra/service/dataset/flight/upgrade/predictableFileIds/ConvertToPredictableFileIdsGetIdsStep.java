@@ -6,8 +6,8 @@ import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FileIdService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreUtils;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConvertToPredictableFileIdsGetIdsStep implements Step {
+public class ConvertToPredictableFileIdsGetIdsStep extends DefaultUndoStep {
   private static final Logger logger =
       LoggerFactory.getLogger(ConvertToPredictableFileIdsGetIdsStep.class);
 
@@ -65,11 +65,6 @@ public class ConvertToPredictableFileIdsGetIdsStep implements Step {
             .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
     context.getWorkingMap().put(ConvertFileIdUtils.FILE_ID_MAPPINGS_FIELD, oldToNewMappings);
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
     return StepResult.getStepResultSuccess();
   }
 }

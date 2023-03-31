@@ -51,12 +51,28 @@ public class DrsIdService {
     URI uri = URI.create(drsUri);
     if (!StringUtils.equals(uri.getScheme(), "drs")
         || uri.getAuthority() == null
-        || !StringUtils.startsWith(uri.getPath(), "/")) {
+        // This is invalid for standard DRS URIs
+        || (!StringUtils.startsWith(uri.getPath(), "/") && !StringUtils.isEmpty(uri.getPath()))
+        // This is invalid for compact IDs
+        || (StringUtils.isEmpty(uri.getPath()) && !uri.getAuthority().contains(":"))) {
       throw new InvalidDrsIdException("Invalid DRS URI '" + drsUri + "'");
     }
-    String datarepoDnsName = uri.getAuthority();
-    String objectId = StringUtils.remove(uri.getPath(), '/');
-    return parseObjectId(datarepoDnsName, objectId).dnsname(uri.getAuthority()).build();
+
+    // According to the DRS spec, port numbers can't be specified so just the presence of `:` in the
+    // authority is an indication of a compact id being used
+    boolean compactId = uri.getAuthority().contains(":");
+    String datarepoDnsName;
+    String objectId;
+    if (compactId) {
+      String[] parts = uri.getAuthority().split(":");
+      datarepoDnsName = parts[0];
+      objectId = parts[1];
+    } else {
+      datarepoDnsName = uri.getAuthority();
+      objectId = StringUtils.remove(uri.getPath(), '/');
+    }
+
+    return parseObjectId(datarepoDnsName, objectId).compactId(compactId).build();
   }
 
   public DrsId fromObjectId(String drsObjectId) {
@@ -68,7 +84,7 @@ public class DrsIdService {
   }
 
   private static DrsId.Builder parseObjectId(String datarepoDnsName, String objectId) {
-    // The format is v1_<snapshotid>_<fsobjectid> or v2_fsobjectid
+    // The format is v1_<snapshotid>_<fsobjectid> or v2_<fsobjectid>
     String[] idParts = StringUtils.split(objectId, '_');
     if (idParts.length == 3 && StringUtils.equals(idParts[0], "v1")) {
       return DrsId.builder()

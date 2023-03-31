@@ -181,8 +181,10 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties, global_file_ids) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb, :global_file_ids) ";
+        """
+        INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties, global_file_ids, compact_id_prefix)
+        VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb, :global_file_ids, :compact_id_prefix)
+        """;
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
@@ -202,7 +204,8 @@ public class SnapshotDao {
             .addValue("creation_information", creationInfo)
             .addValue(
                 "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
-            .addValue("global_file_ids", snapshot.hasGlobalFileIds());
+            .addValue("global_file_ids", snapshot.hasGlobalFileIds())
+            .addValue("compact_id_prefix", snapshot.getCompactIdPrefix());
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {
@@ -416,6 +419,7 @@ public class SnapshotDao {
                               rs.getString("creation_information")))
                       .consentCode(rs.getString("consent_code"))
                       .globalFileIds(rs.getBoolean("global_file_ids"))
+                      .compactIdPrefix(rs.getString("compact_id_prefix"))
                       .properties(
                           DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
                       .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class)));

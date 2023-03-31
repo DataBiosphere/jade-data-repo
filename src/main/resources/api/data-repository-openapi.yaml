@@ -5165,6 +5165,8 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        compactIdPrefix:
+          $ref: '#/components/schemas/CompactIdPrefix'
       description: >
         Request for creating a snapshot.
         For now, the API only supports snapshots defined as a single dataset asset and
@@ -5426,6 +5428,8 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        compactIdPrefix:
+          $ref: '#/components/schemas/CompactIdPrefix'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:
@@ -6068,6 +6072,14 @@ components:
       enum: [ gcp, azure ]
       default: gcp
       description: Cloud platforms supported by TDR.
+
+    CompactIdPrefix:
+      type: string
+      description: >
+        if present, the drs URIs will be rendered using the compact id format (drs://<compactIdPrefix>:<drsId>)
+        instead of the original format (drs://<hostname>/<drsId>).  The format is [A-Za-z0-9._] and the prefix
+        must be registered at identifiers.org
+      example: drs.42
 
     PhsId:
       type: string

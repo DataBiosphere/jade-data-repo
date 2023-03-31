@@ -1149,12 +1149,17 @@ public class BigQuerySnapshotPdao {
       String mapName = mapColumn.getFromColumn().getName();
 
       if (mapColumn.getFromColumn().isFileOrDirRef()) {
-
-        String drsPrefix;
+        String drsIdPrefix;
         if (snapshot.hasGlobalFileIds()) {
-          drsPrefix = "'drs://" + datarepoDnsName + "/v2_'";
+          drsIdPrefix = "v2_";
         } else {
-          drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshot.getId() + "_'";
+          drsIdPrefix = "v1_" + snapshot.getId() + "_";
+        }
+        String drsPrefix;
+        if (StringUtils.isEmpty(snapshot.getCompactIdPrefix())) {
+          drsPrefix = "'drs://" + datarepoDnsName + "/" + drsIdPrefix + "'";
+        } else {
+          drsPrefix = "'drs://" + snapshot.getCompactIdPrefix() + ":" + drsIdPrefix + "'";
         }
 
         if (targetColumn.isArrayOf()) {

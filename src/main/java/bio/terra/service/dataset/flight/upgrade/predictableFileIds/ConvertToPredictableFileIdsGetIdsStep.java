@@ -65,6 +65,11 @@ public class ConvertToPredictableFileIdsGetIdsStep extends DefaultUndoStep {
             .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
     context.getWorkingMap().put(ConvertFileIdUtils.FILE_ID_MAPPINGS_FIELD, oldToNewMappings);
+    context
+        .getWorkingMap()
+        .put(
+            ConvertFileIdUtils.DATASET_USES_PREDICTABLE_IDS_AT_START,
+            dataset.hasPredictableFileIds());
     return StepResult.getStepResultSuccess();
   }
 }

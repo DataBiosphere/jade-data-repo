@@ -11,6 +11,8 @@ public class ConvertFileIdUtils {
   private ConvertFileIdUtils() {}
 
   public static final String FILE_ID_MAPPINGS_FIELD = "flightIdMappings";
+  public static final String DATASET_USES_PREDICTABLE_IDS_AT_START =
+      "datasetUsesPredictableIdsAtStart";
 
   public static Map<UUID, UUID> readFlightMappings(FlightMap workingMap) {
     return workingMap

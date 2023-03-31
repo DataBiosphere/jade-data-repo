@@ -1,8 +1,7 @@
 package bio.terra.service.filedata;
 
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.util.Objects;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /*
@@ -14,12 +13,14 @@ public class DrsId {
   private final String version;
   private final String snapshotId;
   private final String fsObjectId;
+  private final boolean compactId;
 
-  public DrsId(String dnsname, String version, String snapshotId, String fsObjectId) {
+  DrsId(String dnsname, String version, String snapshotId, String fsObjectId, boolean compactId) {
     this.dnsname = dnsname;
     this.version = version;
     this.snapshotId = snapshotId;
     this.fsObjectId = fsObjectId;
+    this.compactId = compactId;
   }
 
   public String getDnsname() {
@@ -54,12 +55,10 @@ public class DrsId {
   }
 
   public String toDrsUri() {
-    String path = "/" + toDrsObjectId();
-    try {
-      URI uri = new URI("drs", dnsname, path, null, null);
-      return uri.toString();
-    } catch (URISyntaxException ex) {
-      throw new InvalidDrsIdException("Invalid DRS syntax", ex);
+    if (compactId) {
+      return "drs://" + dnsname + ":" + toDrsObjectId();
+    } else {
+      return "drs://" + dnsname + "/" + toDrsObjectId();
     }
   }
 
@@ -70,30 +69,29 @@ public class DrsId {
         .append("version", version)
         .append("snapshotId", snapshotId)
         .append("fsObjectId", fsObjectId)
+        .append("compactId", compactId)
         .toString();
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-
-    DrsId drsId = (DrsId) o;
-
-    if (dnsname != null ? !dnsname.equals(drsId.dnsname) : drsId.dnsname != null) return false;
-    if (version != null ? !version.equals(drsId.version) : drsId.version != null) return false;
-    if (snapshotId != null ? !snapshotId.equals(drsId.snapshotId) : drsId.snapshotId != null)
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
-    return fsObjectId != null ? fsObjectId.equals(drsId.fsObjectId) : drsId.fsObjectId == null;
+    }
+    DrsId snapshotRequestAssetModel = (DrsId) o;
+    return Objects.equals(this.dnsname, snapshotRequestAssetModel.dnsname)
+        && Objects.equals(this.version, snapshotRequestAssetModel.version)
+        && Objects.equals(this.snapshotId, snapshotRequestAssetModel.snapshotId)
+        && Objects.equals(this.fsObjectId, snapshotRequestAssetModel.fsObjectId)
+        && Objects.equals(this.compactId, snapshotRequestAssetModel.compactId);
   }
 
   @Override
   public int hashCode() {
-    int result = dnsname != null ? dnsname.hashCode() : 0;
-    result = 31 * result + (version != null ? version.hashCode() : 0);
-    result = 31 * result + (snapshotId != null ? snapshotId.hashCode() : 0);
-    result = 31 * result + (fsObjectId != null ? fsObjectId.hashCode() : 0);
-    return result;
+    return Objects.hash(dnsname, version, snapshotId, fsObjectId, compactId);
   }
 
   public static class Builder {
@@ -101,6 +99,7 @@ public class DrsId {
     private String version;
     private String snapshotId;
     private String fsObjectId;
+    private boolean compactId;
 
     public Builder dnsname(String dnsname) {
       this.dnsname = dnsname;
@@ -122,8 +121,13 @@ public class DrsId {
       return this;
     }
 
+    public Builder compactId(boolean compactId) {
+      this.compactId = compactId;
+      return this;
+    }
+
     public DrsId build() {
-      return new DrsId(dnsname, version, snapshotId, fsObjectId);
+      return new DrsId(dnsname, version, snapshotId, fsObjectId, compactId);
     }
   }
 }

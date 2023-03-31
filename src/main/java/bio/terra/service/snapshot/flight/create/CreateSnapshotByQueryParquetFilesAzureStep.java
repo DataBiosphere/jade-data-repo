@@ -72,7 +72,8 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
               sourceDatasetDataSourceName,
               targetDataSourceName,
               sqlQuery,
-              snapshotReq.isGlobalFileIds());
+              snapshotReq.isGlobalFileIds(),
+              snapshot.getCompactIdPrefix());
       workingMap.put(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, tableRowCounts);
     } catch (SQLException | PdaoException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

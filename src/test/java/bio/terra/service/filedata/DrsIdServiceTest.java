@@ -16,6 +16,7 @@ import org.junit.experimental.categories.Category;
 public class DrsIdServiceTest {
 
   private static final String HOSTNAME = "myhost.org";
+  private static final String COMPACT_ID_PREFIX = "foo.0";
 
   private final ApplicationConfiguration applicationConfiguration = new ApplicationConfiguration();
 
@@ -34,16 +35,16 @@ public class DrsIdServiceTest {
     assertThat(
         "v1 object id can be parsed",
         drsIdService.fromObjectId("v1_" + snapshotId + "_" + fileId),
-        equalTo(new DrsId(HOSTNAME, "v1", snapshotId.toString(), fileId.toString())));
+        equalTo(new DrsId(HOSTNAME, "v1", snapshotId.toString(), fileId.toString(), false)));
     assertThat(
         "v1 object id can be created",
         drsIdService.makeDrsId(new FSFile().fileId(fileId), snapshotId.toString()),
-        equalTo(new DrsId(HOSTNAME, "v1", snapshotId.toString(), fileId.toString())));
+        equalTo(new DrsId(HOSTNAME, "v1", snapshotId.toString(), fileId.toString(), false)));
     String drsUri = "drs://" + HOSTNAME + "/v1_" + snapshotId + "_" + fileId;
     assertThat(
         "v1 drs URI can be parsed",
         DrsIdService.fromUri(drsUri),
-        equalTo(new DrsId(HOSTNAME, "v1", snapshotId.toString(), fileId.toString())));
+        equalTo(new DrsId(HOSTNAME, "v1", snapshotId.toString(), fileId.toString(), false)));
     assertThat(
         "v1 drs URI can be parsed and returns the same URI",
         DrsIdService.fromUri(drsUri).toDrsUri(),
@@ -56,20 +57,45 @@ public class DrsIdServiceTest {
     assertThat(
         "v2 object id can be parsed",
         drsIdService.fromObjectId("v2_" + fileId),
-        equalTo(new DrsId(HOSTNAME, "v2", null, fileId.toString())));
+        equalTo(new DrsId(HOSTNAME, "v2", null, fileId.toString(), false)));
     assertThat(
         "v2 object id can be created",
         drsIdService.makeDrsId(new FSFile().fileId(fileId)),
-        equalTo(new DrsId(HOSTNAME, "v2", null, fileId.toString())));
+        equalTo(new DrsId(HOSTNAME, "v2", null, fileId.toString(), false)));
     String drsUri = "drs://" + HOSTNAME + "/v2_" + fileId;
     assertThat(
         "v2 drs URI can be parsed",
         DrsIdService.fromUri(drsUri),
-        equalTo(new DrsId(HOSTNAME, "v2", null, fileId.toString())));
+        equalTo(new DrsId(HOSTNAME, "v2", null, fileId.toString(), false)));
     assertThat(
         "v2 drs URI can be parsed and returns the same URI",
         DrsIdService.fromUri(drsUri).toDrsUri(),
         equalTo(drsUri));
+  }
+
+  @Test
+  public void testCompactIdDrsIds() {
+    UUID snapshotId = UUID.randomUUID();
+    UUID fileId = UUID.randomUUID();
+    String drsUriV1 = "drs://" + COMPACT_ID_PREFIX + ":v1_" + snapshotId + "_" + fileId;
+    String drsUriV2 = "drs://" + COMPACT_ID_PREFIX + ":v2_" + fileId;
+    assertThat(
+        "v1 compact id can be parsed",
+        DrsIdService.fromUri(drsUriV1),
+        equalTo(
+            new DrsId(COMPACT_ID_PREFIX, "v1", snapshotId.toString(), fileId.toString(), true)));
+    assertThat(
+        "v1 compact id can be parsed and returns the same URI",
+        DrsIdService.fromUri(drsUriV1).toDrsUri(),
+        equalTo(drsUriV1));
+    assertThat(
+        "v2 compact id can be parsed",
+        DrsIdService.fromUri(drsUriV2),
+        equalTo(new DrsId(COMPACT_ID_PREFIX, "v2", null, fileId.toString(), true)));
+    assertThat(
+        "v2 compact id can be parsed and returns the same URI",
+        DrsIdService.fromUri(drsUriV2).toDrsUri(),
+        equalTo(drsUriV2));
   }
 
   @Test
@@ -100,5 +126,10 @@ public class DrsIdServiceTest {
         "badly formed uri - invalid protocol",
         InvalidDrsIdException.class,
         () -> DrsIdService.fromUri("https://notadrsurl.com"));
+
+    assertThrows(
+        "badly formed uri - just a host",
+        InvalidDrsIdException.class,
+        () -> DrsIdService.fromUri("drs://" + HOSTNAME));
   }
 }

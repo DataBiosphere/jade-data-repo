@@ -1650,6 +1650,61 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/datasets/{id}/data/{table}:
+    get:
+      tags:
+        - datasets
+        - search
+        - repository
+      description: Retrieve data for a table in a dataset
+      operationId: lookupDatasetDataById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: table
+          in: path
+          description: Name of table to get data from
+          required: true
+          schema:
+            type: string
+        - name: offset
+          in: query
+          description: The number of rows to skip when retrieving the next page
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: limit
+          in: query
+          description: The number of rows to return for the data
+          schema:
+            type: integer
+            default: 30
+            minimum: 1
+            maximum: 1000
+        - name: sort
+          in: query
+          description: The table column to sort by
+          schema:
+            type: string
+            default: "datarepo_row_id"
+        - name: direction
+          in: query
+          description: The direction to sort.
+          schema:
+            default: asc
+            $ref: '#/components/schemas/SqlSortDirection'
+        - name: filter
+          in: query
+          description: A SQL WHERE clause to filter the table results.
+          schema:
+            type: string
+      responses:
+        200:
+          description: Returns the table data from a dataset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetDataModel'
   /api/repository/v1/datasets/{id}/summary:
     get:
       tags:
@@ -4621,12 +4676,15 @@ components:
              * `append` - Default: only ever insert rows, regardless of whether or not the primary key value exists
              * `replace` - If a primary key is present on the table, treat rows with matching primary keys
                          as updates. If duplicate IDs are found in your ingest, the ingest job
-                         will fail. Note: the full new record must be specified.
+                         will fail. If your rows specify `datarepo_row_id`, it will be ignored and
+                         TDR will generate new row IDs for your new records. Note: the full new
+                         record must be specified.
              * `merge` - If a primary key is present on the table, treat rows with matching primary keys
                          as partial updates. Any fields specified will overwrite their current values
-                         in the matching table row.  Each ingest row must match exactly one table row,
-                         and no duplicate IDs should be found in your ingest, otherwise the ingest job
-                         will fail.
+                         in the matching table row. If your rows specify `datarepo_row_id`, it will
+                         be ignored and TDR will generate new row IDs for your new records. Each
+                         ingest row must match exactly one table row, and no duplicate IDs should be
+                         found in your ingest, otherwise the ingest job will fail.
         bulkMode:
           type: boolean
           default: false
@@ -4751,6 +4809,16 @@ components:
         dataset bucket.
         Eventually, this will include attributes of the storage including
         billing, temperature, geography, etc. But for now...
+    DatasetDataModel:
+      type: object
+      properties:
+        result:
+          type: array
+          items:
+            type: object
+          description: Data from a dataset table
+      description: >
+       Data from a dataset table
     SnapshotPreviewModel:
       type: object
       properties:
@@ -5097,6 +5165,8 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        compactIdPrefix:
+          $ref: '#/components/schemas/CompactIdPrefix'
       description: >
         Request for creating a snapshot.
         For now, the API only supports snapshots defined as a single dataset asset and
@@ -5358,6 +5428,8 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        compactIdPrefix:
+          $ref: '#/components/schemas/CompactIdPrefix'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:
@@ -6000,6 +6072,14 @@ components:
       enum: [ gcp, azure ]
       default: gcp
       description: Cloud platforms supported by TDR.
+
+    CompactIdPrefix:
+      type: string
+      description: >
+        if present, the drs URIs will be rendered using the compact id format (drs://<compactIdPrefix>:<drsId>)
+        instead of the original format (drs://<hostname>/<drsId>).  The format is [A-Za-z0-9._] and the prefix
+        must be registered at identifiers.org
+      example: drs.42
 
     PhsId:
       type: string

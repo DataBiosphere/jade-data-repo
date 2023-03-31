@@ -482,21 +482,32 @@ public class BigQueryDatasetPdao {
         .error(bqStringValue(fieldValue, LoadHistoryUtil.ERROR_FIELD_NAME));
   }
 
-  private static final String addRowIdsToStagingTableTemplate =
-      "UPDATE `<project>.<dataset>.<stagingTable>` SET "
-          + PDAO_ROW_ID_COLUMN
-          + " = GENERATE_UUID() WHERE "
-          + PDAO_ROW_ID_COLUMN
-          + " IS NULL";
-
-  public void addRowIdsToStagingTable(Dataset dataset, String stagingTableName)
+  /**
+   * @param ignoreUserSpecifiedRowIds true if we should generate new row IDs for all staged records,
+   *     otherwise only generate row IDs where they don't already exist.
+   */
+  public void addRowIdsToStagingTable(
+      Dataset dataset, String stagingTableName, boolean ignoreUserSpecifiedRowIds)
       throws InterruptedException {
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
-    ST sqlTemplate = new ST(addRowIdsToStagingTableTemplate);
-    sqlTemplate.add("project", bigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("stagingTable", stagingTableName);
+    String addRowIdsToStagingTableTemplate =
+        """
+            UPDATE `<project>.<dataset>.<stagingTable>`
+            SET <pdaoRowIdColumn> = GENERATE_UUID()
+            WHERE <whereClause>
+            """;
+    // BigQuery updates require WHERE clauses to protect against erroneous full-table updates,
+    // but we intend to run a full-table update when generating all new row IDs.
+    String whereClause = (ignoreUserSpecifiedRowIds) ? "true" : PDAO_ROW_ID_COLUMN + " IS NULL";
+
+    ST sqlTemplate =
+        new ST(addRowIdsToStagingTableTemplate)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("stagingTable", stagingTableName)
+            .add("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN)
+            .add("whereClause", whereClause);
 
     bigQueryProject.query(sqlTemplate.render());
   }

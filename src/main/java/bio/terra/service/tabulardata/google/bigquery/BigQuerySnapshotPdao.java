@@ -4,6 +4,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
+import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.aggregateTableData;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
@@ -13,12 +14,10 @@ import bio.terra.common.DateTimeUtils;
 import bio.terra.common.Table;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.PdaoException;
-import bio.terra.grammar.Query;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
-import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
@@ -37,7 +36,6 @@ import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.JobInfo;
@@ -790,89 +788,6 @@ public class BigQuerySnapshotPdao {
         BigQueryProject.from(snapshot), snapshot.getName(), policies);
   }
 
-  public static List<Map<String, Object>> aggregateSnapshotTable(TableResult result) {
-    final FieldList columns = result.getSchema().getFields();
-    final List<Map<String, Object>> values = new ArrayList<>();
-    result
-        .iterateAll()
-        .forEach(
-            rows -> {
-              final Map<String, Object> rowData = new HashMap<>();
-              columns.forEach(
-                  column -> {
-                    String columnName = column.getName();
-                    FieldValue fieldValue = rows.get(columnName);
-                    Object value;
-                    if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
-                      value =
-                          fieldValue.getRepeatedValue().stream()
-                              .map(FieldValue::getValue)
-                              .collect(Collectors.toList());
-                    } else {
-                      value = fieldValue.getValue();
-                    }
-                    rowData.put(columnName, value);
-                  });
-              values.add(rowData);
-            });
-
-    return values;
-  }
-
-  private static final String SNAPSHOT_DATA_TEMPLATE =
-      "SELECT <columns> FROM <table> <filterParams>";
-
-  private static final String SNAPSHOT_DATA_FILTER_TEMPLATE =
-      "<whereClause> ORDER BY <sort> <direction> LIMIT <limit> OFFSET <offset>";
-
-  /*
-   * WARNING: Ensure input parameters are validated before executing this method!
-   */
-  public List<Map<String, Object>> getSnapshotTable(
-      Snapshot snapshot,
-      String tableName,
-      List<String> columnNames,
-      int limit,
-      int offset,
-      String sort,
-      SqlSortDirection direction,
-      String filter)
-      throws InterruptedException {
-    final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
-    final String snapshotProjectId = bigQueryProject.getProjectId();
-    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
-
-    String table = snapshot.getName() + "." + tableName;
-    String columns = String.join(",", columnNames);
-    // Parse before querying because the where clause is user-provided
-    final String sql =
-        new ST(SNAPSHOT_DATA_TEMPLATE)
-            .add("columns", columns)
-            .add("table", table)
-            .add("filterParams", whereClause)
-            .render();
-    Query.parse(sql);
-
-    // The bigquery sql table name must be enclosed in backticks
-    String bigQueryTable = "`" + snapshotProjectId + "." + table + "`";
-    final String filterParams =
-        new ST(SNAPSHOT_DATA_FILTER_TEMPLATE)
-            .add("whereClause", whereClause)
-            .add("sort", sort)
-            .add("direction", direction)
-            .add("limit", limit)
-            .add("offset", offset)
-            .render();
-    final String bigQuerySQL =
-        new ST(SNAPSHOT_DATA_TEMPLATE)
-            .add("columns", columns)
-            .add("table", bigQueryTable)
-            .add("filterParams", filterParams)
-            .render();
-    final TableResult result = bigQueryProject.query(bigQuerySQL);
-    return aggregateSnapshotTable(result);
-  }
-
   /*
    * WARNING: Ensure SQL is validated before executing this method!
    */
@@ -881,7 +796,7 @@ public class BigQuerySnapshotPdao {
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final TableResult result = bigQueryProject.query(sql);
 
-    return aggregateSnapshotTable(result);
+    return aggregateTableData(result);
   }
 
   // we select from the live view here so that the row counts take into account rows that have been
@@ -1234,12 +1149,17 @@ public class BigQuerySnapshotPdao {
       String mapName = mapColumn.getFromColumn().getName();
 
       if (mapColumn.getFromColumn().isFileOrDirRef()) {
-
-        String drsPrefix;
+        String drsIdPrefix;
         if (snapshot.hasGlobalFileIds()) {
-          drsPrefix = "'drs://" + datarepoDnsName + "/v2_'";
+          drsIdPrefix = "v2_";
         } else {
-          drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshot.getId() + "_'";
+          drsIdPrefix = "v1_" + snapshot.getId() + "_";
+        }
+        String drsPrefix;
+        if (StringUtils.isEmpty(snapshot.getCompactIdPrefix())) {
+          drsPrefix = "'drs://" + datarepoDnsName + "/" + drsIdPrefix + "'";
+        } else {
+          drsPrefix = "'drs://" + snapshot.getCompactIdPrefix() + ":" + drsIdPrefix + "'";
         }
 
         if (targetColumn.isArrayOf()) {

@@ -22,10 +22,12 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.CannotSerializeTransactionException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -178,6 +180,11 @@ public class DuosService {
    * @return DUOS Firecloud groups whose members were successfully synced, and any errors occurred
    *     which may have interfered with syncing
    */
+  @Scheduled(cron = "${duos.syncUsers.schedule:-}")
+  @SchedulerLock(
+      name = "DuosService.syncDuosDatasetsAuthorizedUsers",
+      lockAtLeastFor = "5s",
+      lockAtMostFor = "5m")
   public DuosFirecloudGroupsSyncResponse syncDuosDatasetsAuthorizedUsers() {
     // 1. Parallelize our calls to external systems (DUOS, Sam) which perform the sync
     Instant lastSyncedDate = Instant.now();

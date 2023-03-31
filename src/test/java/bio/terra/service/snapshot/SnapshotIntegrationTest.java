@@ -13,7 +13,6 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.TestJobWatcher;
@@ -29,15 +28,13 @@ import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.TableResult;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -122,41 +119,33 @@ public class SnapshotIntegrationTest extends UsersBase {
   public void snapshotRowIdsHappyPathTest() throws Exception {
     // fetch rowIds from the ingested dataset by querying the participant table
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-    String datasetProject = dataset.getDataProject();
-    String bqDatasetName = PdaoConstant.PDAO_PREFIX + dataset.getName();
     String participantTable = "participant";
     String sampleTable = "sample";
-    BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-    String sql =
-        String.format(
-            "SELECT %s FROM `%s.%s.%s`",
-            PdaoConstant.PDAO_ROW_ID_COLUMN, datasetProject, bqDatasetName, participantTable);
-    TableResult participantIds = BigQueryFixtures.query(sql, bigQuery);
-    List<UUID> participantIdList =
-        StreamSupport.stream(participantIds.getValues().spliterator(), false)
-            .map(v -> UUID.fromString(v.get(0).getStringValue()))
-            .collect(Collectors.toList());
-    sql =
-        String.format(
-            "SELECT %s FROM `%s.%s.%s`",
-            PdaoConstant.PDAO_ROW_ID_COLUMN, datasetProject, bqDatasetName, sampleTable);
-    TableResult sampleIds = BigQueryFixtures.query(sql, bigQuery);
-    List<UUID> sampleIdList =
-        StreamSupport.stream(sampleIds.getValues().spliterator(), false)
-            .map(v -> UUID.fromString(v.get(0).getStringValue()))
-            .collect(Collectors.toList());
+
+    List<Object> participantResults =
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, participantTable, 0, 1000, null);
+    List<UUID> participantIds =
+        participantResults.stream()
+            .map(
+                r ->
+                    UUID.fromString(
+                        ((LinkedHashMap) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
+            .toList();
+    List<Object> sampleResults =
+        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, sampleTable, 0, 1000, null);
+    List<UUID> sampleIds =
+        sampleResults.stream()
+            .map(
+                r ->
+                    UUID.fromString(
+                        ((LinkedHashMap) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
+            .toList();
 
     // swap in these row ids in the request
     SnapshotRequestModel requestModel =
         jsonLoader.loadObject("ingest-test-snapshot-row-ids-test.json", SnapshotRequestModel.class);
-    requestModel
-        .getContents()
-        .get(0)
-        .getRowIdSpec()
-        .getTables()
-        .get(0)
-        .setRowIds(participantIdList);
-    requestModel.getContents().get(0).getRowIdSpec().getTables().get(1).setRowIds(sampleIdList);
+    requestModel.getContents().get(0).getRowIdSpec().getTables().get(0).setRowIds(participantIds);
+    requestModel.getContents().get(0).getRowIdSpec().getTables().get(1).setRowIds(sampleIds);
 
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(

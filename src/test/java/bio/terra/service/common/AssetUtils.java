@@ -48,9 +48,9 @@ public class AssetUtils {
             .datasetRelationship(
                 new Relationship()
                     .id(UUID.randomUUID())
-                    .fromColumn(participantTable.getColumnByName("id"))
+                    .fromColumn(participantTable.getColumnByName("id").orElseThrow())
                     .fromTable(participantTable)
-                    .toColumn(sampleTable.getColumnByName("participant_ids"))
+                    .toColumn(sampleTable.getColumnByName("participant_ids").orElseThrow())
                     .toTable(sampleTable)
                     .name("participant_sample_relationship"));
     return WalkRelationship.ofAssetRelationship(sampleParticipantRelationship);

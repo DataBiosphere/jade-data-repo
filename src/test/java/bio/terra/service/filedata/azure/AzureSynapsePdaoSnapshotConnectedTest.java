@@ -141,7 +141,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
         sourceDatasetDataSourceName,
         snapshotDataSourceName,
         new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
-        false);
+        false,
+        null);
   }
 
   @Test
@@ -162,9 +163,9 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             .datasetRelationship(
                 new Relationship()
                     .id(UUID.randomUUID())
-                    .fromColumn(sampleTable.getColumnByName("participant_ids"))
+                    .fromColumn(sampleTable.getColumnByName("participant_ids").orElseThrow())
                     .fromTable(sampleTable)
-                    .toColumn(participantTable.getColumnByName("id"))
+                    .toColumn(participantTable.getColumnByName("id").orElseThrow())
                     .toTable(participantTable)
                     .name("participant_sample_table"));
     List<AssetRelationship> relationships = List.of(participantSampleRelationship);
@@ -187,7 +188,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
-            false);
+            false,
+            null);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "sample"));
 
@@ -228,7 +230,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
-            false);
+            false,
+            null);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "date_of_birth"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
@@ -279,7 +282,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
             translatedQuery,
-            false);
+            false,
+            null);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "date_of_birth"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
@@ -336,9 +340,9 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             .datasetRelationship(
                 new Relationship()
                     .id(UUID.randomUUID())
-                    .fromColumn(participantTable.getColumnByName("id"))
+                    .fromColumn(participantTable.getColumnByName("id").orElseThrow())
                     .fromTable(participantTable)
-                    .toColumn(dateOfBirthTable.getColumnByName("participant_id"))
+                    .toColumn(dateOfBirthTable.getColumnByName("participant_id").orElseThrow())
                     .toTable(dateOfBirthTable)
                     .name("participant_dob_table"));
     AssetRelationship participantADTRelationship =
@@ -346,9 +350,9 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             .datasetRelationship(
                 new Relationship()
                     .id(UUID.randomUUID())
-                    .fromColumn(participantTable.getColumnByName("first_name"))
+                    .fromColumn(participantTable.getColumnByName("first_name").orElseThrow())
                     .fromTable(participantTable)
-                    .toColumn(allDataTypesTable.getColumnByName("first_name"))
+                    .toColumn(allDataTypesTable.getColumnByName("first_name").orElseThrow())
                     .toTable(allDataTypesTable)
                     .name("participant_allDataTypes_table"));
     // Test Array field
@@ -357,9 +361,9 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             .datasetRelationship(
                 new Relationship()
                     .id(UUID.randomUUID())
-                    .fromColumn(participantTable.getColumnByName("id"))
+                    .fromColumn(participantTable.getColumnByName("id").orElseThrow())
                     .fromTable(participantTable)
-                    .toColumn(sampleTable.getColumnByName("participant_ids"))
+                    .toColumn(sampleTable.getColumnByName("participant_ids").orElseThrow())
                     .toTable(sampleTable)
                     .name("participant_sample_table"));
     relationships =

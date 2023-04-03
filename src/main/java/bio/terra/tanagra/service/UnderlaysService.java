@@ -29,7 +29,7 @@ public class UnderlaysService {
       Path resourceConfigPath = Path.of("tanagra").resolve(underlayFile);
       FileIO.setInputParentDir(resourceConfigPath.getParent());
       try {
-        Underlay underlay = Underlay.fromJSON(resourceConfigPath.getFileName().toString());
+        Underlay underlay = Underlay.fromJSON(String.valueOf(resourceConfigPath.getFileName()));
         underlaysMapBuilder.put(underlay.getName(), underlay);
       } catch (IOException ioEx) {
         throw new SystemException(

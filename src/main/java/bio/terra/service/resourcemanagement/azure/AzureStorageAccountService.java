@@ -122,6 +122,7 @@ public class AzureStorageAccountService {
    * steps.
    *
    * @param storageAccountName name for a new or existing storage account
+   * @param collectionId id of the collection (e.g. dataset or snapshot)
    * @param applicationResource application deployment in which the storage account should be
    *     retrieved or created
    * @param region location of the storage account
@@ -133,7 +134,7 @@ public class AzureStorageAccountService {
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public AzureStorageAccountResource getOrCreateStorageAccount(
       String storageAccountName,
-      String containerId,
+      String collectionId,
       AzureApplicationDeploymentResource applicationResource,
       AzureRegion region,
       String flightId)
@@ -145,7 +146,7 @@ public class AzureStorageAccountService {
     AzureStorageAccountResource storageAccountResource =
         resourceDao.getStorageAccount(
             storageAccountName,
-            containerId,
+            collectionId,
             applicationResource.getAzureApplicationDeploymentName());
     StorageAccount storageAccount = getCloudStorageAccount(profileModel, storageAccountResource);
 
@@ -162,7 +163,7 @@ public class AzureStorageAccountService {
           throw storageAccountLockException(flightId);
         }
         // CASE 3: we have the flight locked, but we did all of the creating.
-        return createFinish(flightId, storageAccountResource, containerId);
+        return createFinish(flightId, storageAccountResource, collectionId);
       } else {
         // CASE 4: This code as currently implemented is unreachable since an empty resource make it
         // impossible
@@ -188,11 +189,11 @@ public class AzureStorageAccountService {
         // CASE 7: this flight has the metadata locked, but didn't finish creating the storage
         // account
         return createCloudStorageAccount(
-            profileModel, storageAccountResource, containerId, flightId);
+            profileModel, storageAccountResource, collectionId, flightId);
       } else {
         // CASE 8: no storage account and no record
         return createMetadataRecord(
-            profileModel, storageAccountName, containerId, applicationResource, region, flightId);
+            profileModel, storageAccountName, collectionId, applicationResource, region, flightId);
       }
     }
   }

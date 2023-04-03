@@ -296,7 +296,7 @@ public class AzureResourceDao {
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public AzureStorageAccountResource createAndLockStorage(
       String storageAccountName,
-      String containerId,
+      String collectionId,
       AzureApplicationDeploymentResource applicationResource,
       AzureRegion region,
       String flightId) {
@@ -317,7 +317,7 @@ public class AzureResourceDao {
         new MapSqlParameterSource()
             .addValue("application_resource_id", applicationResource.getId())
             .addValue("name", storageAccountName)
-            .addValue("toplevelcontainer", containerId)
+            .addValue("toplevelcontainer", collectionId)
             .addValue("datacontainer", "data")
             .addValue("metadatacontainer", "metadata")
             .addValue("dbname", storageAccountName)
@@ -332,7 +332,7 @@ public class AzureResourceDao {
           .profileId(applicationResource.getProfileId())
           .applicationResource(applicationResource)
           .name(storageAccountName)
-          .topLevelContainer(containerId)
+          .topLevelContainer(collectionId)
           .dataContainer("data")
           .metadataContainer("metadata")
           .dbName(storageAccountName)
@@ -348,6 +348,7 @@ public class AzureResourceDao {
    * an error
    *
    * @param storageAccountName storage account to unlock
+   * @param collectionId the id of the dataset or snapshot to unlock the storage account for
    * @param flightId flight trying to unlock it
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

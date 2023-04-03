@@ -1047,7 +1047,8 @@ public class SnapshotService {
             .createdDate(snapshot.getCreatedDate().toString())
             .consentCode(snapshot.getConsentCode())
             .cloudPlatform(snapshot.getCloudPlatform())
-            .globalFileIds(snapshot.hasGlobalFileIds());
+            .globalFileIds(snapshot.hasGlobalFileIds())
+            .tags(snapshot.getTags());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRetrieveIncludeModel.NONE)) {

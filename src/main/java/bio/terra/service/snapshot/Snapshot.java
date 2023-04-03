@@ -42,6 +42,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private UUID duosFirecloudGroupId;
   private DuosFirecloudGroupModel duosFirecloudGroup;
   private boolean globalFileIds;
+  private List<String> tags;
 
   @Override
   public CollectionType getCollectionType() {
@@ -257,6 +258,15 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public Snapshot globalFileIds(boolean globalFileIds) {
     this.globalFileIds = globalFileIds;
+    return this;
+  }
+
+  public List<String> getTags() {
+    return tags;
+  }
+
+  public Snapshot tags(List<String> tags) {
+    this.tags = tags;
     return this;
   }
 

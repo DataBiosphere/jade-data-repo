@@ -418,7 +418,8 @@ public class SnapshotDao {
                       .globalFileIds(rs.getBoolean("global_file_ids"))
                       .properties(
                           DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
-                      .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class)));
+                      .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class))
+                      .tags(DaoUtils.getStringList(rs, "tags")));
 
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
@@ -662,7 +663,7 @@ public class SnapshotDao {
 
     String sql =
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-            + "snapshot.global_file_ids, "
+            + "snapshot.global_file_ids, snapshot.tags, "
             + "snapshot_source.id, "
             + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
             + summaryCloudPlatformQuery
@@ -712,7 +713,8 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-              + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
+              + "snapshot.consent_code, snapshot.tags, "
+              + "dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted,"
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
@@ -838,7 +840,8 @@ public class SnapshotDao {
           .consentCode(rs.getString("consent_code"))
           .phsId(rs.getString("phs_id"))
           .selfHosted(rs.getBoolean("self_hosted"))
-          .globalFileIds(rs.getBoolean("global_file_ids"));
+          .globalFileIds(rs.getBoolean("global_file_ids"))
+          .tags(DaoUtils.getStringList(rs, "tags"));
     }
   }
 }

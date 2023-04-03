@@ -71,7 +71,7 @@ public class DatasetDao {
   private static final String summaryQueryColumns =
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
           + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, "
-          + "properties, created_date, predictable_file_ids,";
+          + "properties, created_date, predictable_file_ids, tags, ";
 
   private static final String summaryCloudPlatformQuery =
       "(SELECT pr.google_project_id "
@@ -727,7 +727,8 @@ public class DatasetDao {
           .phsId(rs.getString("phs_id"))
           .selfHosted(rs.getBoolean("self_hosted"))
           .predictableFileIds(rs.getBoolean("predictable_file_ids"))
-          .properties(properties);
+          .properties(properties)
+          .tags(DaoUtils.getStringList(rs, "tags"));
     }
   }
 

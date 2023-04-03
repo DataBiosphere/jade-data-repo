@@ -338,6 +338,10 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return this;
   }
 
+  public List<String> getTags() {
+    return datasetSummary.getTags();
+  }
+
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());

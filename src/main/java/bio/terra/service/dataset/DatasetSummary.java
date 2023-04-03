@@ -34,6 +34,7 @@ public class DatasetSummary {
   private boolean selfHosted;
   private Object properties;
   private boolean predictableFileIds;
+  private List<String> tags;
 
   public UUID getId() {
     return id;
@@ -232,6 +233,15 @@ public class DatasetSummary {
     return this;
   }
 
+  public List<String> getTags() {
+    return tags;
+  }
+
+  public DatasetSummary tags(List<String> tags) {
+    this.tags = tags;
+    return this;
+  }
+
   public DatasetSummaryModel toModel() {
     return new DatasetSummaryModel()
         .id(getId())
@@ -246,7 +256,8 @@ public class DatasetSummary {
         .storageAccount(getStorageAccount())
         .phsId(getPhsId())
         .selfHosted(isSelfHosted())
-        .predictableFileIds(hasPredictableFileIds());
+        .predictableFileIds(hasPredictableFileIds())
+        .tags(getTags());
   }
 
   List<StorageResourceModel> toStorageResourceModel() {

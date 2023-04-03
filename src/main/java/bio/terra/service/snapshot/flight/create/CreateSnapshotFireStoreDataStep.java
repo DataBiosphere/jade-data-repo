@@ -23,34 +23,17 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CreateSnapshotFireStoreDataStep implements Step {
+public record CreateSnapshotFireStoreDataStep(
+    BigQuerySnapshotPdao bigQuerySnapshotPdao,
+    SnapshotService snapshotService,
+    FireStoreDependencyDao dependencyDao,
+    DatasetService datasetService,
+    SnapshotRequestModel snapshotReq,
+    FireStoreDao fileDao,
+    PerformanceLogger performanceLogger)
+    implements Step {
   private static final Logger logger =
       LoggerFactory.getLogger(CreateSnapshotFireStoreDataStep.class);
-
-  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
-  private final SnapshotService snapshotService;
-  private final FireStoreDependencyDao dependencyDao;
-  private final DatasetService datasetService;
-  private final SnapshotRequestModel snapshotReq;
-  private final FireStoreDao fileDao;
-  private final PerformanceLogger performanceLogger;
-
-  public CreateSnapshotFireStoreDataStep(
-      BigQuerySnapshotPdao bigQuerySnapshotPdao,
-      SnapshotService snapshotService,
-      FireStoreDependencyDao dependencyDao,
-      DatasetService datasetService,
-      SnapshotRequestModel snapshotReq,
-      FireStoreDao fileDao,
-      PerformanceLogger performanceLogger) {
-    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
-    this.snapshotService = snapshotService;
-    this.dependencyDao = dependencyDao;
-    this.datasetService = datasetService;
-    this.snapshotReq = snapshotReq;
-    this.fileDao = fileDao;
-    this.performanceLogger = performanceLogger;
-  }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {

@@ -10,17 +10,10 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnlockSnapshotStep extends DefaultUndoStep {
-
-  private final SnapshotDao snapshotDao;
-  private final UUID snapshotId;
+public record UnlockSnapshotStep(SnapshotDao snapshotDao, UUID snapshotId)
+    implements DefaultUndoStep {
 
   private static final Logger logger = LoggerFactory.getLogger(UnlockSnapshotStep.class);
-
-  public UnlockSnapshotStep(SnapshotDao snapshotDao, UUID snapshotId) {
-    this.snapshotDao = snapshotDao;
-    this.snapshotId = snapshotId;
-  }
 
   @Override
   public StepResult doStep(FlightContext context) {

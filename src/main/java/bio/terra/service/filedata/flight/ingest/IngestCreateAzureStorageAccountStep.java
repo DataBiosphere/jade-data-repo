@@ -6,12 +6,8 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 
-public class IngestCreateAzureStorageAccountStep extends CreateAzureStorageAccountStep {
-
-  public IngestCreateAzureStorageAccountStep(ResourceService resourceService, Dataset dataset) {
-    super(resourceService, dataset);
-  }
-
+public record IngestCreateAzureStorageAccountStep(ResourceService resourceService, Dataset dataset)
+    implements CreateAzureStorageAccountStep {
   @Override
   public StepResult doStep(FlightContext flightContext) throws InterruptedException {
     getOrCreateDatasetStorageAccount(flightContext);

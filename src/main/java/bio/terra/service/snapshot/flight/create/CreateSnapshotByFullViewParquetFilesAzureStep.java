@@ -15,19 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class CreateSnapshotByFullViewParquetFilesAzureStep
-    extends CreateSnapshotParquetFilesAzureStep {
-
-  private final SnapshotRequestModel snapshotReq;
-
-  public CreateSnapshotByFullViewParquetFilesAzureStep(
-      AzureSynapsePdao azureSynapsePdao,
-      SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq) {
-    super(azureSynapsePdao, snapshotService);
-    this.snapshotReq = snapshotReq;
-  }
-
+public record CreateSnapshotByFullViewParquetFilesAzureStep(
+    AzureSynapsePdao azureSynapsePdao,
+    SnapshotService snapshotService,
+    SnapshotRequestModel snapshotReq)
+    implements CreateSnapshotParquetFilesAzureStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();

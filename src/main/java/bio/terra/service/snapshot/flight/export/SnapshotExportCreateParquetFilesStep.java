@@ -17,26 +17,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class SnapshotExportCreateParquetFilesStep extends DefaultUndoStep {
-
-  private final BigQueryExportPdao bigQueryExportPdao;
-  private final GcsPdao gcsPdao;
-  private final SnapshotService snapshotService;
-  private final UUID snapshotId;
-  private final boolean exportGsPaths;
-
-  public SnapshotExportCreateParquetFilesStep(
-      BigQueryExportPdao bigQueryExportPdao,
-      GcsPdao gcsPdao,
-      SnapshotService snapshotService,
-      UUID snapshotId,
-      boolean exportGsPaths) {
-    this.bigQueryExportPdao = bigQueryExportPdao;
-    this.gcsPdao = gcsPdao;
-    this.snapshotService = snapshotService;
-    this.snapshotId = snapshotId;
-    this.exportGsPaths = exportGsPaths;
-  }
+public record SnapshotExportCreateParquetFilesStep(
+    BigQueryExportPdao bigQueryExportPdao,
+    GcsPdao gcsPdao,
+    SnapshotService snapshotService,
+    UUID snapshotId,
+    boolean exportGsPaths)
+    implements DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {

@@ -13,33 +13,21 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class CreateSnapshotCreateRowIdParquetFileStep implements Step {
-  private Logger logger = LoggerFactory.getLogger(CreateSnapshotCreateRowIdParquetFileStep.class);
-
-  private final AzureSynapsePdao azureSynapsePdao;
-  private final SnapshotService snapshotService;
-
-  public CreateSnapshotCreateRowIdParquetFileStep(
-      AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService) {
-    this.azureSynapsePdao = azureSynapsePdao;
-    this.snapshotService = snapshotService;
-  }
-
+public record CreateSnapshotCreateRowIdParquetFileStep(
+    AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService) implements Step {
   @Override
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
     FlightMap workingMap = flightContext.getWorkingMap();
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Map<String, Long> tableRowCounts =
-        workingMap.get(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, HashMap.class);
+        workingMap.get(SnapshotWorkingMapKeys.TABLE_ROW_COUNT_MAP, new TypeReference<>() {});
     List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
     try {
       azureSynapsePdao.createSnapshotRowIdsParquetFile(

@@ -53,9 +53,9 @@ import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class IngestBulkGcpStep extends DefaultUndoStep {
+public abstract class IngestBulkGcpStep implements DefaultUndoStep {
 
-  private Logger logger = LoggerFactory.getLogger(IngestBulkGcpStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(IngestBulkGcpStep.class);
 
   protected final String loadTag;
   protected final UUID profileId;

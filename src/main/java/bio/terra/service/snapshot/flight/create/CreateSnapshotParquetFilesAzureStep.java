@@ -12,35 +12,24 @@ import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.NotImplementedException;
 
-public class CreateSnapshotParquetFilesAzureStep implements Step {
+public interface CreateSnapshotParquetFilesAzureStep extends Step {
 
-  protected AzureSynapsePdao azureSynapsePdao;
-  protected SnapshotService snapshotService;
+  AzureSynapsePdao azureSynapsePdao();
 
-  public CreateSnapshotParquetFilesAzureStep(
-      AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService) {
-    this.azureSynapsePdao = azureSynapsePdao;
-    this.snapshotService = snapshotService;
-  }
+  SnapshotService snapshotService();
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
-    throw new NotImplementedException(
-        "doStep should be implemented by Snapshot Type Specific Steps");
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
+  default StepResult undoStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-    List<SnapshotTable> tables = snapshotService.retrieveTables(snapshotId);
+    List<SnapshotTable> tables = snapshotService().retrieveTables(snapshotId);
 
-    azureSynapsePdao.dropTables(
-        tables.stream()
-            .map(table -> IngestUtils.formatSnapshotTableName(snapshotId, table.getName()))
-            .collect(Collectors.toList()));
+    azureSynapsePdao()
+        .dropTables(
+            tables.stream()
+                .map(table -> IngestUtils.formatSnapshotTableName(snapshotId, table.getName()))
+                .collect(Collectors.toList()));
     return StepResult.getStepResultSuccess();
   }
 }

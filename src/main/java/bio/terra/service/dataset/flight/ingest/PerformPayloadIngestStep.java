@@ -4,11 +4,7 @@ import bio.terra.service.job.OptionalStep;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 
-public class PerformPayloadIngestStep extends OptionalStep {
-  public PerformPayloadIngestStep(Step step) {
-    super(step);
-  }
-
+public record PerformPayloadIngestStep(Step step) implements OptionalStep {
   @Override
   public boolean isEnabled(FlightContext context) {
     return IngestUtils.isIngestFromPayload(context.getInputParameters());

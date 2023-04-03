@@ -112,7 +112,7 @@ public class SnapshotUpdateDuosDatasetFlightTest {
   private List<String> getFlightOptionalStepNames(SnapshotUpdateDuosDatasetFlight flight) {
     return flight.getSteps().stream()
         .filter(step -> step instanceof OptionalStep)
-        .map(step -> ((OptionalStep) step).getStep().getClass().getSimpleName())
+        .map(step -> ((OptionalStep) step).step().getClass().getSimpleName())
         .collect(Collectors.toList());
   }
 }

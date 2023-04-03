@@ -10,25 +10,19 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 
-public abstract class CreateAzureStorageAccountStep extends DefaultUndoStep {
+public interface CreateAzureStorageAccountStep extends DefaultUndoStep {
+  ResourceService resourceService();
 
-  private final ResourceService resourceService;
-  private final Dataset dataset;
+  Dataset dataset();
 
-  public CreateAzureStorageAccountStep(ResourceService resourceService, Dataset dataset) {
-    this.resourceService = resourceService;
-    this.dataset = dataset;
-  }
-
-  protected void getOrCreateDatasetStorageAccount(FlightContext context)
-      throws InterruptedException {
+  default void getOrCreateDatasetStorageAccount(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     String flightId = context.getFlightId();
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
     AzureStorageAccountResource storageAccountResource =
-        resourceService.getOrCreateDatasetStorageAccount(dataset, billingProfile, flightId);
+        resourceService().getOrCreateDatasetStorageAccount(dataset(), billingProfile, flightId);
     workingMap.put(CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
 
     AzureStorageAuthInfo storageAuthInfo =

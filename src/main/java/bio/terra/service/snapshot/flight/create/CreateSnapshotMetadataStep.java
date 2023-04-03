@@ -22,24 +22,13 @@ import org.springframework.dao.CannotSerializeTransactionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.TransactionSystemException;
 
-public class CreateSnapshotMetadataStep implements Step {
-  private final SnapshotDao snapshotDao;
-  private final SnapshotService snapshotService;
-  private final SnapshotRequestModel snapshotReq;
-
+public record CreateSnapshotMetadataStep(
+    SnapshotDao snapshotDao,
+    SnapshotService snapshotService,
+    SnapshotRequestModel snapshotReq,
+    AuthenticatedUserRequest userReq)
+    implements Step {
   private static final Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
-  private final AuthenticatedUserRequest userReq;
-
-  public CreateSnapshotMetadataStep(
-      SnapshotDao snapshotDao,
-      SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq,
-      AuthenticatedUserRequest userReq) {
-    this.snapshotDao = snapshotDao;
-    this.snapshotService = snapshotService;
-    this.snapshotReq = snapshotReq;
-    this.userReq = userReq;
-  }
 
   @Override
   public StepResult doStep(FlightContext context) {

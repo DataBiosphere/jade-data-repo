@@ -11,15 +11,8 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 
 /** Requests a Google project from the Resource Buffer Service and puts it in the working map. */
-public class IngestFileGetProjectStep extends DefaultUndoStep {
-  private final Dataset dataset;
-  private final GoogleProjectService googleProjectService;
-
-  public IngestFileGetProjectStep(Dataset dataset, GoogleProjectService googleProjectService) {
-    this.dataset = dataset;
-    this.googleProjectService = googleProjectService;
-  }
-
+public record IngestFileGetProjectStep(Dataset dataset, GoogleProjectService googleProjectService)
+    implements DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) {
     // Requests a google project from RBS and puts it in the working map

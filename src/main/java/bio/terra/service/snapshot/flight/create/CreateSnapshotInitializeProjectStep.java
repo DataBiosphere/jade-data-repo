@@ -14,18 +14,9 @@ import bio.terra.stairway.StepStatus;
 import java.util.List;
 import java.util.UUID;
 
-public class CreateSnapshotInitializeProjectStep implements Step {
-  private final ResourceService resourceService;
-  private final List<Dataset> sourceDatasets;
-  private final String snapshotName;
-
-  public CreateSnapshotInitializeProjectStep(
-      ResourceService resourceService, List<Dataset> sourceDatasets, String snapshotName) {
-    this.resourceService = resourceService;
-    this.sourceDatasets = sourceDatasets;
-    this.snapshotName = snapshotName;
-  }
-
+public record CreateSnapshotInitializeProjectStep(
+    ResourceService resourceService, List<Dataset> sourceDatasets, String snapshotName)
+    implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();

@@ -13,13 +13,8 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import com.azure.storage.blob.BlobContainerClient;
 
-public class CreateScratchFileForAzureStep extends DefaultUndoStep {
-
-  private final AzureContainerPdao azureContainerPdao;
-
-  public CreateScratchFileForAzureStep(AzureContainerPdao azureContainerPdao) {
-    this.azureContainerPdao = azureContainerPdao;
-  }
+public record CreateScratchFileForAzureStep(AzureContainerPdao azureContainerPdao)
+    implements DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
@@ -40,11 +35,6 @@ public class CreateScratchFileForAzureStep extends DefaultUndoStep {
             .getBlobUrl();
 
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), path);
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

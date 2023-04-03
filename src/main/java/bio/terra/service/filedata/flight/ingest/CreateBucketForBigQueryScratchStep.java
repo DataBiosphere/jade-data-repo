@@ -15,16 +15,8 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 
-public class CreateBucketForBigQueryScratchStep extends DefaultUndoStep {
-
-  private final ResourceService resourceService;
-  private final DatasetService datasetService;
-
-  public CreateBucketForBigQueryScratchStep(
-      ResourceService resourceService, DatasetService datasetService) {
-    this.resourceService = resourceService;
-    this.datasetService = datasetService;
-  }
+public record CreateBucketForBigQueryScratchStep(
+    ResourceService resourceService, DatasetService datasetService) implements DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {

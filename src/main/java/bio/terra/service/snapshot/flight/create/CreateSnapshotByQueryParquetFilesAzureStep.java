@@ -24,9 +24,11 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 
-public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotParquetFilesAzureStep
-    implements CreateSnapshotPrimaryDataQueryInterface {
+public class CreateSnapshotByQueryParquetFilesAzureStep
+    implements CreateSnapshotParquetFilesAzureStep, CreateSnapshotPrimaryDataQueryInterface {
 
+  private final AzureSynapsePdao azureSynapsePdao;
+  private final SnapshotService snapshotService;
   private final SnapshotDao snapshotDao;
   private final SnapshotRequestModel snapshotReq;
   private final DatasetService datasetService;
@@ -41,11 +43,22 @@ public class CreateSnapshotByQueryParquetFilesAzureStep extends CreateSnapshotPa
       SnapshotRequestModel snapshotReq,
       DatasetService datasetService,
       AuthenticatedUserRequest userRequest) {
-    super(azureSynapsePdao, snapshotService);
+    this.azureSynapsePdao = azureSynapsePdao;
+    this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
     this.snapshotDao = snapshotDao;
     this.datasetService = datasetService;
     this.userRequest = userRequest;
+  }
+
+  @Override
+  public AzureSynapsePdao azureSynapsePdao() {
+    return azureSynapsePdao;
+  }
+
+  @Override
+  public SnapshotService snapshotService() {
+    return snapshotService;
   }
 
   @Override

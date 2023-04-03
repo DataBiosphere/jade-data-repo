@@ -18,23 +18,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class SnapshotExportListAzureParquetFilesStep extends DefaultUndoStep {
-
-  private final SnapshotService snapshotService;
-  private final UUID snapshotId;
-  private final AzureBlobStorePdao azureBlobStorePdao;
-  private final AuthenticatedUserRequest userReq;
-
-  public SnapshotExportListAzureParquetFilesStep(
-      SnapshotService snapshotService,
-      UUID snapshotId,
-      AzureBlobStorePdao azureBlobStorePdao,
-      AuthenticatedUserRequest userReq) {
-    this.snapshotService = snapshotService;
-    this.snapshotId = snapshotId;
-    this.azureBlobStorePdao = azureBlobStorePdao;
-    this.userReq = userReq;
-  }
+public record SnapshotExportListAzureParquetFilesStep(
+    SnapshotService snapshotService,
+    UUID snapshotId,
+    AzureBlobStorePdao azureBlobStorePdao,
+    AuthenticatedUserRequest userReq)
+    implements DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {

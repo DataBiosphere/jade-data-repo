@@ -7,16 +7,8 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 
-public class SyncDuosFirecloudGroupStep extends DefaultUndoStep {
-
-  private final DuosService duosService;
-  private final String duosId;
-
-  public SyncDuosFirecloudGroupStep(DuosService duosService, String duosId) {
-    this.duosService = duosService;
-    this.duosId = duosId;
-  }
-
+public record SyncDuosFirecloudGroupStep(DuosService duosService, String duosId)
+    implements DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     DuosFirecloudGroupModel synced = duosService.syncDuosDatasetAuthorizedUsers(duosId);

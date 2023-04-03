@@ -33,32 +33,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class SnapshotExportWriteManifestAzureStep extends DefaultUndoStep {
-
-  private final UUID snapshotId;
-  private final SnapshotService snapshotService;
-  private final ObjectMapper objectMapper;
-  private final AzureBlobStorePdao azureBlobStorePdao;
-  private final ResourceService resourceService;
-  private ProfileService profileService;
-  private final AuthenticatedUserRequest userReq;
-
-  public SnapshotExportWriteManifestAzureStep(
-      UUID snapshotId,
-      SnapshotService snapshotService,
-      ObjectMapper objectMapper,
-      AzureBlobStorePdao azureBlobStorePdao,
-      ResourceService resourceService,
-      ProfileService profileService,
-      AuthenticatedUserRequest userReq) {
-    this.snapshotId = snapshotId;
-    this.snapshotService = snapshotService;
-    this.objectMapper = objectMapper;
-    this.azureBlobStorePdao = azureBlobStorePdao;
-    this.resourceService = resourceService;
-    this.profileService = profileService;
-    this.userReq = userReq;
-  }
+public record SnapshotExportWriteManifestAzureStep(
+    UUID snapshotId,
+    SnapshotService snapshotService,
+    ObjectMapper objectMapper,
+    AzureBlobStorePdao azureBlobStorePdao,
+    ResourceService resourceService,
+    ProfileService profileService,
+    AuthenticatedUserRequest userReq)
+    implements DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {

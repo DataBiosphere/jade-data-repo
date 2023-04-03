@@ -14,15 +14,8 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 
-public class IngestFileInitializeProjectStep extends DefaultUndoStep {
-  private final ResourceService resourceService;
-  private final Dataset dataset;
-
-  public IngestFileInitializeProjectStep(ResourceService resourceService, Dataset dataset) {
-    this.resourceService = resourceService;
-    this.dataset = dataset;
-  }
-
+public record IngestFileInitializeProjectStep(ResourceService resourceService, Dataset dataset)
+    implements DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();

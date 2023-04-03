@@ -5,10 +5,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 
-public class IfNoGroupRetrievedStep extends OptionalStep {
-  public IfNoGroupRetrievedStep(Step step) {
-    super(step);
-  }
+public record IfNoGroupRetrievedStep(Step step) implements OptionalStep {
 
   @Override
   public boolean isEnabled(FlightContext context) {

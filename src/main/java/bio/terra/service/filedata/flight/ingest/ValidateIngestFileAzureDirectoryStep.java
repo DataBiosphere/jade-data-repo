@@ -18,17 +18,10 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.azure.core.management.exception.ManagementException;
 
-public class ValidateIngestFileAzureDirectoryStep extends DefaultUndoStep {
+public record ValidateIngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset)
+    implements DefaultUndoStep {
   public static final String CREATE_ENTRY_ACTION = "createEntry";
   public static final String CHECK_ENTRY_ACTION = "checkEntry";
-
-  private final TableDao tableDao;
-  private final Dataset dataset;
-
-  public ValidateIngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset) {
-    this.tableDao = tableDao;
-    this.dataset = dataset;
-  }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {

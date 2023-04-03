@@ -15,18 +15,9 @@ import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
 
-public class SnapshotExportCreateBucketStep extends DefaultUndoStep {
-
-  private final ResourceService resourceService;
-  private final SnapshotService snapshotService;
-  private final UUID snapshotId;
-
-  public SnapshotExportCreateBucketStep(
-      ResourceService resourceService, SnapshotService snapshotService, UUID snapshotId) {
-    this.resourceService = resourceService;
-    this.snapshotService = snapshotService;
-    this.snapshotId = snapshotId;
-  }
+public record SnapshotExportCreateBucketStep(
+    ResourceService resourceService, SnapshotService snapshotService, UUID snapshotId)
+    implements DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {

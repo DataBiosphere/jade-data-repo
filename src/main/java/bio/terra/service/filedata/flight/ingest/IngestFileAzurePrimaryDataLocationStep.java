@@ -8,12 +8,8 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 
-public class IngestFileAzurePrimaryDataLocationStep extends CreateAzureStorageAccountStep {
-
-  public IngestFileAzurePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {
-    super(resourceService, dataset);
-  }
-
+public record IngestFileAzurePrimaryDataLocationStep(
+    ResourceService resourceService, Dataset dataset) implements CreateAzureStorageAccountStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();

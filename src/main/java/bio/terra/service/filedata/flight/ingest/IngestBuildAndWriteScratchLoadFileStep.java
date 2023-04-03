@@ -28,30 +28,25 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndoStep {
-  protected final ObjectMapper objectMapper;
-  protected final Dataset dataset;
-  protected final int maxBadLoadFileLineErrorsReported;
+public interface IngestBuildAndWriteScratchLoadFileStep extends DefaultUndoStep {
+  ObjectMapper objectMapper();
 
-  public IngestBuildAndWriteScratchLoadFileStep(
-      ObjectMapper objectMapper, Dataset dataset, int maxBadLoadFileLineErrorsReported) {
-    this.objectMapper = objectMapper;
-    this.dataset = dataset;
-    this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
-  }
+  Dataset dataset();
+
+  int maxBadLoadFileLineErrorsReported();
 
   @Override
-  public StepResult doStep(FlightContext context) {
+  default StepResult doStep(FlightContext context) {
     var workingMap = context.getWorkingMap();
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
 
     ErrorCollector errorCollector =
         new ErrorCollector(
-            maxBadLoadFileLineErrorsReported,
+            maxBadLoadFileLineErrorsReported(),
             "Encountered invalid json while combining ingested files with load request");
     try (Stream<JsonNode> jsonNodes = getJsonNodesFromCloudFile(ingestRequest, errorCollector)) {
 
-      List<Column> fileColumns = IngestUtils.getDatasetFileRefColumns(dataset, ingestRequest);
+      List<Column> fileColumns = IngestUtils.getDatasetFileRefColumns(dataset(), ingestRequest);
       BulkLoadArrayResultModel result =
           workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
 
@@ -141,7 +136,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndo
       AtomicLong failedRowCount) {
     // replace
     BulkLoadFileModel fileModel =
-        Objects.requireNonNull(objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
+        Objects.requireNonNull(objectMapper().convertValue(fileRefNode, BulkLoadFileModel.class));
     String fileKey = fileModel.getTargetPath();
     if (pathToFileIdMap.containsKey(fileKey)) {
       String fileId = pathToFileIdMap.get(fileKey);
@@ -182,7 +177,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndo
     int i = 0;
     for (JsonNode fileRefArrayValue : fileRefNode) {
       if (fileRefArrayValue.isObject()) {
-        models[i] = objectMapper.convertValue(fileRefArrayValue, BulkLoadFileModel.class);
+        models[i] = objectMapper().convertValue(fileRefArrayValue, BulkLoadFileModel.class);
       } else {
         fileIds[i] = fileRefArrayValue.asText();
       }
@@ -198,7 +193,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndo
                   return pathToFileIdMap.containsKey(fileKey);
                 });
     if (allIngested) {
-      ArrayNode value = objectMapper.createArrayNode();
+      ArrayNode value = objectMapper().createArrayNode();
 
       for (int j = 0; j < size; j++) {
         final String fileId;
@@ -217,10 +212,10 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends DefaultUndo
     }
   }
 
-  abstract Stream<JsonNode> getJsonNodesFromCloudFile(
+  Stream<JsonNode> getJsonNodesFromCloudFile(
       IngestRequestModel ingestRequest, ErrorCollector errorCollector);
 
-  abstract String getOutputFilePath(FlightContext flightContext);
+  String getOutputFilePath(FlightContext flightContext);
 
-  abstract void writeCloudFile(FlightContext flightContext, String path, Stream<String> lines);
+  void writeCloudFile(FlightContext flightContext, String path, Stream<String> lines);
 }

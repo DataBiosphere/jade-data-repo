@@ -18,18 +18,9 @@ import java.util.UUID;
  * is stored in the working map of the flight in the ProfileMapKeys.PROFILE_MODEL entry. On failure,
  * exception is thrown and the flight will fail.
  */
-public class AuthorizeBillingProfileUseStep extends DefaultUndoStep {
-  private final ProfileService profileService;
-  private final UUID profileId;
-  private final AuthenticatedUserRequest user;
-
-  public AuthorizeBillingProfileUseStep(
-      ProfileService profileService, UUID profileId, AuthenticatedUserRequest user) {
-    this.profileService = profileService;
-    this.profileId = profileId;
-    this.user = user;
-  }
-
+public record AuthorizeBillingProfileUseStep(
+    ProfileService profileService, UUID profileId, AuthenticatedUserRequest user)
+    implements DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) {
     BillingProfileModel profileModel = profileService.authorizeLinking(profileId, user);

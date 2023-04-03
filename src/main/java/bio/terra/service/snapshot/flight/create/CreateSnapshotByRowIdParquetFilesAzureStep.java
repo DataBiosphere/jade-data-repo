@@ -18,18 +18,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class CreateSnapshotByRowIdParquetFilesAzureStep
-    extends CreateSnapshotParquetFilesAzureStep {
-  private final SnapshotRequestModel snapshotRequestModel;
-
-  public CreateSnapshotByRowIdParquetFilesAzureStep(
-      AzureSynapsePdao azureSynapsePdao,
-      SnapshotService snapshotService,
-      SnapshotRequestModel snapshotRequestModel) {
-    super(azureSynapsePdao, snapshotService);
-    this.snapshotRequestModel = snapshotRequestModel;
-  }
-
+public record CreateSnapshotByRowIdParquetFilesAzureStep(
+    AzureSynapsePdao azureSynapsePdao,
+    SnapshotService snapshotService,
+    SnapshotRequestModel snapshotRequestModel)
+    implements CreateSnapshotParquetFilesAzureStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     SnapshotRequestContentsModel contentsModel = snapshotRequestModel.getContents().get(0);

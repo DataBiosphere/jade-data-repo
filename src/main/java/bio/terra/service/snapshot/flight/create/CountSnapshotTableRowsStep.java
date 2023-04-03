@@ -10,20 +10,11 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.Map;
 
-public class CountSnapshotTableRowsStep implements Step {
-
-  private final BigQuerySnapshotPdao bigQuerySnapshotPdao;
-  private final SnapshotDao snapshotDao;
-  private final SnapshotRequestModel snapshotReq;
-
-  public CountSnapshotTableRowsStep(
-      BigQuerySnapshotPdao bigQuerySnapshotPdao,
-      SnapshotDao snapshotDao,
-      SnapshotRequestModel snapshotReq) {
-    this.bigQuerySnapshotPdao = bigQuerySnapshotPdao;
-    this.snapshotDao = snapshotDao;
-    this.snapshotReq = snapshotReq;
-  }
+public record CountSnapshotTableRowsStep(
+    BigQuerySnapshotPdao bigQuerySnapshotPdao,
+    SnapshotDao snapshotDao,
+    SnapshotRequestModel snapshotReq)
+    implements Step {
 
   @Override
   public StepResult doStep(FlightContext flightContext)

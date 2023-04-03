@@ -14,24 +14,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
-
-  private final AzureAuthService azureAuthService;
-  private final DatasetService datasetService;
-  private final AzureSynapsePdao azureSynapsePdao;
-  private final TableDirectoryDao tableDirectoryDao;
-
-  public IngestValidateAzureRefsStep(
-      AzureAuthService azureAuthService,
-      DatasetService datasetService,
-      AzureSynapsePdao azureSynapsePdao,
-      TableDirectoryDao tableDirectoryDao) {
-    this.azureAuthService = azureAuthService;
-    this.datasetService = datasetService;
-    this.azureSynapsePdao = azureSynapsePdao;
-    this.tableDirectoryDao = tableDirectoryDao;
-  }
-
+public record IngestValidateAzureRefsStep(
+    AzureAuthService azureAuthService,
+    DatasetService datasetService,
+    AzureSynapsePdao azureSynapsePdao,
+    TableDirectoryDao tableDirectoryDao)
+    implements IngestValidateRefsStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     var workingMap = context.getWorkingMap();

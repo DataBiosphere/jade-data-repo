@@ -4,54 +4,42 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class OptionalStep implements Step {
+public interface OptionalStep extends Step {
 
-  private static final Logger logger = LoggerFactory.getLogger(OptionalStep.class);
+  Logger logger = LoggerFactory.getLogger(OptionalStep.class);
 
-  private final Step step;
+  Step step();
 
-  public OptionalStep(Step step) {
-    this.step = step;
-  }
+  boolean isEnabled(FlightContext context);
 
-  @VisibleForTesting
-  public Step getStep() {
-    return step;
-  }
-
-  public abstract boolean isEnabled(FlightContext context);
-
-  public String getSkipReason() {
+  default String getSkipReason() {
     return "of flight context state";
   }
 
-  public String getRunReason(FlightContext context) {
+  default String getRunReason(FlightContext context) {
     return "of flight context state";
   }
 
   @Override
-  public StepResult doStep(FlightContext flightContext)
-      throws InterruptedException, RetryException {
-    if (isEnabled(flightContext)) {
-      logger.info("Running {} because {}", step.getClass().getName(), getRunReason(flightContext));
-      return step.doStep(flightContext);
+  default StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
+    if (isEnabled(context)) {
+      logger.info("Running {} because {}", step().getClass().getName(), getRunReason(context));
+      return step().doStep(context);
     }
-    logger.info("Skipping {} because {}", step.getClass().getName(), getSkipReason());
+    logger.info("Skipping {} because {}", step().getClass().getName(), getSkipReason());
     return StepResult.getStepResultSuccess();
   }
 
   @Override
-  public StepResult undoStep(FlightContext flightContext) throws InterruptedException {
-    if (isEnabled(flightContext)) {
-      logger.info(
-          "Running {} undo because {}", step.getClass().getName(), getRunReason(flightContext));
-      return step.undoStep(flightContext);
+  default StepResult undoStep(FlightContext context) throws InterruptedException {
+    if (isEnabled(context)) {
+      logger.info("Running {} undo because {}", step().getClass().getName(), getRunReason(context));
+      return step().undoStep(context);
     }
-    logger.info("Skipping {} undo because {}", step.getClass().getName(), getSkipReason());
+    logger.info("Skipping {} undo because {}", step().getClass().getName(), getSkipReason());
     return StepResult.getStepResultSuccess();
   }
 }

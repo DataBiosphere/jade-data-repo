@@ -21,27 +21,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.stream.Stream;
 
-public class IngestBuildAndWriteScratchLoadFileAzureStep
-    extends IngestBuildAndWriteScratchLoadFileStep {
-  private final AzureBlobStorePdao azureBlobStorePdao;
-  private final AzureContainerPdao azureContainerPdao;
-  private final AuthenticatedUserRequest userRequest;
-
-  public IngestBuildAndWriteScratchLoadFileAzureStep(
-      ObjectMapper objectMapper,
-      AzureBlobStorePdao azureBlobStorePdao,
-      AzureContainerPdao azureContainerPdao,
-      Dataset dataset,
-      AuthenticatedUserRequest userRequest,
-      int maxBadLoadFileLineErrorsReported) {
-    super(objectMapper, dataset, maxBadLoadFileLineErrorsReported);
-    this.azureBlobStorePdao = azureBlobStorePdao;
-    this.azureContainerPdao = azureContainerPdao;
-    this.userRequest = userRequest;
-  }
-
+public record IngestBuildAndWriteScratchLoadFileAzureStep(
+    ObjectMapper objectMapper,
+    AzureBlobStorePdao azureBlobStorePdao,
+    AzureContainerPdao azureContainerPdao,
+    Dataset dataset,
+    AuthenticatedUserRequest userRequest,
+    int maxBadLoadFileLineErrorsReported)
+    implements IngestBuildAndWriteScratchLoadFileStep {
   @Override
-  Stream<JsonNode> getJsonNodesFromCloudFile(
+  public Stream<JsonNode> getJsonNodesFromCloudFile(
       IngestRequestModel ingestRequest, ErrorCollector errorCollector) {
     String tenantId =
         IngestUtils.getIngestBillingProfileFromDataset(dataset, ingestRequest)
@@ -57,7 +46,7 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
   }
 
   @Override
-  String getOutputFilePath(FlightContext flightContext) {
+  public String getOutputFilePath(FlightContext flightContext) {
     FlightMap workingMap = flightContext.getWorkingMap();
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
@@ -73,7 +62,7 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
   }
 
   @Override
-  void writeCloudFile(FlightContext flightContext, String path, Stream<String> lines) {
+  public void writeCloudFile(FlightContext flightContext, String path, Stream<String> lines) {
     FlightMap workingMap = flightContext.getWorkingMap();
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);

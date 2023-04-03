@@ -14,16 +14,8 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import com.google.cloud.storage.BlobId;
 
-public class IngestCopyControlFileStep extends DefaultUndoStep {
-
-  private final DatasetService datasetService;
-  private final GcsPdao gcsPdao;
-
-  public IngestCopyControlFileStep(DatasetService datasetService, GcsPdao gcsPdao) {
-    this.datasetService = datasetService;
-    this.gcsPdao = gcsPdao;
-  }
-
+public record IngestCopyControlFileStep(DatasetService datasetService, GcsPdao gcsPdao)
+    implements DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();

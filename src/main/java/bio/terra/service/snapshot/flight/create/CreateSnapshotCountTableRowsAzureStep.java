@@ -13,20 +13,9 @@ import bio.terra.stairway.exception.RetryException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CreateSnapshotCountTableRowsAzureStep implements Step {
-
-  private final AzureSynapsePdao azureSynapsePdao;
-  private final SnapshotDao snapshotDao;
-  private final SnapshotRequestModel snapshotReq;
-
-  public CreateSnapshotCountTableRowsAzureStep(
-      AzureSynapsePdao azureSynapsePdao,
-      SnapshotDao snapshotDao,
-      SnapshotRequestModel snapshotReq) {
-    this.azureSynapsePdao = azureSynapsePdao;
-    this.snapshotDao = snapshotDao;
-    this.snapshotReq = snapshotReq;
-  }
+public record CreateSnapshotCountTableRowsAzureStep(
+    AzureSynapsePdao azureSynapsePdao, SnapshotDao snapshotDao, SnapshotRequestModel snapshotReq)
+    implements Step {
 
   @Override
   public StepResult doStep(FlightContext flightContext)

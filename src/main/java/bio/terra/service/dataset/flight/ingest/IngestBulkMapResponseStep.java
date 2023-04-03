@@ -15,15 +15,8 @@ import java.util.UUID;
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
 //
-public class IngestBulkMapResponseStep extends DefaultUndoStep {
-
-  private final LoadService loadService;
-  private final String loadTag;
-
-  public IngestBulkMapResponseStep(LoadService loadService, String loadTag) {
-    this.loadService = loadService;
-    this.loadTag = loadTag;
-  }
+public record IngestBulkMapResponseStep(LoadService loadService, String loadTag)
+    implements DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) {

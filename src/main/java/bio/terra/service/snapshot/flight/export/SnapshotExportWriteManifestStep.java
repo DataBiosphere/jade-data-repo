@@ -28,29 +28,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class SnapshotExportWriteManifestStep extends DefaultUndoStep {
-
-  private final UUID snapshotId;
-  private final SnapshotService snapshotService;
-  private final GcsPdao gcsPdao;
-  private final ObjectMapper objectMapper;
-  private final AuthenticatedUserRequest userReq;
-  private final boolean validatePrimaryKeyUniqueness;
-
-  public SnapshotExportWriteManifestStep(
-      UUID snapshotId,
-      SnapshotService snapshotService,
-      GcsPdao gcsPdao,
-      ObjectMapper objectMapper,
-      AuthenticatedUserRequest userReq,
-      boolean validatePrimaryKeyUniqueness) {
-    this.snapshotId = snapshotId;
-    this.snapshotService = snapshotService;
-    this.gcsPdao = gcsPdao;
-    this.objectMapper = objectMapper;
-    this.userReq = userReq;
-    this.validatePrimaryKeyUniqueness = validatePrimaryKeyUniqueness;
-  }
+public record SnapshotExportWriteManifestStep(
+    UUID snapshotId,
+    SnapshotService snapshotService,
+    GcsPdao gcsPdao,
+    ObjectMapper objectMapper,
+    AuthenticatedUserRequest userReq,
+    boolean validatePrimaryKeyUniqueness)
+    implements DefaultUndoStep {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {

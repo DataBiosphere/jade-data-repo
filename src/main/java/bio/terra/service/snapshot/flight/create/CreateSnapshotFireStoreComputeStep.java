@@ -10,19 +10,9 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 
-public class CreateSnapshotFireStoreComputeStep implements Step {
-
-  private SnapshotService snapshotService;
-  private SnapshotRequestModel snapshotReq;
-  private FireStoreDao fileDao;
-
-  public CreateSnapshotFireStoreComputeStep(
-      SnapshotService snapshotService, SnapshotRequestModel snapshotReq, FireStoreDao fileDao) {
-    this.snapshotService = snapshotService;
-    this.snapshotReq = snapshotReq;
-    this.fileDao = fileDao;
-  }
-
+public record CreateSnapshotFireStoreComputeStep(
+    SnapshotService snapshotService, SnapshotRequestModel snapshotReq, FireStoreDao fileDao)
+    implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());

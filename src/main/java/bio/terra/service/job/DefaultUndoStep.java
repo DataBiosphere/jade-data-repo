@@ -5,9 +5,9 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
 /** A subclass of Step that provides a default implementation of undo that returns success. */
-public abstract class DefaultUndoStep implements Step {
+public interface DefaultUndoStep extends Step {
   @Override
-  public StepResult undoStep(FlightContext context) {
+  default StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

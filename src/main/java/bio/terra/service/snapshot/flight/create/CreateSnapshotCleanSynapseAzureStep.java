@@ -15,16 +15,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class CreateSnapshotCleanSynapseAzureStep implements Step {
-
-  private AzureSynapsePdao azureSynapsePdao;
-  private SnapshotService snapshotService;
-
-  public CreateSnapshotCleanSynapseAzureStep(
-      AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService) {
-    this.azureSynapsePdao = azureSynapsePdao;
-    this.snapshotService = snapshotService;
-  }
+public record CreateSnapshotCleanSynapseAzureStep(
+    AzureSynapsePdao azureSynapsePdao, SnapshotService snapshotService) implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {

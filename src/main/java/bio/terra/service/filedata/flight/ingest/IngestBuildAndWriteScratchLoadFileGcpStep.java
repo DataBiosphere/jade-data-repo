@@ -15,24 +15,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.stream.Stream;
 
-public class IngestBuildAndWriteScratchLoadFileGcpStep
-    extends IngestBuildAndWriteScratchLoadFileStep {
-  private final GcsPdao gcsPdao;
-  private final AuthenticatedUserRequest userRequest;
-
-  public IngestBuildAndWriteScratchLoadFileGcpStep(
-      ObjectMapper objectMapper,
-      GcsPdao gcsPdao,
-      Dataset dataset,
-      AuthenticatedUserRequest userRequest,
-      int maxBadLoadFileLineErrorsReported) {
-    super(objectMapper, dataset, maxBadLoadFileLineErrorsReported);
-    this.gcsPdao = gcsPdao;
-    this.userRequest = userRequest;
-  }
-
+public record IngestBuildAndWriteScratchLoadFileGcpStep(
+    ObjectMapper objectMapper,
+    GcsPdao gcsPdao,
+    Dataset dataset,
+    AuthenticatedUserRequest userRequest,
+    int maxBadLoadFileLineErrorsReported)
+    implements IngestBuildAndWriteScratchLoadFileStep {
   @Override
-  Stream<JsonNode> getJsonNodesFromCloudFile(
+  public Stream<JsonNode> getJsonNodesFromCloudFile(
       IngestRequestModel ingestRequest, ErrorCollector errorCollector) {
     return IngestUtils.getJsonNodesStreamFromFile(
         gcsPdao,
@@ -44,7 +35,7 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
   }
 
   @Override
-  String getOutputFilePath(FlightContext flightContext) {
+  public String getOutputFilePath(FlightContext flightContext) {
     GoogleBucketResource bucket =
         flightContext
             .getWorkingMap()
@@ -55,7 +46,7 @@ public class IngestBuildAndWriteScratchLoadFileGcpStep
   }
 
   @Override
-  void writeCloudFile(FlightContext flightContext, String path, Stream<String> lines) {
+  public void writeCloudFile(FlightContext flightContext, String path, Stream<String> lines) {
     GoogleBucketResource bucket =
         flightContext
             .getWorkingMap()

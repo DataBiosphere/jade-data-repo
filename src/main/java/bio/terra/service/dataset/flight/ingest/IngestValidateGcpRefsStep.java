@@ -12,21 +12,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
-
-  private final DatasetService datasetService;
-  private final BigQueryDatasetPdao bigQueryDatasetPdao;
-  private final FireStoreDao fileDao;
-
-  public IngestValidateGcpRefsStep(
-      DatasetService datasetService,
-      BigQueryDatasetPdao bigQueryDatasetPdao,
-      FireStoreDao fileDao) {
-    this.datasetService = datasetService;
-    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
-    this.fileDao = fileDao;
-  }
-
+public record IngestValidateGcpRefsStep(
+    DatasetService datasetService, BigQueryDatasetPdao bigQueryDatasetPdao, FireStoreDao fileDao)
+    implements IngestValidateRefsStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);

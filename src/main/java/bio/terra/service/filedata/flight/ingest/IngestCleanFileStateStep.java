@@ -9,14 +9,7 @@ import bio.terra.stairway.StepResult;
 import java.util.UUID;
 
 // Populate the files to be loaded from the incoming array
-public class IngestCleanFileStateStep extends DefaultUndoStep {
-
-  private final LoadService loadService;
-
-  public IngestCleanFileStateStep(LoadService loadService) {
-    this.loadService = loadService;
-  }
-
+public record IngestCleanFileStateStep(LoadService loadService) implements DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();

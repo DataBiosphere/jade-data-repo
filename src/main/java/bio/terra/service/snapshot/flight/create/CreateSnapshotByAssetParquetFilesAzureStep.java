@@ -18,18 +18,11 @@ import bio.terra.stairway.StepStatus;
 import java.sql.SQLException;
 import java.util.Map;
 
-public class CreateSnapshotByAssetParquetFilesAzureStep
-    extends CreateSnapshotParquetFilesAzureStep {
-  private final SnapshotRequestModel snapshotReq;
-
-  public CreateSnapshotByAssetParquetFilesAzureStep(
-      AzureSynapsePdao azureSynapsePdao,
-      SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq) {
-    super(azureSynapsePdao, snapshotService);
-    this.snapshotReq = snapshotReq;
-  }
-
+public record CreateSnapshotByAssetParquetFilesAzureStep(
+    AzureSynapsePdao azureSynapsePdao,
+    SnapshotService snapshotService,
+    SnapshotRequestModel snapshotReq)
+    implements CreateSnapshotParquetFilesAzureStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();

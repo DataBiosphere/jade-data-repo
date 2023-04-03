@@ -58,42 +58,19 @@ import org.slf4j.LoggerFactory;
 // - BUCKET_INFO is a GoogleBucketResource
 // - STORAGE_ACCOUNT_RESOURCE is a AzureStorageAccountResource
 //
-public class IngestDriverStep extends DefaultUndoStep {
+public record IngestDriverStep(
+    LoadService loadService,
+    ConfigurationService configurationService,
+    JobService jobService,
+    String datasetId,
+    String loadTag,
+    int maxFailedFileLoads,
+    int driverWaitSeconds,
+    UUID profileId,
+    CloudPlatform platform,
+    AuthenticatedUserRequest userReq)
+    implements DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
-
-  private final LoadService loadService;
-  private final ConfigurationService configurationService;
-  private final JobService jobService;
-  private final String datasetId;
-  private final String loadTag;
-  private final int maxFailedFileLoads;
-  private final int driverWaitSeconds;
-  private final UUID profileId;
-  private final CloudPlatform platform;
-  private final AuthenticatedUserRequest userReq;
-
-  public IngestDriverStep(
-      LoadService loadService,
-      ConfigurationService configurationService,
-      JobService jobService,
-      String datasetId,
-      String loadTag,
-      int maxFailedFileLoads,
-      int driverWaitSeconds,
-      UUID profileId,
-      CloudPlatform platform,
-      AuthenticatedUserRequest userReq) {
-    this.loadService = loadService;
-    this.configurationService = configurationService;
-    this.jobService = jobService;
-    this.datasetId = datasetId;
-    this.loadTag = loadTag;
-    this.maxFailedFileLoads = maxFailedFileLoads;
-    this.driverWaitSeconds = driverWaitSeconds;
-    this.profileId = profileId;
-    this.platform = platform;
-    this.userReq = userReq;
-  }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {

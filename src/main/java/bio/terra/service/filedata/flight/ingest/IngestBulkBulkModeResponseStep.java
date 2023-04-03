@@ -12,14 +12,9 @@ import org.apache.commons.collections4.CollectionUtils;
 // It expects the following working map data:
 // - BULK_LOAD_RESULT - a BulkLoadArrayResultModel object
 //
-public class IngestBulkBulkModeResponseStep extends DefaultUndoStep {
+public record IngestBulkBulkModeResponseStep(boolean isArrayMode) implements DefaultUndoStep {
 
   private static final int MAX_FILE_RESULTS = 1000;
-  private final boolean isArrayMode;
-
-  public IngestBulkBulkModeResponseStep(boolean isArrayMode) {
-    this.isArrayMode = isArrayMode;
-  }
 
   @Override
   public StepResult doStep(FlightContext context) {

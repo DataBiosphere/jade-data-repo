@@ -13,37 +13,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.TransactionSystemException;
 
-public class LockDatasetStep implements Step {
-
-  private static final Logger logger = LoggerFactory.getLogger(LockDatasetStep.class);
-
-  private final DatasetService datasetService;
-  private final UUID datasetId;
-  private final boolean sharedLock; // default to false
-  private final boolean suppressNotFoundException; // default to false
-
-  public LockDatasetStep(DatasetService datasetService, UUID datasetId, boolean sharedLock) {
-    this(datasetService, datasetId, sharedLock, false);
-  }
-
-  public LockDatasetStep(
-      DatasetService datasetService,
-      UUID datasetId,
-      boolean sharedLock,
-      boolean suppressNotFoundException) {
-    this.datasetService = datasetService;
-    this.datasetId = datasetId;
-
+public record LockDatasetStep(
+    DatasetService datasetService,
+    UUID datasetId,
     // this will be set to true for a shared lock, false for an exclusive lock
-    this.sharedLock = sharedLock;
-
+    boolean sharedLock,
     // this will be set to true in cases where we don't want to fail if the dataset metadata record
     // doesn't exist.
     // for example, dataset deletion. we want multiple deletes to succeed, not throw a lock or
     // notfound exception.
     // for most cases, this should be set to false because we expect the dataset metadata record to
     // exist.
-    this.suppressNotFoundException = suppressNotFoundException;
+    boolean suppressNotFoundException)
+    implements Step {
+
+  private static final Logger logger = LoggerFactory.getLogger(LockDatasetStep.class);
+
+  public LockDatasetStep(DatasetService datasetService, UUID datasetId, boolean sharedLock) {
+    this(datasetService, datasetId, sharedLock, false);
   }
 
   @Override

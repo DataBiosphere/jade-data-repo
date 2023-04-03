@@ -6,11 +6,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 
-public class PerformAzureDatasetDependencyStep extends OptionalStep {
-  public PerformAzureDatasetDependencyStep(Step step) {
-    super(step);
-  }
-
+public record PerformAzureDatasetDependencyStep(Step step) implements OptionalStep {
   @Override
   public boolean isEnabled(FlightContext context) {
     FlightMap map = context.getWorkingMap();

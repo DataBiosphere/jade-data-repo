@@ -15,19 +15,9 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
 
-public class CreateSnapshotCreateAzureStorageAccountStep extends CreateAzureStorageAccountStep {
-  private final ResourceService resourceService;
-  private final Dataset dataset;
-  private final SnapshotRequestModel snapshotRequestModel;
-
-  public CreateSnapshotCreateAzureStorageAccountStep(
-      ResourceService resourceService, Dataset dataset, SnapshotRequestModel snapshotRequestModel) {
-    super(resourceService, dataset);
-    this.resourceService = resourceService;
-    this.dataset = dataset;
-    this.snapshotRequestModel = snapshotRequestModel;
-  }
-
+public record CreateSnapshotCreateAzureStorageAccountStep(
+    ResourceService resourceService, Dataset dataset, SnapshotRequestModel snapshotRequestModel)
+    implements CreateAzureStorageAccountStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     getOrCreateDatasetStorageAccount(context);

@@ -5,11 +5,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import java.util.Objects;
 
-public class CombinedFileIngestOptionalStep extends OptionalStep {
-  public CombinedFileIngestOptionalStep(Step step) {
-    super(step);
-  }
-
+public record CombinedFileIngestOptionalStep(Step step) implements OptionalStep {
   @Override
   public boolean isEnabled(FlightContext context) {
     return IngestUtils.isCombinedFileIngest(context);

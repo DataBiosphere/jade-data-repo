@@ -12,10 +12,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import com.google.cloud.storage.BlobId;
 
-public class CreateScratchFileForGCPStep extends DefaultUndoStep {
-
-  public CreateScratchFileForGCPStep() {}
-
+public class CreateScratchFileForGCPStep implements DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
@@ -29,11 +26,6 @@ public class CreateScratchFileForGCPStep extends DefaultUndoStep {
     String path = GcsUriUtils.getGsPathFromBlob(scratchFilePath);
 
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), path);
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

@@ -136,7 +136,8 @@ public final class IndexerMain {
   }
 
   private static boolean isDryRun(int index, String... args) {
-    return args.length > index && "DRY_RUN".equals(args[index]);
+    return true;
+//    return args.length > index && "DRY_RUN".equals(args[index]);
   }
 
   private static Indexer.JobExecutor getJobExec(int index, String... args) {

@@ -29,6 +29,9 @@ public final class PdaoConstant {
       PDAO_PREFIX + "transaction_terminated_by";
   public static final String PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX =
       PDAO_LOAD_HISTORY_TABLE + "_staging_";
+  public static final String PDAO_FILE_ID_STAGING_TABLE = PDAO_PREFIX + "file_id_staging";
+  public static final String PDAO_FILE_ID_STAGING_ORIG_ID = "orig_id";
+  public static final String PDAO_FILE_ID_STAGING_NEW_ID = "new_id";
   public static final String PDAO_INGESTED_BY_COLUMN = "ingested_by";
   public static final String PDAO_INGEST_TIME_COLUMN = "ingest_time";
   public static final String PDAO_LOAD_TAG_COLUMN = "load_tag";

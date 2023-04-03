@@ -139,22 +139,24 @@ public class BigQuerySnapshotPdao {
     UUID rootTableId = rootTable.getId();
 
     if (rowIds.size() > 0) {
-      ST sqlTemplate = new ST(loadRootRowIdsTemplate);
-      sqlTemplate.add("project", snapshotProjectId);
-      sqlTemplate.add("snapshot", snapshotName);
-      sqlTemplate.add("dataset", datasetBqDatasetName);
-      sqlTemplate.add("tableId", rootTableId);
-      sqlTemplate.add("rowIds", rowIds);
+      ST sqlTemplate =
+          new ST(loadRootRowIdsTemplate)
+              .add("project", snapshotProjectId)
+              .add("snapshot", snapshotName)
+              .add("dataset", datasetBqDatasetName)
+              .add("tableId", rootTableId)
+              .add("rowIds", rowIds);
       snapshotBigQueryProject.query(sqlTemplate.render());
     }
 
     String datasetLiveViewSql =
         BigQueryDatasetPdao.renderDatasetLiveViewSql(
             datasetProjectId, datasetBqDatasetName, rootTable, null, filterBefore);
-    ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
-    sqlTemplate.add("snapshotProject", snapshotProjectId);
-    sqlTemplate.add("snapshot", snapshotName);
-    sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
+    ST sqlTemplate =
+        new ST(validateRowIdsForRootTemplate)
+            .add("snapshotProject", snapshotProjectId)
+            .add("snapshot", snapshotName)
+            .add("datasetLiveViewSql", datasetLiveViewSql);
 
     TableResult result =
         snapshotBigQueryProject.query(
@@ -259,22 +261,23 @@ public class BigQuerySnapshotPdao {
 
     for (DatasetTable table : tables) {
 
-      ST sqlTableTemplate = new ST(getLiveViewTableTemplate);
-      sqlTableTemplate.add("tableId", table.getId());
-      sqlTableTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
-      sqlTableTemplate.add(
-          "datasetLiveViewSql",
-          BigQueryDatasetPdao.renderDatasetLiveViewSql(
-              datasetBigQueryProject.getProjectId(),
-              datasetBqDatasetName,
-              table,
-              null,
-              creationStart));
+      ST sqlTableTemplate =
+          new ST(getLiveViewTableTemplate)
+              .add("tableId", table.getId())
+              .add("dataRepoRowId", PDAO_ROW_ID_COLUMN)
+              .add(
+                  "datasetLiveViewSql",
+                  BigQueryDatasetPdao.renderDatasetLiveViewSql(
+                      datasetBigQueryProject.getProjectId(),
+                      datasetBqDatasetName,
+                      table,
+                      null,
+                      creationStart));
 
       selectStatements.add(sqlTableTemplate.render());
     }
-    ST sqlMergeTablesTemplate = new ST(mergeLiveViewTablesTemplate);
-    sqlMergeTablesTemplate.add("selectStatements", selectStatements);
+    ST sqlMergeTablesTemplate =
+        new ST(mergeLiveViewTablesTemplate).add("selectStatements", selectStatements);
     return sqlMergeTablesTemplate.render();
   }
 
@@ -306,13 +309,14 @@ public class BigQuerySnapshotPdao {
           createSnapshotTableFromLiveViews(
               datasetBigQueryProject, tablesBatch, datasetBqDatasetName, filterBefore);
 
-      ST sqlTemplate = new ST(insertAllLiveViewDataTemplate);
-      sqlTemplate.add("snapshotProject", snapshotProjectId);
-      sqlTemplate.add("snapshot", snapshotName);
-      sqlTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
-      sqlTemplate.add("dataRepoTableId", PDAO_TABLE_ID_COLUMN);
-      sqlTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
-      sqlTemplate.add("liveViewTables", liveViewTables);
+      ST sqlTemplate =
+          new ST(insertAllLiveViewDataTemplate)
+              .add("snapshotProject", snapshotProjectId)
+              .add("snapshot", snapshotName)
+              .add("dataRepoTable", PDAO_ROW_ID_TABLE)
+              .add("dataRepoTableId", PDAO_TABLE_ID_COLUMN)
+              .add("dataRepoRowId", PDAO_ROW_ID_COLUMN)
+              .add("liveViewTables", liveViewTables);
 
       snapshotBigQueryProject.query(
           sqlTemplate.render(),
@@ -321,11 +325,12 @@ public class BigQuerySnapshotPdao {
               QueryParameterValue.timestamp(DateTimeUtils.toEpochMicros(filterBefore))));
     }
 
-    ST sqlValidateSnapshotTemplate = new ST(validateSnapshotSizeTemplate);
-    sqlValidateSnapshotTemplate.add("rowId", PDAO_ROW_ID_COLUMN);
-    sqlValidateSnapshotTemplate.add("snapshotProject", snapshotProjectId);
-    sqlValidateSnapshotTemplate.add("snapshot", snapshotName);
-    sqlValidateSnapshotTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
+    ST sqlValidateSnapshotTemplate =
+        new ST(validateSnapshotSizeTemplate)
+            .add("rowId", PDAO_ROW_ID_COLUMN)
+            .add("snapshotProject", snapshotProjectId)
+            .add("snapshot", snapshotName)
+            .add("dataRepoTable", PDAO_ROW_ID_TABLE);
 
     TableResult result = snapshotBigQueryProject.query(sqlValidateSnapshotTemplate.render());
     if (result.getTotalRows() <= 0) {
@@ -391,22 +396,24 @@ public class BigQuerySnapshotPdao {
 
         for (List<UUID> rowIdChunk :
             rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
-          ST sqlTemplate = new ST(loadRootRowIdsTemplate);
-          sqlTemplate.add("project", snapshotProjectId);
-          sqlTemplate.add("snapshot", snapshotName);
-          sqlTemplate.add("dataset", datasetBqDatasetName);
-          sqlTemplate.add("tableId", sourceTable.getId().toString());
-          sqlTemplate.add("rowIds", rowIdChunk);
+          ST sqlTemplate =
+              new ST(loadRootRowIdsTemplate)
+                  .add("project", snapshotProjectId)
+                  .add("snapshot", snapshotName)
+                  .add("dataset", datasetBqDatasetName)
+                  .add("tableId", sourceTable.getId().toString())
+                  .add("rowIds", rowIdChunk);
           snapshotBigQueryProject.query(sqlTemplate.render());
         }
       }
       String datasetLiveViewSql =
           BigQueryDatasetPdao.renderDatasetLiveViewSql(
               datasetProjectId, datasetBqDatasetName, datasetTable, null, filterBefore);
-      ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
-      sqlTemplate.add("snapshotProject", snapshotProjectId);
-      sqlTemplate.add("snapshot", snapshotName);
-      sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
+      ST sqlTemplate =
+          new ST(validateRowIdsForRootTemplate)
+              .add("snapshotProject", snapshotProjectId)
+              .add("snapshot", snapshotName)
+              .add("datasetLiveViewSql", datasetLiveViewSql);
 
       TableResult result =
           snapshotBigQueryProject.query(
@@ -486,10 +493,11 @@ public class BigQuerySnapshotPdao {
             datasetTable,
             null,
             filterBefore);
-    ST sqlTemplate = new ST(mapValuesToRowsTemplate);
-    sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
-    sqlTemplate.add("column", column.getName());
-    sqlTemplate.add("inputVals", inputValues);
+    ST sqlTemplate =
+        new ST(mapValuesToRowsTemplate)
+            .add("datasetLiveViewSql", datasetLiveViewSql)
+            .add("column", column.getName())
+            .add("inputVals", inputValues);
 
     // Execute the query building the row id match structure that tracks the matching
     // ids and the mismatched ids
@@ -539,15 +547,16 @@ public class BigQuerySnapshotPdao {
     BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
     BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
 
-    ST sqlTemplate = new ST(getSnapshotRefIdsTemplate);
-    sqlTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
-    sqlTemplate.add("snapshotProject", snapshotBigQueryProject.getProjectId());
-    sqlTemplate.add("dataset", BigQueryPdao.prefixName(dataset.getName()));
-    sqlTemplate.add("snapshot", snapshot.getName());
-    sqlTemplate.add("table", tableName);
-    sqlTemplate.add("tableId", tableId);
-    sqlTemplate.add("refCol", refColumn.getName());
-    sqlTemplate.add("array", refColumn.isArrayOf());
+    ST sqlTemplate =
+        new ST(getSnapshotRefIdsTemplate)
+            .add("datasetProject", datasetBigQueryProject.getProjectId())
+            .add("snapshotProject", snapshotBigQueryProject.getProjectId())
+            .add("dataset", BigQueryPdao.prefixName(dataset.getName()))
+            .add("snapshot", snapshot.getName())
+            .add("table", tableName)
+            .add("tableId", tableId)
+            .add("refCol", refColumn.getName())
+            .add("array", refColumn.isArrayOf());
 
     TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
     List<String> refIdArray = new ArrayList<>();
@@ -618,15 +627,16 @@ public class BigQuerySnapshotPdao {
       DatasetTable rootTable = rootAssetTable.getTable();
       UUID rootTableId = rootTable.getId();
 
-      ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
-      sqlTemplate.add("snapshotProject", snapshotProjectId);
-      sqlTemplate.add("snapshotDatasetName", snapshotName);
-      sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
-      sqlTemplate.add(
-          "datasetLiveViewSql",
-          BigQueryDatasetPdao.renderDatasetLiveViewSql(
-              datasetProjectId, datasetBqDatasetName, rootTable, null, filterBefore));
-      sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
+      ST sqlTemplate =
+          new ST(joinTablesToTestForMissingRowIds)
+              .add("snapshotProject", snapshotProjectId)
+              .add("snapshotDatasetName", snapshotName)
+              .add("tempTable", PDAO_TEMP_TABLE)
+              .add(
+                  "datasetLiveViewSql",
+                  BigQueryDatasetPdao.renderDatasetLiveViewSql(
+                      datasetProjectId, datasetBqDatasetName, rootTable, null, filterBefore))
+              .add("commonColumn", PDAO_ROW_ID_COLUMN);
 
       TableResult result =
           snapshotBigQueryProject.query(
@@ -649,14 +659,14 @@ public class BigQuerySnapshotPdao {
 
       // insert into the PDAO_ROW_ID_TABLE the literal that is the table id
       // and then all the row ids from the temp table
-      ST sqlLoadTemplate = new ST(loadRootRowIdsFromTempTableTemplate);
-      sqlLoadTemplate.add("snapshotProject", snapshotProjectId);
-      sqlLoadTemplate.add("snapshot", snapshotName);
-      sqlLoadTemplate.add("dataset", datasetBqDatasetName);
-      sqlLoadTemplate.add("tableId", rootTableId);
-      sqlLoadTemplate.add(
-          "commonColumn", PDAO_ROW_ID_COLUMN); // this is the disc from classic asset
-      sqlLoadTemplate.add("tempTable", PDAO_TEMP_TABLE);
+      ST sqlLoadTemplate =
+          new ST(loadRootRowIdsFromTempTableTemplate)
+              .add("snapshotProject", snapshotProjectId)
+              .add("snapshot", snapshotName)
+              .add("dataset", datasetBqDatasetName)
+              .add("tableId", rootTableId)
+              .add("commonColumn", PDAO_ROW_ID_COLUMN) // this is the disc from classic asset
+              .add("tempTable", PDAO_TEMP_TABLE);
       snapshotBigQueryProject.query(sqlLoadTemplate.render());
 
       // ST sqlValidateTemplate = new ST(validateRowIdsForRootTemplate);
@@ -733,10 +743,12 @@ public class BigQuerySnapshotPdao {
               datasetTable,
               null,
               filterBefore);
-      ST sqlTemplate = new ST(mapValuesToRowsTemplate); // This query fails w >100k rows
-      sqlTemplate.add("datasetLiveViewSql", datasetLiveViewSql);
-      sqlTemplate.add("column", rowIdColumn.getName());
-      sqlTemplate.add("inputVals", rowIdChunk);
+      // This query fails w >100k rows
+      ST sqlTemplate =
+          new ST(mapValuesToRowsTemplate)
+              .add("datasetLiveViewSql", datasetLiveViewSql)
+              .add("column", rowIdColumn.getName())
+              .add("inputVals", rowIdChunk);
 
       String sql = sqlTemplate.render();
       logger.debug("mapValuesToRows sql: " + sql);
@@ -1000,17 +1012,18 @@ public class BigQuerySnapshotPdao {
     fromTableTableSelect.add("tableSelect", liveViewSqlFrom);
     toTableTableSelect.add("tableSelect", liveViewSqlTo);
 
-    ST sqlTemplate = new ST(storeRowIdsForRelatedTableTemplate);
-    sqlTemplate.add("snapshotProject", snapshotProjectId);
-    sqlTemplate.add("datasetProject", datasetProjectId);
-    sqlTemplate.add("dataset", datasetBqDatasetName);
-    sqlTemplate.add("snapshot", snapshot.getName());
-    sqlTemplate.add("fromTableId", relationship.getFromTableId());
-    sqlTemplate.add("toTableId", relationship.getToTableId());
-    sqlTemplate.add("fromTableTableSelect", fromTableTableSelect.render());
-    sqlTemplate.add("toTableTableSelect", toTableTableSelect.render());
-    sqlTemplate.add("fromCol", fromCol);
-    sqlTemplate.add("toCol", toCol);
+    ST sqlTemplate =
+        new ST(storeRowIdsForRelatedTableTemplate)
+            .add("snapshotProject", snapshotProjectId)
+            .add("datasetProject", datasetProjectId)
+            .add("dataset", datasetBqDatasetName)
+            .add("snapshot", snapshot.getName())
+            .add("fromTableId", relationship.getFromTableId())
+            .add("toTableId", relationship.getToTableId())
+            .add("fromTableTableSelect", fromTableTableSelect.render())
+            .add("toTableTableSelect", toTableTableSelect.render())
+            .add("fromCol", fromCol)
+            .add("toCol", toCol);
 
     QueryJobConfiguration queryConfig =
         QueryJobConfiguration.newBuilder(sqlTemplate.render())
@@ -1076,13 +1089,14 @@ public class BigQuerySnapshotPdao {
                 throw new PdaoException(
                     "No matching map table for snapshot table " + table.getName());
               }
-              ST sqlTemplate = new ST(createViewsTemplate);
-              sqlTemplate.add("datasetProject", datasetProjectId);
-              sqlTemplate.add("snapshotProject", snapshotProjectId);
-              sqlTemplate.add("dataset", datasetBqDatasetName);
-              sqlTemplate.add("snapshot", snapshotName);
-              sqlTemplate.add("mapTable", mapTable.getFromTable().getRawTableName());
-              sqlTemplate.add("tableId", mapTable.getFromTable().getId().toString());
+              ST sqlTemplate =
+                  new ST(createViewsTemplate)
+                      .add("datasetProject", datasetProjectId)
+                      .add("snapshotProject", snapshotProjectId)
+                      .add("dataset", datasetBqDatasetName)
+                      .add("snapshot", snapshotName)
+                      .add("mapTable", mapTable.getFromTable().getRawTableName())
+                      .add("tableId", mapTable.getFromTable().getId().toString());
               table
                   .getColumns()
                   .forEach(

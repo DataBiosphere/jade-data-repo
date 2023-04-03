@@ -3,6 +3,7 @@ package bio.terra.service.filedata.google.firestore;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.CollectionType;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -164,6 +165,20 @@ public class FireStoreDao {
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String datasetId = dataset.getId().toString();
     fileDao.createFileMetadata(firestore, datasetId, newFiles);
+  }
+
+  /** Updates the ID of a file's metadata (effectively, this is a move operation) */
+  public void moveFileMetadata(Dataset dataset, Map<UUID, UUID> idMappings)
+      throws InterruptedException {
+    Firestore firestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
+    String datasetId = dataset.getId().toString();
+
+    // Update file metadata
+    fileDao.moveFileMetadata(firestore, datasetId, idMappings);
+
+    // Update directory metadata file ids
+    directoryDao.updateFileIds(firestore, datasetId, idMappings);
   }
 
   public boolean deleteFileMetadata(Dataset dataset, String fileId) throws InterruptedException {
@@ -469,14 +484,34 @@ public class FireStoreDao {
     return directoryDao.validateRefIds(firestore, datasetId, refIdArray);
   }
 
-  /** Retrieve all fileIds (including directories) from a dataset or snapshot */
-  public List<String> retrieveAllFileIds(FSContainerInterface container)
+  /**
+   * Retrieve all fileIds (optionally including directories) from a dataset or snapshot.
+   *
+   * @param container The dataset or snapshot to read from
+   * @param includeDirectories If true, will return all file ids including directories (read from a
+   *     specific Firestore collection). If false, will only return file type objects' ids, ignoring
+   *     directories. Note that if this value is false for snapshots, the entire Firestore directory
+   *     collection will be read and filtered.
+   */
+  public List<String> retrieveAllFileIds(FSContainerInterface container, boolean includeDirectories)
       throws InterruptedException {
     Firestore firestore =
         FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
-    return directoryDao.enumerateAll(firestore, container.getId().toString()).stream()
-        .map(FireStoreDirectoryEntry::getFileId)
-        .toList();
+    if (includeDirectories) {
+      return directoryDao.enumerateAll(firestore, container.getId().toString()).stream()
+          .map(FireStoreDirectoryEntry::getFileId)
+          .toList();
+    } else {
+      if (container.getCollectionType().equals(CollectionType.SNAPSHOT)) {
+        return directoryDao.enumerateAll(firestore, container.getId().toString()).stream()
+            .filter(FireStoreDirectoryEntry::getIsFileRef)
+            .map(FireStoreDirectoryEntry::getFileId)
+            .toList();
+      }
+      return fileDao.enumerateAll(firestore, container.getId().toString()).stream()
+          .map(FireStoreFile::getFileId)
+          .toList();
+    }
   }
 
   // -- private methods --

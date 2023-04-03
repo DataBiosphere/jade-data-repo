@@ -82,6 +82,7 @@ public class DatasetDaoTest {
 
   private BillingProfileModel billingProfile;
   private UUID projectId;
+  private final List<UUID> datasetIdsToDelete = new ArrayList<>();
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticatedUserRequest.builder()
@@ -106,6 +107,7 @@ public class DatasetDaoTest {
     dataset.id(datasetId);
     datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
+    datasetIdsToDelete.add(datasetId);
     return datasetId;
   }
 
@@ -122,10 +124,12 @@ public class DatasetDaoTest {
 
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
     projectId = resourceDao.createProject(projectResource);
+    datasetIdsToDelete.clear();
   }
 
   @After
   public void teardown() {
+    datasetIdsToDelete.forEach(i -> datasetDao.delete(i, TEST_USER));
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(billingProfile.getId());
   }
@@ -278,9 +282,6 @@ public class DatasetDaoTest {
             .allMatch(
                 datasetSummary ->
                     datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_EAST1)));
-
-    datasetDao.delete(dataset1, TEST_USER);
-    datasetDao.delete(dataset2, TEST_USER);
   }
 
   @Test
@@ -291,53 +292,46 @@ public class DatasetDaoTest {
 
     GoogleRegion testSettingRegion = GoogleRegion.ASIA_NORTHEAST1;
     UUID datasetId = createDataset(request, expectedName, testSettingRegion);
-    try {
-      Dataset fromDB = datasetDao.retrieve(datasetId);
+    Dataset fromDB = datasetDao.retrieve(datasetId);
 
-      assertThat("dataset name is set correctly", fromDB.getName(), equalTo(expectedName));
+    assertThat("dataset name is set correctly", fromDB.getName(), equalTo(expectedName));
 
-      // verify tables
+    // verify tables
+    assertThat(
+        "correct number of tables created for dataset", fromDB.getTables().size(), equalTo(2));
+    fromDB.getTables().forEach(this::assertDatasetTable);
+
+    assertThat(
+        "correct number of relationships are created for dataset",
+        fromDB.getRelationships().size(),
+        equalTo(2));
+
+    assertTablesInRelationship(fromDB);
+
+    // verify assets
+    assertThat(
+        "correct number of assets created for dataset",
+        fromDB.getAssetSpecifications().size(),
+        equalTo(2));
+    fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+
+    for (GoogleCloudResource resource : GoogleCloudResource.values()) {
+      CloudRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
       assertThat(
-          "correct number of tables created for dataset", fromDB.getTables().size(), equalTo(2));
-      fromDB.getTables().forEach(this::assertDatasetTable);
-
-      assertThat(
-          "correct number of relationships are created for dataset",
-          fromDB.getRelationships().size(),
-          equalTo(2));
-
-      assertTablesInRelationship(fromDB);
-
-      // verify assets
-      assertThat(
-          "correct number of assets created for dataset",
-          fromDB.getAssetSpecifications().size(),
-          equalTo(2));
-      fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
-
-      for (GoogleCloudResource resource : GoogleCloudResource.values()) {
-        CloudRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
-        assertThat(
-            String.format("dataset %s region is set", resource),
-            region,
-            equalTo(testSettingRegion));
-      }
-
-      assertThat(
-          "dataset has billing profiles returned from the database",
-          fromDB.getDatasetSummary().getBillingProfiles(),
-          is(not(empty())));
-
-      assertThat(
-          "dataset default Billing Profile matches default profile id",
-          fromDB.getDatasetSummary().getDefaultBillingProfile().getId(),
-          equalTo(fromDB.getDatasetSummary().getDefaultProfileId()));
-
-      assertThat(
-          "Cloud platform is returned", fromDB.getCloudPlatform(), equalTo(CloudPlatform.GCP));
-    } finally {
-      datasetDao.delete(datasetId, TEST_USER);
+          String.format("dataset %s region is set", resource), region, equalTo(testSettingRegion));
     }
+
+    assertThat(
+        "dataset has billing profiles returned from the database",
+        fromDB.getDatasetSummary().getBillingProfiles(),
+        is(not(empty())));
+
+    assertThat(
+        "dataset default Billing Profile matches default profile id",
+        fromDB.getDatasetSummary().getDefaultBillingProfile().getId(),
+        equalTo(fromDB.getDatasetSummary().getDefaultProfileId()));
+
+    assertThat("Cloud platform is returned", fromDB.getCloudPlatform(), equalTo(CloudPlatform.GCP));
   }
 
   @Test
@@ -347,81 +341,68 @@ public class DatasetDaoTest {
     String expectedName = request.getName() + UUID.randomUUID().toString();
 
     UUID datasetId = createDataset(request, expectedName, GoogleRegion.US);
-    try {
-      Dataset fromDB = datasetDao.retrieve(datasetId);
+    Dataset fromDB = datasetDao.retrieve(datasetId);
 
-      for (GoogleCloudResource resource : GoogleCloudResource.values()) {
-        CloudRegion region =
-            (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
-        GoogleRegion expectedRegion =
-            (resource == GoogleCloudResource.BIGQUERY) ? GoogleRegion.US : GoogleRegion.US_EAST4;
-        assertThat(
-            String.format("dataset %s region is set to %s", resource, region.name()),
-            region,
-            equalTo(expectedRegion));
-      }
-    } finally {
-      datasetDao.delete(datasetId, TEST_USER);
+    for (GoogleCloudResource resource : GoogleCloudResource.values()) {
+      CloudRegion region =
+          (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+      GoogleRegion expectedRegion =
+          (resource == GoogleCloudResource.BIGQUERY) ? GoogleRegion.US : GoogleRegion.US_EAST4;
+      assertThat(
+          String.format("dataset %s region is set to %s", resource, region.name()),
+          region,
+          equalTo(expectedRegion));
     }
   }
 
   @Test
   public void partitionTest() throws Exception {
     UUID datasetId = createDataset("ingest-test-partitioned-dataset.json");
-    try {
-      Dataset fromDB = datasetDao.retrieve(datasetId);
-      DatasetTable participants =
-          fromDB.getTableByName("participant").orElseThrow(IllegalStateException::new);
-      DatasetTable samples =
-          fromDB.getTableByName("sample").orElseThrow(IllegalStateException::new);
-      DatasetTable files = fromDB.getTableByName("file").orElseThrow(IllegalStateException::new);
+    Dataset fromDB = datasetDao.retrieve(datasetId);
+    DatasetTable participants =
+        fromDB.getTableByName("participant").orElseThrow(IllegalStateException::new);
+    DatasetTable samples = fromDB.getTableByName("sample").orElseThrow(IllegalStateException::new);
+    DatasetTable files = fromDB.getTableByName("file").orElseThrow(IllegalStateException::new);
 
-      assertThat(
-          "int-range partition settings are persisted",
-          participants.getBigQueryPartitionConfig(),
-          equalTo(BigQueryPartitionConfigV1.intRange("age", 0, 120, 1)));
-      assertThat(
-          "date partition settings are persisted",
-          samples.getBigQueryPartitionConfig(),
-          equalTo(BigQueryPartitionConfigV1.date("date_collected")));
-      assertThat(
-          "ingest-time partition settings are persisted",
-          files.getBigQueryPartitionConfig(),
-          equalTo(BigQueryPartitionConfigV1.ingestDate()));
-    } finally {
-      datasetDao.delete(datasetId, TEST_USER);
-    }
+    assertThat(
+        "int-range partition settings are persisted",
+        participants.getBigQueryPartitionConfig(),
+        equalTo(BigQueryPartitionConfigV1.intRange("age", 0, 120, 1)));
+    assertThat(
+        "date partition settings are persisted",
+        samples.getBigQueryPartitionConfig(),
+        equalTo(BigQueryPartitionConfigV1.date("date_collected")));
+    assertThat(
+        "ingest-time partition settings are persisted",
+        files.getBigQueryPartitionConfig(),
+        equalTo(BigQueryPartitionConfigV1.ingestDate()));
   }
 
   @Test
   public void primaryKeyTest() throws Exception {
     UUID datasetId = createDataset("dataset-primary-key.json");
-    try {
-      Dataset fromDB = datasetDao.retrieve(datasetId);
-      DatasetTable variants =
-          fromDB.getTableByName("variant").orElseThrow(IllegalStateException::new);
-      DatasetTable freqAnalysis =
-          fromDB.getTableByName("frequency_analysis").orElseThrow(IllegalStateException::new);
-      DatasetTable metaAnalysis =
-          fromDB.getTableByName("meta_analysis").orElseThrow(IllegalStateException::new);
+    Dataset fromDB = datasetDao.retrieve(datasetId);
+    DatasetTable variants =
+        fromDB.getTableByName("variant").orElseThrow(IllegalStateException::new);
+    DatasetTable freqAnalysis =
+        fromDB.getTableByName("frequency_analysis").orElseThrow(IllegalStateException::new);
+    DatasetTable metaAnalysis =
+        fromDB.getTableByName("meta_analysis").orElseThrow(IllegalStateException::new);
 
-      assertThat(
-          "single-column primary keys are set correctly",
-          variants.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
-          equalTo(Collections.singletonList("id")));
+    assertThat(
+        "single-column primary keys are set correctly",
+        variants.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+        equalTo(Collections.singletonList("id")));
 
-      assertThat(
-          "dual-column primary keys are set correctly",
-          metaAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
-          equalTo(Arrays.asList("variant_id", "phenotype")));
+    assertThat(
+        "dual-column primary keys are set correctly",
+        metaAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+        equalTo(Arrays.asList("variant_id", "phenotype")));
 
-      assertThat(
-          "many-column primary keys are set correctly",
-          freqAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
-          equalTo(Arrays.asList("variant_id", "ancestry", "phenotype")));
-    } finally {
-      datasetDao.delete(datasetId, TEST_USER);
-    }
+    assertThat(
+        "many-column primary keys are set correctly",
+        freqAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+        equalTo(Arrays.asList("variant_id", "ancestry", "phenotype")));
   }
 
   protected void assertTablesInRelationship(Dataset dataset) {
@@ -481,255 +462,235 @@ public class DatasetDaoTest {
   @Test
   public void mixingSharedAndExclusiveLocksTest() throws Exception {
     UUID datasetId = createDataset("dataset-primary-key.json");
+    // check that there are no outstanding locks
+    String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("no exclusive lock after creation", exclusiveLock);
+    String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after creation", 0, sharedLocks.length);
+
+    // 1. take out a shared lock
+    // confirm that there are no exclusive locks and one shared lock
+    datasetDao.lockShared(datasetId, "flightid1");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("no exclusive lock after step 1", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("one shared lock after step 1", 1, sharedLocks.length);
+    assertEquals("flightid1 has shared lock after step 1", "flightid1", sharedLocks[0]);
+
+    // 2. take out another shared lock
+    // confirm that there are no exclusive locks and two shared locks
+    datasetDao.lockShared(datasetId, "flightid2");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("no exclusive lock after step 2", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("two shared locks after step 2", 2, sharedLocks.length);
+    assertTrue(
+        "flightid2 has shared lock after step 2", Arrays.asList(sharedLocks).contains("flightid2"));
+
+    // 3. try to take out an exclusive lock
+    // confirm that it fails with a DatasetLockException
+    boolean threwLockException = false;
     try {
-      // check that there are no outstanding locks
-      String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("no exclusive lock after creation", exclusiveLock);
-      String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after creation", 0, sharedLocks.length);
-
-      // 1. take out a shared lock
-      // confirm that there are no exclusive locks and one shared lock
-      datasetDao.lockShared(datasetId, "flightid1");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("no exclusive lock after step 1", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("one shared lock after step 1", 1, sharedLocks.length);
-      assertEquals("flightid1 has shared lock after step 1", "flightid1", sharedLocks[0]);
-
-      // 2. take out another shared lock
-      // confirm that there are no exclusive locks and two shared locks
-      datasetDao.lockShared(datasetId, "flightid2");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("no exclusive lock after step 2", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("two shared locks after step 2", 2, sharedLocks.length);
-      assertTrue(
-          "flightid2 has shared lock after step 2",
-          Arrays.asList(sharedLocks).contains("flightid2"));
-
-      // 3. try to take out an exclusive lock
-      // confirm that it fails with a DatasetLockException
-      boolean threwLockException = false;
-      try {
-        datasetDao.lockExclusive(datasetId, "flightid3");
-      } catch (DatasetLockException dlEx) {
-        threwLockException = true;
-      }
-      assertTrue("exclusive lock threw exception in step 3", threwLockException);
-
-      // 4. release the first shared lock
-      // confirm that there are no exclusive locks and one shared lock
-      datasetDao.unlockShared(datasetId, "flightid1");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("no exclusive lock after step 4", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("one shared lock after step 4", 1, sharedLocks.length);
-      assertFalse(
-          "flightid1 no longer has shared lock after step 4",
-          Arrays.asList(sharedLocks).contains("flightid1"));
-
-      // 5. try to take out an exclusive lock
-      // confirm that it fails with a DatasetLockException
-      threwLockException = false;
-      try {
-        datasetDao.lockExclusive(datasetId, "flightid4");
-      } catch (DatasetLockException dlEx) {
-        threwLockException = true;
-      }
-      assertTrue("exclusive lock threw exception in step 5", threwLockException);
-
-      // 6. take out five shared locks
-      // confirm that there are no exclusive locks and six shared locks
-      datasetDao.lockShared(datasetId, "flightid5");
-      datasetDao.lockShared(datasetId, "flightid6");
-      datasetDao.lockShared(datasetId, "flightid7");
-      datasetDao.lockShared(datasetId, "flightid8");
-      datasetDao.lockShared(datasetId, "flightid9");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("no exclusive lock after step 6", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("six shared locks after step 6", 6, sharedLocks.length);
-      assertTrue(
-          "flightid2 has shared lock after step 6",
-          Arrays.asList(sharedLocks).contains("flightid2"));
-      assertTrue(
-          "flightid5 has shared lock after step 6",
-          Arrays.asList(sharedLocks).contains("flightid5"));
-      assertTrue(
-          "flightid6 has shared lock after step 6",
-          Arrays.asList(sharedLocks).contains("flightid6"));
-      assertTrue(
-          "flightid7 has shared lock after step 6",
-          Arrays.asList(sharedLocks).contains("flightid7"));
-      assertTrue(
-          "flightid8 has shared lock after step 6",
-          Arrays.asList(sharedLocks).contains("flightid8"));
-      assertTrue(
-          "flightid9 has shared lock after step 6",
-          Arrays.asList(sharedLocks).contains("flightid9"));
-
-      // 7. release all the shared locks
-      // confirm that there are no outstanding locks
-      datasetDao.unlockShared(datasetId, "flightid2");
-      datasetDao.unlockShared(datasetId, "flightid5");
-      datasetDao.unlockShared(datasetId, "flightid6");
-      datasetDao.unlockShared(datasetId, "flightid7");
-      datasetDao.unlockShared(datasetId, "flightid8");
-      datasetDao.unlockShared(datasetId, "flightid9");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("no exclusive lock after step 7", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after step 7", 0, sharedLocks.length);
-
-      // 8. take out an exclusive lock
-      // confirm that there is an exclusive lock and no shared locks
-      datasetDao.lockExclusive(datasetId, "flightid10");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertEquals("exclusive lock taken out after step 8", "flightid10", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after step 8", 0, sharedLocks.length);
-
-      // 9. try to take out a shared lock
-      // confirm that it fails with a DatasetLockException
-      threwLockException = false;
-      try {
-        datasetDao.lockShared(datasetId, "flightid11");
-      } catch (DatasetLockException dlEx) {
-        threwLockException = true;
-      }
-      assertTrue("shared lock threw exception in step 9", threwLockException);
-
-      // 10. release the exclusive lock
-      // confirm that there are no outstanding locks
-      datasetDao.unlockExclusive(datasetId, "flightid10");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("exclusive lock taken out after step 10", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after step 10", 0, sharedLocks.length);
-
-    } finally {
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.lockExclusive(datasetId, "flightid3");
+    } catch (DatasetLockException dlEx) {
+      threwLockException = true;
     }
+    assertTrue("exclusive lock threw exception in step 3", threwLockException);
+
+    // 4. release the first shared lock
+    // confirm that there are no exclusive locks and one shared lock
+    datasetDao.unlockShared(datasetId, "flightid1");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("no exclusive lock after step 4", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("one shared lock after step 4", 1, sharedLocks.length);
+    assertFalse(
+        "flightid1 no longer has shared lock after step 4",
+        Arrays.asList(sharedLocks).contains("flightid1"));
+
+    // 5. try to take out an exclusive lock
+    // confirm that it fails with a DatasetLockException
+    threwLockException = false;
+    try {
+      datasetDao.lockExclusive(datasetId, "flightid4");
+    } catch (DatasetLockException dlEx) {
+      threwLockException = true;
+    }
+    assertTrue("exclusive lock threw exception in step 5", threwLockException);
+
+    // 6. take out five shared locks
+    // confirm that there are no exclusive locks and six shared locks
+    datasetDao.lockShared(datasetId, "flightid5");
+    datasetDao.lockShared(datasetId, "flightid6");
+    datasetDao.lockShared(datasetId, "flightid7");
+    datasetDao.lockShared(datasetId, "flightid8");
+    datasetDao.lockShared(datasetId, "flightid9");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("no exclusive lock after step 6", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("six shared locks after step 6", 6, sharedLocks.length);
+    assertTrue(
+        "flightid2 has shared lock after step 6", Arrays.asList(sharedLocks).contains("flightid2"));
+    assertTrue(
+        "flightid5 has shared lock after step 6", Arrays.asList(sharedLocks).contains("flightid5"));
+    assertTrue(
+        "flightid6 has shared lock after step 6", Arrays.asList(sharedLocks).contains("flightid6"));
+    assertTrue(
+        "flightid7 has shared lock after step 6", Arrays.asList(sharedLocks).contains("flightid7"));
+    assertTrue(
+        "flightid8 has shared lock after step 6", Arrays.asList(sharedLocks).contains("flightid8"));
+    assertTrue(
+        "flightid9 has shared lock after step 6", Arrays.asList(sharedLocks).contains("flightid9"));
+
+    // 7. release all the shared locks
+    // confirm that there are no outstanding locks
+    datasetDao.unlockShared(datasetId, "flightid2");
+    datasetDao.unlockShared(datasetId, "flightid5");
+    datasetDao.unlockShared(datasetId, "flightid6");
+    datasetDao.unlockShared(datasetId, "flightid7");
+    datasetDao.unlockShared(datasetId, "flightid8");
+    datasetDao.unlockShared(datasetId, "flightid9");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("no exclusive lock after step 7", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after step 7", 0, sharedLocks.length);
+
+    // 8. take out an exclusive lock
+    // confirm that there is an exclusive lock and no shared locks
+    datasetDao.lockExclusive(datasetId, "flightid10");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertEquals("exclusive lock taken out after step 8", "flightid10", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after step 8", 0, sharedLocks.length);
+
+    // 9. try to take out a shared lock
+    // confirm that it fails with a DatasetLockException
+    threwLockException = false;
+    try {
+      datasetDao.lockShared(datasetId, "flightid11");
+    } catch (DatasetLockException dlEx) {
+      threwLockException = true;
+    }
+    assertTrue("shared lock threw exception in step 9", threwLockException);
+
+    // 10. release the exclusive lock
+    // confirm that there are no outstanding locks
+    datasetDao.unlockExclusive(datasetId, "flightid10");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("exclusive lock taken out after step 10", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after step 10", 0, sharedLocks.length);
   }
 
   @Test
   public void duplicateCallsForExclusiveLockTest() throws Exception {
     UUID datasetId = createDataset("dataset-primary-key.json");
-    try {
-      // check that there are no outstanding locks
-      String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("no exclusive lock after creation", exclusiveLock);
-      String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after creation", 0, sharedLocks.length);
+    // check that there are no outstanding locks
+    String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("no exclusive lock after creation", exclusiveLock);
+    String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after creation", 0, sharedLocks.length);
 
-      // 1. take out an exclusive lock
-      // confirm that there is an exclusive lock and no shared locks
-      datasetDao.lockExclusive(datasetId, "flightid20");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertEquals("exclusive lock taken out after step 1", "flightid20", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after step 1", 0, sharedLocks.length);
+    // 1. take out an exclusive lock
+    // confirm that there is an exclusive lock and no shared locks
+    datasetDao.lockExclusive(datasetId, "flightid20");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertEquals("exclusive lock taken out after step 1", "flightid20", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after step 1", 0, sharedLocks.length);
 
-      // 2. try to take out an exclusive lock again with the same flightid
-      // confirm that the exclusive lock is still there and there are no shared locks
-      datasetDao.lockExclusive(datasetId, "flightid20");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertEquals("exclusive lock taken out after step 2", "flightid20", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after step 2", 0, sharedLocks.length);
+    // 2. try to take out an exclusive lock again with the same flightid
+    // confirm that the exclusive lock is still there and there are no shared locks
+    datasetDao.lockExclusive(datasetId, "flightid20");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertEquals("exclusive lock taken out after step 2", "flightid20", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after step 2", 0, sharedLocks.length);
 
-      // 3. try to unlock the exclusive lock with a different flightid
-      // confirm that the exclusive lock is still there and there are no shared locks
-      boolean rowUnlocked = datasetDao.unlockExclusive(datasetId, "flightid21");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertFalse(
-          "no rows updated on call to unlock with different flightid after step 3", rowUnlocked);
-      assertEquals("exclusive lock still taken out after step 3", "flightid20", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after step 3", 0, sharedLocks.length);
+    // 3. try to unlock the exclusive lock with a different flightid
+    // confirm that the exclusive lock is still there and there are no shared locks
+    boolean rowUnlocked = datasetDao.unlockExclusive(datasetId, "flightid21");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertFalse(
+        "no rows updated on call to unlock with different flightid after step 3", rowUnlocked);
+    assertEquals("exclusive lock still taken out after step 3", "flightid20", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after step 3", 0, sharedLocks.length);
 
-      // 4. unlock the exclusive lock
-      // confirm that there are no outstanding exclusive or shared locks
-      rowUnlocked = datasetDao.unlockExclusive(datasetId, "flightid20");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertTrue("row was updated on first call to unlock after step 4", rowUnlocked);
-      assertNull("no exclusive lock after step 4", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after step 4", 0, sharedLocks.length);
+    // 4. unlock the exclusive lock
+    // confirm that there are no outstanding exclusive or shared locks
+    rowUnlocked = datasetDao.unlockExclusive(datasetId, "flightid20");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertTrue("row was updated on first call to unlock after step 4", rowUnlocked);
+    assertNull("no exclusive lock after step 4", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after step 4", 0, sharedLocks.length);
 
-      // 5. unlock the exclusive lock again with the same flightid
-      // confirm that there are still no oustanding exclusive or shared locks
-      rowUnlocked = datasetDao.unlockExclusive(datasetId, "flightid20");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertFalse("no rows updated on second call to unlock after step 5", rowUnlocked);
-      assertNull("no exclusive lock after step 5", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after step 5", 0, sharedLocks.length);
-    } finally {
-      datasetDao.delete(datasetId, TEST_USER);
-    }
+    // 5. unlock the exclusive lock again with the same flightid
+    // confirm that there are still no oustanding exclusive or shared locks
+    rowUnlocked = datasetDao.unlockExclusive(datasetId, "flightid20");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertFalse("no rows updated on second call to unlock after step 5", rowUnlocked);
+    assertNull("no exclusive lock after step 5", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after step 5", 0, sharedLocks.length);
   }
 
   @Test
   public void duplicateCallsForSharedLockTest() throws Exception {
     UUID datasetId = createDataset("dataset-primary-key.json");
-    try {
-      // check that there are no outstanding locks
-      String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("no exclusive lock after creation", exclusiveLock);
-      String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after creation", 0, sharedLocks.length);
+    // check that there are no outstanding locks
+    String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("no exclusive lock after creation", exclusiveLock);
+    String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after creation", 0, sharedLocks.length);
 
-      // 1. take out a shared lock
-      // confirm that there is no exclusive lock and one shared lock
-      datasetDao.lockShared(datasetId, "flightid30");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("no exclusive lock after step 1", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("one shared lock after step 1", 1, sharedLocks.length);
-      assertEquals("flightid30 has shared lock after step 1", "flightid30", sharedLocks[0]);
+    // 1. take out a shared lock
+    // confirm that there is no exclusive lock and one shared lock
+    datasetDao.lockShared(datasetId, "flightid30");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("no exclusive lock after step 1", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("one shared lock after step 1", 1, sharedLocks.length);
+    assertEquals("flightid30 has shared lock after step 1", "flightid30", sharedLocks[0]);
 
-      // 2. try to take out a shared lock again with the same flightid
-      // confirm that the shared lock is still there and there is no exclusive lock
-      datasetDao.lockShared(datasetId, "flightid30");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertNull("no exclusive lock after step 2", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("one shared lock after step 2", 1, sharedLocks.length);
-      assertEquals("flightid30 has shared lock after step 2", "flightid30", sharedLocks[0]);
+    // 2. try to take out a shared lock again with the same flightid
+    // confirm that the shared lock is still there and there is no exclusive lock
+    datasetDao.lockShared(datasetId, "flightid30");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertNull("no exclusive lock after step 2", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("one shared lock after step 2", 1, sharedLocks.length);
+    assertEquals("flightid30 has shared lock after step 2", "flightid30", sharedLocks[0]);
 
-      // 3. try to unlock the shared lock with a different flightid
-      // confirm that the shared lock is still there and there is no exclusive lock
-      boolean rowUnlocked = datasetDao.unlockShared(datasetId, "flightid31");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertFalse(
-          "no rows updated on call to unlock with different flightid after step 3", rowUnlocked);
-      assertNull("no exclusive lock after step 3", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("one shared lock still taken out after step 3", 1, sharedLocks.length);
-      assertEquals("flightid30 still has shared lock after step 3", "flightid30", sharedLocks[0]);
+    // 3. try to unlock the shared lock with a different flightid
+    // confirm that the shared lock is still there and there is no exclusive lock
+    boolean rowUnlocked = datasetDao.unlockShared(datasetId, "flightid31");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertFalse(
+        "no rows updated on call to unlock with different flightid after step 3", rowUnlocked);
+    assertNull("no exclusive lock after step 3", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("one shared lock still taken out after step 3", 1, sharedLocks.length);
+    assertEquals("flightid30 still has shared lock after step 3", "flightid30", sharedLocks[0]);
 
-      // 4. unlock the shared lock
-      // confirm that there are no outstanding exclusive or shared locks
-      rowUnlocked = datasetDao.unlockShared(datasetId, "flightid30");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertTrue("row was updated on first call to unlock after step 4", rowUnlocked);
-      assertNull("no exclusive lock after step 4", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after step 4", 0, sharedLocks.length);
+    // 4. unlock the shared lock
+    // confirm that there are no outstanding exclusive or shared locks
+    rowUnlocked = datasetDao.unlockShared(datasetId, "flightid30");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertTrue("row was updated on first call to unlock after step 4", rowUnlocked);
+    assertNull("no exclusive lock after step 4", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after step 4", 0, sharedLocks.length);
 
-      // 5. unlock the exclusive lock again with the same flightid
-      // confirm that there are still no oustanding exclusive or shared locks
-      rowUnlocked = datasetDao.unlockShared(datasetId, "flightid30");
-      exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-      assertFalse("no rows updated on second call to unlock after step 5", rowUnlocked);
-      assertNull("no exclusive lock after step 5", exclusiveLock);
-      sharedLocks = datasetDao.getSharedLocks(datasetId);
-      assertEquals("no shared locks after step 5", 0, sharedLocks.length);
-    } finally {
-      datasetDao.delete(datasetId, TEST_USER);
-    }
+    // 5. unlock the exclusive lock again with the same flightid
+    // confirm that there are still no oustanding exclusive or shared locks
+    rowUnlocked = datasetDao.unlockShared(datasetId, "flightid30");
+    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    assertFalse("no rows updated on second call to unlock after step 5", rowUnlocked);
+    assertNull("no exclusive lock after step 5", exclusiveLock);
+    sharedLocks = datasetDao.getSharedLocks(datasetId);
+    assertEquals("no shared locks after step 5", 0, sharedLocks.length);
   }
 
   @Test
@@ -779,7 +740,6 @@ public class DatasetDaoTest {
                     "can retrieve row metadata table name",
                     t.getRowMetadataTableName(),
                     containsString("row_metadata")));
-    datasetDao.delete(datasetId, TEST_USER);
   }
 
   @Test
@@ -844,9 +804,6 @@ public class DatasetDaoTest {
             .map(Column::getName)
             .collect(Collectors.toList()),
         contains("c3", "c2", "c1"));
-
-    datasetDao.delete(dataset1Id, TEST_USER);
-    datasetDao.delete(dataset2Id, TEST_USER);
   }
 
   @Test
@@ -887,8 +844,6 @@ public class DatasetDaoTest {
         "dataset's PHS ID is set to empty string from patch",
         datasetDao.retrieve(datasetId).getPhsId(),
         equalTo(""));
-
-    datasetDao.delete(datasetId, TEST_USER);
   }
 
   @Test
@@ -901,7 +856,18 @@ public class DatasetDaoTest {
         "dataset properties are set",
         datasetDao.retrieve(datasetId).getProperties(),
         equalTo(request.getProperties()));
-    datasetDao.delete(datasetId, TEST_USER);
+  }
+
+  @Test
+  public void updatePredictableFileIdsFlag() throws Exception {
+    UUID datasetId = createDataset("dataset-minimal.json");
+    assertFalse(
+        "predictable file ids flag is false",
+        datasetDao.retrieve(datasetId).hasPredictableFileIds());
+    datasetDao.setPredictableFileId(datasetId, true);
+    assertTrue(
+        "predictable file ids flag is true",
+        datasetDao.retrieve(datasetId).hasPredictableFileIds());
   }
 
   @Test
@@ -981,6 +947,5 @@ public class DatasetDaoTest {
         "dataset properties is set to empty",
         datasetDao.retrieve(datasetId).getProperties(),
         equalTo(unsetDatasetProperties));
-    datasetDao.delete(datasetId, TEST_USER);
   }
 }

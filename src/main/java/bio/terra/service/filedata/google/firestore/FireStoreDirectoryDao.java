@@ -1,6 +1,5 @@
 package bio.terra.service.filedata.google.firestore;
 
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
 
@@ -243,11 +242,28 @@ public class FireStoreDirectoryDao {
   public void deleteDirectoryEntriesFromCollection(Firestore firestore, String collectionId)
       throws InterruptedException {
 
-    fireStoreUtils.scanCollectionObjects(
+    fireStoreUtils.scanCollectionObjectsForDelete(
         firestore,
         collectionId,
         FireStoreUtils.MAX_FIRESTORE_BATCH_SIZE,
         document -> document.getReference().delete());
+  }
+
+  public void updateFileIds(Firestore firestore, String collectionId, Map<UUID, UUID> idMappings)
+      throws InterruptedException {
+
+    fireStoreUtils.scanCollectionObjects(
+        firestore,
+        collectionId,
+        FireStoreUtils.MAX_FIRESTORE_BATCH_SIZE,
+        document -> {
+          // We could probably be more efficient and not have to rewrite but the code gets much
+          // less readable since we would need to manage our own threadpool
+          UUID existingId = UUID.fromString(document.get("fileId", String.class));
+          // Note: it's important to store the value as a string as UUIDs get serialized as maps
+          String idToSet = idMappings.getOrDefault(existingId, existingId).toString();
+          return document.getReference().update("fileId", idToSet);
+        });
   }
 
   interface LookupFunction {
@@ -322,23 +338,7 @@ public class FireStoreDirectoryDao {
   }
 
   List<FireStoreDirectoryEntry> query(Query query) throws InterruptedException {
-
-    int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
-    FireStoreBatchQueryIterator queryIterator =
-        new FireStoreBatchQueryIterator(query, batchSize, fireStoreUtils);
-
-    List<FireStoreDirectoryEntry> entryList = new ArrayList<>();
-    for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
-        batch != null;
-        batch = queryIterator.getBatch()) {
-
-      for (DocumentSnapshot docSnap : batch) {
-        FireStoreDirectoryEntry entry = docSnap.toObject(FireStoreDirectoryEntry.class);
-        entryList.add(entry);
-      }
-    }
-
-    return entryList;
+    return fireStoreUtils.query(query, FireStoreDirectoryEntry.class);
   }
 
   // As mentioned at the top of the module, we can't use forward slash in a FireStore document

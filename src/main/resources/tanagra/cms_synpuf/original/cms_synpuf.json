@@ -2,7 +2,7 @@
   "name": "cms_synpuf",
   "dataPointers": [
     { "type": "AZURE_DATASET",
-      "datasetId": "2410b782-21f3-48e9-8be1-811474481c30",
+      "datasetId": "ba420228-f13a-490a-93fc-fffd91e0f51b",
       "datasetName": "synthetic_omop_data_20_participants_v2",
       "userName": "pshapiro@test.firecloud.org",
       "name": "omop_dataset"

@@ -24,6 +24,10 @@ public class AzureCellValue implements CellValue {
     return columnSchema.getSqlDataType();
   }
 
+  public String name() {
+    return columnSchema.getColumnName();
+  }
+
   @Override
   @SuppressWarnings("PMD.PreserveStackTrace")
   public OptionalLong getLong() {

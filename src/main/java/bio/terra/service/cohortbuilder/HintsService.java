@@ -71,7 +71,7 @@ public class HintsService {
           querysService.runDisplayHintsQuery(
               entity.getMapping(Underlay.MappingType.INDEX).getTablePointer().getDataPointer(),
               queryRequest);
-      return toApiObject(entity, displayHints, queryRequest.getSql());
+      return toApiObject(entity, displayHints, queryRequest.query().renderSQL());
     }
   }
 

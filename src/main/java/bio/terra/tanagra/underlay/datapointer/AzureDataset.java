@@ -1,8 +1,9 @@
 package bio.terra.tanagra.underlay.datapointer;
 
+import bio.terra.common.Column;
 import bio.terra.model.TableDataType;
-import bio.terra.service.dataset.DatasetTable;
 import bio.terra.tanagra.exception.SystemException;
+import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.Literal;
@@ -10,7 +11,6 @@ import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
-import bio.terra.tanagra.query.azure.AzureExecutor;
 import bio.terra.tanagra.underlay.DataPointer;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ public final class AzureDataset extends DataPointer {
 
   @Override
   public Type getType() {
-    return Type.BQ_DATASET;
+    return Type.AZURE_DATASET;
   }
 
   @Override
@@ -63,7 +63,6 @@ public final class AzureDataset extends DataPointer {
             ? fieldPointer.getForeignColumnName()
             : fieldPointer.getColumnName();
 
-    DatasetTable tableSchema;
     if (tablePointer.isRawSql()) {
       // If the table is a raw SQL string, then we can't fetch a table schema directly.
       // Instead, fetch a single row result and inspect the data types of that.
@@ -73,14 +72,21 @@ public final class AzureDataset extends DataPointer {
           FieldPointer.allFields(tablePointer).buildVariable(tableVar, tableVars);
       Query queryOneRow =
           new Query.Builder().select(List.of(fieldVarStar)).tables(tableVars).limit(1).build();
-      //      tableSchema = getBigQueryService().getQuerySchemaWithCaching(queryOneRow.renderSQL());
-      throw new NotImplementedException();
+      return executor.readTableRows(queryOneRow).stream()
+          .map(row -> row.get(columnName))
+          .map(CellValue::dataType)
+          .map(CellValue.SQLDataType::toUnderlayDataType)
+          .findFirst()
+          .orElseThrow();
     } else {
       // If the table is not a raw SQL string, then just fetch the table schema directly.
-      tableSchema = ((AzureExecutor) executor).getSchema(datasetId, tablePointer.getTableName());
+      return executor
+          .getSchema(datasetId, tablePointer.getTableName())
+          .getColumnByName(columnName)
+          .map(Column::getType)
+          .map(AzureDataset::toDataType)
+          .orElseThrow();
     }
-
-    return toDataType(tableSchema.getColumnByName(columnName).orElseThrow().getType());
   }
 
   private static Literal.DataType toDataType(TableDataType fieldType) {

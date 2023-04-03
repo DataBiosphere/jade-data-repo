@@ -34,8 +34,8 @@ public record Query(
             .map(fieldVariable -> fieldVariable.renderSQL(platform))
             .collect(Collectors.joining(", "));
 
-    if (platform == CloudPlatform.GCP && limit != null) {
-      selectSQL += " TOP " + limit;
+    if (platform == CloudPlatform.AZURE && limit != null) {
+      selectSQL = "TOP " + limit + " " + selectSQL;
     }
 
     // render the primary TableVariable

@@ -10,7 +10,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
-import bio.terra.tanagra.query.ColumnHeaderSchema;
+import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.ColumnSchema;
 import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.QueryExecutor;
@@ -21,9 +21,10 @@ import bio.terra.tanagra.underlay.datapointer.AzureDataset;
 import com.google.cloud.bigquery.TableId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -109,16 +110,58 @@ public class AzureExecutor implements QueryExecutor {
     throw new NotImplementedException();
   }
 
+  static class ResultSetRowResult implements RowResult {
+
+    private final List<AzureCellValue> cells = new ArrayList<>();
+
+    public ResultSetRowResult(ResultSet rs) {
+      try {
+        var metadata = rs.getMetaData();
+        for (int i = 1; i <= metadata.getColumnCount(); i++) {
+          cells.add(
+              new AzureCellValue(
+                  Optional.ofNullable(rs.getObject(i)),
+                  new ColumnSchema(
+                      metadata.getColumnName(i), toSqlDataType(metadata.getColumnType(i)))));
+        }
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    private static CellValue.SQLDataType toSqlDataType(int columnType) {
+      return switch (columnType) {
+        case Types.INTEGER, Types.TINYINT, Types.BIGINT -> CellValue.SQLDataType.INT64;
+        case Types.NUMERIC, Types.FLOAT, Types.DOUBLE -> CellValue.SQLDataType.FLOAT;
+        case Types.CHAR, Types.VARCHAR -> CellValue.SQLDataType.STRING;
+        case Types.BOOLEAN -> CellValue.SQLDataType.BOOLEAN;
+        case Types.DATE -> CellValue.SQLDataType.DATE;
+        default -> throw new RuntimeException("unexpected sql type " + columnType);
+      };
+    }
+
+    @Override
+    public CellValue get(int index) {
+      return cells.get(0);
+    }
+
+    @Override
+    public CellValue get(String columnName) {
+      return cells.stream()
+          .filter(cell -> cell.name().equals(columnName))
+          .findFirst()
+          .orElseThrow();
+    }
+
+    @Override
+    public int size() {
+      return cells.size();
+    }
+  }
+
   @Override
   public Collection<RowResult> readTableRows(Query query) {
-    // FIXME: convert RowResult into azure row result, or create a generic row result type for query
-    // response.
-    if (true) {
-      throw new NotImplementedException();
-    }
-    return azureSynapsePdao.query(
-        renderSQL(query),
-        (rs, rowNum) -> new AzureRowResult(Map.of(), new ColumnHeaderSchema(List.of())));
+    return azureSynapsePdao.query(renderSQL(query), (rs, rowNum) -> new ResultSetRowResult(rs));
   }
 
   public DatasetTable getSchema(UUID datasetId, String tableName) {

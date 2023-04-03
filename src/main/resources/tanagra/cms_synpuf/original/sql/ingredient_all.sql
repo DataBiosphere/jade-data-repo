@@ -1,6 +1,6 @@
 SELECT
   c.concept_id AS id, c.concept_name AS name, c.vocabulary_id, c.standard_concept, c.concept_code
-FROM  `bigquery-public-data.cms_synthetic_patient_data_omop.concept` c
+FROM OPENROWSET(BULK 'parquet/concept/*/*.parquet', DATA_SOURCE = 'ds-2410b782-21f3-48e9-8be1-811474481c30-pshapiro@test.firecloud.org', FORMAT='PARQUET') c
 WHERE c.domain_id = 'Drug'
 AND ((c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
         AND c.concept_class_id = 'Ingredient'

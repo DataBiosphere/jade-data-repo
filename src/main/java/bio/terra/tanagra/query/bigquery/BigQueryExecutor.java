@@ -1,6 +1,7 @@
 package bio.terra.tanagra.query.bigquery;
 
 import bio.terra.model.CloudPlatform;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.QueryRequest;
@@ -12,6 +13,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
+import java.util.UUID;
 import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,14 +51,16 @@ public class BigQueryExecutor implements QueryExecutor {
 
   @Override
   public Collection<RowResult> readTableRows(Query query) {
-    if (true) {
-      throw new NotImplementedException();
-    }
-    return null;
+    throw new NotImplementedException();
   }
 
   @Override
   public CloudPlatform getCloudPlatform() {
     return CloudPlatform.GCP;
+  }
+
+  @Override
+  public DatasetTable getSchema(UUID datasetId, String tableName) {
+    throw new NotImplementedException();
   }
 }

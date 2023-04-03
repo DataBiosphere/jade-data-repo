@@ -12,20 +12,11 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConvertToPredictableFileIdsBqStageDataStep extends DefaultUndoStep {
+public record ConvertToPredictableFileIdsBqStageDataStep(
+    UUID datasetId, DatasetService datasetService, BigQueryDatasetPdao bigQueryDatasetPdao)
+    implements DefaultUndoStep {
   private static final Logger logger =
       LoggerFactory.getLogger(ConvertToPredictableFileIdsBqStageDataStep.class);
-
-  private final UUID datasetId;
-  private final DatasetService datasetService;
-  private final BigQueryDatasetPdao bigQueryDatasetPdao;
-
-  public ConvertToPredictableFileIdsBqStageDataStep(
-      UUID datasetId, DatasetService datasetService, BigQueryDatasetPdao bigQueryDatasetPdao) {
-    this.datasetId = datasetId;
-    this.datasetService = datasetService;
-    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
-  }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {

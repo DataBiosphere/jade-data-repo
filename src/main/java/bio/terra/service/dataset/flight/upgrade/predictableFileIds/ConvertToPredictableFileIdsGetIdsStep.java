@@ -18,29 +18,13 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class ConvertToPredictableFileIdsGetIdsStep extends DefaultUndoStep {
-  private static final Logger logger =
-      LoggerFactory.getLogger(ConvertToPredictableFileIdsGetIdsStep.class);
-
-  private final UUID datasetId;
-  private final DatasetService datasetService;
-  private final FireStoreDao fileDao;
-  private final FileIdService fileIdService;
-
-  public ConvertToPredictableFileIdsGetIdsStep(
-      UUID datasetId,
-      DatasetService datasetService,
-      FireStoreDao fileDao,
-      FileIdService fileIdService) {
-    this.datasetId = datasetId;
-    this.datasetService = datasetService;
-    this.fileDao = fileDao;
-    this.fileIdService = fileIdService;
-  }
-
+public record ConvertToPredictableFileIdsGetIdsStep(
+    UUID datasetId,
+    DatasetService datasetService,
+    FireStoreDao fileDao,
+    FileIdService fileIdService)
+    implements DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     Dataset dataset = datasetService.retrieve(datasetId);

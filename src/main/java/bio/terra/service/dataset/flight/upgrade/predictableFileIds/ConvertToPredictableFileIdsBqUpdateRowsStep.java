@@ -16,25 +16,14 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConvertToPredictableFileIdsBqUpdateRowsStep extends DefaultUndoStep {
+public record ConvertToPredictableFileIdsBqUpdateRowsStep(
+    UUID datasetId,
+    DatasetService datasetService,
+    BigQueryDatasetPdao bigQueryDatasetPdao,
+    AuthenticatedUserRequest authedUser)
+    implements DefaultUndoStep {
   private static final Logger logger =
       LoggerFactory.getLogger(ConvertToPredictableFileIdsBqUpdateRowsStep.class);
-
-  private final UUID datasetId;
-  private final DatasetService datasetService;
-  private final BigQueryDatasetPdao bigQueryDatasetPdao;
-  private final AuthenticatedUserRequest authedUser;
-
-  public ConvertToPredictableFileIdsBqUpdateRowsStep(
-      UUID datasetId,
-      DatasetService datasetService,
-      BigQueryDatasetPdao bigQueryDatasetPdao,
-      AuthenticatedUserRequest authedUser) {
-    this.datasetId = datasetId;
-    this.datasetService = datasetService;
-    this.bigQueryDatasetPdao = bigQueryDatasetPdao;
-    this.authedUser = authedUser;
-  }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {

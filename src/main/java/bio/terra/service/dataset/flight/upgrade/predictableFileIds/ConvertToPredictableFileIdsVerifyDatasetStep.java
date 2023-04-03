@@ -11,19 +11,9 @@ import bio.terra.stairway.exception.RetryException;
 import java.util.List;
 import java.util.UUID;
 
-public class ConvertToPredictableFileIdsVerifyDatasetStep extends DefaultUndoStep {
-
-  private final UUID datasetId;
-  private final SnapshotService snapshotService;
-  private final AuthenticatedUserRequest userReq;
-
-  public ConvertToPredictableFileIdsVerifyDatasetStep(
-      UUID datasetId, SnapshotService snapshotService, AuthenticatedUserRequest userReq) {
-    this.datasetId = datasetId;
-    this.snapshotService = snapshotService;
-    this.userReq = userReq;
-  }
-
+public record ConvertToPredictableFileIdsVerifyDatasetStep(
+    UUID datasetId, SnapshotService snapshotService, AuthenticatedUserRequest userReq)
+    implements DefaultUndoStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     long numSnapshotsFromDataset =

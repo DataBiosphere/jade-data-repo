@@ -322,6 +322,11 @@ public class DatasetService {
     return datasetDao.retrieveSummaryById(id).toModel();
   }
 
+  public DatasetSummaryModel setPredictableFileIds(UUID id, boolean predictableFileIds) {
+    datasetDao.setPredictableFileId(id, predictableFileIds);
+    return datasetDao.retrieveSummaryById(id).toModel();
+  }
+
   public String ingestDataset(
       String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {
     // Fill in a default load id if the caller did not provide one in the ingest request.

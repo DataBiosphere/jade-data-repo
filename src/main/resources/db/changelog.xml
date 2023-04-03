@@ -70,5 +70,6 @@
     <include file="changesets/20221104_v2drsids.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20230208_gcpautoclassbucket.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20230307_shedlock.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230323_compactdrsids.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20230307_sharestorageaccounts.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

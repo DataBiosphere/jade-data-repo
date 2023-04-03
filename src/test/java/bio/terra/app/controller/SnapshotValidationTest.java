@@ -4,9 +4,11 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.ErrorModel;
@@ -31,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
@@ -48,6 +51,8 @@ public class SnapshotValidationTest {
   @Autowired private MockMvc mvc;
 
   @Autowired private ObjectMapper objectMapper;
+
+  @SpyBean private ApplicationConfiguration applicationConfiguration;
 
   private SnapshotRequestModel snapshotByAssetRequest;
 
@@ -291,6 +296,23 @@ public class SnapshotValidationTest {
     snapshotByAssetRequest.name(null);
     ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
     checkValidationErrorModel(errorModel, new String[] {"SnapshotNameMissing", "NotNull"});
+  }
+
+  @Test
+  public void testSnapshotValidCompactIdPrefix() throws Exception {
+    when(applicationConfiguration.getCompactIdPrefixAllowList()).thenReturn(List.of("foo.0"));
+    // Set the name to null since we need the request to fail to keep consistent
+    snapshotByAssetRequest.compactIdPrefix("foo.0").name(null);
+    ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
+    checkValidationErrorModel(errorModel, new String[] {"SnapshotNameMissing", "NotNull"});
+  }
+
+  @Test
+  public void testSnapshotInvalidCompactIdPrefix() throws Exception {
+    when(applicationConfiguration.getCompactIdPrefixAllowList()).thenReturn(List.of("foo.0"));
+    snapshotByAssetRequest.compactIdPrefix("bar.0");
+    ErrorModel errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
+    checkValidationErrorModel(errorModel, new String[] {"InvalidCompactIdPrefix"});
   }
 
   private void checkValidationErrorModel(ErrorModel errorModel, String[] messageCodes) {

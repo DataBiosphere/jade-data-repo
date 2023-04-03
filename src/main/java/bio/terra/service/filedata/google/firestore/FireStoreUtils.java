@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
+
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
@@ -11,6 +13,7 @@ import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.api.gax.rpc.InternalException;
 import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.firestore.Query;
@@ -124,8 +127,11 @@ public class FireStoreUtils {
    *
    * <p>Our objects are small, so I think we can use the maximum batch size without concern for
    * using too much memory.
+   *
+   * <p>Note: this is specifically for use with deletes since this assumes re-querying the
+   * collection until it is empty
    */
-  <V> void scanCollectionObjects(
+  <V> void scanCollectionObjectsForDelete(
       Firestore firestore,
       String collectionId,
       int batchSize,
@@ -140,6 +146,48 @@ public class FireStoreUtils {
               firestore,
               xn -> {
                 Query query = datasetCollection.limit(batchSize);
+                ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
+                return querySnapshot.get().getDocuments();
+              },
+              "scanCollectionObjectsForDelete",
+              " scanning " + batchSize + " items for collection id: " + collectionId);
+      batchCount++;
+      if (!documents.isEmpty()) {
+        logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
+      }
+      batchOperation(documents, generator);
+
+    } while (documents.size() > 0);
+  }
+
+  /**
+   * Method uses a cursor to iterate through all documents in a collection and perform an action
+   * that returns a future on it.
+   *
+   * <p>Note: do not use this method if you are deleting since the paging method could cause items
+   * to skipped
+   */
+  <V> void scanCollectionObjects(
+      Firestore firestore,
+      String collectionId,
+      int batchSize,
+      ApiFutureGenerator<V, QueryDocumentSnapshot> generator)
+      throws InterruptedException {
+    CollectionReference datasetCollection = firestore.collection(collectionId);
+    int batchCount = 0;
+    List<QueryDocumentSnapshot> documents = new ArrayList<>();
+    do {
+      QueryDocumentSnapshot lastDocument =
+          documents.size() > 0 ? documents.get(documents.size() - 1) : null;
+
+      documents =
+          runTransactionWithRetry(
+              firestore,
+              xn -> {
+                Query query = datasetCollection.limit(batchSize);
+                if (lastDocument != null) {
+                  query = query.startAfter(lastDocument);
+                }
                 ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
                 return querySnapshot.get().getDocuments();
               },
@@ -248,7 +296,7 @@ public class FireStoreUtils {
       }
       // Exponential backoff
       logger.info(
-          "[batchOperation] will attempt retry #{} after {} millisecond pause. {} requests completed this round.",
+          "[batchOperation] will attempt retry #{} after {} second pause. {} requests completed this round.",
           noProgressCount,
           retryWait,
           completeCount);
@@ -288,8 +336,7 @@ public class FireStoreUtils {
 
         return transactionGet(transactionOp, transaction);
       } catch (Exception ex) {
-        final long retryWait =
-            Math.min(SLEEP_MAX_SECONDS, (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry)));
+        final long retryWait = Math.min(60, (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry)));
         if (retry < getFirestoreRetries() && FireStoreUtils.shouldRetry(ex, false)) {
           // perform retry
           retry++;
@@ -325,5 +372,25 @@ public class FireStoreUtils {
             "collectionHasDocuments",
             "Querying firestore and checking if collection is empty");
     return docCount > 0;
+  }
+
+  /** Queries a Firestore collection */
+  public <T> List<T> query(Query query, Class<T> clazz) throws InterruptedException {
+    int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
+    FireStoreBatchQueryIterator queryIterator =
+        new FireStoreBatchQueryIterator(query, batchSize, this);
+
+    List<T> entryList = new ArrayList<>();
+    for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
+        batch != null;
+        batch = queryIterator.getBatch()) {
+
+      for (DocumentSnapshot docSnap : batch) {
+        T entry = docSnap.toObject(clazz);
+        entryList.add(entry);
+      }
+    }
+
+    return entryList;
   }
 }

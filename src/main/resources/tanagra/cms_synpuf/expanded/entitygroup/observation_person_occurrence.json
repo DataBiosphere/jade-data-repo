@@ -183,5 +183,6 @@
   },
   "criteriaEntity" : "observation",
   "occurrenceEntity" : "observation_occurrence",
+  "occurrenceRelatedEntities" : [ ],
   "modifierAttributes" : [ ]
 }

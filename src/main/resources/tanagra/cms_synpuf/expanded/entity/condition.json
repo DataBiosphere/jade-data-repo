@@ -9,18 +9,18 @@
       "type" : "ENUM",
       "enumVals" : [ {
         "enumVal" : {
-          "value" : { },
-          "display" : "Source"
-        },
-        "count" : 0
-      }, {
-        "enumVal" : {
           "value" : {
             "stringVal" : "S"
           },
           "display" : "Standard"
         },
-        "count" : 97214
+        "count" : 965
+      }, {
+        "enumVal" : {
+          "value" : { },
+          "display" : "Source"
+        },
+        "count" : 0
       } ]
     }
   }, {
@@ -32,27 +32,11 @@
       "enumVals" : [ {
         "enumVal" : {
           "value" : {
-            "stringVal" : "HCPCS"
-          },
-          "display" : "Healthcare Common Procedure Coding System (CMS)"
-        },
-        "count" : 1
-      }, {
-        "enumVal" : {
-          "value" : {
             "stringVal" : "ICD9CM"
           },
           "display" : "International Classification of Diseases, Ninth Revision, Clinical Modification, Volume 1 and 2 (NCHS)"
         },
-        "count" : 16632
-      }, {
-        "enumVal" : {
-          "value" : {
-            "stringVal" : "ICD10CM"
-          },
-          "display" : "International Classification of Diseases, Tenth Revision, Clinical Modification (NCHS)"
-        },
-        "count" : 108038
+        "count" : 45
       }, {
         "enumVal" : {
           "value" : {
@@ -60,7 +44,7 @@
           },
           "display" : "Systematic Nomenclature of Medicine - Clinical Terms (IHTSDO)"
         },
-        "count" : 148722
+        "count" : 970
       } ]
     }
   }, {

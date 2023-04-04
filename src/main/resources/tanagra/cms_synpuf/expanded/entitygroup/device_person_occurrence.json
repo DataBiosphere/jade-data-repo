@@ -183,5 +183,6 @@
   },
   "criteriaEntity" : "device",
   "occurrenceEntity" : "device_occurrence",
+  "occurrenceRelatedEntities" : [ ],
   "modifierAttributes" : [ ]
 }

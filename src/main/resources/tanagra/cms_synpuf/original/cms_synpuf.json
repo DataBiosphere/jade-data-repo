@@ -9,8 +9,8 @@
     },
     { "type": "BQ_DATASET",
       "name": "index_dataset",
-      "projectId": "broad-tanagra-dev",
-      "datasetId": "cmssynpuf_index_011523-pshapiro" } ],
+      "projectId": "broad-jade-ps-data",
+      "datasetId": "cmssynpuf_index_1" } ],
   "entities": [
     "brand.json",
     "condition.json",

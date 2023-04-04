@@ -28,6 +28,7 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -60,6 +61,7 @@ public class DatasetDeleteFlight extends Flight {
     TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
     AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
+    StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
 
     // get data from inputs that steps need
     UUID datasetId =
@@ -116,6 +118,9 @@ public class DatasetDeleteFlight extends Flight {
               profileDao,
               userReq),
           primaryDataDeleteRetry);
+      addStep(
+          new DeleteDatasetLoadHistoryStorageTableStep(
+              storageTableService, datasetService, datasetId));
       addStep(
           new DeleteDatasetDeleteStorageAccountsStep(resourceService, datasetService, datasetId));
     }

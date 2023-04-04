@@ -12,6 +12,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.DrsService;
+import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.azure.tables.TableDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
@@ -50,6 +51,7 @@ public class SnapshotDeleteFlight extends Flight {
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
+    TableDao tableDao = appContext.getBean(TableDao.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
     AzureStorageAccountService azureStorageAccountService =
@@ -76,6 +78,8 @@ public class SnapshotDeleteFlight extends Flight {
 
     // store project id
     addStep(new PerformGcpStep(new DeleteSnapshotStoreProjectIdStep(snapshotId, snapshotService)));
+    // store object ids required for deleting Azure snapshots
+    addStep(new PerformAzureStep(new DeleteSnapshotStoreAzureIdsStep(snapshotId, snapshotService)));
 
     // Delete access control on objects that were explicitly added by data repo operations.  Do
     // this before delete
@@ -124,10 +128,6 @@ public class SnapshotDeleteFlight extends Flight {
                 resourceService,
                 azureAuthService)),
         randomBackoffRetry);
-    addStep(
-        new PerformAzureStep(
-            new DeleteSnapshotDeleteStorageAccountStep(
-                snapshotId, resourceService, azureStorageAccountService)));
 
     // Delete Metadata
     addStep(new DeleteSnapshotDrsIdsStep(drsService, snapshotId));
@@ -136,6 +136,12 @@ public class SnapshotDeleteFlight extends Flight {
         getDefaultExponentialBackoffRetryRule());
     addStep(new PerformAzureStep(new DeleteSnapshotMetadataAzureStep(azureStorageAccountService)));
     addStep(new PerformSnapshotStep(new UnlockSnapshotStep(snapshotDao, snapshotId)));
+
+    // delete snapshot container
+    addStep(
+        new PerformAzureStep(
+            new DeleteSnapshotDeleteStorageAccountStep(
+                snapshotId, resourceService, tableDao, profileService)));
 
     // delete snapshot project
     addStep(

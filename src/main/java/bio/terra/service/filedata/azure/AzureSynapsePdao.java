@@ -512,7 +512,7 @@ public class AzureSynapsePdao {
             table.getName());
       } else if (tableRowCounts.get(table.getName()) > 0) {
         String snapshotParquetFileName =
-            IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, table.getName());
+            IngestUtils.getSnapshotParquetFilePathForQuery(table.getName());
 
         ST sqlTableTemplate =
             new ST(getLiveViewTableTemplate)
@@ -533,8 +533,7 @@ public class AzureSynapsePdao {
     // Create row id table
     String rowIdTableName = IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE);
     String rowIdParquetFile =
-        IngestUtils.getSnapshotSliceParquetFilePath(
-            snapshotId, PDAO_ROW_ID_TABLE, PDAO_ROW_ID_PARQUET_NAME);
+        IngestUtils.getSnapshotSliceParquetFilePath(PDAO_ROW_ID_TABLE, PDAO_ROW_ID_PARQUET_NAME);
     ST sqlCreateRowIdTable =
         new ST(createSnapshotRowIdTableTemplate)
             .add("tableName", rowIdTableName)
@@ -567,7 +566,7 @@ public class AzureSynapsePdao {
             IngestUtils.getSourceDatasetParquetFilePath(rootTable.getTable().getName()),
             rootTable.getTable().getName(),
             snapshotId,
-            IngestUtils.getSnapshotSliceParquetFilePath(snapshotId, rootTableName, "root"),
+            IngestUtils.getSnapshotSliceParquetFilePath(rootTableName, "root"),
             datasetDataSourceName,
             snapshotDataSourceName,
             rootTable.getSynapseColumns(),
@@ -647,7 +646,7 @@ public class AzureSynapsePdao {
             IngestUtils.getSourceDatasetParquetFilePath(rootTable.getTable().getName()),
             rootTable.getTable().getName(),
             snapshotId,
-            IngestUtils.getSnapshotSliceParquetFilePath(snapshotId, rootTableName, "root"),
+            IngestUtils.getSnapshotSliceParquetFilePath(rootTableName, "root"),
             datasetDataSourceName,
             snapshotDataSourceName,
             rootTable.getSynapseColumns(),
@@ -798,9 +797,7 @@ public class AzureSynapsePdao {
             toTableName,
             snapshotId,
             IngestUtils.getSnapshotSliceParquetFilePath(
-                snapshotId,
-                toTableName,
-                String.format("%s_%s_relationship", fromTableName, toTableName)),
+                toTableName, String.format("%s_%s_relationship", fromTableName, toTableName)),
             datasetDataSourceName,
             snapshotDataSourceName,
             toAssetTable.getSynapseColumns(),
@@ -824,11 +821,10 @@ public class AzureSynapsePdao {
     queryTemplate.add("fromTableColumn", relationship.getFromColumnName());
     queryTemplate.add(
         "fromTableParquetFileLocation",
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, fromTableName));
+        IngestUtils.getSnapshotParquetFilePathForQuery(fromTableName));
     queryTemplate.add("snapshotDataSource", snapshotDataSourceName);
     queryTemplate.add(
-        "toTableParquetFileLocation",
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, toTableName));
+        "toTableParquetFileLocation", IngestUtils.getSnapshotParquetFilePathForQuery(toTableName));
     String sql = queryTemplate.render();
     int rows = 0;
     try {
@@ -900,8 +896,7 @@ public class AzureSynapsePdao {
                     IngestUtils.getSourceDatasetParquetFilePath(table.getName()),
                     table.getName(),
                     snapshotId,
-                    IngestUtils.getSnapshotSliceParquetFilePath(
-                        snapshotId, table.getName(), table.getName()),
+                    IngestUtils.getSnapshotSliceParquetFilePath(table.getName(), table.getName()),
                     datasetDataSourceName,
                     snapshotDataSourceName,
                     columns,
@@ -948,8 +943,7 @@ public class AzureSynapsePdao {
                   IngestUtils.getSourceDatasetParquetFilePath(table.getName()),
                   table.getName(),
                   snapshotId,
-                  IngestUtils.getSnapshotSliceParquetFilePath(
-                      snapshotId, table.getName(), table.getName()),
+                  IngestUtils.getSnapshotSliceParquetFilePath(table.getName(), table.getName()),
                   datasetDataSourceName,
                   snapshotDataSourceName,
                   table.getSynapseColumns(),
@@ -1053,7 +1047,6 @@ public class AzureSynapsePdao {
             .add("columns", columns.stream().map(Column::getName).toList())
             .add("datasource", datasetSourceName)
             .add("parquetFileLocation", parquetFileLocation)
-            .add("tableName", tableName)
             .add("sort", sort)
             .add("direction", direction)
             .add("userFilter", userFilter)
@@ -1124,12 +1117,12 @@ public class AzureSynapsePdao {
             });
   }
 
-  public static String getCredentialName(UUID id, String email) {
-    return "cred-%s-%s".formatted(id, email);
+  public static String getCredentialName(UUID collectionId, String email) {
+    return "cred-%s-%s".formatted(collectionId, email);
   }
 
-  public static String getDataSourceName(UUID id, String email) {
-    return "ds-%s-%s".formatted(id, email);
+  public static String getDataSourceName(UUID collectionId, String email) {
+    return "ds-%s-%s".formatted(collectionId, email);
   }
 
   private String sanitizeStringForSql(String value) {

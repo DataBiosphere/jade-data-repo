@@ -9,7 +9,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -43,7 +43,8 @@ public class IngestCreateScratchParquetFilesStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
-    String parquetFilePath = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
+    String parquetFilePath =
+        FolderType.SCRATCH.getPath(workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class));
     final BlobUrlParts ingestBlob;
     if (IngestUtils.isCombinedFileIngest(context)) {
       ingestBlob =
@@ -58,7 +59,7 @@ public class IngestCreateScratchParquetFilesStep implements Step {
           targetTable,
           ingestBlob.getBlobName(),
           parquetFilePath,
-          IngestUtils.getDataSourceName(ContainerType.SCRATCH, context.getFlightId()),
+          IngestUtils.getTargetDataSourceName(context.getFlightId()),
           IngestUtils.getIngestRequestDataSourceName(context.getFlightId()),
           IngestUtils.getSynapseScratchTableName(context.getFlightId()),
           ingestRequestModel.getCsvSkipLeadingRows(),
@@ -81,7 +82,8 @@ public class IngestCreateScratchParquetFilesStep implements Step {
     AzureStorageAccountResource storageAccountResource =
         workingMap.get(
             CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
-    String scratchParquetFile = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
+    String scratchParquetFile =
+        FolderType.SCRATCH.getPath(workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class));
     azureBlobStorePdao.deleteScratchParquet(
         scratchParquetFile, storageAccountResource, userRequest);
 

@@ -25,7 +25,7 @@ import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobUrlParts;
@@ -111,7 +111,6 @@ public class AzureBlobStorePdao implements CloudFileReader {
         getTargetDataClientFactory(
             profileModel,
             storageAccountResource,
-            ContainerType.DATA,
             new BlobSasTokenOptions(
                 DEFAULT_SAS_TOKEN_EXPIRATION,
                 new BlobSasPermission()
@@ -271,7 +270,6 @@ public class AzureBlobStorePdao implements CloudFileReader {
         getTargetDataClientFactory(
             profileModel,
             storageAccountResource,
-            ContainerType.DATA,
             new BlobSasTokenOptions(
                 DEFAULT_SAS_TOKEN_EXPIRATION,
                 new BlobSasPermission().setReadPermission(true).setDeletePermission(true),
@@ -292,7 +290,6 @@ public class AzureBlobStorePdao implements CloudFileReader {
         getTargetDataClientFactory(
             profileModel,
             storageAccountResource,
-            ContainerType.DATA,
             new BlobSasTokenOptions(
                 DEFAULT_SAS_TOKEN_EXPIRATION,
                 new BlobSasPermission().setReadPermission(true).setDeletePermission(true),
@@ -324,10 +321,8 @@ public class AzureBlobStorePdao implements CloudFileReader {
 
     String blobUrl =
         String.format(
-            "%s/%s/%s",
-            storageAccountResource.getStorageAccountUrl(),
-            storageAccountResource.determineContainer(ContainerType.SCRATCH),
-            blobPath);
+            "%s/%s",
+            storageAccountResource.getStorageAccountUrl(), FolderType.SCRATCH.getPath(blobPath));
     BlobUrlParts blobParts = BlobUrlParts.parse(blobUrl);
 
     BillingProfileModel profileModel =
@@ -336,7 +331,6 @@ public class AzureBlobStorePdao implements CloudFileReader {
         getTargetDataClientFactory(
             profileModel,
             storageAccountResource,
-            ContainerType.SCRATCH,
             new BlobSasTokenOptions(
                 DEFAULT_SAS_TOKEN_EXPIRATION,
                 new BlobSasPermission()
@@ -376,11 +370,9 @@ public class AzureBlobStorePdao implements CloudFileReader {
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
       String url,
-      ContainerType containerType,
       BlobSasTokenOptions blobSasTokenOptions) {
     BlobContainerClientFactory destinationClientFactory =
-        getTargetDataClientFactory(
-            profileModel, storageAccountResource, containerType, blobSasTokenOptions);
+        getTargetDataClientFactory(profileModel, storageAccountResource, blobSasTokenOptions);
 
     BlobUrlParts blobParts = BlobUrlParts.parse(url);
     if (!blobParts.getAccountName().equals(storageAccountResource.getName())) {
@@ -422,12 +414,11 @@ public class AzureBlobStorePdao implements CloudFileReader {
   public BlobContainerClientFactory getTargetDataClientFactory(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
-      ContainerType containerType,
       BlobSasTokenOptions blobSasTokenOptions) {
 
     return new BlobContainerClientFactory(
         azureContainerPdao.getDestinationContainerSignedUrl(
-            profileModel, storageAccountResource, containerType, blobSasTokenOptions),
+            profileModel, storageAccountResource, blobSasTokenOptions),
         getRetryOptions());
   }
 
@@ -463,18 +454,16 @@ public class AzureBlobStorePdao implements CloudFileReader {
       String dataSourceUrl,
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccount,
-      ContainerType containerType,
       AuthenticatedUserRequest userRequest) {
     return BlobUrlParts.parse(
         getOrSignUrlStringForTargetFactory(
-            dataSourceUrl, profileModel, storageAccount, containerType, userRequest));
+            dataSourceUrl, profileModel, storageAccount, userRequest));
   }
 
   public String getOrSignUrlStringForTargetFactory(
       String dataSourceUrl,
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccount,
-      ContainerType containerType,
       AuthenticatedUserRequest userRequest) {
     BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
     String blobName = ingestControlFileBlobUrl.getBlobName();
@@ -490,7 +479,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
             userRequest.getEmail());
 
     BlobContainerClientFactory targetDataClientFactory =
-        getTargetDataClientFactory(profileModel, storageAccount, containerType, options);
+        getTargetDataClientFactory(profileModel, storageAccount, options);
 
     return targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
   }
@@ -522,6 +511,6 @@ public class AzureBlobStorePdao implements CloudFileReader {
   }
 
   private String getBlobName(String fileId, String fileName) {
-    return String.format("%s/%s", fileId, fileName);
+    return FolderType.DATA.getPath("%s/%s".formatted(fileId, fileName));
   }
 }

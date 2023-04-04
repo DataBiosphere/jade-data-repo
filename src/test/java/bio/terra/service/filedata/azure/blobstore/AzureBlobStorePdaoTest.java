@@ -128,9 +128,7 @@ public class AzureBlobStorePdaoTest {
     targetBlobContainerFactory = mock(BlobContainerClientFactory.class);
     sourceBlobContainerFactory = mock(BlobContainerClientFactory.class);
     blobCrl = mock(BlobCrl.class);
-    doReturn(targetBlobContainerFactory)
-        .when(dao)
-        .getTargetDataClientFactory(any(), any(), any(), any());
+    doReturn(targetBlobContainerFactory).when(dao).getTargetDataClientFactory(any(), any(), any());
     doReturn(sourceBlobContainerFactory)
         .when(dao)
         .getSourceClientFactory(anyString(), any(), anyString());
@@ -181,7 +179,7 @@ public class AzureBlobStorePdaoTest {
   public void testDeleteFile() {
     UUID fileId = UUID.randomUUID();
     FSFileInfo fsFileInfo = mockFileCopy(fileId);
-    when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(true);
+    when(blobCrl.deleteBlob("data/" + fileId + "/" + SOURCE_FILE_NAME)).thenReturn(true);
 
     FireStoreFile fileToDelete =
         new FireStoreFile()
@@ -195,7 +193,7 @@ public class AzureBlobStorePdaoTest {
   public void testDeleteFileNotFound() {
     UUID fileId = UUID.randomUUID();
     FSFileInfo fsFileInfo = mockFileCopy(fileId);
-    when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(false);
+    when(blobCrl.deleteBlob("data/" + fileId + "/" + SOURCE_FILE_NAME)).thenReturn(false);
 
     FireStoreFile fileToDelete =
         new FireStoreFile()
@@ -227,7 +225,7 @@ public class AzureBlobStorePdaoTest {
   public void testDeleteFileById() {
     UUID fileId = UUID.randomUUID();
     mockFileCopy(fileId);
-    when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(true);
+    when(blobCrl.deleteBlob("data/" + fileId + "/" + SOURCE_FILE_NAME)).thenReturn(true);
 
     assertThat(
         dao.deleteDataFileById(
@@ -239,7 +237,7 @@ public class AzureBlobStorePdaoTest {
   public void testDeleteFileByIdNotFound() {
     UUID fileId = UUID.randomUUID();
     mockFileCopy(fileId);
-    when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(false);
+    when(blobCrl.deleteBlob("data/" + fileId + "/" + SOURCE_FILE_NAME)).thenReturn(false);
 
     assertThat(
         dao.deleteDataFileById(
@@ -291,7 +289,7 @@ public class AzureBlobStorePdaoTest {
     when(blobProperties.getContentMd5()).thenReturn(BLOB_CONTENT_MD5);
     when(copier.beginCopyOperation()).thenReturn(poller);
     when(blobCrl.createBlobContainerCopier(any(), anyString(), anyString())).thenReturn(copier);
-    String targetBlobName = fileId + "/" + SOURCE_FILE_NAME;
+    String targetBlobName = "data/" + fileId + "/" + SOURCE_FILE_NAME;
     when(blobCrl.getBlobProperties(targetBlobName)).thenReturn(blobProperties);
     BlobContainerClient sourceBlobContainerClient = mock(BlobContainerClient.class);
     BlobClient blobClient = mock(BlobClient.class);

@@ -821,7 +821,7 @@ public class SnapshotService {
               table,
               tableName,
               datasourceName,
-              IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, tableName),
+              IngestUtils.getSnapshotParquetFilePathForQuery(tableName),
               limit,
               offset,
               sort,

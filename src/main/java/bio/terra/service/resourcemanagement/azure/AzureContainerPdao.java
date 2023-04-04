@@ -2,7 +2,6 @@ package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.sas.SasProtocol;
@@ -27,18 +26,13 @@ public class AzureContainerPdao {
    * @param profileModel The profile that describes information needed to access the storage account
    * @param storageAccountResource Metadata describing the storage account that contains the
    *     container
-   * @param containerType The nature of the container
    * @return A client connection object that can be used to create folders and files
    */
   public BlobContainerClient getOrCreateContainer(
-      BillingProfileModel profileModel,
-      AzureStorageAccountResource storageAccountResource,
-      AzureStorageAccountResource.ContainerType containerType) {
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
     BlobContainerClient blobContainerClient =
         authService.getBlobContainerClient(
-            profileModel,
-            storageAccountResource,
-            storageAccountResource.determineContainer(containerType));
+            profileModel, storageAccountResource, storageAccountResource.getTopLevelContainer());
 
     if (!blobContainerClient.exists()) {
       blobContainerClient.create();
@@ -49,7 +43,6 @@ public class AzureContainerPdao {
   public String getDestinationContainerSignedUrl(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
-      ContainerType containerType,
       BlobSasTokenOptions blobSasTokenOptions) {
 
     OffsetDateTime expiryTime = OffsetDateTime.now().plus(blobSasTokenOptions.getDuration());
@@ -68,7 +61,7 @@ public class AzureContainerPdao {
     }
 
     BlobContainerClient containerClient =
-        getOrCreateContainer(profileModel, storageAccountResource, containerType);
+        getOrCreateContainer(profileModel, storageAccountResource);
     return String.format(
         "%s?%s",
         containerClient.getBlobContainerUrl(), containerClient.generateSas(sasSignatureValues));

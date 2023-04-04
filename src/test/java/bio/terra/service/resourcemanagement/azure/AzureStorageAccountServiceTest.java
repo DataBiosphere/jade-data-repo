@@ -47,6 +47,7 @@ public class AzureStorageAccountServiceTest {
   private static final String MANAGED_GROUP_NAME = "mgd-grp-1";
   private static final String STORAGE_ACCOUNT_NAME = "sa1";
   private static final String APPLICATION_DEPLOYMENT_NAME = "appdeployment";
+  private static final String COLLECTION_ID = UUID.randomUUID().toString();
   private static final AzureRegion REGION = AzureRegion.CENTRAL_US;
   private static final AzureStorageAccountSkuType STORAGE_SKU_TYPE =
       AzureStorageAccountSkuType.STANDARD_LRS;
@@ -125,7 +126,8 @@ public class AzureStorageAccountServiceTest {
   @Test
   public void tesGetOrCreateStorageAccountCase1() throws InterruptedException {
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -134,16 +136,18 @@ public class AzureStorageAccountServiceTest {
     when(storageAccounts.getByResourceGroup(MANAGED_GROUP_NAME, STORAGE_ACCOUNT_NAME))
         .thenReturn(storageAccount);
 
-    service.getOrCreateStorageAccount(STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+    service.getOrCreateStorageAccount(
+        STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
 
     // Create finish doesn't get called
-    verify(resourceDao, never()).unlockStorageAccount(any(), any());
+    verify(resourceDao, never()).unlockStorageAccount(any(), any(), any());
   }
 
   @Test
   public void tesGetOrCreateStorageAccountCase2() {
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -159,7 +163,7 @@ public class AzureStorageAccountServiceTest {
         () -> {
           try {
             service.getOrCreateStorageAccount(
-                STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+                STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
           } catch (InterruptedException e) {
             throw new RuntimeException(e);
           }
@@ -170,7 +174,8 @@ public class AzureStorageAccountServiceTest {
   @Test
   public void tesGetOrCreateStorageAccountCase3() throws InterruptedException {
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -180,10 +185,11 @@ public class AzureStorageAccountServiceTest {
     when(storageAccounts.getByResourceGroup(MANAGED_GROUP_NAME, STORAGE_ACCOUNT_NAME))
         .thenReturn(storageAccount);
 
-    service.getOrCreateStorageAccount(STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+    service.getOrCreateStorageAccount(
+        STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
 
     // Called by createFinish
-    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, flight);
+    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, COLLECTION_ID, flight);
   }
 
   @Test
@@ -194,7 +200,8 @@ public class AzureStorageAccountServiceTest {
   @Test
   public void tesGetOrCreateStorageAccountCase5() {
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -207,7 +214,7 @@ public class AzureStorageAccountServiceTest {
         () -> {
           try {
             service.getOrCreateStorageAccount(
-                STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+                STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
           } catch (InterruptedException e) {
             throw new RuntimeException(e);
           }
@@ -219,7 +226,8 @@ public class AzureStorageAccountServiceTest {
   @Test
   public void tesGetOrCreateStorageAccountCase6() {
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -234,7 +242,7 @@ public class AzureStorageAccountServiceTest {
         () -> {
           try {
             service.getOrCreateStorageAccount(
-                STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+                STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
           } catch (InterruptedException e) {
             throw new RuntimeException(e);
           }
@@ -245,7 +253,8 @@ public class AzureStorageAccountServiceTest {
   @Test
   public void tesGetOrCreateStorageAccountCase7() throws InterruptedException {
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -257,22 +266,24 @@ public class AzureStorageAccountServiceTest {
     mockStorageAccountNotFound();
     mockStorageAccountCreation();
 
-    service.getOrCreateStorageAccount(STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+    service.getOrCreateStorageAccount(
+        STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
 
     // Called by createFinish
-    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, flight);
+    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, COLLECTION_ID, flight);
   }
 
   @Test
   public void tesGetOrCreateStorageAccountCase8() throws InterruptedException {
     String flight = ShortUUID.get();
-    when(resourceDao.getStorageAccount(STORAGE_ACCOUNT_NAME, APPLICATION_DEPLOYMENT_NAME))
+    when(resourceDao.getStorageAccount(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, APPLICATION_DEPLOYMENT_NAME))
         .thenReturn(null);
     mockStorageAccountNotFound();
     mockStorageAccountCreation();
     // Mock creating the metadata record
-    when(resourceDao.createAndLockStorageAccount(
-            STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight))
+    when(resourceDao.createAndLockStorage(
+            STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight))
         .thenReturn(
             new AzureStorageAccountResource()
                 .name(STORAGE_ACCOUNT_NAME)
@@ -280,10 +291,11 @@ public class AzureStorageAccountServiceTest {
                 .region(REGION)
                 // Locked by this flight flight
                 .flightId(flight));
-    service.getOrCreateStorageAccount(STORAGE_ACCOUNT_NAME, applicationResource, REGION, flight);
+    service.getOrCreateStorageAccount(
+        STORAGE_ACCOUNT_NAME, COLLECTION_ID, applicationResource, REGION, flight);
 
     // Called by createFinish
-    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, flight);
+    verify(resourceDao, times(1)).unlockStorageAccount(STORAGE_ACCOUNT_NAME, COLLECTION_ID, flight);
   }
 
   private void mockStorageAccountNotFound() {

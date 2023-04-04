@@ -652,6 +652,8 @@ public class DrsServiceTest {
     UUID defaultProfileModelId = UUID.randomUUID();
     Snapshot snapshot =
         mockSnapshot(snapshotId, defaultProfileModelId, CloudPlatform.AZURE, "google-project");
+    // Make this a global file id snapshot to test access ids
+    snapshot.globalFileIds(true);
     DrsId drsId = drsIdService.fromObjectId(azureDrsObjectId);
     when(snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()))).thenReturn(snapshot);
     AzureStorageAccountResource storageAccountResource =
@@ -659,10 +661,11 @@ public class DrsServiceTest {
     when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(azureFsFile);
     when(resourceService.lookupStorageAccountMetadata(any())).thenReturn(storageAccountResource);
     String urlString = "https://blahblah.core.windows.com/data/file.json";
-    when(azureBlobStorePdao.signFile(any(), any(), any(), any(), any())).thenReturn(urlString);
+    when(azureBlobStorePdao.signFile(any(), any(), any(), any())).thenReturn(urlString);
 
     DRSAccessURL result =
-        drsService.getAccessUrlForObjectId(authUser, azureDrsObjectId, "az-centralus");
+        drsService.getAccessUrlForObjectId(
+            authUser, azureDrsObjectId, "az-centralus*" + snapshotId);
     assertEquals(urlString, result.getUrl());
   }
 

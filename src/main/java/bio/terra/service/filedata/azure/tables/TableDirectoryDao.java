@@ -217,13 +217,14 @@ public class TableDirectoryDao {
   }
 
   public List<String> validateRefIds(
-      TableServiceClient tableServiceClient, List<String> refIdArray) {
+      TableServiceClient tableServiceClient, UUID datasetId, List<String> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
     return ListUtils.partition(refIdArray, MAX_FILTER_CLAUSES).stream()
         .flatMap(
             refIdChunk -> {
               List<TableEntity> fileRefs =
-                  TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, refIdChunk);
+                  TableServiceClientUtils.batchRetrieveFiles(
+                      tableServiceClient, datasetId, refIdChunk);
               // if no files were retrieved, then every file in list is not valid
               if (fileRefs.isEmpty()) {
                 return refIdChunk.stream();
@@ -297,19 +298,6 @@ public class TableDirectoryDao {
     }
   }
 
-  // Returns empty list if not found
-  private List<TableEntity> batchLookupByFileId(
-      TableServiceClient tableServiceClient, List<String> fileIds) {
-    return ListUtils.partition(fileIds, MAX_FILTER_CLAUSES).stream()
-        .flatMap(
-            fileIdsBatch -> {
-              List<TableEntity> entities =
-                  TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, fileIdsBatch);
-              return entities.stream();
-            })
-        .collect(Collectors.toList());
-  }
-
   // -- Snapshot filesystem methods --
 
   // To improve performance of building the snapshot file system, we use three techniques:
@@ -337,7 +325,7 @@ public class TableDirectoryDao {
             fileIdsBatch -> {
               List<TableEntity> entities =
                   TableServiceClientUtils.batchRetrieveFiles(
-                      datasetTableServiceClient, fileIdsBatch);
+                      datasetTableServiceClient, datasetId, fileIdsBatch);
 
               List<FireStoreDirectoryEntry> directoryEntries =
                   entities.stream()
@@ -363,7 +351,7 @@ public class TableDirectoryDao {
                   batchRetrieveByPath(
                       datasetTableServiceClient,
                       datasetId,
-                      StorageTableName.DATASET.toTableName(),
+                      StorageTableName.DATASET.toTableName(datasetId),
                       newPaths);
 
               // Create snapshot file system entries

@@ -3,6 +3,7 @@ package bio.terra.grammar.azure;
 import bio.terra.grammar.DatasetAwareVisitor;
 import bio.terra.grammar.SQLParser;
 import bio.terra.model.DatasetModel;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,11 +25,14 @@ public class SynapseVisitor extends DatasetAwareVisitor {
     String alias = generateAlias(tableName);
     return """
       OPENROWSET(
-        BULK 'parquet/%s/*/*.parquet',
+        BULK '%s',
         DATA_SOURCE = '%s',
         FORMAT = 'parquet') AS %s
       """
-        .formatted(tableName, sourceDatasetDatasource, alias);
+        .formatted(
+            FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
+            sourceDatasetDatasource,
+            alias);
   }
 
   @Override

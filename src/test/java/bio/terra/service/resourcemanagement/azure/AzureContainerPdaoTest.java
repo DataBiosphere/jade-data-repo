@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobContainerProperties;
 import org.junit.Before;
@@ -41,9 +40,9 @@ public class AzureContainerPdaoTest {
         new AzureStorageAccountResource()
             .name("mystorageaccount")
             .metadataContainer("md")
-            .dataContainer("d");
-    when(authService.getBlobContainerClient(any(), any(), eq("d"))).thenReturn(blobContainerClient);
-    when(authService.getBlobContainerClient(any(), any(), eq("md")))
+            .dataContainer("d")
+            .topLevelContainer("tld");
+    when(authService.getBlobContainerClient(any(), any(), eq("tld")))
         .thenReturn(blobContainerClient);
     dao = new AzureContainerPdao(authService);
   }
@@ -57,9 +56,7 @@ public class AzureContainerPdaoTest {
 
     assertThat(
         "same object is returned",
-        dao.getOrCreateContainer(billingProfile, storageAccountResource, ContainerType.DATA)
-            .getProperties()
-            .getETag(),
+        dao.getOrCreateContainer(billingProfile, storageAccountResource).getProperties().getETag(),
         equalTo("TAG"));
 
     verify(blobContainerClient, times(0)).create();
@@ -74,9 +71,7 @@ public class AzureContainerPdaoTest {
 
     assertThat(
         "same object is returned",
-        dao.getOrCreateContainer(billingProfile, storageAccountResource, ContainerType.DATA)
-            .getProperties()
-            .getETag(),
+        dao.getOrCreateContainer(billingProfile, storageAccountResource).getProperties().getETag(),
         equalTo("TAG"));
 
     verify(blobContainerClient, times(1)).create();

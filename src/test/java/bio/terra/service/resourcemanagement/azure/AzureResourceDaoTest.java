@@ -13,6 +13,7 @@ import bio.terra.service.profile.ProfileDao;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
@@ -43,6 +44,9 @@ public class AzureResourceDaoTest {
 
   @Before
   public void setup() throws IOException, InterruptedException {
+    UUID datasetId = UUID.randomUUID();
+    UUID snapshotId = UUID.randomUUID();
+
     // Initialize list;
     applicationDeployments = new ArrayList<>();
     storageAccounts = new ArrayList<>();
@@ -58,16 +62,18 @@ public class AzureResourceDaoTest {
     applicationDeployments.add(appDeployment);
 
     var sa1 =
-        azureResourceDao.createAndLockStorageAccount(
+        azureResourceDao.createAndLockStorage(
             ProfileFixtures.randomizeName("sa1"),
+            datasetId.toString(),
             appDeployment,
             AzureRegion.DEFAULT_AZURE_REGION,
             null);
     storageAccounts.add(sa1);
 
     var sa2 =
-        azureResourceDao.createAndLockStorageAccount(
+        azureResourceDao.createAndLockStorage(
             ProfileFixtures.randomizeName("sa2"),
+            snapshotId.toString(),
             appDeployment,
             AzureRegion.DEFAULT_AZURE_REGION,
             null);
@@ -78,7 +84,10 @@ public class AzureResourceDaoTest {
   public void teardown() {
     boolean allStorageDeleted =
         storageAccounts.stream()
-            .allMatch(sa -> azureResourceDao.deleteStorageAccountMetadata(sa.getName(), null));
+            .allMatch(
+                sa ->
+                    azureResourceDao.deleteStorageAccountMetadata(
+                        sa.getName(), sa.getTopLevelContainer(), null));
 
     azureResourceDao.markUnusedApplicationDeploymentsForDelete(billingProfile.getId());
     azureResourceDao.deleteApplicationDeploymentMetadata(
@@ -122,9 +131,11 @@ public class AzureResourceDaoTest {
               azureResourceDao.retrieveStorageAccountById(sa.getResourceId()),
               equalTo(sa));
           assertThat(
-              "Can fetch storage account by name",
+              "Can fetch storage account by name and container",
               azureResourceDao.getStorageAccount(
-                  sa.getName(), sa.getApplicationResource().getAzureApplicationDeploymentName()),
+                  sa.getName(),
+                  sa.getTopLevelContainer(),
+                  sa.getApplicationResource().getAzureApplicationDeploymentName()),
               equalTo(sa));
         });
   }

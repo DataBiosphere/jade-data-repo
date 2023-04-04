@@ -34,7 +34,8 @@ public final class DatasetJsonConversion {
   // only allow use of static methods
   private DatasetJsonConversion() {}
 
-  public static Dataset datasetRequestToDataset(DatasetRequestModel datasetRequest) {
+  public static Dataset datasetRequestToDataset(
+      DatasetRequestModel datasetRequest, UUID datasetId) {
     Map<String, DatasetTable> tablesMap = new HashMap<>();
     Map<String, Relationship> relationshipsMap = new HashMap<>();
     List<AssetSpecification> assetSpecifications = new ArrayList<>();
@@ -71,6 +72,7 @@ public final class DatasetJsonConversion {
 
     return new Dataset(
             new DatasetSummary()
+                .id(datasetId)
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
                 .storage(storageResources)

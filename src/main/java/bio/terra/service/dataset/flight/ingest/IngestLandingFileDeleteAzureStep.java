@@ -56,8 +56,7 @@ public class IngestLandingFileDeleteAzureStep implements Step {
     String pathToLandingFile = ingestRequestModel.getPath();
 
     BlobContainerClient containerClient =
-        azureContainerPdao.getOrCreateContainer(
-            profile, storageAccount, AzureStorageAccountResource.ContainerType.SCRATCH);
+        azureContainerPdao.getOrCreateContainer(profile, storageAccount);
 
     String blobName = BlobUrlParts.parse(pathToLandingFile).getBlobName();
     containerClient.getBlobClient(blobName).delete();

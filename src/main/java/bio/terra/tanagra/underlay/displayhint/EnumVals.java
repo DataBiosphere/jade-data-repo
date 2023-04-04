@@ -22,7 +22,6 @@ import bio.terra.tanagra.underlay.DisplayHint;
 import bio.terra.tanagra.underlay.ValueDisplay;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -88,14 +87,11 @@ public final class EnumVals extends DisplayHint {
                 ENUM_VALUE_COLUMN_ALIAS, CellValue.SQLDataType.fromUnderlayDataType(dataType)),
             new ColumnSchema(ENUM_COUNT_COLUMN_ALIAS, CellValue.SQLDataType.INT64));
 
-    DataPointer dataPointer = value.getTablePointer().getDataPointer();
     QueryRequest queryRequest = new QueryRequest(query, new ColumnHeaderSchema(columnSchemas));
     QueryResult queryResult = executor.execute(queryRequest);
 
     List<EnumVal> enumVals = new ArrayList<>();
-    Iterator<RowResult> rowResultIter = queryResult.getRowResults().iterator();
-    while (rowResultIter.hasNext()) {
-      RowResult rowResult = rowResultIter.next();
+    for (RowResult rowResult : queryResult.getRowResults()) {
       String val = rowResult.get(ENUM_VALUE_COLUMN_ALIAS).getString().orElse(null);
       long count = rowResult.get(ENUM_COUNT_COLUMN_ALIAS).getLong().getAsLong();
       enumVals.add(new EnumVal(new ValueDisplay(val), count));
@@ -107,6 +103,9 @@ public final class EnumVals extends DisplayHint {
             value.getColumnName());
         return null;
       }
+    }
+    if (enumVals.isEmpty()) {
+      return null;
     }
     return new EnumVals(enumVals);
   }
@@ -209,6 +208,9 @@ public final class EnumVals extends DisplayHint {
         return null;
       }
     }
+    if (enumVals.isEmpty()) {
+      return null;
+    }
     return new EnumVals(enumVals);
   }
 
@@ -230,6 +232,7 @@ public final class EnumVals extends DisplayHint {
         .tables(nestedQueryTables)
         .orderBy(List.of(new OrderByVariable(nestedValueFieldVar)))
         .groupBy(List.of(nestedValueFieldVar))
+        .limit(MAX_ENUM_VALS_FOR_DISPLAY_HINT + 1)
         .build();
   }
 }

@@ -69,6 +69,12 @@ public final class DatasetJsonConversion {
     boolean enableSecureMonitoring =
         Objects.requireNonNullElse(datasetRequest.isEnableSecureMonitoring(), false);
 
+    List<String> distinctTags =
+        Optional.ofNullable(datasetRequest.getTags()).orElse(List.of()).stream()
+            .distinct()
+            .filter(Objects::nonNull)
+            .toList();
+
     return new Dataset(
             new DatasetSummary()
                 .name(datasetRequest.getName())
@@ -79,7 +85,8 @@ public final class DatasetJsonConversion {
                 .phsId(datasetRequest.getPhsId())
                 .selfHosted(datasetRequest.isExperimentalSelfHosted())
                 .properties(datasetRequest.getProperties())
-                .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds()))
+                .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds())
+                .tags(distinctTags))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);

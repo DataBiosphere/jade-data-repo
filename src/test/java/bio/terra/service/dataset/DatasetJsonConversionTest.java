@@ -1,13 +1,18 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AssetModel;
@@ -22,8 +27,8 @@ import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -35,12 +40,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
 public class DatasetJsonConversionTest {
-  private AuthenticatedUserRequest testUser =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
+  private AuthenticatedUserRequest testUser = AuthenticationFixtures.randomUserRequest();
 
   private static final UUID DATASET_PROFILE_ID = UUID.randomUUID();
   private static final String DATASET_NAME = "dataset_name";
@@ -170,7 +170,7 @@ public class DatasetJsonConversionTest {
   }
 
   @Test
-  public void populateDatasetModelFromDatasetNone() throws IOException {
+  public void populateDatasetModelFromDatasetNone() {
     assertThat(
         DatasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
@@ -250,7 +250,7 @@ public class DatasetJsonConversionTest {
   }
 
   @Test
-  public void testRequiredColumns() throws Exception {
+  public void testRequiredColumns() {
     var defaultColumnName = "NOT_PRIMARY_KEY_COLUMN";
     var requiredColumnName = "REQUIRED_COLUMN";
     DatasetRequestModel datasetRequestModel =
@@ -289,8 +289,63 @@ public class DatasetJsonConversionTest {
     var defaultColumn = columnMap.get(defaultColumnName);
     var requiredColumn = columnMap.get(requiredColumnName);
 
-    assertThat("Primary key columns are marked as required", pkColumn.isRequired(), is(true));
-    assertThat("Regular columns default to not required", defaultColumn.isRequired(), is(false));
-    assertThat("Required columns are marked as required", requiredColumn.isRequired(), is(true));
+    assertTrue("Primary key columns are marked as required", pkColumn.isRequired());
+    assertFalse("Regular columns default to not required", defaultColumn.isRequired());
+    assertTrue("Required columns are marked as required", requiredColumn.isRequired());
+  }
+
+  @Test
+  public void testDatasetRequestToDatasetTags() {
+    var requestNullTags = createBaseRequest().tags(null);
+    assertThat(
+        "Null tag list is converted to empty list",
+        DatasetJsonConversion.datasetRequestToDataset(requestNullTags).getTags(),
+        empty());
+
+    var requestEmptyTags = createBaseRequest().tags(List.of());
+    assertThat(
+        "Empty tag list is returned",
+        DatasetJsonConversion.datasetRequestToDataset(requestEmptyTags).getTags(),
+        empty());
+
+    List<String> nullTagElements = new ArrayList<>();
+    nullTagElements.add(null);
+    var requestNullTagElements = createBaseRequest().tags(nullTagElements);
+    assertThat(
+        "Null tags are filtered out",
+        DatasetJsonConversion.datasetRequestToDataset(requestNullTagElements).getTags(),
+        empty());
+
+    String tag = "a tag";
+    var requestDuplicateTags = createBaseRequest().tags(List.of(tag, tag, tag));
+    assertThat(
+        "Duplicate tags are filtered out",
+        DatasetJsonConversion.datasetRequestToDataset(requestDuplicateTags).getTags(),
+        contains(tag));
+
+    List<String> multipleCasedTags = List.of(tag.toLowerCase(), tag.toUpperCase());
+    var requestMultipleCasedTags = createBaseRequest().tags(multipleCasedTags);
+    assertThat(
+        "Tags are case sensitive",
+        DatasetJsonConversion.datasetRequestToDataset(requestMultipleCasedTags).getTags(),
+        containsInAnyOrder(multipleCasedTags.toArray()));
+  }
+
+  private DatasetRequestModel createBaseRequest() {
+    return new DatasetRequestModel()
+        .name(DATASET_NAME)
+        .defaultProfileId(DATASET_PROFILE_ID)
+        .description(DATASET_DESCRIPTION)
+        .cloudPlatform(CloudPlatform.GCP)
+        .region(GoogleRegion.DEFAULT_GOOGLE_REGION.name())
+        .schema(
+            new DatasetSpecificationModel()
+                .addTablesItem(
+                    new TableModel()
+                        .name(DATASET_TABLE_NAME)
+                        .addColumnsItem(
+                            new ColumnModel()
+                                .name(DATASET_COLUMN_NAME)
+                                .datatype(DATASET_COLUMN_TYPE))));
   }
 }

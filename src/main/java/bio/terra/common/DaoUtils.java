@@ -12,9 +12,9 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -87,7 +87,8 @@ public final class DaoUtils {
 
   public static Array createSqlStringArray(Connection connection, List<String> list)
       throws SQLException {
-    return connection.createArrayOf("text", list.toArray());
+    Object[] array = Optional.ofNullable(list).orElse(List.of()).toArray();
+    return connection.createArrayOf("text", array);
   }
 
   public static List<String> getStringList(ResultSet rs, String column) throws SQLException {
@@ -96,19 +97,6 @@ public final class DaoUtils {
       return List.of();
     }
     return List.of((String[]) sqlArray.getArray());
-  }
-
-  public static List<String> getJsonStringArray(
-      ResultSet rs, String column, ObjectMapper objectMapper)
-      throws SQLException, JsonProcessingException {
-    String jsonArrayRaw = rs.getString(column);
-    if (jsonArrayRaw != null) {
-      return objectMapper.readValue(jsonArrayRaw, new TypeReference<>() {});
-    } else {
-      // This needs to be an ArrayList because List.of() does not provide an object
-      // with a zero-arg constructor, causing Jackson to complain upon deserialization.
-      return new ArrayList<>();
-    }
   }
 
   // Based on Exception returned, determine if we should attempt to retry an operation/stairway step

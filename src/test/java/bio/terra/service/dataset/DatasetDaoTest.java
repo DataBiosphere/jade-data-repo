@@ -87,7 +87,7 @@ public class DatasetDaoTest {
 
   private BillingProfileModel billingProfile;
   private UUID projectId;
-  private final List<UUID> datasetIdsToDelete = new ArrayList<>();
+  private List<UUID> datasetIds;
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -108,7 +108,7 @@ public class DatasetDaoTest {
     dataset.id(datasetId);
     datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
-    datasetIdsToDelete.add(datasetId);
+    datasetIds.add(datasetId);
     return datasetId;
   }
 
@@ -126,12 +126,12 @@ public class DatasetDaoTest {
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
     projectId = resourceDao.createProject(projectResource);
 
-    datasetIdsToDelete.clear();
+    datasetIds = new ArrayList<>();
   }
 
   @After
   public void teardown() {
-    for (UUID datasetId : datasetIdsToDelete) {
+    for (UUID datasetId : datasetIds) {
       assertTrue(
           "Dataset %s was deleted".formatted(datasetId), datasetDao.delete(datasetId, TEST_USER));
       assertThrows(

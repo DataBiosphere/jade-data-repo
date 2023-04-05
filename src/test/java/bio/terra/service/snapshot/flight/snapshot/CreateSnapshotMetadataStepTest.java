@@ -37,7 +37,7 @@ import org.springframework.test.context.ActiveProfiles;
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
-public class CreateSnapshotMetadataTest {
+public class CreateSnapshotMetadataStepTest {
 
   @Mock private SnapshotDao snapshotDao;
   @Mock private SnapshotService snapshotService;

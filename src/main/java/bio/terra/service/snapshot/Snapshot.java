@@ -270,7 +270,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
     this.compactIdPrefix = compactIdPrefix;
     return this;
   }
-  
+
   public List<String> getTags() {
     return tags;
   }

@@ -836,7 +836,6 @@ public class DatasetDaoTest {
         "dataset properties are set",
         datasetDao.retrieve(datasetId).getProperties(),
         equalTo(request.getProperties()));
-
   }
 
   @Test

@@ -49,21 +49,16 @@ public class UpdateFromSelect implements SQLExpression {
 
     // Update the select set fields to point to the nested query table.
     Map<FieldVariable, FieldVariable> setFieldsForNestedVars = new HashMap<>();
-    setFields.entrySet().stream()
-        .forEach(
-            setField -> {
-              FieldVariable updateSetField = setField.getKey();
-              FieldVariable selectSetField = setField.getValue();
-
-              FieldPointer selectSetFieldForNested =
-                  new FieldPointer.Builder()
-                      .tablePointer(nestedTable)
-                      .columnName(selectSetField.getAliasOrColumnName())
-                      .build();
-              FieldVariable selectSetFieldForNestedVar =
-                  selectSetFieldForNested.buildVariable(nestedTableVar, tableVars);
-              setFieldsForNestedVars.put(updateSetField, selectSetFieldForNestedVar);
-            });
+    setFields.forEach((updateSetField, selectSetField) -> {
+      FieldPointer selectSetFieldForNested =
+          new FieldPointer.Builder()
+              .tablePointer(nestedTable)
+              .columnName(selectSetField.getAliasOrColumnName())
+              .build();
+      FieldVariable selectSetFieldForNestedVar =
+          selectSetFieldForNested.buildVariable(nestedTableVar, tableVars);
+      setFieldsForNestedVars.put(updateSetField, selectSetFieldForNestedVar);
+    });
 
     // Update the select join field to point to the nested query table.
     FieldPointer selectJoinFieldForNested =

@@ -1,6 +1,5 @@
 package bio.terra.tanagra.indexing;
 
-import bio.terra.tanagra.query.QueryExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,15 +20,15 @@ public interface IndexingJob {
 
   String getName();
 
-  void run(boolean isDryRun, QueryExecutor executor);
+  void run(boolean isDryRun, Indexer.Executors executors);
 
-  void clean(boolean isDryRun, QueryExecutor executor);
+  void clean(boolean isDryRun, Indexer.Executors executors);
 
-  JobStatus checkStatus(QueryExecutor executor);
+  JobStatus checkStatus(Indexer.Executors executors);
 
-  default JobStatus execute(RunType runType, boolean isDryRun, QueryExecutor executor) {
+  default JobStatus execute(RunType runType, boolean isDryRun, Indexer.Executors executors) {
     LOGGER.info("Executing indexing job: {}, {}", runType, getName());
-    JobStatus status = checkStatus(executor);
+    JobStatus status = checkStatus(executors);
     LOGGER.info("Job status: {}", status);
 
     switch (runType) {
@@ -38,16 +37,16 @@ public interface IndexingJob {
           LOGGER.info("Skipping because job is either in progress or complete");
           return status;
         }
-        run(isDryRun, executor);
-        return checkStatus(executor);
+        run(isDryRun, executors);
+        return checkStatus(executors);
       }
       case CLEAN -> {
         if (status == JobStatus.IN_PROGRESS) {
           LOGGER.info("Skipping because job is in progress");
           return status;
         }
-        clean(isDryRun, executor);
-        return checkStatus(executor);
+        clean(isDryRun, executors);
+        return checkStatus(executors);
       }
       case STATUS -> {
         return status;

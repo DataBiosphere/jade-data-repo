@@ -1,8 +1,8 @@
 package bio.terra.tanagra.indexing.jobexecutor;
 
 import bio.terra.tanagra.exception.SystemException;
+import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.indexing.IndexingJob;
-import bio.terra.tanagra.query.QueryExecutor;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -21,18 +21,18 @@ public abstract class JobRunner {
   protected final boolean isDryRun;
   protected final IndexingJob.RunType runType;
   protected final List<JobResult> jobResults;
-  protected final QueryExecutor executor;
+  protected final Indexer.Executors executors;
 
   public JobRunner(
       List<SequencedJobSet> jobSets,
       boolean isDryRun,
       IndexingJob.RunType runType,
-      QueryExecutor executor) {
+      Indexer.Executors executors) {
     this.jobSets = jobSets;
     this.isDryRun = isDryRun;
     this.runType = runType;
     this.jobResults = new ArrayList<>();
-    this.executor = executor;
+    this.executors = executors;
   }
 
   /** Name for display only. */
@@ -57,12 +57,10 @@ public abstract class JobRunner {
   }
 
   public void throwIfAnyFailures() {
-    jobResults.stream()
-        .forEach(
-            jobResult -> {
-              if (jobResult.isFailure()) {
-                throw new SystemException("There were job failures");
-              }
-            });
+    for (JobResult jobResult : jobResults) {
+      if (jobResult.isFailure()) {
+        throw new SystemException("There were job failures");
+      }
+    }
   }
 }

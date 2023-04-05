@@ -5,6 +5,7 @@ import bio.terra.tanagra.indexing.jobexecutor.JobRunner;
 import bio.terra.tanagra.query.azure.AzureExecutor;
 import bio.terra.tanagra.underlay.DataPointer;
 import bio.terra.tanagra.underlay.datapointer.AzureDataset;
+import bio.terra.tanagra.underlay.datapointer.BigQueryDataset;
 import bio.terra.tanagra.utils.FileIO;
 import bio.terra.tanagra.utils.FileUtils;
 import java.nio.file.Path;
@@ -34,9 +35,7 @@ public final class IndexerMain {
     // TODO: Consider using the picocli library for command parsing and packaging this as an actual
     // CLI.
     Command cmd = Command.valueOf(args[0]);
-    //    String underlayFilePath = args[1];
-    String underlayFilePath =
-        "/Users/pshapiro/source/jade-data-repo/src/main/resources/tanagra/cms_synpuf/original/cms_synpuf.json";
+    String underlayFilePath = args[1];
 
     // TODO: Use singleton FileIO instance instead of setting a bunch of separate static properties.
     FileIO.setToReadDiskFiles(); // This is the default, included here for clarity.
@@ -50,6 +49,13 @@ public final class IndexerMain {
       }
     }
 
+    // FIXME: should derive this from mapping attribute of table.
+    Indexer.Executors executors =
+        new Indexer.Executors(
+            azureExecutor,
+            ((BigQueryDataset) indexer.getUnderlay().getDataPointers().get("index_dataset"))
+                .getQueryExecutor());
+
     switch (cmd) {
       case EXPAND_CONFIG:
         String outputDirPath = args[2];
@@ -57,7 +63,7 @@ public final class IndexerMain {
         FileIO.setOutputParentDir(Path.of(outputDirPath));
         FileUtils.createDirectoryIfNonexistent(FileIO.getOutputParentDir());
 
-        indexer.scanSourceData(azureExecutor);
+        indexer.scanSourceData(executors.source());
 
         indexer.maybeAddAgeAtOccurrenceAttribute();
 
@@ -77,11 +83,11 @@ public final class IndexerMain {
         if (isAllEntities) {
           entityJobRunner =
               indexer.runJobsForAllEntities(
-                  jobExecEntity, isDryRunEntity, runTypeEntity, azureExecutor);
+                  jobExecEntity, isDryRunEntity, runTypeEntity, executors);
         } else {
           entityJobRunner =
               indexer.runJobsForSingleEntity(
-                  jobExecEntity, isDryRunEntity, runTypeEntity, nameEntity, azureExecutor);
+                  jobExecEntity, isDryRunEntity, runTypeEntity, nameEntity, executors);
         }
         entityJobRunner.printJobResultSummary();
         entityJobRunner.throwIfAnyFailures();
@@ -100,7 +106,7 @@ public final class IndexerMain {
         if (isAllEntityGroups) {
           entityGroupJobRunner =
               indexer.runJobsForAllEntityGroups(
-                  jobExecEntityGroup, isDryRunEntityGroup, runTypeEntityGroup, azureExecutor);
+                  jobExecEntityGroup, isDryRunEntityGroup, runTypeEntityGroup, executors);
         } else {
           entityGroupJobRunner =
               indexer.runJobsForSingleEntityGroup(
@@ -108,7 +114,7 @@ public final class IndexerMain {
                   isDryRunEntityGroup,
                   runTypeEntityGroup,
                   nameEntityGroup,
-                  azureExecutor);
+                  executors);
         }
         entityGroupJobRunner.printJobResultSummary();
         entityGroupJobRunner.throwIfAnyFailures();
@@ -122,9 +128,9 @@ public final class IndexerMain {
 
         // Index/clean all the entities and entity groups.
         JobRunner entityJobRunnerAll =
-            indexer.runJobsForAllEntities(jobExecAll, isDryRunAll, runTypeAll, azureExecutor);
+            indexer.runJobsForAllEntities(jobExecAll, isDryRunAll, runTypeAll, executors);
         JobRunner entityGroupJobRunnerAll =
-            indexer.runJobsForAllEntityGroups(jobExecAll, isDryRunAll, runTypeAll, azureExecutor);
+            indexer.runJobsForAllEntityGroups(jobExecAll, isDryRunAll, runTypeAll, executors);
         entityJobRunnerAll.printJobResultSummary();
         entityGroupJobRunnerAll.printJobResultSummary();
         entityJobRunnerAll.throwIfAnyFailures();
@@ -136,8 +142,7 @@ public final class IndexerMain {
   }
 
   private static boolean isDryRun(int index, String... args) {
-    return true;
-//    return args.length > index && "DRY_RUN".equals(args[index]);
+    return args.length > index && "DRY_RUN".equals(args[index]);
   }
 
   private static Indexer.JobExecutor getJobExec(int index, String... args) {

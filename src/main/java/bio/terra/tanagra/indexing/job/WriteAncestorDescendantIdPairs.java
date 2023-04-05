@@ -6,8 +6,8 @@ import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.DESCENDANT_COLUM
 import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.PARENT_COLUMN_NAME;
 
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
+import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.indexing.job.beam.GraphUtils;
-import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.underlay.Entity;
@@ -67,12 +67,12 @@ public class WriteAncestorDescendantIdPairs extends BigQueryIndexingJob {
   }
 
   @Override
-  public void run(boolean isDryRun, QueryExecutor executor) {
+  public void run(boolean isDryRun, Indexer.Executors executors) {
     HierarchyMapping sourceHierarchyMapping =
         getEntity().getHierarchy(hierarchyName).getMapping(Underlay.MappingType.SOURCE);
     SQLExpression selectChildParentIdPairs =
         sourceHierarchyMapping.queryChildParentPairs(CHILD_COLUMN_NAME, PARENT_COLUMN_NAME);
-    String sql = executor.renderSQL(selectChildParentIdPairs);
+    String sql = executors.source().renderSQL(selectChildParentIdPairs);
     LOGGER.info("select all child-parent id pairs SQL: {}", sql);
 
     Pipeline pipeline =
@@ -108,16 +108,16 @@ public class WriteAncestorDescendantIdPairs extends BigQueryIndexingJob {
   }
 
   @Override
-  public void clean(boolean isDryRun, QueryExecutor executor) {
-    if (checkTableExists(getAuxiliaryTable(), executor)) {
-      deleteTable(getAuxiliaryTable(), isDryRun);
+  public void clean(boolean isDryRun, Indexer.Executors executors) {
+    if (checkTableExists(getAuxiliaryTable(), executors.index())) {
+      deleteTable(getAuxiliaryTable(), isDryRun, executors.index());
     }
   }
 
   @Override
-  public JobStatus checkStatus(QueryExecutor executor) {
+  public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the table already exists.
-    return checkTableExists(getAuxiliaryTable(), executor)
+    return checkTableExists(getAuxiliaryTable(), executors.index())
         ? JobStatus.COMPLETE
         : JobStatus.NOT_STARTED;
   }

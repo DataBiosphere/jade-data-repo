@@ -181,7 +181,7 @@ public final class BigQueryDataset extends DataPointer {
   }
 
   public BigQueryExecutor getQueryExecutor() {
-    return new BigQueryExecutor((this).getBigQueryService());
+    return new BigQueryExecutor(getBigQueryService());
   }
 
   public String getProjectId() {

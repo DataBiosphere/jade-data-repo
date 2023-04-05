@@ -3,6 +3,7 @@ package bio.terra.tanagra.indexing.job;
 import static bio.terra.tanagra.underlay.entitygroup.CriteriaOccurrence.AGE_AT_OCCURRENCE_ATTRIBUTE_NAME;
 
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
+import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.indexing.job.beam.BigQueryUtils;
 import bio.terra.tanagra.query.*;
 import bio.terra.tanagra.underlay.AttributeMapping;
@@ -64,7 +65,7 @@ public class ComputeAgeAtOccurrence extends BigQueryIndexingJob {
   }
 
   @Override
-  public void run(boolean isDryRun, QueryExecutor executor) {
+  public void run(boolean isDryRun, Indexer.Executors executors) {
     // Wait for DenormalizeEntityInstances to run.
     if (!isDryRun) {
       LOGGER.info("Waiting for DenormalizeEntityInstances to run for {}", getEntity().getName());
@@ -72,7 +73,7 @@ public class ComputeAgeAtOccurrence extends BigQueryIndexingJob {
           60,
           Duration.ofSeconds(5),
           String.format("DenormalizeEntityInstances never ran for %s", getEntity().getName()),
-          () -> checkOneNotNullIdRowExists(getEntity(), executor));
+          () -> checkOneNotNullIdRowExists(getEntity(), executors));
     }
 
     Entity primaryEntity = occurrencePrimaryRelationship.getEntityB();
@@ -130,9 +131,9 @@ public class ComputeAgeAtOccurrence extends BigQueryIndexingJob {
   }
 
   @Override
-  public JobStatus checkStatus(QueryExecutor executor) {
+  public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the table already exists.
-    if (!checkTableExists(getEntityIndexTable(), executor)) {
+    if (!checkTableExists(getEntityIndexTable(), executors.index())) {
       return JobStatus.NOT_STARTED;
     }
 
@@ -147,13 +148,13 @@ public class ComputeAgeAtOccurrence extends BigQueryIndexingJob {
             .getAttribute(AGE_AT_OCCURRENCE_ATTRIBUTE_NAME)
             .getMapping(Underlay.MappingType.INDEX)
             .buildValueColumnSchema();
-    return checkOneNotNullRowExists(fieldPointer, columnSchema, executor)
+    return checkOneNotNullRowExists(fieldPointer, columnSchema, executors)
         ? JobStatus.COMPLETE
         : JobStatus.NOT_STARTED;
   }
 
   @Override
-  public void clean(boolean isDryRun, QueryExecutor executor) {
+  public void clean(boolean isDryRun, Indexer.Executors executors) {
     LOGGER.info(
         "Nothing to clean. CreateEntityTable will delete the output table, which includes the column inserted by this job.");
   }

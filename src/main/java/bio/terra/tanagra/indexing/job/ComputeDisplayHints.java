@@ -2,6 +2,7 @@ package bio.terra.tanagra.indexing.job;
 
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
+import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.indexing.job.beam.DisplayHintUtils;
 import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.QueryExecutor;
@@ -76,7 +77,7 @@ public class ComputeDisplayHints extends BigQueryIndexingJob {
   }
 
   @Override
-  public void run(boolean isDryRun, QueryExecutor executor) {
+  public void run(boolean isDryRun, Indexer.Executors executors) {
     Pipeline pipeline =
         Pipeline.create(buildDataflowPipelineOptions(getBQDataPointer(getAuxiliaryTable())));
 
@@ -90,7 +91,7 @@ public class ComputeDisplayHints extends BigQueryIndexingJob {
                 .getOccurrenceCriteriaRelationship()
                 .getMapping(Underlay.MappingType.SOURCE),
             pipeline,
-            executor);
+            executors.source());
 
     // Read in the primary-occurrence id pairs.
     PCollection<KV<Long, Long>> occPriIdPairs =
@@ -99,24 +100,19 @@ public class ComputeDisplayHints extends BigQueryIndexingJob {
                 .getOccurrencePrimaryRelationship()
                 .getMapping(Underlay.MappingType.SOURCE),
             pipeline,
-            executor);
+            executors.source());
 
     for (Attribute attr : modifierAttributes) {
-      if (Attribute.Type.KEY_AND_DISPLAY.equals(attr.getType())) {
+      if (Attribute.Type.KEY_AND_DISPLAY == attr.getType()) {
         enumValHint(occCriIdPairs, occPriIdPairs, occAllAttrs, attr);
       } else {
         switch (attr.getDataType()) {
-          case BOOLEAN:
-          case STRING:
-          case DATE:
+          case BOOLEAN, STRING, DATE -> {
             // TODO: Calculate display hints for other data types.
-            continue;
-          case INT64:
-          case DOUBLE:
-            numericRangeHint(occCriIdPairs, occAllAttrs, attr);
-            break;
-          default:
-            throw new SystemException("Unknown attribute data type: " + attr.getDataType());
+          }
+          case INT64, DOUBLE -> numericRangeHint(occCriIdPairs, occAllAttrs, attr);
+          default -> throw new SystemException(
+              "Unknown attribute data type: " + attr.getDataType());
         }
       }
     }
@@ -127,16 +123,16 @@ public class ComputeDisplayHints extends BigQueryIndexingJob {
   }
 
   @Override
-  public void clean(boolean isDryRun, QueryExecutor executor) {
-    if (checkTableExists(getAuxiliaryTable(), executor)) {
-      deleteTable(getAuxiliaryTable(), isDryRun);
+  public void clean(boolean isDryRun, Indexer.Executors executors) {
+    if (checkTableExists(getAuxiliaryTable(), executors.index())) {
+      deleteTable(getAuxiliaryTable(), isDryRun, executors.index());
     }
   }
 
   @Override
-  public JobStatus checkStatus(QueryExecutor executor) {
+  public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the table already exists.
-    return checkTableExists(getAuxiliaryTable(), executor)
+    return checkTableExists(getAuxiliaryTable(), executors.index())
         ? JobStatus.COMPLETE
         : JobStatus.NOT_STARTED;
   }
@@ -177,7 +173,7 @@ public class ComputeDisplayHints extends BigQueryIndexingJob {
     return pipeline
         .apply(
             BigQueryIO.readTableRows()
-                .fromQuery(idPairsQ.renderSQL())
+                .fromQuery(executor.renderSQL(idPairsQ))
                 .withMethod(BigQueryIO.TypedRead.Method.EXPORT)
                 .usingStandardSql())
         .apply(

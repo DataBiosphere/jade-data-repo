@@ -28,7 +28,7 @@ public class AuxiliaryData {
   }
 
   public AuxiliaryDataMapping getMapping(Underlay.MappingType mappingType) {
-    return Underlay.MappingType.SOURCE.equals(mappingType) ? sourceMapping : indexMapping;
+    return Underlay.MappingType.SOURCE == mappingType ? sourceMapping : indexMapping;
   }
 
   public AuxiliaryData cloneWithoutMappings() {

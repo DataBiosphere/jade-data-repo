@@ -1,7 +1,7 @@
 package bio.terra.tanagra.indexing.job;
 
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
-import bio.terra.tanagra.query.QueryExecutor;
+import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.underlay.Relationship;
@@ -30,14 +30,14 @@ public class WriteRelationshipIdPairs extends BigQueryIndexingJob {
   }
 
   @Override
-  public void run(boolean isDryRun, QueryExecutor executor) {
+  public void run(boolean isDryRun, Indexer.Executors executors) {
     String idAAlias =
         relationship.getMapping(Underlay.MappingType.INDEX).getIdPairsIdA().getColumnName();
     String idBAlias =
         relationship.getMapping(Underlay.MappingType.INDEX).getIdPairsIdB().getColumnName();
     SQLExpression selectRelationshipIdPairs =
         relationship.getMapping(Underlay.MappingType.SOURCE).queryIdPairs(idAAlias, idBAlias);
-    String sql = executor.renderSQL(selectRelationshipIdPairs);
+    String sql = executors.source().renderSQL(selectRelationshipIdPairs);
     LOGGER.info("select all relationship id pairs SQL: {}", sql);
 
     TableId destinationTable =
@@ -45,20 +45,20 @@ public class WriteRelationshipIdPairs extends BigQueryIndexingJob {
             getBQDataPointer(getAuxiliaryTable()).getProjectId(),
             getBQDataPointer(getAuxiliaryTable()).getDatasetId(),
             getAuxiliaryTable().getTableName());
-    executor.createTableFromQuery(destinationTable, sql, isDryRun);
+    executors.index().createTableFromQuery(destinationTable, sql, isDryRun);
   }
 
   @Override
-  public void clean(boolean isDryRun, QueryExecutor executor) {
-    if (checkTableExists(getAuxiliaryTable(), executor)) {
-      deleteTable(getAuxiliaryTable(), isDryRun);
+  public void clean(boolean isDryRun, Indexer.Executors executors) {
+    if (checkTableExists(getAuxiliaryTable(), executors.index())) {
+      deleteTable(getAuxiliaryTable(), isDryRun, executors.index());
     }
   }
 
   @Override
-  public JobStatus checkStatus(QueryExecutor executor) {
+  public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the table already exists.
-    return checkTableExists(getAuxiliaryTable(), executor)
+    return checkTableExists(getAuxiliaryTable(), executors.index())
         ? JobStatus.COMPLETE
         : JobStatus.NOT_STARTED;
   }

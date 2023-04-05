@@ -24,7 +24,6 @@ import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.RowResult;
 import bio.terra.tanagra.query.TableVariable;
-import bio.terra.tanagra.query.bigquery.BigQueryExecutor;
 import bio.terra.tanagra.query.filtervariable.BinaryFilterVariable;
 import bio.terra.tanagra.service.configuration.TanagraExportConfiguration;
 import bio.terra.tanagra.service.instances.EntityInstance;
@@ -241,7 +240,7 @@ public class QuerysService {
     // Build the ORDER BY variables using the default direction.
     List<OrderByVariable> orderByVars =
         attributeFieldVars.stream()
-            .map(attrFv -> new OrderByVariable(attrFv))
+            .map(OrderByVariable::new)
             .collect(Collectors.toList());
 
     Query query =
@@ -329,8 +328,7 @@ public class QuerysService {
   public Map<String, DisplayHint> runDisplayHintsQuery(
       DataPointer dataPointer, QueryRequest queryRequest) {
     QueryResult queryResult =
-        new BigQueryExecutor(((BigQueryDataset) dataPointer).getBigQueryService())
-            .execute(queryRequest);
+        ((BigQueryDataset) dataPointer).getQueryExecutor().execute(queryRequest);
 
     Map<String, DisplayHint> displayHints = new HashMap<>();
     Map<String, List<EnumVal>> runningEnumValsMap = new HashMap<>();

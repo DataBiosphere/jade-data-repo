@@ -1,9 +1,9 @@
 package bio.terra.tanagra.indexing.job;
 
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
+import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.ColumnSchema;
-import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.underlay.Entity;
 import bio.terra.tanagra.underlay.HierarchyField;
 import bio.terra.tanagra.underlay.TextSearchMapping;
@@ -14,6 +14,7 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CreateEntityTable extends BigQueryIndexingJob {
   public CreateEntityTable(Entity entity) {
@@ -26,14 +27,12 @@ public class CreateEntityTable extends BigQueryIndexingJob {
   }
 
   @Override
-  public void run(boolean isDryRun, QueryExecutor executor) {
+  public void run(boolean isDryRun, Indexer.Executors executors) {
     // Build field schemas for entity attributes.
-    List<Field> fields = new ArrayList<>();
-    getEntity().getAttributes().stream()
-        .forEach(
-            attribute ->
-                attribute.getMapping(Underlay.MappingType.INDEX).buildColumnSchemas().stream()
-                    .forEach(columnSchema -> fields.add(fromColumnSchema(columnSchema))));
+    List<Field> fields = getEntity().getAttributes()
+        .stream().flatMap(attribute -> attribute.getMapping(Underlay.MappingType.INDEX)
+            .buildColumnSchemas().stream())
+        .map(this::fromColumnSchema).collect(Collectors.toList());
 
     // Build field schemas for text mapping.
     if (getEntity().getTextSearch().isEnabled()) {
@@ -51,7 +50,7 @@ public class CreateEntityTable extends BigQueryIndexingJob {
 
     // Build field schemas for hierarchy fields: path, num_children.
     // The other two hierarchy fields, is_root and is_member, are calculated from path.
-    getEntity().getHierarchies().stream()
+    getEntity().getHierarchies()
         .forEach(
             hierarchy -> {
               fields.add(
@@ -63,7 +62,7 @@ public class CreateEntityTable extends BigQueryIndexingJob {
             });
 
     // Build field schemas for relationship fields: count, display_hints.
-    getEntity().getRelationships().stream()
+    getEntity().getRelationships()
         .forEach(
             relationship ->
                 relationship.getFields().stream()
@@ -85,9 +84,9 @@ public class CreateEntityTable extends BigQueryIndexingJob {
   }
 
   @Override
-  public void clean(boolean isDryRun, QueryExecutor executor) {
-    if (checkTableExists(getEntityIndexTable(), executor)) {
-      deleteTable(getEntityIndexTable(), isDryRun);
+  public void clean(boolean isDryRun, Indexer.Executors executors) {
+    if (checkTableExists(getEntityIndexTable(), executors.index())) {
+      deleteTable(getEntityIndexTable(), isDryRun, executors.index());
     }
   }
 
@@ -98,10 +97,10 @@ public class CreateEntityTable extends BigQueryIndexingJob {
   }
 
   @Override
-  public JobStatus checkStatus(QueryExecutor executor) {
+  public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the table already exists. We don't expect this to be a long-running operation, so
     // there is no IN_PROGRESS state for this job.
-    return checkTableExists(getEntityIndexTable(), executor)
+    return checkTableExists(getEntityIndexTable(), executors.index())
         ? JobStatus.COMPLETE
         : JobStatus.NOT_STARTED;
   }

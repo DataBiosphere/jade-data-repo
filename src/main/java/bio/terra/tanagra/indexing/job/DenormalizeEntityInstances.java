@@ -3,10 +3,11 @@ package bio.terra.tanagra.indexing.job;
 import static bio.terra.tanagra.underlay.entitygroup.CriteriaOccurrence.AGE_AT_OCCURRENCE_ATTRIBUTE_NAME;
 
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
+import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.query.FieldVariable;
-import bio.terra.tanagra.query.InsertFromSelect;
+import bio.terra.tanagra.query.InsertFromValues;
 import bio.terra.tanagra.query.Query;
-import bio.terra.tanagra.query.QueryExecutor;
+import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.TableVariable;
 import bio.terra.tanagra.underlay.Attribute;
 import bio.terra.tanagra.underlay.Entity;
@@ -33,7 +34,7 @@ public class DenormalizeEntityInstances extends BigQueryIndexingJob {
   }
 
   @Override
-  public void run(boolean isDryRun, QueryExecutor executor) {
+  public void run(boolean isDryRun, Indexer.Executors executors) {
     // Build a TableVariable for the input table that we want to select from.
     List<TableVariable> inputTables = new ArrayList<>();
     TableVariable primaryInputTable =
@@ -79,15 +80,17 @@ public class DenormalizeEntityInstances extends BigQueryIndexingJob {
     Query inputQuery =
         new Query.Builder().select(List.copyOf(insertFields.values())).tables(inputTables).build();
 
+    var rows = executors.source().readTableRows(inputQuery);
+
     // Build a TableVariable for the output table that we want to update.
     TableVariable outputTable =
         TableVariable.forPrimary(
             getEntity().getMapping(Underlay.MappingType.INDEX).getTablePointer());
 
-    InsertFromSelect insertQuery = new InsertFromSelect(outputTable, insertFields, inputQuery);
+    SQLExpression insertQuery = new InsertFromValues(outputTable, insertFields, rows);
     LOGGER.info("Generated SQL: {}", insertQuery);
     try {
-      insertUpdateTableFromSelect(executor.renderSQL(insertQuery), isDryRun);
+      insertUpdateTableFromSelect(executors.index().renderSQL(insertQuery), isDryRun);
     } catch (BigQueryException bqEx) {
       if (bqEx.getCode() == HttpStatus.SC_NOT_FOUND) {
         LOGGER.info(
@@ -100,20 +103,20 @@ public class DenormalizeEntityInstances extends BigQueryIndexingJob {
   }
 
   @Override
-  public JobStatus checkStatus(QueryExecutor executor) {
+  public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the table already exists.
-    if (!checkTableExists(getEntityIndexTable(), executor)) {
+    if (!checkTableExists(getEntityIndexTable(), executors.index())) {
       return JobStatus.NOT_STARTED;
     }
 
     // Check if the table has at least 1 row where id IS NOT NULL
-    return checkOneNotNullIdRowExists(getEntity(), executor)
+    return checkOneNotNullIdRowExists(getEntity(), executors)
         ? JobStatus.COMPLETE
         : JobStatus.NOT_STARTED;
   }
 
   @Override
-  public void clean(boolean isDryRun, QueryExecutor executor) {
+  public void clean(boolean isDryRun, Indexer.Executors executors) {
     LOGGER.info(
         "Nothing to clean. CreateEntityTable will delete the output table, which includes all the rows inserted by this job.");
   }

@@ -72,7 +72,7 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
     return (BigQueryDataset) outputDataPointer;
   }
 
-  protected void deleteTable(TablePointer tablePointer, boolean isDryRun) {
+  protected void deleteTable(TablePointer tablePointer, boolean isDryRun, QueryExecutor index) {
     BigQueryDataset outputBQDataset = getBQDataPointer(tablePointer);
     if (isDryRun) {
       LOGGER.info("Delete table: {}", tablePointer.getPathForIndexing());
@@ -87,7 +87,7 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
   }
 
   // -----Helper methods for checking whether a job has run already.-------
-  protected boolean checkTableExists(TablePointer tablePointer, QueryExecutor executor) {
+  protected boolean checkTableExists(TablePointer tablePointer, QueryExecutor index) {
     BigQueryDataset outputBQDataset = getBQDataPointer(tablePointer);
     LOGGER.info(
         "output BQ table: project={}, dataset={}, table={}",
@@ -95,6 +95,7 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
         outputBQDataset.getDatasetId(),
         tablePointer.getTableName());
     GoogleBigQuery googleBigQuery = outputBQDataset.getBigQueryService();
+    // FIXME: use indexExecutor
     return googleBigQuery
         .getTable(
             outputBQDataset.getProjectId(),
@@ -103,7 +104,7 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
         .isPresent();
   }
 
-  protected boolean checkOneNotNullIdRowExists(Entity entity, QueryExecutor executor) {
+  protected boolean checkOneNotNullIdRowExists(Entity entity, Indexer.Executors executors) {
     // Check if the table has at least 1 id row where id IS NOT NULL
     FieldPointer idField =
         getEntity().getIdAttribute().getMapping(Underlay.MappingType.INDEX).getValue();
@@ -112,11 +113,11 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
             .getIdAttribute()
             .getMapping(Underlay.MappingType.INDEX)
             .buildValueColumnSchema();
-    return checkOneNotNullRowExists(idField, idColumnSchema, executor);
+    return checkOneNotNullRowExists(idField, idColumnSchema, executors);
   }
 
   protected boolean checkOneNotNullRowExists(
-      FieldPointer fieldPointer, ColumnSchema columnSchema, QueryExecutor executor) {
+      FieldPointer fieldPointer, ColumnSchema columnSchema, Indexer.Executors executors) {
     // Check if the table has at least 1 row with a non-null field value.
     TableVariable outputTableVar = TableVariable.forPrimary(fieldPointer.getTablePointer());
     List<TableVariable> tableVars = Lists.newArrayList(outputTableVar);
@@ -135,19 +136,20 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
 
     ColumnHeaderSchema columnHeaderSchema = new ColumnHeaderSchema(List.of(columnSchema));
     QueryRequest queryRequest = new QueryRequest(query, columnHeaderSchema);
-    QueryResult queryResult = executor.execute(queryRequest);
+    QueryResult queryResult = executors.index().execute(queryRequest);
 
     return queryResult.getRowResults().iterator().hasNext();
   }
 
   // -----Helper methods for running insert/update jobs in BigQuery directly (i.e. not via
   // Dataflow).-------
+  // FIXME: update to read from source and write to output.
   protected void updateEntityTableFromSelect(
       Query selectQuery,
       Map<String, FieldVariable> updateFieldMap,
       String selectIdFieldName,
       boolean isDryRun,
-      QueryExecutor executor) {
+      Indexer.Executors executors) {
     // Build a TableVariable for the (output) entity table that we want to update.
     List<TableVariable> outputTables = new ArrayList<>();
     TableVariable entityTable =
@@ -188,7 +190,7 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
         new UpdateFromSelect(entityTable, updateFields, selectQuery, updateIdField, selectIdField);
     LOGGER.info("Generated SQL: {}", updateQuery);
     try {
-      insertUpdateTableFromSelect(executor.renderSQL(updateQuery), isDryRun);
+      insertUpdateTableFromSelect(executors.index().renderSQL(updateQuery), isDryRun);
     } catch (BigQueryException bqEx) {
       if (bqEx.getCode() == HttpStatus.SC_NOT_FOUND) {
         LOGGER.info(

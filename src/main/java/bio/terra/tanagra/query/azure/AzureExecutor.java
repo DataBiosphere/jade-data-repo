@@ -142,7 +142,7 @@ public class AzureExecutor implements QueryExecutor {
 
     @Override
     public CellValue get(int index) {
-      return cells.get(0);
+      return cells.get(index);
     }
 
     @Override

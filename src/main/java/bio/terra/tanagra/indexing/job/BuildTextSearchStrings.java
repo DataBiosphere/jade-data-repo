@@ -5,11 +5,11 @@ import static bio.terra.tanagra.underlay.TextSearchMapping.TEXT_SEARCH_STRING_CO
 
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
+import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.query.ColumnSchema;
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.Query;
-import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.underlay.Entity;
 import bio.terra.tanagra.underlay.TextSearchMapping;
 import bio.terra.tanagra.underlay.Underlay;
@@ -31,7 +31,7 @@ public class BuildTextSearchStrings extends BigQueryIndexingJob {
   }
 
   @Override
-  public void run(boolean isDryRun, QueryExecutor executor) {
+  public void run(boolean isDryRun, Indexer.Executors executors) {
     TextSearchMapping indexMapping =
         getEntity().getTextSearch().getMapping(Underlay.MappingType.INDEX);
     if (!indexMapping.definedBySearchString() || indexMapping.getSearchString().isForeignKey()) {
@@ -44,7 +44,7 @@ public class BuildTextSearchStrings extends BigQueryIndexingJob {
         getEntity()
             .getTextSearch()
             .getMapping(Underlay.MappingType.SOURCE)
-            .queryTextSearchStrings(executor);
+            .queryTextSearchStrings(executors.source());
 
     // Build a map of (output) update field name -> (input) selected FieldVariable.
     // This map only contains one item, because we're only updating the text field.
@@ -58,13 +58,13 @@ public class BuildTextSearchStrings extends BigQueryIndexingJob {
     updateFields.put(updateTextFieldName, selectTextField);
 
     updateEntityTableFromSelect(
-        idTextPairs, updateFields, TEXT_SEARCH_ID_COLUMN_NAME, isDryRun, executor);
+        idTextPairs, updateFields, TEXT_SEARCH_ID_COLUMN_NAME, isDryRun, executors);
   }
 
   @Override
-  public JobStatus checkStatus(QueryExecutor executor) {
+  public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the table already exists.
-    if (!checkTableExists(getEntityIndexTable(), executor)) {
+    if (!checkTableExists(getEntityIndexTable(), executors.index())) {
       return JobStatus.NOT_STARTED;
     }
 
@@ -73,13 +73,13 @@ public class BuildTextSearchStrings extends BigQueryIndexingJob {
         getEntity().getTextSearch().getMapping(Underlay.MappingType.INDEX);
     FieldPointer textField = indexMapping.getSearchString();
     ColumnSchema textColumnSchema = indexMapping.buildTextColumnSchema();
-    return checkOneNotNullRowExists(textField, textColumnSchema, executor)
+    return checkOneNotNullRowExists(textField, textColumnSchema, executors)
         ? JobStatus.COMPLETE
         : JobStatus.NOT_STARTED;
   }
 
   @Override
-  public void clean(boolean isDryRun, QueryExecutor executor) {
+  public void clean(boolean isDryRun, Indexer.Executors executors) {
     LOGGER.info(
         "Nothing to clean. CreateEntityTable will delete the output table, which includes all the rows updated by this job.");
   }

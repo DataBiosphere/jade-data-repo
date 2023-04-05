@@ -42,13 +42,15 @@ public final class Indexer {
         List<SequencedJobSet> jobSets,
         boolean isDryRun,
         IndexingJob.RunType runType,
-        QueryExecutor executor) {
+        Indexer.Executors executors) {
       return switch (this) {
-        case SERIAL -> new SerialRunner(jobSets, isDryRun, runType, executor);
-        case PARALLEL -> new ParallelRunner(jobSets, isDryRun, runType, executor);
+        case SERIAL -> new SerialRunner(jobSets, isDryRun, runType, executors);
+        case PARALLEL -> new ParallelRunner(jobSets, isDryRun, runType, executors);
       };
     }
   }
+
+  public record Executors(AzureExecutor source, QueryExecutor index) {}
 
   private final Underlay underlay;
 
@@ -64,16 +66,12 @@ public final class Indexer {
   /** Scan the source data to validate data pointers, lookup data types, generate UI hints, etc. */
   public void scanSourceData(AzureExecutor executor) {
     // TODO: Validate existence and access for data/table/field pointers.
-    underlay
-        .getEntities()
-        .values()
-        .forEach(
-            e -> {
-              LOGGER.info(
-                  "Looking up attribute data types and generating UI hints for entity: "
-                      + e.getName());
-              e.scanSourceData(executor);
-            });
+    for (Entity entity : underlay.getEntities().values()) {
+      LOGGER.info(
+          "Looking up attribute data types and generating UI hints for entity: "
+              + entity.getName());
+      entity.scanSourceData(executor);
+    }
   }
 
   /**
@@ -133,13 +131,13 @@ public final class Indexer {
       JobExecutor jobExecutor,
       boolean isDryRun,
       IndexingJob.RunType runType,
-      QueryExecutor azureExecutor) {
+      Indexer.Executors executors) {
     LOGGER.info("INDEXING all entities");
     List<SequencedJobSet> jobSets =
         underlay.getEntities().values().stream()
             .map(this::getJobSetForEntity)
             .collect(Collectors.toList());
-    return runJobs(jobExecutor, isDryRun, runType, jobSets, azureExecutor);
+    return runJobs(jobExecutor, isDryRun, runType, jobSets, executors);
   }
 
   public JobRunner runJobsForSingleEntity(
@@ -147,23 +145,23 @@ public final class Indexer {
       boolean isDryRun,
       IndexingJob.RunType runType,
       String name,
-      AzureExecutor azureExecutor) {
+      Indexer.Executors executors) {
     LOGGER.info("INDEXING entity: {}", name);
     List<SequencedJobSet> jobSets = List.of(getJobSetForEntity(underlay.getEntity(name)));
-    return runJobs(jobExecutor, isDryRun, runType, jobSets, azureExecutor);
+    return runJobs(jobExecutor, isDryRun, runType, jobSets, executors);
   }
 
   public JobRunner runJobsForAllEntityGroups(
       JobExecutor jobExecutor,
       boolean isDryRun,
       IndexingJob.RunType runType,
-      AzureExecutor azureExecutor) {
+      Indexer.Executors executors) {
     LOGGER.info("INDEXING all entity groups");
     List<SequencedJobSet> jobSets =
         underlay.getEntityGroups().values().stream()
             .map(Indexer::getJobSetForEntityGroup)
             .collect(Collectors.toList());
-    return runJobs(jobExecutor, isDryRun, runType, jobSets, azureExecutor);
+    return runJobs(jobExecutor, isDryRun, runType, jobSets, executors);
   }
 
   public JobRunner runJobsForSingleEntityGroup(
@@ -171,10 +169,10 @@ public final class Indexer {
       boolean isDryRun,
       IndexingJob.RunType runType,
       String name,
-      AzureExecutor azureExecutor) {
+      Executors executors) {
     LOGGER.info("INDEXING entity group: {}", name);
     List<SequencedJobSet> jobSets = List.of(getJobSetForEntityGroup(underlay.getEntityGroup(name)));
-    return runJobs(jobExecutor, isDryRun, runType, jobSets, azureExecutor);
+    return runJobs(jobExecutor, isDryRun, runType, jobSets, executors);
   }
 
   private JobRunner runJobs(
@@ -182,8 +180,8 @@ public final class Indexer {
       boolean isDryRun,
       IndexingJob.RunType runType,
       List<SequencedJobSet> jobSets,
-      QueryExecutor azureExecutor) {
-    JobRunner jobRunner = jobExecutor.getRunner(jobSets, isDryRun, runType, azureExecutor);
+      Executors executors) {
+    JobRunner jobRunner = jobExecutor.getRunner(jobSets, isDryRun, runType, executors);
     jobRunner.runJobSets();
     return jobRunner;
   }
@@ -204,7 +202,7 @@ public final class Indexer {
     if (entity.getTextSearch().isEnabled()) {
       jobSet.addJob(new BuildTextSearchStrings(entity));
     }
-    entity.getHierarchies().stream()
+    entity.getHierarchies()
         .forEach(
             hierarchy -> {
               jobSet.addJob(new WriteParentChildIdPairs(entity, hierarchy.getName()));
@@ -229,13 +227,15 @@ public final class Indexer {
     jobSet.startNewStage();
 
     // For each relationship, write the index relationship mapping.
-    entityGroup.getRelationships().values().stream()
+    entityGroup
+        .getRelationships()
+        .values()
         .forEach(
             // TODO: If the source relationship mapping table = one of the entity tables, then just
             // populate a new column on that entity table, instead of always writing a new table.
             relationship -> jobSet.addJob(new WriteRelationshipIdPairs(relationship)));
 
-    if (EntityGroup.Type.CRITERIA_OCCURRENCE.equals(entityGroup.getType())) {
+    if (EntityGroup.Type.CRITERIA_OCCURRENCE == entityGroup.getType()) {
       CriteriaOccurrence criteriaOccurrence = (CriteriaOccurrence) entityGroup;
       // Compute the criteria rollup counts for both the criteria-primary and criteria-occurrence
       // relationships.
@@ -253,7 +253,9 @@ public final class Indexer {
       // If the criteria entity has a hierarchy, then also compute the counts for each
       // hierarchy.
       if (criteriaOccurrence.getCriteriaEntity().hasHierarchies()) {
-        criteriaOccurrence.getCriteriaEntity().getHierarchies().stream()
+        criteriaOccurrence
+            .getCriteriaEntity()
+            .getHierarchies()
             .forEach(
                 hierarchy -> {
                   jobSet.addJob(

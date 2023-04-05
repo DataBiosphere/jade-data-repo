@@ -9,13 +9,13 @@ import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.ROLLUP_DISPLAY_H
 
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
+import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.indexing.job.beam.BigQueryUtils;
 import bio.terra.tanagra.indexing.job.beam.CountUtils;
 import bio.terra.tanagra.query.ColumnSchema;
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.Query;
-import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
@@ -115,37 +115,37 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
   }
 
   @Override
-  public void run(boolean isDryRun, QueryExecutor executor) {
+  public void run(boolean isDryRun, Indexer.Executors executors) {
     // If the temp table hasn't been written yet, run the Dataflow job.
-    if (!checkTableExists(getTempTable(), executor)) {
-      writeFieldsToTempTable(isDryRun, executor);
+    if (!checkTableExists(getTempTable(), executors.index())) {
+      writeFieldsToTempTable(isDryRun, executors);
     } else {
       LOGGER.info("Temp table has already been written.");
     }
 
     // Dataflow jobs can only write new rows to BigQuery, so in this second step, copy over the
     // rollup information to the corresponding columns in the entity table.
-    copyFieldsToEntityTable(isDryRun, executor);
+    copyFieldsToEntityTable(isDryRun, executors);
   }
 
   @Override
-  public void clean(boolean isDryRun, QueryExecutor executor) {
-    if (checkTableExists(getTempTable(), executor)) {
-      deleteTable(getTempTable(), isDryRun);
+  public void clean(boolean isDryRun, Indexer.Executors executors) {
+    if (checkTableExists(getTempTable(), executors.index())) {
+      deleteTable(getTempTable(), isDryRun, executors.index());
     }
     // CreateEntityTable will delete the entity table, which includes all the rows updated by this
     // job.
   }
 
   @Override
-  public JobStatus checkStatus(QueryExecutor executor) {
+  public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the temp table already exists.
-    if (!checkTableExists(getTempTable(), executor)) {
+    if (!checkTableExists(getTempTable(), executors.index())) {
       return JobStatus.NOT_STARTED;
     }
 
     // Check if the entity table already exists.
-    if (!checkTableExists(getEntityIndexTable(), executor)) {
+    if (!checkTableExists(getEntityIndexTable(), executors.index())) {
       return JobStatus.NOT_STARTED;
     }
 
@@ -158,7 +158,7 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
     return checkOneNotNullRowExists(
             indexMapping.getRollupInfo(getRollupEntity(), hierarchy).getCount(),
             countColumnSchema,
-            executor)
+            executors)
         ? JobStatus.COMPLETE
         : JobStatus.NOT_STARTED;
   }
@@ -177,7 +177,7 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
         dataPointer);
   }
 
-  private void writeFieldsToTempTable(boolean isDryRun, QueryExecutor executor) {
+  private void writeFieldsToTempTable(boolean isDryRun, Indexer.Executors executor) {
     Pipeline pipeline =
         Pipeline.create(buildDataflowPipelineOptions(getBQDataPointer(getTempTable())));
 
@@ -186,7 +186,8 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
         getRollupEntity().getMapping(Underlay.MappingType.SOURCE).queryIds(ID_COLUMN_NAME);
     LOGGER.info("select all rollup entity ids SQL: {}", rollupIds);
     PCollection<Long> rollupIdsPC =
-        BigQueryUtils.readNodesFromBQ(pipeline, executor.renderSQL(rollupIds), "rollupIds");
+        BigQueryUtils.readNodesFromBQ(
+            pipeline, executor.source().renderSQL(rollupIds), "rollupIds");
 
     // Read in the rollup-counted entity id pairs from BQ.
     boolean rollupEntityIsA = relationship.getEntityA().equals(getEntity());
@@ -198,7 +199,8 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
             .queryIdPairs(rollupEntityIdAlias, countedEntityIdAlias);
     LOGGER.info("select all rollup-counted id pairs SQL: {}", rollupCountedIdPairs);
     PCollection<KV<Long, Long>> rollupCountedIdPairsPC =
-        BigQueryUtils.readOccurrencesFromBQ(pipeline, executor.renderSQL(rollupCountedIdPairs));
+        BigQueryUtils.readOccurrencesFromBQ(
+            pipeline, executor.source().renderSQL(rollupCountedIdPairs));
 
     // Optionally handle a hierarchy for the rollup entity.
     if (hierarchy != null) {
@@ -214,7 +216,7 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
       // pairs.
       PCollection<KV<Long, Long>> rollupAncestorDescendantKVsPC =
           BigQueryUtils.readAncestorDescendantRelationshipsFromBQ(
-              pipeline, executor.renderSQL(rollupAncestorDescendantPairs));
+              pipeline, executor.source().renderSQL(rollupAncestorDescendantPairs));
 
       // Expand the set of occurrences to include a repeat for each ancestor.
       rollupCountedIdPairsPC =
@@ -265,7 +267,7 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
             .withMethod(BigQueryIO.Write.Method.FILE_LOADS));
   }
 
-  private void copyFieldsToEntityTable(boolean isDryRun, QueryExecutor executor) {
+  private void copyFieldsToEntityTable(boolean isDryRun, Indexer.Executors executors) {
     // Build a query for the id-rollup_count-rollup_displayHints tuples that we want to select.
     Query idCountDisplayHintsTuples = queryIdRollupTuples(getTempTable());
     LOGGER.info("select all id-count-displayHints tuples SQL: {}", idCountDisplayHintsTuples);
@@ -316,7 +318,7 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
     }
 
     updateEntityTableFromSelect(
-        idCountDisplayHintsTuples, updateFields, ID_COLUMN_NAME, isDryRun, executor);
+        idCountDisplayHintsTuples, updateFields, ID_COLUMN_NAME, isDryRun, executors);
   }
 
   public static Query queryIdRollupTuples(TablePointer tablePointer) {

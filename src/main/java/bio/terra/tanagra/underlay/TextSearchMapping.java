@@ -110,7 +110,7 @@ public final class TextSearchMapping {
                           if (Literal.DataType.STRING != attribute.getDataType()) {
                             textField =
                                 textField.toBuilder()
-                                    .sqlFunctionWrapper("CAST(${fieldSql} AS STRING)")
+                                    .sqlFunctionWrapper("CAST(${fieldSql} AS VARCHAR)")
                                     .build();
                           }
                         } else {
@@ -143,7 +143,7 @@ public final class TextSearchMapping {
         new FieldPointer.Builder()
             .tablePointer(idTextPairsTable)
             .columnName(TEXT_SEARCH_STRING_COLUMN_NAME)
-            .sqlFunctionWrapper("STRING_AGG")
+            .sqlFunctionWrapper("STRING_AGG(${fieldSql}, ',')")
             .build();
 
     TableVariable idTextPairsTableVar = TableVariable.forPrimary(idTextPairsTable);

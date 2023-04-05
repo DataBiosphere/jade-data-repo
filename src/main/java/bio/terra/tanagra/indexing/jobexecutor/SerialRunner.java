@@ -1,8 +1,8 @@
 package bio.terra.tanagra.indexing.jobexecutor;
 
 import bio.terra.tanagra.exception.SystemException;
+import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.indexing.IndexingJob;
-import bio.terra.tanagra.query.QueryExecutor;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -13,8 +13,8 @@ public final class SerialRunner extends JobRunner {
       List<SequencedJobSet> jobSets,
       boolean isDryRun,
       IndexingJob.RunType runType,
-      QueryExecutor executor) {
-    super(jobSets, isDryRun, runType, executor);
+      Indexer.Executors executors) {
+    super(jobSets, isDryRun, runType, executors);
   }
 
   @Override
@@ -44,7 +44,8 @@ public final class SerialRunner extends JobRunner {
     while (jobStagesIterator.hasNext()) {
       List<IndexingJob> jobsInStage = jobStagesIterator.next();
       for (IndexingJob job : jobsInStage) {
-        JobResult jobResult = new JobThread(job, isDryRun, runType, job.getName(), executor).call();
+        JobResult jobResult =
+            new JobThread(job, isDryRun, runType, job.getName(), executors).call();
         jobResult.setThreadTerminatedOnTime(true);
         jobResults.add(jobResult);
       }

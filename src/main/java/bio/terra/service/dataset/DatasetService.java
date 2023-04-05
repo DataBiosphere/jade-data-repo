@@ -538,7 +538,15 @@ public class DatasetService {
         String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
         List<DataResultModel> values =
             BigQueryPdao.getTable(
-                dataset, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
+                dataset,
+                bqFormattedTableName,
+                columns,
+                limit,
+                offset,
+                sort,
+                direction,
+                filter,
+                true);
 
         return translateDataResult(
             values, tableName, dataset, bqFormattedTableName, null, null, cloudPlatformWrapper);
@@ -573,7 +581,8 @@ public class DatasetService {
               offset,
               sort,
               direction,
-              filter);
+              filter,
+              false);
       return translateDataResult(
           values,
           tableName,

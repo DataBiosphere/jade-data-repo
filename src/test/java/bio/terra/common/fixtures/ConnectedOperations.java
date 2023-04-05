@@ -1,5 +1,6 @@
 package bio.terra.common.fixtures;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -56,6 +57,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetDaoUtils;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.azure.data.tables.TableServiceClient;
@@ -567,6 +569,38 @@ public class ConnectedOperations {
     String participantBQFormattedTableName = prefix + tdrResource.getName() + "." + tableName;
     int rowCount = BigQueryPdao.getTableTotalRowCount(tdrResource, participantBQFormattedTableName);
     assertThat("Expected row count", rowCount, equalTo(expectedRowCount));
+  }
+
+  public void checkDataModel(
+      FSContainerInterface tdrResource,
+      List<String> columnNames,
+      boolean includeTotalRowCount,
+      String prefix,
+      String tableName,
+      int expectedRowCount)
+      throws InterruptedException {
+    String participantBQFormattedTableName = prefix + tdrResource.getName() + "." + tableName;
+    List<DataResultModel> results =
+        BigQueryPdao.getTable(
+            tdrResource,
+            participantBQFormattedTableName,
+            columnNames,
+            expectedRowCount + 1,
+            0,
+            PDAO_ROW_ID_COLUMN,
+            null,
+            null,
+            includeTotalRowCount);
+    DataResultModel result = results.get(0);
+    if (includeTotalRowCount) {
+      assertThat("non-null total count", result.getTotalCount(), equalTo(expectedRowCount));
+    } else {
+      assertThat(
+          "if we didn't include the total count, it should be zero.",
+          result.getTotalCount(),
+          equalTo(0));
+    }
+    assertThat("Expected filtered count", result.getFilteredCount(), equalTo(expectedRowCount));
   }
 
   public IngestResponseModel checkIngestTableResponse(MockHttpServletResponse response)

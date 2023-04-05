@@ -283,20 +283,20 @@ public class AzureSynapsePdao {
           """;
   private static final String queryFromDatasourceTemplate =
       """
-          SELECT <columns:{c|tbl.[<c>]}; separator=",">,count(*) over () <filteredRowCountColumnName>,tbl.[<totalRowCountColumnName>]
-            FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
-                         <columns:{c|all_rows.[<c>]}; separator=",">,all_rows.[<totalRowCountColumnName>]
-                    FROM (
-                      SELECT <columns:{c|rows.[<c>]}; separator=",">,
-                      count(*) over () <totalRowCountColumnName>
-                      FROM OPENROWSET(BULK '<parquetFileLocation>',
-                                    DATA_SOURCE = '<datasource>',
-                                    FORMAT='PARQUET') AS rows
-                      ) AS all_rows
-                    WHERE (<userFilter>)
-                 ) AS tbl
-           WHERE tbl.datarepo_row_number >= :offset
-             AND tbl.datarepo_row_number \\<= :offset + :limit;""";
+      SELECT <columns:{c|tbl.[<c>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,tbl.[<totalRowCountColumnName>]<endif>
+        FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
+                 <columns:{c|all_rows.[<c>]}; separator=","><if(includeTotalRowCount)>,all_rows.[<totalRowCountColumnName>]<endif>
+            FROM (
+              SELECT <columns:{c|rows.[<c>]}; separator=","> <if(includeTotalRowCount)>,
+              count(*) over () <totalRowCountColumnName> <endif>
+              FROM OPENROWSET(BULK '<parquetFileLocation>',
+                            DATA_SOURCE = '<datasource>',
+                            FORMAT='PARQUET') AS rows
+              ) AS all_rows
+            WHERE (<userFilter>)
+         ) AS tbl
+      WHERE tbl.datarepo_row_number >= :offset
+        AND tbl.datarepo_row_number \\<= :offset + :limit;""";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
@@ -1055,7 +1055,8 @@ public class AzureSynapsePdao {
       int offset,
       String sort,
       SqlSortDirection direction,
-      String filter) {
+      String filter,
+      boolean includeTotalRowCount) {
 
     // Ensure that the sort column is a valid column
     if (!sort.equals(PDAO_ROW_ID_COLUMN)) {
@@ -1085,6 +1086,7 @@ public class AzureSynapsePdao {
             .add("sort", sort)
             .add("direction", direction)
             .add("userFilter", userFilter)
+            .add("includeTotalRowCount", includeTotalRowCount)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
             .render();
@@ -1101,7 +1103,7 @@ public class AzureSynapsePdao {
                       .collect(
                           Collectors.toMap(
                               Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))),
-                  rs.getInt(PDAO_TOTAL_ROW_COUNT_COLUMN_NAME),
+                  includeTotalRowCount ? rs.getInt(PDAO_TOTAL_ROW_COUNT_COLUMN_NAME) : 0,
                   rs.getInt(PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)));
 
     } catch (DataAccessException ex) {

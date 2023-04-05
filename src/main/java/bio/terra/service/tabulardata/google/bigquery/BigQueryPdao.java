@@ -112,10 +112,13 @@ public abstract class BigQueryPdao {
   public static final String DATA_TEMPLATE =
       """
         SELECT <columns>,
-          <totalRowCountColumnName>,
+          <if(includeTotalRowCount)>
+            <totalRowCountColumnName>,
+          <endif>
           count(*) over () <filteredRowCountColumnName>
         FROM (
-          SELECT <columns>, count(*) over () AS <totalRowCountColumnName> FROM <table>)
+          SELECT <columns><if(includeTotalRowCount)>, count(*) over () AS <totalRowCountColumnName><endif>
+          FROM <table>)
         <filterParams>
       """;
 
@@ -165,7 +168,8 @@ public abstract class BigQueryPdao {
       int offset,
       String sort,
       SqlSortDirection direction,
-      String filter)
+      String filter,
+      boolean includeTotalRowCount)
       throws InterruptedException {
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
     final String datasetProjectId = bigQueryProject.getProjectId();
@@ -179,6 +183,7 @@ public abstract class BigQueryPdao {
             .add("columns", columns)
             .add("table", bqFormattedTableName)
             .add("filterParams", whereClause)
+            .add("includeTotalRowCount", includeTotalRowCount)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
             .render();
@@ -199,6 +204,7 @@ public abstract class BigQueryPdao {
             .add("columns", columns)
             .add("table", bigQueryTable)
             .add("filterParams", filterParams)
+            .add("includeTotalRowCount", includeTotalRowCount)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
             .render();

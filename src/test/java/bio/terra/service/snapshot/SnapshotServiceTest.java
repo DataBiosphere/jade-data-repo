@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
@@ -89,7 +88,6 @@ import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
-import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import java.text.ParseException;
 import java.time.Instant;
@@ -104,8 +102,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.function.ThrowingRunnable;
 import org.junit.runner.RunWith;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
@@ -1096,15 +1092,12 @@ public class SnapshotServiceTest {
 
   @Test
   public void testTranslateDataResult() {
-    testTranslateDataResultGCP(12, 0);
-    testTranslateDataResultGCP(0, 0);
-    testTranslateDataResultGCP(8, 4);
-    testTranslateDataResultAzure(12, 0);
-    testTranslateDataResultAzure(0, 0);
-    testTranslateDataResultAzure(8, 4);
+    testTranslateDataResult(12, 0);
+    testTranslateDataResult(0, 0);
+    testTranslateDataResult(8, 4);
   }
 
-  private void testTranslateDataResultGCP(int totalRowCount, int filteredRowCount) {
+  private void testTranslateDataResult(int totalRowCount, int filteredRowCount) {
     List<DataResultModel> values = new ArrayList<>();
     if (filteredRowCount > 0) {
       values.add(
@@ -1113,49 +1106,8 @@ public class SnapshotServiceTest {
               .totalCount(totalRowCount)
               .rowResult(new HashMap<>()));
     }
-    try (MockedStatic<BigQueryPdao> utilities = Mockito.mockStatic(BigQueryPdao.class)) {
-      utilities
-          .when(() -> BigQueryPdao.getTableTotalRowCount(any(), any()))
-          .thenReturn(totalRowCount);
-      SnapshotPreviewModel snapshotPreviewModel =
-          service.translateDataResult(
-              values,
-              "table1",
-              new Snapshot().projectResource(new GoogleProjectResource().googleProjectId("blah")),
-              "bqFormattedTableName",
-              "datasourceName",
-              "parquetFilePathForTable",
-              CloudPlatformWrapper.of(CloudPlatform.GCP));
-      assertThat(
-          "Correct total row count",
-          snapshotPreviewModel.getTotalRowCount(),
-          equalTo(totalRowCount));
-      assertThat(
-          "Correct filtered row count",
-          snapshotPreviewModel.getFilteredRowCount(),
-          equalTo(filteredRowCount));
-    }
-  }
-
-  private void testTranslateDataResultAzure(int totalRowCount, int filteredRowCount) {
-    List<DataResultModel> values = new ArrayList<>();
-    if (filteredRowCount > 0) {
-      values.add(
-          new DataResultModel()
-              .filteredCount(filteredRowCount)
-              .totalCount(totalRowCount)
-              .rowResult(new HashMap<>()));
-    }
-    when(synapsePdao.getTableTotalRowCount(any(), any(), any())).thenReturn(totalRowCount);
     SnapshotPreviewModel snapshotPreviewModel =
-        service.translateDataResult(
-            values,
-            "table1",
-            null,
-            null,
-            "datasourceName",
-            "parquetFilePathForTable",
-            CloudPlatformWrapper.of(CloudPlatform.AZURE));
+        service.translateDataResult(values, new SnapshotTable().rowCount(totalRowCount));
     assertThat(
         "Correct total row count", snapshotPreviewModel.getTotalRowCount(), equalTo(totalRowCount));
     assertThat(

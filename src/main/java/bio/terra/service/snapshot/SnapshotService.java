@@ -64,7 +64,6 @@ import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.DataResultModel;
-import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
@@ -797,9 +796,16 @@ public class SnapshotService {
         String bqFormattedTableName = snapshot.getName() + "." + tableName;
         List<DataResultModel> values =
             BigQueryPdao.getTable(
-                snapshot, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
-        return translateDataResult(
-            values, tableName, snapshot, bqFormattedTableName, null, null, cloudPlatformWrapper);
+                snapshot,
+                bqFormattedTableName,
+                columns,
+                limit,
+                offset,
+                sort,
+                direction,
+                filter,
+                false);
+        return translateDataResult(values, table);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new SnapshotPreviewException(
@@ -822,8 +828,7 @@ public class SnapshotService {
       } catch (Exception e) {
         throw new RuntimeException("Could not configure external datasource", e);
       }
-      String parquetFilePath =
-          IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, tableName);
+      String parquetFilePath = IngestUtils.getSnapshotParquetFilePathForQuery(tableName);
       List<DataResultModel> values =
           azureSynapsePdao.getTableData(
               table,
@@ -834,34 +839,16 @@ public class SnapshotService {
               offset,
               sort,
               direction,
-              filter);
-      return translateDataResult(
-          values, tableName, snapshot, null, datasourceName, parquetFilePath, cloudPlatformWrapper);
+              filter,
+              false);
+      return translateDataResult(values, table);
     } else {
       throw new SnapshotPreviewException("Cloud not supported");
     }
   }
 
-  SnapshotPreviewModel translateDataResult(
-      List<DataResultModel> values,
-      String tableName,
-      FSContainerInterface tdrResource,
-      String bqFormattedTableName,
-      String datasourceName,
-      String parquetFilePathForTable,
-      CloudPlatformWrapper cloud) {
-    int totalRowCount = 0;
-    if (values.isEmpty()) {
-      if (cloud.isAzure()) {
-        totalRowCount =
-            azureSynapsePdao.getTableTotalRowCount(
-                tableName, datasourceName, parquetFilePathForTable);
-      } else if (cloud.isGcp()) {
-        totalRowCount = BigQueryPdao.getTableTotalRowCount(tdrResource, bqFormattedTableName);
-      }
-    } else {
-      totalRowCount = values.get(0).getTotalCount();
-    }
+  SnapshotPreviewModel translateDataResult(List<DataResultModel> values, SnapshotTable table) {
+    int totalRowCount = table.getRowCount().intValue();
     int filteredRowCount = values.isEmpty() ? 0 : values.get(0).getFilteredCount();
     return new SnapshotPreviewModel()
         .result(List.copyOf(values.stream().map(DataResultModel::getRowResult).toList()))

@@ -313,19 +313,23 @@ public class AzureSynapsePdaoConnectedTest {
         AzureSynapsePdao.getDataSourceName(snapshot.getId(), TEST_USER.getEmail());
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotQueryCredentialName, snapshotQueryDataSourceName);
-    List<Map<String, Object>> tableData =
-        prepQueryResultForComparison(
-            azureSynapsePdao.getTableData(
-                snapshotTable,
-                snapshotTable.getName(),
-                snapshotQueryDataSourceName,
-                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotTable.getName()),
-                10,
-                0,
-                "first_name",
-                SqlSortDirection.ASC,
-                ""),
-            isGlobalFileIds);
+    List<DataResultModel> results =
+        azureSynapsePdao.getTableData(
+            snapshotTable,
+            snapshotTable.getName(),
+            snapshotQueryDataSourceName,
+            IngestUtils.getSnapshotParquetFilePathForQuery(snapshotTable.getName()),
+            10,
+            0,
+            "first_name",
+            SqlSortDirection.ASC,
+            "",
+            false);
+    assertThat(
+        "Total row count should be 0 since we didn't include it in the query",
+        results.get(0).getTotalCount(),
+        equalTo(0));
+    List<Map<String, Object>> tableData = prepQueryResultForComparison(results, isGlobalFileIds);
     assertThat(
         "table query contains correct data in the right order (ascending by first name)",
         tableData,
@@ -343,7 +347,8 @@ public class AzureSynapsePdaoConnectedTest {
                 0,
                 "first_name",
                 SqlSortDirection.DESC,
-                ""),
+                "",
+                false),
             isGlobalFileIds);
     assertThat(
         "table query contains correct data in the right order (descending by first name)",
@@ -362,7 +367,8 @@ public class AzureSynapsePdaoConnectedTest {
                 0,
                 "first_name",
                 SqlSortDirection.ASC,
-                "upper(first_name)='SALLY'"),
+                "upper(first_name)='SALLY'",
+                false),
             isGlobalFileIds);
     assertThat(
         "table query contains only a single record", tableData, contains(expectedData.get(1)));

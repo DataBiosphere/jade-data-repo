@@ -1,5 +1,6 @@
 package bio.terra.common;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -11,8 +12,10 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
@@ -509,11 +512,43 @@ public class SynapseUtils {
         azureSynapsePdao.getTableTotalRowCount(
             destinationTable.getName(),
             IngestUtils.getTargetDataSourceName(randomFlightId),
-            IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId));
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId)));
     assertThat(
         "Correct number of rows are returned from table",
         rowCount,
         equalTo(expectedNumberOfRowToIngest));
+
+    testOptionalIncludeTotalRowCount(true, destinationTable, 2);
+    testOptionalIncludeTotalRowCount(false, destinationTable, 2);
     return destinationTable;
+  }
+
+  private void testOptionalIncludeTotalRowCount(
+      boolean includeTotalRowCount, Table table, int expectedTotalRowCount) {
+    List<DataResultModel> results =
+        azureSynapsePdao.getTableData(
+            table,
+            table.getName(),
+            IngestUtils.getTargetDataSourceName(randomFlightId),
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath(table.getName(), randomFlightId)),
+            expectedTotalRowCount + 1,
+            0,
+            PDAO_ROW_ID_COLUMN,
+            SqlSortDirection.ASC,
+            "",
+            includeTotalRowCount);
+    if (includeTotalRowCount) {
+      assertThat(
+          "Total row count should be correct since includeTotalRowCount=true",
+          results.get(0).getTotalCount(),
+          equalTo(expectedTotalRowCount));
+    } else {
+      assertThat(
+          "Total row count should be 0 since includeTotalRowCount=false",
+          results.get(0).getTotalCount(),
+          equalTo(0));
+    }
   }
 }

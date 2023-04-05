@@ -628,7 +628,8 @@ public class SnapshotDao {
       String filter,
       String region,
       List<UUID> datasetIds,
-      Collection<UUID> accessibleSnapshotIds) {
+      Collection<UUID> accessibleSnapshotIds,
+      List<String> tags) {
     logger.debug(
         "retrieve snapshots offset: "
             + offset
@@ -641,7 +642,9 @@ public class SnapshotDao {
             + " filter: "
             + filter
             + " datasetIds: "
-            + StringUtils.join(datasetIds, ","));
+            + StringUtils.join(datasetIds, ",")
+            + " tags: "
+            + StringUtils.join(tags, ","));
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses, TABLE_NAME);
@@ -670,6 +673,12 @@ public class SnapshotDao {
     // add the filter to the clause to get the actual items
     DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "snapshot_source.dataset_id");
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      DaoUtils.addTagsClause(connection, tags, params, whereClauses, TABLE_NAME);
+    } catch (SQLException e) {
+      throw new IllegalArgumentException(
+          "Failed to convert snapshot request tags list to SQL array", e);
+    }
 
     String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 

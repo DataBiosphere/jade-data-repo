@@ -191,7 +191,8 @@ public class SnapshotsApiController implements SnapshotsApi {
       SqlSortDirection direction,
       String filter,
       String region,
-      List<String> datasetIds) {
+      List<String> datasetIds,
+      List<String> tags) {
     ControllerUtils.validateEnumerateParams(offset, limit);
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
@@ -199,7 +200,15 @@ public class SnapshotsApiController implements SnapshotsApi {
             .collect(Collectors.toList());
     var esm =
         snapshotService.enumerateSnapshots(
-            getAuthenticatedInfo(), offset, limit, sort, direction, filter, region, datasetUUIDs);
+            getAuthenticatedInfo(),
+            offset,
+            limit,
+            sort,
+            direction,
+            filter,
+            region,
+            datasetUUIDs,
+            tags);
     return ResponseEntity.ok(esm);
   }
 

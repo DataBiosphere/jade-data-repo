@@ -320,6 +320,7 @@ public class SnapshotDaoTest {
   @Test
   public void snapshotEnumerateTest() {
     String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
+    List<String> tags = List.of("a tag", "A TAG");
 
     for (int i = 0; i < 6; i++) {
       snapshotRequest
@@ -328,10 +329,17 @@ public class SnapshotDaoTest {
           // independently of the dataset name or created_date. add a suffix to filter on
           // for the even snapshots
           .description(UUID.randomUUID() + ((i % 2 == 0) ? "==foo==" : ""));
+      if (i == 0) {
+        // Only tag our first snapshot
+        snapshotRequest.tags(tags);
+      } else {
+        snapshotRequest.tags(null);
+      }
+      System.out.println(snapshotRequest);
       createSnapshot(snapshotRequest);
     }
     MetadataEnumeration<SnapshotSummary> allSnapshots =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds);
+        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, null);
 
     for (var snapshotSummary : allSnapshots.getItems()) {
       assertThat(
@@ -368,7 +376,8 @@ public class SnapshotDaoTest {
             null,
             GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
             datasetIds,
-            snapshotIds);
+            snapshotIds,
+            null);
     List<SnapshotSummary> filteredRegionSnapshots = filterDefaultRegionEnum.getItems();
     assertThat(
         "snapshot filter by default GCS region returns correct total",
@@ -394,7 +403,8 @@ public class SnapshotDaoTest {
             makeName(snapshotName, 0),
             GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
             datasetIds,
-            snapshotIds);
+            snapshotIds,
+            null);
     List<SnapshotSummary> filteredNameAndRegionSnapshots = filterNameAndRegionEnum.getItems();
     assertThat(
         "snapshot filter by name and region returns correct total",
@@ -462,7 +472,8 @@ public class SnapshotDaoTest {
             "==foo==",
             null,
             datasetIds,
-            snapshotIds);
+            snapshotIds,
+            null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     assertThat("filtered and retrieved 2 snapshots", summaryList, hasSize(2));
     assertThat("filtered total 3", summaryEnum.getFilteredTotal(), equalTo(3));
@@ -472,25 +483,83 @@ public class SnapshotDaoTest {
     }
 
     MetadataEnumeration<SnapshotSummary> emptyEnum =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, "__", null, datasetIds, snapshotIds);
+        snapshotDao.retrieveSnapshots(0, 6, null, null, "__", null, datasetIds, snapshotIds, null);
     assertThat("underscores don't act as wildcards", emptyEnum.getItems(), empty());
 
     MetadataEnumeration<SnapshotSummary> summaryEnum0 =
-        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIds);
+        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIds, null);
     assertThat("no dataset uuid gives all snapshots", summaryEnum0.getTotal(), equalTo(6));
 
     // use the original dataset id and make sure you get all snapshots
     datasetIds = singletonList(datasetId);
     MetadataEnumeration<SnapshotSummary> summaryEnum1 =
-        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIds);
+        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIds, null);
     assertThat(
         "expected dataset uuid gives expected snapshot", summaryEnum1.getTotal(), equalTo(6));
 
     // made a random dataset uuid and made sure that you get no snapshots
     List<UUID> datasetIdsBad = singletonList(UUID.randomUUID());
     MetadataEnumeration<SnapshotSummary> summaryEnum2 =
-        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIdsBad, snapshotIds);
+        snapshotDao.retrieveSnapshots(
+            0, 10, null, null, null, null, datasetIdsBad, snapshotIds, null);
     assertThat("dummy dataset uuid gives no snapshots", summaryEnum2.getTotal(), equalTo(0));
+
+    // Test filtering by tags
+
+    // Filtering on all tags for a snapshot returns the snapshot
+    MetadataEnumeration<SnapshotSummary> filteredAllTagsMatchEnum =
+        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, tags);
+    List<SnapshotSummary> filteredAllTagsMatchSnapshots = filteredAllTagsMatchEnum.getItems();
+    assertThat(
+        "snapshot filter by tags returns correct filtered total",
+        filteredAllTagsMatchSnapshots,
+        hasSize(1));
+    assertThat(
+        "snapshot filter by tags returns correct snapshot",
+        filteredAllTagsMatchSnapshots.get(0).getId(),
+        equalTo(snapshotIds.get(0)));
+    assertThat(
+        "snapshot filter by tags returns correct total",
+        filteredAllTagsMatchEnum.getTotal(),
+        equalTo(6));
+
+    // Filtering on a strict subset of tags for a dataset returns the dataset
+    tags.forEach(
+        tag -> {
+          MetadataEnumeration<SnapshotSummary> filteredSubsetTagsMatchEnum =
+              snapshotDao.retrieveSnapshots(
+                  0, 6, null, null, null, null, datasetIds, snapshotIds, List.of(tag));
+          List<SnapshotSummary> filteredSubsetTagsMatchSnapshots =
+              filteredSubsetTagsMatchEnum.getItems();
+          assertThat(
+              "snapshot filter by tags returns correct filtered total",
+              filteredSubsetTagsMatchSnapshots,
+              hasSize(1));
+          assertThat(
+              "snapshot filter by tags returns correct snapshot",
+              filteredSubsetTagsMatchSnapshots.get(0).getId(),
+              equalTo(snapshotIds.get(0)));
+          assertThat(
+              "snapshot filter by tags returns correct total",
+              filteredSubsetTagsMatchEnum.getTotal(),
+              equalTo(6));
+        });
+
+    // If even one specified tag is not found on the snapshot, it's not returned, even if other
+    // matching tags are included
+    List<String> incompleteTagMatch = new ArrayList<>(tags);
+    incompleteTagMatch.add(UUID.randomUUID().toString());
+    MetadataEnumeration<SnapshotSummary> incompleteTagMatchEnum =
+        snapshotDao.retrieveSnapshots(
+            0, 6, null, null, null, null, datasetIds, snapshotIds, incompleteTagMatch);
+    assertThat(
+        "snapshot filter by tags excludes snapshot which do not match filter completely",
+        incompleteTagMatchEnum.getItems(),
+        empty());
+    assertThat(
+        "snapshot filter by tags returns correct total",
+        incompleteTagMatchEnum.getTotal(),
+        equalTo(6));
   }
 
   private String makeName(String baseName, int index) {
@@ -508,7 +577,8 @@ public class SnapshotDaoTest {
             null,
             null,
             datasetIds,
-            snapshotIds);
+            snapshotIds,
+            null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     int index = (direction.equals(SqlSortDirection.ASC)) ? offset : snapshotIds.size() - offset - 1;
     for (SnapshotSummary summary : summaryList) {
@@ -521,7 +591,15 @@ public class SnapshotDaoTest {
   private void testSortingDescriptions(SqlSortDirection direction) {
     MetadataEnumeration<SnapshotSummary> summaryEnum =
         snapshotDao.retrieveSnapshots(
-            0, 6, EnumerateSortByParam.DESCRIPTION, direction, null, null, datasetIds, snapshotIds);
+            0,
+            6,
+            EnumerateSortByParam.DESCRIPTION,
+            direction,
+            null,
+            null,
+            datasetIds,
+            snapshotIds,
+            null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     assertThat("the full list comes back", summaryList.size(), equalTo(6));
     String previous = summaryList.get(0).getDescription();
@@ -547,7 +625,8 @@ public class SnapshotDaoTest {
             null,
             null,
             datasetIds,
-            snapshotIds);
+            snapshotIds,
+            null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     int index = offset;
     for (SnapshotSummary summary : summaryList) {

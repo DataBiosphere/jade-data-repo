@@ -508,6 +508,17 @@ paths:
             type: array
             items:
               type: string
+        - name: tags
+          in: query
+          description: >
+            Filter the results where these case sensitive tags are applied to the snapshots
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Tag'
       responses:
         200:
           description: List of snapshots
@@ -1447,6 +1458,17 @@ paths:
             in any of the cloud storage regions used by the dataset.
           schema:
             type: string
+        - name: tags
+          in: query
+          description: >
+            Filter the results where these case sensitive tags are applied to the datasets
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Tag'
       responses:
         200:
           description: List of datasets

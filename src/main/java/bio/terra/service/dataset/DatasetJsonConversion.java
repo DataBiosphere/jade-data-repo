@@ -5,6 +5,7 @@ import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
+import bio.terra.common.TagUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
@@ -69,12 +70,6 @@ public final class DatasetJsonConversion {
     boolean enableSecureMonitoring =
         Objects.requireNonNullElse(datasetRequest.isEnableSecureMonitoring(), false);
 
-    List<String> distinctTags =
-        Optional.ofNullable(datasetRequest.getTags()).orElse(List.of()).stream()
-            .distinct()
-            .filter(Objects::nonNull)
-            .toList();
-
     return new Dataset(
             new DatasetSummary()
                 .name(datasetRequest.getName())
@@ -86,7 +81,7 @@ public final class DatasetJsonConversion {
                 .selfHosted(datasetRequest.isExperimentalSelfHosted())
                 .properties(datasetRequest.getProperties())
                 .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds())
-                .tags(distinctTags))
+                .tags(TagUtils.getDistinctTags(datasetRequest.getTags())))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);

@@ -14,8 +14,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.dao.DataAccessException;
@@ -87,7 +87,7 @@ public final class DaoUtils {
 
   public static Array createSqlStringArray(Connection connection, List<String> list)
       throws SQLException {
-    Object[] array = Optional.ofNullable(list).orElse(List.of()).toArray();
+    Object[] array = ListUtils.emptyIfNull(list).toArray();
     return connection.createArrayOf("text", array);
   }
 

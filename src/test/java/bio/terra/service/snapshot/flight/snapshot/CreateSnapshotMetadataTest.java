@@ -14,7 +14,6 @@ import bio.terra.common.fixtures.DuosFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -56,7 +55,6 @@ public class CreateSnapshotMetadataTest {
   private CreateSnapshotMetadataStep step;
   private FlightMap workingMap;
   private SnapshotRequestModel snapshotRequestModel;
-  private Dataset dataset;
   private Snapshot snapshot;
 
   @Before

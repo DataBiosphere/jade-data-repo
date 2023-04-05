@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,9 +16,11 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 @Category(Unit.class)
 public class DaoUtilsTest {
@@ -33,6 +36,19 @@ public class DaoUtilsTest {
         "default order by clause looks correct",
         DaoUtils.orderByClause(null, null, "foo"),
         equalTo(" ORDER BY foo.created_date desc "));
+  }
+
+  @Test
+  public void testAddTagsClause() throws SQLException {
+    Connection connection = mock(Connection.class);
+    List<String> clauses = new ArrayList<>();
+    MapSqlParameterSource params = new MapSqlParameterSource();
+    String table = "aTableName";
+
+    DaoUtils.addTagsClause(connection, List.of(), params, clauses, table);
+
+    assertThat(clauses, contains(table + ".tags @> :tags"));
+    assertTrue(params.hasValue("tags"));
   }
 
   @Test

@@ -637,7 +637,8 @@ public class DatasetDao {
       SqlSortDirection direction,
       String filter,
       String region,
-      Collection<UUID> accessibleDatasetIds) {
+      Collection<UUID> accessibleDatasetIds,
+      List<String> tags) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses, TABLE_NAME);
@@ -654,6 +655,12 @@ public class DatasetDao {
     // add the filters to the clause to get the actual items
     DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "dataset.id");
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      DaoUtils.addTagsClause(connection, tags, params, whereClauses, TABLE_NAME);
+    } catch (SQLException e) {
+      throw new IllegalArgumentException(
+          "Failed to convert dataset request tags list to SQL array", e);
+    }
 
     String whereSql = "";
     if (!whereClauses.isEmpty()) {

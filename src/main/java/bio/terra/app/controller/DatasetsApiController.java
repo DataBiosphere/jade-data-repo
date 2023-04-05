@@ -223,11 +223,13 @@ public class DatasetsApiController implements DatasetsApi {
       EnumerateSortByParam sort,
       SqlSortDirection direction,
       String filter,
-      String region) {
+      String region,
+      List<String> tags) {
     ControllerUtils.validateEnumerateParams(offset, limit);
     var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
-    var edm = datasetService.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles);
+    var edm =
+        datasetService.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles, tags);
     return ResponseEntity.ok(edm);
   }
 

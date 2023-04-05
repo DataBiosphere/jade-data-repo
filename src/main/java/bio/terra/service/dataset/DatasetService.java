@@ -250,12 +250,14 @@ public class DatasetService {
       SqlSortDirection direction,
       String filter,
       String region,
-      Map<UUID, Set<IamRole>> idsAndRoles) {
+      Map<UUID, Set<IamRole>> idsAndRoles,
+      List<String> tags) {
     if (idsAndRoles.isEmpty()) {
       return new EnumerateDatasetModel().total(0).items(List.of());
     }
     var datasetEnum =
-        datasetDao.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles.keySet());
+        datasetDao.enumerate(
+            offset, limit, sort, direction, filter, region, idsAndRoles.keySet(), tags);
 
     List<DatasetSummaryModel> summaries =
         datasetEnum.getItems().stream().map(DatasetSummary::toModel).collect(Collectors.toList());

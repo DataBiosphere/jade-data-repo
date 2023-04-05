@@ -83,9 +83,9 @@ public class DatasetServiceUnitTest {
         new DatasetSummary().id(uuid).createdDate(Instant.now()).storage(List.of());
     metadataEnumeration.items(List.of(summary));
     when(datasetDao.enumerate(
-            anyInt(), anyInt(), any(), any(), any(), any(), eq(resourcesAndRoles.keySet())))
+            anyInt(), anyInt(), any(), any(), any(), any(), eq(resourcesAndRoles.keySet()), any()))
         .thenReturn(metadataEnumeration);
-    var datasets = datasetService.enumerate(0, 10, null, null, null, null, resourcesAndRoles);
+    var datasets = datasetService.enumerate(0, 10, null, null, null, null, resourcesAndRoles, null);
     assertThat(datasets.getItems().get(0).getId(), equalTo(uuid));
     assertThat(datasets.getRoleMap(), hasEntry(uuid.toString(), List.of(role.toString())));
   }

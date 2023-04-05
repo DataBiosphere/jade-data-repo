@@ -56,7 +56,8 @@ public class TransactionUpgradeStep implements Step {
                 SqlSortDirection.ASC,
                 null,
                 null,
-                idsAndRoles)
+                idsAndRoles,
+                null)
             .getItems()
             .stream()
             .filter(d -> d.getCloudPlatform() == CloudPlatform.GCP)

@@ -145,13 +145,21 @@ public class DatasetDaoTest {
 
   @Test
   public void enumerateTest() throws Exception {
-    UUID dataset1 = createDataset("dataset-minimal.json");
-    createDataset("ingest-test-dataset-east.json");
-    Dataset dataset1FromDB = datasetDao.retrieve(dataset1);
+    UUID datasetId1 = createDataset("dataset-minimal.json");
+    Dataset dataset1 = datasetDao.retrieve(datasetId1);
+    UUID datasetId2 = createDataset("ingest-test-dataset-east.json");
+    Dataset dataset2 = datasetDao.retrieve(datasetId2);
 
     MetadataEnumeration<DatasetSummary> summaryEnum =
         datasetDao.enumerate(
-            0, 2, EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null, null, datasetIds);
+            0,
+            2,
+            EnumerateSortByParam.CREATED_DATE,
+            SqlSortDirection.ASC,
+            null,
+            null,
+            datasetIds,
+            null);
     List<DatasetSummary> datasets = summaryEnum.getItems();
     assertThat("dataset enumerate limit param works", datasets, hasSize(2));
 
@@ -181,7 +189,8 @@ public class DatasetDaoTest {
                 SqlSortDirection.ASC,
                 null,
                 null,
-                datasetIds)
+                datasetIds,
+                null)
             .getItems()
             .get(0)
             .getId(),
@@ -193,15 +202,16 @@ public class DatasetDaoTest {
             2,
             EnumerateSortByParam.CREATED_DATE,
             SqlSortDirection.ASC,
-            dataset1FromDB.getName(),
+            dataset1.getName(),
             null,
-            datasetIds);
+            datasetIds,
+            null);
     List<DatasetSummary> filteredDatasets = filterNameEnum.getItems();
     assertThat("dataset filter by name returns correct total", filteredDatasets.size(), equalTo(1));
     assertThat(
         "dataset filter by name returns correct dataset",
         filteredDatasets.get(0).getName(),
-        equalTo(dataset1FromDB.getName()));
+        equalTo(dataset1.getName()));
 
     MetadataEnumeration<DatasetSummary> filterDefaultRegionEnum =
         datasetDao.enumerate(
@@ -211,7 +221,8 @@ public class DatasetDaoTest {
             SqlSortDirection.ASC,
             null,
             GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
-            datasetIds);
+            datasetIds,
+            null);
     List<DatasetSummary> filteredDefaultRegionDatasets = filterDefaultRegionEnum.getItems();
     assertThat(
         "dataset filter by default GCS region returns correct total",
@@ -231,9 +242,10 @@ public class DatasetDaoTest {
             2,
             EnumerateSortByParam.CREATED_DATE,
             SqlSortDirection.ASC,
-            dataset1FromDB.getName(),
+            dataset1.getName(),
             GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
-            datasetIds);
+            datasetIds,
+            null);
     List<DatasetSummary> filteredNameAndRegionDatasets = filterNameAndRegionEnum.getItems();
     assertThat(
         "dataset filter by name and region returns correct size results",
@@ -242,7 +254,7 @@ public class DatasetDaoTest {
     assertThat(
         "dataset filter by name and region returns dataset with correct name",
         filteredNameAndRegionDatasets.get(0).getName(),
-        equalTo(dataset1FromDB.getName()));
+        equalTo(dataset1.getName()));
     assertTrue(
         "dataset filter by name and region returns dataset with correct region",
         filteredNameAndRegionDatasets.stream()
@@ -268,7 +280,8 @@ public class DatasetDaoTest {
             SqlSortDirection.ASC,
             null,
             GoogleRegion.US_EAST1.toString(),
-            datasetIds);
+            datasetIds,
+            null);
     List<DatasetSummary> filteredRegionDatasets = filterRegionEnum.getItems();
     assertThat(
         "dataset filter by non-default GCS region returns correct total",
@@ -280,6 +293,89 @@ public class DatasetDaoTest {
             .allMatch(
                 datasetSummary ->
                     datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_EAST1)));
+
+    // Test filtering by tags
+    assertThat("Minimal dataset has no tags", dataset1.getTags(), empty());
+    assertThat("Second dataset has two tags", dataset2.getTags(), hasSize(2));
+
+    // Filtering on all tags for a dataset returns the dataset
+    MetadataEnumeration<DatasetSummary> filteredAllTagsMatchEnum =
+        datasetDao.enumerate(
+            0,
+            2,
+            EnumerateSortByParam.CREATED_DATE,
+            SqlSortDirection.ASC,
+            null,
+            null,
+            datasetIds,
+            dataset2.getTags());
+    List<DatasetSummary> filteredAllTagsMatchDatasets = filteredAllTagsMatchEnum.getItems();
+    assertThat(
+        "dataset filter by tags returns correct filtered total",
+        filteredAllTagsMatchDatasets,
+        hasSize(1));
+    assertThat(
+        "dataset filter by tags returns correct dataset",
+        filteredAllTagsMatchDatasets.get(0).getId(),
+        equalTo(datasetId2));
+    assertThat(
+        "dataset filter by tags returns correct total",
+        filteredAllTagsMatchEnum.getTotal(),
+        equalTo(2));
+
+    // Filtering on a strict subset of tags for a dataset returns the dataset
+    dataset2
+        .getTags()
+        .forEach(
+            tag -> {
+              MetadataEnumeration<DatasetSummary> filteredSubsetTagsMatchEnum =
+                  datasetDao.enumerate(
+                      0,
+                      2,
+                      EnumerateSortByParam.CREATED_DATE,
+                      SqlSortDirection.ASC,
+                      null,
+                      null,
+                      datasetIds,
+                      List.of(tag));
+              List<DatasetSummary> filteredSubsetTagsMatchDatasets =
+                  filteredSubsetTagsMatchEnum.getItems();
+              assertThat(
+                  "dataset filter by tags returns correct filtered total",
+                  filteredSubsetTagsMatchDatasets,
+                  hasSize(1));
+              assertThat(
+                  "dataset filter by tags returns correct dataset",
+                  filteredSubsetTagsMatchDatasets.get(0).getId(),
+                  equalTo(datasetId2));
+              assertThat(
+                  "dataset filter by tags returns correct total",
+                  filteredSubsetTagsMatchEnum.getTotal(),
+                  equalTo(2));
+            });
+
+    // If even one specified tag is not found on the dataset, it's not returned, even if other
+    // matching tags are included
+    List<String> incompleteTagMatch = new ArrayList<>(dataset2.getTags());
+    incompleteTagMatch.add(UUID.randomUUID().toString());
+    MetadataEnumeration<DatasetSummary> incompleteTagMatchEnum =
+        datasetDao.enumerate(
+            0,
+            2,
+            EnumerateSortByParam.CREATED_DATE,
+            SqlSortDirection.ASC,
+            null,
+            null,
+            datasetIds,
+            incompleteTagMatch);
+    assertThat(
+        "dataset filter by tags excludes datasets which do not match filter completely",
+        incompleteTagMatchEnum.getItems(),
+        empty());
+    assertThat(
+        "dataset filter by tags returns correct total",
+        incompleteTagMatchEnum.getTotal(),
+        equalTo(2));
   }
 
   @Test

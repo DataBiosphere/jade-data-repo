@@ -36,7 +36,8 @@ public class ConvertToPredictableFileIdsVerifyDatasetStep extends DefaultUndoSte
                 SqlSortDirection.DESC,
                 null,
                 null,
-                List.of(datasetId))
+                List.of(datasetId),
+                null)
             .getFilteredTotal();
     if (numSnapshotsFromDataset > 0) {
       throw new IllegalArgumentException(

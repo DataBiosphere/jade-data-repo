@@ -83,7 +83,8 @@ public class AzureSynapsePdaoUnitTest {
             "datasetDataSource1",
             "snapshotDataSource1",
             requestAssetModel,
-            false);
+            false,
+            null);
     assertThat(
         "Table has 2 rows",
         tableRowCounts.get(assetSpec.getRootTable().getTable().getName()),
@@ -106,7 +107,8 @@ public class AzureSynapsePdaoUnitTest {
         "datasetDataSource1",
         "snapshotDataSource1",
         requestAssetModel,
-        false);
+        false,
+        null);
   }
 
   @Test(expected = PdaoException.class)
@@ -124,7 +126,8 @@ public class AzureSynapsePdaoUnitTest {
         "datasetDataSource1",
         "snapshotDataSource1",
         requestAssetModel,
-        false);
+        false,
+        null);
   }
 
   @Test
@@ -141,7 +144,8 @@ public class AzureSynapsePdaoUnitTest {
         "datasetDataSourceName1",
         "snapshotDataSourceName1",
         tableRowCounts,
-        false);
+        false,
+        null);
     assertThat(
         "Correct row count returned for sample table", tableRowCounts.get("sample"), equalTo(3L));
   }
@@ -158,7 +162,8 @@ public class AzureSynapsePdaoUnitTest {
         "datasetDataSourceName1",
         "snapshotDataSourceName1",
         tableRowCounts,
-        false);
+        false,
+        null);
     assertThat(
         "'FROM' table was not in tableRowCounts, so no rows were added",
         tableRowCounts.get("sample"),
@@ -228,7 +233,8 @@ public class AzureSynapsePdaoUnitTest {
         "datasetDataSourceName1",
         "snapshotDataSourceName1",
         new SnapshotRequestRowIdModel(),
-        false);
+        false,
+        null);
   }
 
   @Test
@@ -247,7 +253,8 @@ public class AzureSynapsePdaoUnitTest {
             "datasetDataSourceName1",
             "snapshotDataSourceName1",
             requestRowIdModel,
-            false);
+            false,
+            null);
     assertThat("Table has 2 rows", tableRowCounts.get("table1"), equalTo(2L));
   }
 
@@ -269,7 +276,8 @@ public class AzureSynapsePdaoUnitTest {
             "datasetDataSourceName1",
             "snapshotDataSourceName1",
             requestRowIdModel,
-            false);
+            false,
+            null);
     assertThat(
         "Table should have thrown exception, should should be set to 0 rows",
         tableRowCounts.get("table1"),
@@ -284,7 +292,12 @@ public class AzureSynapsePdaoUnitTest {
 
     Map<String, Long> tableRowCounts =
         azureSynapsePdaoSpy.createSnapshotParquetFiles(
-            tables, UUID.randomUUID(), "datasetDataSourceName1", "snapshotDataSourceName1", false);
+            tables,
+            UUID.randomUUID(),
+            "datasetDataSourceName1",
+            "snapshotDataSourceName1",
+            false,
+            null);
     assertThat("Table has 3 rows", tableRowCounts.get("table1"), equalTo(3L));
   }
 
@@ -296,7 +309,12 @@ public class AzureSynapsePdaoUnitTest {
 
     Map<String, Long> tableRowCounts =
         azureSynapsePdaoSpy.createSnapshotParquetFiles(
-            tables, UUID.randomUUID(), "datasetDataSourceName1", "snapshotDataSourceName1", false);
+            tables,
+            UUID.randomUUID(),
+            "datasetDataSourceName1",
+            "snapshotDataSourceName1",
+            false,
+            null);
     assertThat("Table has 0 rows", tableRowCounts.get("table1"), equalTo(0L));
   }
 }

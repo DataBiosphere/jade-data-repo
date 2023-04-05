@@ -26,6 +26,7 @@ import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotTable;
@@ -160,7 +161,11 @@ public class AzureSynapsePdaoConnectedTest {
     IngestRequestModel ingestRequestModel =
         new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
     testSynapseQuery(
-        ingestRequestModel, "azure-simple-dataset-ingest-request.csv", SAMPLE_DATA_CSV, false);
+        ingestRequestModel,
+        "azure-simple-dataset-ingest-request.csv",
+        SAMPLE_DATA_CSV,
+        false,
+        null);
   }
 
   @Test
@@ -183,11 +188,13 @@ public class AzureSynapsePdaoConnectedTest {
         nonStandardIngestRequestModel,
         "azure-simple-dataset-ingest-request-non-standard.csv",
         testData,
-        false);
+        false,
+        null);
 
     List<String> textCols =
         synapseUtils.readParquetFileStringColumn(
-            IngestUtils.getParquetFilePath("all_data_types", randomFlightId),
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath("all_data_types", randomFlightId)),
             IngestUtils.getTargetDataSourceName(randomFlightId),
             "textCol",
             true);
@@ -199,20 +206,27 @@ public class AzureSynapsePdaoConnectedTest {
   @Test
   public void testSynapseQueryJSON() throws Exception {
     IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
-    testSynapseQuery(ingestRequestModel, "azure-ingest-request.json", SAMPLE_DATA, false);
+    testSynapseQuery(ingestRequestModel, "azure-ingest-request.json", SAMPLE_DATA, false, null);
   }
 
   @Test
   public void testSynapseQueryJSONWithGlobalFileIds() throws Exception {
     IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
-    testSynapseQuery(ingestRequestModel, "azure-ingest-request.json", SAMPLE_DATA, true);
+    testSynapseQuery(ingestRequestModel, "azure-ingest-request.json", SAMPLE_DATA, true, null);
+  }
+
+  @Test
+  public void testSynapseQueryJSONWithGlobalFileIdsAndCompactIds() throws Exception {
+    IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
+    testSynapseQuery(ingestRequestModel, "azure-ingest-request.json", SAMPLE_DATA, true, "foo.0");
   }
 
   private void testSynapseQuery(
       IngestRequestModel ingestRequestModel,
       String ingestFileLocation,
       List<Map<String, Optional<Object>>> expectedData,
-      boolean isGlobalFileIds)
+      boolean isGlobalFileIds,
+      String compactIdPrefix)
       throws Exception {
     // ---- part 1 - ingest metadata into parquet files associated with dataset
     DatasetTable destinationTable =
@@ -239,11 +253,12 @@ public class AzureSynapsePdaoConnectedTest {
             snapshotId,
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
-            isGlobalFileIds);
+            isGlobalFileIds,
+            compactIdPrefix);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
     // Test that parquet files are correctly generated
     String snapshotParquetFileName =
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, destinationTable.getName());
+        IngestUtils.getSnapshotParquetFilePathForQuery(destinationTable.getName());
     List<String> snapshotFirstNames =
         synapseUtils.readParquetFileStringColumn(
             snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
@@ -263,7 +278,7 @@ public class AzureSynapsePdaoConnectedTest {
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE));
     // Test that parquet files are correctly generated
     String snapshotRowIdsParquetFileName =
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, PDAO_ROW_ID_TABLE);
+        IngestUtils.getSnapshotParquetFilePathForQuery(PDAO_ROW_ID_TABLE);
     synapseUtils.addParquetFileName(snapshotRowIdsParquetFileName, snapshotStorageAccountResource);
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(
@@ -284,17 +299,18 @@ public class AzureSynapsePdaoConnectedTest {
 
     // do a basic query of the data
     snapshotQueryCredentialName =
-        AzureSynapsePdao.getCredentialName(snapshot, TEST_USER.getEmail());
+        AzureSynapsePdao.getCredentialName(snapshot.getId(), TEST_USER.getEmail());
     snapshotQueryDataSourceName =
-        AzureSynapsePdao.getDataSourceName(snapshot, TEST_USER.getEmail());
+        AzureSynapsePdao.getDataSourceName(snapshot.getId(), TEST_USER.getEmail());
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotQueryCredentialName, snapshotQueryDataSourceName);
     List<Map<String, Optional<Object>>> tableData =
         prepQueryResultForComparison(
-            azureSynapsePdao.getSnapshotTableData(
-                TEST_USER,
-                snapshot,
+            azureSynapsePdao.getTableData(
+                snapshotTable,
                 snapshotTable.getName(),
+                snapshotQueryDataSourceName,
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotTable.getName()),
                 10,
                 0,
                 "first_name",
@@ -309,10 +325,11 @@ public class AzureSynapsePdaoConnectedTest {
     // now swap the order
     tableData =
         prepQueryResultForComparison(
-            azureSynapsePdao.getSnapshotTableData(
-                TEST_USER,
-                snapshot,
+            azureSynapsePdao.getTableData(
+                snapshotTable,
                 snapshotTable.getName(),
+                snapshotQueryDataSourceName,
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotTable.getName()),
                 10,
                 0,
                 "first_name",
@@ -327,10 +344,11 @@ public class AzureSynapsePdaoConnectedTest {
     // now read a single value
     tableData =
         prepQueryResultForComparison(
-            azureSynapsePdao.getSnapshotTableData(
-                TEST_USER,
-                snapshot,
+            azureSynapsePdao.getTableData(
+                snapshotTable,
                 snapshotTable.getName(),
+                snapshotQueryDataSourceName,
+                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotTable.getName()),
                 10,
                 0,
                 "first_name",

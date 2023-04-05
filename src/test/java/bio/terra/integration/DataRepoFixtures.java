@@ -721,7 +721,7 @@ public class DataRepoFixtures {
       TestConfiguration.User user, UUID snapshotId, String table, String column) throws Exception {
     String filter = "WHERE %s IS NOT NULL".formatted(column);
     DataRepoResponse<SnapshotPreviewModel> response =
-        retrieveSnapshotPreviewByIdRaw(user, snapshotId, table, 0, 1, filter);
+        retrieveSnapshotPreviewByIdRaw(user, snapshotId, table, 0, 1, filter, null);
     SnapshotPreviewModel validated =
         validateResponse(response, "snapshot preview for DRS ID", HttpStatus.OK, null);
 
@@ -741,8 +741,20 @@ public class DataRepoFixtures {
       int limit,
       String filter)
       throws Exception {
+    return retrieveSnapshotPreviewById(user, snapshotId, table, offset, limit, filter, null);
+  }
+
+  public List<Object> retrieveSnapshotPreviewById(
+      TestConfiguration.User user,
+      UUID snapshotId,
+      String table,
+      int offset,
+      int limit,
+      String filter,
+      String sort)
+      throws Exception {
     DataRepoResponse<SnapshotPreviewModel> response =
-        retrieveSnapshotPreviewByIdRaw(user, snapshotId, table, offset, limit, filter);
+        retrieveSnapshotPreviewByIdRaw(user, snapshotId, table, offset, limit, filter, sort);
     SnapshotPreviewModel validated =
         validateResponse(response, "snapshot data", HttpStatus.OK, null);
 
@@ -755,7 +767,8 @@ public class DataRepoFixtures {
       String table,
       Integer offset,
       Integer limit,
-      String filter)
+      String filter,
+      String sort)
       throws Exception {
     String url = "/api/repository/v1/snapshots/%s/data/%s".formatted(snapshotId, table);
 
@@ -765,6 +778,9 @@ public class DataRepoFixtures {
 
     if (filter != null) {
       queryParams += "&filter=%s".formatted(filter);
+    }
+    if (sort != null) {
+      queryParams += "&sort=%s".formatted(sort);
     }
     return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
   }
@@ -836,7 +852,7 @@ public class DataRepoFixtures {
       HttpStatus expectedStatus)
       throws Exception {
     DataRepoResponse<DatasetDataModel> response =
-        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter);
+        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, null, null);
     assertThat(
         "retrieve dataset data by Id should fail",
         response.getStatusCode(),
@@ -851,8 +867,21 @@ public class DataRepoFixtures {
       int limit,
       String filter)
       throws Exception {
+    return retrieveDatasetData(user, datasetId, table, offset, limit, filter, null, null);
+  }
+
+  public List<Object> retrieveDatasetData(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String table,
+      int offset,
+      int limit,
+      String filter,
+      String sort,
+      String direction)
+      throws Exception {
     DataRepoResponse<DatasetDataModel> response =
-        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter);
+        retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, sort, direction);
     DatasetDataModel validated = validateResponse(response, "dataset data", HttpStatus.OK, null);
 
     return validated.getResult();
@@ -864,7 +893,9 @@ public class DataRepoFixtures {
       String table,
       Integer offset,
       Integer limit,
-      String filter)
+      String filter,
+      String sort,
+      String direction)
       throws Exception {
     String url = "/api/repository/v1/datasets/%s/data/%s".formatted(datasetId, table);
 
@@ -874,6 +905,12 @@ public class DataRepoFixtures {
 
     if (filter != null) {
       queryParams += "&filter=%s".formatted(filter);
+    }
+    if (sort != null) {
+      queryParams += "&sort=%s".formatted(sort);
+    }
+    if (direction != null) {
+      queryParams += "&direction=%s".formatted(direction);
     }
     return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
   }

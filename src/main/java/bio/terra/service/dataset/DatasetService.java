@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
 import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
@@ -10,6 +11,7 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadHistoryModel;
@@ -45,11 +47,13 @@ import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
 import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.dataset.flight.ingest.scratch.DatasetScratchFilePrepareFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -83,7 +87,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,6 +112,7 @@ public class DatasetService {
   private final UserLoggingMetrics loggingMetrics;
   private final IamService iamService;
   private final DatasetTableDao datasetTableDao;
+  private final AzureSynapsePdao azureSynapsePdao;
 
   @Autowired
   public DatasetService(
@@ -127,7 +131,8 @@ public class DatasetService {
       ProfileService profileService,
       UserLoggingMetrics loggingMetrics,
       IamService iamService,
-      DatasetTableDao datasetTableDao) {
+      DatasetTableDao datasetTableDao,
+      AzureSynapsePdao azureSynapsePdao) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
@@ -144,6 +149,7 @@ public class DatasetService {
     this.loggingMetrics = loggingMetrics;
     this.iamService = iamService;
     this.datasetTableDao = datasetTableDao;
+    this.azureSynapsePdao = azureSynapsePdao;
   }
 
   public String createDataset(
@@ -313,6 +319,11 @@ public class DatasetService {
     if (!patchSucceeded) {
       throw new RuntimeException("Dataset was not updated");
     }
+    return datasetDao.retrieveSummaryById(id).toModel();
+  }
+
+  public DatasetSummaryModel setPredictableFileIds(UUID id, boolean predictableFileIds) {
+    datasetDao.setPredictableFileId(id, predictableFileIds);
     return datasetDao.retrieveSummaryById(id).toModel();
   }
 
@@ -533,8 +544,34 @@ public class DatasetService {
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
-      throw new NotImplementedException(
-          "Azure datasets are not yet supported for the data endpoint");
+      AccessInfoModel accessInfoModel =
+          metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest);
+      String credName = AzureSynapsePdao.getCredentialName(dataset.getId(), userRequest.getEmail());
+      String datasourceName = getDataSourceName(dataset.getId(), userRequest.getEmail());
+      String metadataUrl =
+          "%s?%s"
+              .formatted(
+                  accessInfoModel.getParquet().getUrl(),
+                  accessInfoModel.getParquet().getSasToken());
+
+      try {
+        azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
+      } catch (Exception e) {
+        throw new RuntimeException("Could not configure external datasource", e);
+      }
+
+      List<Map<String, Optional<Object>>> values =
+          azureSynapsePdao.getTableData(
+              table,
+              tableName,
+              datasourceName,
+              IngestUtils.getSourceDatasetParquetFilePath(tableName),
+              limit,
+              offset,
+              sort,
+              direction,
+              filter);
+      return new DatasetDataModel().result(List.copyOf(values));
     } else {
       throw new DatasetDataException("Cloud not supported");
     }
@@ -667,7 +704,6 @@ public class DatasetService {
               profile,
               storageAccount,
               tempFilePath,
-              AzureStorageAccountResource.ContainerType.SCRATCH,
               new BlobSasTokenOptions(
                   Duration.ofHours(1),
                   new BlobSasPermission().setReadPermission(true).setWritePermission(true),

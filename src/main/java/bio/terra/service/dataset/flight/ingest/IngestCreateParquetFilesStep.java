@@ -8,7 +8,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -32,7 +32,8 @@ public class IngestCreateParquetFilesStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
-    String parquetFilePath = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
+    String parquetFilePath =
+        FolderType.METADATA.getPath(workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class));
     DatasetTable datasetTable = IngestUtils.getDatasetTable(context, dataset);
 
     int failedRowCount = workingMap.get(IngestMapKeys.AZURE_ROWS_FAILED_VALIDATION, Integer.class);
@@ -43,7 +44,7 @@ public class IngestCreateParquetFilesStep implements Step {
           azureSynapsePdao.createFinalParquetFiles(
               IngestUtils.getSynapseIngestTableName(context.getFlightId()),
               parquetFilePath,
-              IngestUtils.getDataSourceName(ContainerType.METADATA, context.getFlightId()),
+              IngestUtils.getTargetDataSourceName(context.getFlightId()),
               IngestUtils.getSynapseScratchTableName(context.getFlightId()),
               datasetTable);
 

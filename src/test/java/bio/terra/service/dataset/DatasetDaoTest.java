@@ -87,7 +87,7 @@ public class DatasetDaoTest {
 
   private BillingProfileModel billingProfile;
   private UUID projectId;
-  private List<UUID> datasetIds;
+  private final List<UUID> datasetIdsToDelete = new ArrayList<>();
 
   private static final AuthenticatedUserRequest TEST_USER =
       AuthenticationFixtures.randomUserRequest();
@@ -107,8 +107,8 @@ public class DatasetDaoTest {
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
     datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
-    datasetDao.unlockExclusive(datasetId, createFlightId);
-    datasetIds.add(datasetId);
+    datasetDao.unlockExclusive(dataset.getId(), createFlightId);
+    datasetIdsToDelete.add(datasetId);
     return datasetId;
   }
 
@@ -126,12 +126,12 @@ public class DatasetDaoTest {
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
     projectId = resourceDao.createProject(projectResource);
 
-    datasetIds = new ArrayList<>();
+    datasetIdsToDelete.clear();
   }
 
   @After
   public void teardown() {
-    for (UUID datasetId : datasetIds) {
+    for (UUID datasetId : datasetIdsToDelete) {
       assertTrue(
           "Dataset %s was deleted".formatted(datasetId), datasetDao.delete(datasetId, TEST_USER));
       assertThrows(
@@ -310,6 +310,7 @@ public class DatasetDaoTest {
         "correct number of assets created for dataset",
         fromDB.getAssetSpecifications(),
         hasSize(2));
+
     fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
 
     for (GoogleCloudResource resource : GoogleCloudResource.values()) {
@@ -341,7 +342,8 @@ public class DatasetDaoTest {
     Dataset fromDB = datasetDao.retrieve(datasetId);
 
     for (GoogleCloudResource resource : GoogleCloudResource.values()) {
-      CloudRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+      CloudRegion region =
+          (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
       GoogleRegion expectedRegion =
           (resource == GoogleCloudResource.BIGQUERY) ? GoogleRegion.US : GoogleRegion.US_EAST4;
       assertThat(
@@ -834,6 +836,19 @@ public class DatasetDaoTest {
         "dataset properties are set",
         datasetDao.retrieve(datasetId).getProperties(),
         equalTo(request.getProperties()));
+
+  }
+
+  @Test
+  public void updatePredictableFileIdsFlag() throws Exception {
+    UUID datasetId = createDataset("dataset-minimal.json");
+    assertFalse(
+        "predictable file ids flag is false",
+        datasetDao.retrieve(datasetId).hasPredictableFileIds());
+    datasetDao.setPredictableFileId(datasetId, true);
+    assertTrue(
+        "predictable file ids flag is true",
+        datasetDao.retrieve(datasetId).hasPredictableFileIds());
   }
 
   @Test

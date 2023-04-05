@@ -6,6 +6,8 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.prefixName;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWithIgnoringCase;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.junit.Assert.assertEquals;
@@ -74,6 +76,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpStatus;
@@ -85,6 +89,7 @@ import org.stringtemplate.v4.ST;
 @RunWith(MockitoJUnitRunner.class)
 public class BigQueryPdaoUnitTest {
 
+  @Captor private ArgumentCaptor<String> stringCaptor;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
   private static final UUID PROFILE_1_ID = UUID.randomUUID();
@@ -169,6 +174,31 @@ public class BigQueryPdaoUnitTest {
     assertThrows(
         TooManyDmlStatementsOutstandingException.class,
         () -> bigQueryDatasetPdao.mergeStagingLoadHistoryTable(dataset, flightId));
+  }
+
+  @Test
+  public void testAddRowIdsToStagingTableUnsetExisting() throws InterruptedException {
+    Dataset dataset = mockDataset();
+
+    bigQueryDatasetPdao.addRowIdsToStagingTable(dataset, TABLE_1_NAME, true);
+
+    verify(bigQueryProjectDataset).query(stringCaptor.capture());
+    String sql = stringCaptor.getValue().strip();
+    assertThat(sql, containsString("SET datarepo_row_id = GENERATE_UUID()"));
+    assertThat("All rows get a new row ID", sql, endsWithIgnoringCase("WHERE true"));
+  }
+
+  @Test
+  public void testAddRowIdsToStagingTableKeepExisting() throws InterruptedException {
+    Dataset dataset = mockDataset();
+
+    bigQueryDatasetPdao.addRowIdsToStagingTable(dataset, TABLE_1_NAME, false);
+
+    verify(bigQueryProjectDataset).query(stringCaptor.capture());
+    String sql = stringCaptor.getValue().strip();
+    assertThat(sql, containsString("SET datarepo_row_id = GENERATE_UUID()"));
+    assertThat(
+        "Existing row IDs are kept", sql, endsWithIgnoringCase("WHERE datarepo_row_id IS NULL"));
   }
 
   @Test

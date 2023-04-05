@@ -24,7 +24,7 @@ public class DeleteFileAzureMetadataStep implements Step {
     AzureStorageAuthInfo storageAuthInfo =
         workingMap.get(CommonMapKeys.DATASET_STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     try {
-      tableDao.deleteFileMetadata(fileId, storageAuthInfo);
+      tableDao.deleteFileMetadata(dataset.getId().toString(), fileId, storageAuthInfo);
     } catch (FileSystemAbortTransactionException rex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
     }

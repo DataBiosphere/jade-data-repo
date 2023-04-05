@@ -1,6 +1,7 @@
 package bio.terra.service.upgrade;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.UpgradeModel;
@@ -8,9 +9,17 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.dataset.flight.transactions.upgrade.TransactionUpgradeFlight;
+import bio.terra.service.dataset.flight.upgrade.predictableFileIds.ConvertToPredictableFileIdsFlight;
+import bio.terra.service.job.JobBuilder;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.upgrade.exception.InvalidCustomNameException;
 import bio.terra.stairway.Flight;
+import com.google.common.base.Preconditions;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -19,12 +28,32 @@ public class UpgradeService {
 
   private enum CustomFlight {
     PLACEHOLDER(null),
-    TRANSACTION_SUPPORT(TransactionUpgradeFlight.class);
+    TRANSACTION_SUPPORT(TransactionUpgradeFlight.class),
+    CONVERT_DATASET_FILE_IDS(
+        ConvertToPredictableFileIdsFlight.class,
+        request -> {
+          Preconditions.checkArgument(
+              request.getCustomArgs().size() == 1,
+              "Custom argument must have a single row: a valid dataset id");
 
+          Optional<UUID> datasetId = ValidationUtils.convertToUuid(request.getCustomArgs().get(0));
+          Preconditions.checkArgument(
+              datasetId.isPresent(), "Custom argument's single value is not a valid UUID");
+
+          return Map.of(JobMapKeys.DATASET_ID.getKeyName(), datasetId.get());
+        });
     private final Class<? extends Flight> flightClass;
+    private final Function<UpgradeModel, Map<String, Object>> inputParameterSupplier;
 
     CustomFlight(Class<? extends Flight> flightClass) {
+      this(flightClass, request -> Map.of());
+    }
+
+    CustomFlight(
+        Class<? extends Flight> flightClass,
+        Function<UpgradeModel, Map<String, Object>> inputParameterSupplier) {
       this.flightClass = flightClass;
+      this.inputParameterSupplier = inputParameterSupplier;
     }
   }
 
@@ -65,8 +94,11 @@ public class UpgradeService {
           "Invalid custom name provided to upgrade: " + request.getCustomName());
     }
 
-    return jobService
-        .newJob(request.getCustomName(), customFlight.flightClass, request, user)
-        .submit();
+    JobBuilder jobBuilder =
+        jobService.newJob(request.getCustomName(), customFlight.flightClass, request, user);
+
+    customFlight.inputParameterSupplier.apply(request).forEach(jobBuilder::addParameter);
+
+    return jobBuilder.submit();
   }
 }

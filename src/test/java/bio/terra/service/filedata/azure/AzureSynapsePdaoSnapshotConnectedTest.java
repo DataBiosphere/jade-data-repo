@@ -141,7 +141,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
         sourceDatasetDataSourceName,
         snapshotDataSourceName,
         new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
-        false);
+        false,
+        null);
   }
 
   @Test
@@ -187,12 +188,13 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
-            false);
+            false,
+            null);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "sample"));
 
     String snapshotParquetFileName =
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, participantTable.getName());
+        IngestUtils.getSnapshotParquetFilePathForQuery(participantTable.getName());
     synapseUtils.addParquetFileName(snapshotParquetFileName, snapshotStorageAccountResource);
     List<String> snapshotFirstNames =
         synapseUtils.readParquetFileStringColumn(
@@ -228,7 +230,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
             new SnapshotRequestAssetModel().assetName(assetName).addRootValuesItem(rootValue),
-            false);
+            false,
+            null);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "date_of_birth"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
@@ -279,7 +282,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
             sourceDatasetDataSourceName,
             snapshotDataSourceName,
             translatedQuery,
-            false);
+            false,
+            null);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "participant"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "date_of_birth"));
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, "all_data_types"));
@@ -369,8 +373,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
 
   private void validateFourTableSnapshot(String rootTableName, Map<String, Long> tableRowCounts) {
     // Check correct row included for root table
-    String snapshotParquetFileName =
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, rootTableName);
+    String snapshotParquetFileName = IngestUtils.getSnapshotParquetFilePathForQuery(rootTableName);
     synapseUtils.addParquetFileName(snapshotParquetFileName, snapshotStorageAccountResource);
     List<String> snapshotFirstNames =
         synapseUtils.readParquetFileStringColumn(
@@ -385,7 +388,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
         equalTo(1L));
     // Check correct row included for date of birth table, participant_id
     String dobParquetFileName =
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, dateOfBirthTable.getName());
+        IngestUtils.getSnapshotParquetFilePathForQuery(dateOfBirthTable.getName());
     synapseUtils.addParquetFileName(dobParquetFileName, snapshotStorageAccountResource);
     List<String> participantIds =
         synapseUtils.readParquetFileStringColumn(
@@ -400,7 +403,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
         equalTo(1L));
     // Check correct row included for all_data_types, first_name Sally
     String adtParquetFileName =
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, allDataTypesTable.getName());
+        IngestUtils.getSnapshotParquetFilePathForQuery(allDataTypesTable.getName());
     synapseUtils.addParquetFileName(adtParquetFileName, snapshotStorageAccountResource);
     List<String> firstNames =
         synapseUtils.readParquetFileStringColumn(
@@ -415,7 +418,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
         equalTo(1L));
     // Check correct row included for sample, participant_id "1"
     String sampleParquetFileName =
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, sampleTable.getName());
+        IngestUtils.getSnapshotParquetFilePathForQuery(sampleTable.getName());
     synapseUtils.addParquetFileName(sampleParquetFileName, snapshotStorageAccountResource);
     List<String> ids =
         synapseUtils.readParquetFileStringColumn(
@@ -436,7 +439,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
         snapshot.getTables(), snapshotId, snapshotDataSourceName, tableRowCounts);
     synapseUtils.addTableName(IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE));
     String snapshotRowIdsParquetFileName =
-        IngestUtils.getSnapshotParquetFilePathForQuery(snapshotId, PDAO_ROW_ID_TABLE);
+        IngestUtils.getSnapshotParquetFilePathForQuery(PDAO_ROW_ID_TABLE);
     synapseUtils.addParquetFileName(snapshotRowIdsParquetFileName, snapshotStorageAccountResource);
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(

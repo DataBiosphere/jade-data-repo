@@ -188,6 +188,22 @@ public class SnapshotDaoTest {
   }
 
   @Test
+  public void testRetrieveSnapshotsForDataset() {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+
+    Snapshot snapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(snapshotRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+    String flightId = "happyInOutTest_flightId";
+    snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
+    snapshotDao.unlock(snapshot.getId(), flightId);
+    List<SnapshotSummary> snapshots = snapshotDao.retrieveSnapshotsForDataset(datasetId);
+    assertThat("there should exist one snapshot", snapshots, hasSize(1));
+  }
+
+  @Test
   public void happyInOutTest() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
 

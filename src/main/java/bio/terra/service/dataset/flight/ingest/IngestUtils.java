@@ -15,14 +15,13 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidBlobURLException;
-import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.exception.BlobAccessNotAuthorizedException;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -33,6 +32,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.StorageException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -51,11 +51,9 @@ public final class IngestUtils {
       "source_dataset_scoped_credential_";
   private static final String SOURCE_SCOPED_CREDENTIAL_PREFIX = "source_scoped_credential_";
   private static final String TARGET_SCOPED_CREDENTIAL_PREFIX = "target_scoped_credential_";
-  private static final String SCRATCH_SCOPED_CREDENTIAL_PREFIX = "scratch_scoped_credential_";
   private static final String SOURCE_DATASET_DATA_SOURCE_PREFIX = "source_dataset_data_source_";
   private static final String SOURCE_DATA_SOURCE_PREFIX = "source_data_source_";
   private static final String TARGET_DATA_SOURCE_PREFIX = "target_data_source_";
-  private static final String SCRATCH_DATA_SOURCE_PREFIX = "scratch_data_source_";
   private static final String INGEST_TABLE_NAME_PREFIX = "ingest_";
   private static final String SCRATCH_TABLE_NAME_PREFIX = "scratch_";
 
@@ -220,6 +218,21 @@ public final class IngestUtils {
         || ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.ARRAY;
   }
 
+  /**
+   * @return whether ingest should ignore any user-specified row IDs and generate new ones
+   */
+  public static boolean shouldIgnoreUserSpecifiedRowIds(FlightMap inputParameters) {
+    var updateStrategy =
+        inputParameters
+            .get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class)
+            .getUpdateStrategy();
+    // For historical reasons, ingests in append mode may specify their own row IDs.
+    return EnumSet.of(
+            IngestRequestModel.UpdateStrategyEnum.REPLACE,
+            IngestRequestModel.UpdateStrategyEnum.MERGE)
+        .contains(updateStrategy);
+  }
+
   public static Stream<JsonNode> getJsonNodesStreamFromFile(
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
@@ -351,27 +364,7 @@ public final class IngestUtils {
         .collect(Collectors.toList());
   }
 
-  public static void checkForLargeIngestRequests(long numLines, long maxIngestRows) {
-    if (numLines > maxIngestRows) {
-      throw new InvalidIngestStrategyException(
-          String.format(
-              "The combined file ingest and metadata ingest workflow is limited to "
-                  + "%s files for ingest. This request had %s files.",
-              maxIngestRows, numLines));
-    }
-  }
-
-  public static String getParquetBlobUrl(
-      AzureStorageAccountResource storageAccountResource,
-      AzureStorageAccountResource.ContainerType containerType,
-      String path) {
-    return String.format(
-        "%s/%s/%s",
-        storageAccountResource.getStorageAccountUrl(),
-        storageAccountResource.determineContainer(containerType),
-        path);
-  }
-
+  // Note: this is the unqualified path (e.g. it gets used in metadata and scratch directories)
   public static String getParquetFilePath(String targetTableName, String flightId) {
     return "parquet/" + targetTableName + "/" + flightId + ".parquet";
   }
@@ -380,12 +373,11 @@ public final class IngestUtils {
    * Returns wildcard path that can be used to retrieve all data for a snapshot table A snapshot
    * table can be represented by multiple parquet files in a snapshot table directory
    *
-   * @param snapshotId
    * @param targetTableName
    * @return
    */
-  public static String getSnapshotParquetFilePathForQuery(UUID snapshotId, String targetTableName) {
-    return "parquet/" + snapshotId + "/" + targetTableName + "/*.parquet/*";
+  public static String getSnapshotParquetFilePathForQuery(String targetTableName) {
+    return FolderType.METADATA.getPath("parquet/" + targetTableName + "/*.parquet/*");
   }
 
   /**
@@ -393,18 +385,18 @@ public final class IngestUtils {
    * multiple slices/parquet files per snapshot table. All parquet files within the table directory
    * represent the data in a snapshot table.
    *
-   * @param snapshotId
    * @param targetTableName Snapshot table name that will be used as a directory
    * @param snapshotSliceName Name of parquet file
    * @return
    */
   public static String getSnapshotSliceParquetFilePath(
-      UUID snapshotId, String targetTableName, String snapshotSliceName) {
-    return "parquet/" + snapshotId + "/" + targetTableName + "/" + snapshotSliceName + ".parquet";
+      String targetTableName, String snapshotSliceName) {
+    return FolderType.METADATA.getPath(
+        "parquet/" + targetTableName + "/" + snapshotSliceName + ".parquet");
   }
 
   public static String getSourceDatasetParquetFilePath(String tableName) {
-    return "parquet/" + tableName + "/*/*.parquet";
+    return FolderType.METADATA.getPath("parquet/" + tableName + "/*/*.parquet");
   }
 
   public static String formatSnapshotTableName(UUID snapshotId, String tableName) {
@@ -431,16 +423,8 @@ public final class IngestUtils {
     return TARGET_DATA_SOURCE_PREFIX + flightId;
   }
 
-  public static String getScratchDataSourceName(String flightId) {
-    return SCRATCH_DATA_SOURCE_PREFIX + flightId;
-  }
-
   public static String getTargetScopedCredentialName(String flightId) {
     return TARGET_SCOPED_CREDENTIAL_PREFIX + flightId;
-  }
-
-  public static String getScratchScopedCredentialName(String flightId) {
-    return SCRATCH_SCOPED_CREDENTIAL_PREFIX + flightId;
   }
 
   public static String getSynapseIngestTableName(String flightId) {
@@ -500,31 +484,11 @@ public final class IngestUtils {
     }
   }
 
-  public static String getDataSourceName(
-      AzureStorageAccountResource.ContainerType containerType, String flightId) {
-    switch (containerType) {
-      case METADATA:
-        return IngestUtils.getTargetDataSourceName(flightId);
-      case SCRATCH:
-        return IngestUtils.getScratchDataSourceName(flightId);
-      default:
-        throw new IllegalArgumentException(
-            String.format(
-                "Cannot get data source name for %s ContainerType", containerType.name()));
-    }
+  public static String getDataSourceName(String flightId) {
+    return IngestUtils.getTargetDataSourceName(flightId);
   }
 
-  public static String getScopedCredentialName(
-      AzureStorageAccountResource.ContainerType containerType, String flightId) {
-    switch (containerType) {
-      case METADATA:
-        return IngestUtils.getTargetScopedCredentialName(flightId);
-      case SCRATCH:
-        return IngestUtils.getScratchScopedCredentialName(flightId);
-      default:
-        throw new IllegalArgumentException(
-            String.format(
-                "Cannot get data source name for %s ContainerType", containerType.name()));
-    }
+  public static String getScopedCredentialName(String flightId) {
+    return IngestUtils.getTargetScopedCredentialName(flightId);
   }
 }

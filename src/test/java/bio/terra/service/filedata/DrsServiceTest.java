@@ -157,11 +157,11 @@ public class DrsServiceTest {
     String bucketResourceId = UUID.randomUUID().toString();
     String storageAccountResourceId = UUID.randomUUID().toString();
     googleFileId = UUID.randomUUID();
-    DrsId googleDrsId = new DrsId("", "v1", snapshotId.toString(), googleFileId.toString());
+    DrsId googleDrsId = new DrsId("", "v1", snapshotId.toString(), googleFileId.toString(), false);
     googleDrsObjectId = googleDrsId.toDrsObjectId();
 
     UUID azureFileId = UUID.randomUUID();
-    DrsId azureDrsId = new DrsId("", "v1", snapshotId.toString(), azureFileId.toString());
+    DrsId azureDrsId = new DrsId("", "v1", snapshotId.toString(), azureFileId.toString(), false);
     azureDrsObjectId = azureDrsId.toDrsObjectId();
 
     googleFsFile =
@@ -278,7 +278,7 @@ public class DrsServiceTest {
         .thenReturn(bucketA);
     when(resourceService.lookupBucketMetadata(bucketB.getResourceId().toString()))
         .thenReturn(bucketB);
-    DrsId drsId = new DrsId("", "v2", null, googleFileId.toString());
+    DrsId drsId = new DrsId("", "v2", null, googleFileId.toString(), false);
     when(drsIdDao.retrieveReferencedSnapshotIds(any()))
         .thenReturn(List.of(snpId1, snpId2, snpId3, snpId4));
 
@@ -371,7 +371,7 @@ public class DrsServiceTest {
         .thenReturn(bucketA);
     when(resourceService.lookupStorageAccountMetadata(bucketB.getResourceId().toString()))
         .thenReturn(bucketB);
-    DrsId drsId = new DrsId("", "v2", null, googleFileId.toString());
+    DrsId drsId = new DrsId("", "v2", null, googleFileId.toString(), false);
     when(drsIdDao.retrieveReferencedSnapshotIds(any())).thenReturn(List.of(snpId1, snpId2));
 
     // Mock the files returned from the various snapshots
@@ -462,7 +462,7 @@ public class DrsServiceTest {
     UUID randomSnapshotId = UUID.randomUUID();
     when(snapshotService.retrieve(randomSnapshotId)).thenThrow(SnapshotNotFoundException.class);
     DrsId drsIdWithInvalidSnapshotId =
-        new DrsId("", "v1", randomSnapshotId.toString(), googleFileId.toString());
+        new DrsId("", "v1", randomSnapshotId.toString(), googleFileId.toString(), false);
     String drsObjectIdWithInvalidSnapshotId = drsIdWithInvalidSnapshotId.toDrsObjectId();
     assertThrows(
         DrsObjectNotFoundException.class,
@@ -652,6 +652,8 @@ public class DrsServiceTest {
     UUID defaultProfileModelId = UUID.randomUUID();
     Snapshot snapshot =
         mockSnapshot(snapshotId, defaultProfileModelId, CloudPlatform.AZURE, "google-project");
+    // Make this a global file id snapshot to test access ids
+    snapshot.globalFileIds(true);
     DrsId drsId = drsIdService.fromObjectId(azureDrsObjectId);
     when(snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()))).thenReturn(snapshot);
     AzureStorageAccountResource storageAccountResource =
@@ -659,10 +661,11 @@ public class DrsServiceTest {
     when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(azureFsFile);
     when(resourceService.lookupStorageAccountMetadata(any())).thenReturn(storageAccountResource);
     String urlString = "https://blahblah.core.windows.com/data/file.json";
-    when(azureBlobStorePdao.signFile(any(), any(), any(), any(), any())).thenReturn(urlString);
+    when(azureBlobStorePdao.signFile(any(), any(), any(), any())).thenReturn(urlString);
 
     DRSAccessURL result =
-        drsService.getAccessUrlForObjectId(authUser, azureDrsObjectId, "az-centralus");
+        drsService.getAccessUrlForObjectId(
+            authUser, azureDrsObjectId, "az-centralus*" + snapshotId);
     assertEquals(urlString, result.getUrl());
   }
 
@@ -674,7 +677,7 @@ public class DrsServiceTest {
                 i -> {
                   UUID googleFileId = UUID.randomUUID();
                   DrsId googleDrsId =
-                      new DrsId("", "v1", snapshotId.toString(), googleFileId.toString());
+                      new DrsId("", "v1", snapshotId.toString(), googleFileId.toString(), false);
                   return googleDrsId.toDrsObjectId();
                 })
             .toList();
@@ -692,7 +695,7 @@ public class DrsServiceTest {
                 i -> {
                   UUID azureFileId = UUID.randomUUID();
                   DrsId azureDrsId =
-                      new DrsId("", "v1", snapshotId.toString(), azureFileId.toString());
+                      new DrsId("", "v1", snapshotId.toString(), azureFileId.toString(), false);
                   return azureDrsId.toDrsObjectId();
                 })
             .toList();

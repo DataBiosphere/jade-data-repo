@@ -16,7 +16,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -66,7 +66,6 @@ public class SnapshotExportWriteManifestAzureStep extends DefaultUndoStep {
 
     Map<String, List<String>> paths =
         FlightUtils.getTyped(workingMap, SnapshotWorkingMapKeys.SNAPSHOT_EXPORT_PARQUET_PATHS);
-    ContainerType containerType = ContainerType.METADATA;
 
     UUID billingProfileId = workingMap.get(JobMapKeys.BILLING_ID.getKeyName(), UUID.class);
     BillingProfileModel billingProfile = profileService.getProfileById(billingProfileId, userReq);
@@ -78,10 +77,12 @@ public class SnapshotExportWriteManifestAzureStep extends DefaultUndoStep {
     String fullExportManifestPath =
         "%s/%s/%s"
             .formatted(
-                storageAccountResource.getStorageAccountUrl(), containerType, exportManifestPath);
+                storageAccountResource.getStorageAccountUrl(),
+                storageAccountResource.getTopLevelContainer(),
+                FolderType.METADATA.getPath(exportManifestPath));
     BlobUrlParts snapshotSignedUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            fullExportManifestPath, billingProfile, storageAccountResource, containerType, userReq);
+            fullExportManifestPath, billingProfile, storageAccountResource, userReq);
 
     List<SnapshotExportResponseModelFormatParquetLocationTables> tables =
         paths.entrySet().stream()

@@ -252,6 +252,7 @@ public class FileService {
       return tableDao.retrieveById(
           CollectionType.DATASET,
           UUID.fromString(datasetId),
+          UUID.fromString(datasetId),
           fileId,
           depth,
           storageAuthInfo,
@@ -345,6 +346,7 @@ public class FileService {
 
       return tableDao.retrieveById(
           CollectionType.SNAPSHOT,
+          dataset.getId(),
           snapshot.getId(),
           fileId,
           depth,

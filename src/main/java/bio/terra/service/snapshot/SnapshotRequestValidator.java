@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -26,6 +28,13 @@ import org.springframework.validation.Validator;
  */
 @Component
 public class SnapshotRequestValidator implements Validator {
+
+  private final ApplicationConfiguration applicationConfiguration;
+
+  @Autowired
+  public SnapshotRequestValidator(ApplicationConfiguration applicationConfiguration) {
+    this.applicationConfiguration = applicationConfiguration;
+  }
 
   @Override
   public boolean supports(Class<?> clazz) {
@@ -126,6 +135,18 @@ public class SnapshotRequestValidator implements Validator {
     }
   }
 
+  private void validateCompactIdPrefix(String compactIdPrefix, Errors errors) {
+    // TODO<DR-2985> Implement check against identifiers.org
+    if (!StringUtils.isEmpty(compactIdPrefix)) {
+      if (!applicationConfiguration.getCompactIdPrefixAllowList().contains(compactIdPrefix)) {
+        errors.rejectValue(
+            "compactIdPrefix",
+            "InvalidCompactIdPrefix",
+            "the compact id that you specified is not valid");
+      }
+    }
+  }
+
   @Override
   public void validate(@NotNull Object target, Errors errors) {
     if (target != null && target instanceof SnapshotRequestModel) {
@@ -133,6 +154,7 @@ public class SnapshotRequestValidator implements Validator {
       validateSnapshotName(snapshotRequestModel.getName(), errors);
       validateSnapshotDescription(snapshotRequestModel.getDescription(), errors);
       validateSnapshotContents(snapshotRequestModel.getContents(), errors);
+      validateCompactIdPrefix(snapshotRequestModel.getCompactIdPrefix(), errors);
     }
   }
 }

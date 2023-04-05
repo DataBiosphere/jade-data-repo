@@ -12,6 +12,8 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -123,7 +125,7 @@ public class ApplicationConfiguration {
    * having each such task create its own threadpool, this property is used to create a globally
    * accessible pool that should be used by all such operations.
    *
-   * <p>Note: this is different than than the flight threadpool.
+   * <p>Note: this is different than the flight threadpool.
    */
   private int numPerformanceThreads;
 
@@ -132,6 +134,12 @@ public class ApplicationConfiguration {
    * submit: maxPerformanceThreadQueueSize + numPerformanceThreads before you get an exception
    */
   private int maxPerformanceThreadQueueSize;
+
+  /**
+   * List of compact id prefixes that are allowed. TODO<DR-2985> This should be in addition to any
+   * prefix registered at identifiers.org that points back to this dnsName value
+   */
+  private List<String> compactIdPrefixAllowList = new ArrayList<>();
 
   public String getUserEmail() {
     return userEmail;
@@ -335,6 +343,14 @@ public class ApplicationConfiguration {
 
   public void setMaxPerformanceThreadQueueSize(int maxPerformanceThreadQueueSize) {
     this.maxPerformanceThreadQueueSize = maxPerformanceThreadQueueSize;
+  }
+
+  public List<String> getCompactIdPrefixAllowList() {
+    return compactIdPrefixAllowList;
+  }
+
+  public void setCompactIdPrefixAllowList(List<String> compactIdPrefixAllowList) {
+    this.compactIdPrefixAllowList = compactIdPrefixAllowList;
   }
 
   @Primary

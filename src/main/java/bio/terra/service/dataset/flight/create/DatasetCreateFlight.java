@@ -26,7 +26,6 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
@@ -105,15 +104,10 @@ public class DatasetCreateFlight extends Flight {
           new CreateDatasetGetOrCreateStorageAccountStep(
               resourceService, datasetRequest, azureBlobStorePdao));
 
-      // Create the metadata container
+      // Create the top level container
       addStep(
           new CreateDatasetGetOrCreateContainerStep(
-              resourceService, datasetRequest, azureContainerPdao, ContainerType.METADATA));
-
-      // Create the data container
-      addStep(
-          new CreateDatasetGetOrCreateContainerStep(
-              resourceService, datasetRequest, azureContainerPdao, ContainerType.DATA));
+              resourceService, datasetRequest, azureContainerPdao));
     }
 
     // Create dataset metadata objects in postgres and lock the dataset

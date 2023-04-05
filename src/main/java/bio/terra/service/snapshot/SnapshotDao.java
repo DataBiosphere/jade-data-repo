@@ -191,10 +191,10 @@ public class SnapshotDao {
         """
             INSERT INTO snapshot
             (name, description, profile_id, project_resource_id, id, consent_code, flightid,
-              creation_information, properties, global_file_ids, tags)
+              creation_information, properties, global_file_ids, compact_id_prefix, tags)
             VALUES
             (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid,
-              :creation_information::jsonb, :properties::jsonb, :global_file_ids, :tags)
+              :creation_information::jsonb, :properties::jsonb, :global_file_ids, :compact_id_prefix, :tags)
             """;
     String creationInfo;
     try {
@@ -222,6 +222,7 @@ public class SnapshotDao {
             .addValue(
                 "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
             .addValue("global_file_ids", snapshot.hasGlobalFileIds())
+            .addValue("compact_id_prefix", snapshot.getCompactIdPrefix())
             .addValue("tags", tags);
 
     try {
@@ -437,6 +438,7 @@ public class SnapshotDao {
                               rs.getString("creation_information")))
                       .consentCode(rs.getString("consent_code"))
                       .globalFileIds(rs.getBoolean("global_file_ids"))
+                      .compactIdPrefix(rs.getString("compact_id_prefix"))
                       .properties(
                           DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
                       .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class))
@@ -734,7 +736,7 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-              + "snapshot.consent_code, snapshot.tags, "
+              + "snapshot.consent_code, snapshot.global_file_ids, snapshot.tags, "
               + "dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted,"
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery

@@ -7,15 +7,19 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
 import bio.terra.model.DatasetPatchRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobService;
@@ -67,6 +71,7 @@ public class DatasetServiceUnitTest {
   @MockBean private UserLoggingMetrics loggingMetrics;
   @MockBean private IamService iamService;
   @MockBean private DatasetTableDao datasetTableDao;
+  @MockBean private AzureSynapsePdao azureSynapsePdao;
 
   @Test
   public void enumerate() {
@@ -107,5 +112,16 @@ public class DatasetServiceUnitTest {
         datasetService.patchDatasetIamActions(
             new DatasetPatchRequestModel().description("an updated description")),
         containsInAnyOrder(IamAction.MANAGE_SCHEMA));
+  }
+
+  @Test
+  public void updatePredictableIdsFlag() {
+    UUID datasetId = UUID.randomUUID();
+    DatasetSummary summary = mock(DatasetSummary.class);
+    when(summary.toModel()).thenReturn(new DatasetSummaryModel().id(datasetId));
+    when(datasetDao.retrieveSummaryById(datasetId)).thenReturn(summary);
+    datasetService.setPredictableFileIds(datasetId, true);
+    verify(datasetDao).setPredictableFileId(datasetId, true);
+    verify(datasetDao).retrieveSummaryById(datasetId);
   }
 }

@@ -282,8 +282,17 @@ public class ConnectedOperations {
   public SnapshotSummaryModel createSnapshot(
       DatasetSummaryModel datasetSummaryModel, String resourcePath, String infix) throws Exception {
 
+    SnapshotRequestModel snapshotRequest =
+        jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
+    return createSnapshot(datasetSummaryModel, snapshotRequest, infix);
+  }
+
+  public SnapshotSummaryModel createSnapshot(
+      DatasetSummaryModel datasetSummaryModel, SnapshotRequestModel snapshotRequest, String infix)
+      throws Exception {
+
     MockHttpServletResponse response =
-        launchCreateSnapshot(datasetSummaryModel, resourcePath, infix);
+        launchCreateSnapshot(datasetSummaryModel, snapshotRequest, infix);
     SnapshotSummaryModel snapshotSummary = handleCreateSnapshotSuccessCase(response);
 
     return snapshotSummary;
@@ -305,6 +314,12 @@ public class ConnectedOperations {
       DatasetSummaryModel datasetSummaryModel, String resourcePath, String infix) throws Exception {
     SnapshotRequestModel snapshotRequest =
         jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
+    return launchCreateSnapshot(datasetSummaryModel, snapshotRequest, infix);
+  }
+
+  public MockHttpServletResponse launchCreateSnapshot(
+      DatasetSummaryModel datasetSummaryModel, SnapshotRequestModel snapshotRequest, String infix)
+      throws Exception {
     String snapshotName = Names.randomizeNameInfix(snapshotRequest.getName(), infix);
 
     return launchCreateSnapshotName(datasetSummaryModel, snapshotRequest, snapshotName);

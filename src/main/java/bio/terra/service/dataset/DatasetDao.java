@@ -782,6 +782,31 @@ public class DatasetDao {
   }
 
   /**
+   * Update a dataset's predictableFileIds flag
+   *
+   * @param id dataset UUID
+   * @param predictableFileIds sets the predictableFileIds flag in the dataset
+   * @return whether the dataset record was updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean setPredictableFileId(UUID id, boolean predictableFileIds) {
+    String sql =
+        """
+        UPDATE dataset SET predictable_file_ids = :predictable_file_ids
+        WHERE id = :id
+        """;
+
+    MapSqlParameterSource params =
+        new MapSqlParameterSource()
+            .addValue("predictable_file_ids", predictableFileIds)
+            .addValue("id", id);
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+
+    return (rowsAffected == 1);
+  }
+
+  /**
    * Probe to see if can access database
    *
    * @return status and if failure, exception message in RepositoryStatusModelSystems model

@@ -106,8 +106,12 @@ public class DatasetStorageAccountDaoTest {
     datasetIds.add(datasetId);
 
     AzureStorageAccountResource storageAccount =
-        azureResourceDao.createAndLockStorageAccount(
-            "sa", applicationResource, AzureRegion.ASIA_PACIFIC, ShortUUID.get());
+        azureResourceDao.createAndLockStorage(
+            "sa",
+            datasetId.toString(),
+            applicationResource,
+            AzureRegion.ASIA_PACIFIC,
+            ShortUUID.get());
     storageAccountResourceIds.add(storageAccount.getResourceId());
     datasetStorageAccountDao.createDatasetStorageAccountLink(
         datasetId, storageAccount.getResourceId(), false);

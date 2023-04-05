@@ -599,15 +599,8 @@ public class DatasetServiceTest {
     when(storageAccountResource.getApplicationResource()).thenReturn(applicationResource);
     when(resourceService.getOrCreateDatasetStorageAccount(any(), any(), any()))
         .thenReturn(storageAccountResource);
-    when(azureContainerPdao.getOrCreateContainer(
-            any(), any(), eq(AzureStorageAccountResource.ContainerType.SCRATCH)))
-        .thenReturn(containerClient);
-    when(azureBlobStorePdao.signFile(
-            any(),
-            eq(storageAccountResource),
-            eq(filePath),
-            eq(AzureStorageAccountResource.ContainerType.SCRATCH),
-            any()))
+    when(azureContainerPdao.getOrCreateContainer(any(), any())).thenReturn(containerClient);
+    when(azureBlobStorePdao.signFile(any(), eq(storageAccountResource), eq(filePath), any()))
         .thenReturn(signedPath);
     IngestRequestModel ingestRequestModel =
         new IngestRequestModel()

@@ -43,6 +43,18 @@ public class DrsIdTest {
     assertThat("drsid toObjectId works", drsId.toDrsObjectId(), equalTo("v2_file"));
   }
 
+  @Test
+  public void testCompactDrsURI() {
+    DrsId drsId =
+        DrsId.builder().dnsname("dns").version("v2").fsObjectId("file").compactId(true).build();
+
+    assertThat("drsid constructor succeeds - dnsname", drsId.getDnsname(), equalTo("dns"));
+    assertThat("drsid constructor succeeds - version", drsId.getVersion(), equalTo("v2"));
+    assertThat("drsid constructor succeeds - fileId", drsId.getFsObjectId(), equalTo("file"));
+    assertThat("drsid toDrsUri works", drsId.toDrsUri(), equalTo("drs://dns:v2_file"));
+    assertThat("drsid toObjectId works", drsId.toDrsObjectId(), equalTo("v2_file"));
+  }
+
   @Test(expected = InvalidDrsIdException.class)
   public void testBadUri() {
     DrsId drsId =

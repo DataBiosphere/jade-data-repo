@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
 import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
@@ -61,6 +62,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
@@ -573,6 +575,7 @@ public class SnapshotService {
         .consentCode(snapshotRequestModel.getConsentCode())
         .properties(snapshotRequestModel.getProperties())
         .globalFileIds(snapshotRequestModel.isGlobalFileIds())
+        .compactIdPrefix(snapshotRequestModel.getCompactIdPrefix())
         .tags(TagUtils.getDistinctTags(snapshotRequestModel.getTags()));
   }
 
@@ -800,8 +803,9 @@ public class SnapshotService {
     } else if (cloudPlatformWrapper.isAzure()) {
       AccessInfoModel accessInfoModel =
           metadataDataAccessUtils.accessInfoFromSnapshot(snapshot, userRequest, tableName);
-      String credName = AzureSynapsePdao.getCredentialName(snapshot, userRequest.getEmail());
-      String datasourceName = AzureSynapsePdao.getDataSourceName(snapshot, userRequest.getEmail());
+      String credName =
+          AzureSynapsePdao.getCredentialName(snapshot.getId(), userRequest.getEmail());
+      String datasourceName = getDataSourceName(snapshot.getId(), userRequest.getEmail());
       String metadataUrl =
           "%s?%s"
               .formatted(
@@ -815,8 +819,16 @@ public class SnapshotService {
       }
 
       List<Map<String, Optional<Object>>> values =
-          azureSynapsePdao.getSnapshotTableData(
-              userRequest, snapshot, tableName, limit, offset, sort, direction, filter);
+          azureSynapsePdao.getTableData(
+              table,
+              tableName,
+              datasourceName,
+              IngestUtils.getSnapshotParquetFilePathForQuery(tableName),
+              limit,
+              offset,
+              sort,
+              direction,
+              filter);
       return new SnapshotPreviewModel().result(List.copyOf(values));
     } else {
       throw new SnapshotPreviewException("Cloud not supported");
@@ -1050,6 +1062,7 @@ public class SnapshotService {
             .consentCode(snapshot.getConsentCode())
             .cloudPlatform(snapshot.getCloudPlatform())
             .globalFileIds(snapshot.hasGlobalFileIds())
+            .compactIdPrefix(snapshot.getCompactIdPrefix())
             .tags(snapshot.getTags());
 
     // In case NONE is specified, this should supersede any other value being passed in

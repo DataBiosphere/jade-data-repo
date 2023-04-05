@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
@@ -28,6 +29,8 @@ import bio.terra.service.snapshot.exception.SnapshotUpdateException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.sql.Array;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -37,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +69,7 @@ public class SnapshotDao {
   private final ResourceService resourceService;
   private final ObjectMapper objectMapper;
   private final DuosDao duosDao;
+  private final DataSource jdbcDataSource;
 
   private static final String TABLE_NAME = "snapshot";
 
@@ -93,7 +98,8 @@ public class SnapshotDao {
       DatasetDao datasetDao,
       ResourceService resourceService,
       ObjectMapper objectMapper,
-      DuosDao duosDao) {
+      DuosDao duosDao,
+      DataRepoJdbcConfiguration jdbcConfiguration) {
     this.jdbcTemplate = jdbcTemplate;
     this.journalService = journalService;
     this.snapshotTableDao = snapshotTableDao;
@@ -103,6 +109,7 @@ public class SnapshotDao {
     this.resourceService = resourceService;
     this.objectMapper = objectMapper;
     this.duosDao = duosDao;
+    this.jdbcDataSource = jdbcConfiguration.getDataSource();
   }
 
   /**
@@ -181,14 +188,26 @@ public class SnapshotDao {
     logger.debug("createAndLock snapshot " + snapshot.getName());
 
     String sql =
-        "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties, global_file_ids) "
-            + "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb, :global_file_ids) ";
+        """
+            INSERT INTO snapshot
+            (name, description, profile_id, project_resource_id, id, consent_code, flightid,
+              creation_information, properties, global_file_ids, tags)
+            VALUES
+            (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid,
+              :creation_information::jsonb, :properties::jsonb, :global_file_ids, :tags)
+            """;
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException(
           "Invalid JSON in snapshot creationInformation, we should've caught this already", e);
+    }
+    Array tags;
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      tags = DaoUtils.createSqlStringArray(connection, snapshot.getTags());
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("Failed to convert snapshot tags list to SQL array", e);
     }
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -202,7 +221,9 @@ public class SnapshotDao {
             .addValue("creation_information", creationInfo)
             .addValue(
                 "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
-            .addValue("global_file_ids", snapshot.hasGlobalFileIds());
+            .addValue("global_file_ids", snapshot.hasGlobalFileIds())
+            .addValue("tags", tags);
+
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {

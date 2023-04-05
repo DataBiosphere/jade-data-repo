@@ -9,6 +9,7 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
+import bio.terra.common.TagUtils;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -571,7 +572,8 @@ public class SnapshotService {
         .creationInformation(requestContents)
         .consentCode(snapshotRequestModel.getConsentCode())
         .properties(snapshotRequestModel.getProperties())
-        .globalFileIds(snapshotRequestModel.isGlobalFileIds());
+        .globalFileIds(snapshotRequestModel.isGlobalFileIds())
+        .tags(TagUtils.getDistinctTags(snapshotRequestModel.getTags()));
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(

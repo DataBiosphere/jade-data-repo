@@ -1142,7 +1142,8 @@ public class SnapshotService {
                     .collect(Collectors.toList()))
             .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
             .phsId(dataset.getPhsId())
-            .selfHosted(dataset.isSelfHosted());
+            .selfHosted(dataset.isSelfHosted())
+            .tags(dataset.getTags());
 
     SnapshotSourceModel sourceModel =
         new SnapshotSourceModel().dataset(summaryModel).datasetProperties(dataset.getProperties());

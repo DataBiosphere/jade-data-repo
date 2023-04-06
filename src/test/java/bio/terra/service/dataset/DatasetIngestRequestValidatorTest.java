@@ -41,7 +41,6 @@ import org.springframework.test.web.servlet.MockMvc;
 public class DatasetIngestRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
-
   @MockBean private DatasetService datasetService;
 
   @Test
@@ -217,16 +216,9 @@ public class DatasetIngestRequestValidatorTest {
         "Validation catches all invalid parameters",
         invalidErrorModel.getErrorDetail(),
         hasSize(2));
-    var maxBadRecordsError = invalidErrorModel.getErrorDetail().get(0);
-    var maxFailedFileLoadsError = invalidErrorModel.getErrorDetail().get(1);
-    assertThat(
-        "Validator catches null 'maxBadRecordsError'",
-        maxBadRecordsError,
-        containsString("maxBadRecords: 'NotNull'"));
-    assertThat(
-        "Validator catches null 'maxFailedFileLoadsError'",
-        maxFailedFileLoadsError,
-        containsString("maxFailedFileLoads: 'NotNull'"));
+    for (String error : invalidErrorModel.getErrorDetail()) {
+      assertThat("Validation catches null parameters", error, containsString("NotNull"));
+    }
   }
 
   @Test

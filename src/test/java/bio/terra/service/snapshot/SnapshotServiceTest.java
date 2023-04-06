@@ -870,7 +870,7 @@ public class SnapshotServiceTest {
     verify(ecmService).validatePassport(any());
   }
 
-  private SnapshotRequestModel getDUOSSnapshotRequestModel(String duosId) {
+  private SnapshotRequestModel getDuosSnapshotRequestModel(String duosId) {
     String sourceDatasetName = "TestSourceDataset";
     Dataset sourceDataset = new Dataset().name(sourceDatasetName);
     when(datasetService.retrieveByName(sourceDatasetName)).thenReturn(sourceDataset);
@@ -882,8 +882,8 @@ public class SnapshotServiceTest {
   }
 
   @Test
-  public void testCreateSnapshotDuosDataset() {
-    SnapshotRequestModel request = getDUOSSnapshotRequestModel(null);
+  public void testCreateSnapshotWithoutDuosDataset() {
+    SnapshotRequestModel request = getDuosSnapshotRequestModel(null);
     JobBuilder jobBuilder = mock(JobBuilder.class);
     when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
         .thenReturn(jobBuilder);
@@ -899,7 +899,7 @@ public class SnapshotServiceTest {
 
   @Test
   public void testCreateSnapshotWithDuosDataset() {
-    SnapshotRequestModel request = getDUOSSnapshotRequestModel(DUOS_ID);
+    SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
     JobBuilder jobBuilder = mock(JobBuilder.class);
     when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
         .thenReturn(jobBuilder);
@@ -915,7 +915,7 @@ public class SnapshotServiceTest {
 
   @Test
   public void testCreateSnapshotThrowsWhenDuosClientThrows() {
-    SnapshotRequestModel request = getDUOSSnapshotRequestModel(DUOS_ID);
+    SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
     HttpClientErrorException expectedEx = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
     when(duosClient.getDataset(DUOS_ID, TEST_USER)).thenThrow(expectedEx);
     assertThrows(HttpClientErrorException.class, () -> service.createSnapshot(request, TEST_USER));

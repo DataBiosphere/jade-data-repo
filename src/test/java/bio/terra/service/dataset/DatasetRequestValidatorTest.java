@@ -25,6 +25,9 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
@@ -861,6 +864,110 @@ public class DatasetRequestValidatorTest {
         "Validator catches invalid 'records' and 'format' combo",
         payloadIsPresentError,
         containsString("Records should not be specified when ingesting from a path"));
+  }
+
+  @Test
+  public void testInvalidIngestWithNullIntFields() throws Exception {
+    var invalidIngest =
+        new IngestRequestModel()
+            .table("myTable")
+            .path("gs://foo/bar.json")
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .maxBadRecords(null)
+            .maxFailedFileLoads(null);
+
+    var invalidResult =
+        mvc.perform(
+                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(invalidIngest)))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
+    String invalidResponseBody = invalidResponse.getContentAsString();
+    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    assertThat(
+        "Validation catches all invalid parameters",
+        invalidErrorModel.getErrorDetail(),
+        hasSize(2));
+    var maxBadRecordsError = invalidErrorModel.getErrorDetail().get(0);
+    var maxFailedFileLoadsError = invalidErrorModel.getErrorDetail().get(1);
+    assertThat(
+        "Validator catches null 'maxBadRecordsError'",
+        maxBadRecordsError,
+        containsString("maxBadRecords: 'NotNull'"));
+    assertThat(
+        "Validator catches null 'maxFailedFileLoadsError'",
+        maxFailedFileLoadsError,
+        containsString("maxFailedFileLoads: 'NotNull'"));
+  }
+
+  @Test
+  public void testInvalidBulkIngestWithNullIntFields() throws Exception {
+    var invalidIngest =
+        new BulkLoadRequestModel()
+            .loadControlFile("gs://foo/bar.json")
+            .loadTag("foo")
+            .profileId(UUID.randomUUID())
+            .maxFailedFileLoads(null);
+
+    var invalidResult =
+        mvc.perform(
+                post(String.format("/api/repository/v1/datasets/%s/files/bulk", UUID.randomUUID()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(invalidIngest)))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
+    String invalidResponseBody = invalidResponse.getContentAsString();
+    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    assertThat(
+        "Validation catches all invalid parameters",
+        invalidErrorModel.getErrorDetail(),
+        hasSize(1));
+    var maxFailedFileLoadsError = invalidErrorModel.getErrorDetail().get(0);
+    assertThat(
+        "Validator catches null 'maxFailedFileLoadsError'",
+        maxFailedFileLoadsError,
+        containsString("maxFailedFileLoads: 'NotNull'"));
+  }
+
+  @Test
+  public void testInvalidBulkArrayIngestWithNullIntFields() throws Exception {
+    var invalidIngest =
+        new BulkLoadArrayRequestModel()
+            .loadArray(
+                List.of(
+                    new BulkLoadFileModel()
+                        .sourcePath("gs://foo/source.txt")
+                        .targetPath("/foo/bar")))
+            .profileId(UUID.randomUUID())
+            .loadTag("foo")
+            .maxFailedFileLoads(null);
+
+    var invalidResult =
+        mvc.perform(
+                post(String.format(
+                        "/api/repository/v1/datasets/%s/files/bulk/array", UUID.randomUUID()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(invalidIngest)))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
+    String invalidResponseBody = invalidResponse.getContentAsString();
+    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    assertThat(
+        "Validation catches all invalid parameters",
+        invalidErrorModel.getErrorDetail(),
+        hasSize(1));
+    var maxFailedFileLoadsError = invalidErrorModel.getErrorDetail().get(0);
+    assertThat(
+        "Validator catches null 'maxFailedFileLoadsError'",
+        maxFailedFileLoadsError,
+        containsString("maxFailedFileLoads: 'NotNull'"));
   }
 
   @Test

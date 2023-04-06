@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -20,6 +21,7 @@ import bio.terra.model.IngestRequestModel;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -32,6 +34,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
@@ -42,6 +45,18 @@ public class DatasetIngestRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
   @MockBean private DatasetService datasetService;
+
+  private ErrorModel expectBadPostRequest(String url, String content) throws Exception {
+    MvcResult result =
+        mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(content))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+    MockHttpServletResponse response = result.getResponse();
+    String responseBody = response.getContentAsString();
+    assertTrue(
+        "Error model was returned on failure", StringUtils.contains(responseBody, "message"));
+    return TestUtils.mapFromJson(responseBody, ErrorModel.class);
+  }
 
   @Test
   public void testAzureIngestRequestParameters() throws Exception {
@@ -59,18 +74,8 @@ public class DatasetIngestRequestValidatorTest {
             .csvSkipLeadingRows(null)
             .csvFieldDelimiter(null)
             .csvQuote(null);
-
-    var nullResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(nullIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse nullResponse = nullResult.getResponse();
-    String nullResponseBody = nullResponse.getContentAsString();
-    ErrorModel nullErrorModel = TestUtils.mapFromJson(nullResponseBody, ErrorModel.class);
+    String ingest_url = String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID());
+    ErrorModel nullErrorModel = expectBadPostRequest(ingest_url, TestUtils.mapToJson(nullIngest));
     assertThat(
         "Validation catches all null parameters", nullErrorModel.getErrorDetail(), hasSize(3));
     for (String error : nullErrorModel.getErrorDetail()) {
@@ -85,18 +90,8 @@ public class DatasetIngestRequestValidatorTest {
             .csvSkipLeadingRows(-1)
             .csvFieldDelimiter("toolong")
             .csvQuote("toolong");
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
-    String invalidResponseBody = invalidResponse.getContentAsString();
-    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    ErrorModel invalidErrorModel =
+        expectBadPostRequest(ingest_url, TestUtils.mapToJson(invalidIngest));
     assertThat(
         "Validation catches all invalid parameters",
         invalidErrorModel.getErrorDetail(),
@@ -104,7 +99,6 @@ public class DatasetIngestRequestValidatorTest {
     var csvSkipLeadingRowsError = invalidErrorModel.getErrorDetail().get(0);
     var csvFieldDelimiterError = invalidErrorModel.getErrorDetail().get(1);
     var csvQuoteError = invalidErrorModel.getErrorDetail().get(2);
-
     assertThat(
         "Validator catches invalid 'csvSkipLeadingRows'",
         csvSkipLeadingRowsError,
@@ -126,25 +120,15 @@ public class DatasetIngestRequestValidatorTest {
             .path("foo/bar")
             .table("myTable")
             .format(IngestRequestModel.FormatEnum.ARRAY);
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
-    String invalidResponseBody = invalidResponse.getContentAsString();
-    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    String ingest_url = String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID());
+    ErrorModel invalidErrorModel =
+        expectBadPostRequest(ingest_url, TestUtils.mapToJson(invalidIngest));
     assertThat(
         "Validation catches all invalid parameters",
         invalidErrorModel.getErrorDetail(),
         hasSize(2));
     var pathIsPresentError = invalidErrorModel.getErrorDetail().get(0);
     var payloadIsMissingError = invalidErrorModel.getErrorDetail().get(1);
-
     assertThat(
         "Validator catches invalid 'path' and 'format' combo",
         pathIsPresentError,
@@ -162,25 +146,15 @@ public class DatasetIngestRequestValidatorTest {
             .table("myTable")
             .format(IngestRequestModel.FormatEnum.JSON)
             .addRecordsItem(Map.of("foo", "bar"));
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
-    String invalidResponseBody = invalidResponse.getContentAsString();
-    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    String ingest_url = String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID());
+    ErrorModel invalidErrorModel =
+        expectBadPostRequest(ingest_url, TestUtils.mapToJson(invalidIngest));
     assertThat(
         "Validation catches all invalid parameters",
         invalidErrorModel.getErrorDetail(),
         hasSize(2));
     var pathIsMissingError = invalidErrorModel.getErrorDetail().get(0);
     var payloadIsPresentError = invalidErrorModel.getErrorDetail().get(1);
-
     assertThat(
         "Validator catches invalid 'path' and 'format' combo",
         pathIsMissingError,
@@ -200,18 +174,9 @@ public class DatasetIngestRequestValidatorTest {
             .format(IngestRequestModel.FormatEnum.JSON)
             .maxBadRecords(null)
             .maxFailedFileLoads(null);
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
-    String invalidResponseBody = invalidResponse.getContentAsString();
-    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    String ingest_url = String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID());
+    ErrorModel invalidErrorModel =
+        expectBadPostRequest(ingest_url, TestUtils.mapToJson(invalidIngest));
     assertThat(
         "Validation catches all invalid parameters",
         invalidErrorModel.getErrorDetail(),
@@ -229,18 +194,10 @@ public class DatasetIngestRequestValidatorTest {
             .loadTag("foo")
             .profileId(UUID.randomUUID())
             .maxFailedFileLoads(null);
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/files/bulk", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
-    String invalidResponseBody = invalidResponse.getContentAsString();
-    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    String bulk_ingest_url =
+        String.format("/api/repository/v1/datasets/%s/files/bulk", UUID.randomUUID());
+    ErrorModel invalidErrorModel =
+        expectBadPostRequest(bulk_ingest_url, TestUtils.mapToJson(invalidIngest));
     assertThat(
         "Validation catches all invalid parameters",
         invalidErrorModel.getErrorDetail(),
@@ -264,19 +221,10 @@ public class DatasetIngestRequestValidatorTest {
             .profileId(UUID.randomUUID())
             .loadTag("foo")
             .maxFailedFileLoads(null);
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format(
-                        "/api/repository/v1/datasets/%s/files/bulk/array", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
-    String invalidResponseBody = invalidResponse.getContentAsString();
-    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
+    String bulk_ingest_url =
+        String.format("/api/repository/v1/datasets/%s/files/bulk/array", UUID.randomUUID());
+    ErrorModel invalidErrorModel =
+        expectBadPostRequest(bulk_ingest_url, TestUtils.mapToJson(invalidIngest));
     assertThat(
         "Validation catches all invalid parameters",
         invalidErrorModel.getErrorDetail(),

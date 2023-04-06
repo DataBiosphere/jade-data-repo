@@ -4,6 +4,7 @@ import static bio.terra.common.PdaoConstant.PDAO_COUNT_ALIAS;
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_FILTERED_ROW_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TOTAL_ROW_COUNT_COLUMN_NAME;
 
 import bio.terra.common.CollectionType;
@@ -11,8 +12,8 @@ import bio.terra.common.Column;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.Query;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.filedata.google.bq.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQueryException;
@@ -117,7 +118,7 @@ public abstract class BigQueryPdao {
           <endif>
           count(*) over () <filteredRowCountColumnName>
         FROM (
-          SELECT <columns><if(includeTotalRowCount)>, count(*) over () AS <totalRowCountColumnName><endif>
+          SELECT <pdaoRowIdColumn><columns><if(includeTotalRowCount)>, count(*) over () AS <totalRowCountColumnName><endif>
           FROM <table>)
         <filterParams>
       """;
@@ -160,7 +161,7 @@ public abstract class BigQueryPdao {
   /*
    * WARNING: Ensure input parameters are validated before executing this method!
    */
-  public static List<DataResultModel> getTable(
+  public static List<BigQueryDataResultModel> getTable(
       FSContainerInterface tdrResource,
       String bqFormattedTableName,
       List<String> columnNames,
@@ -168,12 +169,12 @@ public abstract class BigQueryPdao {
       int offset,
       String sort,
       SqlSortDirection direction,
-      String filter,
-      boolean includeTotalRowCount)
+      String filter)
       throws InterruptedException {
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
     final String datasetProjectId = bigQueryProject.getProjectId();
     String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
+    boolean isDataset = tdrResource.getCollectionType().equals(CollectionType.DATASET);
 
     String columns = String.join(",", columnNames);
     // Parse before querying because the where clause is user-provided
@@ -183,9 +184,10 @@ public abstract class BigQueryPdao {
             .add("columns", columns)
             .add("table", bqFormattedTableName)
             .add("filterParams", whereClause)
-            .add("includeTotalRowCount", includeTotalRowCount)
+            .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
+            .add("pdaoRowIdColumn", isDataset ? "" : PDAO_ROW_ID_COLUMN + ",")
             .render();
     Query.parse(sql);
 
@@ -204,22 +206,23 @@ public abstract class BigQueryPdao {
             .add("columns", columns)
             .add("table", bigQueryTable)
             .add("filterParams", filterParams)
-            .add("includeTotalRowCount", includeTotalRowCount)
+            .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
+            .add("pdaoRowIdColumn", isDataset ? "" : PDAO_ROW_ID_COLUMN + ",")
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
     return aggregateTableData(result);
   }
 
-  public static List<DataResultModel> aggregateTableData(TableResult result) {
+  public static List<BigQueryDataResultModel> aggregateTableData(TableResult result) {
     FieldList columns = result.getSchema().getFields();
-    final List<DataResultModel> values = new ArrayList<>();
+    final List<BigQueryDataResultModel> values = new ArrayList<>();
     result
         .iterateAll()
         .forEach(
             rows -> {
-              final DataResultModel resultModel = new DataResultModel();
+              final BigQueryDataResultModel resultModel = new BigQueryDataResultModel();
               final Map<String, Object> rowData = new HashMap<>();
               columns.forEach(
                   column -> {

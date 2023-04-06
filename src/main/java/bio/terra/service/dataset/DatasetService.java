@@ -53,11 +53,11 @@ import bio.terra.service.dataset.flight.transactions.TransactionCommitFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
-import bio.terra.service.filedata.DataResultModel;
-import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.filedata.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
+import bio.terra.service.filedata.google.bq.BigQueryDataResultModel;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -536,20 +536,17 @@ public class DatasetService {
       try {
         List<String> columns = datasetTableDao.retrieveColumnNames(table, true);
         String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
-        List<DataResultModel> values =
+        List<BigQueryDataResultModel> values =
             BigQueryPdao.getTable(
-                dataset,
-                bqFormattedTableName,
-                columns,
-                limit,
-                offset,
-                sort,
-                direction,
-                filter,
-                true);
-
-        return translateDataResult(
-            values, tableName, dataset, bqFormattedTableName, null, null, cloudPlatformWrapper);
+                dataset, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
+        return new DatasetDataModel()
+            .result(
+                List.copyOf(values.stream().map(BigQueryDataResultModel::getRowResult).toList()))
+            .totalRowCount(
+                values.isEmpty()
+                    ? BigQueryPdao.getTableTotalRowCount(dataset, bqFormattedTableName)
+                    : values.get(0).getTotalCount())
+            .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
@@ -564,6 +561,7 @@ public class DatasetService {
               .formatted(
                   accessInfoModel.getParquet().getUrl(),
                   accessInfoModel.getParquet().getSasToken());
+      String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
 
       try {
         azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
@@ -571,57 +569,29 @@ public class DatasetService {
         throw new RuntimeException("Could not configure external datasource", e);
       }
 
-      List<DataResultModel> values =
+      List<SynapseDataResultModel> values =
           azureSynapsePdao.getTableData(
               table,
               tableName,
               datasourceName,
-              IngestUtils.getSourceDatasetParquetFilePath(tableName),
+              sourceParquetFilePath,
               limit,
               offset,
               sort,
               direction,
               filter,
-              false);
-      return translateDataResult(
-          values,
-          tableName,
-          null,
-          null,
-          datasourceName,
-          IngestUtils.getSourceDatasetParquetFilePath(tableName),
-          cloudPlatformWrapper);
-
+              true);
+      return new DatasetDataModel()
+          .result(List.copyOf(values.stream().map(SynapseDataResultModel::getRowResult).toList()))
+          .totalRowCount(
+              values.isEmpty()
+                  ? azureSynapsePdao.getTableTotalRowCount(
+                      tableName, datasourceName, sourceParquetFilePath)
+                  : values.get(0).getTotalCount())
+          .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
     } else {
       throw new DatasetDataException("Cloud not supported");
     }
-  }
-
-  DatasetDataModel translateDataResult(
-      List<DataResultModel> values,
-      String tableName,
-      FSContainerInterface tdrResource,
-      String bqFormattedTableName,
-      String datasourceName,
-      String sourceDatasetParquetFilePathForTable,
-      CloudPlatformWrapper cloud) {
-    int totalRowCount = 0;
-    if (values.isEmpty()) {
-      if (cloud.isAzure()) {
-        totalRowCount =
-            azureSynapsePdao.getTableTotalRowCount(
-                tableName, datasourceName, sourceDatasetParquetFilePathForTable);
-      } else if (cloud.isGcp()) {
-        totalRowCount = BigQueryPdao.getTableTotalRowCount(tdrResource, bqFormattedTableName);
-      }
-    } else {
-      totalRowCount = values.get(0).getTotalCount();
-    }
-    int filteredRowCount = values.isEmpty() ? 0 : values.get(0).getFilteredCount();
-    return new DatasetDataModel()
-        .result(List.copyOf(values.stream().map(DataResultModel::getRowResult).toList()))
-        .totalRowCount(totalRowCount)
-        .filteredRowCount(filteredRowCount);
   }
 
   public void lock(UUID datasetId, String flightId, boolean sharedLock) {

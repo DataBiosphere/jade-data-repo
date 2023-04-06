@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.CollectionType;
 import bio.terra.common.TestUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
@@ -59,6 +60,7 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.filedata.google.bq.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.azure.data.tables.TableServiceClient;
 import com.google.cloud.storage.Blob;
@@ -574,13 +576,12 @@ public class ConnectedOperations {
   public void checkDataModel(
       FSContainerInterface tdrResource,
       List<String> columnNames,
-      boolean includeTotalRowCount,
       String prefix,
       String tableName,
       int expectedRowCount)
       throws InterruptedException {
     String participantBQFormattedTableName = prefix + tdrResource.getName() + "." + tableName;
-    List<DataResultModel> results =
+    List<BigQueryDataResultModel> results =
         BigQueryPdao.getTable(
             tdrResource,
             participantBQFormattedTableName,
@@ -589,10 +590,9 @@ public class ConnectedOperations {
             0,
             PDAO_ROW_ID_COLUMN,
             null,
-            null,
-            includeTotalRowCount);
+            null);
     DataResultModel result = results.get(0);
-    if (includeTotalRowCount) {
+    if (tdrResource.getCollectionType().equals(CollectionType.DATASET)) {
       assertThat("non-null total count", result.getTotalCount(), equalTo(expectedRowCount));
     } else {
       assertThat(

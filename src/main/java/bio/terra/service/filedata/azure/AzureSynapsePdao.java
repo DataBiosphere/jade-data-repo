@@ -27,9 +27,9 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidColumnException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.filedata.SynapseDataResultModel;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;
@@ -1046,7 +1046,7 @@ public class AzureSynapsePdao {
     }
   }
 
-  public List<DataResultModel> getTableData(
+  public List<SynapseDataResultModel> getTableData(
       Table table,
       String tableName,
       String dataSourceName,
@@ -1097,15 +1097,21 @@ public class AzureSynapsePdao {
           Map.of(
               "offset", offset,
               "limit", limit),
-          (rs, rowNum) ->
-              new DataResultModel(
-                  columns.stream()
-                      .collect(
-                          Collectors.toMap(
-                              Column::getName, c -> Optional.ofNullable(extractValue(rs, c)))),
-                  includeTotalRowCount ? rs.getInt(PDAO_TOTAL_ROW_COUNT_COLUMN_NAME) : 0,
-                  rs.getInt(PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)));
-
+          (rs, rowNum) -> {
+            SynapseDataResultModel resultModel =
+                new SynapseDataResultModel()
+                    .rowResult(
+                        columns.stream()
+                            .collect(
+                                Collectors.toMap(
+                                    Column::getName,
+                                    c -> Optional.ofNullable(extractValue(rs, c)))))
+                    .filteredCount(rs.getInt(PDAO_FILTERED_ROW_COUNT_COLUMN_NAME));
+            if (includeTotalRowCount) {
+              resultModel.totalCount(rs.getInt(PDAO_FILTERED_ROW_COUNT_COLUMN_NAME));
+            }
+            return resultModel;
+          });
     } catch (DataAccessException ex) {
       logger.warn(
           "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",

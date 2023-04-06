@@ -22,9 +22,9 @@ import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.filedata.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
@@ -313,7 +313,7 @@ public class AzureSynapsePdaoConnectedTest {
         AzureSynapsePdao.getDataSourceName(snapshot.getId(), TEST_USER.getEmail());
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotQueryCredentialName, snapshotQueryDataSourceName);
-    List<DataResultModel> results =
+    List<SynapseDataResultModel> results =
         azureSynapsePdao.getTableData(
             snapshotTable,
             snapshotTable.getName(),
@@ -329,7 +329,8 @@ public class AzureSynapsePdaoConnectedTest {
         "Total row count should be 0 since we didn't include it in the query",
         results.get(0).getTotalCount(),
         equalTo(0));
-    List<Map<String, Object>> tableData = prepQueryResultForComparison(results, isGlobalFileIds);
+    List<Map<String, Optional<Object>>> tableData =
+        prepQueryResultForComparison(results, isGlobalFileIds);
     assertThat(
         "table query contains correct data in the right order (ascending by first name)",
         tableData,
@@ -378,7 +379,7 @@ public class AzureSynapsePdaoConnectedTest {
 
   }
 
-  private Object extractFileId(Optional<Object> drsUri, boolean isGlobalFileIds) {
+  private Optional<Object> extractFileId(Optional<Object> drsUri, boolean isGlobalFileIds) {
     return drsUri.map(
         d -> {
           DrsId drsId = DrsIdService.fromUri(d.toString());
@@ -395,20 +396,15 @@ public class AzureSynapsePdaoConnectedTest {
         });
   }
 
-  private List<Map<String, Object>> prepQueryResultForComparison(
-      List<DataResultModel> tableData, Boolean isGlobalFileIds) {
+  private List<Map<String, Optional<Object>>> prepQueryResultForComparison(
+      List<SynapseDataResultModel> tableData, Boolean isGlobalFileIds) {
     return tableData.stream()
-        .map(DataResultModel::getRowResult)
+        .map(SynapseDataResultModel::getRowResult)
         // Remove datarepo_row_id since it's random
         .peek(r -> r.remove(PDAO_ROW_ID_COLUMN))
         // Replace the DRS id with its file ID for easier comparison
-        .peek(
-            r -> r.put("file", extractFileId(Optional.ofNullable(r.get("file")), isGlobalFileIds)))
-        .peek(
-            r ->
-                r.put(
-                    "dirRefCol",
-                    extractFileId(Optional.ofNullable(r.get("dirRefCol")), isGlobalFileIds)))
+        .peek(r -> r.put("file", extractFileId(r.get("file"), isGlobalFileIds)))
+        .peek(r -> r.put("dirRefCol", extractFileId(r.get("dirRefCol"), isGlobalFileIds)))
         .toList();
   }
 }

@@ -15,7 +15,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.filedata.DataResultModel;
+import bio.terra.service.filedata.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
@@ -526,7 +526,7 @@ public class SynapseUtils {
 
   private void testOptionalIncludeTotalRowCount(
       boolean includeTotalRowCount, Table table, int expectedTotalRowCount) {
-    List<DataResultModel> results =
+    List<SynapseDataResultModel> results =
         azureSynapsePdao.getTableData(
             table,
             table.getName(),

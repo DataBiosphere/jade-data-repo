@@ -38,7 +38,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
-import bio.terra.service.filedata.DataResultModel;
+import bio.terra.service.filedata.google.bq.BigQueryDataResultModel;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -316,7 +316,7 @@ public class BigQueryPdaoTest {
           datasetId, ingestRequest.table(participantTableName).path(gsPath(participantBlob)));
       connectedOperations.checkTableRowCount(dataset, participantTableName, PDAO_PREFIX, 5);
       connectedOperations.checkDataModel(
-          dataset, List.of(PDAO_ROW_ID_COLUMN), true, PDAO_PREFIX, participantTableName, 5);
+          dataset, List.of(PDAO_ROW_ID_COLUMN), PDAO_PREFIX, participantTableName, 5);
       // sample table
       String sampleTableName = "sample";
       connectedOperations.ingestTableSuccess(
@@ -336,7 +336,7 @@ public class BigQueryPdaoTest {
       Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
       connectedOperations.checkTableRowCount(snapshot, participantTableName, "", 5);
       connectedOperations.checkDataModel(
-          snapshot, List.of(PDAO_ROW_ID_COLUMN), false, "", participantTableName, 5);
+          snapshot, List.of(PDAO_ROW_ID_COLUMN), "", participantTableName, 5);
       connectedOperations.checkTableRowCount(snapshot, sampleTableName, "", 7);
       connectedOperations.checkTableRowCount(snapshot, fileTableName, "", 1);
 
@@ -398,8 +398,8 @@ public class BigQueryPdaoTest {
         new Snapshot()
             .projectResource(
                 new GoogleProjectResource().profileId(profileId).googleProjectId(dataProjectId));
-    List<DataResultModel> expected = getExampleSnapshotTableData();
-    List<DataResultModel> actual =
+    List<BigQueryDataResultModel> expected = getExampleSnapshotTableData();
+    List<BigQueryDataResultModel> actual =
         bigQuerySnapshotPdao.getSnapshotTableUnsafe(snapshot, snapshotTableDataSqlExample);
     for (int i = 0; i < 3; i++) {
       assertEquals(expected.get(i).getRowResult(), actual.get(i).getRowResult());
@@ -510,10 +510,14 @@ public class BigQueryPdaoTest {
     return ids;
   }
 
-  private List<DataResultModel> getExampleSnapshotTableData() {
-    List<DataResultModel> values = new ArrayList<>();
+  private List<BigQueryDataResultModel> getExampleSnapshotTableData() {
+    List<BigQueryDataResultModel> values = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
-      values.add(new DataResultModel(Map.of("id", String.valueOf(i + 1), "text", "hello"), 3, 3));
+      values.add(
+          new BigQueryDataResultModel()
+              .rowResult(Map.of("id", String.valueOf(i + 1), "text", "hello"))
+              .filteredCount(3)
+              .totalCount(3));
     }
     return values;
   }

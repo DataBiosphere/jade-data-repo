@@ -38,9 +38,9 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.GoogleStorageResource;
-import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.exception.TooManyDmlStatementsOutstandingException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
+import bio.terra.service.filedata.google.bq.BigQueryDataResultModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
@@ -1102,7 +1102,7 @@ public class BigQueryPdaoUnitTest {
 
     TableResult table = new TableResult(schema, 10, page);
 
-    List<DataResultModel> result = BigQueryPdao.aggregateTableData(table);
+    List<BigQueryDataResultModel> result = BigQueryPdao.aggregateTableData(table);
 
     assertEquals(stringTest, result.get(0).getRowResult().get("STRING"));
     assertEquals(intTest, result.get(0).getRowResult().get("INT64"));

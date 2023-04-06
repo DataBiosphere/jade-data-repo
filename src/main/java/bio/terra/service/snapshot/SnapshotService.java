@@ -7,6 +7,7 @@ import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
@@ -837,7 +838,7 @@ public class SnapshotService {
               sort,
               direction,
               filter,
-              false);
+              CollectionType.SNAPSHOT);
       return new SnapshotPreviewModel()
           .result(List.copyOf(values.stream().map(SynapseDataResultModel::getRowResult).toList()))
           .totalRowCount(table.getRowCount().intValue())

@@ -8,6 +8,7 @@ import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.CollectionType;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -580,7 +581,7 @@ public class DatasetService {
               sort,
               direction,
               filter,
-              true);
+              CollectionType.DATASET);
       return new DatasetDataModel()
           .result(List.copyOf(values.stream().map(SynapseDataResultModel::getRowResult).toList()))
           .totalRowCount(

@@ -519,13 +519,13 @@ public class SynapseUtils {
         rowCount,
         equalTo(expectedNumberOfRowToIngest));
 
-    testOptionalIncludeTotalRowCount(true, destinationTable, 2);
-    testOptionalIncludeTotalRowCount(false, destinationTable, 2);
+    testOptionalIncludeTotalRowCount(CollectionType.SNAPSHOT, destinationTable, 2);
+    testOptionalIncludeTotalRowCount(CollectionType.DATASET, destinationTable, 2);
     return destinationTable;
   }
 
   private void testOptionalIncludeTotalRowCount(
-      boolean includeTotalRowCount, Table table, int expectedTotalRowCount) {
+      CollectionType collectionType, Table table, int expectedTotalRowCount) {
     List<SynapseDataResultModel> results =
         azureSynapsePdao.getTableData(
             table,
@@ -538,15 +538,15 @@ public class SynapseUtils {
             PDAO_ROW_ID_COLUMN,
             SqlSortDirection.ASC,
             "",
-            includeTotalRowCount);
-    if (includeTotalRowCount) {
+            collectionType);
+    if (collectionType.equals(CollectionType.DATASET)) {
       assertThat(
-          "Total row count should be correct since includeTotalRowCount=true",
+          "Total row count should be correct since we includeTotalRowCount for datasets",
           results.get(0).getTotalCount(),
           equalTo(expectedTotalRowCount));
     } else {
       assertThat(
-          "Total row count should be 0 since includeTotalRowCount=false",
+          "Total row count should be 0 since we do NOT includeTotalRowCount for snapshots",
           results.get(0).getTotalCount(),
           equalTo(0));
     }

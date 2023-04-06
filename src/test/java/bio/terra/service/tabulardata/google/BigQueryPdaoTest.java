@@ -3,7 +3,6 @@ package bio.terra.service.tabulardata.google;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
-import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -316,7 +315,7 @@ public class BigQueryPdaoTest {
           datasetId, ingestRequest.table(participantTableName).path(gsPath(participantBlob)));
       connectedOperations.checkTableRowCount(dataset, participantTableName, PDAO_PREFIX, 5);
       connectedOperations.checkDataModel(
-          dataset, List.of(PDAO_ROW_ID_COLUMN), PDAO_PREFIX, participantTableName, 5);
+          dataset, List.of("id", "age"), PDAO_PREFIX, participantTableName, 5);
       // sample table
       String sampleTableName = "sample";
       connectedOperations.ingestTableSuccess(
@@ -336,7 +335,7 @@ public class BigQueryPdaoTest {
       Snapshot snapshot = snapshotService.retrieve(snapshotSummary.getId());
       connectedOperations.checkTableRowCount(snapshot, participantTableName, "", 5);
       connectedOperations.checkDataModel(
-          snapshot, List.of(PDAO_ROW_ID_COLUMN), "", participantTableName, 5);
+          snapshot, List.of("id", "age"), "", participantTableName, 5);
       connectedOperations.checkTableRowCount(snapshot, sampleTableName, "", 7);
       connectedOperations.checkTableRowCount(snapshot, fileTableName, "", 1);
 

@@ -187,7 +187,9 @@ public abstract class BigQueryPdao {
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
-            .add("pdaoRowIdColumn", isDataset ? "" : PDAO_ROW_ID_COLUMN + ",")
+            .add(
+                "pdaoRowIdColumn",
+                columnNames.contains(PDAO_ROW_ID_COLUMN) ? "" : PDAO_ROW_ID_COLUMN + ",")
             .render();
     Query.parse(sql);
 
@@ -209,7 +211,9 @@ public abstract class BigQueryPdao {
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
-            .add("pdaoRowIdColumn", isDataset ? "" : PDAO_ROW_ID_COLUMN + ",")
+            .add(
+                "pdaoRowIdColumn",
+                columnNames.contains(PDAO_ROW_ID_COLUMN) ? "" : PDAO_ROW_ID_COLUMN + ",")
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
     return aggregateTableData(result);

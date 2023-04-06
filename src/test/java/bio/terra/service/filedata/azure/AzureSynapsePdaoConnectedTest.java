@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
@@ -324,7 +325,7 @@ public class AzureSynapsePdaoConnectedTest {
             "first_name",
             SqlSortDirection.ASC,
             "",
-            false);
+            CollectionType.SNAPSHOT);
     assertThat(
         "Total row count should be 0 since we didn't include it in the query",
         results.get(0).getTotalCount(),
@@ -349,7 +350,7 @@ public class AzureSynapsePdaoConnectedTest {
                 "first_name",
                 SqlSortDirection.DESC,
                 "",
-                false),
+                CollectionType.SNAPSHOT),
             isGlobalFileIds);
     assertThat(
         "table query contains correct data in the right order (descending by first name)",
@@ -369,7 +370,7 @@ public class AzureSynapsePdaoConnectedTest {
                 "first_name",
                 SqlSortDirection.ASC,
                 "upper(first_name)='SALLY'",
-                false),
+                CollectionType.SNAPSHOT),
             isGlobalFileIds);
     assertThat(
         "table query contains only a single record", tableData, contains(expectedData.get(1)));

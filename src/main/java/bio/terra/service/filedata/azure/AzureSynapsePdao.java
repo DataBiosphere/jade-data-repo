@@ -1056,7 +1056,7 @@ public class AzureSynapsePdao {
       String sort,
       SqlSortDirection direction,
       String filter,
-      boolean includeTotalRowCount) {
+      CollectionType collectionType) {
 
     // Ensure that the sort column is a valid column
     if (!sort.equals(PDAO_ROW_ID_COLUMN)) {
@@ -1077,7 +1077,7 @@ public class AzureSynapsePdao {
         ListUtils.union(
             List.of(new Column().name(PDAO_ROW_ID_COLUMN).type(TableDataType.STRING)),
             table.getColumns());
-
+    boolean includeTotalRowCount = collectionType.equals(CollectionType.DATASET);
     final String sql =
         new ST(queryFromDatasourceTemplate)
             .add("columns", columns.stream().map(Column::getName).toList())
@@ -1108,7 +1108,7 @@ public class AzureSynapsePdao {
                                     c -> Optional.ofNullable(extractValue(rs, c)))))
                     .filteredCount(rs.getInt(PDAO_FILTERED_ROW_COUNT_COLUMN_NAME));
             if (includeTotalRowCount) {
-              resultModel.totalCount(rs.getInt(PDAO_FILTERED_ROW_COUNT_COLUMN_NAME));
+              resultModel.totalCount(rs.getInt(PDAO_TOTAL_ROW_COUNT_COLUMN_NAME));
             }
             return resultModel;
           });

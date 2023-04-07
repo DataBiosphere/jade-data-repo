@@ -62,10 +62,7 @@ import java.util.Set;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
@@ -77,8 +74,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 @Api(tags = {"datasets"})
 public class DatasetsApiController implements DatasetsApi {
-
-  private Logger logger = LoggerFactory.getLogger(DatasetsApiController.class);
 
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE = "SCHEMA,PROFILE,DATA_PROJECT,STORAGE";
 
@@ -168,8 +163,8 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
-    return new ResponseEntity<>(
-        datasetService.retrieveAvailableDatasetModel(id, userRequest, include), HttpStatus.OK);
+    return ResponseEntity.ok(
+        datasetService.retrieveAvailableDatasetModel(id, userRequest, include));
   }
 
   @Override
@@ -213,7 +208,7 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     Set<IamAction> actions = datasetService.patchDatasetIamActions(patchRequest);
     iamService.verifyAuthorizations(userReq, IamResourceType.DATASET, id.toString(), actions);
-    return new ResponseEntity<>(datasetService.patch(id, patchRequest, userReq), HttpStatus.OK);
+    return ResponseEntity.ok(datasetService.patch(id, patchRequest, userReq));
   }
 
   @Override
@@ -336,13 +331,13 @@ public class DatasetsApiController implements DatasetsApi {
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATA);
     FileModel fileModel = fileService.lookupFile(id.toString(), fileid, depth);
-    return new ResponseEntity<>(fileModel, HttpStatus.OK);
+    return ResponseEntity.ok(fileModel);
   }
 
   @Override
   public ResponseEntity<FileModel> lookupFileByPath(
       @PathVariable("id") UUID id,
-      @RequestParam(value = "path", required = true) String path,
+      @RequestParam(value = "path") String path,
       @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
     iamService.verifyAuthorization(
@@ -351,7 +346,7 @@ public class DatasetsApiController implements DatasetsApi {
       throw new ValidationException("InvalidPath");
     }
     FileModel fileModel = fileService.lookupPath(id.toString(), path, depth);
-    return new ResponseEntity<>(fileModel, HttpStatus.OK);
+    return ResponseEntity.ok(fileModel);
   }
 
   // --dataset policies --
@@ -365,7 +360,7 @@ public class DatasetsApiController implements DatasetsApi {
         iamService.addPolicyMember(
             userReq, IamResourceType.DATASET, id, policyName, policyMember.getEmail());
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
@@ -374,7 +369,7 @@ public class DatasetsApiController implements DatasetsApi {
         iamService.retrievePolicies(getAuthenticatedInfo(), IamResourceType.DATASET, id);
     PolicyResponse response =
         new PolicyResponse().policies(PolicyUtils.samToTdrPolicyModels(policies));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
@@ -391,14 +386,14 @@ public class DatasetsApiController implements DatasetsApi {
         iamService.deletePolicyMember(
             userReq, IamResourceType.DATASET, id, policyName, memberEmail);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    return ResponseEntity.ok(response);
   }
 
   @Override
   public ResponseEntity<List<String>> retrieveUserDatasetRoles(UUID id) {
     List<String> roles =
         iamService.retrieveUserRoles(getAuthenticatedInfo(), IamResourceType.DATASET, id);
-    return new ResponseEntity<>(roles, HttpStatus.OK);
+    return ResponseEntity.ok(roles);
   }
 
   @Override
@@ -434,16 +429,23 @@ public class DatasetsApiController implements DatasetsApi {
       UUID id, Integer offset, Integer limit) {
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
-    return new ResponseEntity<>(
-        datasetService.enumerateTransactions(id, offset, limit), HttpStatus.OK);
+    return ResponseEntity.ok(datasetService.enumerateTransactions(id, offset, limit));
   }
 
   @Override
   public ResponseEntity<TransactionModel> retrieveTransaction(UUID id, UUID transactionId) {
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
-    return new ResponseEntity<>(
-        datasetService.retrieveTransaction(id, transactionId), HttpStatus.OK);
+    return ResponseEntity.ok(datasetService.retrieveTransaction(id, transactionId));
+  }
+
+  @Override
+  public ResponseEntity<DatasetSummaryModel> updateDatasetTags(
+      UUID id, List<String> add, List<String> remove) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
+    return ResponseEntity.ok(datasetService.updateTags(id, add, remove));
   }
 
   private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {

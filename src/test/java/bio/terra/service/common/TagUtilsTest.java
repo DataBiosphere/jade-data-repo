@@ -3,14 +3,20 @@ package bio.terra.service.common;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import bio.terra.common.TagUtils;
 import bio.terra.common.category.Unit;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles({"google", "unittest"})
@@ -38,5 +44,40 @@ public class TagUtilsTest {
         "Tags are case sensitive",
         TagUtils.getDistinctTags(multipleCasedTags),
         containsInAnyOrder(multipleCasedTags.toArray()));
+  }
+
+  @Test
+  public void testAddTagsClause() throws SQLException {
+    Connection connection = mock(Connection.class);
+    List<String> clauses = new ArrayList<>();
+    MapSqlParameterSource params = new MapSqlParameterSource();
+    String table = "aTableName";
+
+    TagUtils.addTagsClause(connection, List.of(), params, clauses, table);
+
+    assertThat(clauses, contains(table + ".tags @> :tags"));
+    assertTrue(params.hasValue("tags"));
+  }
+
+  @Test
+  public void testUpdateTagsExpression() throws SQLException {
+    Connection connection = mock(Connection.class);
+    MapSqlParameterSource params = new MapSqlParameterSource();
+
+    String expression = TagUtils.updateTagsExpression(connection, List.of(), List.of(), params);
+
+    assertThat(
+        "Expression includes placeholder for tags to add",
+        expression,
+        containsString(":tagsToAdd"));
+    assertThat(
+        "Expression includes placeholder for tags to remove",
+        expression,
+        containsString(":tagsToRemove"));
+
+    assertThat(
+        "Necessary parameters are specified after method execution",
+        params.getValues().keySet(),
+        containsInAnyOrder(":tagsToAdd", ":tagsToRemove"));
   }
 }

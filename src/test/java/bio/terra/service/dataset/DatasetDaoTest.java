@@ -1064,4 +1064,49 @@ public class DatasetDaoTest {
         datasetDao.retrieveSummaryById(datasetId).getTags(),
         containsInAnyOrder(expectedTags.toArray()));
   }
+
+  @Test
+  public void updateTags() throws Exception {
+    UUID datasetId = createDataset("dataset-minimal.json");
+
+    List<String> add = new ArrayList<>(List.of("a", "b", "b", "c"));
+    add.add(null);
+    List<String> remove = List.of("c", "d");
+    List<String> expectedTags = new ArrayList<>(List.of("a", "b"));
+    assertTrue(datasetDao.updateTags(datasetId, add, remove));
+    assertThat(
+        "Tags are deduplicated with nulls filtered on add and remove",
+        datasetDao.retrieve(datasetId).getTags(),
+        equalTo(expectedTags));
+
+    assertTrue(datasetDao.updateTags(datasetId, add, remove));
+    assertThat(
+        "Running the same update again does not change dataset tags",
+        datasetDao.retrieve(datasetId).getTags(),
+        equalTo(expectedTags));
+
+    List<String> addReverseOrder = List.of("z", "y", "x");
+    expectedTags.addAll(List.of("x", "y", "z"));
+    assertTrue(datasetDao.updateTags(datasetId, addReverseOrder, null));
+    assertThat(
+        "Tags are returned in alphabetical order",
+        datasetDao.retrieve(datasetId).getTags(),
+        equalTo(expectedTags));
+
+    assertTrue(datasetDao.updateTags(datasetId, null, null));
+    assertThat(
+        "Null tag update lists do not change dataset tags",
+        datasetDao.retrieve(datasetId).getTags(),
+        equalTo(expectedTags));
+
+    assertTrue(datasetDao.updateTags(datasetId, List.of(), List.of()));
+    assertThat(
+        "Empty tag update lists do not change dataset tags",
+        datasetDao.retrieve(datasetId).getTags(),
+        equalTo(expectedTags));
+
+    assertFalse(
+        "No rows are updated when updating tags on nonexistent dataset",
+        datasetDao.updateTags(UUID.randomUUID(), null, null));
+  }
 }

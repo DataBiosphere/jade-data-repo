@@ -74,18 +74,6 @@ public final class DaoUtils {
     clauses.add(String.format(" %s.id in (:idlist) ", table));
   }
 
-  /** Adds a clause to restrict table rows to those containing all specified tags. */
-  public static void addTagsClause(
-      Connection connection,
-      List<String> tags,
-      MapSqlParameterSource params,
-      List<String> clauses,
-      String table)
-      throws SQLException {
-    params.addValue("tags", createSqlStringArray(connection, tags));
-    clauses.add(String.format("%s.tags @> :tags", table));
-  }
-
   public static String escapeFilter(String filter) {
     StringBuilder builder = new StringBuilder("%");
     for (char c : filter.toCharArray()) {

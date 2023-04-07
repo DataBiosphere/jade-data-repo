@@ -6,6 +6,7 @@ import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.common.TagUtils;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
@@ -656,7 +657,7 @@ public class DatasetDao {
     DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "dataset.id");
     try (Connection connection = jdbcDataSource.getConnection()) {
-      DaoUtils.addTagsClause(connection, tags, params, whereClauses, TABLE_NAME);
+      TagUtils.addTagsClause(connection, tags, params, whereClauses, TABLE_NAME);
     } catch (SQLException e) {
       throw new IllegalArgumentException(
           "Failed to convert dataset request tags list to SQL array", e);
@@ -807,6 +808,31 @@ public class DatasetDao {
         new MapSqlParameterSource()
             .addValue("predictable_file_ids", predictableFileIds)
             .addValue("id", id);
+
+    int rowsAffected = jdbcTemplate.update(sql, params);
+
+    return (rowsAffected == 1);
+  }
+
+  /**
+   * @param id dataset UUID
+   * @param add tags to add to the dataset
+   * @param remove tags to remove from the dataset
+   * @return whether the dataset record was updated
+   */
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public boolean updateTags(UUID id, List<String> add, List<String> remove) {
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+
+    String updateTagsExpression;
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      updateTagsExpression = TagUtils.updateTagsExpression(connection, add, remove, params);
+    } catch (SQLException e) {
+      throw new IllegalArgumentException(
+          "Failed to convert dataset tag update lists to SQL arrays", e);
+    }
+
+    String sql = "UPDATE dataset SET tags = %s WHERE id = :id".formatted(updateTagsExpression);
 
     int rowsAffected = jdbcTemplate.update(sql, params);
 

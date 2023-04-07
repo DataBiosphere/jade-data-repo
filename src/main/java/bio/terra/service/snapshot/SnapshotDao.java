@@ -6,6 +6,7 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.DaoUtils.UuidMapper;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.common.TagUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
@@ -674,7 +675,7 @@ public class SnapshotDao {
     DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "snapshot_source.dataset_id");
     try (Connection connection = jdbcDataSource.getConnection()) {
-      DaoUtils.addTagsClause(connection, tags, params, whereClauses, TABLE_NAME);
+      TagUtils.addTagsClause(connection, tags, params, whereClauses, TABLE_NAME);
     } catch (SQLException e) {
       throw new IllegalArgumentException(
           "Failed to convert snapshot request tags list to SQL array", e);

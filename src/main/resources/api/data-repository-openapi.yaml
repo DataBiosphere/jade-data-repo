@@ -2388,6 +2388,58 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: dataDeletionRequest
+  /api/repository/v1/datasets/{id}/updateTags:
+    patch:
+      tags:
+        - datasets
+        - repository
+      description: Update tags on dataset
+      operationId: updateDatasetTags
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: add
+          in: query
+          description: Tags to add to the dataset
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Tag'
+        - name: remove
+          in: query
+          description: Tags to remove from the dataset
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Tag'
+      responses:
+        200:
+          description: Dataset summary with updated tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetSummaryModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - dataset does not exist
+            or the caller is missing permissions to modify its metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/register/user:
     get:
       tags:

@@ -668,6 +668,14 @@ public class DatasetService {
         .submit();
   }
 
+  public DatasetSummaryModel updateTags(UUID id, List<String> add, List<String> remove) {
+    boolean updateSucceeded = datasetDao.updateTags(id, add, remove);
+    if (!updateSucceeded) {
+      throw new RuntimeException("Dataset tags were not updated");
+    }
+    return datasetDao.retrieveSummaryById(id).toModel();
+  }
+
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {
     return Arrays.stream(
             StringUtils.split(DatasetsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))

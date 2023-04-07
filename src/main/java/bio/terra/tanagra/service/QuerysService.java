@@ -239,9 +239,7 @@ public class QuerysService {
 
     // Build the ORDER BY variables using the default direction.
     List<OrderByVariable> orderByVars =
-        attributeFieldVars.stream()
-            .map(OrderByVariable::new)
-            .collect(Collectors.toList());
+        attributeFieldVars.stream().map(OrderByVariable::new).collect(Collectors.toList());
 
     Query query =
         new Query.Builder()

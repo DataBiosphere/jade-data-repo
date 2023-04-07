@@ -4,6 +4,7 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.SystemException;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -11,24 +12,70 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.text.StringSubstitutor;
 
-public class UpdateFromSelect implements SQLExpression {
+public class UpdateFromValues implements SQLExpression {
   private final TableVariable updateTable;
   private final Map<FieldVariable, FieldVariable> setFields;
   private final Query selectQuery;
   private final FieldVariable updateJoinField;
   private final FieldVariable selectJoinField;
+  private final Collection<RowResult> rows;
 
-  public UpdateFromSelect(
+  public UpdateFromValues(
       TableVariable updateTable,
       Map<FieldVariable, FieldVariable> setFields,
       Query selectQuery,
       FieldVariable updateJoinField,
-      FieldVariable selectJoinField) {
+      FieldVariable selectJoinField,
+      Collection<RowResult> rows) {
     this.updateTable = updateTable;
     this.setFields = setFields;
     this.selectQuery = selectQuery;
     this.updateJoinField = updateJoinField;
     this.selectJoinField = selectJoinField;
+    this.rows = rows;
+  }
+
+  /*
+  SELECT * FROM UNNEST([STRUCT<name STRING, age INT64>
+    ('david',10), ('tom', 20), ('jon', 30)
+  ])
+   */
+
+  private String renderLiteralData(TableVariable nestedTableVar, CloudPlatform platform) {
+    RowResult firstRow = rows.iterator().next();
+
+    List<FieldVariable> selectVars = new ArrayList<>(setFields.values());
+    // FIXME: there should be a way to do this without hardcoding "id".
+    selectVars.add(
+        new FieldVariable(new FieldPointer.Builder().columnName("id").build(), nestedTableVar));
+
+    String fields =
+        selectVars.stream()
+            .map(
+                fieldVariable ->
+                    fieldVariable.getFieldPointer().getColumnName()
+                        + " "
+                        + firstRow.get(fieldVariable.getAliasOrColumnName()).dataType())
+            .collect(Collectors.joining(", "));
+
+    String values =
+        rows.stream()
+            .map(
+                rowResult ->
+                    selectVars.stream()
+                        .map(FieldVariable::getFieldPointer)
+                        .map(FieldPointer::getColumnName)
+                        .map(rowResult::get)
+                        .flatMap(cellValue -> cellValue.getLiteral().stream())
+                        .map(literal -> literal.renderSQL(platform))
+                        .collect(Collectors.joining(",", "(", ")")))
+            .collect(Collectors.joining(","));
+
+    String template = "(SELECT * FROM UNNEST([STRUCT<${fields}> ${values}])) AS ${alias}";
+    return StringSubstitutor.replace(
+        template,
+        Map.of(
+            "fields", fields, "values", values, "alias", selectQuery.getPrimaryTable().getAlias()));
   }
 
   @Override
@@ -95,7 +142,7 @@ public class UpdateFromSelect implements SQLExpression {
         ImmutableMap.<String, String>builder()
             .put("updateTableSQL", updateTable.renderSQL(platform))
             .put("setFieldsSQL", setFieldsSQL)
-            .put("selectTableSQL", nestedTableVar.renderSQL(platform))
+            .put("selectTableSQL", renderLiteralData(nestedTableVar, platform))
             .put("updateJoinFieldSQL", updateJoinField.renderSQL(platform))
             .put("selectJoinField", selectJoinFieldForNestedVar.renderSQL(platform))
             .build();

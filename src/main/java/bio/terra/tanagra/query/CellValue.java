@@ -21,37 +21,23 @@ public interface CellValue {
     FLOAT;
 
     public static SQLDataType fromUnderlayDataType(Literal.DataType underlayDataType) {
-      switch (underlayDataType) {
-        case INT64:
-          return INT64;
-        case STRING:
-          return STRING;
-        case BOOLEAN:
-          return BOOLEAN;
-        case DATE:
-          return DATE;
-        case DOUBLE:
-          return FLOAT;
-        default:
-          throw new SystemException("Unknown underlay data type: " + underlayDataType);
-      }
+      return switch (underlayDataType) {
+        case INT64 -> INT64;
+        case STRING -> STRING;
+        case BOOLEAN -> BOOLEAN;
+        case DATE -> DATE;
+        case DOUBLE -> FLOAT;
+      };
     }
 
     public Literal.DataType toUnderlayDataType() {
-      switch (this) {
-        case INT64:
-          return Literal.DataType.INT64;
-        case STRING:
-          return Literal.DataType.STRING;
-        case BOOLEAN:
-          return Literal.DataType.BOOLEAN;
-        case DATE:
-          return Literal.DataType.DATE;
-        case FLOAT:
-          return Literal.DataType.DOUBLE;
-        default:
-          throw new SystemException("Unknown SQL data type: " + this);
-      }
+      return switch (this) {
+        case INT64 -> Literal.DataType.INT64;
+        case STRING -> Literal.DataType.STRING;
+        case BOOLEAN -> Literal.DataType.BOOLEAN;
+        case DATE -> Literal.DataType.DATE;
+        case FLOAT -> Literal.DataType.DOUBLE;
+      };
     }
   }
 

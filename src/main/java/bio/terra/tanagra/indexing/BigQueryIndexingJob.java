@@ -12,9 +12,10 @@ import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
+import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
-import bio.terra.tanagra.query.UpdateFromSelect;
+import bio.terra.tanagra.query.UpdateFromValues;
 import bio.terra.tanagra.query.filtervariable.BinaryFilterVariable;
 import bio.terra.tanagra.underlay.DataPointer;
 import bio.terra.tanagra.underlay.Entity;
@@ -186,9 +187,11 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
             .findFirst()
             .get();
 
-    UpdateFromSelect updateQuery =
-        new UpdateFromSelect(entityTable, updateFields, selectQuery, updateIdField, selectIdField);
-    LOGGER.info("Generated SQL: {}", updateQuery);
+    var rows = executors.source().readTableRows(selectQuery);
+
+    SQLExpression updateQuery =
+        new UpdateFromValues(
+            entityTable, updateFields, selectQuery, updateIdField, selectIdField, rows);
     try {
       insertUpdateTableFromSelect(executors.index().renderSQL(updateQuery), isDryRun);
     } catch (BigQueryException bqEx) {

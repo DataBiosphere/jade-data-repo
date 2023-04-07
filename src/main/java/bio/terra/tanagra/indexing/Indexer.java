@@ -202,7 +202,8 @@ public final class Indexer {
     if (entity.getTextSearch().isEnabled()) {
       jobSet.addJob(new BuildTextSearchStrings(entity));
     }
-    entity.getHierarchies()
+    entity
+        .getHierarchies()
         .forEach(
             hierarchy -> {
               jobSet.addJob(new WriteParentChildIdPairs(entity, hierarchy.getName()));

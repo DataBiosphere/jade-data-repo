@@ -12,7 +12,6 @@ import bio.terra.tanagra.underlay.datapointer.BigQueryDataset;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,10 +28,13 @@ public class CreateEntityTable extends BigQueryIndexingJob {
   @Override
   public void run(boolean isDryRun, Indexer.Executors executors) {
     // Build field schemas for entity attributes.
-    List<Field> fields = getEntity().getAttributes()
-        .stream().flatMap(attribute -> attribute.getMapping(Underlay.MappingType.INDEX)
-            .buildColumnSchemas().stream())
-        .map(this::fromColumnSchema).collect(Collectors.toList());
+    List<Field> fields =
+        getEntity().getAttributes().stream()
+            .flatMap(
+                attribute ->
+                    attribute.getMapping(Underlay.MappingType.INDEX).buildColumnSchemas().stream())
+            .map(this::fromColumnSchema)
+            .collect(Collectors.toList());
 
     // Build field schemas for text mapping.
     if (getEntity().getTextSearch().isEnabled()) {
@@ -50,7 +52,8 @@ public class CreateEntityTable extends BigQueryIndexingJob {
 
     // Build field schemas for hierarchy fields: path, num_children.
     // The other two hierarchy fields, is_root and is_member, are calculated from path.
-    getEntity().getHierarchies()
+    getEntity()
+        .getHierarchies()
         .forEach(
             hierarchy -> {
               fields.add(
@@ -62,7 +65,8 @@ public class CreateEntityTable extends BigQueryIndexingJob {
             });
 
     // Build field schemas for relationship fields: count, display_hints.
-    getEntity().getRelationships()
+    getEntity()
+        .getRelationships()
         .forEach(
             relationship ->
                 relationship.getFields().stream()

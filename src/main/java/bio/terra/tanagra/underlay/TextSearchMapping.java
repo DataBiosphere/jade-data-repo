@@ -55,12 +55,12 @@ public final class TextSearchMapping {
     }
 
     if (serialized.getAttributes() != null) {
-      if (serialized.getAttributes().size() == 0) {
+      if (serialized.getAttributes().isEmpty()) {
         throw new InvalidConfigException("Text search mapping list of attributes is empty");
       }
       List<Attribute> attributesForTextSearch =
           serialized.getAttributes().stream()
-              .map(a -> entityAttributes.get(a))
+              .map(entityAttributes::get)
               .collect(Collectors.toList());
       return new Builder().attributes(attributesForTextSearch).mappingType(mappingType).build();
     }
@@ -110,6 +110,7 @@ public final class TextSearchMapping {
                           if (Literal.DataType.STRING != attribute.getDataType()) {
                             textField =
                                 textField.toBuilder()
+                                    // FIXME: was STRING in BQ, MS SQL wants VARCHAR
                                     .sqlFunctionWrapper("CAST(${fieldSql} AS VARCHAR)")
                                     .build();
                           }

@@ -60,7 +60,7 @@ public final class TableVariable implements SQLExpression {
       sql = StringSubstitutor.replace(template, params);
     }
 
-    if (joinField != null) {
+    if (joinField != null && joinFieldOnParent != null) {
       template =
           "${joinType} ${tableReference} ON ${tableAlias}.${joinField} = ${joinFieldOnParent}";
       params =

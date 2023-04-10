@@ -327,7 +327,7 @@ public class AzureSynapsePdaoConnectedTest {
             "",
             CollectionType.SNAPSHOT);
     assertThat(
-        "Total row count should be 0 since we didn't include it in the query",
+        "We should not include total row count for snapshots",
         results.get(0).getTotalCount(),
         equalTo(0));
     List<Map<String, Optional<Object>>> tableData =

@@ -249,7 +249,7 @@ public abstract class BigQueryPdao {
                       rowData.put(columnName, value);
                     }
                   });
-              values.add(resultModel.rowResult(rowData).rowResult(rowData));
+              values.add(resultModel.rowResult(rowData));
             });
     return values;
   }

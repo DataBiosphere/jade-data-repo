@@ -48,11 +48,14 @@ public class DatasetIngestRequestValidatorTest {
   @Autowired private MockMvc mvc;
   @MockBean private DatasetService datasetService;
 
+  private MvcResult postRequest(String url, String content) throws Exception {
+    return mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(content))
+        .andExpect(status().is4xxClientError())
+        .andReturn();
+  }
+
   private ErrorModel expectBadPostRequest(String url, String content) throws Exception {
-    MvcResult result =
-        mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(content))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
+    MvcResult result = postRequest(url, content);
     MockHttpServletResponse response = result.getResponse();
     String responseBody = response.getContentAsString();
     assertTrue(
@@ -246,14 +249,8 @@ public class DatasetIngestRequestValidatorTest {
             .loadControlFile("gs://foo/bar.json")
             .loadTag("")
             .bulkMode(true);
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/files/bulk", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
+    String url = String.format("/api/repository/v1/datasets/%s/files/bulk", UUID.randomUUID());
+    var invalidResult = postRequest(url, TestUtils.mapToJson(invalidIngest));
     Exception ex = invalidResult.getResolvedException();
     assertNotNull(ex);
     assertEquals("Load tag is required for isBulkMode", ex.getMessage());
@@ -271,18 +268,11 @@ public class DatasetIngestRequestValidatorTest {
                     new BulkLoadFileModel()
                         .sourcePath("gs://foo/source.txt")
                         .targetPath("/foo/bar")));
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format(
-                    "/api/repository/v1/datasets/%s/files/bulk/array", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
+    String url =
+        String.format("/api/repository/v1/datasets/%s/files/bulk/array", UUID.randomUUID());
+    var invalidResult = postRequest(url, TestUtils.mapToJson(invalidIngest));
     Exception ex = invalidResult.getResolvedException();
     assertNotNull(ex);
     assertEquals("Load tag is required for isBulkMode", ex.getMessage());
   }
-
 }

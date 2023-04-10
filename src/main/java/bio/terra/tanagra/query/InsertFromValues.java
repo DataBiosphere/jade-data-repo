@@ -7,7 +7,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.text.StringSubstitutor;
 
 public class InsertFromValues implements SQLExpression {
@@ -27,10 +26,11 @@ public class InsertFromValues implements SQLExpression {
   @Override
   public String renderSQL(CloudPlatform platform) {
     // list the insert field names in the same order as the select fields
-    List<String> sortedColumns = valueFields.entrySet().stream()
-        .sorted(Comparator.comparing(p -> p.getValue().getAliasOrColumnName()))
-        .map(Map.Entry::getKey)
-        .toList();
+    List<String> sortedColumns =
+        valueFields.entrySet().stream()
+            .sorted(Comparator.comparing(p -> p.getValue().getAliasOrColumnName()))
+            .map(Map.Entry::getKey)
+            .toList();
 
     String insertFieldsSQL = String.join(", ", sortedColumns);
 

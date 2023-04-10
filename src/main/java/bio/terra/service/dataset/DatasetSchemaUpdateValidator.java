@@ -35,14 +35,14 @@ public class DatasetSchemaUpdateValidator implements Validator {
         datasetRequestValidator.validateTable(tableModel, errors, context);
       }
       List<String> newTableNames = DatasetSchemaUpdateUtils.getNewTableNames(updateModel);
-      Object[] duplicateTables = new Object[0];
-      newTableNames.stream()
-          .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
-          .entrySet()
-          .stream()
-          .filter(e -> e.getValue() > 1L)
-          .map(Map.Entry::getKey)
-          .toArray();
+      Object[] duplicateTables =
+          newTableNames.stream()
+              .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+              .entrySet()
+              .stream()
+              .filter(e -> e.getValue() > 1L)
+              .map(Map.Entry::getKey)
+              .toArray();
       if (duplicateTables.length > 0) {
         errors.rejectValue(
             "changes.addTables",

@@ -12,6 +12,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -25,6 +27,9 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
@@ -861,6 +866,53 @@ public class DatasetRequestValidatorTest {
         "Validator catches invalid 'records' and 'format' combo",
         payloadIsPresentError,
         containsString("Records should not be specified when ingesting from a path"));
+  }
+
+  @Test
+  public void testBulkIngestRequiresLoadTag() throws Exception {
+    var invalidIngest =
+        new BulkLoadRequestModel()
+            .profileId(UUID.randomUUID())
+            .loadControlFile("gs://foo/bar.json")
+            .loadTag("")
+            .bulkMode(true);
+
+    var invalidResult =
+        mvc.perform(
+                post(String.format("/api/repository/v1/datasets/%s/files/bulk", UUID.randomUUID()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(invalidIngest)))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+    Exception ex = invalidResult.getResolvedException();
+    assertNotNull(ex);
+    assertEquals("Load tag is required for isBulkMode", ex.getMessage());
+  }
+
+  @Test
+  public void testBulkArrayIngestRequiresLoadTag() throws Exception {
+    var invalidIngest =
+        new BulkLoadArrayRequestModel()
+            .profileId(UUID.randomUUID())
+            .loadTag("")
+            .bulkMode(true)
+            .loadArray(
+                List.of(
+                    new BulkLoadFileModel()
+                        .sourcePath("gs://foo/source.txt")
+                        .targetPath("/foo/bar")));
+
+    var invalidResult =
+        mvc.perform(
+                post(String.format(
+                        "/api/repository/v1/datasets/%s/files/bulk/array", UUID.randomUUID()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtils.mapToJson(invalidIngest)))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+    Exception ex = invalidResult.getResolvedException();
+    assertNotNull(ex);
+    assertEquals("Load tag is required for isBulkMode", ex.getMessage());
   }
 
   @Test

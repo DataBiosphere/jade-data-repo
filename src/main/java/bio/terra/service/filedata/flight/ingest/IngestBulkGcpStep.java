@@ -417,7 +417,7 @@ public abstract class IngestBulkGcpStep extends DefaultUndoStep {
     for (var writeBatch : writeBatches) {
       i++;
       logger.info("Writing batch {} of {}", i, writeBatches.size());
-      fileDao.createFileMetadata(dataset, writeBatch);
+      fileDao.upsertFileMetadata(dataset, writeBatch);
     }
     // Retrieve documents from to build the complete FSItems
     List<FSFile> fsItems = new ArrayList<>(fileIdsByPath.size());

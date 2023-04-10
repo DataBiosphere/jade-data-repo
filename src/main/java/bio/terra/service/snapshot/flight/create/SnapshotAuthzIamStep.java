@@ -3,11 +3,14 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -39,9 +42,14 @@ public class SnapshotAuthzIamStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+    SnapshotRequestModelPolicies derivedPolicies = sam.deriveSnapshotPolicies(snapshotRequestModel);
+    if (snapshotRequestModel.getDuosId() != null) {
+      DuosFirecloudGroupModel duosFirecloudGroup =
+          SnapshotDuosFlightUtils.getFirecloudGroup(context);
+      derivedPolicies.addReadersItem(duosFirecloudGroup.getFirecloudGroupEmail());
+    }
     Map<IamRole, String> policies =
-        sam.createSnapshotResource(
-            userReq, snapshotId, sam.deriveSnapshotPolicies(snapshotRequestModel));
+        sam.createSnapshotResource(userReq, snapshotId, derivedPolicies);
     workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policies);
     return StepResult.getStepResultSuccess();
   }

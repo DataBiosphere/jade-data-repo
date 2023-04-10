@@ -49,6 +49,7 @@ import bio.terra.model.SnapshotLinkDuosDatasetResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -82,6 +83,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.SnapshotService.SnapshotAccessibleResult;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
@@ -866,6 +868,59 @@ public class SnapshotServiceTest {
 
     verify(ecmService).getRasProviderPassport(TEST_USER);
     verify(ecmService).validatePassport(any());
+  }
+
+  private SnapshotRequestModel getDuosSnapshotRequestModel(String duosId) {
+    String sourceDatasetName = "TestSourceDataset";
+    Dataset sourceDataset = new Dataset().name(sourceDatasetName);
+    when(datasetService.retrieveByName(sourceDatasetName)).thenReturn(sourceDataset);
+    return new SnapshotRequestModel()
+        .name("TestSnapshot")
+        .profileId(UUID.randomUUID())
+        .duosId(duosId)
+        .contents(List.of(new SnapshotRequestContentsModel().datasetName(sourceDatasetName)));
+  }
+
+  @Test
+  public void testCreateSnapshotWithoutDuosDataset() {
+    SnapshotRequestModel request = getDuosSnapshotRequestModel(null);
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
+    String jobId = String.valueOf(UUID.randomUUID());
+    when(jobBuilder.submit()).thenReturn(jobId);
+
+    String result = service.createSnapshot(request, TEST_USER);
+    assertThat("Job is submitted and id returned", result, equalTo(jobId));
+    verify(duosClient, never()).getDataset(DUOS_ID, TEST_USER);
+    verify(jobBuilder).submit();
+  }
+
+  @Test
+  public void testCreateSnapshotWithDuosDataset() {
+    SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    when(jobService.newJob(anyString(), eq(SnapshotCreateFlight.class), eq(request), eq(TEST_USER)))
+        .thenReturn(jobBuilder);
+    when(jobBuilder.addParameter(any(), any())).thenReturn(jobBuilder);
+    String jobId = String.valueOf(UUID.randomUUID());
+    when(jobBuilder.submit()).thenReturn(jobId);
+
+    String result = service.createSnapshot(request, TEST_USER);
+    assertThat("Job is submitted and id returned", result, equalTo(jobId));
+    verify(duosClient).getDataset(DUOS_ID, TEST_USER);
+    verify(jobBuilder).submit();
+  }
+
+  @Test
+  public void testCreateSnapshotThrowsWhenDuosClientThrows() {
+    SnapshotRequestModel request = getDuosSnapshotRequestModel(DUOS_ID);
+    HttpClientErrorException expectedEx = new HttpClientErrorException(HttpStatus.I_AM_A_TEAPOT);
+    when(duosClient.getDataset(DUOS_ID, TEST_USER)).thenThrow(expectedEx);
+    assertThrows(HttpClientErrorException.class, () -> service.createSnapshot(request, TEST_USER));
+    JobBuilder jobBuilder = mock(JobBuilder.class);
+    verifyNoInteractions(jobBuilder);
   }
 
   private void mockSnapshotWithDuosDataset() {

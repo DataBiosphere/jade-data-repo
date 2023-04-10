@@ -4833,6 +4833,8 @@ components:
           description: Description of the snapshot
         consentCode:
           $ref: '#/components/schemas/ConsentCode'
+        duosId:
+          $ref: '#/components/schemas/DuosId'
         contents:
           type: array
           items:

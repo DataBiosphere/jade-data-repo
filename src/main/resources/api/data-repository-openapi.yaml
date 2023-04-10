@@ -4298,6 +4298,8 @@ components:
       required:
         - format
         - table
+        - max_bad_records
+        - max_failed_file_loads
       type: object
       properties:
         table:
@@ -4627,6 +4629,7 @@ components:
         - loadControlFile
         - loadTag
         - profileId
+        - maxFailedFileLoads
       type: object
       properties:
         profileId:
@@ -4667,6 +4670,7 @@ components:
         - loadArray
         - loadTag
         - profileId
+        - maxFailedFileLoads
       type: object
       properties:
         profileId:

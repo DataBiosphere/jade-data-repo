@@ -88,7 +88,6 @@ public class AzureExecutor implements QueryExecutor {
 
   @Override
   public QueryResult execute(QueryRequest queryRequest) {
-
     String sql = renderSQL(queryRequest.query());
     LOGGER.info("Running SQL against {}: {}", getCloudPlatform(), sql);
 

@@ -99,11 +99,16 @@ public class Literal implements SQLExpression {
     }
   }
 
+  // FIXME: for now, "escape" sql strings by mapping single quote to curly quote.
+  private static String sqlEscape(String s) {
+    return s.replace("'", "’");
+  }
+
   @Override
   public String renderSQL(CloudPlatform platform) {
     // TODO: use named parameters for literals to protect against SQL injection
     return switch (dataType) {
-      case STRING -> stringVal == null ? "NULL" : "'" + stringVal + "'";
+      case STRING -> stringVal == null ? "NULL" : "'" + sqlEscape(stringVal) + "'";
       case INT64 -> String.valueOf(int64Val);
       case BOOLEAN -> String.valueOf(booleanVal);
       case DATE -> "DATE('" + dateVal.toString() + "')";

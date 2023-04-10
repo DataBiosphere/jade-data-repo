@@ -7,48 +7,37 @@ import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.PARENT_COLUMN_NA
 
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
 import bio.terra.tanagra.indexing.Indexer;
-import bio.terra.tanagra.indexing.job.beam.GraphUtils;
+import bio.terra.tanagra.query.FieldPointer;
+import bio.terra.tanagra.query.FieldVariable;
+import bio.terra.tanagra.query.InsertFromValues;
+import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.TablePointer;
+import bio.terra.tanagra.query.TableVariable;
 import bio.terra.tanagra.underlay.Entity;
 import bio.terra.tanagra.underlay.HierarchyMapping;
 import bio.terra.tanagra.underlay.Underlay;
-import com.google.api.services.bigquery.model.TableFieldSchema;
-import com.google.api.services.bigquery.model.TableRow;
-import com.google.api.services.bigquery.model.TableSchema;
-import java.util.List;
-import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
-import org.apache.beam.sdk.transforms.Distinct;
-import org.apache.beam.sdk.transforms.DoFn;
-import org.apache.beam.sdk.transforms.MapElements;
-import org.apache.beam.sdk.transforms.ParDo;
-import org.apache.beam.sdk.values.KV;
-import org.apache.beam.sdk.values.PCollection;
-import org.apache.beam.sdk.values.TypeDescriptors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import bio.terra.tanagra.underlay.datapointer.BigQueryDataset;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
+import com.google.cloud.bigquery.TableId;
+import java.util.Map;
 
 /**
  * A batch Apache Beam pipeline for flattening hierarchical parent-child relationships to
  * ancestor-descendant relationships.
  */
 public class WriteAncestorDescendantIdPairs extends BigQueryIndexingJob {
-  private static final Logger LOGGER = LoggerFactory.getLogger(WriteParentChildIdPairs.class);
-
   // The default table schema for the ancestor-descendant output table.
-  private static final TableSchema ANCESTOR_DESCENDANT_TABLE_SCHEMA =
-      new TableSchema()
-          .setFields(
-              List.of(
-                  new TableFieldSchema()
-                      .setName(ANCESTOR_COLUMN_NAME)
-                      .setType("INTEGER")
-                      .setMode("REQUIRED"),
-                  new TableFieldSchema()
-                      .setName(DESCENDANT_COLUMN_NAME)
-                      .setType("INTEGER")
-                      .setMode("REQUIRED")));
+  private static final Schema ANCESTOR_DESCENDANT_TABLE_SCHEMA =
+      Schema.of(
+          Field.newBuilder(ANCESTOR_COLUMN_NAME, StandardSQLTypeName.INT64)
+              .setMode(Field.Mode.REQUIRED)
+              .build(),
+          Field.newBuilder(DESCENDANT_COLUMN_NAME, StandardSQLTypeName.INT64)
+              .setMode(Field.Mode.REQUIRED)
+              .build());
 
   private final String hierarchyName;
 
@@ -68,43 +57,41 @@ public class WriteAncestorDescendantIdPairs extends BigQueryIndexingJob {
 
   @Override
   public void run(boolean isDryRun, Indexer.Executors executors) {
+
+    // Read hierarchy pairs.
     HierarchyMapping sourceHierarchyMapping =
         getEntity().getHierarchy(hierarchyName).getMapping(Underlay.MappingType.SOURCE);
-    SQLExpression selectChildParentIdPairs =
+    Query selectChildParentIdPairs =
         sourceHierarchyMapping.queryChildParentPairs(CHILD_COLUMN_NAME, PARENT_COLUMN_NAME);
-    String sql = executors.source().renderSQL(selectChildParentIdPairs);
-    LOGGER.info("select all child-parent id pairs SQL: {}", sql);
+    var relationships = executors.source().readTableRows(selectChildParentIdPairs);
 
-    Pipeline pipeline =
-        Pipeline.create(buildDataflowPipelineOptions(getBQDataPointer(getAuxiliaryTable())));
-    PCollection<KV<Long, Long>> relationships =
-        pipeline
-            .apply(
-                "read parent-child query result",
-                BigQueryIO.readTableRows()
-                    .fromQuery(sql)
-                    .withMethod(BigQueryIO.TypedRead.Method.EXPORT)
-                    .usingStandardSql())
-            .apply(
-                MapElements.into(
-                        TypeDescriptors.kvs(TypeDescriptors.longs(), TypeDescriptors.longs()))
-                    .via(WriteAncestorDescendantIdPairs::relationshipRowToKV));
-    PCollection<KV<Long, Long>> flattenedRelationships =
-        GraphUtils.transitiveClosure(relationships, sourceHierarchyMapping.getMaxHierarchyDepth())
-            .apply(Distinct.create()); // There may be duplicate descendants.
-    flattenedRelationships
-        .apply(ParDo.of(new KVToTableRow()))
-        .apply(
-            BigQueryIO.writeTableRows()
-                .to(getAuxiliaryTable().getPathForIndexing())
-                .withSchema(ANCESTOR_DESCENDANT_TABLE_SCHEMA)
-                .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
-                .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_EMPTY)
-                .withMethod(BigQueryIO.Write.Method.FILE_LOADS));
+    // Create pairs table.
+    BigQueryDataset indexDataset = getBQDataPointer(getAuxiliaryTable());
+    TableId auxTableId =
+        TableId.of(
+            indexDataset.getProjectId(),
+            indexDataset.getDatasetId(),
+            getAuxiliaryTable().getTableName());
+    indexDataset
+        .getBigQueryService()
+        .createTableFromSchema(auxTableId, ANCESTOR_DESCENDANT_TABLE_SCHEMA, isDryRun);
 
-    if (!isDryRun) {
-      pipeline.run().waitUntilFinish();
-    }
+    // Write pairs to table.
+    TableVariable outputTable = TableVariable.forPrimary(getAuxiliaryTable());
+    SQLExpression insertQuery =
+        new InsertFromValues(
+            outputTable,
+            Map.of(
+                PARENT_COLUMN_NAME,
+                new FieldVariable(
+                    new FieldPointer.Builder().columnName(ANCESTOR_COLUMN_NAME).build(),
+                    outputTable),
+                CHILD_COLUMN_NAME,
+                new FieldVariable(
+                    new FieldPointer.Builder().columnName(DESCENDANT_COLUMN_NAME).build(),
+                    outputTable)),
+            relationships);
+    insertUpdateTableFromSelect(executors.index().renderSQL(insertQuery), isDryRun);
   }
 
   @Override
@@ -128,31 +115,5 @@ public class WriteAncestorDescendantIdPairs extends BigQueryIndexingJob {
         .getMapping(Underlay.MappingType.INDEX)
         .getAncestorDescendant()
         .getTablePointer();
-  }
-
-  /** Parses a {@link TableRow} as a row containing a (parent_id, child_id) long pair. */
-  private static KV<Long, Long> relationshipRowToKV(TableRow row) {
-    // TODO: Support id data types other than longs.
-    Long parentId = Long.parseLong((String) row.get(PARENT_COLUMN_NAME));
-    Long childId = Long.parseLong((String) row.get(CHILD_COLUMN_NAME));
-    return KV.of(parentId, childId);
-  }
-
-  /**
-   * Converts a KV pair to a BQ TableRow object. This DoFn is defined in a separate static class
-   * instead of an anonymous inner (inline) one so that it will be Serializable. Anonymous inner
-   * classes include a pointer to the containing class, which here is not Serializable.
-   */
-  private static class KVToTableRow extends DoFn<KV<Long, Long>, TableRow> {
-    @ProcessElement
-    public void processElement(ProcessContext context) {
-      Long ancestor = context.element().getKey();
-      Long descendant = context.element().getValue();
-      TableRow row =
-          new TableRow()
-              .set(ANCESTOR_COLUMN_NAME, ancestor)
-              .set(DESCENDANT_COLUMN_NAME, descendant);
-      context.output(row);
-    }
   }
 }

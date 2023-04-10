@@ -144,7 +144,7 @@ public final class HierarchyMapping {
         Underlay.MappingType.INDEX);
   }
 
-  public SQLExpression queryChildParentPairs(String childFieldAlias, String parentFieldAlias) {
+  public Query queryChildParentPairs(String childFieldAlias, String parentFieldAlias) {
     TableVariable childParentTableVar = TableVariable.forPrimary(childParent.getTablePointer());
     FieldVariable childFieldVar =
         new FieldVariable(
@@ -162,7 +162,7 @@ public final class HierarchyMapping {
         .build();
   }
 
-  public SQLExpression queryPossibleRootNodes(String idFieldAlias) {
+  public Query queryPossibleRootNodes(String idFieldAlias) {
     TableVariable possibleRootNodesTableVar =
         TableVariable.forPrimary(rootNodesFilter.getTablePointer());
     FieldVariable idFieldVar =
@@ -176,7 +176,7 @@ public final class HierarchyMapping {
         .build();
   }
 
-  public SQLExpression queryAncestorDescendantPairs(
+  public Query queryAncestorDescendantPairs(
       String ancestorFieldAlias, String descendantFieldAlias) {
     TableVariable ancestorDescendantTableVar =
         TableVariable.forPrimary(ancestorDescendant.getTablePointer());

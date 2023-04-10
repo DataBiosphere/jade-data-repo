@@ -4,9 +4,10 @@ import bio.terra.model.CloudPlatform;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.commons.text.StringSubstitutor;
 
 public class InsertFromValues implements SQLExpression {
@@ -26,13 +27,15 @@ public class InsertFromValues implements SQLExpression {
   @Override
   public String renderSQL(CloudPlatform platform) {
     // list the insert field names in the same order as the select fields
-    String insertFieldsSQL =
-        valueFields.entrySet().stream()
-            .sorted(Comparator.comparing(p -> p.getValue().getAliasOrColumnName()))
-            .map(Map.Entry::getKey)
-            .collect(Collectors.joining(", "));
+    List<String> sortedColumns = valueFields.entrySet().stream()
+        .sorted(Comparator.comparing(p -> p.getValue().getAliasOrColumnName()))
+        .map(Map.Entry::getKey)
+        .toList();
+
+    String insertFieldsSQL = String.join(", ", sortedColumns);
 
     String template = "INSERT INTO ${insertTableSQL} (${insertFieldsSQL}) VALUES ${values}";
+    Literal nullLiteral = new Literal(null);
     Map<String, String> params =
         ImmutableMap.<String, String>builder()
             .put("insertTableSQL", insertTable.renderSQL(platform))
@@ -42,9 +45,9 @@ public class InsertFromValues implements SQLExpression {
                 values.stream()
                     .map(
                         rowResult ->
-                            IntStream.range(0, rowResult.size())
-                                .mapToObj(rowResult::get)
-                                .flatMap(cellValue -> cellValue.getLiteral().stream())
+                            sortedColumns.stream()
+                                .map(rowResult::get)
+                                .map(cellValue -> cellValue.getLiteral().orElse(nullLiteral))
                                 .map(literal -> literal.renderSQL(platform))
                                 .collect(Collectors.joining(",", "(", ")")))
                     .collect(Collectors.joining(",")))

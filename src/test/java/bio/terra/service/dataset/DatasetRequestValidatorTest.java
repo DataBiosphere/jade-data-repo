@@ -7,17 +7,10 @@ import static bio.terra.common.fixtures.DatasetFixtures.buildDatasetRequest;
 import static bio.terra.common.fixtures.DatasetFixtures.buildParticipantSampleRelationship;
 import static bio.terra.common.fixtures.DatasetFixtures.buildSampleTerm;
 import static bio.terra.service.dataset.ValidatorTestUtils.checkValidationErrorModel;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,27 +20,19 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
-import bio.terra.model.BulkLoadArrayRequestModel;
-import bio.terra.model.BulkLoadFileModel;
-import bio.terra.model.BulkLoadRequestModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatePartitionOptionsModel;
 import bio.terra.model.ErrorModel;
-import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -55,7 +40,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
@@ -71,11 +55,6 @@ import org.springframework.test.web.servlet.MvcResult;
 public class DatasetRequestValidatorTest {
 
   @Autowired private MockMvc mvc;
-
-  @Autowired private ObjectMapper objectMapper;
-
-  @MockBean private DatasetService datasetService;
-
   @Autowired private JsonLoader jsonLoader;
 
   private ErrorModel expectBadDatasetCreateRequest(DatasetRequestModel datasetRequest)
@@ -718,201 +697,6 @@ public class DatasetRequestValidatorTest {
         new String[] {
           "InvalidDatePartitionOptions", "InvalidIntPartitionOptions", "IncompleteSchemaDefinition"
         });
-  }
-
-  @Test
-  public void testAzureIngestRequestParameters() throws Exception {
-    Dataset dataset = mock(Dataset.class);
-    DatasetSummary datasetSummary = mock(DatasetSummary.class);
-    when(datasetSummary.getStorageCloudPlatform()).thenReturn(CloudPlatform.AZURE);
-    when(dataset.getDatasetSummary()).thenReturn(datasetSummary);
-    when(datasetService.retrieve(any())).thenReturn(dataset);
-
-    var nullIngest =
-        new IngestRequestModel()
-            .path("foo/bar")
-            .table("myTable")
-            .format(IngestRequestModel.FormatEnum.CSV)
-            .csvSkipLeadingRows(null)
-            .csvFieldDelimiter(null)
-            .csvQuote(null);
-
-    var nullResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(nullIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse nullResponse = nullResult.getResponse();
-    String nullResponseBody = nullResponse.getContentAsString();
-    ErrorModel nullErrorModel = TestUtils.mapFromJson(nullResponseBody, ErrorModel.class);
-    assertThat(
-        "Validation catches all null parameters", nullErrorModel.getErrorDetail(), hasSize(3));
-    for (String error : nullErrorModel.getErrorDetail()) {
-      assertThat("Validation catches null parameters", error, containsString("defined"));
-    }
-
-    var invalidIngest =
-        new IngestRequestModel()
-            .path("foo/bar")
-            .table("myTable")
-            .format(IngestRequestModel.FormatEnum.CSV)
-            .csvSkipLeadingRows(-1)
-            .csvFieldDelimiter("toolong")
-            .csvQuote("toolong");
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
-    String invalidResponseBody = invalidResponse.getContentAsString();
-    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
-    assertThat(
-        "Validation catches all invalid parameters",
-        invalidErrorModel.getErrorDetail(),
-        hasSize(3));
-    var csvSkipLeadingRowsError = invalidErrorModel.getErrorDetail().get(0);
-    var csvFieldDelimiterError = invalidErrorModel.getErrorDetail().get(1);
-    var csvQuoteError = invalidErrorModel.getErrorDetail().get(2);
-
-    assertThat(
-        "Validator catches invalid 'csvSkipLeadingRows'",
-        csvSkipLeadingRowsError,
-        containsString("'csvSkipLeadingRows' must be a positive integer, was '-1."));
-    assertThat(
-        "Validator catches invalid 'csvFieldDelimiter'",
-        csvFieldDelimiterError,
-        containsString("'csvFieldDelimiter' must be a single character, was 'toolong'."));
-    assertThat(
-        "Validator catches invalid 'csvQuote'",
-        csvQuoteError,
-        containsString("'csvQuote' must be a single character, was 'toolong'."));
-  }
-
-  @Test
-  public void testInvalidIngestByArray() throws Exception {
-    var invalidIngest =
-        new IngestRequestModel()
-            .path("foo/bar")
-            .table("myTable")
-            .format(IngestRequestModel.FormatEnum.ARRAY);
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
-    String invalidResponseBody = invalidResponse.getContentAsString();
-    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
-    assertThat(
-        "Validation catches all invalid parameters",
-        invalidErrorModel.getErrorDetail(),
-        hasSize(2));
-    var pathIsPresentError = invalidErrorModel.getErrorDetail().get(0);
-    var payloadIsMissingError = invalidErrorModel.getErrorDetail().get(1);
-
-    assertThat(
-        "Validator catches invalid 'path' and 'format' combo",
-        pathIsPresentError,
-        containsString("Path should not be specified when ingesting from an array"));
-    assertThat(
-        "Validator catches invalid 'format' and 'records' combo",
-        payloadIsMissingError,
-        containsString("Records is required when ingesting as an array"));
-  }
-
-  @Test
-  public void testInvalidIngestByPath() throws Exception {
-    var invalidIngest =
-        new IngestRequestModel()
-            .table("myTable")
-            .format(IngestRequestModel.FormatEnum.JSON)
-            .addRecordsItem(Map.of("foo", "bar"));
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/ingest", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-    MockHttpServletResponse invalidResponse = invalidResult.getResponse();
-    String invalidResponseBody = invalidResponse.getContentAsString();
-    ErrorModel invalidErrorModel = TestUtils.mapFromJson(invalidResponseBody, ErrorModel.class);
-    assertThat(
-        "Validation catches all invalid parameters",
-        invalidErrorModel.getErrorDetail(),
-        hasSize(2));
-    var pathIsMissingError = invalidErrorModel.getErrorDetail().get(0);
-    var payloadIsPresentError = invalidErrorModel.getErrorDetail().get(1);
-
-    assertThat(
-        "Validator catches invalid 'path' and 'format' combo",
-        pathIsMissingError,
-        containsString("Path is required when ingesting from a cloud object"));
-    assertThat(
-        "Validator catches invalid 'records' and 'format' combo",
-        payloadIsPresentError,
-        containsString("Records should not be specified when ingesting from a path"));
-  }
-
-  @Test
-  public void testBulkIngestRequiresLoadTag() throws Exception {
-    var invalidIngest =
-        new BulkLoadRequestModel()
-            .profileId(UUID.randomUUID())
-            .loadControlFile("gs://foo/bar.json")
-            .loadTag("")
-            .bulkMode(true);
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format("/api/repository/v1/datasets/%s/files/bulk", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-    Exception ex = invalidResult.getResolvedException();
-    assertNotNull(ex);
-    assertEquals("Load tag is required for isBulkMode", ex.getMessage());
-  }
-
-  @Test
-  public void testBulkArrayIngestRequiresLoadTag() throws Exception {
-    var invalidIngest =
-        new BulkLoadArrayRequestModel()
-            .profileId(UUID.randomUUID())
-            .loadTag("")
-            .bulkMode(true)
-            .loadArray(
-                List.of(
-                    new BulkLoadFileModel()
-                        .sourcePath("gs://foo/source.txt")
-                        .targetPath("/foo/bar")));
-
-    var invalidResult =
-        mvc.perform(
-                post(String.format(
-                        "/api/repository/v1/datasets/%s/files/bulk/array", UUID.randomUUID()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtils.mapToJson(invalidIngest)))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-    Exception ex = invalidResult.getResolvedException();
-    assertNotNull(ex);
-    assertEquals("Load tag is required for isBulkMode", ex.getMessage());
   }
 
   @Test

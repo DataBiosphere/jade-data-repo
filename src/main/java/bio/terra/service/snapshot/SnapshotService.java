@@ -167,6 +167,11 @@ public class SnapshotService {
           snapshotRequestModel.getName(),
           dataset.getDefaultProfileId());
     }
+    String duosId = snapshotRequestModel.getDuosId();
+    if (duosId != null) {
+      // We fetch the DUOS dataset to confirm its existence, but do not need the returned value.
+      duosClient.getDataset(duosId, userReq);
+    }
     return jobService
         .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
         .addParameter(CommonMapKeys.CREATED_AT, Instant.now().toEpochMilli())

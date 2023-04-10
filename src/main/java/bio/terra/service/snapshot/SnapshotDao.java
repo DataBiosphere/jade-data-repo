@@ -182,8 +182,8 @@ public class SnapshotDao {
 
     String sql =
         """
-        INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties, global_file_ids, compact_id_prefix)
-        VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb, :global_file_ids, :compact_id_prefix)
+        INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties, global_file_ids, compact_id_prefix, duos_firecloud_group_id)
+        VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb, :global_file_ids, :compact_id_prefix, :duos_firecloud_group_id)
         """;
     String creationInfo;
     try {
@@ -205,7 +205,8 @@ public class SnapshotDao {
             .addValue(
                 "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
             .addValue("global_file_ids", snapshot.hasGlobalFileIds())
-            .addValue("compact_id_prefix", snapshot.getCompactIdPrefix());
+            .addValue("compact_id_prefix", snapshot.getCompactIdPrefix())
+            .addValue("duos_firecloud_group_id", snapshot.getDuosFirecloudGroupId());
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {

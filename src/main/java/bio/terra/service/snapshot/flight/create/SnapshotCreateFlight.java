@@ -13,6 +13,8 @@ import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.duos.DuosDao;
+import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -36,6 +38,11 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
+import bio.terra.service.snapshot.flight.duos.CreateDuosFirecloudGroupStep;
+import bio.terra.service.snapshot.flight.duos.IfNoGroupRetrievedStep;
+import bio.terra.service.snapshot.flight.duos.RecordDuosFirecloudGroupStep;
+import bio.terra.service.snapshot.flight.duos.RetrieveDuosFirecloudGroupStep;
+import bio.terra.service.snapshot.flight.duos.SyncDuosFirecloudGroupStep;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -78,6 +85,8 @@ public class SnapshotCreateFlight extends Flight {
     String tdrServiceAccountEmail = appContext.getBean("tdrServiceAccountEmail", String.class);
     DrsIdService drsIdService = appContext.getBean(DrsIdService.class);
     DrsService drsService = appContext.getBean(DrsService.class);
+    DuosDao duosDao = appContext.getBean(DuosDao.class);
+    DuosService duosService = appContext.getBean(DuosService.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -117,6 +126,18 @@ public class SnapshotCreateFlight extends Flight {
       addStep(
           new CreateSnapshotInitializeProjectStep(resourceService, sourceDatasets, snapshotName),
           getDefaultExponentialBackoffRetryRule());
+    }
+
+    // if DUOS id in request, get/create firecloud group (needed for CreateSnapshotMetadataStep)
+    String duosId = snapshotReq.getDuosId();
+    if (duosId != null) {
+      addStep(new RetrieveDuosFirecloudGroupStep(duosDao, duosId));
+      addStep(
+          new IfNoGroupRetrievedStep(
+              new CreateDuosFirecloudGroupStep(duosService, iamClient, duosId)));
+      addStep(new IfNoGroupRetrievedStep(new RecordDuosFirecloudGroupStep(duosDao)));
+      addStep(new IfNoGroupRetrievedStep(new SyncDuosFirecloudGroupStep(duosService, duosId)));
+      // the DUOS Firecloud group is added as a reader in SnapshotAuthzIamStep
     }
 
     // create the snapshot metadata object in postgres and lock it

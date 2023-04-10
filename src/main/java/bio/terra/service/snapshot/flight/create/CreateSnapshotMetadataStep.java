@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.snapshot.Snapshot;
@@ -10,6 +11,7 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.service.snapshot.flight.duos.SnapshotDuosFlightUtils;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -54,6 +56,13 @@ public class CreateSnapshotMetadataStep implements Step {
               .makeSnapshotFromSnapshotRequest(snapshotReq)
               .id(snapshotId)
               .projectResourceId(projectResourceId);
+      if (snapshotReq.getDuosId() != null) {
+        DuosFirecloudGroupModel duosFirecloudGroup =
+            SnapshotDuosFlightUtils.getFirecloudGroup(context);
+        UUID duosFirecloudGroupId =
+            SnapshotDuosFlightUtils.getDuosFirecloudGroupId(duosFirecloudGroup);
+        snapshot.duosFirecloudGroupId(duosFirecloudGroupId);
+      }
       snapshotDao.createAndLock(snapshot, context.getFlightId(), userReq);
 
       SnapshotSummaryModel response = snapshotService.retrieveSnapshotSummary(snapshotId);

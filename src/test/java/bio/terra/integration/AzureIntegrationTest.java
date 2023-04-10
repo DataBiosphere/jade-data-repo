@@ -52,6 +52,7 @@ import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -702,6 +703,56 @@ public class AzureIntegrationTest extends UsersBase {
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) secondVocabRow).get("vocabulary_id").toString(),
         equalTo("2"));
+
+    // Test filtering results from snapshot preview endpoint and check row counts
+    // filtered so that filtered row count > 0, but not equal to total row count
+    SnapshotPreviewModel filteredVocabSnapshotRows =
+        dataRepoFixtures.retrieveSnapshotPreviewById(
+            steward,
+            snapshotAll.getId(),
+            "vocabulary",
+            0,
+            2,
+            "vocabulary_id = '1'",
+            "vocabulary_id");
+    assertThat(
+        "correct number of rows returned after filtering",
+        filteredVocabSnapshotRows.getResult(),
+        hasSize(1));
+    assertThat(
+        "filter row count is correct", filteredVocabSnapshotRows.getFilteredRowCount(), equalTo(1));
+    assertThat(
+        "total row count is correct", filteredVocabSnapshotRows.getTotalRowCount(), equalTo(2));
+    assertThat(
+        "Correct row is returned",
+        ((LinkedHashMap) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
+        equalTo("1"));
+
+    // test handling of empty snapshot table
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "concept", 0);
+
+    // test handling of not-empty snapshot table filtered to empty
+    SnapshotPreviewModel emptyFilteredVocabSnapshotRows =
+        dataRepoFixtures.retrieveSnapshotPreviewById(
+            steward,
+            snapshotAll.getId(),
+            "vocabulary",
+            0,
+            2,
+            "vocabulary_id = 'xy'",
+            "vocabulary_id");
+    assertThat(
+        "correct number of rows returned after filtering",
+        emptyFilteredVocabSnapshotRows.getResult(),
+        hasSize(0));
+    assertThat(
+        "filter row count is correct",
+        emptyFilteredVocabSnapshotRows.getFilteredRowCount(),
+        equalTo(0));
+    assertThat(
+        "total row count is correct",
+        emptyFilteredVocabSnapshotRows.getTotalRowCount(),
+        equalTo(2));
 
     // Domain Table
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "domain", 1);

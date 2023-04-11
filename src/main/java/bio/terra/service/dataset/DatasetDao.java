@@ -6,7 +6,6 @@ import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
-import bio.terra.common.TagUtils;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
@@ -24,6 +23,8 @@ import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.tags.TagDaoInterface;
+import bio.terra.service.tags.TagUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,7 +57,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-public class DatasetDao {
+public class DatasetDao implements TagDaoInterface {
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final DatasetTableDao tableDao;
@@ -71,7 +72,7 @@ public class DatasetDao {
 
   private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
-  public static final String TABLE_NAME = "dataset";
+  private static final String TABLE_NAME = "dataset";
 
   private static final String summaryQueryColumns =
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
@@ -135,6 +136,21 @@ public class DatasetDao {
     this.journalService = journalService;
     this.objectMapper = objectMapper;
     this.jdbcDataSource = jdbcConfiguration.getDataSource();
+  }
+
+  @Override
+  public NamedParameterJdbcTemplate getJdbcTemplate() {
+    return jdbcTemplate;
+  }
+
+  @Override
+  public DataSource getJdbcDataSource() {
+    return jdbcDataSource;
+  }
+
+  @Override
+  public String getTable() {
+    return TABLE_NAME;
   }
 
   /**
@@ -808,31 +824,6 @@ public class DatasetDao {
         new MapSqlParameterSource()
             .addValue("predictable_file_ids", predictableFileIds)
             .addValue("id", id);
-
-    int rowsAffected = jdbcTemplate.update(sql, params);
-
-    return (rowsAffected == 1);
-  }
-
-  /**
-   * @param id dataset UUID
-   * @param add tags to add to the dataset
-   * @param remove tags to remove from the dataset
-   * @return whether the dataset record was updated
-   */
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean updateTags(UUID id, List<String> add, List<String> remove) {
-    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-
-    String updateTagsExpression;
-    try (Connection connection = jdbcDataSource.getConnection()) {
-      updateTagsExpression = TagUtils.updateTagsExpression(connection, add, remove, params);
-    } catch (SQLException e) {
-      throw new IllegalArgumentException(
-          "Failed to convert dataset tag update lists to SQL arrays", e);
-    }
-
-    String sql = "UPDATE dataset SET tags = %s WHERE id = :id".formatted(updateTagsExpression);
 
     int rowsAffected = jdbcTemplate.update(sql, params);
 

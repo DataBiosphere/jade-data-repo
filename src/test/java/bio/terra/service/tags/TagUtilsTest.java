@@ -1,14 +1,12 @@
-package bio.terra.service.common;
+package bio.terra.service.tags;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import bio.terra.common.TagUtils;
 import bio.terra.common.category.Unit;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -57,27 +55,5 @@ public class TagUtilsTest {
 
     assertThat(clauses, contains(table + ".tags @> :tags"));
     assertTrue(params.hasValue("tags"));
-  }
-
-  @Test
-  public void testUpdateTagsExpression() throws SQLException {
-    Connection connection = mock(Connection.class);
-    MapSqlParameterSource params = new MapSqlParameterSource();
-
-    String expression = TagUtils.updateTagsExpression(connection, List.of(), List.of(), params);
-
-    assertThat(
-        "Expression includes placeholder for tags to add",
-        expression,
-        containsString(":tagsToAdd"));
-    assertThat(
-        "Expression includes placeholder for tags to remove",
-        expression,
-        containsString(":tagsToRemove"));
-
-    assertThat(
-        "Necessary parameters are specified after method execution",
-        params.getValues().keySet(),
-        containsInAnyOrder(":tagsToAdd", ":tagsToRemove"));
   }
 }

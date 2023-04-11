@@ -54,7 +54,7 @@ public class IngestFileFileStep implements Step {
               .loadTag(fileLoadModel.getLoadTag());
 
       try {
-        fileDao.createFileMetadata(dataset, newFile);
+        fileDao.upsertFileMetadata(dataset, newFile);
         // Retrieve to build the complete FSItem
         FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));

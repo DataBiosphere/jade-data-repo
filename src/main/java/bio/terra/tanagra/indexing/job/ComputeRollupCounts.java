@@ -117,7 +117,7 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
   @Override
   public void run(boolean isDryRun, Indexer.Executors executors) {
     // If the temp table hasn't been written yet, run the Dataflow job.
-    if (!checkTableExists(getTempTable(), executors.index())) {
+    if (!executors.index().checkTableExists(getTempTable())) {
       writeFieldsToTempTable(isDryRun, executors);
     } else {
       LOGGER.info("Temp table has already been written.");
@@ -130,9 +130,7 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
 
   @Override
   public void clean(boolean isDryRun, Indexer.Executors executors) {
-    if (checkTableExists(getTempTable(), executors.index())) {
-      deleteTable(getTempTable(), isDryRun, executors.index());
-    }
+    executors.index().deleteTable(getTempTable(), isDryRun);
     // CreateEntityTable will delete the entity table, which includes all the rows updated by this
     // job.
   }
@@ -140,12 +138,12 @@ public class ComputeRollupCounts extends BigQueryIndexingJob {
   @Override
   public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the temp table already exists.
-    if (!checkTableExists(getTempTable(), executors.index())) {
+    if (!executors.index().checkTableExists(getTempTable())) {
       return JobStatus.NOT_STARTED;
     }
 
     // Check if the entity table already exists.
-    if (!checkTableExists(getEntityIndexTable(), executors.index())) {
+    if (!executors.index().checkTableExists(getEntityIndexTable())) {
       return JobStatus.NOT_STARTED;
     }
 

@@ -89,9 +89,7 @@ public class CreateEntityTable extends BigQueryIndexingJob {
 
   @Override
   public void clean(boolean isDryRun, Indexer.Executors executors) {
-    if (checkTableExists(getEntityIndexTable(), executors.index())) {
-      deleteTable(getEntityIndexTable(), isDryRun, executors.index());
-    }
+    executors.index().deleteTable(getEntityIndexTable(), isDryRun);
   }
 
   private Field fromColumnSchema(ColumnSchema columnSchema) {
@@ -104,7 +102,7 @@ public class CreateEntityTable extends BigQueryIndexingJob {
   public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the table already exists. We don't expect this to be a long-running operation, so
     // there is no IN_PROGRESS state for this job.
-    return checkTableExists(getEntityIndexTable(), executors.index())
+    return executors.index().checkTableExists(getEntityIndexTable())
         ? JobStatus.COMPLETE
         : JobStatus.NOT_STARTED;
   }

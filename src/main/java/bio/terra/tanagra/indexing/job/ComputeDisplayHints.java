@@ -124,15 +124,13 @@ public class ComputeDisplayHints extends BigQueryIndexingJob {
 
   @Override
   public void clean(boolean isDryRun, Indexer.Executors executors) {
-    if (checkTableExists(getAuxiliaryTable(), executors.index())) {
-      deleteTable(getAuxiliaryTable(), isDryRun, executors.index());
-    }
+    executors.index().deleteTable(getAuxiliaryTable(), isDryRun);
   }
 
   @Override
   public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the table already exists.
-    return checkTableExists(getAuxiliaryTable(), executors.index())
+    return executors.index().checkTableExists(getAuxiliaryTable())
         ? JobStatus.COMPLETE
         : JobStatus.NOT_STARTED;
   }

@@ -2,11 +2,15 @@ package bio.terra.tanagra.query.bigquery;
 
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.RowResult;
+import bio.terra.tanagra.query.TablePointer;
+import bio.terra.tanagra.underlay.DataPointer;
+import bio.terra.tanagra.underlay.datapointer.BigQueryDataset;
 import bio.terra.tanagra.utils.GoogleBigQuery;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableId;
@@ -62,5 +66,46 @@ public class BigQueryExecutor implements QueryExecutor {
   @Override
   public DatasetTable getSchema(UUID datasetId, String tableName) {
     throw new NotImplementedException();
+  }
+
+  private BigQueryDataset getBQDataPointer(TablePointer tablePointer) {
+    DataPointer outputDataPointer = tablePointer.getDataPointer();
+    if (outputDataPointer instanceof BigQueryDataset bigQueryDataset) {
+      return bigQueryDataset;
+    }
+    throw new InvalidConfigException("Entity indexing job only supports BigQuery");
+  }
+
+  @Override
+  public void deleteTable(TablePointer tablePointer, boolean isDryRun) {
+    if (!checkTableExists(tablePointer) || isDryRun) {
+      return;
+    }
+    LOGGER.info("Delete table: {}", tablePointer.getPathForIndexing());
+    BigQueryDataset outputBQDataset = getBQDataPointer(tablePointer);
+    outputBQDataset
+        .getBigQueryService()
+        .deleteTable(
+            outputBQDataset.getProjectId(),
+            outputBQDataset.getDatasetId(),
+            tablePointer.getTableName());
+  }
+
+  @Override
+  public boolean checkTableExists(TablePointer tablePointer) {
+    BigQueryDataset outputBQDataset = getBQDataPointer(tablePointer);
+    LOGGER.info(
+        "output BQ table: project={}, dataset={}, table={}",
+        outputBQDataset.getProjectId(),
+        outputBQDataset.getDatasetId(),
+        tablePointer.getTableName());
+    GoogleBigQuery googleBigQuery = outputBQDataset.getBigQueryService();
+    // FIXME: use indexExecutor
+    return googleBigQuery
+        .getTable(
+            outputBQDataset.getProjectId(),
+            outputBQDataset.getDatasetId(),
+            tablePointer.getTableName())
+        .isPresent();
   }
 }

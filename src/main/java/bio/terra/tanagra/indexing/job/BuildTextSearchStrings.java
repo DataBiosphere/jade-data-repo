@@ -64,7 +64,7 @@ public class BuildTextSearchStrings extends BigQueryIndexingJob {
   @Override
   public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the table already exists.
-    if (!checkTableExists(getEntityIndexTable(), executors.index())) {
+    if (!executors.index().checkTableExists(getEntityIndexTable())) {
       return JobStatus.NOT_STARTED;
     }
 

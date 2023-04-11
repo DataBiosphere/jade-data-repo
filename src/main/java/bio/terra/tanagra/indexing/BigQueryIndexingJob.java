@@ -9,7 +9,6 @@ import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.Query;
-import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.SQLExpression;
@@ -21,7 +20,6 @@ import bio.terra.tanagra.underlay.DataPointer;
 import bio.terra.tanagra.underlay.Entity;
 import bio.terra.tanagra.underlay.Underlay;
 import bio.terra.tanagra.underlay.datapointer.BigQueryDataset;
-import bio.terra.tanagra.utils.GoogleBigQuery;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.bigquery.BigQueryException;
@@ -67,53 +65,18 @@ public abstract class BigQueryIndexingJob implements IndexingJob {
 
   protected BigQueryDataset getBQDataPointer(TablePointer tablePointer) {
     DataPointer outputDataPointer = tablePointer.getDataPointer();
-    if (!(outputDataPointer instanceof BigQueryDataset)) {
-      throw new InvalidConfigException("Entity indexing job only supports BigQuery");
+    if (outputDataPointer instanceof BigQueryDataset bigQueryDataset) {
+      return bigQueryDataset;
     }
-    return (BigQueryDataset) outputDataPointer;
-  }
-
-  protected void deleteTable(TablePointer tablePointer, boolean isDryRun, QueryExecutor index) {
-    BigQueryDataset outputBQDataset = getBQDataPointer(tablePointer);
-    if (isDryRun) {
-      LOGGER.info("Delete table: {}", tablePointer.getPathForIndexing());
-    } else {
-      getBQDataPointer(tablePointer)
-          .getBigQueryService()
-          .deleteTable(
-              outputBQDataset.getProjectId(),
-              outputBQDataset.getDatasetId(),
-              tablePointer.getTableName());
-    }
-  }
-
-  // -----Helper methods for checking whether a job has run already.-------
-  protected boolean checkTableExists(TablePointer tablePointer, QueryExecutor index) {
-    BigQueryDataset outputBQDataset = getBQDataPointer(tablePointer);
-    LOGGER.info(
-        "output BQ table: project={}, dataset={}, table={}",
-        outputBQDataset.getProjectId(),
-        outputBQDataset.getDatasetId(),
-        tablePointer.getTableName());
-    GoogleBigQuery googleBigQuery = outputBQDataset.getBigQueryService();
-    // FIXME: use indexExecutor
-    return googleBigQuery
-        .getTable(
-            outputBQDataset.getProjectId(),
-            outputBQDataset.getDatasetId(),
-            tablePointer.getTableName())
-        .isPresent();
+    throw new InvalidConfigException("Entity indexing job only supports BigQuery");
   }
 
   protected boolean checkOneNotNullIdRowExists(Entity entity, Indexer.Executors executors) {
     // Check if the table has at least 1 id row where id IS NOT NULL
     FieldPointer idField =
-        getEntity().getIdAttribute().getMapping(Underlay.MappingType.INDEX).getValue();
+        entity.getIdAttribute().getMapping(Underlay.MappingType.INDEX).getValue();
     ColumnSchema idColumnSchema =
-        getEntity()
-            .getIdAttribute()
-            .getMapping(Underlay.MappingType.INDEX)
-            .buildValueColumnSchema();
+        entity.getIdAttribute().getMapping(Underlay.MappingType.INDEX).buildValueColumnSchema();
     return checkOneNotNullRowExists(idField, idColumnSchema, executors);
   }
 

@@ -10,7 +10,6 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
-import bio.terra.common.TagUtils;
 import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -81,6 +80,7 @@ import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import bio.terra.service.tags.TagUtils;
 import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
@@ -226,6 +226,14 @@ public class SnapshotService {
     boolean patchSucceeded = snapshotDao.patch(id, patchRequest, userReq);
     if (!patchSucceeded) {
       throw new RuntimeException("Snapshot was not updated");
+    }
+    return snapshotDao.retrieveSummaryById(id).toModel();
+  }
+
+  public SnapshotSummaryModel updateTags(UUID id, List<String> add, List<String> remove) {
+    boolean updateSucceeded = snapshotDao.updateTags(id, add, remove);
+    if (!updateSucceeded) {
+      throw new RuntimeException("Snapshot tags were not updated");
     }
     return snapshotDao.retrieveSummaryById(id).toModel();
   }

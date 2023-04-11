@@ -348,4 +348,13 @@ public class SnapshotsApiController implements SnapshotsApi {
         userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.SHARE_POLICY_READER);
     return ResponseEntity.ok(snapshotService.updateSnapshotDuosDataset(id, userReq, null));
   }
+
+  @Override
+  public ResponseEntity<SnapshotSummaryModel> updateSnapshotTags(
+      UUID id, List<String> add, List<String> remove) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
+    return ResponseEntity.ok(snapshotService.updateTags(id, add, remove));
+  }
 }

@@ -6,7 +6,6 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.DaoUtils.UuidMapper;
 import bio.terra.common.MetadataEnumeration;
-import bio.terra.common.TagUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
@@ -27,6 +26,8 @@ import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
+import bio.terra.service.tags.TagDaoInterface;
+import bio.terra.service.tags.TagUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,7 +58,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-public class SnapshotDao {
+public class SnapshotDao implements TagDaoInterface {
 
   private final Logger logger = LoggerFactory.getLogger(SnapshotDao.class);
 
@@ -111,6 +112,21 @@ public class SnapshotDao {
     this.objectMapper = objectMapper;
     this.duosDao = duosDao;
     this.jdbcDataSource = jdbcConfiguration.getDataSource();
+  }
+
+  @Override
+  public NamedParameterJdbcTemplate getJdbcTemplate() {
+    return jdbcTemplate;
+  }
+
+  @Override
+  public DataSource getJdbcDataSource() {
+    return jdbcDataSource;
+  }
+
+  @Override
+  public String getTable() {
+    return TABLE_NAME;
   }
 
   /**

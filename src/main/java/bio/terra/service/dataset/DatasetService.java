@@ -29,6 +29,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TagCount;
 import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -666,6 +667,13 @@ public class DatasetService {
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
+  }
+
+  public List<TagCount> getTags(Map<UUID, Set<IamRole>> idsAndRoles, String filter, Integer limit) {
+    if (idsAndRoles.isEmpty()) {
+      return List.of();
+    }
+    return datasetDao.getTags(idsAndRoles.keySet(), filter, limit);
   }
 
   public DatasetSummaryModel updateTags(UUID id, List<String> add, List<String> remove) {

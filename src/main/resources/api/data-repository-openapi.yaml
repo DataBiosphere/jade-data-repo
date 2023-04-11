@@ -1578,6 +1578,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: dataset
+  /api/repository/v1/datasets/tags:
+    get:
+      tags:
+        - datasets
+        - repository
+      description: Get accessible dataset tags
+      operationId: getDatasetTags
+      parameters:
+        - name: filter
+          in: query
+          description: Filter to tags with this string as a case-insensitive match.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: >
+            The maximum number of tags to return, in descending order of occurrence count.
+            All accessible tags will be returned if unspecified.
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Accessible dataset tags matching specified filters.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagCount'
   /api/repository/v1/datasets/{id}:
     get:
       tags:
@@ -5962,6 +5991,15 @@ components:
       type: string
       description: A tag associated with a TDR resource (dataset, snapshot)
       example: a-resource-tag
+
+    TagCount:
+      type: object
+      properties:
+        tag:
+          $ref: '#/components/schemas/Tag'
+        count:
+          type: integer
+          description: Number of occurrences of this tag across accessible same-typed resources
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

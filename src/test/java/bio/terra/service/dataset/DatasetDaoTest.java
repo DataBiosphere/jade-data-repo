@@ -40,6 +40,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
+import bio.terra.model.TagCount;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.profile.ProfileDao;
@@ -1025,7 +1026,7 @@ public class DatasetDaoTest {
   }
 
   @Test
-  public void createDatasetWithTags() throws Exception {
+  public void createTaggedDatasetAndGetTags() throws Exception {
     DatasetRequestModel requestNullTags =
         jsonLoader.loadObject("dataset-create-test.json", DatasetRequestModel.class).tags(null);
     String nameNullTags = requestNullTags.getName() + UUID.randomUUID();
@@ -1051,6 +1052,45 @@ public class DatasetDaoTest {
     UUID datasetIdWithTags = createDataset(requestWithTags, nameWithTags, null);
 
     verifyTags("distinct non-null tags are returned", datasetIdWithTags, expectedTags);
+
+    // Create a second tagged dataset to test tag retrieval across all datasets
+    DatasetRequestModel request2WithTags =
+        jsonLoader
+            .loadObject("dataset-create-test.json", DatasetRequestModel.class)
+            .tags(List.of("duplicate", "yet another tag"));
+    createDataset(request2WithTags, request2WithTags.getName() + UUID.randomUUID(), null);
+
+    assertThat(
+        "Get tags without restriction returns all tags and counts",
+        datasetDao.getTags(datasetIds, null, null),
+        contains(
+            new TagCount().tag("duplicate").count(2),
+            new TagCount().tag("A TAG").count(1),
+            new TagCount().tag("a tag").count(1),
+            new TagCount().tag("yet another tag").count(1)));
+
+    assertThat(
+        "Get tags with filter only returns matching tags",
+        datasetDao.getTags(datasetIds, "dup", null),
+        contains(new TagCount().tag("duplicate").count(2)));
+
+    assertThat(
+        "Get tags filter is case-insensitive",
+        datasetDao.getTags(datasetIds, "tag", null),
+        contains(
+            new TagCount().tag("A TAG").count(1),
+            new TagCount().tag("a tag").count(1),
+            new TagCount().tag("yet another tag").count(1)));
+
+    assertThat(
+        "Get tags applies limit when specified",
+        datasetDao.getTags(datasetIds, null, 2),
+        contains(new TagCount().tag("duplicate").count(2), new TagCount().tag("A TAG").count(1)));
+
+    assertThat(
+        "Get tags applies both filter and limit when specified",
+        datasetDao.getTags(datasetIds, "dup", 2),
+        contains(new TagCount().tag("duplicate").count(2)));
   }
 
   private void verifyTags(String reason, UUID datasetId, List<String> expectedTags) {

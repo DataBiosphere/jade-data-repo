@@ -208,10 +208,12 @@ public class SnapshotDao implements TagDaoInterface {
         """
             INSERT INTO snapshot
             (name, description, profile_id, project_resource_id, id, consent_code, flightid,
-              creation_information, properties, global_file_ids, compact_id_prefix, tags)
+              creation_information, properties, global_file_ids, compact_id_prefix,
+              duos_firecloud_group_id, tags)
             VALUES
             (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid,
-              :creation_information::jsonb, :properties::jsonb, :global_file_ids, :compact_id_prefix, :tags)
+              :creation_information::jsonb, :properties::jsonb, :global_file_ids, :compact_id_prefix,
+              :duos_firecloud_group_id, :tags)
             """;
     String creationInfo;
     try {
@@ -240,6 +242,7 @@ public class SnapshotDao implements TagDaoInterface {
                 "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
             .addValue("global_file_ids", snapshot.hasGlobalFileIds())
             .addValue("compact_id_prefix", snapshot.getCompactIdPrefix())
+            .addValue("duos_firecloud_group_id", snapshot.getDuosFirecloudGroupId())
             .addValue("tags", tags);
 
     try {

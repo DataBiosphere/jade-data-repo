@@ -13,6 +13,7 @@ import bio.terra.service.dataset.flight.transactions.TransactionCommitStep;
 import bio.terra.service.dataset.flight.transactions.TransactionOpenStep;
 import bio.terra.service.filedata.FileIdService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.snapshot.SnapshotService;
@@ -40,6 +41,7 @@ public class ConvertToPredictableFileIdsFlight extends Flight {
     BigQueryTransactionPdao bigQueryTransactionPdao =
         appContext.getBean(BigQueryTransactionPdao.class);
     BigQueryDatasetPdao bigQueryDatasetPdao = appContext.getBean(BigQueryDatasetPdao.class);
+    GcsProjectFactory gcsProjectFactory = appContext.getBean(GcsProjectFactory.class);
     JournalService journalService = appContext.getBean(JournalService.class);
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
@@ -54,6 +56,10 @@ public class ConvertToPredictableFileIdsFlight extends Flight {
     addStep(new ConvertToPredictableFileIdsVerifyDatasetStep(datasetId, snapshotService, userReq));
 
     // Firestore steps
+    // Side effect: add any missing MD5s values to file references in Firestore
+    addStep(
+        new ConvertToPredictableFileIdsUpdateMissingMd5ChecksumsStep(
+            datasetId, datasetService, fileDao, gcsProjectFactory));
     addStep(
         new ConvertToPredictableFileIdsGetIdsStep(
             datasetId, datasetService, fileDao, fileIdService),

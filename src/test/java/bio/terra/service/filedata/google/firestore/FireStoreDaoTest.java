@@ -215,7 +215,7 @@ public class FireStoreDaoTest {
             .userSpecifiedMd5(false)
             .size(size);
 
-    fileDao.createFileMetadata(firestore, datasetId, newFile);
+    fileDao.upsertFileMetadata(firestore, datasetId, newFile);
 
     return new FireStoreDirectoryEntry()
         .fileId(fileId)

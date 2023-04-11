@@ -4436,6 +4436,8 @@ components:
       required:
         - format
         - table
+        - max_bad_records
+        - max_failed_file_loads
       type: object
       properties:
         table:
@@ -4765,6 +4767,7 @@ components:
         - loadControlFile
         - loadTag
         - profileId
+        - maxFailedFileLoads
       type: object
       properties:
         profileId:
@@ -4805,6 +4808,7 @@ components:
         - loadArray
         - loadTag
         - profileId
+        - maxFailedFileLoads
       type: object
       properties:
         profileId:
@@ -4971,6 +4975,8 @@ components:
           description: Description of the snapshot
         consentCode:
           $ref: '#/components/schemas/ConsentCode'
+        duosId:
+          $ref: '#/components/schemas/DuosId'
         contents:
           type: array
           items:

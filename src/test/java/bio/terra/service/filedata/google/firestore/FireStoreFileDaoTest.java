@@ -3,9 +3,12 @@ package bio.terra.service.filedata.google.firestore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -17,6 +20,8 @@ import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.exception.FileAlreadyExistsException;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.cloud.firestore.Firestore;
 import io.grpc.StatusRuntimeException;
 import java.util.ArrayList;
@@ -71,27 +76,36 @@ public class FireStoreFileDaoTest {
   @Test
   public void createDeleteFileTest() throws Exception {
     FireStoreFile file1 = makeFile();
-    String objectId = file1.getFileId();
+    FireStoreFile file2 = makeFile();
+    String objectId1 = file1.getFileId();
 
-    FireStoreFile existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
+    FireStoreFile existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, objectId1);
     assertNull("Object id does not exists", existCheck);
-    fileDao.createFileMetadata(firestore, datasetId, file1);
-    existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
+    fileDao.upsertFileMetadata(firestore, datasetId, file1);
+    existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, objectId1);
     assertNotNull("Object id exists", existCheck);
     assertThat("Correct size", existCheck.getSize(), equalTo(FILE_SIZE));
 
     file1.size(CHANGED_FILE_SIZE);
-    fileDao.createFileMetadata(firestore, datasetId, file1);
-    existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
+    fileDao.upsertFileMetadata(firestore, datasetId, file1);
+    existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, objectId1);
     assertNotNull("Object id exists", existCheck);
     assertThat("Correct size", existCheck.getSize(), equalTo(CHANGED_FILE_SIZE));
 
-    boolean fileExisted = fileDao.deleteFileMetadata(firestore, datasetId, objectId);
+    file2.checksumMd5("foo");
+    fileDao.upsertFileMetadata(firestore, datasetId, file2);
+    List<FireStoreFile> filesWithNullMd5Field =
+        fileDao.enumerateAllWithEmptyField(firestore, datasetId, "checksumMd5");
+    assertThat("only one file has no md5", filesWithNullMd5Field, hasSize(1));
+    assertThat(
+        "file1's id has a null md5", filesWithNullMd5Field.get(0).getFileId(), equalTo(objectId1));
+
+    boolean fileExisted = fileDao.deleteFileMetadata(firestore, datasetId, objectId1);
     assertTrue("File existed before delete", fileExisted);
-    existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
+    existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, objectId1);
     assertNull("Object id does not exists", existCheck);
 
-    fileExisted = fileDao.deleteFileMetadata(firestore, datasetId, objectId);
+    fileExisted = fileDao.deleteFileMetadata(firestore, datasetId, objectId1);
     assertFalse("File doesn't exist after delete", fileExisted);
   }
 
@@ -99,7 +113,7 @@ public class FireStoreFileDaoTest {
   public void deleteAllFilesTest() throws Exception {
     // Make some files
     List<FireStoreFile> fileList = IntStream.range(0, 5).boxed().map(i -> makeFile()).toList();
-    fileDao.createFileMetadata(firestore, datasetId, fileList);
+    fileDao.upsertFileMetadata(firestore, datasetId, fileList);
 
     List<String> fileIds = fileList.stream().map(FireStoreFile::getFileId).toList();
 
@@ -142,7 +156,7 @@ public class FireStoreFileDaoTest {
     FireStoreFile file1 = makeFile();
     String objectId = file1.getFileId();
 
-    fileDao.createFileMetadata(firestore, datasetId, file1);
+    fileDao.upsertFileMetadata(firestore, datasetId, file1);
     fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
   }
 
@@ -174,8 +188,29 @@ public class FireStoreFileDaoTest {
     FireStoreFile file1 = makeFile();
     String objectId = file1.getFileId();
 
-    fileDao.createFileMetadata(firestore, datasetId, file1);
+    fileDao.upsertFileMetadata(firestore, datasetId, file1);
     fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
+  }
+
+  @Test
+  public void createFileWithConflictingLoadTagsTest() throws Exception {
+    FireStoreFile file1 = makeFile();
+    String objectId1 = file1.getFileId();
+
+    FireStoreFile existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, objectId1);
+    assertNull("Object id does not exists", existCheck);
+    fileDao.upsertFileMetadata(firestore, datasetId, file1.loadTag("lt1"));
+    Throwable cause =
+        assertThrows(
+                "upsert fails with load tag conflict (and try the list uploader)",
+                FileSystemExecutionException.class,
+                () ->
+                    fileDao.upsertFileMetadata(firestore, datasetId, List.of(file1.loadTag("lt2"))))
+            .getCause();
+    assertThat(
+        "Correct cause triggered the error",
+        cause.getCause(),
+        isA(FileAlreadyExistsException.class));
   }
 
   private FireStoreFile makeFile() {

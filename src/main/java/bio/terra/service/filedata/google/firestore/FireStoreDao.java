@@ -147,24 +147,24 @@ public class FireStoreDao {
    * Upserts a file metadata object into Firestore (e.g. this is the metadata that contains size,
    * checksum, cloud location etc.) of a file, as opposed to the path information for the file
    */
-  public void createFileMetadata(Dataset dataset, FireStoreFile newFile)
+  public void upsertFileMetadata(Dataset dataset, FireStoreFile newFile)
       throws InterruptedException {
     Firestore firestore =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String datasetId = dataset.getId().toString();
-    fileDao.createFileMetadata(firestore, datasetId, newFile);
+    fileDao.upsertFileMetadata(firestore, datasetId, newFile);
   }
 
   /**
    * Upserts file metadata objects into Firestore (e.g. this is the metadata that contains size,
    * checksum, cloud location etc.) of a file, as opposed to the path information for the file
    */
-  public void createFileMetadata(Dataset dataset, List<FireStoreFile> newFiles)
+  public void upsertFileMetadata(Dataset dataset, List<FireStoreFile> newFiles)
       throws InterruptedException {
     Firestore firestore =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String datasetId = dataset.getId().toString();
-    fileDao.createFileMetadata(firestore, datasetId, newFiles);
+    fileDao.upsertFileMetadata(firestore, datasetId, newFiles);
   }
 
   /** Updates the ID of a file's metadata (effectively, this is a move operation) */
@@ -512,6 +512,13 @@ public class FireStoreDao {
           .map(FireStoreFile::getFileId)
           .toList();
     }
+  }
+
+  public List<FireStoreFile> retrieveAllWithEmptyField(Dataset dataset, String fieldName)
+      throws InterruptedException {
+    Firestore firestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
+    return fileDao.enumerateAllWithEmptyField(firestore, dataset.getId().toString(), fieldName);
   }
 
   // -- private methods --

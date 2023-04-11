@@ -30,6 +30,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TagCount;
+import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -669,11 +670,13 @@ public class DatasetService {
         .submit();
   }
 
-  public List<TagCount> getTags(Map<UUID, Set<IamRole>> idsAndRoles, String filter, Integer limit) {
+  public TagCountResultModel getTags(
+      Map<UUID, Set<IamRole>> idsAndRoles, String filter, Integer limit) {
     if (idsAndRoles.isEmpty()) {
-      return List.of();
+      return new TagCountResultModel().tags(List.of()).errors(List.of());
     }
-    return datasetDao.getTags(idsAndRoles.keySet(), filter, limit);
+    List<TagCount> tags = datasetDao.getTags(idsAndRoles.keySet(), filter, limit);
+    return new TagCountResultModel().tags(tags).errors(List.of());
   }
 
   public DatasetSummaryModel updateTags(UUID id, List<String> add, List<String> remove) {

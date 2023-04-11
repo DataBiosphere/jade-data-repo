@@ -35,7 +35,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.model.TagCount;
+import bio.terra.model.TagCountResultModel;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -450,7 +450,7 @@ public class DatasetsApiController implements DatasetsApi {
   }
 
   @Override
-  public ResponseEntity<List<TagCount>> getDatasetTags(String filter, Integer limit) {
+  public ResponseEntity<TagCountResultModel> getDatasetTags(String filter, Integer limit) {
     var idsAndRoles =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
     return ResponseEntity.ok(datasetService.getTags(idsAndRoles, filter, limit));

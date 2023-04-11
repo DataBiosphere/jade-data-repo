@@ -601,6 +601,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SnapshotIdsAndRolesModel"
+  /api/repository/v1/snapshots/tags:
+    get:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Get accessible snapshot tags. Access may be granted directly via Sam and/or indirectly via
+        a user's linked RAS passport in Terra.
+      operationId: getSnapshotTags
+      parameters:
+        - name: filter
+          in: query
+          description: Filter to tags with this string as a case-insensitive match.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: >
+            The maximum number of tags to return, in descending order of occurrence count.
+            All accessible tags will be returned if unspecified.
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Accessible snapshot tags matching specified filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagCountResultModel'
   /api/repository/v1/snapshots/{id}:
     get:
       tags:
@@ -1604,9 +1633,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TagCount'
+                $ref: '#/components/schemas/TagCountResultModel'
   /api/repository/v1/datasets/{id}:
     get:
       tags:
@@ -5263,6 +5290,18 @@ components:
         errors:
           type: array
           description: Errors encountered which may result in a partial role map returned.
+          items:
+            $ref: '#/components/schemas/ErrorModel'
+    TagCountResultModel:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagCount'
+        errors:
+          type: array
+          description: Errors encountered which may result in a partial tag list returned.
           items:
             $ref: '#/components/schemas/ErrorModel'
     SnapshotModel:

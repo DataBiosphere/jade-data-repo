@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -13,6 +14,8 @@ import bio.terra.common.fixtures.Names;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
@@ -219,7 +222,78 @@ public class FileTest extends UsersBase {
     bulkFileLoadTest(NUM_FILES, true, true, true);
   }
 
-  private void bulkFileLoadTest(
+  @Test
+  public void bulkFileLoadTestSelfHostedPredictableIdMoveSourceFiles() throws Exception {
+    // Run through basic ingest
+    String loadTag = bulkFileLoadTest(NUM_FILES, true, true, true);
+    String originalSourcePath = "gs://jade-testdata-uswestregion/fileloadprofiletest/1KBfile.txt";
+    String newSourcePath = "gs://jade-testdata-uswestregion/fileloadprofiletest/1KBfile.moved.txt";
+
+    // Get the list of ingested files
+    BulkLoadHistoryModelList loadHistory =
+        dataRepoFixtures.getLoadHistory(steward(), datasetId, loadTag, 0, NUM_FILES * 2);
+
+    assertThat(
+        "the right amount of files are in the load history table",
+        loadHistory.getItems(),
+        hasSize(NUM_FILES));
+    // Assert that they all point to the same (1KB) source file
+    List<String> sourceFiles =
+        loadHistory.getItems().stream()
+            .map(BulkLoadHistoryModel::getSourcePath)
+            .distinct()
+            .toList();
+    assertThat("a single source file was ingested", sourceFiles, hasSize(1));
+    assertThat(
+        "the file path points to the expected path",
+        sourceFiles.get(0),
+        equalTo(originalSourcePath));
+
+    // Now re-ingest 2 files in a new location (e.g. re-point them)
+    List<BulkLoadFileModel> reloadArray =
+        loadHistory.getItems().subList(0, 2).stream()
+            .map(
+                f ->
+                    new BulkLoadFileModel()
+                        .sourcePath(newSourcePath)
+                        .targetPath(f.getTargetPath())
+                        .mimeType("application/binary"))
+            .toList();
+
+    BulkLoadHistoryModel notReIngestedFile = loadHistory.getItems().get(2);
+
+    BulkLoadArrayRequestModel bulkLoad =
+        new BulkLoadArrayRequestModel()
+            .profileId(profileId)
+            .loadTag(loadTag)
+            .bulkMode(true)
+            .loadArray(reloadArray)
+            .maxFailedFileLoads(reloadArray.size());
+
+    BulkLoadArrayResultModel bulkLoadArrayResultModel =
+        dataRepoFixtures.bulkLoadArray(steward(), datasetId, bulkLoad);
+    assertThat(
+        "the right number of files were loaded",
+        bulkLoadArrayResultModel.getLoadSummary().getSucceededFiles(),
+        equalTo(2));
+
+    // iterate over the moved files and ensure that their source is the new path
+    for (var file : reloadArray) {
+      FileModel dsFile = dataRepoFixtures.getFileByName(steward(), datasetId, file.getTargetPath());
+      assertThat(
+          "source file was moved", dsFile.getFileDetail().getAccessUrl(), equalTo(newSourcePath));
+    }
+    // verify that one of the files that WASN'T re-ingest still points to the original source file
+    FileModel dsFile =
+        dataRepoFixtures.getFileByName(steward(), datasetId, notReIngestedFile.getTargetPath());
+    assertThat(
+        "source file was not moved",
+        dsFile.getFileDetail().getAccessUrl(),
+        equalTo(originalSourcePath));
+  }
+
+  // Return the load tag used to ingest
+  private String bulkFileLoadTest(
       int filesToLoad, boolean selfHosted, boolean predictableFileIds, boolean arrayIngestMode)
       throws Exception {
     initialize(selfHosted, predictableFileIds);
@@ -295,6 +369,7 @@ public class FileTest extends UsersBase {
     logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
 
     assertThat("all files should succeed", loadSummary.getSucceededFiles(), equalTo(filesToLoad));
+    return loadTag;
   }
 
   // DR-612 filesystem corruption test; use a non-existent file to make sure everything errors

@@ -23,9 +23,12 @@ public class FileMetadataUtils {
   public FileMetadataUtils() {}
 
   public static String getDirectoryPath(String path) {
+    if (StringUtils.isEmpty(path)) {
+      return "";
+    }
     Path pathParts = Paths.get(path);
     Path parentDirectory = pathParts.getParent();
-    if (pathParts.getNameCount() <= 1) {
+    if (pathParts.getNameCount() == 0) {
       // We are at the root; no containing directory
       return StringUtils.EMPTY;
     }

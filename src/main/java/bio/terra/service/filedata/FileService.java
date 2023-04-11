@@ -24,7 +24,6 @@ import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.filedata.exception.MissingLoadTagException;
 import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestBulkFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestFlight;
@@ -44,7 +43,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -115,10 +113,6 @@ public class FileService {
 
   public String ingestBulkFile(
       String datasetId, BulkLoadRequestModel loadModel, AuthenticatedUserRequest userReq) {
-    if (loadModel.isBulkMode() && StringUtils.isEmpty(loadModel.getLoadTag())) {
-      throw new MissingLoadTagException("Load tag is required for isBulkMode");
-    }
-
     String loadTag = loadService.computeLoadTag(loadModel.getLoadTag());
     loadModel.setLoadTag(loadTag);
     String description =
@@ -149,9 +143,6 @@ public class FileService {
 
   public String ingestBulkFileArray(
       String datasetId, BulkLoadArrayRequestModel loadArray, AuthenticatedUserRequest userReq) {
-    if (loadArray.isBulkMode() && StringUtils.isEmpty(loadArray.getLoadTag())) {
-      throw new MissingLoadTagException("Load tag is required for isBulkMode");
-    }
     String loadTag = loadService.computeLoadTag(loadArray.getLoadTag());
     loadArray.setLoadTag(loadTag);
     String description =

@@ -1,5 +1,7 @@
 package bio.terra.service.dataset;
 
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -59,6 +61,16 @@ public class IngestRequestValidator implements Validator {
       FileLoadModel fileLoadModel = (FileLoadModel) target;
       if (fileLoadModel.getProfileId() == null) {
         errors.rejectValue("profileId", "ProfileIdMissing", "File ingest requires a profile id.");
+      }
+    } else if (target instanceof BulkLoadRequestModel bulkLoadRequestModel) {
+      if (bulkLoadRequestModel.isBulkMode()
+          && StringUtils.isEmpty(bulkLoadRequestModel.getLoadTag())) {
+        errors.rejectValue("loadTag", "MissingLoadTag", "Load tag is required for isBulkMode");
+      }
+    } else if (target instanceof BulkLoadArrayRequestModel bulkLoadArrayRequestModel) {
+      if (bulkLoadArrayRequestModel.isBulkMode()
+          && StringUtils.isEmpty(bulkLoadArrayRequestModel.getLoadTag())) {
+        errors.rejectValue("loadTag", "MissingLoadTag", "Load tag is required for isBulkMode");
       }
     }
   }

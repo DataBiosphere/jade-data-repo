@@ -3,8 +3,6 @@ package bio.terra.service.dataset;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -48,14 +46,11 @@ public class DatasetIngestRequestValidatorTest {
   @Autowired private MockMvc mvc;
   @MockBean private DatasetService datasetService;
 
-  private MvcResult postRequest(String url, String content) throws Exception {
-    return mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(content))
-        .andExpect(status().is4xxClientError())
-        .andReturn();
-  }
-
   private ErrorModel expectBadPostRequest(String url, String content) throws Exception {
-    MvcResult result = postRequest(url, content);
+    MvcResult result =
+        mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(content))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
     MockHttpServletResponse response = result.getResponse();
     String responseBody = response.getContentAsString();
     assertTrue(
@@ -250,10 +245,11 @@ public class DatasetIngestRequestValidatorTest {
             .loadTag("")
             .bulkMode(true);
     String url = String.format("/api/repository/v1/datasets/%s/files/bulk", UUID.randomUUID());
-    var invalidResult = postRequest(url, TestUtils.mapToJson(invalidIngest));
-    Exception ex = invalidResult.getResolvedException();
-    assertNotNull(ex);
-    assertEquals("Load tag is required for isBulkMode", ex.getMessage());
+    ErrorModel errorModel = expectBadPostRequest(url, TestUtils.mapToJson(invalidIngest));
+    assertThat(
+        "Empty load tag throws error when bulkMode is true",
+        errorModel.getErrorDetail().get(0),
+        containsString("Load tag is required for isBulkMode"));
   }
 
   @Test
@@ -270,9 +266,10 @@ public class DatasetIngestRequestValidatorTest {
                         .targetPath("/foo/bar")));
     String url =
         String.format("/api/repository/v1/datasets/%s/files/bulk/array", UUID.randomUUID());
-    var invalidResult = postRequest(url, TestUtils.mapToJson(invalidIngest));
-    Exception ex = invalidResult.getResolvedException();
-    assertNotNull(ex);
-    assertEquals("Load tag is required for isBulkMode", ex.getMessage());
+    ErrorModel errorModel = expectBadPostRequest(url, TestUtils.mapToJson(invalidIngest));
+    assertThat(
+        "Empty load tag throws error when bulkMode is true",
+        errorModel.getErrorDetail().get(0),
+        containsString("Load tag is required for isBulkMode"));
   }
 }

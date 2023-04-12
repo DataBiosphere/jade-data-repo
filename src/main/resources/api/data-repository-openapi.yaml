@@ -1293,7 +1293,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/snapshots/{id}/updateTags:
+  /api/repository/v1/snapshots/{id}/tags:
     patch:
       tags:
         - snapshots
@@ -2496,7 +2496,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: dataDeletionRequest
-  /api/repository/v1/datasets/{id}/updateTags:
+  /api/repository/v1/datasets/{id}/tags:
     patch:
       tags:
         - datasets

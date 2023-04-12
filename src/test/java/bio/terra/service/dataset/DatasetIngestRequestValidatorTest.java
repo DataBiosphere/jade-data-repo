@@ -235,4 +235,41 @@ public class DatasetIngestRequestValidatorTest {
         maxFailedFileLoadsError,
         containsString("maxFailedFileLoads: 'NotNull'"));
   }
+
+  @Test
+  public void testBulkIngestRequiresLoadTag() throws Exception {
+    var invalidIngest =
+        new BulkLoadRequestModel()
+            .profileId(UUID.randomUUID())
+            .loadControlFile("gs://foo/bar.json")
+            .loadTag("")
+            .bulkMode(true);
+    String url = String.format("/api/repository/v1/datasets/%s/files/bulk", UUID.randomUUID());
+    ErrorModel errorModel = expectBadPostRequest(url, TestUtils.mapToJson(invalidIngest));
+    assertThat(
+        "Empty load tag throws error when bulkMode is true",
+        errorModel.getErrorDetail().get(0),
+        containsString("Load tag is required for isBulkMode"));
+  }
+
+  @Test
+  public void testBulkArrayIngestRequiresLoadTag() throws Exception {
+    var invalidIngest =
+        new BulkLoadArrayRequestModel()
+            .profileId(UUID.randomUUID())
+            .loadTag("")
+            .bulkMode(true)
+            .loadArray(
+                List.of(
+                    new BulkLoadFileModel()
+                        .sourcePath("gs://foo/source.txt")
+                        .targetPath("/foo/bar")));
+    String url =
+        String.format("/api/repository/v1/datasets/%s/files/bulk/array", UUID.randomUUID());
+    ErrorModel errorModel = expectBadPostRequest(url, TestUtils.mapToJson(invalidIngest));
+    assertThat(
+        "Empty load tag throws error when bulkMode is true",
+        errorModel.getErrorDetail().get(0),
+        containsString("Load tag is required for isBulkMode"));
+  }
 }

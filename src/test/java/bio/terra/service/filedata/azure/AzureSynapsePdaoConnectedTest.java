@@ -25,7 +25,6 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
-import bio.terra.service.filedata.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;

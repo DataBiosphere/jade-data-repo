@@ -1,6 +1,6 @@
-package bio.terra.service.filedata.google.bq;
+package bio.terra.service.tabulardata.google.bigquery;
 
-import bio.terra.service.filedata.DataResultModel;
+import bio.terra.service.tabulardata.DataResultModel;
 import java.util.Map;
 
 public class BigQueryDataResultModel extends DataResultModel {

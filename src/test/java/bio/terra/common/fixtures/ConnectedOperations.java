@@ -19,7 +19,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.common.CollectionType;
 import bio.terra.common.TestUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
@@ -58,9 +57,9 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetDaoUtils;
-import bio.terra.service.filedata.DataResultModel;
 import bio.terra.service.filedata.FSContainerInterface;
-import bio.terra.service.filedata.google.bq.BigQueryDataResultModel;
+import bio.terra.service.tabulardata.DataResultModel;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import com.azure.data.tables.TableServiceClient;
 import com.google.cloud.storage.Blob;
@@ -592,13 +591,20 @@ public class ConnectedOperations {
             null,
             null);
     DataResultModel result = results.get(0);
-    if (tdrResource.getCollectionType().equals(CollectionType.DATASET)) {
-      assertThat("non-null total count", result.getTotalCount(), equalTo(expectedRowCount));
-    } else {
-      assertThat(
-          "if we didn't include the total count, it should be zero.",
-          result.getTotalCount(),
-          equalTo(0));
+    assertNotNull("collection type should be defined as a snapshot or dataset.", tdrResource);
+    switch (tdrResource.getCollectionType()) {
+      case DATASET:
+        assertThat(
+            "Total row count should be correct since we includeTotalRowCount for datasets",
+            result.getTotalCount(),
+            equalTo(expectedRowCount));
+        break;
+      case SNAPSHOT:
+        assertThat(
+            "Total row count should be 0 since we do NOT includeTotalRowCount for snapshots",
+            result.getTotalCount(),
+            equalTo(0));
+        break;
     }
     assertThat("Expected filtered count", result.getFilteredCount(), equalTo(expectedRowCount));
   }

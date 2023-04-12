@@ -13,7 +13,6 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.Query;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.filedata.FSContainerInterface;
-import bio.terra.service.filedata.google.bq.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQueryException;

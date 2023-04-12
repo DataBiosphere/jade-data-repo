@@ -3,6 +3,7 @@ package bio.terra.common;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotNull;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.configuration.TestConfiguration;
@@ -15,8 +16,8 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
-import bio.terra.service.filedata.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
@@ -539,16 +540,20 @@ public class SynapseUtils {
             SqlSortDirection.ASC,
             "",
             collectionType);
-    if (collectionType.equals(CollectionType.DATASET)) {
-      assertThat(
-          "Total row count should be correct since we includeTotalRowCount for datasets",
-          results.get(0).getTotalCount(),
-          equalTo(expectedTotalRowCount));
-    } else {
-      assertThat(
-          "Total row count should be 0 since we do NOT includeTotalRowCount for snapshots",
-          results.get(0).getTotalCount(),
-          equalTo(0));
+    assertNotNull("collection type should be defined as a snapshot or dataset.", collectionType);
+    switch (collectionType) {
+      case DATASET:
+        assertThat(
+            "Total row count should be correct since we includeTotalRowCount for datasets",
+            results.get(0).getTotalCount(),
+            equalTo(expectedTotalRowCount));
+        break;
+      case SNAPSHOT:
+        assertThat(
+            "Total row count should be 0 since we do NOT includeTotalRowCount for snapshots",
+            results.get(0).getTotalCount(),
+            equalTo(0));
+        break;
     }
   }
 }

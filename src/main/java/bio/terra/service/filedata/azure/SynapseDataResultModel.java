@@ -1,5 +1,6 @@
-package bio.terra.service.filedata;
+package bio.terra.service.filedata.azure;
 
+import bio.terra.service.tabulardata.DataResultModel;
 import java.util.Map;
 import java.util.Optional;
 

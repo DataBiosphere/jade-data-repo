@@ -23,7 +23,6 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
-import bio.terra.service.filedata.google.bq.BigQueryDataResultModel;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotMapColumn;

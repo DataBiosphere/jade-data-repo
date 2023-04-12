@@ -1,4 +1,4 @@
-package bio.terra.service.filedata;
+package bio.terra.service.tabulardata;
 
 public abstract class DataResultModel {
   protected int totalCount;

@@ -29,7 +29,6 @@ import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
-import bio.terra.service.filedata.SynapseDataResultModel;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.snapshot.Snapshot;

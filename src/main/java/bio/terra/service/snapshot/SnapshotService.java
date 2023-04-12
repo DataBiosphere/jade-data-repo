@@ -7,6 +7,7 @@ import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.PolicyUtils;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
@@ -64,6 +65,7 @@ import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -78,6 +80,7 @@ import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.service.snapshot.flight.duos.SnapshotUpdateDuosDatasetFlight;
 import bio.terra.service.snapshot.flight.export.ExportMapKeys;
 import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
 import com.google.common.annotations.VisibleForTesting;
@@ -793,11 +796,14 @@ public class SnapshotService {
         List<String> columns =
             snapshotTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
         String bqFormattedTableName = snapshot.getName() + "." + tableName;
-        List<Map<String, Object>> values =
+        List<BigQueryDataResultModel> values =
             BigQueryPdao.getTable(
                 snapshot, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
-
-        return new SnapshotPreviewModel().result(List.copyOf(values));
+        return new SnapshotPreviewModel()
+            .result(
+                List.copyOf(values.stream().map(BigQueryDataResultModel::getRowResult).toList()))
+            .totalRowCount(table.getRowCount().intValue())
+            .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new SnapshotPreviewException(
@@ -820,19 +826,23 @@ public class SnapshotService {
       } catch (Exception e) {
         throw new RuntimeException("Could not configure external datasource", e);
       }
-
-      List<Map<String, Optional<Object>>> values =
+      String parquetFilePath = IngestUtils.getSnapshotParquetFilePathForQuery(tableName);
+      List<SynapseDataResultModel> values =
           azureSynapsePdao.getTableData(
               table,
               tableName,
               datasourceName,
-              IngestUtils.getSnapshotParquetFilePathForQuery(tableName),
+              parquetFilePath,
               limit,
               offset,
               sort,
               direction,
-              filter);
-      return new SnapshotPreviewModel().result(List.copyOf(values));
+              filter,
+              CollectionType.SNAPSHOT);
+      return new SnapshotPreviewModel()
+          .result(List.copyOf(values.stream().map(SynapseDataResultModel::getRowResult).toList()))
+          .totalRowCount(table.getRowCount().intValue())
+          .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
     } else {
       throw new SnapshotPreviewException("Cloud not supported");
     }

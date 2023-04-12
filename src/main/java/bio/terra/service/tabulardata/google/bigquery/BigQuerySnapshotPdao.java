@@ -803,7 +803,7 @@ public class BigQuerySnapshotPdao {
   /*
    * WARNING: Ensure SQL is validated before executing this method!
    */
-  public List<Map<String, Object>> getSnapshotTableUnsafe(Snapshot snapshot, String sql)
+  public List<BigQueryDataResultModel> getSnapshotTableUnsafe(Snapshot snapshot, String sql)
       throws InterruptedException {
     final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
     final TableResult result = bigQueryProject.query(sql);

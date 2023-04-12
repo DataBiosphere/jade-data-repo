@@ -1101,11 +1101,11 @@ public class BigQueryPdaoUnitTest {
 
     TableResult table = new TableResult(schema, 10, page);
 
-    List<Map<String, Object>> result = BigQueryPdao.aggregateTableData(table);
+    List<BigQueryDataResultModel> result = BigQueryPdao.aggregateTableData(table);
 
-    assertEquals(stringTest, result.get(0).get("STRING"));
-    assertEquals(intTest, result.get(0).get("INT64"));
-    assertEquals(listTest, result.get(0).get("ARRAY"));
+    assertEquals(stringTest, result.get(0).getRowResult().get("STRING"));
+    assertEquals(intTest, result.get(0).getRowResult().get("INT64"));
+    assertEquals(listTest, result.get(0).getRowResult().get("ARRAY"));
   }
 
   private Dataset mockDataset() {

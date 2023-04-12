@@ -4526,6 +4526,10 @@ components:
           items:
             type: object
           description: Data from a dataset table
+        totalRowCount:
+          type: integer
+        filteredRowCount:
+          type: integer
       description: >
        Data from a dataset table
     SnapshotPreviewModel:
@@ -4536,6 +4540,10 @@ components:
           items:
             type: object
           description: Preview data of a snapshot table
+        totalRowCount:
+          type: integer
+        filteredRowCount:
+          type: integer
       description: >
         A preview of a snapshot table
     FileModel:

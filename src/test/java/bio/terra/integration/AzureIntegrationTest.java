@@ -39,6 +39,7 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSpecificationModel;
@@ -51,6 +52,7 @@ import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotExportResponseModel;
 import bio.terra.model.SnapshotExportResponseModelFormatParquet;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -480,7 +482,10 @@ public class AzureIntegrationTest extends UsersBase {
     // assert correct row data was ingested into domain table
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "domain", 1);
     Object firstDomainRow =
-        dataRepoFixtures.retrieveDatasetData(steward, datasetId, "domain", 0, 1, null).get(0);
+        dataRepoFixtures
+            .retrieveDatasetData(steward, datasetId, "domain", 0, 1, null)
+            .getResult()
+            .get(0);
     assertThat(
         "record looks as expected - domain_id",
         ((LinkedHashMap) firstDomainRow).get("domain_id").toString(),
@@ -524,15 +529,17 @@ public class AzureIntegrationTest extends UsersBase {
     // assert correct data returns from view data endpoint
     dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "vocabulary", 2);
     List<Object> vocabRows =
-        dataRepoFixtures.retrieveDatasetData(
-            steward,
-            datasetId,
-            "vocabulary",
-            0,
-            2,
-            null,
-            "vocabulary_id",
-            String.valueOf(SqlSortDirection.ASC));
+        dataRepoFixtures
+            .retrieveDatasetData(
+                steward,
+                datasetId,
+                "vocabulary",
+                0,
+                2,
+                null,
+                "vocabulary_id",
+                String.valueOf(SqlSortDirection.ASC))
+            .getResult();
     assertThat(
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) vocabRows.get(0)).get("vocabulary_id").toString(),
@@ -542,33 +549,50 @@ public class AzureIntegrationTest extends UsersBase {
         ((LinkedHashMap) vocabRows.get(1)).get("vocabulary_id").toString(),
         equalTo("2"));
     List<Object> flippedVocabRows =
-        dataRepoFixtures.retrieveDatasetData(
-            steward,
-            datasetId,
-            "vocabulary",
-            0,
-            2,
-            null,
-            "vocabulary_id",
-            String.valueOf(SqlSortDirection.DESC));
+        dataRepoFixtures
+            .retrieveDatasetData(
+                steward,
+                datasetId,
+                "vocabulary",
+                0,
+                2,
+                null,
+                "vocabulary_id",
+                String.valueOf(SqlSortDirection.DESC))
+            .getResult();
     assertThat(
         "correct vocabulary_id returned",
         ((LinkedHashMap) flippedVocabRows.get(0)).get("vocabulary_id").toString(),
         equalTo("2"));
     String qualifiedVocabTableName = datasetModel.getName() + ".vocabulary";
-    List<Object> filteredVocabRows =
+    DatasetDataModel filteredVocabRows =
         dataRepoFixtures.retrieveDatasetData(
             steward, datasetId, "vocabulary", 0, 2, "vocabulary_id = '1'");
-    assertThat("correct number of rows returned after filtering", filteredVocabRows, hasSize(1));
+    assertThat(
+        "correct number of rows returned after filtering",
+        filteredVocabRows.getResult(),
+        hasSize(1));
+    assertThat("filter row count is correct", filteredVocabRows.getFilteredRowCount(), equalTo(1));
+    assertThat("total row count is correct", filteredVocabRows.getTotalRowCount(), equalTo(2));
     assertThat(
         "Correct row is returned",
-        ((LinkedHashMap) filteredVocabRows.get(0)).get("vocabulary_id").toString(),
+        ((LinkedHashMap) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
         equalTo("1"));
 
     // test handling of empty dataset table
-    List<Object> emptyTable =
-        dataRepoFixtures.retrieveDatasetData(steward, datasetId, "concept", 0, 2, null);
-    assertThat("empty table should return an empty list", emptyTable, hasSize(0));
+    dataRepoFixtures.assertDatasetTableCount(steward, datasetModel, "concept", 0);
+
+    // test handling of not-empty dataset table filtered to empty
+    DatasetDataModel emptyFilteredVocabRows =
+        dataRepoFixtures.retrieveDatasetData(
+            steward, datasetId, "vocabulary", 0, 2, "vocabulary_id = 'xy'");
+    assertThat(
+        "correct number of rows returned after filtering",
+        emptyFilteredVocabRows.getResult(),
+        hasSize(0));
+    assertThat(
+        "filter row count is correct", emptyFilteredVocabRows.getFilteredRowCount(), equalTo(0));
+    assertThat("total row count is correct", emptyFilteredVocabRows.getTotalRowCount(), equalTo(2));
 
     // Create snapshot request for snapshot by row id
     String datasetParquetUrl =
@@ -660,8 +684,10 @@ public class AzureIntegrationTest extends UsersBase {
     // Vocabulary Table
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "vocabulary", 2);
     List<Object> vocabSnapshotRows =
-        dataRepoFixtures.retrieveSnapshotPreviewById(
-            steward, snapshotAll.getId(), "vocabulary", 0, 2, null, "vocabulary_id");
+        dataRepoFixtures
+            .retrieveSnapshotPreviewById(
+                steward, snapshotAll.getId(), "vocabulary", 0, 2, null, "vocabulary_id")
+            .getResult();
     List<String> drsIds =
         vocabSnapshotRows.stream()
             .map(r -> ((LinkedHashMap) r).get("vocabulary_reference").toString())
@@ -678,12 +704,61 @@ public class AzureIntegrationTest extends UsersBase {
         ((LinkedHashMap) secondVocabRow).get("vocabulary_id").toString(),
         equalTo("2"));
 
+    // Test filtering results from snapshot preview endpoint and check row counts
+    // filtered so that filtered row count > 0, but not equal to total row count
+    SnapshotPreviewModel filteredVocabSnapshotRows =
+        dataRepoFixtures.retrieveSnapshotPreviewById(
+            steward,
+            snapshotAll.getId(),
+            "vocabulary",
+            0,
+            2,
+            "vocabulary_id = '1'",
+            "vocabulary_id");
+    assertThat(
+        "correct number of rows returned after filtering",
+        filteredVocabSnapshotRows.getResult(),
+        hasSize(1));
+    assertThat(
+        "filter row count is correct", filteredVocabSnapshotRows.getFilteredRowCount(), equalTo(1));
+    assertThat(
+        "total row count is correct", filteredVocabSnapshotRows.getTotalRowCount(), equalTo(2));
+    assertThat(
+        "Correct row is returned",
+        ((LinkedHashMap) filteredVocabRows.getResult().get(0)).get("vocabulary_id").toString(),
+        equalTo("1"));
+
+    // test handling of empty snapshot table
+    dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "concept", 0);
+
+    // test handling of not-empty snapshot table filtered to empty
+    SnapshotPreviewModel emptyFilteredVocabSnapshotRows =
+        dataRepoFixtures.retrieveSnapshotPreviewById(
+            steward,
+            snapshotAll.getId(),
+            "vocabulary",
+            0,
+            2,
+            "vocabulary_id = 'xy'",
+            "vocabulary_id");
+    assertThat(
+        "correct number of rows returned after filtering",
+        emptyFilteredVocabSnapshotRows.getResult(),
+        hasSize(0));
+    assertThat(
+        "filter row count is correct",
+        emptyFilteredVocabSnapshotRows.getFilteredRowCount(),
+        equalTo(0));
+    assertThat(
+        "total row count is correct",
+        emptyFilteredVocabSnapshotRows.getTotalRowCount(),
+        equalTo(2));
+
     // Domain Table
     dataRepoFixtures.assertSnapshotTableCount(steward, snapshotAll, "domain", 1);
     Object firstSnapshotDomainRow =
-        dataRepoFixtures
-            .retrieveSnapshotPreviewById(steward, snapshotAll.getId(), "domain", 0, 1, null)
-            .get(0);
+        dataRepoFixtures.retrieveFirstResultSnapshotPreviewById(
+            steward, snapshotAll.getId(), "domain", 0, 1, null);
     assertThat(
         "record looks as expected - domain_id",
         ((LinkedHashMap) firstSnapshotDomainRow).get("domain_id").toString(),

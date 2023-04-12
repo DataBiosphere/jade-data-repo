@@ -1,7 +1,9 @@
 package bio.terra.common;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotNull;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.configuration.TestConfiguration;
@@ -11,9 +13,11 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
@@ -473,7 +477,7 @@ public class SynapseUtils {
       AzureStorageAccountResource datasetStorageAccountResource,
       BillingProfileModel billingProfile)
       throws IOException, SQLException {
-
+    int expectedNumberOfRowToIngest = 2;
     DatasetTable destinationTable =
         ingestIntoTable(
             "ingest-test-dataset-table-all-data-types.json",
@@ -481,7 +485,7 @@ public class SynapseUtils {
             ingestFileLocation,
             randomFlightId,
             testConfig.getIngestRequestContainer(),
-            2,
+            expectedNumberOfRowToIngest,
             datasetStorageAccountResource,
             billingProfile);
     jsonLoader.loadObject("ingest-test-dataset-table-all-data-types.json", DatasetTable.class);
@@ -504,6 +508,52 @@ public class SynapseUtils {
             true);
     assertThat(
         "List of names should equal the input", firstNames, equalTo(List.of("Bob", "Sally")));
+
+    int rowCount =
+        azureSynapsePdao.getTableTotalRowCount(
+            destinationTable.getName(),
+            IngestUtils.getTargetDataSourceName(randomFlightId),
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId)));
+    assertThat(
+        "Correct number of rows are returned from table",
+        rowCount,
+        equalTo(expectedNumberOfRowToIngest));
+
+    testOptionalIncludeTotalRowCount(CollectionType.SNAPSHOT, destinationTable, 2);
+    testOptionalIncludeTotalRowCount(CollectionType.DATASET, destinationTable, 2);
     return destinationTable;
+  }
+
+  private void testOptionalIncludeTotalRowCount(
+      CollectionType collectionType, Table table, int expectedTotalRowCount) {
+    List<SynapseDataResultModel> results =
+        azureSynapsePdao.getTableData(
+            table,
+            table.getName(),
+            IngestUtils.getTargetDataSourceName(randomFlightId),
+            FolderType.METADATA.getPath(
+                IngestUtils.getParquetFilePath(table.getName(), randomFlightId)),
+            expectedTotalRowCount + 1,
+            0,
+            PDAO_ROW_ID_COLUMN,
+            SqlSortDirection.ASC,
+            "",
+            collectionType);
+    assertNotNull("collection type should be defined as a snapshot or dataset.", collectionType);
+    switch (collectionType) {
+      case DATASET:
+        assertThat(
+            "Total row count should be correct since we includeTotalRowCount for datasets",
+            results.get(0).getTotalCount(),
+            equalTo(expectedTotalRowCount));
+        break;
+      case SNAPSHOT:
+        assertThat(
+            "Total row count should be 0 since we do NOT includeTotalRowCount for snapshots",
+            results.get(0).getTotalCount(),
+            equalTo(0));
+        break;
+    }
   }
 }

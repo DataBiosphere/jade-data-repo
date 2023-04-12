@@ -271,4 +271,21 @@ public class GrammarTest {
     Query query = Query.parse("INSERT INTO foo.bar (x, y, z) VALUES 1 2 3");
     query.getDatasetNames();
   }
+
+  @Test
+  public void testNestedQuery() {
+    Query.parse(
+        """
+          SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM ( SELECT datarepo_row_id, file_id, sample_id, sample_vcf FROM DATABASE.TABLE ) """);
+  }
+
+  @Test
+  public void testOverClause() {
+    Query.parse(
+        """
+            SELECT datarepo_row_id, file_id, sample_id, sample_vcf, total_row_count, count(*) over() as filtered_row_count FROM (
+                          Select datarepo_row_id, file_id, sample_id, sample_vcf, count(*) over () as total_row_count FROM datarepo_test_v2_drs_anvil_v3.file
+                        ) WHERE file_id = 'TEST_File_002' LIMIT 1000
+            """);
+  }
 }

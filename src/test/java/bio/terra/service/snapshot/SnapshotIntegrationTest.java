@@ -17,12 +17,14 @@ import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.TestJobWatcher;
 import bio.terra.integration.UsersBase;
+import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotPreviewModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestModelPolicies;
 import bio.terra.model.SnapshotSummaryModel;
@@ -69,6 +71,8 @@ public class SnapshotIntegrationTest extends UsersBase {
   private UUID datasetId;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
   private String stewardToken;
+  String participantTableName;
+  int participantTableRowCount;
 
   @Rule @Autowired public TestJobWatcher testWatcher;
 
@@ -89,6 +93,8 @@ public class SnapshotIntegrationTest extends UsersBase {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
+    participantTableName = "participant";
+    participantTableRowCount = 5;
     dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
     request = dataRepoFixtures.buildSimpleIngest("sample", "ingest-test/ingest-test-sample.json");
     dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
@@ -123,7 +129,9 @@ public class SnapshotIntegrationTest extends UsersBase {
     String sampleTable = "sample";
 
     List<Object> participantResults =
-        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, participantTable, 0, 1000, null);
+        dataRepoFixtures
+            .retrieveDatasetData(steward(), datasetId, participantTable, 0, 1000, null)
+            .getResult();
     List<UUID> participantIds =
         participantResults.stream()
             .map(
@@ -132,7 +140,9 @@ public class SnapshotIntegrationTest extends UsersBase {
                         ((LinkedHashMap) r).get(PdaoConstant.PDAO_ROW_ID_COLUMN).toString()))
             .toList();
     List<Object> sampleResults =
-        dataRepoFixtures.retrieveDatasetData(steward(), datasetId, sampleTable, 0, 1000, null);
+        dataRepoFixtures
+            .retrieveDatasetData(steward(), datasetId, sampleTable, 0, 1000, null)
+            .getResult();
     List<UUID> sampleIds =
         sampleResults.stream()
             .map(
@@ -233,12 +243,68 @@ public class SnapshotIntegrationTest extends UsersBase {
   }
 
   @Test
-  public void snapshotByFullViewHappyPathTest() throws Exception {
+  public void retrieveRowCountAndSnapshotByFullViewTest() throws Exception {
+    // DATASET
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
     String datasetName = dataset.getName();
+
+    // Empty dataset table
+    dataRepoFixtures.assertDatasetTableCount(steward(), dataset, "file", 0);
+
+    // Non-empty dataset table, no filtering: total row count = filtered row count > 0
+    dataRepoFixtures.assertDatasetTableCount(
+        steward(), dataset, participantTableName, participantTableRowCount);
+
+    // Non-empty dataset table, filtered results: total row count > filtered row count > 0
+    DatasetDataModel filteredDatasetDataModel =
+        dataRepoFixtures.retrieveDatasetData(
+            steward(),
+            dataset.getId(),
+            participantTableName,
+            0,
+            participantTableRowCount + 1,
+            "WHERE id = 'participant_1'");
+    int expectedFilteredRowCount = 1;
+    assertThat(
+        "With no limit, number of results should equal the filtered row count",
+        filteredDatasetDataModel.getResult().size(),
+        equalTo(expectedFilteredRowCount));
+    assertThat(
+        "Total row count matches expected total row count",
+        filteredDatasetDataModel.getTotalRowCount(),
+        equalTo(participantTableRowCount));
+    assertThat(
+        "Filtered row count matches expected filtered row count",
+        filteredDatasetDataModel.getFilteredRowCount(),
+        equalTo(expectedFilteredRowCount));
+
+    // Non-empty dataset table, filtered results to 0 rows: total row count > filtered row count = 0
+    DatasetDataModel emptyFilteredDatasetDataModel =
+        dataRepoFixtures.retrieveDatasetData(
+            steward(),
+            dataset.getId(),
+            participantTableName,
+            0,
+            participantTableRowCount + 1,
+            "WHERE id = 'invalid'");
+    expectedFilteredRowCount = 0;
+    assertThat(
+        "With no limit, number of results should equal the filtered row count",
+        emptyFilteredDatasetDataModel.getResult().size(),
+        equalTo(expectedFilteredRowCount));
+    assertThat(
+        "Total row count matches expected total row count",
+        emptyFilteredDatasetDataModel.getTotalRowCount(),
+        equalTo(participantTableRowCount));
+    assertThat(
+        "Filtered row count matches expected filtered row count",
+        emptyFilteredDatasetDataModel.getFilteredRowCount(),
+        equalTo(expectedFilteredRowCount));
+
+    // SNAPSHOT
+    // create snapshot by full view
     SnapshotRequestModel requestModel =
         jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
-    // swap in the correct dataset name (with the id at the end)
     requestModel.getContents().get(0).setDatasetName(datasetName);
     SnapshotSummaryModel snapshotSummary =
         dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
@@ -247,6 +313,60 @@ public class SnapshotIntegrationTest extends UsersBase {
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     assertEquals("the relationship comes through", 1, snapshot.getRelationships().size());
+
+    // Empty snapshot table
+    dataRepoFixtures.assertSnapshotTableCount(steward(), snapshot, "file", 0);
+
+    // Non-empty snapshot table, no filtering: total row count = filtered row count > 0
+    dataRepoFixtures.assertSnapshotTableCount(
+        steward(), snapshot, participantTableName, participantTableRowCount);
+
+    // Non-empty snapshot table, filtered results: total row count > filtered row count > 0
+    SnapshotPreviewModel filteredSnapshotPreviewModel =
+        dataRepoFixtures.retrieveSnapshotPreviewById(
+            steward(),
+            snapshot.getId(),
+            participantTableName,
+            0,
+            participantTableRowCount + 1,
+            "WHERE id = 'participant_1'");
+    expectedFilteredRowCount = 1;
+    assertThat(
+        "With no limit, number of results should equal the filtered row count",
+        filteredSnapshotPreviewModel.getResult().size(),
+        equalTo(expectedFilteredRowCount));
+    assertThat(
+        "Total row count matches expected total row count",
+        filteredSnapshotPreviewModel.getTotalRowCount(),
+        equalTo(participantTableRowCount));
+    assertThat(
+        "Filtered row count matches expected filtered row count",
+        filteredSnapshotPreviewModel.getFilteredRowCount(),
+        equalTo(expectedFilteredRowCount));
+
+    // Non-empty snapshot table, filtered results to 0 rows: total row count > filtered row count =
+    // 0
+    SnapshotPreviewModel emptyFilteredSnapshotPreviewModel =
+        dataRepoFixtures.retrieveSnapshotPreviewById(
+            steward(),
+            snapshot.getId(),
+            participantTableName,
+            0,
+            participantTableRowCount + 1,
+            "WHERE id = 'invalid'");
+    expectedFilteredRowCount = 0;
+    assertThat(
+        "With no limit, number of results should equal the filtered row count",
+        emptyFilteredSnapshotPreviewModel.getResult().size(),
+        equalTo(expectedFilteredRowCount));
+    assertThat(
+        "Total row count matches expected total row count",
+        emptyFilteredSnapshotPreviewModel.getTotalRowCount(),
+        equalTo(participantTableRowCount));
+    assertThat(
+        "Filtered row count matches expected filtered row count",
+        emptyFilteredSnapshotPreviewModel.getFilteredRowCount(),
+        equalTo(expectedFilteredRowCount));
   }
 
   @Test

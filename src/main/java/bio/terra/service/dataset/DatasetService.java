@@ -8,6 +8,7 @@ import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.app.usermetrics.BardEventProperties;
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.CollectionType;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -54,6 +55,7 @@ import bio.terra.service.dataset.flight.transactions.TransactionOpenFlight;
 import bio.terra.service.dataset.flight.transactions.TransactionRollbackFlight;
 import bio.terra.service.dataset.flight.update.DatasetSchemaUpdateFlight;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.SynapseDataResultModel;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -69,6 +71,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
+import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryTransactionPdao;
@@ -534,11 +537,17 @@ public class DatasetService {
       try {
         List<String> columns = datasetTableDao.retrieveColumnNames(table, true);
         String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
-        List<Map<String, Object>> values =
+        List<BigQueryDataResultModel> values =
             BigQueryPdao.getTable(
                 dataset, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
-
-        return new DatasetDataModel().result(List.copyOf(values));
+        return new DatasetDataModel()
+            .result(
+                List.copyOf(values.stream().map(BigQueryDataResultModel::getRowResult).toList()))
+            .totalRowCount(
+                values.isEmpty()
+                    ? BigQueryPdao.getTableTotalRowCount(dataset, bqFormattedTableName)
+                    : values.get(0).getTotalCount())
+            .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
@@ -553,6 +562,7 @@ public class DatasetService {
               .formatted(
                   accessInfoModel.getParquet().getUrl(),
                   accessInfoModel.getParquet().getSasToken());
+      String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
 
       try {
         azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
@@ -560,18 +570,26 @@ public class DatasetService {
         throw new RuntimeException("Could not configure external datasource", e);
       }
 
-      List<Map<String, Optional<Object>>> values =
+      List<SynapseDataResultModel> values =
           azureSynapsePdao.getTableData(
               table,
               tableName,
               datasourceName,
-              IngestUtils.getSourceDatasetParquetFilePath(tableName),
+              sourceParquetFilePath,
               limit,
               offset,
               sort,
               direction,
-              filter);
-      return new DatasetDataModel().result(List.copyOf(values));
+              filter,
+              CollectionType.DATASET);
+      return new DatasetDataModel()
+          .result(List.copyOf(values.stream().map(SynapseDataResultModel::getRowResult).toList()))
+          .totalRowCount(
+              values.isEmpty()
+                  ? azureSynapsePdao.getTableTotalRowCount(
+                      tableName, datasourceName, sourceParquetFilePath)
+                  : values.get(0).getTotalCount())
+          .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
     } else {
       throw new DatasetDataException("Cloud not supported");
     }

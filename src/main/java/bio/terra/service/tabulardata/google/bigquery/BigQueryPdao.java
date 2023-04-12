@@ -2,7 +2,10 @@ package bio.terra.service.tabulardata.google.bigquery;
 
 import static bio.terra.common.PdaoConstant.PDAO_COUNT_ALIAS;
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_FILTERED_ROW_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_TOTAL_ROW_COUNT_COLUMN_NAME;
 
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
@@ -24,9 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
 public abstract class BigQueryPdao {
+  private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
 
   static void grantReadAccessWorker(
       BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails)
@@ -103,15 +109,58 @@ public abstract class BigQueryPdao {
   }
 
   // VIEW DATA
-  public static final String DATA_TEMPLATE = "SELECT <columns> FROM <table> <filterParams>";
+  public static final String DATA_TEMPLATE =
+      """
+        SELECT <columns>,
+          <if(includeTotalRowCount)>
+            <totalRowCountColumnName>,
+          <endif>
+          count(*) over () <filteredRowCountColumnName>
+        FROM (
+          SELECT <pdaoRowIdColumn><columns><if(includeTotalRowCount)>, count(*) over () AS <totalRowCountColumnName><endif>
+          FROM <table>)
+        <filterParams>
+      """;
 
   public static final String DATA_FILTER_TEMPLATE =
       "<whereClause> ORDER BY <sort> <direction> LIMIT <limit> OFFSET <offset>";
 
+  public static final String TABLE_ROW_COUNT_TEMPLATE =
+      """
+        SELECT count(*) <totalRowCountColumnName> FROM <table>
+      """;
+
+  public static int getTableTotalRowCount(
+      FSContainerInterface tdrResource, String bqFormattedTableName) {
+    final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
+    final String datasetProjectId = bigQueryProject.getProjectId();
+    String bigQueryTable = "`" + datasetProjectId + "." + bqFormattedTableName + "`";
+    final String bigQuerySQL =
+        new ST(TABLE_ROW_COUNT_TEMPLATE)
+            .add("table", bigQueryTable)
+            .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
+            .render();
+    try {
+      final TableResult result = bigQueryProject.query(bigQuerySQL);
+      return (int)
+          result
+              .iterateAll()
+              .iterator()
+              .next()
+              .get(PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
+              .getLongValue();
+    } catch (InterruptedException ex) {
+      logger.warn(
+          "BQ request to get total row count for table {} was interupted. Defaulting to 0.",
+          bigQueryTable,
+          ex);
+      return 0;
+    }
+  }
   /*
    * WARNING: Ensure input parameters are validated before executing this method!
    */
-  public static List<Map<String, Object>> getTable(
+  public static List<BigQueryDataResultModel> getTable(
       FSContainerInterface tdrResource,
       String bqFormattedTableName,
       List<String> columnNames,
@@ -124,6 +173,7 @@ public abstract class BigQueryPdao {
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
     final String datasetProjectId = bigQueryProject.getProjectId();
     String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
+    boolean isDataset = tdrResource.getCollectionType().equals(CollectionType.DATASET);
 
     String columns = String.join(",", columnNames);
     // Parse before querying because the where clause is user-provided
@@ -133,6 +183,12 @@ public abstract class BigQueryPdao {
             .add("columns", columns)
             .add("table", bqFormattedTableName)
             .add("filterParams", whereClause)
+            .add("includeTotalRowCount", isDataset)
+            .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
+            .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
+            .add(
+                "pdaoRowIdColumn",
+                columnNames.contains(PDAO_ROW_ID_COLUMN) ? "" : PDAO_ROW_ID_COLUMN + ",")
             .render();
     Query.parse(sql);
 
@@ -151,37 +207,49 @@ public abstract class BigQueryPdao {
             .add("columns", columns)
             .add("table", bigQueryTable)
             .add("filterParams", filterParams)
+            .add("includeTotalRowCount", isDataset)
+            .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
+            .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
+            .add(
+                "pdaoRowIdColumn",
+                columnNames.contains(PDAO_ROW_ID_COLUMN) ? "" : PDAO_ROW_ID_COLUMN + ",")
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
     return aggregateTableData(result);
   }
 
-  public static List<Map<String, Object>> aggregateTableData(TableResult result) {
-    final FieldList columns = result.getSchema().getFields();
-    final List<Map<String, Object>> values = new ArrayList<>();
+  public static List<BigQueryDataResultModel> aggregateTableData(TableResult result) {
+    FieldList columns = result.getSchema().getFields();
+    final List<BigQueryDataResultModel> values = new ArrayList<>();
     result
         .iterateAll()
         .forEach(
             rows -> {
+              final BigQueryDataResultModel resultModel = new BigQueryDataResultModel();
               final Map<String, Object> rowData = new HashMap<>();
               columns.forEach(
                   column -> {
                     String columnName = column.getName();
                     FieldValue fieldValue = rows.get(columnName);
                     Object value;
-                    if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
-                      value =
-                          fieldValue.getRepeatedValue().stream()
-                              .map(FieldValue::getValue)
-                              .collect(Collectors.toList());
+                    if (columnName.equals(PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)) {
+                      resultModel.filteredCount((int) fieldValue.getLongValue());
+                    } else if (columnName.equals(PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)) {
+                      resultModel.totalCount((int) fieldValue.getLongValue());
                     } else {
-                      value = fieldValue.getValue();
+                      if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
+                        value =
+                            fieldValue.getRepeatedValue().stream()
+                                .map(FieldValue::getValue)
+                                .collect(Collectors.toList());
+                      } else {
+                        value = fieldValue.getValue();
+                      }
+                      rowData.put(columnName, value);
                     }
-                    rowData.put(columnName, value);
                   });
-              values.add(rowData);
+              values.add(resultModel.rowResult(rowData));
             });
-
     return values;
   }
 }

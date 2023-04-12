@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import bio.terra.common.CollectionType;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
@@ -266,10 +267,18 @@ public class AzureSynapsePdaoConnectedTest {
         "List of names in snapshot should equal the dataset names",
         snapshotFirstNames,
         equalTo(List.of("Bob", "Sally")));
+    long expectedNumberOfRows = 2L;
     assertThat(
         "Table row count should equal 2 for destination table",
         tableRowCounts.get(destinationTable.getName()),
         equalTo(2L));
+    int rowCount =
+        azureSynapsePdao.getTableTotalRowCount(
+            destinationTable.getName(), snapshotDataSourceName, snapshotParquetFileName);
+    assertThat(
+        "Correct number of rows are returned from table",
+        rowCount,
+        equalTo((int) expectedNumberOfRows));
 
     // CreateSnapshotParquetFilesAzureStep part 2
     // Create snapshot row ids parquet file via external table
@@ -304,19 +313,24 @@ public class AzureSynapsePdaoConnectedTest {
         AzureSynapsePdao.getDataSourceName(snapshot.getId(), TEST_USER.getEmail());
     azureSynapsePdao.getOrCreateExternalDataSource(
         snapshotSignUrlBlob, snapshotQueryCredentialName, snapshotQueryDataSourceName);
+    List<SynapseDataResultModel> results =
+        azureSynapsePdao.getTableData(
+            snapshotTable,
+            snapshotTable.getName(),
+            snapshotQueryDataSourceName,
+            IngestUtils.getSnapshotParquetFilePathForQuery(snapshotTable.getName()),
+            10,
+            0,
+            "first_name",
+            SqlSortDirection.ASC,
+            "",
+            CollectionType.SNAPSHOT);
+    assertThat(
+        "We should not include total row count for snapshots",
+        results.get(0).getTotalCount(),
+        equalTo(0));
     List<Map<String, Optional<Object>>> tableData =
-        prepQueryResultForComparison(
-            azureSynapsePdao.getTableData(
-                snapshotTable,
-                snapshotTable.getName(),
-                snapshotQueryDataSourceName,
-                IngestUtils.getSnapshotParquetFilePathForQuery(snapshotTable.getName()),
-                10,
-                0,
-                "first_name",
-                SqlSortDirection.ASC,
-                ""),
-            isGlobalFileIds);
+        prepQueryResultForComparison(results, isGlobalFileIds);
     assertThat(
         "table query contains correct data in the right order (ascending by first name)",
         tableData,
@@ -334,7 +348,8 @@ public class AzureSynapsePdaoConnectedTest {
                 0,
                 "first_name",
                 SqlSortDirection.DESC,
-                ""),
+                "",
+                CollectionType.SNAPSHOT),
             isGlobalFileIds);
     assertThat(
         "table query contains correct data in the right order (descending by first name)",
@@ -353,7 +368,8 @@ public class AzureSynapsePdaoConnectedTest {
                 0,
                 "first_name",
                 SqlSortDirection.ASC,
-                "upper(first_name)='SALLY'"),
+                "upper(first_name)='SALLY'",
+                CollectionType.SNAPSHOT),
             isGlobalFileIds);
     assertThat(
         "table query contains only a single record", tableData, contains(expectedData.get(1)));
@@ -381,8 +397,9 @@ public class AzureSynapsePdaoConnectedTest {
   }
 
   private List<Map<String, Optional<Object>>> prepQueryResultForComparison(
-      List<Map<String, Optional<Object>>> tableData, Boolean isGlobalFileIds) {
+      List<SynapseDataResultModel> tableData, Boolean isGlobalFileIds) {
     return tableData.stream()
+        .map(SynapseDataResultModel::getRowResult)
         // Remove datarepo_row_id since it's random
         .peek(r -> r.remove(PDAO_ROW_ID_COLUMN))
         // Replace the DRS id with its file ID for easier comparison

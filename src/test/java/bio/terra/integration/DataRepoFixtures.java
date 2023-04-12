@@ -733,7 +733,20 @@ public class DataRepoFixtures {
     return DrsService.getLastNameFromPath(drsUri);
   }
 
-  public List<Object> retrieveSnapshotPreviewById(
+  public Object retrieveFirstResultSnapshotPreviewById(
+      TestConfiguration.User user,
+      UUID snapshotId,
+      String table,
+      int offset,
+      int limit,
+      String filter)
+      throws Exception {
+    return retrieveSnapshotPreviewById(user, snapshotId, table, offset, limit, filter)
+        .getResult()
+        .get(0);
+  }
+
+  public SnapshotPreviewModel retrieveSnapshotPreviewById(
       TestConfiguration.User user,
       UUID snapshotId,
       String table,
@@ -744,7 +757,7 @@ public class DataRepoFixtures {
     return retrieveSnapshotPreviewById(user, snapshotId, table, offset, limit, filter, null);
   }
 
-  public List<Object> retrieveSnapshotPreviewById(
+  public SnapshotPreviewModel retrieveSnapshotPreviewById(
       TestConfiguration.User user,
       UUID snapshotId,
       String table,
@@ -755,10 +768,7 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<SnapshotPreviewModel> response =
         retrieveSnapshotPreviewByIdRaw(user, snapshotId, table, offset, limit, filter, sort);
-    SnapshotPreviewModel validated =
-        validateResponse(response, "snapshot data", HttpStatus.OK, null);
-
-    return validated.getResult();
+    return validateResponse(response, "snapshot data", HttpStatus.OK, null);
   }
 
   private DataRepoResponse<SnapshotPreviewModel> retrieveSnapshotPreviewByIdRaw(
@@ -789,7 +799,8 @@ public class DataRepoFixtures {
       TestConfiguration.User user, DatasetModel dataset, String tableName, int limitRowsReturned)
       throws Exception {
     List<Object> dataModel =
-        retrieveDatasetData(user, dataset.getId(), tableName, 0, limitRowsReturned, null);
+        retrieveDatasetData(user, dataset.getId(), tableName, 0, limitRowsReturned, null)
+            .getResult();
     assertThat("got right num of row ids back", dataModel.size(), equalTo(limitRowsReturned));
     return dataModel.stream()
         .map(r -> ((LinkedHashMap) r).get(PDAO_ROW_ID_COLUMN).toString())
@@ -799,20 +810,36 @@ public class DataRepoFixtures {
   public void assertSnapshotTableCount(
       TestConfiguration.User user, SnapshotModel snapshotModel, String tableName, int n)
       throws Exception {
-    int tableCount =
-        retrieveSnapshotPreviewById(user, snapshotModel.getId(), tableName, 0, n + 1, null).size();
-    assertThat("count matches", tableCount, equalTo(n));
+    SnapshotPreviewModel previewModel =
+        retrieveSnapshotPreviewById(user, snapshotModel.getId(), tableName, 0, n + 1, null);
+    // since we're not filtering and the results should not be limited, all three of these should be
+    // equal
+    int rowCount = previewModel.getResult().size();
+    assertThat("Results row count matches expected row count", rowCount, equalTo(n));
+    int totalRowCount = previewModel.getTotalRowCount();
+    assertThat("Total row count matches expected row count", totalRowCount, equalTo(n));
+    int filteredRowCount = previewModel.getFilteredRowCount();
+    assertThat("Filtered row count matches expected row count", filteredRowCount, equalTo(n));
   }
 
   public void assertDatasetTableCount(
       TestConfiguration.User user, DatasetModel dataset, String tableName, int n) throws Exception {
-    int tableCount = retrieveDatasetData(user, dataset.getId(), tableName, 0, n + 1, null).size();
-    assertThat("count matches", tableCount, equalTo(n));
+    DatasetDataModel datasetDataModel =
+        retrieveDatasetData(user, dataset.getId(), tableName, 0, n + 1, null);
+    // since we're not filtering and the results should not be limited, all three of these should be
+    // equal
+    int rowCount = datasetDataModel.getResult().size();
+    assertThat("Results row count matches expected row count", rowCount, equalTo(n));
+    int totalRowCount = datasetDataModel.getTotalRowCount();
+    assertThat("Total row count matches expected row count", totalRowCount, equalTo(n));
+    int filteredRowCount = datasetDataModel.getFilteredRowCount();
+    assertThat("Filtered row count matches expected row count", filteredRowCount, equalTo(n));
   }
 
   public List<Map<String, List<String>>> transformStringResults(
       TestConfiguration.User user, DatasetModel dataset, String tableName) throws Exception {
-    List<Object> dataModel = retrieveDatasetData(user, dataset.getId(), tableName, 0, 100, null);
+    List<Object> dataModel =
+        retrieveDatasetData(user, dataset.getId(), tableName, 0, 100, null).getResult();
     List<String> columnNamesFromResults =
         ((LinkedHashMap) dataModel.get(0)).keySet().stream().toList();
     List<ColumnModel> columns =
@@ -859,7 +886,7 @@ public class DataRepoFixtures {
         equalTo(expectedStatus));
   }
 
-  public List<Object> retrieveDatasetData(
+  public DatasetDataModel retrieveDatasetData(
       TestConfiguration.User user,
       UUID datasetId,
       String table,
@@ -870,7 +897,7 @@ public class DataRepoFixtures {
     return retrieveDatasetData(user, datasetId, table, offset, limit, filter, null, null);
   }
 
-  public List<Object> retrieveDatasetData(
+  public DatasetDataModel retrieveDatasetData(
       TestConfiguration.User user,
       UUID datasetId,
       String table,
@@ -882,9 +909,7 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<DatasetDataModel> response =
         retrieveDatasetDataByIdRaw(user, datasetId, table, offset, limit, filter, sort, direction);
-    DatasetDataModel validated = validateResponse(response, "dataset data", HttpStatus.OK, null);
-
-    return validated.getResult();
+    return validateResponse(response, "dataset data", HttpStatus.OK, null);
   }
 
   private DataRepoResponse<DatasetDataModel> retrieveDatasetDataByIdRaw(

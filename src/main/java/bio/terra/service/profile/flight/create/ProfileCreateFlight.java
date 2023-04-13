@@ -27,15 +27,16 @@ public class ProfileCreateFlight extends Flight {
 
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(request.getCloudPlatform());
 
-    addStep(new GetOrCreateProfileIdStep(request));
-    addStep(new CreateProfileMetadataStep(profileService, request, user));
-    if (platform.isGcp()) {
-      addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
-    }
-    if (platform.isAzure()) {
-      addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));
-    }
-    addStep(new CreateProfileAuthzIamStep(profileService, request, user));
-    addStep(new CreateProfileJournalEntryStep(journalService, user, request));
+    addStep(new SpikeCPUStep());
+    //    addStep(new GetOrCreateProfileIdStep(request));
+    //    addStep(new CreateProfileMetadataStep(profileService, request, user));
+    //    if (platform.isGcp()) {
+    //      addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
+    //    }
+    //    if (platform.isAzure()) {
+    //      addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));
+    //    }
+    //    addStep(new CreateProfileAuthzIamStep(profileService, request, user));
+    //    addStep(new CreateProfileJournalEntryStep(journalService, user, request));
   }
 }

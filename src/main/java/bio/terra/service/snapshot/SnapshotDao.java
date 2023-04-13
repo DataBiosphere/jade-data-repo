@@ -26,8 +26,8 @@ import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
-import bio.terra.service.tags.TagDaoInterface;
 import bio.terra.service.tags.TagUtils;
+import bio.terra.service.tags.TaggableResourceDao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,7 +58,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-public class SnapshotDao implements TagDaoInterface {
+public class SnapshotDao implements TaggableResourceDao {
 
   private final Logger logger = LoggerFactory.getLogger(SnapshotDao.class);
 

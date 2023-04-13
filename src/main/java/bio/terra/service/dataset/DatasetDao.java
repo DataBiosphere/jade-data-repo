@@ -23,8 +23,8 @@ import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import bio.terra.service.tags.TagDaoInterface;
 import bio.terra.service.tags.TagUtils;
+import bio.terra.service.tags.TaggableResourceDao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,7 +57,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-public class DatasetDao implements TagDaoInterface {
+public class DatasetDao implements TaggableResourceDao {
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final DatasetTableDao tableDao;

@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** An interface to share resource-agnostic dao operations related to user-defined tags. */
-public interface TagDaoInterface {
+public interface TaggableResourceDao {
 
   NamedParameterJdbcTemplate getJdbcTemplate();
 

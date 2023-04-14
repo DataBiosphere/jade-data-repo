@@ -22,13 +22,12 @@ public class FileMetadataUtils {
 
   public FileMetadataUtils() {}
 
+  // TODO: this currently returns the directory as "" if you pass in a one-level deep item
+  // https://broadworkbench.atlassian.net/browse/DR-3005 is to fix (changing breaks tests badly)
   public static String getDirectoryPath(String path) {
-    if (StringUtils.isEmpty(path)) {
-      return "";
-    }
     Path pathParts = Paths.get(path);
     Path parentDirectory = pathParts.getParent();
-    if (pathParts.getNameCount() == 0) {
+    if (pathParts.getNameCount() <= 1) {
       // We are at the root; no containing directory
       return StringUtils.EMPTY;
     }

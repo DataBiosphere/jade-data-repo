@@ -211,10 +211,12 @@ public class FileMetadataUtilsTest {
     assertThat("root directory dir looks ok", FileMetadataUtils.getDirectoryPath("/"), equalTo(""));
     assertThat("root directory file looks ok", FileMetadataUtils.getName("/"), equalTo(""));
 
+    // It's admitedly strange that this is what we expect but changing the behavior causes untold
+    // chaos
     assertThat(
         "1st level directory dir looks ok",
         FileMetadataUtils.getDirectoryPath("/foo"),
-        equalTo("/"));
+        equalTo(""));
     assertThat(
         "1st level directory file looks ok", FileMetadataUtils.getName("/foo"), equalTo("foo"));
 

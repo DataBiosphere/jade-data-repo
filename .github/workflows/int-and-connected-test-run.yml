@@ -236,6 +236,8 @@ jobs:
   report-to-sherlock:
     uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
     needs: deploy_test_integration
+    # Always attempt to run, as we want to report the appVersion even if the tests fail.
+    if: always()
     with:
       new-version: ${{ needs.deploy_test_integration.outputs.api_image_tag }}
       chart-name: 'datarepo'

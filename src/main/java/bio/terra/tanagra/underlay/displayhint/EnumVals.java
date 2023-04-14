@@ -9,6 +9,7 @@ import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.OrderByVariable;
 import bio.terra.tanagra.query.Query;
+import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.RowResult;
@@ -21,7 +22,6 @@ import bio.terra.tanagra.underlay.DisplayHint;
 import bio.terra.tanagra.underlay.ValueDisplay;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -78,7 +78,8 @@ public final class EnumVals extends DisplayHint {
    *
    * <p>LIMIT 101
    */
-  public static EnumVals computeForField(Literal.DataType dataType, FieldPointer value) {
+  public static EnumVals computeForField(
+      Literal.DataType dataType, FieldPointer value, QueryExecutor executor) {
     Query query = queryPossibleEnumVals(value);
     List<ColumnSchema> columnSchemas =
         List.of(
@@ -86,15 +87,11 @@ public final class EnumVals extends DisplayHint {
                 ENUM_VALUE_COLUMN_ALIAS, CellValue.SQLDataType.fromUnderlayDataType(dataType)),
             new ColumnSchema(ENUM_COUNT_COLUMN_ALIAS, CellValue.SQLDataType.INT64));
 
-    DataPointer dataPointer = value.getTablePointer().getDataPointer();
-    QueryRequest queryRequest =
-        new QueryRequest(query.renderSQL(), new ColumnHeaderSchema(columnSchemas));
-    QueryResult queryResult = dataPointer.getQueryExecutor().execute(queryRequest);
+    QueryRequest queryRequest = new QueryRequest(query, new ColumnHeaderSchema(columnSchemas));
+    QueryResult queryResult = executor.execute(queryRequest);
 
     List<EnumVal> enumVals = new ArrayList<>();
-    Iterator<RowResult> rowResultIter = queryResult.getRowResults().iterator();
-    while (rowResultIter.hasNext()) {
-      RowResult rowResult = rowResultIter.next();
+    for (RowResult rowResult : queryResult.getRowResults()) {
       String val = rowResult.get(ENUM_VALUE_COLUMN_ALIAS).getString().orElse(null);
       long count = rowResult.get(ENUM_COUNT_COLUMN_ALIAS).getLong().getAsLong();
       enumVals.add(new EnumVal(new ValueDisplay(val), count));
@@ -106,6 +103,9 @@ public final class EnumVals extends DisplayHint {
             value.getColumnName());
         return null;
       }
+    }
+    if (enumVals.isEmpty()) {
+      return null;
     }
     return new EnumVals(enumVals);
   }
@@ -130,11 +130,11 @@ public final class EnumVals extends DisplayHint {
    * <p>LIMIT 101
    */
   public static EnumVals computeForField(
-      Literal.DataType dataType, FieldPointer value, FieldPointer display) {
+      Literal.DataType dataType, FieldPointer value, FieldPointer display, QueryExecutor executor) {
     Query possibleValuesQuery = queryPossibleEnumVals(value);
     DataPointer dataPointer = value.getTablePointer().getDataPointer();
     TablePointer possibleValsTable =
-        TablePointer.fromRawSql(possibleValuesQuery.renderSQL(), dataPointer);
+        TablePointer.fromRawSql(executor.renderSQL(possibleValuesQuery), dataPointer);
     FieldPointer possibleValField =
         new FieldPointer.Builder()
             .tablePointer(possibleValsTable)
@@ -184,22 +184,19 @@ public final class EnumVals extends DisplayHint {
             new ColumnSchema(ENUM_DISPLAY_COLUMN_ALIAS, CellValue.SQLDataType.STRING));
 
     // run the query
-    QueryRequest queryRequest =
-        new QueryRequest(query.renderSQL(), new ColumnHeaderSchema(columnSchemas));
-    QueryResult queryResult = dataPointer.getQueryExecutor().execute(queryRequest);
+    QueryRequest queryRequest = new QueryRequest(query, new ColumnHeaderSchema(columnSchemas));
+    QueryResult queryResult = executor.execute(queryRequest);
 
     // iterate through the query results, building the list of enum values
     List<EnumVal> enumVals = new ArrayList<>();
-    Iterator<RowResult> rowResultIter = queryResult.getRowResults().iterator();
-    while (rowResultIter.hasNext()) {
-      RowResult rowResult = rowResultIter.next();
+    for (RowResult rowResult : queryResult.getRowResults()) {
       CellValue cellValue = rowResult.get(ENUM_VALUE_COLUMN_ALIAS);
       enumVals.add(
           new EnumVal(
               new ValueDisplay(
                   // TODO: Make a static NULL Literal instance, instead of overloading the String
                   // value.
-                  cellValue.getLiteral().orElse(new Literal((String) null)),
+                  cellValue.getLiteral().orElse(new Literal(null)),
                   rowResult.get(ENUM_DISPLAY_COLUMN_ALIAS).getString().orElse(null)),
               rowResult.get(ENUM_COUNT_COLUMN_ALIAS).getLong().getAsLong()));
       if (enumVals.size() > MAX_ENUM_VALS_FOR_DISPLAY_HINT) {
@@ -210,6 +207,9 @@ public final class EnumVals extends DisplayHint {
             valueFieldVar.getAlias());
         return null;
       }
+    }
+    if (enumVals.isEmpty()) {
+      return null;
     }
     return new EnumVals(enumVals);
   }
@@ -232,6 +232,7 @@ public final class EnumVals extends DisplayHint {
         .tables(nestedQueryTables)
         .orderBy(List.of(new OrderByVariable(nestedValueFieldVar)))
         .groupBy(List.of(nestedValueFieldVar))
+        .limit(MAX_ENUM_VALS_FOR_DISPLAY_HINT + 1)
         .build();
   }
 }

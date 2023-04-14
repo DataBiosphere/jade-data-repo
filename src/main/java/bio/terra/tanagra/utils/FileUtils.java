@@ -3,10 +3,10 @@ package bio.terra.tanagra.utils;
 import bio.terra.tanagra.exception.SystemException;
 import com.google.common.io.CharStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,7 +42,7 @@ public final class FileUtils {
    */
   public static InputStream getFileStream(Path filePath) {
     try {
-      return Files.newInputStream(Path.of(filePath.toAbsolutePath().toString()));
+      return Files.newInputStream(filePath);
     } catch (IOException ioEx) {
       throw new SystemException("Error opening file stream: " + filePath, ioEx);
     }
@@ -54,19 +54,19 @@ public final class FileUtils {
       justification =
           "A file not found exception will be thrown anyway in the calling method if the mkdirs or createNewFile calls fail.")
   public static void createFile(Path path) throws IOException {
-    File file = path.toFile();
-    if (!file.exists()) {
-      file.getParentFile().mkdirs();
-      file.createNewFile();
+    if (!Files.isRegularFile(path)) {
+      Files.createDirectories(path.getParent());
+      Files.createFile(path);
     }
   }
 
   /** Create the directory and any parent directories if they don't already exist. */
   public static void createDirectoryIfNonexistent(Path path) {
-    if (!path.toFile().exists()) {
-      boolean mkdirsSuccess = path.toFile().mkdirs();
-      if (!mkdirsSuccess) {
-        throw new SystemException("mkdirs failed for directory: " + path.toAbsolutePath());
+    if (!Files.isDirectory(path)) {
+      try {
+        Files.createDirectories(path);
+      } catch (IOException e) {
+        throw new SystemException("mkdirs failed for directory: " + path);
       }
     }
   }
@@ -78,9 +78,8 @@ public final class FileUtils {
    * @return a Java String representing the file contents
    */
   public static String readStringFromFile(InputStream inputStream) {
-    try {
-      return CharStreams.toString(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
-          .replace(System.lineSeparator(), " ");
+    try (Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+      return CharStreams.toString(reader).replace(System.lineSeparator(), " ");
     } catch (IOException ioEx) {
       throw new SystemException("Error reading file contents", ioEx);
     }

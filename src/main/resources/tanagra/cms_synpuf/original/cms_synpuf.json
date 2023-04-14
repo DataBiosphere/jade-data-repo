@@ -1,15 +1,16 @@
 {
   "name": "cms_synpuf",
   "dataPointers": [
-    { "type": "BQ_DATASET",
-      "name": "omop_dataset",
-      "projectId": "bigquery-public-data",
-      "datasetId": "cms_synthetic_patient_data_omop",
-      "queryProjectId": "broad-tanagra-dev" },
+    { "type": "AZURE_DATASET",
+      "datasetId": "<TDR azure dataset UUID>",
+      "datasetName": "ignored",
+      "userName": "<Terra ID with Azure permissions>",
+      "name": "omop_dataset"
+    },
     { "type": "BQ_DATASET",
       "name": "index_dataset",
-      "projectId": "broad-tanagra-dev",
-      "datasetId": "cmssynpuf_index_011523" } ],
+      "projectId": "<gcp project ID>",
+      "datasetId": "<bigquery dataset ID>" } ],
   "entities": [
     "brand.json",
     "condition.json",

@@ -211,5 +211,6 @@
   },
   "criteriaEntity" : "ingredient",
   "occurrenceEntity" : "ingredient_occurrence",
+  "occurrenceRelatedEntities" : [ ],
   "modifierAttributes" : [ ]
 }

@@ -7,6 +7,7 @@ import bio.terra.tanagra.query.ColumnSchema;
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.Query;
+import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.RowResult;
@@ -56,7 +57,7 @@ public final class NumericRange extends DisplayHint {
     return maxVal;
   }
 
-  public static NumericRange computeForField(FieldPointer value) {
+  public static NumericRange computeForField(FieldPointer value, QueryExecutor executor) {
     // build the nested query for the possible values
     List<TableVariable> nestedQueryTables = new ArrayList<>();
     TableVariable nestedPrimaryTable = TableVariable.forPrimary(value.getTablePointer());
@@ -70,7 +71,7 @@ public final class NumericRange extends DisplayHint {
 
     DataPointer dataPointer = value.getTablePointer().getDataPointer();
     TablePointer possibleValsTable =
-        TablePointer.fromRawSql(possibleValuesQuery.renderSQL(), dataPointer);
+        TablePointer.fromRawSql(executor.renderSQL(possibleValuesQuery), dataPointer);
 
     // build the outer query for the list of (possible value, display) pairs
     List<TableVariable> tables = new ArrayList<>();
@@ -102,9 +103,8 @@ public final class NumericRange extends DisplayHint {
             new ColumnSchema(minValAlias, CellValue.SQLDataType.INT64),
             new ColumnSchema(maxValAlias, CellValue.SQLDataType.INT64));
 
-    QueryRequest queryRequest =
-        new QueryRequest(query.renderSQL(), new ColumnHeaderSchema(columnSchemas));
-    QueryResult queryResult = dataPointer.getQueryExecutor().execute(queryRequest);
+    QueryRequest queryRequest = new QueryRequest(query, new ColumnHeaderSchema(columnSchemas));
+    QueryResult queryResult = executor.execute(queryRequest);
     RowResult rowResult = queryResult.getSingleRowResult();
     return new NumericRange(
         rowResult.get(minValAlias).getDouble().getAsDouble(),

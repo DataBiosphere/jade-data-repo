@@ -6,8 +6,10 @@ import bio.terra.tanagra.query.ColumnSchema;
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.Literal;
+import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
+import bio.terra.tanagra.query.azure.AzureExecutor;
 import bio.terra.tanagra.serialization.UFAttributeMapping;
 import bio.terra.tanagra.underlay.displayhint.EnumVals;
 import bio.terra.tanagra.underlay.displayhint.NumericRange;
@@ -106,30 +108,24 @@ public final class AttributeMapping {
     return DEFAULT_DISPLAY_MAPPING_PREFIX + attribute.getName();
   }
 
-  public Literal.DataType computeDataType() {
+  public Literal.DataType computeDataType(AzureExecutor executor) {
     DataPointer dataPointer = value.getTablePointer().getDataPointer();
-    return dataPointer.lookupDatatype(value);
+    return dataPointer.lookupDatatype(value, executor);
   }
 
-  public DisplayHint computeDisplayHint() {
-    if (attribute.getType().equals(Attribute.Type.KEY_AND_DISPLAY)) {
-      return EnumVals.computeForField(attribute.getDataType(), value, display);
+  public DisplayHint computeDisplayHint(QueryExecutor executor) {
+    if (attribute.getType() == Attribute.Type.KEY_AND_DISPLAY) {
+      return EnumVals.computeForField(attribute.getDataType(), value, display, executor);
     }
 
-    switch (attribute.getDataType()) {
-      case BOOLEAN:
-        return null; // boolean values are enum by default
-      case INT64:
-        return NumericRange.computeForField(value);
-      case STRING:
-        return EnumVals.computeForField(attribute.getDataType(), value);
-      case DATE:
-      case DOUBLE:
-        // TODO: Compute display hints for other data types.
-        return null;
-      default:
-        throw new InvalidConfigException("Unknown attribute data type: " + attribute.getDataType());
-    }
+    return switch (attribute.getDataType()) {
+      case BOOLEAN -> null; // boolean values are enum by default
+      case INT64 -> NumericRange.computeForField(value, executor);
+      case STRING -> EnumVals.computeForField(attribute.getDataType(), value, executor);
+      case DATE, DOUBLE ->
+      // TODO: Compute display hints for other data types.
+      null;
+    };
   }
 
   public List<FieldPointer> getFieldPointers() {

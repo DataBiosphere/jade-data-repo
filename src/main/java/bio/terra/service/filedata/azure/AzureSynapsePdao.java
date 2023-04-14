@@ -61,6 +61,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -1076,6 +1077,10 @@ public class AzureSynapsePdao {
           ex);
       return new ArrayList<>();
     }
+  }
+
+  public <T> List<T> query(String sql, RowMapper<T> rowMapper) {
+    return synapseJdbcTemplate.query(sql, rowMapper);
   }
 
   public int executeSynapseQuery(String query) throws SQLException {

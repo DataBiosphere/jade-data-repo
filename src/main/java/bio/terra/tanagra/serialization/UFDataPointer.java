@@ -1,5 +1,6 @@
 package bio.terra.tanagra.serialization;
 
+import bio.terra.tanagra.serialization.datapointer.UFAzureDataset;
 import bio.terra.tanagra.serialization.datapointer.UFBigQueryDataset;
 import bio.terra.tanagra.underlay.DataPointer;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -16,7 +17,10 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
     use = JsonTypeInfo.Id.NAME,
     include = JsonTypeInfo.As.EXISTING_PROPERTY,
     property = "type")
-@JsonSubTypes({@JsonSubTypes.Type(value = UFBigQueryDataset.class, name = "BQ_DATASET")})
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = UFBigQueryDataset.class, name = "BQ_DATASET"),
+  @JsonSubTypes.Type(value = UFAzureDataset.class, name = "AZURE_DATASET")
+})
 @JsonDeserialize(builder = UFDataPointer.Builder.class)
 public abstract class UFDataPointer {
   private final DataPointer.Type type;

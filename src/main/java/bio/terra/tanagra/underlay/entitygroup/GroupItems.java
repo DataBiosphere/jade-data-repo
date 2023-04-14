@@ -66,7 +66,7 @@ public class GroupItems extends EntityGroup {
   }
 
   @Override
-  public EntityGroup.Type getType() {
+  public Type getType() {
     return Type.GROUP_ITEMS;
   }
 

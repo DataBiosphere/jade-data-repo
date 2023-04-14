@@ -4,17 +4,7 @@
   "attributes" : [ {
     "type" : "KEY_AND_DISPLAY",
     "name" : "standard_concept",
-    "dataType" : "STRING",
-    "displayHint" : {
-      "type" : "ENUM",
-      "enumVals" : [ {
-        "enumVal" : {
-          "value" : { },
-          "display" : "Source"
-        },
-        "count" : 0
-      } ]
-    }
+    "dataType" : "STRING"
   }, {
     "type" : "SIMPLE",
     "name" : "name",

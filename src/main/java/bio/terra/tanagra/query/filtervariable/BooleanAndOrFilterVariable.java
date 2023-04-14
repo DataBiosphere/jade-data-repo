@@ -1,9 +1,9 @@
 package bio.terra.tanagra.query.filtervariable;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.SQLExpression;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,23 +17,22 @@ public class BooleanAndOrFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate() {
+  protected String getSubstitutionTemplate(CloudPlatform platform) {
+    // FIXME: throw ??
     return null;
   }
 
   @Override
   public List<FieldVariable> getFieldVariables() {
-    List<FieldVariable> fieldVars = new ArrayList<>();
-    subFilters.stream().forEach(subFilter -> fieldVars.addAll(subFilter.getFieldVariables()));
-    return fieldVars;
+    return subFilters.stream().flatMap(filter -> filter.getFieldVariables().stream()).toList();
   }
 
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatform platform) {
     return "("
         + subFilters.stream()
-            .map(sf -> sf.renderSQL())
-            .collect(Collectors.joining(" " + operator.renderSQL() + " "))
+            .map(sf -> sf.renderSQL(platform))
+            .collect(Collectors.joining(" " + operator.renderSQL(platform) + " "))
         + ")";
   }
 
@@ -42,7 +41,7 @@ public class BooleanAndOrFilterVariable extends FilterVariable {
     OR;
 
     @Override
-    public String renderSQL() {
+    public String renderSQL(CloudPlatform platform) {
       return name();
     }
   }

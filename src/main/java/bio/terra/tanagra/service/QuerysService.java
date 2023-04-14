@@ -11,7 +11,6 @@ import static bio.terra.tanagra.underlay.entitygroup.CriteriaOccurrence.MODIFIER
 
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.tanagra.exception.InvalidQueryException;
-import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.query.CellValue;
 import bio.terra.tanagra.query.ColumnHeaderSchema;
 import bio.terra.tanagra.query.ColumnSchema;
@@ -47,11 +46,11 @@ import bio.terra.tanagra.underlay.RelationshipField;
 import bio.terra.tanagra.underlay.RelationshipMapping;
 import bio.terra.tanagra.underlay.Underlay;
 import bio.terra.tanagra.underlay.ValueDisplay;
+import bio.terra.tanagra.underlay.datapointer.BigQueryDataset;
 import bio.terra.tanagra.underlay.displayhint.EnumVal;
 import bio.terra.tanagra.underlay.displayhint.EnumVals;
 import bio.terra.tanagra.underlay.displayhint.NumericRange;
 import bio.terra.tanagra.underlay.entitygroup.CriteriaOccurrence;
-import bio.terra.tanagra.utils.GcsUtils;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,7 +63,6 @@ import java.util.OptionalDouble;
 import java.util.OptionalLong;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,9 +170,9 @@ public class QuerysService {
             .orderBy(orderByVars)
             .limit(entityQueryRequest.getLimit())
             .build();
-    LOGGER.info("Generated query: {}", query.renderSQL());
+    LOGGER.info("Generated query: {}", query);
 
-    return new QueryRequest(query.renderSQL(), new ColumnHeaderSchema(columnSchemas));
+    return new QueryRequest(query, new ColumnHeaderSchema(columnSchemas));
   }
 
   public List<EntityInstance> runInstancesQuery(
@@ -183,7 +181,8 @@ public class QuerysService {
       List<HierarchyField> selectHierarchyFields,
       List<RelationshipField> selectRelationshipFields,
       QueryRequest queryRequest) {
-    QueryResult queryResult = dataPointer.getQueryExecutor().execute(queryRequest);
+    QueryResult queryResult =
+        ((BigQueryDataset) dataPointer).getQueryExecutor().execute(queryRequest);
 
     List<EntityInstance> instances = new ArrayList<>();
     Iterator<RowResult> rowResultsItr = queryResult.getRowResults().iterator();
@@ -196,24 +195,6 @@ public class QuerysService {
               selectRelationshipFields));
     }
     return instances;
-  }
-
-  /**
-   * @return GCS signed URL of GCS file containing dataset CSV
-   */
-  public String runInstancesQueryAndExportResultsToGcs(
-      DataPointer dataPointer, QueryRequest queryRequest) {
-    String gcsBucketProjectId = tanagraExportConfiguration.getGcsBucketProjectId();
-    String gcsBucketName = tanagraExportConfiguration.getGcsBucketName();
-
-    if (StringUtils.isEmpty(gcsBucketProjectId) || StringUtils.isEmpty(gcsBucketName)) {
-      throw new SystemException(
-          "For export, gcsBucketProjectId and gcsBucketName properties must be set");
-    }
-
-    String fileName =
-        dataPointer.getQueryExecutor().executeAndExportResultsToGcs(queryRequest, gcsBucketName);
-    return GcsUtils.createSignedUrl(gcsBucketProjectId, gcsBucketName, fileName);
   }
 
   public QueryRequest buildInstanceCountsQuery(
@@ -258,9 +239,7 @@ public class QuerysService {
 
     // Build the ORDER BY variables using the default direction.
     List<OrderByVariable> orderByVars =
-        attributeFieldVars.stream()
-            .map(attrFv -> new OrderByVariable(attrFv))
-            .collect(Collectors.toList());
+        attributeFieldVars.stream().map(OrderByVariable::new).collect(Collectors.toList());
 
     Query query =
         new Query.Builder()
@@ -270,14 +249,15 @@ public class QuerysService {
             .groupBy(attributeFieldVars)
             .orderBy(orderByVars)
             .build();
-    LOGGER.info("Generated query: {}", query.renderSQL());
+    LOGGER.info("Generated query: {}", query);
 
-    return new QueryRequest(query.renderSQL(), new ColumnHeaderSchema(columnSchemas));
+    return new QueryRequest(query, new ColumnHeaderSchema(columnSchemas));
   }
 
   public List<EntityInstanceCount> runInstanceCountsQuery(
       DataPointer dataPointer, List<Attribute> attributes, QueryRequest queryRequest) {
-    QueryResult queryResult = dataPointer.getQueryExecutor().execute(queryRequest);
+    QueryResult queryResult =
+        ((BigQueryDataset) dataPointer).getQueryExecutor().execute(queryRequest);
 
     List<EntityInstanceCount> instanceCounts = new ArrayList<>();
     Iterator<RowResult> rowResultsItr = queryResult.getRowResults().iterator();
@@ -338,14 +318,15 @@ public class QuerysService {
 
     Query query =
         new Query.Builder().select(selectFieldVars).tables(tableVars).where(filterVar).build();
-    LOGGER.info("Generated display hint query: {}", query.renderSQL());
+    LOGGER.info("Generated display hint query: {}", query);
 
-    return new QueryRequest(query.renderSQL(), new ColumnHeaderSchema(columnSchemas));
+    return new QueryRequest(query, new ColumnHeaderSchema(columnSchemas));
   }
 
   public Map<String, DisplayHint> runDisplayHintsQuery(
       DataPointer dataPointer, QueryRequest queryRequest) {
-    QueryResult queryResult = dataPointer.getQueryExecutor().execute(queryRequest);
+    QueryResult queryResult =
+        ((BigQueryDataset) dataPointer).getQueryExecutor().execute(queryRequest);
 
     Map<String, DisplayHint> displayHints = new HashMap<>();
     Map<String, List<EnumVal>> runningEnumValsMap = new HashMap<>();

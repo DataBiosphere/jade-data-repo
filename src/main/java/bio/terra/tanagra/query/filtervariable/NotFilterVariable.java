@@ -1,5 +1,6 @@
 package bio.terra.tanagra.query.filtervariable;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.FilterVariable;
 import java.util.List;
@@ -12,7 +13,7 @@ public class NotFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate() {
+  protected String getSubstitutionTemplate(CloudPlatform platform) {
     return null;
   }
 
@@ -22,7 +23,7 @@ public class NotFilterVariable extends FilterVariable {
   }
 
   @Override
-  public String renderSQL() {
-    return "(NOT " + subFilter.renderSQL() + ")";
+  public String renderSQL(CloudPlatform platform) {
+    return "(NOT " + subFilter.renderSQL(platform) + ")";
   }
 }

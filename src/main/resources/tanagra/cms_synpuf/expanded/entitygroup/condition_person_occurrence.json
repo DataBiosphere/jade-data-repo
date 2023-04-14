@@ -211,5 +211,6 @@
   },
   "criteriaEntity" : "condition",
   "occurrenceEntity" : "condition_occurrence",
+  "occurrenceRelatedEntities" : [ ],
   "modifierAttributes" : [ ]
 }

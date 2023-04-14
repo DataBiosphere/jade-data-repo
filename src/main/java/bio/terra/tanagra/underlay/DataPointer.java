@@ -1,18 +1,20 @@
 package bio.terra.tanagra.underlay;
 
-import bio.terra.tanagra.exception.InvalidConfigException;
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.serialization.UFDataPointer;
+import bio.terra.tanagra.serialization.datapointer.UFAzureDataset;
 import bio.terra.tanagra.serialization.datapointer.UFBigQueryDataset;
+import bio.terra.tanagra.underlay.datapointer.AzureDataset;
 import bio.terra.tanagra.underlay.datapointer.BigQueryDataset;
 
 public abstract class DataPointer {
 
   /** Enum for the types of external data pointers supported by Tanagra. */
   public enum Type {
-    BQ_DATASET
+    BQ_DATASET,
+    AZURE_DATASET
   }
 
   private final String name;
@@ -23,8 +25,6 @@ public abstract class DataPointer {
 
   public abstract Type getType();
 
-  public abstract QueryExecutor getQueryExecutor();
-
   public String getName() {
     return name;
   }
@@ -34,12 +34,12 @@ public abstract class DataPointer {
   public abstract String getTablePathForIndexing(String tableName);
 
   public UFDataPointer serialize() {
-    if (getType().equals(Type.BQ_DATASET)) {
-      return new UFBigQueryDataset((BigQueryDataset) this);
-    } else {
-      throw new InvalidConfigException("Unknown data pointer type: " + getType());
-    }
+    return switch (getType()) {
+      case BQ_DATASET -> new UFBigQueryDataset((BigQueryDataset) this);
+      case AZURE_DATASET -> new UFAzureDataset((AzureDataset) this);
+    };
   }
 
-  public abstract Literal.DataType lookupDatatype(FieldPointer fieldPointer);
+  public abstract Literal.DataType lookupDatatype(
+      FieldPointer fieldPointer, QueryExecutor executor);
 }

@@ -1,13 +1,20 @@
 package bio.terra.tanagra.query.bigquery;
 
+import bio.terra.model.CloudPlatform;
+import bio.terra.service.dataset.DatasetTable;
+import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.QueryRequest;
 import bio.terra.tanagra.query.QueryResult;
 import bio.terra.tanagra.query.RowResult;
 import bio.terra.tanagra.utils.GoogleBigQuery;
 import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.UUID;
+import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +31,7 @@ public class BigQueryExecutor implements QueryExecutor {
 
   @Override
   public QueryResult execute(QueryRequest queryRequest) {
-    String sql = queryRequest.getSql();
+    String sql = renderSQL(queryRequest.query());
     LOGGER.info("Running SQL against BigQuery: {}", sql);
     TableResult tableResult = bigQuery.queryBigQuery(sql);
 
@@ -32,31 +39,28 @@ public class BigQueryExecutor implements QueryExecutor {
         Iterables.transform(
             tableResult.getValues(),
             (FieldValueList fieldValueList) ->
-                new BigQueryRowResult(fieldValueList, queryRequest.getColumnHeaderSchema()));
+                new BigQueryRowResult(fieldValueList, queryRequest.columnHeaderSchema()));
 
-    return new QueryResult(rowResults, queryRequest.getColumnHeaderSchema());
+    return new QueryResult(rowResults, queryRequest.columnHeaderSchema());
   }
 
   @Override
-  public String executeAndExportResultsToGcs(QueryRequest queryRequest, String gcsBucketName) {
-    // TODO: Add study and dataset names.
-    String fileName =
-        "tanagra_export_dataset_"
-            + System.currentTimeMillis()
-            // GCS file name must be in wildcard format.
-            // https://cloud.google.com/bigquery/docs/reference/standard-sql/other-statements#export_option_list:~:text=The%20uri%20option%20must%20be%20a%20single%2Dwildcard%20URI
-            + "_*.csv";
+  public void createTableFromQuery(TableId destinationTable, String sql, boolean isDryRun) {
+    throw new NotImplementedException();
+  }
 
-    String sql =
-        String.format(
-            "EXPORT DATA OPTIONS(uri='gs://%s/%s',format='CSV',overwrite=true,header=true) AS %n%s",
-            gcsBucketName, fileName, queryRequest.getSql());
-    LOGGER.info("Running SQL against BigQuery: {}", sql);
-    bigQuery.queryBigQuery(sql);
+  @Override
+  public Collection<RowResult> readTableRows(Query query) {
+    throw new NotImplementedException();
+  }
 
-    // Multiple files will be created only if export is very large (> 1GB). For now, just assume
-    // only "000000000000" was created.
-    // TODO: Detect and handle case where mulitple files are created.
-    return fileName.replace("*", "000000000000");
+  @Override
+  public CloudPlatform getCloudPlatform() {
+    return CloudPlatform.GCP;
+  }
+
+  @Override
+  public DatasetTable getSchema(UUID datasetId, String tableName) {
+    throw new NotImplementedException();
   }
 }

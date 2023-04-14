@@ -211,5 +211,6 @@
   },
   "criteriaEntity" : "procedure",
   "occurrenceEntity" : "procedure_occurrence",
+  "occurrenceRelatedEntities" : [ ],
   "modifierAttributes" : [ ]
 }

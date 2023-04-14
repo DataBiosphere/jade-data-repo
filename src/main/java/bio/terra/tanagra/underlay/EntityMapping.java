@@ -67,7 +67,8 @@ public final class EntityMapping {
     tables.add(primaryTable);
 
     List<FieldVariable> select = new ArrayList<>();
-    getEntity().getAttributes().stream()
+    getEntity()
+        .getAttributes()
         .forEach(
             attribute ->
                 select.addAll(

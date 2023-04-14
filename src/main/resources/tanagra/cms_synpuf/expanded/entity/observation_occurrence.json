@@ -8,24 +8,808 @@
   }, {
     "type" : "KEY_AND_DISPLAY",
     "name" : "unit",
-    "dataType" : "INT64",
-    "displayHint" : {
-      "type" : "ENUM",
-      "enumVals" : [ ]
-    }
+    "dataType" : "INT64"
   }, {
     "type" : "SIMPLE",
     "name" : "source_criteria_id",
     "dataType" : "INT64",
     "displayHint" : {
       "type" : "RANGE",
-      "minVal" : 2101829.0,
-      "maxVal" : 4.5890981E7
+      "minVal" : 2101868.0,
+      "maxVal" : 4.4837881E7
     }
   }, {
     "type" : "KEY_AND_DISPLAY",
     "name" : "observation",
-    "dataType" : "INT64"
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 0
+          },
+          "display" : "No matching concept"
+        },
+        "count" : 41
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2614670
+          },
+          "display" : "Ambulance service, basic life support, emergency transport (bls-emergency)"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4046550
+          },
+          "display" : "Postoperative care"
+        },
+        "count" : 18
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4214956
+          },
+          "display" : "History of clinical finding in subject"
+        },
+        "count" : 39
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2720870
+          },
+          "display" : "Low osmolar contrast material, 300-399 mg/ml iodine concentration, per ml"
+        },
+        "count" : 8
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2614666
+          },
+          "display" : "Ground mileage, per statute mile"
+        },
+        "count" : 53
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 440927
+          },
+          "display" : "High risk drug monitoring status"
+        },
+        "count" : 32
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4015724
+          },
+          "display" : "Vaccination required"
+        },
+        "count" : 54
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4090651
+          },
+          "display" : "Dialysis finding"
+        },
+        "count" : 17
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 40479553
+          },
+          "display" : "Cardiac pacemaker in situ"
+        },
+        "count" : 5
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 40479809
+          },
+          "display" : "Exposure to Mycobacterium tuberculosis"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4149299
+          },
+          "display" : "Follow-up orthopedic assessment"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2101941
+          },
+          "display" : "Advance Care Planning discussed and documented advance care plan or surrogate decision maker documented in the medical record (DEM) (GER, Pall Cr)"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4167217
+          },
+          "display" : "Family history of clinical finding"
+        },
+        "count" : 6
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4058861
+          },
+          "display" : "H/O: bone tissue recipient"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2617269
+          },
+          "display" : "Home health care supervision"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4186037
+          },
+          "display" : "Aftercare"
+        },
+        "count" : 6
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2614669
+          },
+          "display" : "Ambulance service, basic life support, non-emergency transport, (bls)"
+        },
+        "count" : 16
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4059467
+          },
+          "display" : "H/O: artificial eye lens"
+        },
+        "count" : 4
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2106254
+          },
+          "display" : "Most recent LDL-C less than 100 mg/dL (CAD) (DM)"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 436583
+          },
+          "display" : "Fall"
+        },
+        "count" : 4
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 40484564
+          },
+          "display" : "Risk of exposure to communicable disease"
+        },
+        "count" : 4
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2108782
+          },
+          "display" : "Active warming used intraoperatively for the purpose of maintaining normothermia, or at least 1 body temperature equal to or greater than 36 degrees Centigrade (or 96.8 degrees Fahrenheit) recorded within the 30 minutes immediately before or the 15 minute"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 40485017
+          },
+          "display" : "Exposure to communicable disease"
+        },
+        "count" : 4
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2102861
+          },
+          "display" : "Optic nerve head evaluation performed (EC)"
+        },
+        "count" : 3
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 434046
+          },
+          "display" : "Unilateral mixed conductive and sensorineural hearing loss with unrestricted hearing on the contralateral side"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4058431
+          },
+          "display" : "H/O: artificial joint"
+        },
+        "count" : 10
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2106190
+          },
+          "display" : "Spirometry results documented and reviewed (COPD)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2108554
+          },
+          "display" : "Documentation that administration of prophylactic parenteral antibiotic was initiated within 1 hour (if fluoroquinolone or vancomycin, 2 hours) prior to surgical incision (or start of procedure when no incision is required) as ordered (PERI 2)"
+        },
+        "count" : 6
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2720869
+          },
+          "display" : "Low osmolar contrast material, 200-299 mg/ml iodine concentration, per ml"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 439459
+          },
+          "display" : "Accidental kicking against stationary object"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2108533
+          },
+          "display" : "Oral antiplatelet therapy prescribed (CAD)"
+        },
+        "count" : 3
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2617804
+          },
+          "display" : "Patient with central dual-energy x-ray absorptiometry (dxa) results not documented, reason not given"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4058419
+          },
+          "display" : "H/O: surgery"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2617267
+          },
+          "display" : "Md recertification hha pt"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2102833
+          },
+          "display" : "Mental status assessed (CAP) (EM)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2614656
+          },
+          "display" : "Bls routine disposable supplies"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 197022
+          },
+          "display" : "Unilateral recurrent inguinal hernia with obstruction but no gangrene"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4011950
+          },
+          "display" : "Patient need for"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 441192
+          },
+          "display" : "Accidentally struck by or against objects or persons"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2110382
+          },
+          "display" : "Radiation exposure or exposure time in final report for procedure using fluoroscopy, documented (RAD)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4014829
+          },
+          "display" : "Consultation"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2614679
+          },
+          "display" : "Noncovered ambulance mileage, per mile (e.g., for miles traveled beyond closest appropriate facility)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 40479430
+          },
+          "display" : "Exposure to Rubella virus"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2108631
+          },
+          "display" : "Internal mammary artery graft performed for primary, isolated coronary artery bypass graft procedure (CABG)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 45766277
+          },
+          "display" : "Cardiac implant in situ"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2107152
+          },
+          "display" : "Mammogram assessment category of  negative,  documented (RAD)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4150253
+          },
+          "display" : "Immunization consent not given"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 442062
+          },
+          "display" : "Walking difficulty due to ankle and foot"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2108549
+          },
+          "display" : "Documentation that an order was given to discontinue prophylactic antibiotics within 48 hours of surgical end time, cardiac procedures (PERI 2)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2106284
+          },
+          "display" : "Most recent systolic blood pressure greater than or equal to 140 mm Hg (HTN, CKD, CAD) (DM)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2108546
+          },
+          "display" : "Pneumococcal vaccine administered or previously received (COPD) (PV), (IBD)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2106256
+          },
+          "display" : "Most recent LDL-C greater than or equal to 130 mg/dL (CAD) (DM)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 440121
+          },
+          "display" : "Unilateral conductive hearing loss with unrestricted hearing on the contralateral side"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 40756989
+          },
+          "display" : "Duration of general or neuraxial anesthesia 60 minutes or longer, as documented in the anesthesia record (CRIT) (Peri2)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2106282
+          },
+          "display" : "Most recent systolic blood pressure 130-139 mm Hg (DM),(HTN, CKD, CAD)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2514491
+          },
+          "display" : "Home visit for the evaluation and management of an established patient, which requires at least 2 of these 3 key components: A detailed interval history; A detailed examination; Medical decision making of moderate complexity. Counseling and/or coordinatio"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4059356
+          },
+          "display" : "History of renal transplant"
+        },
+        "count" : 5
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2314342
+          },
+          "display" : "Handling and/or conveyance of specimen for transfer from the office to a laboratory"
+        },
+        "count" : 7
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2213587
+          },
+          "display" : "End-stage renal disease (ESRD) related services monthly, for patients 20 years of age and older; with 4 or more face-to-face visits by a physician or other qualified health care professional per month"
+        },
+        "count" : 11
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2414350
+          },
+          "display" : "Service(s) provided in the office during regularly scheduled evening, weekend, or holiday office hours, in addition to basic service"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2106281
+          },
+          "display" : "Most recent systolic blood pressure less than 130 mm Hg (DM), (HTN, CKD, CAD)"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4215685
+          },
+          "display" : "Past history of procedure"
+        },
+        "count" : 3
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4059464
+          },
+          "display" : "H/O: liver recipient"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 439405
+          },
+          "display" : "Walking disability"
+        },
+        "count" : 16
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2106386
+          },
+          "display" : "12-Lead ECG Performed (EM)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 40481022
+          },
+          "display" : "Automatic implantable cardiac defibrillator in situ"
+        },
+        "count" : 4
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2614668
+          },
+          "display" : "Ambulance service, advanced life support, emergency transport, level 1 (als 1 - emergency)"
+        },
+        "count" : 8
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 440922
+          },
+          "display" : "Diabetic on insulin"
+        },
+        "count" : 4
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 432814
+          },
+          "display" : "Device withdrawn and / or removed"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4059320
+          },
+          "display" : "H/O: respiratory disease"
+        },
+        "count" : 3
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4178305
+          },
+          "display" : "History of cataract extraction"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2617803
+          },
+          "display" : "Patient with documented results of a central dual-energy x-ray absorptiometry (dxa) ever being performed"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 433942
+          },
+          "display" : "Accident while engaged in household activity"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 40479343
+          },
+          "display" : "Exposure to Human poliovirus"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2101868
+          },
+          "display" : "Tobacco use assessed (CAD, CAP, COPD, PV) (DM)"
+        },
+        "count" : 3
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2617452
+          },
+          "display" : "Hospital observation service, per hour"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4192270
+          },
+          "display" : "H/O: hip fracture"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2101897
+          },
+          "display" : "Current tobacco non-user (CAD, CAP, COPD, PV) (DM) (IBD)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4014023
+          },
+          "display" : "Palliative care"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 441194
+          },
+          "display" : "Overexertion and strenuous movements"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2107158
+          },
+          "display" : "Mammogram assessment category of  benign,  documented (RAD)"
+        },
+        "count" : 4
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2213588
+          },
+          "display" : "End-stage renal disease (ESRD) related services monthly, for patients 20 years of age and older; with 2-3 face-to-face visits by a physician or other qualified health care professional per month"
+        },
+        "count" : 3
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2720581
+          },
+          "display" : "Set-up portable x-ray equipment"
+        },
+        "count" : 4
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4060089
+          },
+          "display" : "H/O: artificial heart valve"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2108688
+          },
+          "display" : "Counseling about the benefits and/or risks of the Age-Related Eye Disease Study (AREDS) formulation for preventing progression of age-related macular degeneration (AMD) provided to patient and/or caregiver(s) (EC)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4061946
+          },
+          "display" : "Follow-up risk drug assessment"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2102814
+          },
+          "display" : "Weight recorded (PAG)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4289178
+          },
+          "display" : "Vocational rehabilitation"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 442063
+          },
+          "display" : "Walking difficulty due to lower leg"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2617268
+          },
+          "display" : "Md certification hha patient"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 437175
+          },
+          "display" : "Fall on same level from slipping, tripping or stumbling"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4307024
+          },
+          "display" : "Follow-up encounter"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2614667
+          },
+          "display" : "Ambulance service, advanced life support, non-emergency transport, level 1 (als 1)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4201412
+          },
+          "display" : "Speech therapy"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2617335
+          },
+          "display" : "Md inr test revie inter mgmt"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2108553
+          },
+          "display" : "Documentation of order for prophylactic parenteral antibiotics to be given within 1 hour (if fluoroquinolone or vancomycin, 2 hours) prior to surgical incision (or start of procedure when no incision is required) (PERI 2)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 4279614
+          },
+          "display" : "Asphyxiation"
+        },
+        "count" : 1
+      } ]
+    }
   }, {
     "type" : "SIMPLE",
     "name" : "value_as_string",
@@ -47,7 +831,7 @@
     "displayHint" : {
       "type" : "RANGE",
       "minVal" : 1.0,
-      "maxVal" : 1.11638269E8
+      "maxVal" : 1156.0
     }
   }, {
     "type" : "SIMPLE",
@@ -66,7 +850,7 @@
           },
           "display" : "No matching concept"
         },
-        "count" : 37531051
+        "count" : 488
       } ]
     }
   }, {
@@ -80,7 +864,7 @@
     "displayHint" : {
       "type" : "RANGE",
       "minVal" : 1.0,
-      "maxVal" : 2326856.0
+      "maxVal" : 20.0
     }
   } ],
   "sourceDataMapping" : {

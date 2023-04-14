@@ -1,5 +1,6 @@
 package bio.terra.tanagra.query.filtervariable;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.FilterVariable;
 import bio.terra.tanagra.query.Query;
@@ -23,11 +24,11 @@ public class SubQueryFilterVariable extends FilterVariable {
   }
 
   @Override
-  protected String getSubstitutionTemplate() {
+  protected String getSubstitutionTemplate(CloudPlatform platform) {
     Map<String, String> params =
         ImmutableMap.<String, String>builder()
-            .put("operator", operator.renderSQL())
-            .put("subQuery", subQuery.renderSQL())
+            .put("operator", operator.renderSQL(platform))
+            .put("subQuery", subQuery.renderSQL(platform))
             .build();
     return StringSubstitutor.replace(SUBSTITUTION_TEMPLATE, params);
   }
@@ -48,7 +49,7 @@ public class SubQueryFilterVariable extends FilterVariable {
     }
 
     @Override
-    public String renderSQL() {
+    public String renderSQL(CloudPlatform platform) {
       return sql;
     }
   }

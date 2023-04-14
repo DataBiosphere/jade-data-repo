@@ -1,7 +1,7 @@
 package bio.terra.tanagra.query;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.tanagra.exception.InvalidConfigException;
-import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.serialization.UFLiteral;
 import com.google.common.base.Strings;
 import java.sql.Date;
@@ -99,49 +99,40 @@ public class Literal implements SQLExpression {
     }
   }
 
+  // FIXME: for now, "escape" sql strings by mapping single quote to curly quote.
+  private static String sqlEscape(String s) {
+    return s.replace("'", "’");
+  }
+
   @Override
-  public String renderSQL() {
+  public String renderSQL(CloudPlatform platform) {
     // TODO: use named parameters for literals to protect against SQL injection
-    switch (dataType) {
-      case STRING:
-        return stringVal == null ? "NULL" : "'" + stringVal + "'";
-      case INT64:
-        return String.valueOf(int64Val);
-      case BOOLEAN:
-        return String.valueOf(booleanVal);
-      case DATE:
-        return "DATE('" + dateVal.toString() + "')";
-      case DOUBLE:
-        return "FLOAT('" + doubleVal + "')";
-      default:
-        throw new SystemException("Unknown Literal data type");
-    }
+    return switch (dataType) {
+      case STRING -> stringVal == null ? "NULL" : "'" + sqlEscape(stringVal) + "'";
+      case INT64 -> String.valueOf(int64Val);
+      case BOOLEAN -> String.valueOf(booleanVal);
+      case DATE -> "DATE('" + dateVal.toString() + "')";
+      case DOUBLE -> "FLOAT('" + doubleVal + "')";
+    };
   }
 
   @Override
   public String toString() {
-    switch (dataType) {
-      case STRING:
-        return stringVal;
-      case INT64:
-        return String.valueOf(int64Val);
-      case BOOLEAN:
-        return String.valueOf(booleanVal);
-      case DATE:
-        return dateVal.toString();
-      case DOUBLE:
-        return String.valueOf(doubleVal);
-      default:
-        throw new SystemException("Unknown Literal data type");
-    }
+    return switch (dataType) {
+      case STRING -> stringVal;
+      case INT64 -> String.valueOf(int64Val);
+      case BOOLEAN -> String.valueOf(booleanVal);
+      case DATE -> dateVal.toString();
+      case DOUBLE -> String.valueOf(doubleVal);
+    };
   }
 
   public String getStringVal() {
-    return dataType.equals(DataType.STRING) ? stringVal : null;
+    return dataType == DataType.STRING ? stringVal : null;
   }
 
   public Long getInt64Val() {
-    return dataType.equals(DataType.INT64) ? int64Val : null;
+    return dataType == DataType.INT64 ? int64Val : null;
   }
 
   @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
@@ -149,19 +140,19 @@ public class Literal implements SQLExpression {
       justification =
           "This value will be used in constructing a SQL string, not used directly in a Java conditional")
   public Boolean getBooleanVal() {
-    return dataType.equals(DataType.BOOLEAN) ? booleanVal : null;
+    return dataType == DataType.BOOLEAN ? booleanVal : null;
   }
 
   public Date getDateVal() {
-    return dataType.equals(DataType.DATE) ? dateVal : null;
+    return dataType == DataType.DATE ? dateVal : null;
   }
 
   public String getDateValAsString() {
-    return dataType.equals(DataType.DATE) ? dateVal.toString() : null;
+    return dataType == DataType.DATE ? dateVal.toString() : null;
   }
 
   public Double getDoubleVal() {
-    return dataType.equals(DataType.DOUBLE) ? doubleVal : null;
+    return dataType == DataType.DOUBLE ? doubleVal : null;
   }
 
   public DataType getDataType() {
@@ -169,23 +160,16 @@ public class Literal implements SQLExpression {
   }
 
   public int compareTo(Literal value) {
-    if (!dataType.equals(value.getDataType())) {
+    if (dataType != value.getDataType()) {
       return -1;
     }
-    switch (dataType) {
-      case STRING:
-        return stringVal.compareTo(value.getStringVal());
-      case INT64:
-        return Long.compare(int64Val, value.getInt64Val());
-      case BOOLEAN:
-        return Boolean.compare(booleanVal, value.getBooleanVal());
-      case DATE:
-        return dateVal.compareTo(value.getDateVal());
-      case DOUBLE:
-        return Double.compare(doubleVal, value.getDoubleVal());
-      default:
-        throw new SystemException("Unknown Literal data type");
-    }
+    return switch (dataType) {
+      case STRING -> stringVal.compareTo(value.getStringVal());
+      case INT64 -> Long.compare(int64Val, value.getInt64Val());
+      case BOOLEAN -> Boolean.compare(booleanVal, value.getBooleanVal());
+      case DATE -> dateVal.compareTo(value.getDateVal());
+      case DOUBLE -> Double.compare(doubleVal, value.getDoubleVal());
+    };
   }
 
   @Override

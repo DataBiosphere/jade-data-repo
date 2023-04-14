@@ -11,8 +11,8 @@
     "dataType" : "INT64",
     "displayHint" : {
       "type" : "RANGE",
-      "minVal" : 2614686.0,
-      "maxVal" : 4.4786357E7
+      "minVal" : 2614696.0,
+      "maxVal" : 2719876.0
     }
   }, {
     "type" : "SIMPLE",
@@ -21,7 +21,7 @@
     "displayHint" : {
       "type" : "RANGE",
       "minVal" : 105.0,
-      "maxVal" : 1.11638213E8
+      "maxVal" : 944.0
     }
   }, {
     "type" : "SIMPLE",
@@ -30,11 +30,275 @@
   }, {
     "type" : "KEY_AND_DISPLAY",
     "name" : "device",
-    "dataType" : "INT64"
+    "dataType" : "INT64",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 0
+          },
+          "display" : "No matching concept"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2614966
+          },
+          "display" : "Syringe, with or without needle, each"
+        },
+        "count" : 118
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615752
+          },
+          "display" : "Catheter, transluminal angioplasty, non-laser (may include guidance, infusion/perfusion capability)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615870
+          },
+          "display" : "Introducer/sheath, other than guiding, other than intracardiac electrophysiological, non-laser"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615974
+          },
+          "display" : "Brachytherapy source, non-stranded, iodine-125, per source"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615163
+          },
+          "display" : "Gauze, non-impregnated, sterile, pad size 16 sq. in. or less, without adhesive border, each dressing"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615025
+          },
+          "display" : "Miscellaneous dialysis supplies, not otherwise specified"
+        },
+        "count" : 3
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615779
+          },
+          "display" : "Guide wire"
+        },
+        "count" : 3
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615397
+          },
+          "display" : "Injection, gadolinium-based magnetic resonance contrast agent, not otherwise specified (nos), per ml"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2614696
+          },
+          "display" : "Sterile water, saline and/or dextrose, diluent/flush, 10 ml"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615309
+          },
+          "display" : "Non-covered item or service"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2719876
+          },
+          "display" : "Wrist hand orthosis, wrist extension control cock-up, non molded, prefabricated, off-the-shelf"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615107
+          },
+          "display" : "Contact layer, sterile, more than 16 sq. in. but less than or equal to 48 sq. in., each dressing"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615798
+          },
+          "display" : "Port, indwelling (implantable)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615795
+          },
+          "display" : "Pacemaker, dual chamber, rate-responsive (implantable)"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "int64Val" : 2615373
+          },
+          "display" : "Fluorodeoxyglucose f-18 fdg, diagnostic, per study dose, up to 45 millicuries"
+        },
+        "count" : 1
+      } ]
+    }
   }, {
     "type" : "SIMPLE",
     "name" : "source_value",
-    "dataType" : "STRING"
+    "dataType" : "STRING",
+    "displayHint" : {
+      "type" : "ENUM",
+      "enumVals" : [ {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "A4216"
+          },
+          "display" : "A4216"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "A4657"
+          },
+          "display" : "A4657"
+        },
+        "count" : 118
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "A4913"
+          },
+          "display" : "A4913"
+        },
+        "count" : 3
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "A6207"
+          },
+          "display" : "A6207"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "A6402"
+          },
+          "display" : "A6402"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "A9270"
+          },
+          "display" : "A9270"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "A9502"
+          },
+          "display" : "A9502"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "A9552"
+          },
+          "display" : "A9552"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "A9579"
+          },
+          "display" : "A9579"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "C1725"
+          },
+          "display" : "C1725"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "C1769"
+          },
+          "display" : "C1769"
+        },
+        "count" : 3
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "C1785"
+          },
+          "display" : "C1785"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "C1788"
+          },
+          "display" : "C1788"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "C1894"
+          },
+          "display" : "C1894"
+        },
+        "count" : 2
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "C2639"
+          },
+          "display" : "C2639"
+        },
+        "count" : 1
+      }, {
+        "enumVal" : {
+          "value" : {
+            "stringVal" : "L3908"
+          },
+          "display" : "L3908"
+        },
+        "count" : 1
+      } ]
+    }
   }, {
     "type" : "SIMPLE",
     "name" : "person_id",
@@ -42,7 +306,7 @@
     "displayHint" : {
       "type" : "RANGE",
       "minVal" : 7.0,
-      "maxVal" : 2326856.0
+      "maxVal" : 19.0
     }
   }, {
     "type" : "SIMPLE",

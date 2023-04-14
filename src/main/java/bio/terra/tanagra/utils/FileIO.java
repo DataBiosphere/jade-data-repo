@@ -11,9 +11,9 @@ import java.util.function.Function;
  */
 public final class FileIO {
   private static final Function<Path, InputStream> READ_RESOURCE_FILE_FUNCTION =
-      filePath -> FileUtils.getResourceFileStream(filePath);
+      FileUtils::getResourceFileStream;
   private static final Function<Path, InputStream> READ_DISK_FILE_FUNCTION =
-      filePath -> FileUtils.getFileStream(filePath);
+      FileUtils::getFileStream;
 
   private static boolean readResourceFiles; // default to false = read disk, not resource, files
   private static Path inputParentDir;

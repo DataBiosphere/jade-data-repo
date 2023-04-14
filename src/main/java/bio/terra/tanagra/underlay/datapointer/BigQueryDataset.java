@@ -31,7 +31,6 @@ public final class BigQueryDataset extends DataPointer {
   private final String dataflowTempLocation;
 
   private GoogleBigQuery bigQueryService;
-  private BigQueryExecutor queryExecutor;
 
   private BigQueryDataset(
       String name,
@@ -80,14 +79,6 @@ public final class BigQueryDataset extends DataPointer {
   }
 
   @Override
-  public QueryExecutor getQueryExecutor() {
-    if (queryExecutor == null) {
-      queryExecutor = new BigQueryExecutor(getBigQueryService());
-    }
-    return queryExecutor;
-  }
-
-  @Override
   public String getTableSQL(String tableName) {
     String template = "`${projectId}.${datasetId}`.${tableName}";
     Map<String, String> params =
@@ -112,7 +103,7 @@ public final class BigQueryDataset extends DataPointer {
   }
 
   @Override
-  public Literal.DataType lookupDatatype(FieldPointer fieldPointer) {
+  public Literal.DataType lookupDatatype(FieldPointer fieldPointer, QueryExecutor executor) {
     // If this is a foreign-key field pointer, then we want the data type of the foreign table
     // field, not the key field.
     TablePointer tablePointer =
@@ -134,7 +125,7 @@ public final class BigQueryDataset extends DataPointer {
           FieldPointer.allFields(tablePointer).buildVariable(tableVar, tableVars);
       Query queryOneRow =
           new Query.Builder().select(List.of(fieldVarStar)).tables(tableVars).limit(1).build();
-      tableSchema = getBigQueryService().getQuerySchemaWithCaching(queryOneRow.renderSQL());
+      tableSchema = getBigQueryService().getQuerySchemaWithCaching(executor.renderSQL(queryOneRow));
     } else {
       // If the table is not a raw SQL string, then just fetch the table schema directly.
       tableSchema =
@@ -187,6 +178,10 @@ public final class BigQueryDataset extends DataPointer {
       bigQueryService = new GoogleBigQuery(credentials, queryProjectId);
     }
     return bigQueryService;
+  }
+
+  public BigQueryExecutor getQueryExecutor() {
+    return new BigQueryExecutor(getBigQueryService());
   }
 
   public String getProjectId() {

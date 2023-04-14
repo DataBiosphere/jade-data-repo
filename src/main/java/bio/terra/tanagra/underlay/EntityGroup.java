@@ -64,7 +64,9 @@ public abstract class EntityGroup {
           entityGroup.getMapping(Underlay.MappingType.SOURCE).getDataPointer();
       if (serializedSourceMapping == null) {
         throw new InvalidConfigException(
-            "Relationship mapping for " + relationship.getName() + " is undefined");
+            String.format(
+                "%s: Relationship mapping %s is undefined",
+                entityGroup.getName(), relationship.getName()));
       }
       RelationshipMapping sourceMapping =
           RelationshipMapping.fromSerialized(serializedSourceMapping, sourceDataPointer);

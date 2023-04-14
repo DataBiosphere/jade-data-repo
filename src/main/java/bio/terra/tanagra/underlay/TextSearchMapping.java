@@ -8,6 +8,7 @@ import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
 import bio.terra.tanagra.query.Literal;
 import bio.terra.tanagra.query.Query;
+import bio.terra.tanagra.query.QueryExecutor;
 import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.query.TableVariable;
@@ -54,12 +55,12 @@ public final class TextSearchMapping {
     }
 
     if (serialized.getAttributes() != null) {
-      if (serialized.getAttributes().size() == 0) {
+      if (serialized.getAttributes().isEmpty()) {
         throw new InvalidConfigException("Text search mapping list of attributes is empty");
       }
       List<Attribute> attributesForTextSearch =
           serialized.getAttributes().stream()
-              .map(a -> entityAttributes.get(a))
+              .map(entityAttributes::get)
               .collect(Collectors.toList());
       return new Builder().attributes(attributesForTextSearch).mappingType(mappingType).build();
     }
@@ -93,7 +94,7 @@ public final class TextSearchMapping {
         .build();
   }
 
-  public Query queryTextSearchStrings() {
+  public Query queryTextSearchStrings(QueryExecutor executor) {
     SQLExpression idAllTextPairs;
     FieldPointer entityIdField =
         textSearch.getEntity().getIdAttribute().getMapping(mappingType).getValue();
@@ -104,12 +105,13 @@ public final class TextSearchMapping {
                   .map(
                       attribute -> {
                         FieldPointer textField;
-                        if (Attribute.Type.SIMPLE.equals(attribute.getType())) {
+                        if (Attribute.Type.SIMPLE == attribute.getType()) {
                           textField = attribute.getMapping(mappingType).getValue();
-                          if (!Literal.DataType.STRING.equals(attribute.getDataType())) {
+                          if (Literal.DataType.STRING != attribute.getDataType()) {
                             textField =
                                 textField.toBuilder()
-                                    .sqlFunctionWrapper("CAST(${fieldSql} AS STRING)")
+                                    // FIXME: was STRING in BQ, MS SQL wants VARCHAR
+                                    .sqlFunctionWrapper("CAST(${fieldSql} AS VARCHAR)")
                                     .build();
                           }
                         } else {
@@ -131,7 +133,7 @@ public final class TextSearchMapping {
 
     TablePointer idTextPairsTable =
         TablePointer.fromRawSql(
-            idAllTextPairs.renderSQL(),
+            executor.renderSQL(idAllTextPairs),
             textSearch.getEntity().getMapping(mappingType).getTablePointer().getDataPointer());
     FieldPointer idField =
         new FieldPointer.Builder()
@@ -142,7 +144,7 @@ public final class TextSearchMapping {
         new FieldPointer.Builder()
             .tablePointer(idTextPairsTable)
             .columnName(TEXT_SEARCH_STRING_COLUMN_NAME)
-            .sqlFunctionWrapper("STRING_AGG")
+            .sqlFunctionWrapper("STRING_AGG(${fieldSql}, ',')")
             .build();
 
     TableVariable idTextPairsTableVar = TableVariable.forPrimary(idTextPairsTable);

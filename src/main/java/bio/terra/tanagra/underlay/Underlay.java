@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public final class Underlay {
   public enum MappingType {
@@ -121,7 +120,9 @@ public final class Underlay {
             uiConfig,
             metadata);
 
-    underlay.getEntities().values().stream().forEach(entity -> entity.initialize(underlay));
+    for (Entity entity : underlay.getEntities().values()) {
+      entity.initialize(underlay);
+    }
 
     return underlay;
   }
@@ -129,10 +130,9 @@ public final class Underlay {
   /** Convert the internal objects, now expanded, back to POJOs. Write out the expanded POJOs. */
   public void serializeAndWriteToFile() throws IOException {
     UFUnderlay expandedUnderlay = new UFUnderlay(this);
-    List<UFEntity> expandedEntities =
-        getEntities().values().stream().map(e -> new UFEntity(e)).collect(Collectors.toList());
+    List<UFEntity> expandedEntities = getEntities().values().stream().map(UFEntity::new).toList();
     List<UFEntityGroup> expandedEntityGroups =
-        getEntityGroups().values().stream().map(eg -> eg.serialize()).collect(Collectors.toList());
+        getEntityGroups().values().stream().map(EntityGroup::serialize).toList();
 
     // Write out the underlay POJO to the top-level directory.
     Path underlayPath =

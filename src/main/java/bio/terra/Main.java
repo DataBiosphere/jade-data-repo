@@ -1,5 +1,7 @@
 package bio.terra;
 
+import bio.terra.tanagra.indexing.IndexerMain;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.ExitCodeGenerator;
 import org.springframework.boot.SpringApplication;
@@ -9,10 +11,16 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
 public class Main implements CommandLineRunner {
 
+  @Autowired private IndexerMain indexer;
+
   @Override
   public void run(String... arg0) throws Exception {
     if (arg0.length > 0 && arg0[0].equals("exitcode")) {
       throw new ExitException();
+    }
+    if (arg0.length > 1) {
+      indexer.run(arg0);
+      System.exit(0);
     }
   }
 

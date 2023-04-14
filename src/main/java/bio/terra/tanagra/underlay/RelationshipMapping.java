@@ -51,23 +51,23 @@ public final class RelationshipMapping {
     // Rollup columns for entity A.
     Map<String, RollupInformation> rollupInformationMapA = new HashMap<>();
     if (serialized.getRollupInformationMapA() != null) {
-      serialized.getRollupInformationMapA().entrySet().stream()
+      serialized
+          .getRollupInformationMapA()
           .forEach(
-              entry ->
+              (key, value) ->
                   rollupInformationMapA.put(
-                      entry.getKey(),
-                      RollupInformation.fromSerialized(entry.getValue(), dataPointer)));
+                      key, RollupInformation.fromSerialized(value, dataPointer)));
     }
 
     // Rollup columns for entity B.
     Map<String, RollupInformation> rollupInformationMapB = new HashMap<>();
     if (serialized.getRollupInformationMapB() != null) {
-      serialized.getRollupInformationMapB().entrySet().stream()
+      serialized
+          .getRollupInformationMapB()
           .forEach(
-              entry ->
+              (key, value) ->
                   rollupInformationMapB.put(
-                      entry.getKey(),
-                      RollupInformation.fromSerialized(entry.getValue(), dataPointer)));
+                      key, RollupInformation.fromSerialized(value, dataPointer)));
     }
 
     return new RelationshipMapping(

@@ -275,26 +275,5 @@
       { "key": "concept_code", "width": 120, "title": "Code" },
       { "key": "t_rollup_count", "width": 120, "title": "Roll-up Count" }
     ]
-  },
-  "cohortReviewConfig": {
-    "primaryKey": "id",
-    "attributes": [
-      {
-        "title": "Gender",
-        "key": "gender"
-      },
-      {
-        "title": "Year of birth",
-        "key": "year_of_birth"
-      },
-      {
-        "title": "Race",
-        "key": "race"
-      },
-      {
-        "title": "Ethnicity",
-        "key": "ethnicity"
-      }
-    ]
   }
 }

@@ -1,6 +1,8 @@
 package bio.terra.tanagra.indexing.job;
 
+import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.ANCESTOR_COLUMN_NAME;
 import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.CHILD_COLUMN_NAME;
+import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.DESCENDANT_COLUMN_NAME;
 import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.ID_COLUMN_NAME;
 import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.NUMCHILDREN_COLUMN_NAME;
 import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.PARENT_COLUMN_NAME;
@@ -9,27 +11,29 @@ import static bio.terra.tanagra.indexing.job.beam.BigQueryUtils.PATH_COLUMN_NAME
 import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
 import bio.terra.tanagra.indexing.Indexer;
-import bio.terra.tanagra.indexing.job.beam.BigQueryUtils;
 import bio.terra.tanagra.indexing.job.beam.PathUtils;
 import bio.terra.tanagra.query.ColumnSchema;
+import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
+import bio.terra.tanagra.query.InsertFromValues;
 import bio.terra.tanagra.query.Query;
+import bio.terra.tanagra.query.QueryExecutor;
+import bio.terra.tanagra.query.SQLExpression;
 import bio.terra.tanagra.query.TablePointer;
 import bio.terra.tanagra.underlay.Entity;
 import bio.terra.tanagra.underlay.Hierarchy;
 import bio.terra.tanagra.underlay.HierarchyField;
 import bio.terra.tanagra.underlay.HierarchyMapping;
 import bio.terra.tanagra.underlay.Underlay;
-import bio.terra.tanagra.underlay.datapointer.BigQueryDataset;
 import com.google.api.services.bigquery.model.TableFieldSchema;
 import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.common.annotations.VisibleForTesting;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.ParDo;
@@ -39,6 +43,7 @@ import org.apache.beam.sdk.transforms.join.KeyedPCollectionTuple;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.TupleTag;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,8 +93,8 @@ public class BuildNumChildrenAndPaths extends BigQueryIndexingJob {
   @Override
   public void run(boolean isDryRun, Indexer.Executors executors) {
     // If the temp table hasn't been written yet, run the Dataflow job.
-    if (!checkTableExists(getTempTable(), executors.index())) {
-      writeFieldsToTempTable(isDryRun);
+    if (!executors.index().checkTableExists(getTempTable())) {
+      writeFieldsToTempTable(isDryRun, executors);
     } else {
       LOGGER.info("Temp table has already been written.");
     }
@@ -101,9 +106,7 @@ public class BuildNumChildrenAndPaths extends BigQueryIndexingJob {
 
   @Override
   public void clean(boolean isDryRun, Indexer.Executors executors) {
-    if (checkTableExists(getTempTable(), executors.index())) {
-      deleteTable(getTempTable(), isDryRun, executors.index());
-    }
+    executors.index().deleteTable(getTempTable(), isDryRun);
     // CreateEntityTable will delete the entity table, which includes all the rows updated by this
     // job.
   }
@@ -111,12 +114,12 @@ public class BuildNumChildrenAndPaths extends BigQueryIndexingJob {
   @Override
   public JobStatus checkStatus(Indexer.Executors executors) {
     // Check if the temp table already exists.
-    if (!checkTableExists(getTempTable(), executors.index())) {
+    if (!executors.index().checkTableExists(getTempTable())) {
       return JobStatus.NOT_STARTED;
     }
 
     // Check if the entity table already exists.
-    if (!checkTableExists(getEntityIndexTable(), executors.index())) {
+    if (!executors.index().checkTableExists(getEntityIndexTable())) {
       return JobStatus.NOT_STARTED;
     }
 
@@ -143,80 +146,98 @@ public class BuildNumChildrenAndPaths extends BigQueryIndexingJob {
         getEntity().getMapping(Underlay.MappingType.INDEX).getTablePointer().getDataPointer());
   }
 
-  private void writeFieldsToTempTable(boolean isDryRun) {
-    String selectAllIdsSql =
-        getEntity().getMapping(Underlay.MappingType.SOURCE).queryIds(ID_COLUMN_NAME).renderSQL();
-    LOGGER.info("select all ids SQL: {}", selectAllIdsSql);
+  private void writeFieldsToTempTable(boolean isDryRun, Indexer.Executors executors) {
+    Query selectAllIds =
+        getEntity().getMapping(Underlay.MappingType.SOURCE).queryIds(ID_COLUMN_NAME);
+    LOGGER.info("select all ids SQL: {}", selectAllIds);
+
+    // read in the nodes and the child-parent relationships from BQ
+    List<Long> allNodes =
+        executors.source().readTableRows(selectAllIds).stream()
+            .map(rowResult -> rowResult.get(ID_COLUMN_NAME))
+            .map(cellValue -> cellValue.getLong().orElseThrow())
+            .toList();
 
     HierarchyMapping sourceHierarchyMapping =
         getEntity().getHierarchy(hierarchyName).getMapping(Underlay.MappingType.SOURCE);
-    String selectChildParentIdPairsSql =
-        sourceHierarchyMapping
-            .queryChildParentPairs(CHILD_COLUMN_NAME, PARENT_COLUMN_NAME)
-            .renderSQL();
-    LOGGER.info("select all child-parent id pairs SQL: {}", selectChildParentIdPairsSql);
+    Query selectChildParentIdPairs =
+        sourceHierarchyMapping.queryChildParentPairs(CHILD_COLUMN_NAME, PARENT_COLUMN_NAME);
+    LOGGER.info("select all child-parent id pairs SQL: {}", selectChildParentIdPairs);
 
-    BigQueryDataset outputBQDataset = getBQDataPointer(getTempTable());
-    Pipeline pipeline = Pipeline.create(buildDataflowPipelineOptions(outputBQDataset));
-
-    // read in the nodes and the child-parent relationships from BQ
-    PCollection<Long> allNodesPC =
-        BigQueryUtils.readNodesFromBQ(pipeline, selectAllIdsSql, "allNodes");
-    PCollection<KV<Long, Long>> childParentRelationshipsPC =
-        BigQueryUtils.readChildParentRelationshipsFromBQ(pipeline, selectChildParentIdPairsSql);
+    List<Pair<Long, Long>> childParentRelationships =
+        executors.source().readTableRows(selectChildParentIdPairs).stream()
+            .map(
+                rowResult ->
+                    Pair.of(
+                        rowResult.get(CHILD_COLUMN_NAME).getLong().orElseThrow(),
+                        rowResult.get(PARENT_COLUMN_NAME).getLong().orElseThrow()))
+            .toList();
 
     // compute a path to a root node for each node in the hierarchy
-    PCollection<KV<Long, String>> nodePathKVsPC =
+    Collection<Pair<Long, List<Long>>> nodePaths =
         PathUtils.computePaths(
-            allNodesPC, childParentRelationshipsPC, sourceHierarchyMapping.getMaxHierarchyDepth());
+            allNodes, childParentRelationships, sourceHierarchyMapping.getMaxHierarchyDepth());
 
     // count the number of children for each node in the hierarchy
-    PCollection<KV<Long, Long>> nodeNumChildrenKVsPC =
-        PathUtils.countChildren(allNodesPC, childParentRelationshipsPC);
+    Map<Long, Long> nodeNumChildren = PathUtils.countChildren(childParentRelationships);
 
     // prune orphan nodes from the hierarchy (i.e. set path=null for nodes with no parents or
     // children)
-    PCollection<KV<Long, String>> nodePrunedPathKVsPC =
-        PathUtils.pruneOrphanPaths(nodePathKVsPC, nodeNumChildrenKVsPC);
+    Collection<Pair<Long, List<Long>>> nodePrunedPathKVsPC =
+        PathUtils.pruneOrphanPaths(nodePaths, nodeNumChildren);
 
     // filter the root nodes
-    PCollection<KV<Long, String>> outputNodePathKVsPC =
-        filterRootNodes(sourceHierarchyMapping, pipeline, nodePrunedPathKVsPC);
-
-    // write the node-{path, numChildren} pairs to BQ
-    writePathAndNumChildrenToBQ(outputNodePathKVsPC, nodeNumChildrenKVsPC, getTempTable());
+    Collection<Pair<Long, List<Long>>> outputNodePath =
+        filterRootNodes(sourceHierarchyMapping, executors, nodePrunedPathKVsPC);
 
     if (!isDryRun) {
-      pipeline.run().waitUntilFinish();
+      // create table if it doesn't exist
+      writePathAndNumChildrenToBQ(outputNodePath, nodeNumChildren, getTempTable(), executors.index());
     }
   }
 
   /** Filter the root nodes, if a root nodes filter is specified by the hierarchy mapping. */
-  private static PCollection<KV<Long, String>> filterRootNodes(
+  private static Collection<Pair<Long, List<Long>>> filterRootNodes(
       HierarchyMapping sourceHierarchyMapping,
-      Pipeline pipeline,
-      PCollection<KV<Long, String>> nodePrunedPathKVsPC) {
+      Indexer.Executors executors,
+      Collection<Pair<Long, List<Long>>> nodePrunedPath) {
     if (!sourceHierarchyMapping.hasRootNodesFilter()) {
-      return nodePrunedPathKVsPC;
+      return nodePrunedPath;
     }
-    String selectPossibleRootIdsSql =
-        sourceHierarchyMapping.queryPossibleRootNodes(ID_COLUMN_NAME).renderSQL();
-    LOGGER.info("select possible root ids SQL: {}", selectPossibleRootIdsSql);
+    Query selectPossibleRootIds = sourceHierarchyMapping.queryPossibleRootNodes(ID_COLUMN_NAME);
+    LOGGER.info("select possible root ids SQL: {}", selectPossibleRootIds);
 
     // read in the possible root nodes from BQ
-    PCollection<Long> possibleRootNodesPC =
-        BigQueryUtils.readNodesFromBQ(pipeline, selectPossibleRootIdsSql, "rootNodes");
+    Collection<Long> possibleRootNodes =
+        executors.source().readTableRows(selectPossibleRootIds).stream()
+            .map(rowResult -> rowResult.get(ID_COLUMN_NAME).getLong().orElseThrow())
+            .toList();
 
     // filter the root nodes (i.e. set path=null for any existing root nodes that are not in the
     // list of possibles)
-    return PathUtils.filterRootNodes(possibleRootNodesPC, nodePrunedPathKVsPC);
+    return PathUtils.filterRootNodes(possibleRootNodes, nodePrunedPath);
   }
 
   /** Write the {@link KV} pairs (id, path, num_children) to BQ. */
   private static void writePathAndNumChildrenToBQ(
-      PCollection<KV<Long, String>> nodePathKVs,
-      PCollection<KV<Long, Long>> nodeNumChildrenKVs,
-      TablePointer outputBQTable) {
+      Collection<Pair<Long, List<Long>>> nodePathKVs,
+      Map<Long, Long> nodeNumChildrenKVs,
+      TablePointer outputTable,
+      QueryExecutor executor) {
+    SQLExpression insertQuery =
+        new InsertFromValues(
+            outputTable,
+            Map.of(
+                ID_COLUMN_NAME,
+                new FieldVariable(
+                    new FieldPointer.Builder().columnName(ANCESTOR_COLUMN_NAME).build(),
+                    outputTable),
+                PATH_COLUMN_NAME,
+                new FieldVariable(
+                    new FieldPointer.Builder().columnName(DESCENDANT_COLUMN_NAME).build(),
+                    outputTable)),
+            relationships);
+
     // define the CoGroupByKey tags
     final TupleTag<String> pathTag = new TupleTag<>();
     final TupleTag<Long> numChildrenTag = new TupleTag<>();

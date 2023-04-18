@@ -608,7 +608,11 @@ public class DatasetService {
   }
 
   public ColumnStatisticsModel retrieveColumnStatistics(
-      AuthenticatedUserRequest userRequest, UUID datasetId, String tableName, String columnName) {
+      AuthenticatedUserRequest userRequest,
+      UUID datasetId,
+      String tableName,
+      String columnName,
+      String filter) {
     Dataset dataset = retrieve(datasetId);
 
     // TODO - create new exception instead of DatasetDataException
@@ -633,9 +637,11 @@ public class DatasetService {
       try {
         String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
         if (column.isNumericType()) {
-          return BigQueryPdao.getStatsForNumericColumn(dataset, bqFormattedTableName, columnName);
+          return BigQueryPdao.getStatsForNumericColumn(
+              dataset, bqFormattedTableName, columnName, filter);
         } else if (column.isTextType()) {
-          return BigQueryPdao.getStatsForTextColumn(dataset, bqFormattedTableName, columnName);
+          return BigQueryPdao.getStatsForTextColumn(
+              dataset, bqFormattedTableName, columnName, filter);
         }
         return new ColumnStatisticsModel();
       } catch (InterruptedException e) {

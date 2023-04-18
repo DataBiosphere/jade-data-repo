@@ -1844,6 +1844,11 @@ paths:
           required: true
           schema:
             type: string
+        - name: filter
+          in: path
+          description: Filter down results included in the column statistics
+          schema:
+            type: string
       responses:
         200:
           description: Returns the statistics about column from a dataset's table

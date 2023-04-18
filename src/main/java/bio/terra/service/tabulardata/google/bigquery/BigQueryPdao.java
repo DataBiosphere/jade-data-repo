@@ -159,18 +159,6 @@ public abstract class BigQueryPdao {
       return 0;
     }
   }
-
-  public static ColumnStatisticsNumericModel getStatsForNumericColumn(
-      FSContainerInterface tdrResource, String bqFormattedTableName, String column)
-      throws InterruptedException {
-    return new ColumnStatisticsNumericModel();
-  }
-
-  public static ColumnStatisticsTextModel getStatsForTextColumn(
-      FSContainerInterface tdrResource, String bqFormattedTableName, String column)
-      throws InterruptedException {
-    return new ColumnStatisticsTextModel();
-  }
   /*
    * WARNING: Ensure input parameters are validated before executing this method!
    */
@@ -265,5 +253,62 @@ public abstract class BigQueryPdao {
               values.add(resultModel.rowResult(rowData));
             });
     return values;
+  }
+
+  // COLUMN STATS
+  public static final String TEXT_COLUMN_STATS_TEMPLATE =
+      """
+        SELECT <column> FROM <table>
+      """;
+
+  public static final String COLUMN_STATS_FILTER_TEMPLATE =
+      "<whereClause> ORDER BY <sort> <direction>";
+
+  public static ColumnStatisticsTextModel getStatsForTextColumn(
+      FSContainerInterface tdrResource, String bqFormattedTableName, String column, String filter)
+      throws InterruptedException {
+    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
+    final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
+    final String datasetProjectId = bigQueryProject.getProjectId();
+    // The bigquery sql table name must be enclosed in backticks
+    String bigQueryTable = "`" + datasetProjectId + "." + bqFormattedTableName + "`";
+    final String filterParams =
+        new ST(DATA_FILTER_TEMPLATE)
+            .add("whereClause", whereClause)
+            .add("sort", column)
+            .add("direction", SqlSortDirection.ASC)
+            .render();
+    final String bigQuerySQL =
+        new ST(DATA_TEMPLATE)
+            .add("column", column)
+            .add("table", bigQueryTable)
+            .add("filterParams", filterParams)
+            .render();
+    final TableResult result = bigQueryProject.query(bigQuerySQL);
+
+    return new ColumnStatisticsTextModel().values(aggregateColumnStats(result, column));
+  }
+
+  private static List<String> aggregateColumnStats(TableResult result, String column) {
+    List<String> values = new ArrayList<>();
+    result
+        .iterateAll()
+        .forEach(
+            rows -> {
+              FieldValue fieldValue = rows.get(column);
+              if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
+                fieldValue.getRepeatedValue().stream()
+                    .forEach(val -> values.add(val.getStringValue()));
+              } else {
+                values.add(fieldValue.getStringValue());
+              }
+            });
+    return values;
+  }
+
+  public static ColumnStatisticsNumericModel getStatsForNumericColumn(
+      FSContainerInterface tdrResource, String bqFormattedTableName, String column, String filter)
+      throws InterruptedException {
+    return new ColumnStatisticsNumericModel();
   }
 }

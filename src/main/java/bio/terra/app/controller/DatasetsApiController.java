@@ -197,10 +197,10 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<ColumnStatisticsModel> lookupDatasetColumnStatisticsById(
-      UUID id, String table, String column) {
+      UUID id, String table, String column, String filter) {
     datasetService.verifyDatasetReadable(id, getAuthenticatedInfo());
     ColumnStatisticsModel columnStatisticsModel =
-        datasetService.retrieveColumnStatistics(getAuthenticatedInfo(), id, table, column);
+        datasetService.retrieveColumnStatistics(getAuthenticatedInfo(), id, table, column, filter);
     return ResponseEntity.ok(columnStatisticsModel);
   }
 

@@ -140,6 +140,7 @@ jobs:
     name: "Run integration and smoke tests"
     outputs:
       job-status: ${{ job.status }}
+      api_image_tag: ${{ steps.configuration.outputs.git_hash }}
     timeout-minutes: 300
     needs: test_check
     strategy:
@@ -190,7 +191,7 @@ jobs:
       - name: "Build docker container via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.68.0
         with:
-          actions_subcommand: 'gradlebuild'
+          actions_subcommand: 'gradlebuild' # creates gcr build with git_hash tag
       - name: "Deploy to cluster with Helm"
         uses: broadinstitute/datarepo-actions/actions/main@0.68.0
         with:
@@ -232,6 +233,17 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.68.0
         with:
           actions_subcommand: 'gcp_whitelist_clean'
+  report-to-sherlock:
+    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
+    needs: deploy_test_integration
+    # Always attempt to run, as we want to report the appVersion even if the tests fail.
+    if: always()
+    with:
+      new-version: ${{ needs.deploy_test_integration.outputs.api_image_tag }}
+      chart-name: 'datarepo'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
   publish_test_reports:
     name: "Save execution reports and notify"
     timeout-minutes: 60

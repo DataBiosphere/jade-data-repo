@@ -21,6 +21,8 @@ on:
       - '.swagger-codegen-ignore'
 jobs:
   update_image:
+    outputs:
+      api_image_tag: ${{ steps.bumperstep.outputs.tag }}
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -89,8 +91,18 @@ jobs:
           actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          alpharelease: ${{ steps.bumperstep.outputs.tag }}
+          alpharelease: ${{ steps.bumperstep.outputs.tag }} # creates gcr build with semver tag
           gcr_google_project: 'broad-jade-dev'
+  report-to-sherlock:
+    uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
+    needs:
+      - update_image
+    with:
+      new-version: ${{ needs.update_image.outputs.api_image_tag }}
+      chart-name: 'datarepo'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
   helm_tag_bumper:
     needs: update_image
     uses: ./.github/workflows/helmtagbumper.yaml

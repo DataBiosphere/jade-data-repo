@@ -1824,6 +1824,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DatasetDataModel'
+  /api/repository/v1/datasets/{id}/data/{table}/statistics/{column}:
+    get:
+      tags:
+        - datasets
+      description: Retrieve statiscs about data for a column in a table in a dataset
+      operationId: lookupDatasetColumnStatisticsById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: table
+          in: path
+          description: Name of table where column lives
+          required: true
+          schema:
+            type: string
+        - name: column
+          in: path
+          description: Name of column in the table to get statisitcs about
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Returns the statistics about column from a dataset's table
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ColumnStatisticsModel'
   /api/repository/v1/datasets/{id}/summary:
     get:
       tags:
@@ -4727,6 +4754,35 @@ components:
           type: integer
       description: >
         A preview of a snapshot table
+    ColumnStatisticsTextModel:
+      allOf:
+        - $ref: '#/components/schemas/ColumnStatisticsModel'
+        - type: object
+          required:
+            - values
+          properties:
+            values:
+              type: array
+              items:
+                type: string
+              description: list
+    ColumnStatisticsNumericModel:
+      allOf:
+        - $ref: '#/components/schemas/ColumnStatisticsModel'
+        - type: object
+          properties:
+            minValue:
+              type: number
+            maxValue:
+              type: number
+    ColumnStatisticsModel:
+      type: object
+      required:
+        - dataType
+      properties:
+        dataType:
+          type: string
+          description: Data type of column
     FileModel:
       type: object
       properties:

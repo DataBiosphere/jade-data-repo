@@ -11,6 +11,8 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.Query;
+import bio.terra.model.ColumnStatisticsNumericModel;
+import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.google.BigQueryProject;
@@ -156,6 +158,18 @@ public abstract class BigQueryPdao {
           ex);
       return 0;
     }
+  }
+
+  public static ColumnStatisticsNumericModel getStatsForNumericColumn(
+      FSContainerInterface tdrResource, String bqFormattedTableName, String column)
+      throws InterruptedException {
+    return new ColumnStatisticsNumericModel();
+  }
+
+  public static ColumnStatisticsTextModel getStatsForTextColumn(
+      FSContainerInterface tdrResource, String bqFormattedTableName, String column)
+      throws InterruptedException {
+    return new ColumnStatisticsTextModel();
   }
   /*
    * WARNING: Ensure input parameters are validated before executing this method!

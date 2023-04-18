@@ -14,6 +14,8 @@ import bio.terra.common.SynapseColumn;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.Query;
+import bio.terra.model.ColumnStatisticsNumericModel;
+import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -1043,6 +1045,16 @@ public class AzureSynapsePdao {
           ex);
       return 0;
     }
+  }
+
+  public static ColumnStatisticsNumericModel getStatsForNumericColumn(
+      Column column, String dataSourceName, String parquetFileLocation) {
+    return new ColumnStatisticsNumericModel();
+  }
+
+  public static ColumnStatisticsTextModel getStatsForTextColumn(
+      Column column, String dataSourceName, String parquetFileLocation) {
+    return new ColumnStatisticsTextModel();
   }
 
   public List<SynapseDataResultModel> getTableData(

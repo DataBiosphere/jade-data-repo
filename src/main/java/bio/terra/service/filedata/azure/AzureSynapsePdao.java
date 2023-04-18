@@ -12,6 +12,7 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
 import bio.terra.common.Table;
+import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnStatisticsNumericModel;
@@ -1049,12 +1050,14 @@ public class AzureSynapsePdao {
 
   public static ColumnStatisticsNumericModel getStatsForNumericColumn(
       Column column, String dataSourceName, String parquetFileLocation) {
-    return new ColumnStatisticsNumericModel();
+    throw new FeatureNotImplementedException("This feature is not yet supported for Azure-backed datasets.");
+//    return new ColumnStatisticsNumericModel();
   }
 
   public static ColumnStatisticsTextModel getStatsForTextColumn(
       Column column, String dataSourceName, String parquetFileLocation) {
-    return new ColumnStatisticsTextModel();
+    throw new FeatureNotImplementedException("This feature is not yet supported for Azure-backed datasets.");
+//    return new ColumnStatisticsTextModel();
   }
 
   public List<SynapseDataResultModel> getTableData(

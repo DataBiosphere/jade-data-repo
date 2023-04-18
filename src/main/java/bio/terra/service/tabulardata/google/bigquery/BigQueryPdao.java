@@ -144,13 +144,7 @@ public abstract class BigQueryPdao {
             .render();
     try {
       final TableResult result = bigQueryProject.query(bigQuerySQL);
-      return (int)
-          result
-              .iterateAll()
-              .iterator()
-              .next()
-              .get(PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
-              .getLongValue();
+      return getNumericResult(result, PDAO_TOTAL_ROW_COUNT_COLUMN_NAME);
     } catch (InterruptedException ex) {
       logger.warn(
           "BQ request to get total row count for table {} was interupted. Defaulting to 0.",
@@ -267,6 +261,18 @@ public abstract class BigQueryPdao {
         SELECT DISTINCT <column> FROM <table> <whereClause> ORDER BY <column> <direction>
       """;
 
+  public static final String ARRAY_NUMERIC_COLUMN_STATS_TEMPLATE =
+      """
+          WITH array_field AS (Select <column> FROM <table> <whereClause>)
+            Select MIN(flattened_array_field) AS min, MAX(flattened_array_field) AS max FROM array_field CROSS JOIN UNNEST(array_field.<column>)
+            AS flattened_array_field
+          """;
+
+  public static final String NUMERIC_COLUMN_STATS_TEMPLATE =
+      """
+        SELECT MIN(<column>) AS min, MAX(<column>) AS max FROM <table> <whereClause>
+      """;
+
   public static ColumnStatisticsTextModel getStatsForTextColumn(
       FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
       throws InterruptedException {
@@ -306,8 +312,31 @@ public abstract class BigQueryPdao {
   }
 
   public static ColumnStatisticsNumericModel getStatsForNumericColumn(
-      FSContainerInterface tdrResource, String bqFormattedTableName, String column, String filter)
+      FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
       throws InterruptedException {
-    return new ColumnStatisticsNumericModel();
+    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
+    final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
+    final String datasetProjectId = bigQueryProject.getProjectId();
+    // The bigquery sql table name must be enclosed in backticks
+    String bigQueryTable = "`" + datasetProjectId + "." + bqFormattedTableName + "`";
+    String columnName = column.getName();
+    final String bigQuerySQL =
+        new ST(
+                column.isArrayOf()
+                    ? ARRAY_NUMERIC_COLUMN_STATS_TEMPLATE
+                    : NUMERIC_COLUMN_STATS_TEMPLATE)
+            .add("column", columnName)
+            .add("table", bigQueryTable)
+            .add("whereClause", whereClause)
+            .render();
+    final TableResult result = bigQueryProject.query(bigQuerySQL);
+
+    return new ColumnStatisticsNumericModel()
+        .maxValue(getNumericResult(result, "max"))
+        .minValue(getNumericResult(result, "min"));
+  }
+
+  private static int getNumericResult(TableResult tableResult, String resultColumnName) {
+    return (int) tableResult.iterateAll().iterator().next().get(resultColumnName).getLongValue();
   }
 }

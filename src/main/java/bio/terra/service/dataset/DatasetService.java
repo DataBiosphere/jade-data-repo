@@ -638,7 +638,7 @@ public class DatasetService {
         String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
         if (column.isNumericType()) {
           return BigQueryPdao.getStatsForNumericColumn(
-              dataset, bqFormattedTableName, columnName, filter);
+              dataset, bqFormattedTableName, column, filter);
         } else if (column.isTextType()) {
           return BigQueryPdao.getStatsForTextColumn(dataset, bqFormattedTableName, column, filter);
         }

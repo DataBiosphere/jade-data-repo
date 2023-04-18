@@ -4781,9 +4781,9 @@ components:
         - type: object
           properties:
             minValue:
-              type: number
+              type: integer
             maxValue:
-              type: number
+              type: integer
     ColumnStatisticsModel:
       type: object
       required:

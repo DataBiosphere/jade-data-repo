@@ -256,37 +256,36 @@ public abstract class BigQueryPdao {
   }
 
   // COLUMN STATS
+  public static final String ARRAY_TEXT_COLUMN_STATS_TEMPLATE =
+      """
+          WITH array_field AS (Select <column> FROM <table> <whereClause>)
+            Select DISTINCT flattened_array_field AS <column> FROM array_field CROSS JOIN UNNEST(array_field.<column>)
+            AS flattened_array_field ORDER BY flattened_array_field <direction>
+          """;
   public static final String TEXT_COLUMN_STATS_TEMPLATE =
       """
-        SELECT <column> FROM <table>
+        SELECT DISTINCT <column> FROM <table> <whereClause> ORDER BY <column> <direction>
       """;
 
-  public static final String COLUMN_STATS_FILTER_TEMPLATE =
-      "<whereClause> ORDER BY <sort> <direction>";
-
   public static ColumnStatisticsTextModel getStatsForTextColumn(
-      FSContainerInterface tdrResource, String bqFormattedTableName, String column, String filter)
+      FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
       throws InterruptedException {
     String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
     final String datasetProjectId = bigQueryProject.getProjectId();
     // The bigquery sql table name must be enclosed in backticks
     String bigQueryTable = "`" + datasetProjectId + "." + bqFormattedTableName + "`";
-    final String filterParams =
-        new ST(DATA_FILTER_TEMPLATE)
-            .add("whereClause", whereClause)
-            .add("sort", column)
-            .add("direction", SqlSortDirection.ASC)
-            .render();
+    String columnName = column.getName();
     final String bigQuerySQL =
-        new ST(DATA_TEMPLATE)
-            .add("column", column)
+        new ST(column.isArrayOf() ? ARRAY_TEXT_COLUMN_STATS_TEMPLATE : TEXT_COLUMN_STATS_TEMPLATE)
+            .add("column", columnName)
             .add("table", bigQueryTable)
-            .add("filterParams", filterParams)
+            .add("whereClause", whereClause)
+            .add("direction", SqlSortDirection.ASC)
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
 
-    return new ColumnStatisticsTextModel().values(aggregateColumnStats(result, column));
+    return new ColumnStatisticsTextModel().values(aggregateColumnStats(result, columnName));
   }
 
   private static List<String> aggregateColumnStats(TableResult result, String column) {

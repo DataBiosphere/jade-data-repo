@@ -1845,8 +1845,12 @@ paths:
           schema:
             type: string
         - name: filter
-          in: path
-          description: Filter down results included in the column statistics
+          in: query
+          description: >-
+            A SQL WHERE clause to filter results included in column statistics.
+
+            For GCP array string columns, if you wanted to include all rows that contain 'value1' in column1,
+            the filter clause would look like 'WHERE 'value1' IN UNNEST(column1)'.
           schema:
             type: string
       responses:

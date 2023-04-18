@@ -25,6 +25,7 @@ import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -357,10 +358,10 @@ public class SnapshotsApiController implements SnapshotsApi {
 
   @Override
   public ResponseEntity<SnapshotSummaryModel> updateSnapshotTags(
-      UUID id, List<String> add, List<String> remove) {
+      UUID id, TagUpdateRequestModel tagUpdateRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
-    return ResponseEntity.ok(snapshotService.updateTags(id, add, remove));
+    return ResponseEntity.ok(snapshotService.updateTags(id, tagUpdateRequest));
   }
 }

@@ -83,7 +83,7 @@ public final class DatasetJsonConversion {
                 .selfHosted(datasetRequest.isExperimentalSelfHosted())
                 .properties(datasetRequest.getProperties())
                 .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds())
-                .tags(TagUtils.getDistinctTags(datasetRequest.getTags())))
+                .tags(TagUtils.sanitizeTags(datasetRequest.getTags())))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);

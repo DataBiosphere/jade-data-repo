@@ -31,6 +31,7 @@ import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -679,8 +680,8 @@ public class DatasetService {
     return new TagCountResultModel().tags(tags).errors(List.of());
   }
 
-  public DatasetSummaryModel updateTags(UUID id, List<String> add, List<String> remove) {
-    boolean updateSucceeded = datasetDao.updateTags(id, add, remove);
+  public DatasetSummaryModel updateTags(UUID id, TagUpdateRequestModel tagUpdateRequest) {
+    boolean updateSucceeded = datasetDao.updateTags(id, tagUpdateRequest);
     if (!updateSucceeded) {
       throw new RuntimeException("Dataset tags were not updated");
     }

@@ -36,6 +36,7 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.SamPolicyModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -442,11 +443,11 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<DatasetSummaryModel> updateDatasetTags(
-      UUID id, List<String> add, List<String> remove) {
+      UUID id, TagUpdateRequestModel tagUpdateRequest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
-    return ResponseEntity.ok(datasetService.updateTags(id, add, remove));
+    return ResponseEntity.ok(datasetService.updateTags(id, tagUpdateRequest));
   }
 
   @Override

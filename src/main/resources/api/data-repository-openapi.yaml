@@ -1302,22 +1302,11 @@ paths:
       operationId: updateSnapshotTags
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: add
-          in: query
-          description: Tags to add to the snapshot
-          required: false
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/Tag'
-        - name: remove
-          in: query
-          description: Tags to remove from the snapshot
-          required: false
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/Tag'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdateRequestModel'
       responses:
         200:
           description: Snapshot summary with updated tags
@@ -2505,22 +2494,11 @@ paths:
       operationId: updateDatasetTags
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: add
-          in: query
-          description: Tags to add to the dataset
-          required: false
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/Tag'
-        - name: remove
-          in: query
-          description: Tags to remove from the dataset
-          required: false
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/Tag'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdateRequestModel'
       responses:
         200:
           description: Dataset summary with updated tags
@@ -4096,6 +4074,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -4219,9 +4198,7 @@ components:
               items:
                 type: string
         tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
+          $ref: '#/components/schemas/ResourceCreateTags'
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     DatasetPatchRequestModel:
@@ -5075,9 +5052,7 @@ components:
         compactIdPrefix:
           $ref: '#/components/schemas/CompactIdPrefix'
         tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
+          $ref: '#/components/schemas/ResourceCreateTags'
       description: >
         Request for creating a snapshot.
         For now, the API only supports snapshots defined as a single dataset asset and
@@ -6028,8 +6003,39 @@ components:
 
     Tag:
       type: string
-      description: A tag associated with a TDR resource (dataset, snapshot)
+      description: >
+        A tag associated with a TDR resource (dataset, snapshot)
       example: a-resource-tag
+
+    ResourceCreateTags:
+      type: array
+      items:
+        $ref: '#/components/schemas/Tag'
+      description: >
+        Tags to add to the resource on its creation.  User-inputted tags will be stripped of leading
+        and trailing whitespace, filtered of empty elements, and deduplicated.
+
+    TagUpdateRequestModel:
+      type: object
+      properties:
+        add:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          required: false
+          description: >
+            Tags to add to the resource.  User-inputted tags will be stripped of leading and
+            trailing whitespace, filtered of empty elements, and deduplicated.  Adding tags already
+            present on the resource will have no effect.
+        remove:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          required: false
+          description: >
+            Tags to remove from the resource.  User-inputted tags will be stripped of leading and
+            trailing whitespace, filtered of empty elements, and deduplicated.  Removing tags not
+            present on the resource will have no effect.
 
     TagCount:
       type: object

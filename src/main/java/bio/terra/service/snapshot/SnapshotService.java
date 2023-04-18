@@ -46,6 +46,7 @@ import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableModel;
 import bio.terra.model.TagCount;
 import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -249,8 +250,8 @@ public class SnapshotService {
     return new TagCountResultModel().tags(tags).errors(errors);
   }
 
-  public SnapshotSummaryModel updateTags(UUID id, List<String> add, List<String> remove) {
-    boolean updateSucceeded = snapshotDao.updateTags(id, add, remove);
+  public SnapshotSummaryModel updateTags(UUID id, TagUpdateRequestModel tagUpdateRequest) {
+    boolean updateSucceeded = snapshotDao.updateTags(id, tagUpdateRequest);
     if (!updateSucceeded) {
       throw new RuntimeException("Snapshot tags were not updated");
     }
@@ -604,7 +605,7 @@ public class SnapshotService {
         .properties(snapshotRequestModel.getProperties())
         .globalFileIds(snapshotRequestModel.isGlobalFileIds())
         .compactIdPrefix(snapshotRequestModel.getCompactIdPrefix())
-        .tags(TagUtils.getDistinctTags(snapshotRequestModel.getTags()));
+        .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(

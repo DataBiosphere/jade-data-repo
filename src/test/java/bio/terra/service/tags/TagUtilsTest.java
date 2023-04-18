@@ -22,25 +22,33 @@ import org.springframework.test.context.ActiveProfiles;
 public class TagUtilsTest {
 
   @Test
-  public void testDatasetRequestToDatasetTags() {
-    assertThat("Null tag list is converted to empty list", TagUtils.getDistinctTags(null), empty());
+  public void testSanitizeTags() {
+    assertThat("Null tag list is converted to empty list", TagUtils.sanitizeTags(null), empty());
 
-    assertThat("Empty tag list is returned", TagUtils.getDistinctTags(List.of()), empty());
+    assertThat("Empty tag list is returned", TagUtils.sanitizeTags(List.of()), empty());
 
-    List<String> nullTagElements = new ArrayList<>();
+    List<String> nullTagElements = new ArrayList<>(List.of("", "\t", "\n"));
     nullTagElements.add(null);
-    assertThat("Null tags are filtered out", TagUtils.getDistinctTags(nullTagElements), empty());
+    assertThat(
+        "Null, empty, and whitespace tags are filtered out",
+        TagUtils.sanitizeTags(nullTagElements),
+        empty());
 
     String tag = "a tag";
     assertThat(
         "Duplicate tags are filtered out",
-        TagUtils.getDistinctTags(List.of(tag, tag, tag)),
+        TagUtils.sanitizeTags(List.of(tag, tag, tag)),
+        contains(tag));
+
+    assertThat(
+        "Tags are deduplicated after whitespace is stripped",
+        TagUtils.sanitizeTags(List.of(tag, tag + " ", " " + tag)),
         contains(tag));
 
     List<String> multipleCasedTags = List.of(tag.toLowerCase(), tag.toUpperCase());
     assertThat(
         "Tags are case sensitive",
-        TagUtils.getDistinctTags(multipleCasedTags),
+        TagUtils.sanitizeTags(multipleCasedTags),
         containsInAnyOrder(multipleCasedTags.toArray()));
   }
 
@@ -53,7 +61,7 @@ public class TagUtilsTest {
 
     TagUtils.addTagsClause(connection, List.of(), params, clauses, table);
 
-    assertThat(clauses, contains(table + ".tags @> :tags"));
+    assertThat(clauses, contains("COALESCE(%s.tags, ARRAY[]::TEXT[]) @> :tags".formatted(table)));
     assertTrue(params.hasValue("tags"));
   }
 }

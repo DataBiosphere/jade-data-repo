@@ -2,6 +2,7 @@ package bio.terra.service.tags;
 
 import bio.terra.common.DaoUtils;
 import bio.terra.model.TagCount;
+import bio.terra.model.TagUpdateRequestModel;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -74,12 +75,12 @@ public interface TaggableResourceDao {
 
   /**
    * @param id resource UUID
-   * @param add tags to add to the resource
-   * @param remove tags to remove from the resource
+   * @param tagUpdateRequest tags to add to and/or remove from the resource
    * @return whether the resource record was updated
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  default boolean updateTags(UUID id, List<String> add, List<String> remove) {
+  default boolean updateTags(UUID id, TagUpdateRequestModel tagUpdateRequest) {
+    // Postgres Set operations UNION, EXCEPT yield distinct rows
     String sql =
         """
         UPDATE %s SET tags =
@@ -93,11 +94,14 @@ public interface TaggableResourceDao {
         """
             .formatted(getTable());
 
+    List<String> addSanitized = TagUtils.sanitizeTags(tagUpdateRequest.getAdd());
+    List<String> removeSanitized = TagUtils.sanitizeTags(tagUpdateRequest.getRemove());
+
     Array tagsToAdd;
     Array tagsToRemove;
     try (Connection connection = getJdbcDataSource().getConnection()) {
-      tagsToAdd = DaoUtils.createSqlStringArray(connection, add);
-      tagsToRemove = DaoUtils.createSqlStringArray(connection, remove);
+      tagsToAdd = DaoUtils.createSqlStringArray(connection, addSanitized);
+      tagsToRemove = DaoUtils.createSqlStringArray(connection, removeSanitized);
     } catch (SQLException e) {
       throw new IllegalArgumentException("Failed to convert tag update lists to SQL arrays", e);
     }

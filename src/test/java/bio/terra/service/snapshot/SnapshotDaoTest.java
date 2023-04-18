@@ -35,6 +35,7 @@ import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.ResourceCreateTags;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SqlSortDirection;
@@ -320,7 +321,8 @@ public class SnapshotDaoTest {
   @Test
   public void snapshotEnumerateTest() {
     String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
-    List<String> tags = List.of("a tag", "A TAG");
+    ResourceCreateTags tags = new ResourceCreateTags();
+    tags.addAll(List.of("a tag", "A TAG"));
 
     for (int i = 0; i < 6; i++) {
       snapshotRequest
@@ -335,7 +337,6 @@ public class SnapshotDaoTest {
       } else {
         snapshotRequest.tags(null);
       }
-      System.out.println(snapshotRequest);
       createSnapshot(snapshotRequest);
     }
     MetadataEnumeration<SnapshotSummary> allSnapshots =
@@ -547,11 +548,9 @@ public class SnapshotDaoTest {
 
     // If even one specified tag is not found on the snapshot, it's not returned, even if other
     // matching tags are included
-    List<String> incompleteTagMatch = new ArrayList<>(tags);
-    incompleteTagMatch.add(UUID.randomUUID().toString());
+    tags.add(UUID.randomUUID().toString());
     MetadataEnumeration<SnapshotSummary> incompleteTagMatchEnum =
-        snapshotDao.retrieveSnapshots(
-            0, 6, null, null, null, null, datasetIds, snapshotIds, incompleteTagMatch);
+        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, tags);
     assertThat(
         "snapshot filter by tags excludes snapshot which do not match filter completely",
         incompleteTagMatchEnum.getItems(),
@@ -990,12 +989,15 @@ public class SnapshotDaoTest {
     Snapshot snapshotNullTags = createSnapshot(snapshotRequest);
     verifyTags("null snapshot tags are returned as empty list", snapshotNullTags, List.of());
 
-    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).tags(List.of());
+    snapshotRequest
+        .name(snapshotRequest.getName() + UUID.randomUUID())
+        .tags(new ResourceCreateTags());
     Snapshot snapshotEmptyTags = createSnapshot(snapshotRequest);
     verifyTags("empty snapshot tags are returned as empty list", snapshotEmptyTags, List.of());
 
-    List<String> tags = new ArrayList<>(List.of("a tag", "A TAG", "duplicate", "duplicate"));
+    ResourceCreateTags tags = new ResourceCreateTags();
     tags.add(null);
+    tags.addAll(List.of("a tag", "A TAG", "duplicate", "duplicate"));
     List<String> expectedTags = List.of("a tag", "A TAG", "duplicate");
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).tags(tags);
     Snapshot snapshotWithTags = createSnapshot(snapshotRequest);

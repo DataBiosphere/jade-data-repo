@@ -37,10 +37,12 @@ import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.ResourceCreateTags;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import bio.terra.model.TagCount;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.profile.ProfileDao;
@@ -1037,14 +1039,15 @@ public class DatasetDaoTest {
     DatasetRequestModel requestEmptyTags =
         jsonLoader
             .loadObject("dataset-create-test.json", DatasetRequestModel.class)
-            .tags(List.of());
+            .tags(new ResourceCreateTags());
     String nameEmptyTags = requestEmptyTags.getName() + UUID.randomUUID();
     UUID datasetIdEmptyTags = createDataset(requestEmptyTags, nameEmptyTags, null);
 
     verifyTags("empty dataset tags are returned as empty list", datasetIdEmptyTags, List.of());
 
-    List<String> tags = new ArrayList<>(List.of("a tag", "A TAG", "duplicate", "duplicate"));
+    ResourceCreateTags tags = new ResourceCreateTags();
     tags.add(null);
+    tags.addAll(List.of("a tag", "A TAG", "duplicate", "duplicate"));
     List<String> expectedTags = List.of("a tag", "A TAG", "duplicate");
     DatasetRequestModel requestWithTags =
         jsonLoader.loadObject("dataset-create-test.json", DatasetRequestModel.class).tags(tags);
@@ -1054,10 +1057,10 @@ public class DatasetDaoTest {
     verifyTags("distinct non-null tags are returned", datasetIdWithTags, expectedTags);
 
     // Create a second tagged dataset to test tag retrieval across all datasets
+    ResourceCreateTags tags2 = new ResourceCreateTags();
+    tags2.addAll(List.of("duplicate", "yet another tag"));
     DatasetRequestModel request2WithTags =
-        jsonLoader
-            .loadObject("dataset-create-test.json", DatasetRequestModel.class)
-            .tags(List.of("duplicate", "yet another tag"));
+        jsonLoader.loadObject("dataset-create-test.json", DatasetRequestModel.class).tags(tags2);
     createDataset(request2WithTags, request2WithTags.getName() + UUID.randomUUID(), null);
 
     assertThat(
@@ -1109,17 +1112,19 @@ public class DatasetDaoTest {
   public void updateTags() throws Exception {
     UUID datasetId = createDataset("dataset-minimal.json");
 
-    List<String> add = new ArrayList<>(List.of("a", "b", "b", "c"));
+    List<String> add = new ArrayList<>(List.of(" a ", "b", "b ", "c,d", "e", " "));
     add.add(null);
-    List<String> remove = List.of("c", "d");
-    List<String> expectedTags = new ArrayList<>(List.of("a", "b"));
-    assertTrue(datasetDao.updateTags(datasetId, add, remove));
+    List<String> remove = List.of("e", "f");
+    List<String> expectedTags = new ArrayList<>(List.of("a", "b", "c,d"));
+    assertTrue(
+        datasetDao.updateTags(datasetId, new TagUpdateRequestModel().add(add).remove(remove)));
     assertThat(
-        "Tags are deduplicated with nulls filtered on add and remove",
+        "Tags are stripped and deduplicated with nonempty tags filtered on add and remove",
         datasetDao.retrieve(datasetId).getTags(),
         equalTo(expectedTags));
 
-    assertTrue(datasetDao.updateTags(datasetId, add, remove));
+    assertTrue(
+        datasetDao.updateTags(datasetId, new TagUpdateRequestModel().add(add).remove(remove)));
     assertThat(
         "Running the same update again does not change dataset tags",
         datasetDao.retrieve(datasetId).getTags(),
@@ -1127,19 +1132,21 @@ public class DatasetDaoTest {
 
     List<String> addReverseOrder = List.of("z", "y", "x");
     expectedTags.addAll(List.of("x", "y", "z"));
-    assertTrue(datasetDao.updateTags(datasetId, addReverseOrder, null));
+    assertTrue(datasetDao.updateTags(datasetId, new TagUpdateRequestModel().add(addReverseOrder)));
     assertThat(
         "Tags are returned in alphabetical order",
         datasetDao.retrieve(datasetId).getTags(),
         equalTo(expectedTags));
 
-    assertTrue(datasetDao.updateTags(datasetId, null, null));
+    assertTrue(datasetDao.updateTags(datasetId, new TagUpdateRequestModel()));
     assertThat(
         "Null tag update lists do not change dataset tags",
         datasetDao.retrieve(datasetId).getTags(),
         equalTo(expectedTags));
 
-    assertTrue(datasetDao.updateTags(datasetId, List.of(), List.of()));
+    assertTrue(
+        datasetDao.updateTags(
+            datasetId, new TagUpdateRequestModel().add(List.of()).remove(List.of())));
     assertThat(
         "Empty tag update lists do not change dataset tags",
         datasetDao.retrieve(datasetId).getTags(),
@@ -1147,6 +1154,6 @@ public class DatasetDaoTest {
 
     assertFalse(
         "No rows are updated when updating tags on nonexistent dataset",
-        datasetDao.updateTags(UUID.randomUUID(), null, null));
+        datasetDao.updateTags(UUID.randomUUID(), new TagUpdateRequestModel()));
   }
 }

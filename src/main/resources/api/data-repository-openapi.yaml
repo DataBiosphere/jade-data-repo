@@ -3802,7 +3802,8 @@ paths:
       tags:
         - journal
       description: >
-        Returns a list of journal entries for an object the caller has access to
+        Returns a list of journal entries for an object the caller has access to, in descending
+        order of entry creation.
       operationId: retrieveJournalEntries
       parameters:
         - in: path
@@ -3827,7 +3828,7 @@ paths:
             default: 0
         - name: limit
           in: query
-          description: The numbers entries to retrieve and return.
+          description: The number of entries to retrieve and return.
           schema:
             type: integer
             default: 10
@@ -3865,7 +3866,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         500:
-          description: An unexpected error occurred - dataset was not updated.
+          description: An unexpected error occurred.
           content:
             application/json:
               schema:

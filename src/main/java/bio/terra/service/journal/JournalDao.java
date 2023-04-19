@@ -118,27 +118,24 @@ public class JournalDao {
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
   public List<JournalEntryModel> retrieveEntriesByIdAndType(
-      UUID resource_key, @NotNull IamResourceType resourceType, long offset, int limit) {
+      UUID resourceKey, @NotNull IamResourceType resourceType, long offset, int limit) {
     String sql =
-        "SELECT "
-            + summaryQueryColumns
-            + "FROM "
-            + TABLE_NAME
-            + " "
-            + "WHERE "
-            + "resource_key = :resource_key "
-            + "AND "
-            + "resource_type = :resourceType "
-            + "ORDER BY entry_timestamp ASC "
-            + "OFFSET :offset LIMIT :limit";
+        """
+            SELECT %s FROM %s
+            WHERE resource_key = :resource_key
+            AND resource_type = :resource_type
+            ORDER BY entry_timestamp DESC
+            OFFSET :offset LIMIT :limit
+            """
+            .formatted(summaryQueryColumns, TABLE_NAME);
 
     MapSqlParameterSource params =
         new MapSqlParameterSource()
-            .addValue("resource_key", resource_key)
-            .addValue("resourceType", resourceType.toString())
+            .addValue("resource_key", resourceKey)
+            .addValue("resource_type", resourceType.toString())
             .addValue("offset", offset)
             .addValue("limit", limit);
-    return jdbcTemplate.query(sql, params, new JournalDao.JournalEntryMapper());
+    return jdbcTemplate.query(sql, params, new JournalEntryMapper());
   }
 
   private class JournalEntryMapper implements RowMapper<JournalEntryModel> {

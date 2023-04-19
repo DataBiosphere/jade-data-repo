@@ -3,7 +3,10 @@ package bio.terra.service.journal;
 import static bio.terra.service.journal.JournalService.getCallerFrame;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
@@ -82,13 +85,12 @@ public class JournalServiceTest {
   @Test
   public void journalGetResults_InvalidOffset() {
     UUID key = UUID.randomUUID();
-    assertThat(
+    DataIntegrityViolationException ex =
         assertThrows(
-                DataIntegrityViolationException.class,
-                () -> journalService.getJournalEntries(key, IamResourceType.DATASNAPSHOT, -1, 0),
-                "invalid offset throws.")
-            .getMessage(),
-        containsString("OFFSET must not be negative"));
+            DataIntegrityViolationException.class,
+            () -> journalService.getJournalEntries(key, IamResourceType.DATASNAPSHOT, -1, 0),
+            "invalid offset throws.");
+    assertThat(ex.getMessage(), containsString("OFFSET must not be negative"));
   }
 
   @Test
@@ -96,7 +98,7 @@ public class JournalServiceTest {
     UUID key = UUID.randomUUID();
     List<JournalEntryModel> emptyResults =
         journalService.getJournalEntries(key, IamResourceType.DATASNAPSHOT, 0, 0);
-    assertThat("results should be empty", emptyResults.size(), equalTo(0));
+    assertThat("results should be empty", emptyResults, empty());
   }
 
   @Test
@@ -137,7 +139,7 @@ public class JournalServiceTest {
 
     List<JournalEntryModel> queryResult =
         journalService.getJournalEntries(key, IamResourceType.DATASET, 1, 1);
-    assertThat("The query result should only have one entry", queryResult.size(), equalTo(1));
+    assertThat("The query result should only have one entry", queryResult, hasSize(1));
     assertThat(
         "The query result should be the update entry",
         queryResult.get(0).getEntryType(),
@@ -158,18 +160,26 @@ public class JournalServiceTest {
 
   @Test
   public void journal_UnwindEntryTest() {
-    UUID key = UUID.randomUUID();
+    UUID datasetId = UUID.randomUUID();
     Map<String, Object> emptyMap = new LinkedHashMap<>();
     String note = "create note1";
-    UUID entryKey =
-        journalService.recordCreate(TEST_USER1, key, IamResourceType.DATASET, note, emptyMap);
-    validateEntries(
-        1, key, JournalService.EntryType.CREATE, IamResourceType.DATASET, TEST_USER1, note, null);
-    UUID result =
-        journalService.recordCreate(TEST_USER1, key, IamResourceType.DATASNAPSHOT, note, emptyMap);
+    UUID datasetCreateEntryId =
+        journalService.recordCreate(TEST_USER1, datasetId, IamResourceType.DATASET, note, emptyMap);
     validateEntries(
         1,
-        key,
+        datasetId,
+        JournalService.EntryType.CREATE,
+        IamResourceType.DATASET,
+        TEST_USER1,
+        note,
+        null);
+
+    UUID snapshotId = UUID.randomUUID();
+    journalService.recordCreate(
+        TEST_USER1, snapshotId, IamResourceType.DATASNAPSHOT, note, emptyMap);
+    validateEntries(
+        1,
+        snapshotId,
         JournalService.EntryType.CREATE,
         IamResourceType.DATASNAPSHOT,
         TEST_USER1,
@@ -177,21 +187,29 @@ public class JournalServiceTest {
         null);
 
     assertThat(
-        "there should be an entry for this create.",
-        journalService.getJournalEntries(key, IamResourceType.DATASET, 0, 10).size(),
-        equalTo(1));
-    journalService.removeJournalEntry(entryKey);
+        "there should be an entry for this dataset create.",
+        journalService.getJournalEntries(datasetId, IamResourceType.DATASET, 0, 10),
+        hasSize(1));
     assertThat(
-        "the datset journal entry should have been removed.",
-        journalService.getJournalEntries(key, IamResourceType.DATASET, 0, 10).size(),
-        equalTo(0));
+        "there should be an entry for this snapshot create.",
+        journalService.getJournalEntries(snapshotId, IamResourceType.DATASNAPSHOT, 0, 10),
+        hasSize(1));
 
+    journalService.removeJournalEntry(datasetCreateEntryId);
+    assertThat(
+        "the dataset journal entry should have been removed.",
+        journalService.getJournalEntries(datasetId, IamResourceType.DATASET, 0, 10),
+        empty());
     assertThat(
         "the snapshot journal entry should still exist.",
-        journalService.getJournalEntries(result, IamResourceType.DATASNAPSHOT, 0, 10).size(),
-        equalTo(0));
+        journalService.getJournalEntries(snapshotId, IamResourceType.DATASNAPSHOT, 0, 10),
+        hasSize(1));
   }
 
+  /**
+   * Validate the count of journal entries for the specified key and resourceType, and validate the
+   * contents of the first (most recent) entry.
+   */
   private void validateEntries(
       int expectedCount,
       UUID key,
@@ -201,29 +219,19 @@ public class JournalServiceTest {
       String note,
       Map<String, Object> entryMap) {
     List<JournalEntryModel> results = journalService.getJournalEntries(key, resourceType, 0, 100);
-    JournalEntryModel entryUnderTest = results.get(expectedCount - 1);
     assertThat(
-        "the number of entries matches the expected count.",
-        results.size(),
-        equalTo(expectedCount));
+        "the number of entries matches the expected count.", results, hasSize(expectedCount));
+    JournalEntryModel entryUnderTest = results.get(0);
     assertThat(
         "the journal resource key matches the UUID", entryUnderTest.getResourceKey(), equalTo(key));
     assertThat(
         "the journal entry resource type is the expected value",
-        entryUnderTest.getResourceType().toString().toLowerCase(),
-        equalTo(resourceType.toString().toLowerCase()));
-    assertThat(
-        "the journal entry resource type is the expected value",
-        entryUnderTest.getResourceType().toString().toUpperCase(),
-        equalTo(resourceType.toString().toUpperCase()));
+        entryUnderTest.getResourceType().toString(),
+        equalToIgnoringCase(resourceType.toString()));
     assertThat(
         "the journal entry type is correct",
-        entryUnderTest.getEntryType().toString().toLowerCase(),
-        equalTo(entryType.toString().toLowerCase()));
-    assertThat(
-        "the journal entry type is correct",
-        entryUnderTest.getEntryType().toString().toUpperCase(),
-        equalTo(entryType.toString().toUpperCase()));
+        entryUnderTest.getEntryType().toString(),
+        equalToIgnoringCase(entryType.toString()));
     assertThat(
         "the journal entry user is correct", entryUnderTest.getUser(), equalTo(user.getEmail()));
     assertThat(

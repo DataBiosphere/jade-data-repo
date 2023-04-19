@@ -205,6 +205,29 @@ public class FileMetadataUtilsTest {
     assertThrows(IllegalArgumentException.class, () -> FileMetadataUtils.extractDirectoryPaths(""));
   }
 
+  @Test
+  public void pathParsingTest() {
+    assertThat("empty string returns empty", FileMetadataUtils.getDirectoryPath(""), equalTo(""));
+    assertThat("root directory dir looks ok", FileMetadataUtils.getDirectoryPath("/"), equalTo(""));
+    assertThat("root directory file looks ok", FileMetadataUtils.getName("/"), equalTo(""));
+
+    // It's admitedly strange that this is what we expect but changing the behavior causes untold
+    // chaos
+    assertThat(
+        "1st level directory dir looks ok",
+        FileMetadataUtils.getDirectoryPath("/foo"),
+        equalTo(""));
+    assertThat(
+        "1st level directory file looks ok", FileMetadataUtils.getName("/foo"), equalTo("foo"));
+
+    assertThat(
+        "2nd level directory dir looks ok",
+        FileMetadataUtils.getDirectoryPath("/foo/bar"),
+        equalTo("/foo"));
+    assertThat(
+        "2nd level directory file looks ok", FileMetadataUtils.getName("/foo/bar"), equalTo("bar"));
+  }
+
   private List<FireStoreDirectoryEntry> initTestEntries(int numDirectories) {
     List<FireStoreDirectoryEntry> testEntries = new ArrayList<>();
     // Add 4 files per different directory path

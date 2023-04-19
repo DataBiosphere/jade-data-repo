@@ -170,14 +170,18 @@ public class FireStoreDirectoryDao {
                         // this load and that this is a recovery.  In that case, just leave the
                         // entry unchanged and return a mapping from the attempted fileId to the
                         // existing fileId so that the calling flight's working map can be updated
-                        if (Objects.equals(entry.getLoadTag(), existingEntry.getLoadTag())) {
+                        if (StringUtils.isEmpty(existingEntry.getLoadTag())
+                            || Objects.equals(entry.getLoadTag(), existingEntry.getLoadTag())) {
                           return new IdConflict(
                               UUID.fromString(entry.getFileId()),
                               UUID.fromString(documentSnapshot.get("fileId", String.class)));
                         } else {
                           throw new FileAlreadyExistsException(
-                              "Path already exists: %s with load tag %s"
-                                  .formatted(entry.getPath(), existingEntry.getLoadTag()));
+                              "Path already exists: %s/%s with load tag %s"
+                                  .formatted(
+                                      entry.getPath(),
+                                      entry.getName(),
+                                      existingEntry.getLoadTag()));
                         }
                       }
                       xn.set(docRef, entry);

@@ -22,6 +22,8 @@ public class FileMetadataUtils {
 
   public FileMetadataUtils() {}
 
+  // TODO: this currently returns the directory as "" if you pass in a one-level deep item
+  // https://broadworkbench.atlassian.net/browse/DR-3005 is to fix (changing breaks tests badly)
   public static String getDirectoryPath(String path) {
     Path pathParts = Paths.get(path);
     Path parentDirectory = pathParts.getParent();

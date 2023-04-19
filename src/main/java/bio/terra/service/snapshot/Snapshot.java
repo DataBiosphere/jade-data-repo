@@ -43,6 +43,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private DuosFirecloudGroupModel duosFirecloudGroup;
   private boolean globalFileIds;
   private String compactIdPrefix;
+  private List<String> tags;
 
   @Override
   public CollectionType getCollectionType() {
@@ -267,6 +268,15 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public Snapshot compactIdPrefix(String compactIdPrefix) {
     this.compactIdPrefix = compactIdPrefix;
+    return this;
+  }
+
+  public List<String> getTags() {
+    return tags;
+  }
+
+  public Snapshot tags(List<String> tags) {
+    this.tags = tags;
     return this;
   }
 

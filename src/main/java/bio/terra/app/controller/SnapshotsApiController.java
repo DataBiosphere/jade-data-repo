@@ -24,6 +24,8 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRetrieveIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
@@ -191,7 +193,8 @@ public class SnapshotsApiController implements SnapshotsApi {
       SqlSortDirection direction,
       String filter,
       String region,
-      List<String> datasetIds) {
+      List<String> datasetIds,
+      List<String> tags) {
     ControllerUtils.validateEnumerateParams(offset, limit);
     List<UUID> datasetUUIDs =
         ListUtils.emptyIfNull(datasetIds).stream()
@@ -199,7 +202,15 @@ public class SnapshotsApiController implements SnapshotsApi {
             .collect(Collectors.toList());
     var esm =
         snapshotService.enumerateSnapshots(
-            getAuthenticatedInfo(), offset, limit, sort, direction, filter, region, datasetUUIDs);
+            getAuthenticatedInfo(),
+            offset,
+            limit,
+            sort,
+            direction,
+            filter,
+            region,
+            datasetUUIDs,
+            tags);
     return ResponseEntity.ok(esm);
   }
 
@@ -338,5 +349,19 @@ public class SnapshotsApiController implements SnapshotsApi {
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.SHARE_POLICY_READER);
     return ResponseEntity.ok(snapshotService.updateSnapshotDuosDataset(id, userReq, null));
+  }
+
+  @Override
+  public ResponseEntity<TagCountResultModel> getSnapshotTags(String filter, Integer limit) {
+    return ResponseEntity.ok(snapshotService.getTags(getAuthenticatedInfo(), filter, limit));
+  }
+
+  @Override
+  public ResponseEntity<SnapshotSummaryModel> updateSnapshotTags(
+      UUID id, TagUpdateRequestModel tagUpdateRequest) {
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
+    return ResponseEntity.ok(snapshotService.updateTags(id, tagUpdateRequest));
   }
 }

@@ -30,6 +30,9 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TagCount;
+import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.TransactionCloseModel.ModeEnum;
 import bio.terra.model.TransactionCreateModel;
 import bio.terra.model.TransactionModel;
@@ -253,12 +256,14 @@ public class DatasetService {
       SqlSortDirection direction,
       String filter,
       String region,
-      Map<UUID, Set<IamRole>> idsAndRoles) {
+      Map<UUID, Set<IamRole>> idsAndRoles,
+      List<String> tags) {
     if (idsAndRoles.isEmpty()) {
       return new EnumerateDatasetModel().total(0).items(List.of());
     }
     var datasetEnum =
-        datasetDao.enumerate(offset, limit, sort, direction, filter, region, idsAndRoles.keySet());
+        datasetDao.enumerate(
+            offset, limit, sort, direction, filter, region, idsAndRoles.keySet(), tags);
 
     List<DatasetSummaryModel> summaries =
         datasetEnum.getItems().stream().map(DatasetSummary::toModel).collect(Collectors.toList());
@@ -682,6 +687,23 @@ public class DatasetService {
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), id)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
+  }
+
+  public TagCountResultModel getTags(
+      Map<UUID, Set<IamRole>> idsAndRoles, String filter, Integer limit) {
+    if (idsAndRoles.isEmpty()) {
+      return new TagCountResultModel().tags(List.of()).errors(List.of());
+    }
+    List<TagCount> tags = datasetDao.getTags(idsAndRoles.keySet(), filter, limit);
+    return new TagCountResultModel().tags(tags).errors(List.of());
+  }
+
+  public DatasetSummaryModel updateTags(UUID id, TagUpdateRequestModel tagUpdateRequest) {
+    boolean updateSucceeded = datasetDao.updateTags(id, tagUpdateRequest);
+    if (!updateSucceeded) {
+      throw new RuntimeException("Dataset tags were not updated");
+    }
+    return datasetDao.retrieveSummaryById(id).toModel();
   }
 
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {

@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
@@ -25,9 +26,13 @@ import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.exception.SnapshotUpdateException;
+import bio.terra.service.tags.TagUtils;
+import bio.terra.service.tags.TaggableResourceDao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.sql.Array;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -37,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +58,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-public class SnapshotDao {
+public class SnapshotDao implements TaggableResourceDao {
 
   private final Logger logger = LoggerFactory.getLogger(SnapshotDao.class);
 
@@ -65,6 +71,7 @@ public class SnapshotDao {
   private final ResourceService resourceService;
   private final ObjectMapper objectMapper;
   private final DuosDao duosDao;
+  private final DataSource jdbcDataSource;
 
   private static final String TABLE_NAME = "snapshot";
 
@@ -93,7 +100,8 @@ public class SnapshotDao {
       DatasetDao datasetDao,
       ResourceService resourceService,
       ObjectMapper objectMapper,
-      DuosDao duosDao) {
+      DuosDao duosDao,
+      DataRepoJdbcConfiguration jdbcConfiguration) {
     this.jdbcTemplate = jdbcTemplate;
     this.journalService = journalService;
     this.snapshotTableDao = snapshotTableDao;
@@ -103,6 +111,22 @@ public class SnapshotDao {
     this.resourceService = resourceService;
     this.objectMapper = objectMapper;
     this.duosDao = duosDao;
+    this.jdbcDataSource = jdbcConfiguration.getDataSource();
+  }
+
+  @Override
+  public NamedParameterJdbcTemplate getJdbcTemplate() {
+    return jdbcTemplate;
+  }
+
+  @Override
+  public DataSource getJdbcDataSource() {
+    return jdbcDataSource;
+  }
+
+  @Override
+  public String getTable() {
+    return TABLE_NAME;
   }
 
   /**
@@ -182,15 +206,27 @@ public class SnapshotDao {
 
     String sql =
         """
-        INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, consent_code, flightid, creation_information, properties, global_file_ids, compact_id_prefix, duos_firecloud_group_id)
-        VALUES (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid, :creation_information::jsonb, :properties::jsonb, :global_file_ids, :compact_id_prefix, :duos_firecloud_group_id)
-        """;
+            INSERT INTO snapshot
+            (name, description, profile_id, project_resource_id, id, consent_code, flightid,
+              creation_information, properties, global_file_ids, compact_id_prefix,
+              duos_firecloud_group_id, tags)
+            VALUES
+            (:name, :description, :profile_id, :project_resource_id, :id, :consent_code, :flightid,
+              :creation_information::jsonb, :properties::jsonb, :global_file_ids, :compact_id_prefix,
+              :duos_firecloud_group_id, :tags)
+            """;
     String creationInfo;
     try {
       creationInfo = objectMapper.writeValueAsString(snapshot.getCreationInformation());
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException(
           "Invalid JSON in snapshot creationInformation, we should've caught this already", e);
+    }
+    Array tags;
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      tags = DaoUtils.createSqlStringArray(connection, snapshot.getTags());
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("Failed to convert snapshot tags list to SQL array", e);
     }
     MapSqlParameterSource params =
         new MapSqlParameterSource()
@@ -206,7 +242,9 @@ public class SnapshotDao {
                 "properties", DaoUtils.propertiesToString(objectMapper, snapshot.getProperties()))
             .addValue("global_file_ids", snapshot.hasGlobalFileIds())
             .addValue("compact_id_prefix", snapshot.getCompactIdPrefix())
-            .addValue("duos_firecloud_group_id", snapshot.getDuosFirecloudGroupId());
+            .addValue("duos_firecloud_group_id", snapshot.getDuosFirecloudGroupId())
+            .addValue("tags", tags);
+
     try {
       jdbcTemplate.update(sql, params);
     } catch (DuplicateKeyException dkEx) {
@@ -423,7 +461,8 @@ public class SnapshotDao {
                       .compactIdPrefix(rs.getString("compact_id_prefix"))
                       .properties(
                           DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
-                      .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class)));
+                      .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class))
+                      .tags(DaoUtils.getStringList(rs, "tags")));
 
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
@@ -609,7 +648,8 @@ public class SnapshotDao {
       String filter,
       String region,
       List<UUID> datasetIds,
-      Collection<UUID> accessibleSnapshotIds) {
+      Collection<UUID> accessibleSnapshotIds,
+      List<String> tags) {
     logger.debug(
         "retrieve snapshots offset: "
             + offset
@@ -622,7 +662,9 @@ public class SnapshotDao {
             + " filter: "
             + filter
             + " datasetIds: "
-            + StringUtils.join(datasetIds, ","));
+            + StringUtils.join(datasetIds, ",")
+            + " tags: "
+            + StringUtils.join(tags, ","));
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses, TABLE_NAME);
@@ -651,6 +693,12 @@ public class SnapshotDao {
     // add the filter to the clause to get the actual items
     DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "snapshot_source.dataset_id");
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      TagUtils.addTagsClause(connection, tags, params, whereClauses, TABLE_NAME);
+    } catch (SQLException e) {
+      throw new IllegalArgumentException(
+          "Failed to convert snapshot request tags list to SQL array", e);
+    }
 
     String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 
@@ -667,7 +715,7 @@ public class SnapshotDao {
 
     String sql =
         "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-            + "snapshot.global_file_ids, "
+            + "snapshot.global_file_ids, snapshot.tags, "
             + "snapshot_source.id, "
             + "dataset.secure_monitoring, snapshot.consent_code, dataset.phs_id, dataset.self_hosted,"
             + summaryCloudPlatformQuery
@@ -717,7 +765,8 @@ public class SnapshotDao {
     try {
       String sql =
           "SELECT snapshot.id, snapshot.name, snapshot.description, snapshot.created_date, snapshot.profile_id, "
-              + "dataset.secure_monitoring, snapshot.consent_code, snapshot.global_file_ids, dataset.phs_id, dataset.self_hosted,"
+              + "snapshot.consent_code, snapshot.global_file_ids, snapshot.tags, "
+              + "dataset.secure_monitoring, dataset.phs_id, dataset.self_hosted,"
               + summaryCloudPlatformQuery
               + snapshotSourceStorageQuery
               + "FROM snapshot "
@@ -843,7 +892,8 @@ public class SnapshotDao {
           .consentCode(rs.getString("consent_code"))
           .phsId(rs.getString("phs_id"))
           .selfHosted(rs.getBoolean("self_hosted"))
-          .globalFileIds(rs.getBoolean("global_file_ids"));
+          .globalFileIds(rs.getBoolean("global_file_ids"))
+          .tags(DaoUtils.getStringList(rs, "tags"));
     }
   }
 }

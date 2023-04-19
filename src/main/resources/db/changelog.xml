@@ -72,4 +72,6 @@
     <include file="changesets/20230307_shedlock.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20230323_compactdrsids.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20230307_sharestorageaccounts.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230314_datasettags.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230314_snapshottags.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

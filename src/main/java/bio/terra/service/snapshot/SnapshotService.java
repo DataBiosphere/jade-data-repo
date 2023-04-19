@@ -45,6 +45,9 @@ import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableModel;
+import bio.terra.model.TagCount;
+import bio.terra.model.TagCountResultModel;
+import bio.terra.model.TagUpdateRequestModel;
 import bio.terra.model.WorkspacePolicyModel;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -83,6 +86,7 @@ import bio.terra.service.snapshot.flight.export.SnapshotExportFlight;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDataResultModel;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryPdao;
 import bio.terra.service.tabulardata.google.bigquery.BigQuerySnapshotPdao;
+import bio.terra.service.tags.TagUtils;
 import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.Instant;
@@ -237,6 +241,26 @@ public class SnapshotService {
     return snapshotDao.retrieveSummaryById(id).toModel();
   }
 
+  public TagCountResultModel getTags(
+      AuthenticatedUserRequest userReq, String filter, Integer limit) {
+    List<ErrorModel> errors = new ArrayList<>();
+    Map<UUID, Set<IamRole>> authorizedSnapshots = listAuthorizedSnapshots(userReq, errors);
+    if (authorizedSnapshots.isEmpty()) {
+      return new TagCountResultModel().tags(List.of());
+    }
+
+    List<TagCount> tags = snapshotDao.getTags(authorizedSnapshots.keySet(), filter, limit);
+    return new TagCountResultModel().tags(tags).errors(errors);
+  }
+
+  public SnapshotSummaryModel updateTags(UUID id, TagUpdateRequestModel tagUpdateRequest) {
+    boolean updateSucceeded = snapshotDao.updateTags(id, tagUpdateRequest);
+    if (!updateSucceeded) {
+      throw new RuntimeException("Snapshot tags were not updated");
+    }
+    return snapshotDao.retrieveSummaryById(id).toModel();
+  }
+
   public String exportSnapshot(
       UUID id,
       AuthenticatedUserRequest userReq,
@@ -357,7 +381,8 @@ public class SnapshotService {
       SqlSortDirection direction,
       String filter,
       String region,
-      List<UUID> datasetIds) {
+      List<UUID> datasetIds,
+      List<String> tags) {
     List<ErrorModel> errors = new ArrayList<>();
     Map<UUID, Set<IamRole>> idsAndRoles = listAuthorizedSnapshots(userReq, errors);
     if (idsAndRoles.isEmpty()) {
@@ -365,7 +390,7 @@ public class SnapshotService {
     }
     var enumeration =
         snapshotDao.retrieveSnapshots(
-            offset, limit, sort, direction, filter, region, datasetIds, idsAndRoles.keySet());
+            offset, limit, sort, direction, filter, region, datasetIds, idsAndRoles.keySet(), tags);
     List<SnapshotSummaryModel> models =
         enumeration.getItems().stream().map(SnapshotSummary::toModel).collect(Collectors.toList());
 
@@ -582,7 +607,8 @@ public class SnapshotService {
         .consentCode(snapshotRequestModel.getConsentCode())
         .properties(snapshotRequestModel.getProperties())
         .globalFileIds(snapshotRequestModel.isGlobalFileIds())
-        .compactIdPrefix(snapshotRequestModel.getCompactIdPrefix());
+        .compactIdPrefix(snapshotRequestModel.getCompactIdPrefix())
+        .tags(TagUtils.sanitizeTags(snapshotRequestModel.getTags()));
   }
 
   public List<UUID> getSourceDatasetIdsFromSnapshotRequest(
@@ -1075,7 +1101,8 @@ public class SnapshotService {
             .consentCode(snapshot.getConsentCode())
             .cloudPlatform(snapshot.getCloudPlatform())
             .globalFileIds(snapshot.hasGlobalFileIds())
-            .compactIdPrefix(snapshot.getCompactIdPrefix());
+            .compactIdPrefix(snapshot.getCompactIdPrefix())
+            .tags(snapshot.getTags());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRetrieveIncludeModel.NONE)) {
@@ -1153,7 +1180,8 @@ public class SnapshotService {
                     .collect(Collectors.toList()))
             .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
             .phsId(dataset.getPhsId())
-            .selfHosted(dataset.isSelfHosted());
+            .selfHosted(dataset.isSelfHosted())
+            .tags(dataset.getTags());
 
     SnapshotSourceModel sourceModel =
         new SnapshotSourceModel().dataset(summaryModel).datasetProperties(dataset.getProperties());

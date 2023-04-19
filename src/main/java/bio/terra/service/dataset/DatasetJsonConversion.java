@@ -19,6 +19,7 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.service.tags.TagUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -81,7 +82,8 @@ public final class DatasetJsonConversion {
                 .phsId(datasetRequest.getPhsId())
                 .selfHosted(datasetRequest.isExperimentalSelfHosted())
                 .properties(datasetRequest.getProperties())
-                .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds()))
+                .predictableFileIds(datasetRequest.isExperimentalPredictableFileIds())
+                .tags(TagUtils.sanitizeTags(datasetRequest.getTags())))
         .tables(new ArrayList<>(tablesMap.values()))
         .relationships(new ArrayList<>(relationshipsMap.values()))
         .assetSpecifications(assetSpecifications);
@@ -101,7 +103,8 @@ public final class DatasetJsonConversion {
             .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
             .phsId(dataset.getPhsId())
             .selfHosted(dataset.isSelfHosted())
-            .predictableFileIds(dataset.hasPredictableFileIds());
+            .predictableFileIds(dataset.hasPredictableFileIds())
+            .tags(dataset.getTags());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;

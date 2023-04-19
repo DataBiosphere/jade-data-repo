@@ -404,9 +404,18 @@ public class SnapshotServiceTest {
     MetadataEnumeration<SnapshotSummary> metadataEnumeration = new MetadataEnumeration<>();
     metadataEnumeration.items(List.of(summary));
     when(snapshotDao.retrieveSnapshots(
-            anyInt(), anyInt(), any(), any(), any(), any(), any(), eq(resourcesAndRoles.keySet())))
+            anyInt(),
+            anyInt(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            eq(resourcesAndRoles.keySet()),
+            any()))
         .thenReturn(metadataEnumeration);
-    var snapshots = service.enumerateSnapshots(TEST_USER, 0, 10, null, null, null, null, List.of());
+    var snapshots =
+        service.enumerateSnapshots(TEST_USER, 0, 10, null, null, null, null, List.of(), null);
     assertThat(snapshots.getItems().get(0).getId(), equalTo(snapshotId));
     assertThat(snapshots.getRoleMap(), hasEntry(snapshotId.toString(), List.of(role.toString())));
   }

@@ -24,6 +24,7 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
@@ -34,6 +35,7 @@ import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.ResourceCreateTags;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SqlSortDirection;
@@ -96,8 +98,7 @@ public class SnapshotDaoTest {
   private Dataset dataset;
   private UUID datasetId;
   private SnapshotRequestModel snapshotRequest;
-  private UUID snapshotId;
-  private List<UUID> snapshotIdList;
+  private List<UUID> snapshotIds;
   private List<UUID> datasetIds;
   private UUID profileId;
   private UUID projectId;
@@ -105,11 +106,7 @@ public class SnapshotDaoTest {
   private String duosId;
 
   private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
+      AuthenticationFixtures.randomUserRequest();
 
   @Before
   public void setup() throws Exception {
@@ -144,8 +141,7 @@ public class SnapshotDaoTest {
             .profileId(profileId);
     snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
 
-    // Populate the snapshotId with random; delete should quietly not find it.
-    snapshotId = UUID.randomUUID();
+    snapshotIds = new ArrayList<>();
     datasetIds = new ArrayList<>();
 
     duosId = UUID.randomUUID().toString();
@@ -161,37 +157,41 @@ public class SnapshotDaoTest {
 
   @After
   public void teardown() throws Exception {
-    if (snapshotIdList != null) {
-      for (UUID id : snapshotIdList) {
+    if (snapshotIds != null) {
+      for (UUID id : snapshotIds) {
         snapshotDao.delete(id, TEST_USER);
       }
-      snapshotIdList = null;
     }
-    snapshotDao.delete(snapshotId, TEST_USER);
     datasetDao.delete(datasetId, TEST_USER);
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(profileId);
     duosDao.deleteFirecloudGroup(duosFirecloudGroupId);
   }
 
+  private Snapshot createSnapshot(SnapshotRequestModel request) {
+    UUID snapshotId = UUID.randomUUID();
+    Snapshot snapshot =
+        snapshotService
+            .makeSnapshotFromSnapshotRequest(request)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+
+    String createFlightId = UUID.randomUUID().toString();
+
+    return insertAndRetrieveSnapshot(snapshot, createFlightId);
+  }
+
   private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
     snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
     snapshotDao.unlock(snapshot.getId(), flightId);
+    snapshotIds.add(snapshot.getId());
     return snapshotDao.retrieveSnapshot(snapshot.getId());
   }
 
   @Test
   public void testRetrieveSnapshotsForDataset() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
-
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-    String flightId = "happyInOutTest_flightId";
-    snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
-    snapshotDao.unlock(snapshot.getId(), flightId);
+    createSnapshot(snapshotRequest);
     List<SnapshotSummary> snapshots = snapshotDao.retrieveSnapshotsForDataset(datasetId);
     assertThat("there should exist one snapshot", snapshots, hasSize(1));
   }
@@ -204,26 +204,26 @@ public class SnapshotDaoTest {
         snapshotService
             .makeSnapshotFromSnapshotRequest(snapshotRequest)
             .projectResourceId(projectId)
-            .id(snapshotId);
-    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, "happyInOutTest_flightId");
-    assertThat("snapshot name set correctly", fromDB.getName(), equalTo(snapshot.getName()));
+            .id(UUID.randomUUID());
+    Snapshot fromDb = insertAndRetrieveSnapshot(snapshot, "happyInOutTest_flightId");
+    assertThat("snapshot name set correctly", fromDb.getName(), equalTo(snapshot.getName()));
 
     assertThat(
         "snapshot description set correctly",
-        fromDB.getDescription(),
+        fromDb.getDescription(),
         equalTo(snapshot.getDescription()));
 
-    assertThat("correct number of tables created", fromDB.getTables().size(), equalTo(2));
+    assertThat("correct number of tables created", fromDb.getTables(), hasSize(2));
 
-    assertThat("correct number of sources created", fromDB.getSnapshotSources().size(), equalTo(1));
+    assertThat("correct number of sources created", fromDb.getSnapshotSources(), hasSize(1));
 
     assertThat(
         "snapshot creation information set correctly",
-        fromDB.getCreationInformation(),
+        fromDb.getCreationInformation(),
         equalTo(snapshot.getCreationInformation()));
 
     // verify source and map
-    SnapshotSource source = fromDB.getFirstSnapshotSource();
+    SnapshotSource source = fromDb.getFirstSnapshotSource();
     assertThat(
         "source points back to snapshot", source.getSnapshot().getId(), equalTo(snapshot.getId()));
 
@@ -239,7 +239,7 @@ public class SnapshotDaoTest {
         source.getAssetSpecification().getId(),
         equalTo(dataset.getAssetSpecifications().get(0).getId()));
 
-    assertThat("correct number of map tables", source.getSnapshotMapTables().size(), equalTo(2));
+    assertThat("correct number of map tables", source.getSnapshotMapTables(), hasSize(2));
 
     // Verify map table
     SnapshotMapTable mapTable =
@@ -273,8 +273,7 @@ public class SnapshotDaoTest {
         mapTable.getToTable().getId(),
         equalTo(snapshotTable1.getId()));
 
-    assertThat(
-        "correct number of map columns", mapTable.getSnapshotMapColumns().size(), equalTo(3));
+    assertThat("correct number of map columns", mapTable.getSnapshotMapColumns(), hasSize(3));
 
     // Verify map columns
     SnapshotMapColumn mapColumn = mapTable.getSnapshotMapColumns().get(0);
@@ -291,8 +290,8 @@ public class SnapshotDaoTest {
         mapColumn.getToColumn().getId(),
         equalTo(snapshotColumn.getId()));
 
-    List<Relationship> relationships = fromDB.getRelationships();
-    assertThat("a relationship comes back", relationships.size(), equalTo(1));
+    List<Relationship> relationships = fromDb.getRelationships();
+    assertThat("a relationship comes back", relationships, hasSize(1));
     Relationship relationship = relationships.get(0);
     Table fromTable = relationship.getFromTable();
     Column fromColumn = relationship.getFromColumn();
@@ -310,41 +309,38 @@ public class SnapshotDaoTest {
     // Verify snapshot column orders
     assertThat(
         "First table columns are in ascending order of name",
-        snapshotTable1.getColumns().stream().map(Column::getName).collect(Collectors.toList()),
+        snapshotTable1.getColumns().stream().map(Column::getName).toList(),
         contains("thecolumn1", "thecolumn2", "thecolumn3"));
 
     assertThat(
         "Second table columns are in descending order of name",
-        snapshotTable2.getColumns().stream().map(Column::getName).collect(Collectors.toList()),
+        snapshotTable2.getColumns().stream().map(Column::getName).toList(),
         contains("anothercolumn3", "anothercolumn2", "anothercolumn1"));
   }
 
   @Test
-  public void snapshotEnumerateTest() throws Exception {
-    snapshotIdList = new ArrayList<>();
-    String snapshotName = snapshotRequest.getName() + UUID.randomUUID().toString();
+  public void snapshotEnumerateTest() {
+    String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
+    ResourceCreateTags tags = new ResourceCreateTags();
+    tags.addAll(List.of("a tag", "A TAG"));
 
     for (int i = 0; i < 6; i++) {
       snapshotRequest
           .name(makeName(snapshotName, i))
           // set the description to a random string so we can verify the sorting is working
-          // independently of the
-          // dataset name or created_date. add a suffix to filter on for the even snapshots
-          .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
-      String flightId = "snapshotEnumerateTest_flightId";
-      UUID tempSnapshotId = UUID.randomUUID();
-      Snapshot snapshot =
-          snapshotService
-              .makeSnapshotFromSnapshotRequest(snapshotRequest)
-              .projectResourceId(projectId)
-              .id(tempSnapshotId);
-      snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
-
-      snapshotDao.unlock(tempSnapshotId, flightId);
-      snapshotIdList.add(tempSnapshotId);
+          // independently of the dataset name or created_date. add a suffix to filter on
+          // for the even snapshots
+          .description(UUID.randomUUID() + ((i % 2 == 0) ? "==foo==" : ""));
+      if (i == 0) {
+        // Only tag our first snapshot
+        snapshotRequest.tags(tags);
+      } else {
+        snapshotRequest.tags(null);
+      }
+      createSnapshot(snapshotRequest);
     }
     MetadataEnumeration<SnapshotSummary> allSnapshots =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIdList);
+        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, null);
 
     for (var snapshotSummary : allSnapshots.getItems()) {
       assertThat(
@@ -355,22 +351,22 @@ public class SnapshotDaoTest {
           "snapshot summary has a data project", snapshotSummary.getDataProject(), notNullValue());
     }
 
-    testOneEnumerateRange(snapshotIdList, snapshotName, 0, 1000);
-    testOneEnumerateRange(snapshotIdList, snapshotName, 1, 3);
-    testOneEnumerateRange(snapshotIdList, snapshotName, 3, 5);
-    testOneEnumerateRange(snapshotIdList, snapshotName, 4, 7);
+    testOneEnumerateRange(snapshotName, 0, 1000);
+    testOneEnumerateRange(snapshotName, 1, 3);
+    testOneEnumerateRange(snapshotName, 3, 5);
+    testOneEnumerateRange(snapshotName, 4, 7);
 
-    testSortingNames(snapshotIdList, snapshotName, 0, 10, SqlSortDirection.ASC);
-    testSortingNames(snapshotIdList, snapshotName, 0, 3, SqlSortDirection.ASC);
-    testSortingNames(snapshotIdList, snapshotName, 1, 3, SqlSortDirection.ASC);
-    testSortingNames(snapshotIdList, snapshotName, 2, 5, SqlSortDirection.ASC);
-    testSortingNames(snapshotIdList, snapshotName, 0, 10, SqlSortDirection.DESC);
-    testSortingNames(snapshotIdList, snapshotName, 0, 3, SqlSortDirection.DESC);
-    testSortingNames(snapshotIdList, snapshotName, 1, 3, SqlSortDirection.DESC);
-    testSortingNames(snapshotIdList, snapshotName, 2, 5, SqlSortDirection.DESC);
+    testSortingNames(snapshotName, 0, 10, SqlSortDirection.ASC);
+    testSortingNames(snapshotName, 0, 3, SqlSortDirection.ASC);
+    testSortingNames(snapshotName, 1, 3, SqlSortDirection.ASC);
+    testSortingNames(snapshotName, 2, 5, SqlSortDirection.ASC);
+    testSortingNames(snapshotName, 0, 10, SqlSortDirection.DESC);
+    testSortingNames(snapshotName, 0, 3, SqlSortDirection.DESC);
+    testSortingNames(snapshotName, 1, 3, SqlSortDirection.DESC);
+    testSortingNames(snapshotName, 2, 5, SqlSortDirection.DESC);
 
-    testSortingDescriptions(snapshotIdList, SqlSortDirection.DESC);
-    testSortingDescriptions(snapshotIdList, SqlSortDirection.ASC);
+    testSortingDescriptions(SqlSortDirection.DESC);
+    testSortingDescriptions(SqlSortDirection.ASC);
 
     MetadataEnumeration<SnapshotSummary> filterDefaultRegionEnum =
         snapshotDao.retrieveSnapshots(
@@ -381,12 +377,13 @@ public class SnapshotDaoTest {
             null,
             GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
             datasetIds,
-            snapshotIdList);
+            snapshotIds,
+            null);
     List<SnapshotSummary> filteredRegionSnapshots = filterDefaultRegionEnum.getItems();
     assertThat(
         "snapshot filter by default GCS region returns correct total",
-        filteredRegionSnapshots.size(),
-        equalTo(snapshotIdList.size()));
+        filteredRegionSnapshots,
+        hasSize(snapshotIds.size()));
     for (SnapshotSummary s : filteredRegionSnapshots) {
       Snapshot snapshot = snapshotDao.retrieveSnapshot(s.getId());
       assertTrue(
@@ -407,12 +404,13 @@ public class SnapshotDaoTest {
             makeName(snapshotName, 0),
             GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
             datasetIds,
-            snapshotIdList);
+            snapshotIds,
+            null);
     List<SnapshotSummary> filteredNameAndRegionSnapshots = filterNameAndRegionEnum.getItems();
     assertThat(
         "snapshot filter by name and region returns correct total",
-        filteredNameAndRegionSnapshots.size(),
-        equalTo(1));
+        filteredNameAndRegionSnapshots,
+        hasSize(1));
     assertThat(
         "snapshot filter by name and region returns correct snapshot name",
         filteredNameAndRegionSnapshots.get(0).getName(),
@@ -441,8 +439,8 @@ public class SnapshotDaoTest {
           equalTo(snapshot.getProjectResource().getGoogleProjectId()));
       assertThat(
           "snapshot project has a single source dataset",
-          snapshotProject.getSourceDatasetProjects().size(),
-          equalTo(1));
+          snapshotProject.getSourceDatasetProjects(),
+          hasSize(1));
       assertThat(
           "dataset project id matches",
           snapshotProject.getFirstSourceDatasetProject().getId(),
@@ -475,36 +473,92 @@ public class SnapshotDaoTest {
             "==foo==",
             null,
             datasetIds,
-            snapshotIdList);
+            snapshotIds,
+            null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
-    assertThat("filtered and retrieved 2 snapshots", summaryList.size(), equalTo(2));
+    assertThat("filtered and retrieved 2 snapshots", summaryList, hasSize(2));
     assertThat("filtered total 3", summaryEnum.getFilteredTotal(), equalTo(3));
     assertThat("total 6", summaryEnum.getTotal(), equalTo(6));
     for (int i = 0; i < 2; i++) {
-      assertThat(
-          "first 2 ids match", snapshotIdList.get(i * 2), equalTo(summaryList.get(i).getId()));
+      assertThat("first 2 ids match", snapshotIds.get(i * 2), equalTo(summaryList.get(i).getId()));
     }
 
     MetadataEnumeration<SnapshotSummary> emptyEnum =
-        snapshotDao.retrieveSnapshots(0, 6, null, null, "__", null, datasetIds, snapshotIdList);
-    assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
+        snapshotDao.retrieveSnapshots(0, 6, null, null, "__", null, datasetIds, snapshotIds, null);
+    assertThat("underscores don't act as wildcards", emptyEnum.getItems(), empty());
 
     MetadataEnumeration<SnapshotSummary> summaryEnum0 =
-        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIdList);
+        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIds, null);
     assertThat("no dataset uuid gives all snapshots", summaryEnum0.getTotal(), equalTo(6));
 
     // use the original dataset id and make sure you get all snapshots
     datasetIds = singletonList(datasetId);
     MetadataEnumeration<SnapshotSummary> summaryEnum1 =
-        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIdList);
+        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIds, snapshotIds, null);
     assertThat(
         "expected dataset uuid gives expected snapshot", summaryEnum1.getTotal(), equalTo(6));
 
     // made a random dataset uuid and made sure that you get no snapshots
     List<UUID> datasetIdsBad = singletonList(UUID.randomUUID());
     MetadataEnumeration<SnapshotSummary> summaryEnum2 =
-        snapshotDao.retrieveSnapshots(0, 10, null, null, null, null, datasetIdsBad, snapshotIdList);
+        snapshotDao.retrieveSnapshots(
+            0, 10, null, null, null, null, datasetIdsBad, snapshotIds, null);
     assertThat("dummy dataset uuid gives no snapshots", summaryEnum2.getTotal(), equalTo(0));
+
+    // Test filtering by tags
+
+    // Filtering on all tags for a snapshot returns the snapshot
+    MetadataEnumeration<SnapshotSummary> filteredAllTagsMatchEnum =
+        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, tags);
+    List<SnapshotSummary> filteredAllTagsMatchSnapshots = filteredAllTagsMatchEnum.getItems();
+    assertThat(
+        "snapshot filter by tags returns correct filtered total",
+        filteredAllTagsMatchSnapshots,
+        hasSize(1));
+    assertThat(
+        "snapshot filter by tags returns correct snapshot",
+        filteredAllTagsMatchSnapshots.get(0).getId(),
+        equalTo(snapshotIds.get(0)));
+    assertThat(
+        "snapshot filter by tags returns correct total",
+        filteredAllTagsMatchEnum.getTotal(),
+        equalTo(6));
+
+    // Filtering on a strict subset of tags for a dataset returns the dataset
+    tags.forEach(
+        tag -> {
+          MetadataEnumeration<SnapshotSummary> filteredSubsetTagsMatchEnum =
+              snapshotDao.retrieveSnapshots(
+                  0, 6, null, null, null, null, datasetIds, snapshotIds, List.of(tag));
+          List<SnapshotSummary> filteredSubsetTagsMatchSnapshots =
+              filteredSubsetTagsMatchEnum.getItems();
+          assertThat(
+              "snapshot filter by tags returns correct filtered total",
+              filteredSubsetTagsMatchSnapshots,
+              hasSize(1));
+          assertThat(
+              "snapshot filter by tags returns correct snapshot",
+              filteredSubsetTagsMatchSnapshots.get(0).getId(),
+              equalTo(snapshotIds.get(0)));
+          assertThat(
+              "snapshot filter by tags returns correct total",
+              filteredSubsetTagsMatchEnum.getTotal(),
+              equalTo(6));
+        });
+
+    // If even one specified tag is not found on the snapshot, it's not returned, even if other
+    // matching tags are included
+    tags.add(UUID.randomUUID().toString());
+    MetadataEnumeration<SnapshotSummary> incompleteTagMatchEnum =
+        snapshotDao.retrieveSnapshots(0, 6, null, null, null, null, datasetIds, snapshotIds, tags);
+    assertThat(
+        "snapshot filter by tags excludes snapshot which do not match filter completely",
+        incompleteTagMatchEnum.getItems(),
+        empty());
+    assertThat(
+        "snapshot filter by tags returns correct total",
+        incompleteTagMatchEnum.getTotal(),
+        equalTo(6));
   }
 
   private String makeName(String baseName, int index) {
@@ -512,11 +566,7 @@ public class SnapshotDaoTest {
   }
 
   private void testSortingNames(
-      List<UUID> snapshotIds,
-      String snapshotName,
-      int offset,
-      int limit,
-      SqlSortDirection direction) {
+      String snapshotName, int offset, int limit, SqlSortDirection direction) {
     MetadataEnumeration<SnapshotSummary> summaryEnum =
         snapshotDao.retrieveSnapshots(
             offset,
@@ -526,7 +576,8 @@ public class SnapshotDaoTest {
             null,
             null,
             datasetIds,
-            snapshotIds);
+            snapshotIds,
+            null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     int index = (direction.equals(SqlSortDirection.ASC)) ? offset : snapshotIds.size() - offset - 1;
     for (SnapshotSummary summary : summaryList) {
@@ -536,10 +587,18 @@ public class SnapshotDaoTest {
     }
   }
 
-  private void testSortingDescriptions(List<UUID> snapshotIds, SqlSortDirection direction) {
+  private void testSortingDescriptions(SqlSortDirection direction) {
     MetadataEnumeration<SnapshotSummary> summaryEnum =
         snapshotDao.retrieveSnapshots(
-            0, 6, EnumerateSortByParam.DESCRIPTION, direction, null, null, datasetIds, snapshotIds);
+            0,
+            6,
+            EnumerateSortByParam.DESCRIPTION,
+            direction,
+            null,
+            null,
+            datasetIds,
+            snapshotIds,
+            null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     assertThat("the full list comes back", summaryList.size(), equalTo(6));
     String previous = summaryList.get(0).getDescription();
@@ -554,8 +613,7 @@ public class SnapshotDaoTest {
     }
   }
 
-  private void testOneEnumerateRange(
-      List<UUID> snapshotIds, String snapshotName, int offset, int limit) {
+  private void testOneEnumerateRange(String snapshotName, int offset, int limit) {
     // We expect the snapshots to be returned in their created order
     MetadataEnumeration<SnapshotSummary> summaryEnum =
         snapshotDao.retrieveSnapshots(
@@ -566,7 +624,8 @@ public class SnapshotDaoTest {
             null,
             null,
             datasetIds,
-            snapshotIds);
+            snapshotIds,
+            null);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
     int index = offset;
     for (SnapshotSummary summary : summaryList) {
@@ -595,112 +654,109 @@ public class SnapshotDaoTest {
   }
 
   @Test
-  public void testPatchSnapshotConsentCodeAndDescription() throws Exception {
+  public void testPatchSnapshotConsentCodeAndDescription() {
     String defaultSnapshotDescription = "A meaningful description of a snapshot.";
-    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
-    snapshotRequest.description(defaultSnapshotDescription);
+    snapshotRequest
+        .name(snapshotRequest.getName() + UUID.randomUUID())
+        .description(defaultSnapshotDescription);
 
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-    String flightId = UUID.randomUUID().toString();
-    snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
-    snapshotDao.unlock(snapshotId, flightId);
+    Snapshot created = createSnapshot(snapshotRequest);
+    UUID snapshotId = created.getId();
 
-    assertThat(
-        "snapshot's consent code is null before patch",
-        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
-        equalTo(null));
-
+    assertNull("snapshot's consent code is null before patch", created.getConsentCode());
     assertThat(
         "snapshot's default description is correct before any patch",
-        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        created.getDescription(),
         equalTo(defaultSnapshotDescription));
 
     String consentCodeSet = "c01";
     SnapshotPatchRequestModel patchRequestSet =
         new SnapshotPatchRequestModel().consentCode(consentCodeSet);
     snapshotDao.patch(snapshotId, patchRequestSet, TEST_USER);
+    Snapshot snapshotConsentCodeSet = snapshotDao.retrieveSnapshot(snapshotId);
     assertThat(
         "snapshot's consent code is set from patch",
-        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        snapshotConsentCodeSet.getConsentCode(),
         equalTo(consentCodeSet));
-
     assertThat(
         "snapshot's description remains unmodified when updating consent code.",
-        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        snapshotConsentCodeSet.getDescription(),
         equalTo(defaultSnapshotDescription));
 
     String consentCodeOverride = "c99";
     SnapshotPatchRequestModel patchRequestOverride =
         new SnapshotPatchRequestModel().consentCode(consentCodeOverride);
     snapshotDao.patch(snapshotId, patchRequestOverride, TEST_USER);
+    Snapshot snapshotConsentCodeOverride = snapshotDao.retrieveSnapshot(snapshotId);
     assertThat(
         "snapshot's consent code is overridden from patch",
-        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        snapshotConsentCodeOverride.getConsentCode(),
         equalTo(consentCodeOverride));
 
     snapshotDao.patch(snapshotId, new SnapshotPatchRequestModel(), TEST_USER);
+    Snapshot snapshotEmptyPatch = snapshotDao.retrieveSnapshot(snapshotId);
     assertThat(
         "snapshot's consent code is unchanged when unspecified in patch request",
-        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        snapshotEmptyPatch.getConsentCode(),
         equalTo(consentCodeOverride));
     assertThat(
         "snapshot's description is unchanged when unspecified in patch request",
-        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        snapshotEmptyPatch.getDescription(),
         equalTo(defaultSnapshotDescription));
+
     SnapshotPatchRequestModel patchRequestBlank = new SnapshotPatchRequestModel().consentCode("");
     snapshotDao.patch(snapshotId, patchRequestBlank, TEST_USER);
+    Snapshot snapshotConsentCodeBlank = snapshotDao.retrieveSnapshot(snapshotId);
     assertThat(
         "snapshot's consent code is set to empty string from patch",
-        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        snapshotConsentCodeBlank.getConsentCode(),
         equalTo(""));
 
     SnapshotPatchRequestModel patchDescription =
         new SnapshotPatchRequestModel().description("A new description");
     snapshotDao.patch(snapshotId, patchDescription, TEST_USER);
+    Snapshot snapshotPatchDescription = snapshotDao.retrieveSnapshot(snapshotId);
     assertThat(
         "snapshot's description is updated",
-        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        snapshotPatchDescription.getDescription(),
         equalTo("A new description"));
     assertThat(
         "snapshot's consent code is still set to empty string from last consent code patch",
-        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        snapshotPatchDescription.getConsentCode(),
         equalTo(""));
 
     SnapshotPatchRequestModel patchDescAndCode =
         new SnapshotPatchRequestModel().consentCode("c99").description("Another new description");
     snapshotDao.patch(snapshotId, patchDescAndCode, TEST_USER);
+    Snapshot snapshotPatchDescAndCode = snapshotDao.retrieveSnapshot(snapshotId);
     assertThat(
         "snapshot's description is updated",
-        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        snapshotPatchDescAndCode.getDescription(),
         equalTo("Another new description"));
     assertThat(
         "snapshot's consent code is updated",
-        snapshotDao.retrieveSnapshot(snapshotId).getConsentCode(),
+        snapshotPatchDescAndCode.getConsentCode(),
         equalTo("c99"));
 
     SnapshotPatchRequestModel patchZeroLenStrDesc = new SnapshotPatchRequestModel().description("");
     snapshotDao.patch(snapshotId, patchZeroLenStrDesc, TEST_USER);
+    Snapshot snapshotDescriptionBlank = snapshotDao.retrieveSnapshot(snapshotId);
     assertThat(
         "snapshot's description is updated to empty string",
-        snapshotDao.retrieveSnapshot(snapshotId).getDescription(),
+        snapshotDescriptionBlank.getDescription(),
         equalTo(""));
   }
 
   @Test
-  public void createSnapshotWithProperties() throws Exception {
-    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
+  public void createSnapshotWithProperties() {
     String properties =
         "{\"projectName\":\"project\", " + "\"authors\": [\"harry\", \"ron\", \"hermionie\"]}";
-    snapshotRequest.properties(properties);
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).properties(properties);
     Snapshot snapshot =
         snapshotService
             .makeSnapshotFromSnapshotRequest(snapshotRequest)
             .projectResourceId(projectId)
-            .id(snapshotId);
+            .id(UUID.randomUUID());
     String flightId = UUID.randomUUID().toString();
     Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, flightId);
     assertThat(
@@ -710,15 +766,11 @@ public class SnapshotDaoTest {
   }
 
   @Test
-  public void patchSnapshotProperties() throws Exception {
+  public void patchSnapshotProperties() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-    Snapshot fromDB = insertAndRetrieveSnapshot(snapshot, "patchDatasetProperties_flightId");
-    assertThat("snapshot properties is null before patch", fromDB.getProperties(), equalTo(null));
+    Snapshot fromDb = createSnapshot(snapshotRequest);
+    UUID snapshotId = fromDb.getId();
+    assertNull("snapshot properties is null before patch", fromDb.getProperties());
 
     String updatedProperties = "{\"projectName\":\"updatedProject\"}";
     SnapshotPatchRequestModel patchRequestSet =
@@ -757,14 +809,7 @@ public class SnapshotDaoTest {
   @Test
   public void getAccessibleSnapshots() {
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-    String flightId = UUID.randomUUID().toString();
-    snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
-    snapshotDao.unlock(snapshotId, flightId);
+    UUID snapshotId = createSnapshot(snapshotRequest).getId();
 
     String consentCode = "c01";
     String phsId = "phs123456";
@@ -812,15 +857,11 @@ public class SnapshotDaoTest {
     assertThrows(
         "Exception is thrown when updating nonexistent snapshot",
         SnapshotUpdateException.class,
-        () -> snapshotDao.updateDuosFirecloudGroupId(snapshotId, duosFirecloudGroupId));
+        () -> snapshotDao.updateDuosFirecloudGroupId(UUID.randomUUID(), duosFirecloudGroupId));
 
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
-    Snapshot snapshot =
-        snapshotService
-            .makeSnapshotFromSnapshotRequest(snapshotRequest)
-            .projectResourceId(projectId)
-            .id(snapshotId);
-    Snapshot beforeUpdate = insertAndRetrieveSnapshot(snapshot, "snapshotWithDuos_flightId");
+    Snapshot beforeUpdate = createSnapshot(snapshotRequest);
+    UUID snapshotId = beforeUpdate.getId();
 
     assertNull(
         "snapshot's DUOS Firecloud group ID is null before update",
@@ -852,25 +893,10 @@ public class SnapshotDaoTest {
   public void recordDrsIds() {
     // This test runs through a couple of scenarios.  It's in one method to avoid the setup overhead
     // Initialize test
-    snapshotIdList = new ArrayList<>();
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
-    Snapshot snapshot1 =
-        insertAndRetrieveSnapshot(
-            snapshotService
-                .makeSnapshotFromSnapshotRequest(snapshotRequest)
-                .projectResourceId(projectId)
-                .id(UUID.randomUUID()),
-            "snp1flightid");
-    snapshotIdList.add(snapshot1.getId());
+    Snapshot snapshot1 = createSnapshot(snapshotRequest);
     snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
-    Snapshot snapshot2 =
-        insertAndRetrieveSnapshot(
-            snapshotService
-                .makeSnapshotFromSnapshotRequest(snapshotRequest)
-                .projectResourceId(projectId)
-                .id(UUID.randomUUID()),
-            "snp2flightid");
-    snapshotIdList.add(snapshot2.getId());
+    Snapshot snapshot2 = createSnapshot(snapshotRequest);
 
     List<DrsId> drsIds =
         IntStream.range(0, 1000)
@@ -937,30 +963,56 @@ public class SnapshotDaoTest {
     assertThat(
         "No snapshots in DB yield an empty UUID list", snapshotDao.getSnapshotIds(), empty());
 
-    snapshotIdList = new ArrayList<>();
     String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
     String flightId = "getSnapshotIds_flightId";
     for (int i = 0; i < 3; i++) {
       snapshotRequest.name(makeName(snapshotName, i));
-      UUID tempSnapshotId = UUID.randomUUID();
-      Snapshot snapshot =
-          snapshotService
-              .makeSnapshotFromSnapshotRequest(snapshotRequest)
-              .projectResourceId(projectId)
-              .id(tempSnapshotId);
-      snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
-      snapshotIdList.add(tempSnapshotId);
+      UUID snapshotId = createSnapshot(snapshotRequest).getId();
+      snapshotDao.lock(snapshotId, flightId);
     }
 
     assertThat(
         "Locked snapshot UUIDs are returned",
         snapshotDao.getSnapshotIds(),
-        containsInAnyOrder(snapshotIdList.toArray()));
+        containsInAnyOrder(snapshotIds.toArray()));
 
-    snapshotIdList.stream().forEach(id -> snapshotDao.unlock(id, flightId));
+    snapshotIds.forEach(id -> snapshotDao.unlock(id, flightId));
     assertThat(
         "Unlocked snapshot UUIDs are returned",
         snapshotDao.getSnapshotIds(),
-        containsInAnyOrder(snapshotIdList.toArray()));
+        containsInAnyOrder(snapshotIds.toArray()));
+  }
+
+  @Test
+  public void createDatasetWithTags() {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).tags(null);
+    Snapshot snapshotNullTags = createSnapshot(snapshotRequest);
+    verifyTags("null snapshot tags are returned as empty list", snapshotNullTags, List.of());
+
+    snapshotRequest
+        .name(snapshotRequest.getName() + UUID.randomUUID())
+        .tags(new ResourceCreateTags());
+    Snapshot snapshotEmptyTags = createSnapshot(snapshotRequest);
+    verifyTags("empty snapshot tags are returned as empty list", snapshotEmptyTags, List.of());
+
+    ResourceCreateTags tags = new ResourceCreateTags();
+    tags.add(null);
+    tags.addAll(List.of("a tag", "A TAG", "duplicate", "duplicate"));
+    List<String> expectedTags = List.of("a tag", "A TAG", "duplicate");
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID()).tags(tags);
+    Snapshot snapshotWithTags = createSnapshot(snapshotRequest);
+    verifyTags("distinct non-null tags are returned", snapshotWithTags, expectedTags);
+  }
+
+  private void verifyTags(String reason, Snapshot snapshot, List<String> expectedTags) {
+    assertThat(
+        reason + " when retrieving snapshot",
+        snapshot.getTags(),
+        containsInAnyOrder(expectedTags.toArray()));
+
+    assertThat(
+        reason + " when retrieving snapshot summary",
+        snapshotDao.retrieveSummaryById(snapshot.getId()).getTags(),
+        containsInAnyOrder(expectedTags.toArray()));
   }
 }

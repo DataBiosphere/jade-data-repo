@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
+import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
@@ -22,17 +23,21 @@ import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.tags.TagUtils;
+import bio.terra.service.tags.TaggableResourceDao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.sql.Array;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +57,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-public class DatasetDao {
+public class DatasetDao implements TaggableResourceDao {
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final DatasetTableDao tableDao;
@@ -63,15 +68,16 @@ public class DatasetDao {
   private final StorageResourceDao storageResourceDao;
   private final JournalService journalService;
   private final ObjectMapper objectMapper;
+  private final DataSource jdbcDataSource;
 
   private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
-  public static final String TABLE_NAME = "dataset";
+  private static final String TABLE_NAME = "dataset";
 
   private static final String summaryQueryColumns =
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
           + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, "
-          + "properties, created_date, predictable_file_ids,";
+          + "properties, created_date, predictable_file_ids, tags, ";
 
   private static final String summaryCloudPlatformQuery =
       "(SELECT pr.google_project_id "
@@ -117,7 +123,8 @@ public class DatasetDao {
       ResourceService resourceService,
       StorageResourceDao storageResourceDao,
       JournalService journalService,
-      @Qualifier("daoObjectMapper") ObjectMapper objectMapper)
+      @Qualifier("daoObjectMapper") ObjectMapper objectMapper,
+      DataRepoJdbcConfiguration jdbcConfiguration)
       throws SQLException {
     this.jdbcTemplate = jdbcTemplate;
     this.tableDao = tableDao;
@@ -128,6 +135,22 @@ public class DatasetDao {
     this.storageResourceDao = storageResourceDao;
     this.journalService = journalService;
     this.objectMapper = objectMapper;
+    this.jdbcDataSource = jdbcConfiguration.getDataSource();
+  }
+
+  @Override
+  public NamedParameterJdbcTemplate getJdbcTemplate() {
+    return jdbcTemplate;
+  }
+
+  @Override
+  public DataSource getJdbcDataSource() {
+    return jdbcDataSource;
+  }
+
+  @Override
+  public String getTable() {
+    return TABLE_NAME;
   }
 
   /**
@@ -391,12 +414,18 @@ public class DatasetDao {
         INSERT INTO dataset
         (name, default_profile_id, id, project_resource_id, application_resource_id, flightid,
          description, secure_monitoring, phs_id, self_hosted, properties, sharedlock,
-         predictable_file_ids)
+         predictable_file_ids, tags)
         VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id,
          :flightid, :description, :secure_monitoring, :phs_id, :self_hosted,
-         cast(:properties as jsonb), ARRAY[]::TEXT[], :predictable_file_ids)
+         cast(:properties as jsonb), ARRAY[]::TEXT[], :predictable_file_ids, :tags)
        """;
 
+    Array tags;
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      tags = DaoUtils.createSqlStringArray(connection, dataset.getTags());
+    } catch (SQLException e) {
+      throw new IllegalArgumentException("Failed to convert dataset tags list to SQL array", e);
+    }
     MapSqlParameterSource params =
         new MapSqlParameterSource()
             .addValue("name", dataset.getName())
@@ -409,9 +438,10 @@ public class DatasetDao {
             .addValue("secure_monitoring", dataset.isSecureMonitoringEnabled())
             .addValue("phs_id", dataset.getPhsId())
             .addValue("self_hosted", dataset.isSelfHosted())
-            .addValue("predictable_file_ids", dataset.hasPredictableFileIds())
             .addValue(
-                "properties", DaoUtils.propertiesToString(objectMapper, dataset.getProperties()));
+                "properties", DaoUtils.propertiesToString(objectMapper, dataset.getProperties()))
+            .addValue("predictable_file_ids", dataset.hasPredictableFileIds())
+            .addValue("tags", tags);
 
     DaoKeyHolder keyHolder = new DaoKeyHolder();
     try {
@@ -624,7 +654,8 @@ public class DatasetDao {
       SqlSortDirection direction,
       String filter,
       String region,
-      Collection<UUID> accessibleDatasetIds) {
+      Collection<UUID> accessibleDatasetIds,
+      List<String> tags) {
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses, TABLE_NAME);
@@ -641,6 +672,12 @@ public class DatasetDao {
     // add the filters to the clause to get the actual items
     DaoUtils.addFilterClause(filter, params, whereClauses, TABLE_NAME);
     DaoUtils.addRegionFilterClause(region, params, whereClauses, "dataset.id");
+    try (Connection connection = jdbcDataSource.getConnection()) {
+      TagUtils.addTagsClause(connection, tags, params, whereClauses, TABLE_NAME);
+    } catch (SQLException e) {
+      throw new IllegalArgumentException(
+          "Failed to convert dataset request tags list to SQL array", e);
+    }
 
     String whereSql = "";
     if (!whereClauses.isEmpty()) {
@@ -727,7 +764,8 @@ public class DatasetDao {
           .phsId(rs.getString("phs_id"))
           .selfHosted(rs.getBoolean("self_hosted"))
           .predictableFileIds(rs.getBoolean("predictable_file_ids"))
-          .properties(properties);
+          .properties(properties)
+          .tags(DaoUtils.getStringList(rs, "tags"));
     }
   }
 

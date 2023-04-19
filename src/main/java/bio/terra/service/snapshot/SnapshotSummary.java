@@ -25,6 +25,7 @@ public class SnapshotSummary {
   private String phsId;
   private boolean selfHosted;
   private boolean globalFileIds;
+  private List<String> tags;
 
   public UUID getId() {
     return id;
@@ -152,6 +153,15 @@ public class SnapshotSummary {
     return this;
   }
 
+  public List<String> getTags() {
+    return tags;
+  }
+
+  public SnapshotSummary tags(List<String> tags) {
+    this.tags = tags;
+    return this;
+  }
+
   public SnapshotSummaryModel toModel() {
     return new SnapshotSummaryModel()
         .id(getId())
@@ -167,7 +177,8 @@ public class SnapshotSummary {
         .consentCode(getConsentCode())
         .phsId(getPhsId())
         .selfHosted(isSelfHosted())
-        .globalFileIds(isGlobalFileIds());
+        .globalFileIds(isGlobalFileIds())
+        .tags(getTags());
   }
 
   private List<StorageResourceModel> toStorageResourceModel() {

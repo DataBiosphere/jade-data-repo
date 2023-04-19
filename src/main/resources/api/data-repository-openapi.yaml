@@ -508,6 +508,17 @@ paths:
             type: array
             items:
               type: string
+        - name: tags
+          in: query
+          description: >
+            Filter the results where these case sensitive tags are applied to the snapshots
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Tag'
       responses:
         200:
           description: List of snapshots
@@ -590,6 +601,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SnapshotIdsAndRolesModel"
+  /api/repository/v1/snapshots/tags:
+    get:
+      tags:
+        - snapshots
+        - repository
+      description: >
+        Get accessible snapshot tags. Access may be granted directly via Sam and/or indirectly via
+        a user's linked RAS passport in Terra.
+      operationId: getSnapshotTags
+      parameters:
+        - name: filter
+          in: query
+          description: Filter to tags with this string as a case-insensitive match.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: >
+            The maximum number of tags to return, in descending order of occurrence count.
+            All accessible tags will be returned if unspecified.
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Accessible snapshot tags matching specified filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagCountResultModel'
   /api/repository/v1/snapshots/{id}:
     get:
       tags:
@@ -1253,6 +1293,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/snapshots/{id}/tags:
+    patch:
+      tags:
+        - snapshots
+        - repository
+      description: Update tags on snapshot
+      operationId: updateSnapshotTags
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdateRequestModel'
+      responses:
+        200:
+          description: Snapshot summary with updated tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotSummaryModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - snapshot does not exist
+            or the caller is missing permissions to modify its metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - snapshot was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/duos:
     get:
       tags:
@@ -1447,6 +1528,17 @@ paths:
             in any of the cloud storage regions used by the dataset.
           schema:
             type: string
+        - name: tags
+          in: query
+          description: >
+            Filter the results where these case sensitive tags are applied to the datasets
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Tag'
       responses:
         200:
           description: List of datasets
@@ -1504,6 +1596,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: dataset
+  /api/repository/v1/datasets/tags:
+    get:
+      tags:
+        - datasets
+        - repository
+      description: Get accessible dataset tags
+      operationId: getDatasetTags
+      parameters:
+        - name: filter
+          in: query
+          description: Filter to tags with this string as a case-insensitive match.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: >
+            The maximum number of tags to return, in descending order of occurrence count.
+            All accessible tags will be returned if unspecified.
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Accessible dataset tags matching specified filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagCountResultModel'
   /api/repository/v1/datasets/{id}:
     get:
       tags:
@@ -2366,6 +2485,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: dataDeletionRequest
+  /api/repository/v1/datasets/{id}/tags:
+    patch:
+      tags:
+        - datasets
+        - repository
+      description: Update tags on dataset
+      operationId: updateDatasetTags
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdateRequestModel'
+      responses:
+        200:
+          description: Dataset summary with updated tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetSummaryModel'
+        401:
+          description: The request is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: >
+            Unauthorized - dataset does not exist
+            or the caller is missing permissions to modify its metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        500:
+          description: An unexpected error occurred - dataset was not updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/register/user:
     get:
       tags:
@@ -3910,6 +4070,11 @@ components:
             If false, random ids will be created. If true, full target path (e.g. path + name), size and md5 hash will be used
 
             Note: this only applies to files.  Directories still have random ids regardless of this value
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -3955,6 +4120,10 @@ components:
             If false, random ids will be created. If true, full target path (e.g. path + name), size and md5 hash will be used
 
             Note: this only applies to files.  Directories still have random ids regardless of this value
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -4028,6 +4197,8 @@ components:
               type: array
               items:
                 type: string
+        tags:
+          $ref: '#/components/schemas/ResourceCreateTags'
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     DatasetPatchRequestModel:
@@ -4888,6 +5059,8 @@ components:
             if true, drs ids will be in the format: v2_<fileid>
         compactIdPrefix:
           $ref: '#/components/schemas/CompactIdPrefix'
+        tags:
+          $ref: '#/components/schemas/ResourceCreateTags'
       description: >
         Request for creating a snapshot.
         For now, the API only supports snapshots defined as a single dataset asset and
@@ -5050,6 +5223,10 @@ components:
           description: >
             if false, the drs ids will be in the format: v1_<snapshotid>_<fileid>
             if true, drs ids will be in the format: v2_<fileid>
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -5096,6 +5273,18 @@ components:
         errors:
           type: array
           description: Errors encountered which may result in a partial role map returned.
+          items:
+            $ref: '#/components/schemas/ErrorModel'
+    TagCountResultModel:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagCount'
+        errors:
+          type: array
+          description: Errors encountered which may result in a partial tag list returned.
           items:
             $ref: '#/components/schemas/ErrorModel'
     SnapshotModel:
@@ -5151,6 +5340,10 @@ components:
             if true, drs ids will be in the format: v2_<fileid>
         compactIdPrefix:
           $ref: '#/components/schemas/CompactIdPrefix'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:
@@ -5815,6 +6008,51 @@ components:
       type: string
       description: DUOS dataset identifier
       example: DUOS-123456
+
+    Tag:
+      type: string
+      description: >
+        A tag associated with a TDR resource (dataset, snapshot)
+      example: a-resource-tag
+
+    ResourceCreateTags:
+      type: array
+      items:
+        $ref: '#/components/schemas/Tag'
+      description: >
+        Tags to add to the resource on its creation.  User-inputted tags will be stripped of leading
+        and trailing whitespace, filtered of empty elements, and deduplicated.
+
+    TagUpdateRequestModel:
+      type: object
+      properties:
+        add:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          required: false
+          description: >
+            Tags to add to the resource.  User-inputted tags will be stripped of leading and
+            trailing whitespace, filtered of empty elements, and deduplicated.  Adding tags already
+            present on the resource will have no effect.
+        remove:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          required: false
+          description: >
+            Tags to remove from the resource.  User-inputted tags will be stripped of leading and
+            trailing whitespace, filtered of empty elements, and deduplicated.  Removing tags not
+            present on the resource will have no effect.
+
+    TagCount:
+      type: object
+      properties:
+        tag:
+          $ref: '#/components/schemas/Tag'
+        count:
+          type: integer
+          description: Number of occurrences of this tag across accessible same-typed resources
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

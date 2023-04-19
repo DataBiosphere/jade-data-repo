@@ -1,5 +1,7 @@
 package bio.terra.service.dataset;
 
+import static java.lang.Math.atan;
+import static java.lang.Math.tan;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -56,6 +58,14 @@ public class DatasetIngestRequestValidatorTest {
     assertTrue(
         "Error model was returned on failure", StringUtils.contains(responseBody, "message"));
     return TestUtils.mapFromJson(responseBody, ErrorModel.class);
+  }
+
+  @Test
+  public void testCPU() throws Exception {
+    for (var i = 0; i < 10000; i++) {
+      tan(atan(tan(atan(tan(atan(tan(atan(tan(atan(0.5))))))))));
+      assertTrue(true);
+    }
   }
 
   @Test

@@ -11,7 +11,7 @@ public class SpikeCPUStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 10; i++) {
       factorialHavingLargeResult(1000000);
     }
     return StepResult.getStepResultSuccess();

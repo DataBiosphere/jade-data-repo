@@ -168,6 +168,32 @@ public class DatasetRequestValidatorTest {
         });
   }
 
+  /**
+   * Modify and return the request so that it has a single table with the specified name, no
+   * relationships, and no assets.
+   */
+  private DatasetRequestModel withNamedTable(DatasetRequestModel request, String tableName) {
+    ColumnModel column = new ColumnModel().name("id").datatype(TableDataType.STRING);
+    TableModel table = new TableModel().name(tableName).columns(List.of(column));
+    request.getSchema().tables(List.of(table)).relationships(List.of()).assets(List.of());
+
+    return request;
+  }
+
+  @Test
+  public void testInvalidTableName() throws Exception {
+    DatasetRequestModel req = buildDatasetRequest();
+
+    // Table names with leading underscores are invalid
+    checkValidationErrorModel(
+        expectBadDatasetCreateRequest(withNamedTable(req, "_")), new String[] {"Pattern"});
+
+    // Table names over 63 characters are invalid
+    checkValidationErrorModel(
+        expectBadDatasetCreateRequest(withNamedTable(req, StringUtils.repeat("a", 64))),
+        new String[] {"Size"});
+  }
+
   @Test
   public void testDuplicateColumnNames() throws Exception {
     ColumnModel column = new ColumnModel().name("id").datatype(TableDataType.STRING);
@@ -233,25 +259,34 @@ public class DatasetRequestValidatorTest {
         errorModel, new String[] {"InvalidPrimaryKey", "InvalidColumnMode", "InvalidColumnMode"});
   }
 
+  /**
+   * Modify and return the request so that it has a single table with a single column of the
+   * specified name, no relationships, and no assets.
+   */
+  private DatasetRequestModel withNamedColumn(DatasetRequestModel request, String columnName) {
+    ColumnModel column = new ColumnModel().name(columnName).datatype(TableDataType.STRING);
+    TableModel table = new TableModel().name("table").columns(List.of(column));
+    request.getSchema().tables(List.of(table)).relationships(List.of()).assets(List.of());
+
+    return request;
+  }
+
   @Test
-  public void testInvalidColumnNames() throws Exception {
-    ColumnModel leadingNumberColumn =
-        new ColumnModel().name("1azAZ09_").datatype(TableDataType.STRING);
-    ColumnModel leadingUnderscoreColumn =
-        new ColumnModel().name("_azAZ09_").datatype(TableDataType.STRING);
-    ColumnModel tooLongColumn =
-        new ColumnModel().name(StringUtils.repeat("a", 64)).datatype(TableDataType.STRING);
-    List<ColumnModel> invalidColumns =
-        List.of(leadingNumberColumn, leadingUnderscoreColumn, tooLongColumn);
-
+  public void testInvalidColumnName() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
-    req.getSchema()
-        .tables(List.of(new TableModel().name("table").columns(invalidColumns)))
-        .relationships(List.of())
-        .assets(List.of());
 
-    ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-    checkValidationErrorModel(errorModel, new String[] {"Pattern", "Pattern", "Size"});
+    // Column names with leading numbers are invalid
+    checkValidationErrorModel(
+        expectBadDatasetCreateRequest(withNamedColumn(req, "1")), new String[] {"Pattern"});
+
+    // Column names with leading underscores are invalid
+    checkValidationErrorModel(
+        expectBadDatasetCreateRequest(withNamedColumn(req, "_")), new String[] {"Pattern"});
+
+    // Column names over 63 characters are invalid
+    checkValidationErrorModel(
+        expectBadDatasetCreateRequest(withNamedColumn(req, StringUtils.repeat("a", 64))),
+        new String[] {"Size"});
   }
 
   @Test

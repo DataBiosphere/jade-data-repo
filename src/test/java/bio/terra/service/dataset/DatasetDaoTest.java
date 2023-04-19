@@ -394,7 +394,7 @@ public class DatasetDaoTest {
     assertThat("dataset name is set correctly", fromDB.getName(), equalTo(expectedName));
 
     // verify tables
-    assertThat("correct number of tables created for dataset", fromDB.getTables(), hasSize(2));
+    assertThat("correct number of tables created for dataset", fromDB.getTables(), hasSize(3));
     fromDB.getTables().forEach(this::assertDatasetTable);
 
     assertThat(
@@ -525,11 +525,18 @@ public class DatasetDaoTest {
   }
 
   protected void assertDatasetTable(Table table) {
-    if (table.getName().equals("participant")) {
-      assertThat("participant table has 4 columns", table.getColumns(), hasSize(4));
-    } else {
-      assertThat("other table created is sample", table.getName(), equalTo("sample"));
-      assertThat("sample table has 3 columns", table.getColumns(), hasSize(3));
+    switch (table.getName()) {
+      case "participant":
+        assertThat("participant table has 4 columns", table.getColumns(), hasSize(4));
+        break;
+      case "sample":
+        assertThat("sample table has 3 columns", table.getColumns(), hasSize(3));
+        break;
+      case "123_leading_number":
+        assertThat("123_leading_number table has 1 column", table.getColumns(), hasSize(1));
+        break;
+      default:
+        throw new RuntimeException("Unexpected table " + table.getName());
     }
   }
 

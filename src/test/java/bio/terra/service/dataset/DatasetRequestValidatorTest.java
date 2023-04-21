@@ -178,8 +178,11 @@ public class DatasetRequestValidatorTest {
     DatasetRequestModel req = buildDatasetRequest();
 
     // Table names with leading underscores are invalid
-    checkValidationErrorModel(
-        expectBadDatasetCreateRequest(withNamedTable(req, "_")), new String[] {"Pattern"});
+    List<String> invalidPatternNames = List.of("_", "_a_column", "_1_column");
+    for (String name : invalidPatternNames) {
+      checkValidationErrorModel(
+          expectBadDatasetCreateRequest(withNamedTable(req, name)), new String[] {"Pattern"});
+    }
 
     // Table names over 63 characters are invalid
     checkValidationErrorModel(
@@ -267,13 +270,12 @@ public class DatasetRequestValidatorTest {
   public void testInvalidColumnName() throws Exception {
     DatasetRequestModel req = buildDatasetRequest();
 
-    // Column names with leading numbers are invalid
-    checkValidationErrorModel(
-        expectBadDatasetCreateRequest(withNamedColumn(req, "1")), new String[] {"Pattern"});
-
-    // Column names with leading underscores are invalid
-    checkValidationErrorModel(
-        expectBadDatasetCreateRequest(withNamedColumn(req, "_")), new String[] {"Pattern"});
+    // Table names with leading numbers or leading underscores are invalid
+    List<String> invalidPatternNames = List.of("_", "_a_column", "_1_column", "1", "1_column");
+    for (String name : invalidPatternNames) {
+      checkValidationErrorModel(
+          expectBadDatasetCreateRequest(withNamedColumn(req, name)), new String[] {"Pattern"});
+    }
 
     // Column names over 63 characters are invalid
     checkValidationErrorModel(

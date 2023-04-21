@@ -3919,10 +3919,10 @@ components:
       description: >
         Unique identifier for a dataset, snapshot, etc.
     ShortIdProperty:
-      pattern: '[A-za-z0-9_\\-]{22}'
+      pattern: '[A-Za-z0-9_\\-]{22}'
       type: string
       description: >
-        Unique identifier for a flights, jobs, etc.
+        Unique identifier for flights, jobs, etc.
     BillingProfileRequestModel:
       required:
         - biller

@@ -11,7 +11,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -34,8 +33,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -106,11 +103,7 @@ public class DatasetRequestValidatorTest {
     ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
     assertThat("correct error message", errorModel.getMessage(), equalTo(expectedMessage));
     List<String> responseErrors = errorModel.getErrorDetail();
-    if (errors == null || errors.isEmpty()) {
-      assertThat("No details expected", ListUtils.emptyIfNull(responseErrors), empty());
-    } else {
-      assertThat("Error details match", responseErrors, contains(errors.toArray()));
-    }
+    assertThat("Error details match", responseErrors, contains(errors.toArray()));
   }
 
   @Test
@@ -190,8 +183,7 @@ public class DatasetRequestValidatorTest {
 
     // Table names over 63 characters are invalid
     checkValidationErrorModel(
-        expectBadDatasetCreateRequest(withNamedTable(req, StringUtils.repeat("a", 64))),
-        new String[] {"Size"});
+        expectBadDatasetCreateRequest(withNamedTable(req, "a".repeat(64))), new String[] {"Size"});
   }
 
   @Test
@@ -285,8 +277,7 @@ public class DatasetRequestValidatorTest {
 
     // Column names over 63 characters are invalid
     checkValidationErrorModel(
-        expectBadDatasetCreateRequest(withNamedColumn(req, StringUtils.repeat("a", 64))),
-        new String[] {"Size"});
+        expectBadDatasetCreateRequest(withNamedColumn(req, "a".repeat(64))), new String[] {"Size"});
   }
 
   @Test
@@ -462,7 +453,7 @@ public class DatasetRequestValidatorTest {
     checkValidationErrorModel(errorModel, new String[] {"Size", "Pattern"});
 
     // Make a 512 character string, it should be considered too long by the validation.
-    String tooLong = StringUtils.repeat("a", 512);
+    String tooLong = "a".repeat(512);
     errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(tooLong));
     checkValidationErrorModel(errorModel, new String[] {"Size"});
   }

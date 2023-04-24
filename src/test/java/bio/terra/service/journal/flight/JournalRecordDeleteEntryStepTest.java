@@ -3,6 +3,7 @@ package bio.terra.service.journal.flight;
 import static bio.terra.service.common.CommonFlightUtils.getFlightInformationOfInterest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -46,6 +47,10 @@ public class JournalRecordDeleteEntryStepTest {
             journalService, TEST_USER, DATASET_ID, IamResourceType.DATASET, "foo");
     FlightMap workingMap = new FlightMap();
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
+  }
+
+  @Test
+  public void testDoAndUndoStep() throws InterruptedException {
     when(journalService.recordDelete(
             TEST_USER,
             DATASET_ID,
@@ -53,10 +58,6 @@ public class JournalRecordDeleteEntryStepTest {
             "foo",
             getFlightInformationOfInterest(flightContext)))
         .thenReturn(JOURNAL_ENTRY_KEY);
-  }
-
-  @Test
-  public void testDoAndUndoStep() throws InterruptedException {
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(journalService)
@@ -69,5 +70,28 @@ public class JournalRecordDeleteEntryStepTest {
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(journalService).removeJournalEntry(JOURNAL_ENTRY_KEY);
+  }
+
+  @Test
+  public void testNullJournalEntryKey() throws InterruptedException {
+    when(journalService.recordDelete(
+            TEST_USER,
+            DATASET_ID,
+            IamResourceType.DATASET,
+            "foo",
+            getFlightInformationOfInterest(flightContext)))
+        .thenReturn(null);
+    StepResult doResult = step.doStep(flightContext);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(journalService)
+        .recordDelete(
+            TEST_USER,
+            DATASET_ID,
+            IamResourceType.DATASET,
+            "foo",
+            getFlightInformationOfInterest(flightContext));
+    StepResult undoResult = step.undoStep(flightContext);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(journalService, never()).removeJournalEntry(JOURNAL_ENTRY_KEY);
   }
 }

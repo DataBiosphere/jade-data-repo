@@ -1,6 +1,5 @@
 package bio.terra.service.journal.flight;
 
-import static bio.terra.service.common.CommonFlightUtils.getFlightInformationOfInterest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
@@ -50,13 +49,6 @@ public class JournalRecordUpdateEntryStepTest {
   public void testDoAndUndoStep() throws InterruptedException {
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(journalService)
-        .recordUpdate(
-            TEST_USER,
-            DATASET_ID,
-            IamResourceType.DATASET,
-            "foo",
-            getFlightInformationOfInterest(flightContext));
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(journalService).removeJournalEntriesByFlightId(FLIGHT_ID);

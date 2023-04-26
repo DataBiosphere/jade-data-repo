@@ -12,37 +12,32 @@ import bio.terra.tanagra.exception.SystemException;
 import bio.terra.tanagra.indexing.BigQueryIndexingJob;
 import bio.terra.tanagra.indexing.Indexer;
 import bio.terra.tanagra.indexing.job.beam.PathUtils;
+import bio.terra.tanagra.query.CellValue;
+import bio.terra.tanagra.query.ColumnHeaderSchema;
 import bio.terra.tanagra.query.ColumnSchema;
 import bio.terra.tanagra.query.FieldPointer;
 import bio.terra.tanagra.query.FieldVariable;
-import bio.terra.tanagra.query.InsertFromValues;
 import bio.terra.tanagra.query.Query;
 import bio.terra.tanagra.query.QueryExecutor;
-import bio.terra.tanagra.query.SQLExpression;
+import bio.terra.tanagra.query.RowResult;
 import bio.terra.tanagra.query.TablePointer;
+import bio.terra.tanagra.query.TableVariable;
+import bio.terra.tanagra.query.azure.AzureRowResult;
 import bio.terra.tanagra.underlay.Entity;
 import bio.terra.tanagra.underlay.Hierarchy;
 import bio.terra.tanagra.underlay.HierarchyField;
 import bio.terra.tanagra.underlay.HierarchyMapping;
 import bio.terra.tanagra.underlay.Underlay;
 import com.google.api.services.bigquery.model.TableFieldSchema;
-import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
-import org.apache.beam.sdk.transforms.DoFn;
-import org.apache.beam.sdk.transforms.ParDo;
-import org.apache.beam.sdk.transforms.join.CoGbkResult;
-import org.apache.beam.sdk.transforms.join.CoGroupByKey;
-import org.apache.beam.sdk.transforms.join.KeyedPCollectionTuple;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.beam.sdk.values.KV;
-import org.apache.beam.sdk.values.PCollection;
-import org.apache.beam.sdk.values.TupleTag;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,7 +187,8 @@ public class BuildNumChildrenAndPaths extends BigQueryIndexingJob {
 
     if (!isDryRun) {
       // create table if it doesn't exist
-      writePathAndNumChildrenToBQ(outputNodePath, nodeNumChildren, getTempTable(), executors.index());
+      writePathAndNumChildrenToIndex(
+          outputNodePath, nodeNumChildren, getTempTable(), executors.index());
     }
   }
 
@@ -218,72 +214,81 @@ public class BuildNumChildrenAndPaths extends BigQueryIndexingJob {
     return PathUtils.filterRootNodes(possibleRootNodes, nodePrunedPath);
   }
 
+  static class IdPathChildrenRowResult implements RowResult {
+    private final AzureRowResult row;
+
+    public IdPathChildrenRowResult(long id, List<Long> path, long numChildren) {
+      row =
+          new AzureRowResult(
+              Map.of(
+                  ID_COLUMN_NAME,
+                  Optional.of(id),
+                  DESCENDANT_COLUMN_NAME,
+                  Optional.of(path.stream().map(String::valueOf).collect(Collectors.joining("."))),
+                  NUMCHILDREN_COLUMN_NAME,
+                  Optional.of(numChildren)),
+              new ColumnHeaderSchema(
+                  List.of(
+                      new ColumnSchema(ID_COLUMN_NAME, CellValue.SQLDataType.INT64),
+                      new ColumnSchema(DESCENDANT_COLUMN_NAME, CellValue.SQLDataType.STRING),
+                      new ColumnSchema(NUMCHILDREN_COLUMN_NAME, CellValue.SQLDataType.INT64))));
+    }
+
+    @Override
+    public CellValue get(int index) {
+      return row.get(index);
+    }
+
+    @Override
+    public CellValue get(String columnName) {
+      return row.get(columnName);
+    }
+
+    @Override
+    public int size() {
+      return row.size();
+    }
+  }
+
   /** Write the {@link KV} pairs (id, path, num_children) to BQ. */
-  private static void writePathAndNumChildrenToBQ(
-      Collection<Pair<Long, List<Long>>> nodePathKVs,
-      Map<Long, Long> nodeNumChildrenKVs,
+  private static void writePathAndNumChildrenToIndex(
+      Collection<Pair<Long, List<Long>>> nodePaths,
+      Map<Long, Long> nodeNumChildren,
       TablePointer outputTable,
       QueryExecutor executor) {
-    SQLExpression insertQuery =
-        new InsertFromValues(
-            outputTable,
-            Map.of(
-                ID_COLUMN_NAME,
-                new FieldVariable(
-                    new FieldPointer.Builder().columnName(ANCESTOR_COLUMN_NAME).build(),
-                    outputTable),
-                PATH_COLUMN_NAME,
-                new FieldVariable(
-                    new FieldPointer.Builder().columnName(DESCENDANT_COLUMN_NAME).build(),
-                    outputTable)),
-            relationships);
-
-    // define the CoGroupByKey tags
-    final TupleTag<String> pathTag = new TupleTag<>();
-    final TupleTag<Long> numChildrenTag = new TupleTag<>();
-
-    // do a CoGroupByKey join of the current id-numChildren collection and the parent-child
-    // collection
-    PCollection<KV<Long, CoGbkResult>> pathNumChildrenJoin =
-        KeyedPCollectionTuple.of(pathTag, nodePathKVs)
-            .and(numChildrenTag, nodeNumChildrenKVs)
-            .apply(
-                "join id-path and id-numChildren collections for BQ row generation",
-                CoGroupByKey.create());
-
-    // run a ParDo for each row of the join result
-    PCollection<TableRow> idPathAndNumChildrenBQRows =
-        pathNumChildrenJoin.apply(
-            "run ParDo for each row of the id-path and id-numChildren join result to build the BQ (id, path, numChildren) row objects",
-            ParDo.of(
-                new DoFn<KV<Long, CoGbkResult>, TableRow>() {
-                  @ProcessElement
-                  public void processElement(ProcessContext context) {
-                    KV<Long, CoGbkResult> element = context.element();
-                    Long node = element.getKey();
-                    Iterator<String> pathTagIter = element.getValue().getAll(pathTag).iterator();
-                    Iterator<Long> numChildrenTagIter =
-                        element.getValue().getAll(numChildrenTag).iterator();
-
-                    String path = pathTagIter.next();
-                    Long numChildren = numChildrenTagIter.next();
-
-                    context.output(
-                        new TableRow()
-                            .set(ID_COLUMN_NAME, node)
-                            .set(PATH_COLUMN_NAME, path)
-                            .set(NUMCHILDREN_COLUMN_NAME, numChildren));
-                  }
-                }));
-
-    idPathAndNumChildrenBQRows.apply(
-        "insert the (id, path, numChildren) rows into BQ",
-        BigQueryIO.writeTableRows()
-            .to(outputBQTable.getPathForIndexing())
-            .withSchema(PATH_NUMCHILDREN_TABLE_SCHEMA)
-            .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
-            .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_EMPTY)
-            .withMethod(BigQueryIO.Write.Method.FILE_LOADS));
+    TableVariable forPrimary = TableVariable.forPrimary(outputTable);
+    Map<String, FieldVariable> updateFields =
+        Map.of(
+            ID_COLUMN_NAME,
+            new FieldVariable(
+                new FieldPointer.Builder().columnName(ANCESTOR_COLUMN_NAME).build(), forPrimary),
+            PATH_COLUMN_NAME,
+            new FieldVariable(
+                new FieldPointer.Builder().columnName(DESCENDANT_COLUMN_NAME).build(), forPrimary),
+            NUMCHILDREN_COLUMN_NAME,
+            new FieldVariable(
+                new FieldPointer.Builder().columnName(NUMCHILDREN_COLUMN_NAME).build(),
+                forPrimary));
+    //
+    //    SQLExpression insertQuery =
+    //        new UpdateFromValues(
+    //            forPrimary,
+    //            updateFields,
+    //            updateFields.get(ID_COLUMN_NAME),
+    //
+    //            nodePaths.stream().map(nodePath -> (RowResult) new
+    // IdPathChildrenRowResult(nodePath.getKey(), nodePath.getValue(),
+    // nodeNumChildren.get(nodePath.getKey()))).toList());
+    //
+    //    insertUpdateTableFromSelect()
+    //    idPathAndNumChildrenBQRows.apply(
+    //        "insert the (id, path, numChildren) rows into BQ",
+    //        BigQueryIO.writeTableRows()
+    //            .to(outputBQTable.getPathForIndexing())
+    //            .withSchema(PATH_NUMCHILDREN_TABLE_SCHEMA)
+    //            .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
+    //            .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_EMPTY)
+    //            .withMethod(BigQueryIO.Write.Method.FILE_LOADS));
   }
 
   private void copyFieldsToEntityTable(boolean isDryRun, Indexer.Executors executors) {

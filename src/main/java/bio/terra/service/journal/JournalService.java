@@ -182,6 +182,10 @@ public class JournalService {
     journalDao.deleteJournalEntryById(idToRemove);
   }
 
+  public void removeJournalEntriesByFlightId(@NotNull String flightId) {
+    journalDao.deleteJournalEntriesByFlightId(flightId);
+  }
+
   @VisibleForTesting
   public static StackWalker.StackFrame getCallerFrame(long n) {
     StackWalker walker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);

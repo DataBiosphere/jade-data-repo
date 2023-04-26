@@ -4,14 +4,11 @@ import static bio.terra.service.common.CommonFlightUtils.getFlightInformationOfI
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
-import java.util.Optional;
 import java.util.UUID;
 
 public class JournalRecordUpdateEntryStep implements Step {
@@ -36,19 +33,15 @@ public class JournalRecordUpdateEntryStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID journalEntryKey =
-        journalService.recordUpdate(
-            userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
-    workingMap.put(JobMapKeys.JOURNAL_ENTRY_KEY.getKeyName(), journalEntryKey);
+    journalService.recordUpdate(
+        userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID journalEntryKey = workingMap.get(JobMapKeys.JOURNAL_ENTRY_KEY.getKeyName(), UUID.class);
-    Optional.ofNullable(journalEntryKey).ifPresent(journalService::removeJournalEntry);
+    String flightId = context.getFlightId();
+    journalService.removeJournalEntriesByFlightId(flightId);
     return StepResult.getStepResultSuccess();
   }
 }

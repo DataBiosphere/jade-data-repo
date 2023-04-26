@@ -105,6 +105,16 @@ public class JournalDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+  public void deleteJournalEntriesByFlightId(@NotNull String flightId) {
+    String sql = "DELETE FROM " + TABLE_NAME + " WHERE mutation->>'FLIGHT_ID' = :flightId";
+
+    MapSqlParameterSource params = new MapSqlParameterSource().addValue("flightId", flightId);
+
+    int entriesRemoved = jdbcTemplate.update(sql, params);
+    logger.warn("{} journal entries removed for flight id: {}", entriesRemoved, flightId);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public void deleteJournalEntryById(@NotNull UUID journalEntryId) {
     String sql = "DELETE FROM " + TABLE_NAME + " WHERE id = :id";
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", journalEntryId);

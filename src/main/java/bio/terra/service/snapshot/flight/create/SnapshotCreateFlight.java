@@ -319,7 +319,9 @@ public class SnapshotCreateFlight extends Flight {
 
     // unlock the snapshot metadata row
     addStep(new UnlockSnapshotStep(snapshotDao, null));
-    addStep(new CreateSnapshotJournalEntryStep(journalService, userReq));
+    addStep(
+        new CreateSnapshotJournalEntryStep(
+            journalService, userReq, IamResourceType.DATASNAPSHOT, "Created snapshot.", false));
     addStep(
         new JournalRecordUpdateEntryStep(
             journalService,

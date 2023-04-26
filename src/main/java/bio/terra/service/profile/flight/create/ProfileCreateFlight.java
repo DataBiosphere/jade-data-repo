@@ -3,6 +3,7 @@ package bio.terra.service.profile.flight.create;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.profile.ProfileService;
@@ -36,6 +37,13 @@ public class ProfileCreateFlight extends Flight {
       addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));
     }
     addStep(new CreateProfileAuthzIamStep(profileService, request, user));
-    addStep(new CreateProfileJournalEntryStep(journalService, user, request));
+    addStep(
+        new CreateProfileJournalEntryStep(
+            journalService,
+            user,
+            IamResourceType.SPEND_PROFILE,
+            "Billing profile created.",
+            true,
+            request));
   }
 }

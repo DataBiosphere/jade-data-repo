@@ -1,47 +1,28 @@
 package bio.terra.service.snapshot.flight.create;
 
-import static bio.terra.service.common.CommonFlightUtils.getFlightInformationOfInterest;
-
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.common.JournalRecordCreateEntryStep;
 import bio.terra.service.journal.JournalService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
-import bio.terra.stairway.StepResult;
-import bio.terra.stairway.exception.RetryException;
-import java.util.Optional;
 import java.util.UUID;
 
-public class CreateSnapshotJournalEntryStep implements Step {
-  private final AuthenticatedUserRequest userReq;
-  JournalService journalService;
-  private UUID journalEntryKey;
+public class CreateSnapshotJournalEntryStep extends JournalRecordCreateEntryStep {
 
   public CreateSnapshotJournalEntryStep(
-      JournalService journalService, AuthenticatedUserRequest userReq) {
-    this.journalService = journalService;
-    this.userReq = userReq;
+      JournalService journalService,
+      AuthenticatedUserRequest userReq,
+      IamResourceType resourceType,
+      String note,
+      boolean clearHistory) {
+    super(journalService, userReq, resourceType, note, clearHistory);
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
+  public UUID getResourceId(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    UUID snapshotUUID = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-    this.journalEntryKey =
-        journalService.recordCreate(
-            userReq,
-            snapshotUUID,
-            IamResourceType.DATASNAPSHOT,
-            "Created snapshot.",
-            getFlightInformationOfInterest(context));
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) throws InterruptedException {
-    Optional.ofNullable(this.journalEntryKey).ifPresent(this.journalService::removeJournalEntry);
-    return StepResult.getStepResultSuccess();
+    return workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
   }
 }

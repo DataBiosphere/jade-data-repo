@@ -206,6 +206,55 @@ public class JournalServiceTest {
         hasSize(1));
   }
 
+  @Test
+  public void journal_DeleteEntriesByFlightIdTest() {
+    UUID datasetId = UUID.randomUUID();
+    String flightId = UUID.randomUUID().toString();
+    Map<String, Object> changeMap = new LinkedHashMap<>();
+    changeMap.put("FLIGHT_ID", flightId);
+    String note = "create note1";
+    journalService.recordCreate(TEST_USER1, datasetId, IamResourceType.DATASET, note, changeMap);
+    validateEntries(
+        1,
+        datasetId,
+        JournalService.EntryType.CREATE,
+        IamResourceType.DATASET,
+        TEST_USER1,
+        note,
+        changeMap);
+
+    UUID snapshotId = UUID.randomUUID();
+    journalService.recordCreate(
+        TEST_USER1, snapshotId, IamResourceType.DATASNAPSHOT, note, changeMap);
+    validateEntries(
+        1,
+        snapshotId,
+        JournalService.EntryType.CREATE,
+        IamResourceType.DATASNAPSHOT,
+        TEST_USER1,
+        note,
+        changeMap);
+
+    assertThat(
+        "there should be an entry for this dataset create.",
+        journalService.getJournalEntries(datasetId, IamResourceType.DATASET, 0, 10),
+        hasSize(1));
+    assertThat(
+        "there should be an entry for this snapshot create.",
+        journalService.getJournalEntries(snapshotId, IamResourceType.DATASNAPSHOT, 0, 10),
+        hasSize(1));
+
+    journalService.removeJournalEntriesByFlightId(flightId);
+    assertThat(
+        "the dataset journal entry should have been removed.",
+        journalService.getJournalEntries(datasetId, IamResourceType.DATASET, 0, 10),
+        empty());
+    assertThat(
+        "the snapshot journal entry should have been removed.",
+        journalService.getJournalEntries(snapshotId, IamResourceType.DATASNAPSHOT, 0, 10),
+        empty());
+  }
+
   /**
    * Validate the count of journal entries for the specified key and resourceType, and validate the
    * contents of the first (most recent) entry.

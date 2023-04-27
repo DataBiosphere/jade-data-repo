@@ -302,7 +302,7 @@ dependencies {
     liquibaseRuntime 'org.postgresql:postgresql:42.2.7'
     liquibaseRuntime 'ch.qos.logback:logback-classic:1.2.3'
 
-    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
+    testImplementation group: 'org.junit.vintage', name: 'junit-vintage-engine', version: '5.3.0-M1'
     testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     testImplementation "org.springframework.boot:spring-boot-starter-test"
     testImplementation 'org.postgresql:postgresql:42.2.8'
@@ -495,16 +495,16 @@ tasks.withType(Test).configureEach {
 }
 
 test {
-    useJUnit {
-        includeCategories 'bio.terra.common.category.Unit'
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
     maxParallelForks = 2
 }
 
 task testConnected(type: Test) {
-    useJUnit {
-        includeCategories 'bio.terra.common.category.Connected'
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.Connected'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
@@ -523,8 +523,8 @@ task testConnected(type: Test) {
 }
 
 task testIntegration(type: Test) {
-    useJUnit {
-        includeCategories 'bio.terra.common.category.Integration'
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.Integration'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
@@ -543,16 +543,16 @@ task testIntegration(type: Test) {
 }
 
 task testUnit(type: Test) {
-    useJUnit {
-        includeCategories 'bio.terra.common.category.Unit'
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.Unit'
     }
-    maxParallelForks = 2
+    maxParallelForks = 4
     outputs.upToDateWhen { false }
 }
 
 task testOnDemand(type: Test) {
-    useJUnit {
-        includeCategories 'bio.terra.common.category.OnDemand'
+    useJUnitPlatform {
+        includeTags 'bio.terra.common.category.OnDemand'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
@@ -561,9 +561,9 @@ task testOnDemand(type: Test) {
 }
 
 task testAll(type: Test) {
-    useJUnit {
+    useJUnitPlatform {
         // Note: explicitly not including OnDemand tests
-        includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
+        includeTags 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
 }

@@ -3,7 +3,7 @@ package bio.terra.app.model;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.category.Unit;
 import com.fasterxml.jackson.core.JsonProcessingException;

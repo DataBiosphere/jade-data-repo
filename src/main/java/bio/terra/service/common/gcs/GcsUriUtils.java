@@ -13,7 +13,7 @@ public final class GcsUriUtils {
   /**
    * Parse a Google Cloud Storage URI into its component pieces
    *
-   * @param uri of type gs://<bucket_name>/<file_path_inside_bucket>
+   * @param uri of type gs://[bucket_name]/[file_path_inside_bucket]
    * @return Object representing uri pieces
    */
   public static BlobId parseBlobUri(String uri) throws IllegalArgumentException {

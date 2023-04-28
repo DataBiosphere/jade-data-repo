@@ -545,7 +545,7 @@ task testUnit(type: Test) {
     useJUnitPlatform {
         includeTags 'bio.terra.common.category.Unit'
     }
-    maxParallelForks = 4
+    maxParallelForks = 2
     outputs.upToDateWhen { false }
 }
 

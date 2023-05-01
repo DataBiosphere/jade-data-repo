@@ -1,6 +1,6 @@
 package bio.terra.integration;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
+import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -66,7 +66,7 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
-import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
+import bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobUrlParts;
@@ -138,7 +138,7 @@ public class AzureIntegrationTest extends UsersBase {
   private UUID datasetId;
   private List<UUID> snapshotIds;
   private UUID profileId;
-  private BlobIOTestUtility blobIOTestUtility;
+  private AzureBlobIOTestUtility blobIOTestUtility;
   private RequestRetryOptions retryOptions;
   private Set<String> storageAccounts;
 
@@ -159,7 +159,7 @@ public class AzureIntegrationTest extends UsersBase {
             null,
             null);
     blobIOTestUtility =
-        new BlobIOTestUtility(
+        new AzureBlobIOTestUtility(
             azureResourceConfiguration.getAppToken(testConfig.getTargetTenantId()),
             testConfig.getSourceStorageAccountName(),
             null,
@@ -1046,7 +1046,7 @@ public class AzureIntegrationTest extends UsersBase {
     datasetId = null;
 
     // Make sure that any failure in tearing down is presented as a test failure
-    blobIOTestUtility.deleteContainers();
+    blobIOTestUtility.teardown();
   }
 
   @Test
@@ -1162,7 +1162,7 @@ public class AzureIntegrationTest extends UsersBase {
     }
 
     // Make sure that any failure in tearing down is presented as a test failure
-    blobIOTestUtility.deleteContainers();
+    blobIOTestUtility.teardown();
   }
 
   @Test
@@ -1289,7 +1289,7 @@ public class AzureIntegrationTest extends UsersBase {
         hasSize(2));
 
     // Make sure that any failure in tearing down is presented as a test failure
-    blobIOTestUtility.deleteContainers();
+    blobIOTestUtility.teardown();
   }
 
   @Test

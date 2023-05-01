@@ -180,10 +180,20 @@ public abstract class IngestBulkGcpStep extends DefaultUndoStep {
     // attempting re-copying files)
     // For the case where we use predictable file Ids, this is a noop
     if (!dataset.hasPredictableFileIds()) {
-      doFileCopy(workingMap, loadModels, fileIdsByPath, bucketResource).stream()
+      List<CopyResult> copyResults =
+          doFileCopy(workingMap, loadModels, fileIdsByPath, bucketResource);
+      copyResults.stream()
           .filter(r -> r.error() == null && r.fsFileInfo() != null)
           .map(CopyResult::fsFileInfo)
           .forEach(fsFileInfos::add);
+      List<String> failedTargetPaths =
+          copyResults.stream()
+              .filter(r -> r.fsFileInfo() == null)
+              .map(CopyResult::targetPath)
+              .toList();
+      successfulLoadModels =
+          loadModels.stream().filter(m -> !failedTargetPaths.contains(m.getTargetPath())).toList();
+      fileIdsByPath.entrySet().removeIf(item -> failedTargetPaths.contains(item.getKey()));
     }
     logger.info("Add file metadata to Firestore");
     // Finally, add the file entries

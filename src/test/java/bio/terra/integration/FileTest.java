@@ -184,12 +184,22 @@ public class FileTest extends UsersBase {
   // The purpose of these tests is to ingest files using the bulk mode in various permutations
   @Test
   public void bulkFileLoadTestTdrHostedRandomIdFile() throws Exception {
-    bulkFileLoadTest(NUM_FILES, false, false, false);
+    bulkFileLoadTest(NUM_FILES, false, false, false, 0);
+  }
+
+  @Test
+  public void bulkFileLoadTestTdrHostedRandomIdFileHandlesMaxFailedFiles() throws Exception {
+    bulkFileLoadTest(NUM_FILES, false, false, false, 1);
   }
 
   @Test
   public void bulkFileLoadTestTdrHostedRandomIdArray() throws Exception {
-    bulkFileLoadTest(NUM_FILES, false, false, true);
+    bulkFileLoadTest(NUM_FILES, false, false, true, 0);
+  }
+
+  @Test
+  public void bulkFileLoadTestTdrHostedRandomIdArrayHandlesMaxFailedFiles() throws Exception {
+    bulkFileLoadTest(NUM_FILES, false, false, true, 1);
   }
 
   @Test
@@ -292,9 +302,19 @@ public class FileTest extends UsersBase {
         equalTo(originalSourcePath));
   }
 
-  // Return the load tag used to ingest
   private String bulkFileLoadTest(
       int filesToLoad, boolean selfHosted, boolean predictableFileIds, boolean arrayIngestMode)
+      throws Exception {
+    return bulkFileLoadTest(filesToLoad, selfHosted, predictableFileIds, arrayIngestMode, 0);
+  }
+
+  // Return the load tag used to ingest
+  private String bulkFileLoadTest(
+      int filesToLoad,
+      boolean selfHosted,
+      boolean predictableFileIds,
+      boolean arrayIngestMode,
+      int filesToFail)
       throws Exception {
     initialize(selfHosted, predictableFileIds);
 
@@ -312,17 +332,20 @@ public class FileTest extends UsersBase {
       logger.info(
           "bulkFileLoadTest loading " + filesToLoad + " files into dataset id " + datasetId);
 
-      String tailPath = "/fileloadprofiletest/1KBfile.txt";
-      String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
-
+      int failedFileLoadModels = 0;
       for (int i = 0; i < filesToLoad; i++) {
+        String tailPath = "/fileloadprofiletest/1KBfile.txt";
+        if (failedFileLoadModels < filesToFail) {
+          tailPath = "/foo/foo.txt";
+          failedFileLoadModels += 1;
+        }
+        String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
         String targetPath = "/" + loadTag + "/" + i + tailPath;
 
         BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
         model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);
         arrayLoad.addLoadArrayItem(model);
       }
-
       start = Instant.now().toEpochMilli();
       BulkLoadArrayResultModel result =
           dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
@@ -343,8 +366,13 @@ public class FileTest extends UsersBase {
       controlFileId = BlobId.fromGsUtilUri(controlFilePath);
 
       StringBuilder sb = new StringBuilder();
+      int failedFileLoadModels = 0;
       for (int i = 0; i < filesToLoad; i++) {
         String tailPath = "/fileloadprofiletest/1KBfile.txt";
+        if (failedFileLoadModels < filesToFail) {
+          tailPath = "/foo/foo.txt";
+          failedFileLoadModels += 1;
+        }
         String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
         String targetPath = "/" + loadTag + "/" + i + tailPath;
 
@@ -352,6 +380,7 @@ public class FileTest extends UsersBase {
         model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);
         sb.append(objectMapper.writeValueAsString(model)).append("\n");
       }
+
       BlobInfo controlFile =
           BlobInfo.newBuilder(controlFileId)
               .setContentType(MediaType.APPLICATION_JSON_VALUE)
@@ -368,7 +397,11 @@ public class FileTest extends UsersBase {
     logger.info("Failed files   : " + loadSummary.getFailedFiles());
     logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
 
-    assertThat("all files should succeed", loadSummary.getSucceededFiles(), equalTo(filesToLoad));
+    assertThat(
+        "all files should succeed",
+        loadSummary.getSucceededFiles(),
+        equalTo(filesToLoad - filesToFail));
+    assertThat("all files should succeed", loadSummary.getFailedFiles(), equalTo(filesToFail));
     return loadTag;
   }
 

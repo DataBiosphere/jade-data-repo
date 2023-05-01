@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.util;
 
+import bio.terra.service.common.gcs.GcsUriUtils;
 import com.azure.storage.blob.BlobUrlParts;
 import java.time.Duration;
 import java.util.List;
@@ -58,25 +59,28 @@ public final class BlobContainerCopierBuilder {
   }
 
   public BlobContainerCopierBuilder sourceBlobUrl(String url) {
-    BlobUrlParts blobUrl = BlobUrlParts.parse(url);
+    if (url.startsWith("gs://")) {
+      GcsUriUtils.validateBlobUri(url);
+    } else {
+      BlobUrlParts blobUrl = BlobUrlParts.parse(url);
 
-    if (Strings.isEmpty(blobUrl.getBlobContainerName())) {
-      throw new IllegalArgumentException(
-          appendBlobGuidanceToErrorMessage("Container name is missing."));
+      if (Strings.isEmpty(blobUrl.getBlobContainerName())) {
+        throw new IllegalArgumentException(
+            appendBlobGuidanceToErrorMessage("Container name is missing."));
+      }
+
+      if (Strings.isEmpty(blobUrl.getBlobName())) {
+        throw new IllegalArgumentException(
+            appendBlobGuidanceToErrorMessage("URL must contain a blob name."));
+      }
+
+      String permissions = blobUrl.getCommonSasQueryParameters().getPermissions();
+
+      if (Strings.isEmpty(permissions) || !permissions.contains("r")) {
+        throw new IllegalArgumentException(
+            appendBlobGuidanceToErrorMessage("Read permission is required."));
+      }
     }
-
-    if (Strings.isEmpty(blobUrl.getBlobName())) {
-      throw new IllegalArgumentException(
-          appendBlobGuidanceToErrorMessage("URL must contain a blob name."));
-    }
-
-    String permissions = blobUrl.getCommonSasQueryParameters().getPermissions();
-
-    if (Strings.isEmpty(permissions) || !permissions.contains("r")) {
-      throw new IllegalArgumentException(
-          appendBlobGuidanceToErrorMessage("Read permission is required."));
-    }
-
     sourceBlobUrl = url;
 
     return this;

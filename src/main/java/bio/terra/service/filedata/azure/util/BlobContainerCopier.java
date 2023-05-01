@@ -1,15 +1,31 @@
 package bio.terra.service.filedata.azure.util;
 
+import static bio.terra.service.filedata.google.gcs.GcsPdao.getProjectIdFromGsPath;
+
+import bio.terra.common.UriUtils;
+import bio.terra.common.exception.NotFoundException;
+import bio.terra.service.common.gcs.GcsUriUtils;
+import bio.terra.service.filedata.google.gcs.GcsConstants;
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobCopyInfo;
 import com.azure.storage.blob.models.BlobListDetails;
 import com.azure.storage.blob.models.ListBlobsOptions;
+import com.azure.storage.blob.models.RehydratePriority;
+import com.azure.storage.blob.options.BlobBeginCopyOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Storage.BlobGetOption;
+import com.google.cloud.storage.Storage.SignUrlOption;
+import com.google.cloud.storage.StorageOptions;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -22,6 +38,9 @@ public class BlobContainerCopier {
   private static final Logger logger = LoggerFactory.getLogger(BlobContainerCopier.class);
   private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
   private final BlobContainerClientFactory destinationClientFactory;
+  private static final String USER_PROJECT_QUERY_PARAM = "userProject";
+  // Signing URL for 48 hours to handle large file transfers
+  private static final int SIGNED_URL_DURATION_MINUTES = 60 * 48;
 
   private String blobSourcePrefix = "";
 
@@ -56,12 +75,12 @@ public class BlobContainerCopier {
     }
 
     if (StringUtils.isNotBlank(sourceBlobUrl)) {
-      logger.info("Starting copy operation using a signed blob URL as the source");
-      return beginCopyOperationUsingBlobSignedUrl();
+      logger.info("Starting copy operation using a blob URL as the source");
+      return beginCopyOperationUsingUrl();
     }
 
     throw new IllegalArgumentException(
-        "The copy operation can't be started. " + "The source information is missing or invalid");
+        "The copy operation can't be started. The source information is missing or invalid");
   }
 
   public void setDestinationBlobName(String destinationBlobName) {
@@ -118,17 +137,22 @@ public class BlobContainerCopier {
     return sourceDestinationPairs;
   }
 
-  private BlobContainerCopySyncPoller beginCopyOperationUsingBlobSignedUrl() {
-    BlobUrlParts blobUrlParts = BlobUrlParts.parse(sourceBlobUrl);
+  private BlobContainerCopySyncPoller beginCopyOperationUsingUrl() {
+    String sourceBlobName;
+    if (sourceBlobUrl.startsWith("gs://")) {
+      sourceBlobName = UriUtils.toUri(sourceBlobUrl).getPath();
+    } else {
+      BlobUrlParts blobUrlParts = BlobUrlParts.parse(sourceBlobUrl);
+      sourceBlobName = blobUrlParts.getBlobName();
+    }
 
-    String sourceBlobName = blobUrlParts.getBlobName();
     String destinationBlobName = this.destinationBlobName;
     if (StringUtils.isBlank(this.destinationBlobName)) {
       destinationBlobName = sourceBlobName;
     }
 
     return new BlobContainerCopySyncPoller(
-        List.of(beginBlobCopyFromSasUrl(sourceBlobName, sourceBlobUrl, destinationBlobName)));
+        List.of(beginBlobCopyFromUrl(sourceBlobName, sourceBlobUrl, destinationBlobName)));
   }
 
   private BlobContainerCopySyncPoller beginCopyOperationUsingSourceBlobContainerClient() {
@@ -192,7 +216,7 @@ public class BlobContainerCopier {
     }
 
     String sourceSASUrl = createSourceBlobReadOnlySasUrl(sourceBlobName);
-    return beginBlobCopyFromSasUrl(sourceBlobName, sourceSASUrl, destinationBlobName);
+    return beginBlobCopyFromUrl(sourceBlobName, sourceSASUrl, destinationBlobName);
   }
 
   private String createSourceBlobReadOnlySasUrl(String blobName) {
@@ -208,8 +232,16 @@ public class BlobContainerCopier {
         .createSasUrlForBlob(blobName, blobSasTokenOptions);
   }
 
-  private SyncPoller<BlobCopyInfo, Void> beginBlobCopyFromSasUrl(
-      String sourceName, String sourceSasUrl, String destinationBlobName) {
+  private SyncPoller<BlobCopyInfo, Void> beginBlobCopyFromUrl(
+      String sourceName, String sourceUrl, String destinationBlobName) {
+
+    String effectiveSourceUrl;
+    if (sourceUrl.startsWith("gs://")) {
+      effectiveSourceUrl = getGcsFileInfo(sourceUrl).signedUrl();
+    } else {
+      effectiveSourceUrl = sourceUrl;
+    }
+
     if (StringUtils.isBlank(destinationBlobName)) {
       logger.debug(
           "Destination blob name is blank. The source name: {}, will be used.", sourceName);
@@ -219,7 +251,44 @@ public class BlobContainerCopier {
     BlobClient blobClient =
         destinationClientFactory.getBlobContainerClient().getBlobClient(destinationBlobName);
 
-    return blobClient.beginCopy(sourceSasUrl, pollingInterval);
+    return blobClient.beginCopy(
+        new BlobBeginCopyOptions(effectiveSourceUrl)
+            .setPollInterval(pollingInterval)
+            .setRehydratePriority(RehydratePriority.HIGH));
+  }
+
+  record GcsFileInfo(String signedUrl, String md5) {}
+
+  /**
+   * Return a file information for a GCS blob to be used to ingest into an Azure blob. Note: this
+   * lives in this class since it's use is limited to this particular use case.
+   */
+  private GcsFileInfo getGcsFileInfo(String gspath) {
+    String projectId = getProjectIdFromGsPath(gspath);
+
+    StorageOptions.Builder storageBuilder = StorageOptions.newBuilder();
+    BlobGetOption[] getOptions = new BlobGetOption[0];
+    SignUrlOption[] signOptions = new SignUrlOption[0];
+    if (projectId != null) {
+      storageBuilder.setProjectId(projectId);
+      getOptions = new BlobGetOption[] {BlobGetOption.userProject(projectId)};
+      signOptions =
+          new SignUrlOption[] {
+            SignUrlOption.withQueryParams(Map.of(USER_PROJECT_QUERY_PARAM, projectId))
+          };
+    }
+    Storage storage = storageBuilder.build().getService();
+
+    String sanitizedUri =
+        UriUtils.omitQueryParameter(gspath, GcsConstants.USER_PROJECT_QUERY_PARAM);
+    BlobId locator = GcsUriUtils.parseBlobUri(sanitizedUri);
+    Blob blob = storage.get(locator, getOptions);
+    if (blob == null) {
+      throw new NotFoundException("Blob %s could not be read".formatted(gspath));
+    }
+    return new GcsFileInfo(
+        blob.signUrl(SIGNED_URL_DURATION_MINUTES, TimeUnit.MINUTES, signOptions).toString(),
+        blob.getMd5());
   }
 
   private boolean isSourceBlobEmpty(String sourceName) {

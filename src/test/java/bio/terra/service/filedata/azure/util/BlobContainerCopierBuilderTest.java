@@ -80,6 +80,27 @@ public class BlobContainerCopierBuilderTest {
             hasProperty("destinationClientFactory", equalTo(destinationFactory))));
   }
 
+  @Test
+  public void testBuildCopierUsingSourceGCSBlobUrlAndDestinationFactories_CopierIsBuilt() {
+
+    String sourceBlobUrl = "gs://mybucket/my.blob.txt";
+    String destinationBlobName = "destBlobName";
+
+    copier =
+        new BlobContainerCopierBuilder()
+            .sourceBlobUrl(sourceBlobUrl)
+            .destinationBlobName(destinationBlobName)
+            .destinationClientFactory(destinationFactory)
+            .build();
+
+    assertThat(
+        copier,
+        allOf(
+            hasProperty("sourceBlobUrl", equalTo(sourceBlobUrl)),
+            hasProperty("destinationBlobName", equalTo(destinationBlobName)),
+            hasProperty("destinationClientFactory", equalTo(destinationFactory))));
+  }
+
   @Test(expected = IllegalArgumentException.class)
   public void testSourceFactoryIsMissing_ThrowsIllegalArgumentException() {
     copier = new BlobContainerCopierBuilder().destinationClientFactory(destinationFactory).build();

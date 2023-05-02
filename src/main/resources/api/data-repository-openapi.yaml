@@ -3894,9 +3894,9 @@ components:
       pattern: ^[a-zA-Z0-9][_a-zA-Z0-9]*$
       type: string
       description: >
-        Table and column names follow this pattern. This should be used for the name of any object in the
+        Table names follow this pattern. This should be used for the name of any non-column object in the
         system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
-        any extra columns the DR adds. For table and column names, this is shorter than what BigQuery allows.
+        any extra tables the DR adds. For table names, this is shorter than what BigQuery allows.
     DatasetSnapshotNameProperty:
       maxLength: 511
       minLength: 1
@@ -3905,16 +3905,25 @@ components:
       description: >
         Dataset and snapshot names follow this pattern. It is the same as ObjectNameProperty, but has
         a greater maxLength.
+    ColumnNameProperty:
+      maxLength: 63
+      minLength: 1
+      pattern: ^[a-zA-Z][_a-zA-Z0-9]*$
+      type: string
+      description: >
+        Column names follow this pattern. This should be used for the name of any column in the
+        system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
+        any extra columns the DR adds. This is shorter than what BigQuery allows.
     UniqueIdProperty:
       type: string
       format: uuid
       description: >
         Unique identifier for a dataset, snapshot, etc.
     ShortIdProperty:
-      pattern: '[A-za-z0-9_\\-]{22}'
+      pattern: '[A-Za-z0-9_\\-]{22}'
       type: string
       description: >
-        Unique identifier for a flights, jobs, etc.
+        Unique identifier for flights, jobs, etc.
     BillingProfileRequestModel:
       required:
         - biller
@@ -4252,7 +4261,7 @@ components:
       type: object
       properties:
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/ColumnNameProperty'
         datatype:
           $ref: '#/components/schemas/TableDataType'
         array_of:
@@ -4278,9 +4287,9 @@ components:
         primaryKey:
           type: array
           items:
-            $ref: '#/components/schemas/ObjectNameProperty'
+            $ref: '#/components/schemas/ColumnNameProperty'
           description: >
-            Primary key columns names. Any columns listed as a primary key will be marked as required by default.
+            Primary key column names. Any columns listed as a primary key will be marked as required by default.
         partitionMode:
           type: string
           default: none
@@ -4301,7 +4310,7 @@ components:
       type: object
       properties:
         column:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/ColumnNameProperty'
       description: Describes how a date partition should be configured.
     IntPartitionOptionsModel:
       required:
@@ -4312,7 +4321,7 @@ components:
       type: object
       properties:
         column:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/ColumnNameProperty'
         min:
           type: integer
           description: >
@@ -4338,7 +4347,7 @@ components:
         table:
           $ref: '#/components/schemas/ObjectNameProperty'
         column:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/ColumnNameProperty'
       description: Describes a table and columns for a relationship
     RelationshipModel:
       required:
@@ -4368,7 +4377,7 @@ components:
         columns:
           type: array
           items:
-            $ref: '#/components/schemas/ObjectNameProperty'
+            $ref: '#/components/schemas/ColumnNameProperty'
       description: >
         Used in the asset definition to describe a table that is included in the asset. This is used to define
         the view of the asset table in the snapshot. Columns can be an empty array indicating that all columns
@@ -4391,7 +4400,7 @@ components:
         rootTable:
           $ref: '#/components/schemas/ObjectNameProperty'
         rootColumn:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/ColumnNameProperty'
         follow:
           type: array
           items:
@@ -5145,7 +5154,7 @@ components:
         columns:
           type: array
           items:
-            $ref: '#/components/schemas/ObjectNameProperty'
+            $ref: '#/components/schemas/ColumnNameProperty'
         rowIds:
           type: array
           items:

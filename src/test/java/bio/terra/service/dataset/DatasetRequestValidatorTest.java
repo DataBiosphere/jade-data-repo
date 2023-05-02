@@ -9,8 +9,8 @@ import static bio.terra.common.fixtures.DatasetFixtures.buildSampleTerm;
 import static bio.terra.service.dataset.ValidatorTestUtils.checkValidationErrorModel;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -70,8 +69,7 @@ public class DatasetRequestValidatorTest {
     MockHttpServletResponse response = result.getResponse();
     String responseBody = response.getContentAsString();
 
-    assertTrue(
-        "Error model was returned on failure", StringUtils.contains(responseBody, "message"));
+    assertThat("Error model was returned on failure", responseBody, containsString("message"));
 
     ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
     return errorModel;
@@ -100,18 +98,12 @@ public class DatasetRequestValidatorTest {
     MockHttpServletResponse response = result.getResponse();
     String responseBody = response.getContentAsString();
 
-    assertTrue(
-        "Error model was returned on failure", StringUtils.contains(responseBody, "message"));
+    assertThat("Error model was returned on failure", responseBody, containsString("message"));
 
     ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
     assertThat("correct error message", errorModel.getMessage(), equalTo(expectedMessage));
     List<String> responseErrors = errorModel.getErrorDetail();
-    if (errors == null || errors.isEmpty()) {
-      assertTrue("No details expected", (responseErrors == null || responseErrors.size() == 0));
-    } else {
-      assertTrue("Same number of errors", responseErrors.size() == errors.size());
-      assertArrayEquals("Error details match", responseErrors.toArray(), errors.toArray());
-    }
+    assertThat("Error details match", responseErrors, contains(errors.toArray()));
   }
 
   @Test
@@ -141,9 +133,10 @@ public class DatasetRequestValidatorTest {
 
     MockHttpServletResponse response = result.getResponse();
     String responseBody = response.getContentAsString();
-    assertTrue(
+    assertThat(
         "Json parsing errors are logged and returned",
-        responseBody.contains("JSON parse error: Unrecognized field \\\"is_array\\\""));
+        responseBody,
+        containsString("JSON parse error: Unrecognized field \\\"is_array\\\""));
   }
 
   @Test
@@ -166,6 +159,34 @@ public class DatasetRequestValidatorTest {
           "InvalidAssetTableColumn",
           "InvalidRootColumn"
         });
+  }
+
+  /**
+   * Modify and return the request so that it has a single table with the specified name, no
+   * relationships, and no assets.
+   */
+  private DatasetRequestModel withNamedTable(DatasetRequestModel request, String tableName) {
+    ColumnModel column = new ColumnModel().name("id").datatype(TableDataType.STRING);
+    TableModel table = new TableModel().name(tableName).columns(List.of(column));
+    request.getSchema().tables(List.of(table)).relationships(List.of()).assets(List.of());
+
+    return request;
+  }
+
+  @Test
+  public void testInvalidTableName() throws Exception {
+    DatasetRequestModel req = buildDatasetRequest();
+
+    // Table names with leading underscores are invalid
+    List<String> invalidPatternNames = List.of("_", "_a_column", "_1_column");
+    for (String name : invalidPatternNames) {
+      checkValidationErrorModel(
+          expectBadDatasetCreateRequest(withNamedTable(req, name)), new String[] {"Pattern"});
+    }
+
+    // Table names over 63 characters are invalid
+    checkValidationErrorModel(
+        expectBadDatasetCreateRequest(withNamedTable(req, "a".repeat(64))), new String[] {"Size"});
   }
 
   @Test
@@ -231,6 +252,34 @@ public class DatasetRequestValidatorTest {
     ErrorModel errorModel = expectBadDatasetCreateRequest(req);
     checkValidationErrorModel(
         errorModel, new String[] {"InvalidPrimaryKey", "InvalidColumnMode", "InvalidColumnMode"});
+  }
+
+  /**
+   * Modify and return the request so that it has a single table with a single column of the
+   * specified name, no relationships, and no assets.
+   */
+  private DatasetRequestModel withNamedColumn(DatasetRequestModel request, String columnName) {
+    ColumnModel column = new ColumnModel().name(columnName).datatype(TableDataType.STRING);
+    TableModel table = new TableModel().name("table").columns(List.of(column));
+    request.getSchema().tables(List.of(table)).relationships(List.of()).assets(List.of());
+
+    return request;
+  }
+
+  @Test
+  public void testInvalidColumnName() throws Exception {
+    DatasetRequestModel req = buildDatasetRequest();
+
+    // Table names with leading numbers or leading underscores are invalid
+    List<String> invalidPatternNames = List.of("_", "_a_column", "_1_column", "1", "1_column");
+    for (String name : invalidPatternNames) {
+      checkValidationErrorModel(
+          expectBadDatasetCreateRequest(withNamedColumn(req, name)), new String[] {"Pattern"});
+    }
+
+    // Column names over 63 characters are invalid
+    checkValidationErrorModel(
+        expectBadDatasetCreateRequest(withNamedColumn(req, "a".repeat(64))), new String[] {"Size"});
   }
 
   @Test
@@ -385,9 +434,10 @@ public class DatasetRequestValidatorTest {
 
     MockHttpServletResponse response = result.getResponse();
     String responseBody = response.getContentAsString();
-    assertTrue(
+    assertThat(
         "Invalid DataTypes are logged and returned",
-        responseBody.contains(
+        responseBody,
+        containsString(
             "invalid datatype in table column(s): bad_column, "
                 + "DataTypes must be lowercase, valid DataTypes are [string, boolean, bytes, date, datetime, dirref, fileref, "
                 + "float, float64, integer, int64, numeric, record, text, time, timestamp]"));
@@ -405,7 +455,7 @@ public class DatasetRequestValidatorTest {
     checkValidationErrorModel(errorModel, new String[] {"Size", "Pattern"});
 
     // Make a 512 character string, it should be considered too long by the validation.
-    String tooLong = StringUtils.repeat("a", 512);
+    String tooLong = "a".repeat(512);
     errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(tooLong));
     checkValidationErrorModel(errorModel, new String[] {"Size"});
   }

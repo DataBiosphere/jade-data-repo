@@ -77,6 +77,7 @@ public class FileTest extends UsersBase {
   private static Logger logger = LoggerFactory.getLogger(FileTest.class);
 
   private static final int NUM_FILES = 100;
+  private static final int NUM_FAILED_FILES = 5;
 
   @Autowired private AuthService authService;
 
@@ -184,22 +185,32 @@ public class FileTest extends UsersBase {
   // The purpose of these tests is to ingest files using the bulk mode in various permutations
   @Test
   public void bulkFileLoadTestTdrHostedRandomIdFile() throws Exception {
-    bulkFileLoadTest(NUM_FILES, false, false, false, 0);
+    bulkFileLoadTest(NUM_FILES, false, false, false);
   }
 
   @Test
   public void bulkFileLoadTestTdrHostedRandomIdFileHandlesMaxFailedFiles() throws Exception {
-    bulkFileLoadTest(NUM_FILES, false, false, false, 1);
+    bulkFileLoadTest(NUM_FILES, false, false, false, NUM_FAILED_FILES, NUM_FAILED_FILES);
+  }
+
+  @Test
+  public void bulkFileLoadTestTdrHostedRandomIdFileWithZeroMaxFailedFiles() throws Exception {
+    bulkFileLoadTest(NUM_FILES, false, false, false, NUM_FAILED_FILES, 0);
   }
 
   @Test
   public void bulkFileLoadTestTdrHostedRandomIdArray() throws Exception {
-    bulkFileLoadTest(NUM_FILES, false, false, true, 0);
+    bulkFileLoadTest(NUM_FILES, false, false, true);
   }
 
   @Test
   public void bulkFileLoadTestTdrHostedRandomIdArrayHandlesMaxFailedFiles() throws Exception {
-    bulkFileLoadTest(NUM_FILES, false, false, true, 1);
+    bulkFileLoadTest(NUM_FILES, false, false, true, NUM_FAILED_FILES, NUM_FAILED_FILES);
+  }
+
+  @Test
+  public void bulkFileLoadTestTdrHostedRandomIdArrayZeroMaxFailedFiles() throws Exception {
+    bulkFileLoadTest(NUM_FILES, false, false, true, 1, 0);
   }
 
   @Test
@@ -305,7 +316,8 @@ public class FileTest extends UsersBase {
   private String bulkFileLoadTest(
       int filesToLoad, boolean selfHosted, boolean predictableFileIds, boolean arrayIngestMode)
       throws Exception {
-    return bulkFileLoadTest(filesToLoad, selfHosted, predictableFileIds, arrayIngestMode, 0);
+    return bulkFileLoadTest(
+        filesToLoad, selfHosted, predictableFileIds, arrayIngestMode, 0, filesToLoad);
   }
 
   // Return the load tag used to ingest
@@ -314,12 +326,13 @@ public class FileTest extends UsersBase {
       boolean selfHosted,
       boolean predictableFileIds,
       boolean arrayIngestMode,
-      int filesToFail)
+      int filesToFail,
+      int maxFailedFileLoads)
       throws Exception {
     initialize(selfHosted, predictableFileIds);
 
     String loadTag = Names.randomizeName("longtest");
-    BulkLoadResultModel loadSummary;
+    BulkLoadResultModel loadSummary = null;
     long start;
     if (arrayIngestMode) {
       BulkLoadArrayRequestModel arrayLoad =
@@ -327,7 +340,7 @@ public class FileTest extends UsersBase {
               .profileId(profileId)
               .loadTag(loadTag)
               .bulkMode(true)
-              .maxFailedFileLoads(filesToLoad);
+              .maxFailedFileLoads(maxFailedFileLoads);
 
       logger.info(
           "bulkFileLoadTest loading " + filesToLoad + " files into dataset id " + datasetId);
@@ -347,9 +360,18 @@ public class FileTest extends UsersBase {
         arrayLoad.addLoadArrayItem(model);
       }
       start = Instant.now().toEpochMilli();
-      BulkLoadArrayResultModel result =
-          dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
-      loadSummary = result.getLoadSummary();
+
+      if (maxFailedFileLoads < filesToFail) {
+        ErrorModel errorModel =
+            dataRepoFixtures.bulkLoadArrayFailure(steward(), datasetId, arrayLoad);
+        assertThat(
+            errorModel.getMessage(),
+            containsString("More than " + maxFailedFileLoads + " file(s) failed to ingest"));
+      } else {
+        BulkLoadArrayResultModel result =
+            dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
+        loadSummary = result.getLoadSummary();
+      }
     } else {
       String controlFilePath =
           "gs://jade-testdata-uswestregion/scratch/file-test-control.%s.json"
@@ -359,7 +381,7 @@ public class FileTest extends UsersBase {
               .profileId(profileId)
               .loadTag(loadTag)
               .bulkMode(true)
-              .maxFailedFileLoads(filesToLoad)
+              .maxFailedFileLoads(maxFailedFileLoads)
               .loadControlFile(controlFilePath);
 
       // Write ingest control file
@@ -388,20 +410,28 @@ public class FileTest extends UsersBase {
       storage.create(controlFile, sb.toString().getBytes(StandardCharsets.UTF_8));
 
       start = Instant.now().toEpochMilli();
-      loadSummary = dataRepoFixtures.bulkLoad(steward(), datasetId, bulkLoad);
+      if (maxFailedFileLoads < filesToFail) {
+        ErrorModel errorModel = dataRepoFixtures.bulkLoadFailure(steward(), datasetId, bulkLoad);
+        assertThat(
+            errorModel.getMessage(),
+            containsString("More than " + maxFailedFileLoads + " file(s) failed to ingest"));
+      } else {
+        loadSummary = dataRepoFixtures.bulkLoad(steward(), datasetId, bulkLoad);
+      }
     }
-
     logger.info("Ingest took %s milliseconds".formatted(Instant.now().toEpochMilli() - start));
-    logger.info("Total files    : " + loadSummary.getTotalFiles());
-    logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
-    logger.info("Failed files   : " + loadSummary.getFailedFiles());
-    logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
+    if (loadSummary != null) {
+      logger.info("Total files    : " + loadSummary.getTotalFiles());
+      logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
+      logger.info("Failed files   : " + loadSummary.getFailedFiles());
+      logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
 
-    assertThat(
-        "all files should succeed",
-        loadSummary.getSucceededFiles(),
-        equalTo(filesToLoad - filesToFail));
-    assertThat("all files should succeed", loadSummary.getFailedFiles(), equalTo(filesToFail));
+      assertThat(
+          "all files should succeed",
+          loadSummary.getSucceededFiles(),
+          equalTo(filesToLoad - filesToFail));
+      assertThat("all files should succeed", loadSummary.getFailedFiles(), equalTo(filesToFail));
+    }
     return loadTag;
   }
 

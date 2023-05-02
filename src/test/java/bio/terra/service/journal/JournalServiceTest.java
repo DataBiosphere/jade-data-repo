@@ -14,6 +14,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JournalEntryModel;
 import bio.terra.service.auth.iam.IamResourceType;
+import bio.terra.service.job.JobMapKeys;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -212,12 +213,13 @@ public class JournalServiceTest {
     String flightId = UUID.randomUUID().toString();
     Map<String, Object> changeMap = new LinkedHashMap<>();
     changeMap.put("FLIGHT_ID", flightId);
+    changeMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "foo");
     String note = "create note1";
-    journalService.recordCreate(TEST_USER1, datasetId, IamResourceType.DATASET, note, changeMap);
+    journalService.recordUpdate(TEST_USER1, datasetId, IamResourceType.DATASET, note, changeMap);
     validateEntries(
         1,
         datasetId,
-        JournalService.EntryType.CREATE,
+        JournalService.EntryType.UPDATE,
         IamResourceType.DATASET,
         TEST_USER1,
         note,
@@ -235,6 +237,23 @@ public class JournalServiceTest {
         note,
         changeMap);
 
+    UUID profileId = UUID.randomUUID();
+    String flightId2 = UUID.randomUUID().toString();
+    Map<String, Object> changeMap2 = new LinkedHashMap<>();
+    changeMap2.put(JobMapKeys.DESCRIPTION.getKeyName(), "bar");
+    changeMap2.put("FLIGHT_ID", flightId2);
+    String note2 = "create note2";
+    journalService.recordCreate(
+        TEST_USER1, profileId, IamResourceType.SPEND_PROFILE, note2, changeMap2, true);
+    validateEntries(
+        1,
+        profileId,
+        JournalService.EntryType.CREATE,
+        IamResourceType.SPEND_PROFILE,
+        TEST_USER1,
+        note2,
+        changeMap2);
+
     assertThat(
         "there should be an entry for this dataset create.",
         journalService.getJournalEntries(datasetId, IamResourceType.DATASET, 0, 10),
@@ -242,6 +261,10 @@ public class JournalServiceTest {
     assertThat(
         "there should be an entry for this snapshot create.",
         journalService.getJournalEntries(snapshotId, IamResourceType.DATASNAPSHOT, 0, 10),
+        hasSize(1));
+    assertThat(
+        "there should be an entry for the profile create.",
+        journalService.getJournalEntries(profileId, IamResourceType.SPEND_PROFILE, 0, 10),
         hasSize(1));
 
     journalService.removeJournalEntriesByFlightId(flightId);
@@ -253,6 +276,14 @@ public class JournalServiceTest {
         "the snapshot journal entry should have been removed.",
         journalService.getJournalEntries(snapshotId, IamResourceType.DATASNAPSHOT, 0, 10),
         empty());
+    assertThat(
+        "the profile entry should not have been removed.",
+        journalService.getJournalEntries(profileId, IamResourceType.SPEND_PROFILE, 0, 10),
+        hasSize(1));
+
+    // test removing journal entries for the same flightId twice (which would happen if a
+    // flight with multiple journal steps fails)
+    journalService.removeJournalEntriesByFlightId(flightId);
   }
 
   /**
@@ -275,7 +306,7 @@ public class JournalServiceTest {
         "the journal resource key matches the UUID", entryUnderTest.getResourceKey(), equalTo(key));
     assertThat(
         "the journal entry resource type is the expected value",
-        entryUnderTest.getResourceType().toString(),
+        IamResourceType.fromEnum(entryUnderTest.getResourceType()).toString(),
         equalToIgnoringCase(resourceType.toString()));
     assertThat(
         "the journal entry type is correct",

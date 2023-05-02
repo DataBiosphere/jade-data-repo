@@ -9,7 +9,6 @@ import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
-import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetBucketDao;
@@ -152,8 +151,6 @@ public class DatasetCreateFlight extends Flight {
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
     }
     addStep(new UnlockDatasetStep(datasetService, false));
-    addStep(
-        new CreateDatasetJournalEntryStep(
-            journalService, userReq, IamResourceType.DATASET, "Created dataset.", false));
+    addStep(new CreateDatasetJournalEntryStep(journalService, userReq));
   }
 }

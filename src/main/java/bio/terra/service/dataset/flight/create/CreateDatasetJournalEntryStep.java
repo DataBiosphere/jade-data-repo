@@ -12,12 +12,8 @@ import java.util.UUID;
 public class CreateDatasetJournalEntryStep extends JournalRecordCreateEntryStep {
 
   public CreateDatasetJournalEntryStep(
-      JournalService journalService,
-      AuthenticatedUserRequest userReq,
-      IamResourceType resourceType,
-      String note,
-      boolean clearHistory) {
-    super(journalService, userReq, resourceType, note, clearHistory);
+      JournalService journalService, AuthenticatedUserRequest userReq) {
+    super(journalService, userReq, IamResourceType.DATASET, "Created dataset.", false);
   }
 
   @Override

@@ -12,12 +12,8 @@ import java.util.UUID;
 public class CreateSnapshotJournalEntryStep extends JournalRecordCreateEntryStep {
 
   public CreateSnapshotJournalEntryStep(
-      JournalService journalService,
-      AuthenticatedUserRequest userReq,
-      IamResourceType resourceType,
-      String note,
-      boolean clearHistory) {
-    super(journalService, userReq, resourceType, note, clearHistory);
+      JournalService journalService, AuthenticatedUserRequest userReq) {
+    super(journalService, userReq, IamResourceType.DATASNAPSHOT, "Created snapshot.", false);
   }
 
   @Override

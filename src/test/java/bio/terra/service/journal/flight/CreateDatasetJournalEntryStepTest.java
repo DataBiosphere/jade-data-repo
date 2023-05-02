@@ -39,9 +39,7 @@ public class CreateDatasetJournalEntryStepTest {
 
   @BeforeEach
   void setup() {
-    step =
-        new CreateDatasetJournalEntryStep(
-            journalService, TEST_USER, IamResourceType.DATASET, "foo", false);
+    step = new CreateDatasetJournalEntryStep(journalService, TEST_USER);
     FlightMap workingMap = new FlightMap();
     workingMap.put(DatasetWorkingMapKeys.DATASET_ID, DATASET_ID);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
@@ -57,7 +55,7 @@ public class CreateDatasetJournalEntryStepTest {
             TEST_USER,
             DATASET_ID,
             IamResourceType.DATASET,
-            "foo",
+            "Created dataset.",
             getFlightInformationOfInterest(flightContext),
             false);
     StepResult undoResult = step.undoStep(flightContext);

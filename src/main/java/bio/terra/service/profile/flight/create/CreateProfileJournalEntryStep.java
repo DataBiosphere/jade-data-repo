@@ -14,11 +14,8 @@ public class CreateProfileJournalEntryStep extends JournalRecordCreateEntryStep 
   public CreateProfileJournalEntryStep(
       JournalService journalService,
       AuthenticatedUserRequest userReq,
-      IamResourceType resourceType,
-      String note,
-      boolean clearHistory,
       BillingProfileRequestModel request) {
-    super(journalService, userReq, resourceType, note, clearHistory);
+    super(journalService, userReq, IamResourceType.SPEND_PROFILE, "Billing profile created.", true);
     this.billingReq = request;
   }
 

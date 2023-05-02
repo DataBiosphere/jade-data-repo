@@ -39,9 +39,7 @@ public class CreateProfileJournalEntryStepTest {
   @BeforeEach
   void setup() {
     BillingProfileRequestModel request = new BillingProfileRequestModel().id(BILLING_PROFILE_ID);
-    step =
-        new CreateProfileJournalEntryStep(
-            journalService, TEST_USER, IamResourceType.SPEND_PROFILE, "foo", true, request);
+    step = new CreateProfileJournalEntryStep(journalService, TEST_USER, request);
     when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
   }
 
@@ -54,7 +52,7 @@ public class CreateProfileJournalEntryStepTest {
             TEST_USER,
             BILLING_PROFILE_ID,
             IamResourceType.SPEND_PROFILE,
-            "foo",
+            "Billing profile created.",
             getFlightInformationOfInterest(flightContext),
             true);
     StepResult undoResult = step.undoStep(flightContext);

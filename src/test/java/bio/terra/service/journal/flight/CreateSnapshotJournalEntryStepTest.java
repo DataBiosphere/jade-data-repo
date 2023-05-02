@@ -39,9 +39,7 @@ public class CreateSnapshotJournalEntryStepTest {
 
   @BeforeEach
   void setup() {
-    step =
-        new CreateSnapshotJournalEntryStep(
-            journalService, TEST_USER, IamResourceType.DATASNAPSHOT, "foo", false);
+    step = new CreateSnapshotJournalEntryStep(journalService, TEST_USER);
     FlightMap workingMap = new FlightMap();
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
@@ -57,7 +55,7 @@ public class CreateSnapshotJournalEntryStepTest {
             TEST_USER,
             SNAPSHOT_ID,
             IamResourceType.DATASNAPSHOT,
-            "foo",
+            "Created snapshot.",
             getFlightInformationOfInterest(flightContext),
             false);
     StepResult undoResult = step.undoStep(flightContext);

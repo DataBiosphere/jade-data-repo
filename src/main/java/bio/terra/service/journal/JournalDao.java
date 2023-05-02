@@ -114,15 +114,6 @@ public class JournalDao {
     logger.warn("{} journal entries removed for flight id: {}", entriesRemoved, flightId);
   }
 
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void deleteJournalEntryById(@NotNull UUID journalEntryId) {
-    String sql = "DELETE FROM " + TABLE_NAME + " WHERE id = :id";
-    MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", journalEntryId);
-
-    int entriesRemoved = jdbcTemplate.update(sql, params);
-    logger.warn("Journal entry deleted: {} {}", journalEntryId, entriesRemoved);
-  }
-
   @Transactional(
       propagation = Propagation.REQUIRED,
       isolation = Isolation.SERIALIZABLE,

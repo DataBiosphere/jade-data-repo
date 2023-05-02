@@ -159,54 +159,6 @@ public class JournalServiceTest {
   }
 
   @Test
-  void journal_UnwindEntryTest() {
-    UUID datasetId = UUID.randomUUID();
-    Map<String, Object> emptyMap = new LinkedHashMap<>();
-    String note = "create note1";
-    UUID datasetCreateEntryId =
-        journalService.recordCreate(TEST_USER1, datasetId, IamResourceType.DATASET, note, emptyMap);
-    validateEntries(
-        1,
-        datasetId,
-        JournalService.EntryType.CREATE,
-        IamResourceType.DATASET,
-        TEST_USER1,
-        note,
-        null);
-
-    UUID snapshotId = UUID.randomUUID();
-    journalService.recordCreate(
-        TEST_USER1, snapshotId, IamResourceType.DATASNAPSHOT, note, emptyMap);
-    validateEntries(
-        1,
-        snapshotId,
-        JournalService.EntryType.CREATE,
-        IamResourceType.DATASNAPSHOT,
-        TEST_USER1,
-        note,
-        null);
-
-    assertThat(
-        "there should be an entry for this dataset create.",
-        journalService.getJournalEntries(datasetId, IamResourceType.DATASET, 0, 10),
-        hasSize(1));
-    assertThat(
-        "there should be an entry for this snapshot create.",
-        journalService.getJournalEntries(snapshotId, IamResourceType.DATASNAPSHOT, 0, 10),
-        hasSize(1));
-
-    journalService.removeJournalEntry(datasetCreateEntryId);
-    assertThat(
-        "the dataset journal entry should have been removed.",
-        journalService.getJournalEntries(datasetId, IamResourceType.DATASET, 0, 10),
-        empty());
-    assertThat(
-        "the snapshot journal entry should still exist.",
-        journalService.getJournalEntries(snapshotId, IamResourceType.DATASNAPSHOT, 0, 10),
-        hasSize(1));
-  }
-
-  @Test
   void journal_DeleteEntriesByFlightIdTest() {
     UUID datasetId = UUID.randomUUID();
     String flightId = UUID.randomUUID().toString();

@@ -173,15 +173,6 @@ public class JournalService {
         mapJson);
   }
 
-  /**
-   * Remove an entry from the journal.
-   *
-   * @param idToRemove The journal entry ID to remove.
-   */
-  public void removeJournalEntry(@NotNull UUID idToRemove) {
-    journalDao.deleteJournalEntryById(idToRemove);
-  }
-
   public void removeJournalEntriesByFlightId(@NotNull String flightId) {
     journalDao.deleteJournalEntriesByFlightId(flightId);
   }

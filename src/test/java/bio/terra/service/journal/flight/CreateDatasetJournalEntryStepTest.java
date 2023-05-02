@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -18,17 +17,15 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.test.context.ActiveProfiles;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.StrictStubs.class)
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@ExtendWith(MockitoExtension.class)
+@Tag("bio.terra.common.category.Unit")
 public class CreateDatasetJournalEntryStepTest {
   @Mock private JournalService journalService;
   @Mock private FlightContext flightContext;
@@ -40,8 +37,8 @@ public class CreateDatasetJournalEntryStepTest {
   private static final UUID DATASET_ID = UUID.randomUUID();
   private CreateDatasetJournalEntryStep step;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup() {
     step =
         new CreateDatasetJournalEntryStep(
             journalService, TEST_USER, IamResourceType.DATASET, "foo", false);
@@ -52,7 +49,7 @@ public class CreateDatasetJournalEntryStepTest {
   }
 
   @Test
-  public void testDoAndUndoStep() throws InterruptedException {
+  void testDoAndUndoStep() throws InterruptedException {
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(journalService)

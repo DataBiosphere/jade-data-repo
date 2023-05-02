@@ -10,7 +10,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.common.EmbeddedDatabaseTest;
-import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.JournalEntryModel;
 import bio.terra.service.auth.iam.IamResourceType;
@@ -20,8 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -34,7 +33,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @SpringBootTest
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag("bio.terra.common.category.Unit")
 @EmbeddedDatabaseTest
 public class JournalServiceTest {
 
@@ -55,7 +54,7 @@ public class JournalServiceTest {
   @Autowired private JournalService journalService;
 
   @Test
-  public void journalCreateTest_EmptyMap() {
+  void journalCreateTest_EmptyMap() {
     UUID key = UUID.randomUUID();
     Map<String, Object> emptyMap = new LinkedHashMap<>();
     String note = "create note1";
@@ -65,7 +64,7 @@ public class JournalServiceTest {
   }
 
   @Test
-  public void journalCreateTest_SameKeyDifferentResourceType() {
+  void journalCreateTest_SameKeyDifferentResourceType() {
     UUID key = UUID.randomUUID();
     Map<String, Object> emptyMap = new LinkedHashMap<>();
     String note = "create note1";
@@ -84,7 +83,7 @@ public class JournalServiceTest {
   }
 
   @Test
-  public void journalGetResults_InvalidOffset() {
+  void journalGetResults_InvalidOffset() {
     UUID key = UUID.randomUUID();
     DataIntegrityViolationException ex =
         assertThrows(
@@ -95,7 +94,7 @@ public class JournalServiceTest {
   }
 
   @Test
-  public void journalGetResults_EmptyResults() {
+  void journalGetResults_EmptyResults() {
     UUID key = UUID.randomUUID();
     List<JournalEntryModel> emptyResults =
         journalService.getJournalEntries(key, IamResourceType.DATASNAPSHOT, 0, 0);
@@ -103,7 +102,7 @@ public class JournalServiceTest {
   }
 
   @Test
-  public void journalCreateTest_SimpleEntries() {
+  void journalCreateTest_SimpleEntries() {
     Map<String, Object> simpleMap = new LinkedHashMap<>();
     simpleMap.put("NULL", null);
     simpleMap.put("KEY", "VALUE");
@@ -160,7 +159,7 @@ public class JournalServiceTest {
   }
 
   @Test
-  public void journal_UnwindEntryTest() {
+  void journal_UnwindEntryTest() {
     UUID datasetId = UUID.randomUUID();
     Map<String, Object> emptyMap = new LinkedHashMap<>();
     String note = "create note1";
@@ -208,7 +207,7 @@ public class JournalServiceTest {
   }
 
   @Test
-  public void journal_DeleteEntriesByFlightIdTest() {
+  void journal_DeleteEntriesByFlightIdTest() {
     UUID datasetId = UUID.randomUUID();
     String flightId = UUID.randomUUID().toString();
     Map<String, Object> changeMap = new LinkedHashMap<>();

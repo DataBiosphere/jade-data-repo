@@ -189,6 +189,8 @@ git clone git@github.com:DataBiosphere/jade-data-repo-ui.git
 git clone git@github.com:DataBiosphere/jade-data-repo-cli
 git clone git@github.com:broadinstitute/datarepo-helm
 git clone git@github.com:broadinstitute/datarepo-helm-definitions
+git clone git@github.com:broadinstitute/terra-helmfile
+git clone git@github.com:broadinstitute/terraform-ap-deployments
 git clone git@github.com:broadinstitute/terraform-jade
 ```
 
@@ -209,10 +211,12 @@ these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/fol
 2. Create your datarepo helm definition:
   -  In `datarepo-helm-definitions/dev` directory,
      copy an existing developer definition and change all initials to your own.
-  -  Verify that any release chart versions specified in your `helmfile.yaml` match the
+     Double-check with the team if you're not sure what to use, but the most recently added
+     is probably the best choice.
+  -  By default, leave release chart versions unspecified in your `helmfile.yaml` so that
+     latest versions are automatically picked up when running helmfile commands.
+     Otherwise, verify that specified versions match the
      [latest dependency versions](https://github.com/broadinstitute/datarepo-helm/blob/master/charts/datarepo/Chart.lock).
-     Any left unspecified will automatically pick up the latest version
-     when running helmfile commands.
   -  Create a pull request with these changes in
      [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions).
 
@@ -269,6 +273,12 @@ DB=datarepo-ZZ SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
 ```
 create extension pgcrypto;
 ```
+
+8. Create a pull request to `terraform-ap-deployments` to add
+  `https://jade-ZZ.datarepo-dev.broadinstitute.org` under the
+  ['personal deployments'](https://github.com/broadinstitute/terraform-ap-deployments/blob/e9ecc7a637fe4a7743011b568f76a296a4e85ed2/azure/b2c/tfvars/dev.tfvars#L20)
+  section of `dev.tfvars/b2c_tdr_hosts`.  This allows B2C as a means of authentication, which is
+  the default across environments.
 
 ## 10. Install Postgres 11
 

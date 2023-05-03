@@ -9,6 +9,7 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFileInfo;
@@ -224,7 +225,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
       String md5, long size, BlobContainerClientFactory sourceClientFactory, String sourceUrl) {}
 
   private SourceFileInfo getSourceFileInfo(UUID tenantId, String sourcePath) {
-    if (sourcePath.startsWith("gs://")) {
+    if (GcsUriUtils.isGsUri(sourcePath)) {
       String projectId = getProjectIdFromGsPath(sourcePath);
       Storage storage = gcsProjectFactory.getStorage(projectId);
       String sanitizedSourcePath =
@@ -275,7 +276,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
       List<String> sourcePaths, String cloudEncapsulationId, AuthenticatedUserRequest user) {
     // This check is not needed for Azure source because we use signed URLS that by default check
     // permissions but this is needed if ingesting from a GCS hosted file
-    List<String> gsPaths = sourcePaths.stream().filter(p -> p.startsWith("gs://")).toList();
+    List<String> gsPaths = sourcePaths.stream().filter(GcsUriUtils::isGsUri).toList();
 
     // Extract the project ids from the userProject query parameter.  There can be 0 or 1 values
     List<String> cloudEncapsulationIds =

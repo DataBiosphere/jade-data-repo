@@ -118,4 +118,15 @@ public final class GcsUriUtils {
     return "https://www.googleapis.com/storage/v1/b/%s/o/%s?%salt=media"
         .formatted(gsBucket, encodedPath, userProjectParam);
   }
+
+  /**
+   * Performs rudimentary test on a potential gcs uri to see if it might be valid (note: does not
+   * confirm the validity of the gcs path
+   *
+   * @param uri A path to evaluate
+   * @return A boolean true is uri might be a valid gs path
+   */
+  public static boolean isGsUri(String uri) {
+    return uri != null && uri.startsWith("gs://");
+  }
 }

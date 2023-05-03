@@ -59,7 +59,7 @@ public final class BlobContainerCopierBuilder {
   }
 
   public BlobContainerCopierBuilder sourceBlobUrl(String url) {
-    if (url.startsWith("gs://")) {
+    if (GcsUriUtils.isGsUri(url)) {
       GcsUriUtils.validateBlobUri(url);
     } else {
       BlobUrlParts blobUrl = BlobUrlParts.parse(url);

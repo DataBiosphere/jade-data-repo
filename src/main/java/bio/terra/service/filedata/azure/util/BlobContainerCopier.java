@@ -40,7 +40,7 @@ public class BlobContainerCopier {
   private final BlobContainerClientFactory destinationClientFactory;
   private static final String USER_PROJECT_QUERY_PARAM = "userProject";
   // Signing URL for 48 hours to handle large file transfers
-  private static final int SIGNED_URL_DURATION_MINUTES = 60 * 48;
+  private static final long SIGNED_URL_DURATION_MINUTES = TimeUnit.HOURS.toMinutes(48);
 
   private String blobSourcePrefix = "";
 
@@ -139,7 +139,7 @@ public class BlobContainerCopier {
 
   private BlobContainerCopySyncPoller beginCopyOperationUsingUrl() {
     String sourceBlobName;
-    if (sourceBlobUrl.startsWith("gs://")) {
+    if (GcsUriUtils.isGsUri(sourceBlobUrl)) {
       sourceBlobName = UriUtils.toUri(sourceBlobUrl).getPath();
     } else {
       BlobUrlParts blobUrlParts = BlobUrlParts.parse(sourceBlobUrl);
@@ -236,7 +236,7 @@ public class BlobContainerCopier {
       String sourceName, String sourceUrl, String destinationBlobName) {
 
     String effectiveSourceUrl;
-    if (sourceUrl.startsWith("gs://")) {
+    if (GcsUriUtils.isGsUri(sourceUrl)) {
       effectiveSourceUrl = getGcsFileInfo(sourceUrl).signedUrl();
     } else {
       effectiveSourceUrl = sourceUrl;

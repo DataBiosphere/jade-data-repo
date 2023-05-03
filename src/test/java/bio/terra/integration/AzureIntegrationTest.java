@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CollectionType;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -67,6 +68,7 @@ import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility;
+import bio.terra.service.filedata.google.util.GcsBlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobUrlParts;
@@ -89,6 +91,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -138,7 +141,8 @@ public class AzureIntegrationTest extends UsersBase {
   private UUID datasetId;
   private List<UUID> snapshotIds;
   private UUID profileId;
-  private AzureBlobIOTestUtility blobIOTestUtility;
+  private AzureBlobIOTestUtility azureBlobIOTestUtility;
+  private GcsBlobIOTestUtility gcsBlobIOTestUtility;
   private RequestRetryOptions retryOptions;
   private Set<String> storageAccounts;
 
@@ -158,12 +162,13 @@ public class AzureIntegrationTest extends UsersBase {
             null,
             null,
             null);
-    blobIOTestUtility =
+    azureBlobIOTestUtility =
         new AzureBlobIOTestUtility(
             azureResourceConfiguration.getAppToken(testConfig.getTargetTenantId()),
             testConfig.getSourceStorageAccountName(),
             null,
             retryOptions);
+    gcsBlobIOTestUtility = new GcsBlobIOTestUtility(testConfig.getIngestbucket(), null);
     snapshotIds = new ArrayList<>();
     storageAccounts = new TreeSet<>();
   }
@@ -192,6 +197,8 @@ public class AzureIntegrationTest extends UsersBase {
     if (storageAccounts != null) {
       storageAccounts.forEach(this::deleteStorageAccount);
     }
+    azureBlobIOTestUtility.teardown();
+    gcsBlobIOTestUtility.teardown();
   }
 
   @Test
@@ -200,6 +207,7 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     logger.info("dataset id is " + summaryModel.getId());
     assertThat(summaryModel.getName(), startsWith(omopDatasetName));
@@ -305,6 +313,7 @@ public class AzureIntegrationTest extends UsersBase {
     DatasetSummaryModel summaryModel2 =
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
     dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     assertThat(
         "Original dataset is still there",
@@ -325,36 +334,44 @@ public class AzureIntegrationTest extends UsersBase {
   public void datasetIngestFileHappyPath() throws Exception {
     String blobName = "myBlob";
     long fileSize = MIB / 10;
-    String sourceFile = blobIOTestUtility.uploadSourceFile(blobName, fileSize);
+    String sourceFileAzure = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
+    String sourceFileGcs = gcsBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     Map<String, Integer> tableRowCount = new HashMap<>();
 
     BulkLoadFileModel fileLoadModel =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFileAzure))
             .targetPath("/test/target.txt");
     BulkLoadFileModel fileLoadModelAlt1 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFileAzure))
             .targetPath("/test/target_alt1.txt");
     BulkLoadFileModel fileLoadModelSas =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                blobIOTestUtility.createSourceSignedPath(
-                    sourceFile, getSourceStorageAccountPrimarySharedKey()))
+                azureBlobIOTestUtility.createSourceSignedPath(
+                    sourceFileAzure, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas.txt");
     BulkLoadFileModel fileLoadModelAlt2 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFileAzure))
             .targetPath("/test/target_alt2.txt");
+    BulkLoadFileModel fileLoadModelGcs =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(gcsBlobIOTestUtility.getFullyQualifiedBlobName(sourceFileGcs))
+            .targetPath("/test/target_gcs.txt");
+
     BulkLoadArrayResultModel result =
         dataRepoFixtures.bulkLoadArray(
             steward,
@@ -365,9 +382,10 @@ public class AzureIntegrationTest extends UsersBase {
                 .addLoadArrayItem(fileLoadModel)
                 .addLoadArrayItem(fileLoadModelAlt1)
                 .addLoadArrayItem(fileLoadModelSas)
-                .addLoadArrayItem(fileLoadModelAlt2));
+                .addLoadArrayItem(fileLoadModelAlt2)
+                .addLoadArrayItem(fileLoadModelGcs));
 
-    assertThat(result.getLoadSummary().getSucceededFiles(), equalTo(4));
+    assertThat(result.getLoadSummary().getSucceededFiles(), equalTo(5));
 
     assertThat(
         "file size matches",
@@ -396,6 +414,17 @@ public class AzureIntegrationTest extends UsersBase {
     FileModel file4Model =
         dataRepoFixtures.getFileById(steward, datasetId, loadedFiles.get(3).getFileId());
 
+    // test the gcs file
+    FileModel file5Model =
+        dataRepoFixtures.getFileById(steward, datasetId, loadedFiles.get(4).getFileId());
+    assertThat(
+        "ensure that there is a non empty md5 present",
+        file5Model.getChecksums().stream()
+            .filter(
+                c -> c.getType().equalsIgnoreCase("md5") && !StringUtils.isEmpty(c.getChecksum()))
+            .toList(),
+        hasSize(1));
+
     // ingest via control file
     String flightId = UUID.randomUUID().toString();
     String controlFileBlob = flightId + "/file-ingest-request.json";
@@ -403,16 +432,16 @@ public class AzureIntegrationTest extends UsersBase {
     bulkLoadFileModelList.add(
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFileAzure))
             .targetPath(String.format("/%s/%s", flightId, "target.txt")));
     bulkLoadFileModelList.add(
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFileAzure))
             .targetPath(String.format("/%s/%s", flightId, "target2.txt")));
 
     String controlFileUrl =
-        blobIOTestUtility.uploadFileWithContents(
+        azureBlobIOTestUtility.uploadFileWithContents(
             controlFileBlob, TestUtils.readControlFile(bulkLoadFileModelList));
 
     String bulkLoadTag = Names.randomizeName("loadTag");
@@ -441,10 +470,8 @@ public class AzureIntegrationTest extends UsersBase {
     AccessInfoParquetModel datasetParquetAccessInfo =
         datasetModel.getAccessInformation().getParquet();
 
-    // record the storage account
-    storageAccounts.add(getStorageAccountName(datasetParquetAccessInfo));
-
     DatasetSpecificationModel datasetSchema = datasetModel.getSchema();
+
     // dataset ingest
     // Ingest Metadata - 1 row from JSON file
     String datasetIngestFlightId = UUID.randomUUID().toString();
@@ -461,7 +488,7 @@ public class AzureIntegrationTest extends UsersBase {
             Map.entry("domain_files_custom_2", List.of(file2Model.getFileId())),
             Map.entry("domain_files_custom_3", file4Model.getFileId()));
     String ingestRequestPathJSON =
-        blobIOTestUtility.uploadFileWithContents(
+        azureBlobIOTestUtility.uploadFileWithContents(
             datasetIngestControlFileBlob,
             Objects.requireNonNull(TestUtils.mapToJson(domainRowData)));
 
@@ -505,7 +532,7 @@ public class AzureIntegrationTest extends UsersBase {
     String csvDatasetIngestControlFileBlob =
         csvDatasetIngestFlightId + "/azure-vocab-ingest-request.csv";
     String ingestRequestPathCSV =
-        blobIOTestUtility.uploadFileWithContents(
+        azureBlobIOTestUtility.uploadFileWithContents(
             csvDatasetIngestControlFileBlob,
             String.format(
                 "vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id%n"
@@ -647,6 +674,7 @@ public class AzureIntegrationTest extends UsersBase {
             steward, summaryModel.getName(), profileId, requestModelAll);
     UUID snapshotByFullViewId = snapshotSummaryAll.getId();
     snapshotIds.add(snapshotByFullViewId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByFullViewId);
     assertThat("Snapshot exists", snapshotSummaryAll.getName(), equalTo(requestModelAll.getName()));
 
     // Ensure that export works
@@ -672,9 +700,6 @@ public class AzureIntegrationTest extends UsersBase {
             List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
     AccessInfoParquetModel snapshotParquetAccessInfo =
         snapshotAll.getAccessInformation().getParquet();
-
-    // record the storage account
-    storageAccounts.add(getStorageAccountName(snapshotParquetAccessInfo));
 
     String snapshotParquetUrl =
         snapshotParquetAccessInfo.getUrl() + "?" + snapshotParquetAccessInfo.getSasToken();
@@ -857,6 +882,7 @@ public class AzureIntegrationTest extends UsersBase {
             steward, summaryModel.getName(), profileId, snapshotByQueryModel);
     UUID snapshotByQueryId = snapshotSummaryByQuery.getId();
     snapshotIds.add(snapshotByQueryId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByQueryId);
     assertThat(
         "Snapshot by query exists",
         snapshotSummaryByQuery.getName(),
@@ -871,9 +897,6 @@ public class AzureIntegrationTest extends UsersBase {
                 List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
             .getParquet();
-
-    // record the storage account
-    storageAccounts.add(getStorageAccountName(snapshotByQueryParquetAccessInfo));
 
     String snapshotByQueryParquetUrl =
         snapshotByQueryParquetAccessInfo.getUrl()
@@ -913,6 +936,7 @@ public class AzureIntegrationTest extends UsersBase {
             steward, summaryModel.getName(), profileId, snapshotByAssetModel);
     UUID snapshotByAssetId = snapshotSummaryByAsset.getId();
     snapshotIds.add(snapshotByAssetId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByAssetId);
     assertThat(
         "Snapshot by asset exists",
         snapshotSummaryByAsset.getName(),
@@ -927,9 +951,6 @@ public class AzureIntegrationTest extends UsersBase {
                 List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
             .getParquet();
-
-    // record the storage account
-    storageAccounts.add(getStorageAccountName(snapshotByAssetParquetAccessInfo));
 
     String snapshotByAssetParquetUrl =
         snapshotByAssetParquetAccessInfo.getUrl()
@@ -952,6 +973,7 @@ public class AzureIntegrationTest extends UsersBase {
             steward, summaryModel.getName(), profileId, snapshotByRowIdModel);
     UUID snapshotByRowId = snapshotSummaryByRowId.getId();
     snapshotIds.add(snapshotByRowId);
+    recordStorageAccount(steward, CollectionType.SNAPSHOT, snapshotByRowId);
     assertThat(
         "Snapshot exists",
         snapshotSummaryByRowId.getName(),
@@ -964,9 +986,6 @@ public class AzureIntegrationTest extends UsersBase {
                 steward, snapshotByRowId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION))
             .getAccessInformation()
             .getParquet();
-
-    // record the storage account
-    storageAccounts.add(getStorageAccountName(snapshotByRowIdParquetAccessInfo));
 
     String snapshotByRowIdParquetUrl =
         snapshotByRowIdParquetAccessInfo.getUrl()
@@ -1046,14 +1065,14 @@ public class AzureIntegrationTest extends UsersBase {
     datasetId = null;
 
     // Make sure that any failure in tearing down is presented as a test failure
-    blobIOTestUtility.teardown();
+    azureBlobIOTestUtility.teardown();
   }
 
   @Test
   public void testDatasetFileIngestLoadHistory() throws Exception {
     String blobName = "myBlob";
     long fileSize = MIB / 10;
-    String sourceFile = blobIOTestUtility.uploadSourceFile(blobName, fileSize);
+    String sourceFile = azureBlobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
             steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
@@ -1062,13 +1081,13 @@ public class AzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFile))
             .targetPath("/test/target.txt");
     BulkLoadFileModel fileLoadModelSas =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                blobIOTestUtility.createSourceSignedPath(
+                azureBlobIOTestUtility.createSourceSignedPath(
                     sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas.txt");
     BulkLoadArrayResultModel bulkLoadResult1 =
@@ -1084,13 +1103,13 @@ public class AzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel2 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFile))
             .targetPath("/test/target2.txt");
     BulkLoadFileModel fileLoadModelSas2 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                blobIOTestUtility.createSourceSignedPath(
+                azureBlobIOTestUtility.createSourceSignedPath(
                     sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas2.txt");
 
@@ -1107,13 +1126,13 @@ public class AzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel3 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFile))
             .targetPath("/test/target3.txt");
     BulkLoadFileModel fileLoadModelSas3 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                blobIOTestUtility.createSourceSignedPath(
+                azureBlobIOTestUtility.createSourceSignedPath(
                     sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas3.txt");
     dataRepoFixtures.bulkLoadArray(
@@ -1162,7 +1181,7 @@ public class AzureIntegrationTest extends UsersBase {
     }
 
     // Make sure that any failure in tearing down is presented as a test failure
-    blobIOTestUtility.teardown();
+    azureBlobIOTestUtility.teardown();
   }
 
   @Test
@@ -1171,12 +1190,14 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(
             steward, profileId, "dataset-ingest-azure-fileref.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     String noFilesContents =
         "sample_name,data_type,vcf_file_ref,vcf_index_file_ref\n"
             + String.format("NA12878_none,none,%s,%s", UUID.randomUUID(), UUID.randomUUID());
     String noFilesControlFile =
-        blobIOTestUtility.uploadFileWithContents("dataset-files-ingest-fail.csv", noFilesContents);
+        azureBlobIOTestUtility.uploadFileWithContents(
+            "dataset-files-ingest-fail.csv", noFilesContents);
 
     IngestRequestModel noFilesIngestRequest =
         new IngestRequestModel()
@@ -1211,9 +1232,9 @@ public class AzureIntegrationTest extends UsersBase {
             "NA12878_PLUMBING_wgs.g.vcf.gz.tbi")
         .map(
             name -> {
-              String sourceFile = blobIOTestUtility.uploadSourceFile(name, fileSize);
+              String sourceFile = azureBlobIOTestUtility.uploadSourceFile(name, fileSize);
               return new BulkLoadFileModel()
-                  .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+                  .sourcePath(azureBlobIOTestUtility.createSourcePath(sourceFile))
                   .targetPath("/vcfs/downsampled/" + name)
                   .description("Test file for " + name)
                   .mimeType("text/plain");
@@ -1245,7 +1266,8 @@ public class AzureIntegrationTest extends UsersBase {
             .replaceFirst("WGS_VCF_INDEX_FILE_REF", wgsVcfIndex.getFileId());
 
     String controlFile =
-        blobIOTestUtility.uploadFileWithContents("dataset-files-ingest.csv", metadataWithFileIds);
+        azureBlobIOTestUtility.uploadFileWithContents(
+            "dataset-files-ingest.csv", metadataWithFileIds);
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.CSV)
@@ -1289,7 +1311,7 @@ public class AzureIntegrationTest extends UsersBase {
         hasSize(2));
 
     // Make sure that any failure in tearing down is presented as a test failure
-    blobIOTestUtility.teardown();
+    azureBlobIOTestUtility.teardown();
   }
 
   @Test
@@ -1301,6 +1323,7 @@ public class AzureIntegrationTest extends UsersBase {
             "dataset-ingest-combined-azure-required-columns.json",
             CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     String controlFileContents;
     try (var resourceStream =
@@ -1309,7 +1332,7 @@ public class AzureIntegrationTest extends UsersBase {
     }
 
     String controlFile =
-        blobIOTestUtility.uploadFileWithContents(
+        azureBlobIOTestUtility.uploadFileWithContents(
             "dataset-files-ingest-combined.json", controlFileContents);
 
     IngestRequestModel ingestRequest =
@@ -1370,6 +1393,7 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.createDataset(
             steward, profileId, "dataset-ingest-combined-azure.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
+    recordStorageAccount(steward, CollectionType.DATASET, datasetId);
 
     String controlFileContents;
     try (var resourceStream =
@@ -1387,7 +1411,7 @@ public class AzureIntegrationTest extends UsersBase {
 
     if (ingestFromFile) {
       String controlFile =
-          blobIOTestUtility.uploadFileWithContents(
+          azureBlobIOTestUtility.uploadFileWithContents(
               "dataset-files-ingest-combined.json", controlFileContents);
       ingestRequest.path(controlFile).format(IngestRequestModel.FormatEnum.JSON);
     } else {
@@ -1419,10 +1443,6 @@ public class AzureIntegrationTest extends UsersBase {
         .iterator()
         .next()
         .value();
-  }
-
-  private String getStorageAccountName(AccessInfoParquetModel accessInfo) {
-    return accessInfo.getDatasetId().split("\\.")[0];
   }
 
   private void deleteStorageAccount(String storageAccount) {
@@ -1460,5 +1480,28 @@ public class AzureIntegrationTest extends UsersBase {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private void recordStorageAccount(
+      TestConfiguration.User user, CollectionType collectionType, UUID collectionId)
+      throws Exception {
+    switch (collectionType) {
+      case DATASET -> {
+        DatasetModel dataset =
+            dataRepoFixtures.getDataset(
+                user, collectionId, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION));
+        storageAccounts.add(getStorageAccountName(dataset.getAccessInformation().getParquet()));
+      }
+      case SNAPSHOT -> {
+        SnapshotModel snapshot =
+            dataRepoFixtures.getSnapshot(
+                user, collectionId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION));
+        storageAccounts.add(getStorageAccountName(snapshot.getAccessInformation().getParquet()));
+      }
+    }
+  }
+
+  private String getStorageAccountName(AccessInfoParquetModel accessInfo) {
+    return accessInfo.getDatasetId().split("\\.")[0];
   }
 }

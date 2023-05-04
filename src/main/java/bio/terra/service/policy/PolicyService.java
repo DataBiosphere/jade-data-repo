@@ -11,11 +11,12 @@ import bio.terra.policy.model.TpsComponent;
 import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoCreateRequest;
 import bio.terra.policy.model.TpsPolicyInputs;
+import bio.terra.service.policy.exception.PolicyConflictException;
 import bio.terra.service.policy.exception.PolicyServiceAPIException;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
 import bio.terra.service.policy.exception.PolicyServiceDuplicateException;
 import bio.terra.service.policy.exception.PolicyServiceNotFoundException;
-import bio.terra.service.policy.exception.PolicyConflictException;
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.util.UUID;
 import javax.annotation.Nullable;
@@ -32,8 +33,7 @@ public class PolicyService {
   private final PolicyServiceConfiguration policyServiceConfiguration;
 
   @Autowired
-  public PolicyService(
-      PolicyServiceConfiguration policyServiceConfiguration) {
+  public PolicyService(PolicyServiceConfiguration policyServiceConfiguration) {
     this.policyServiceConfiguration = policyServiceConfiguration;
     logger.info("TPS base path: '{}'", policyServiceConfiguration.getBasePath());
   }
@@ -43,7 +43,8 @@ public class PolicyService {
     createPao(snapshotId, TpsObjectType.SNAPSHOT, policyInputs);
   }
 
-  public void createPao(UUID resourceId, TpsObjectType resourceType, @Nullable TpsPolicyInputs policyInputs) {
+  public void createPao(
+      UUID resourceId, TpsObjectType resourceType, @Nullable TpsPolicyInputs policyInputs) {
     policyServiceConfiguration.tpsEnabledCheck();
     TpsPolicyInputs inputs = (policyInputs == null) ? new TpsPolicyInputs() : policyInputs;
 
@@ -70,7 +71,7 @@ public class PolicyService {
         throw convertApiException(e);
       }
     } catch (PolicyServiceNotFoundException e) {
-      // Not found is not an error as far as WSM is concerned.
+      // Not found should not cause a failure on delete.
     }
   }
 
@@ -93,12 +94,12 @@ public class PolicyService {
               .setBasePath(policyServiceConfiguration.getBasePath()));
     } catch (IOException e) {
       throw new PolicyServiceAuthorizationException(
-         "Error reading or parsing credentials file",
-          e.getCause());
+          "Error reading or parsing credentials file", e.getCause());
     }
   }
 
-  private RuntimeException convertApiException(ApiException ex) {
+  @VisibleForTesting
+  public RuntimeException convertApiException(ApiException ex) {
     if (ex.getCode() == HttpStatus.UNAUTHORIZED.value()) {
       return new PolicyServiceAuthorizationException(
           "Not authorized to access Terra Policy Service", ex.getCause());
@@ -135,5 +136,4 @@ public class PolicyService {
           .message(errorMsg + ": " + ExceptionUtils.formatException(ex));
     }
   }
-
 }

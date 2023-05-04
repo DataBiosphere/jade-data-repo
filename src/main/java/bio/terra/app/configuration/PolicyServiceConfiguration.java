@@ -4,13 +4,11 @@ import bio.terra.common.exception.FeatureNotImplementedException;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import java.io.IOException;
+import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.List;
 
 /** Configuration for managing connection to Buffer Service. * */
 @Configuration
@@ -51,5 +49,4 @@ public class PolicyServiceConfiguration {
       throw new FeatureNotImplementedException("Terra Policy Service is not enabled");
     }
   }
-
 }

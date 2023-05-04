@@ -11,30 +11,37 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.exception.RetryException;
 import java.util.UUID;
 
-public class JournalRecordUpdateEntryStep implements Step {
+public abstract class JournalRecordCreateEntryStep implements Step {
   private final JournalService journalService;
   private final AuthenticatedUserRequest userReq;
-  private final UUID resourceKey;
   private final IamResourceType resourceType;
   private final String note;
+  private final boolean clearHistory;
 
-  public JournalRecordUpdateEntryStep(
+  public JournalRecordCreateEntryStep(
       JournalService journalService,
       AuthenticatedUserRequest userRequest,
-      UUID resourceKey,
       IamResourceType resourceType,
-      String note) {
+      String note,
+      boolean clearHistory) {
     this.journalService = journalService;
     this.userReq = userRequest;
-    this.resourceKey = resourceKey;
     this.resourceType = resourceType;
     this.note = note;
+    this.clearHistory = clearHistory;
   }
+
+  public abstract UUID getResourceId(FlightContext context) throws InterruptedException;
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
-    journalService.recordUpdate(
-        userReq, resourceKey, resourceType, note, getFlightInformationOfInterest(context));
+    journalService.recordCreate(
+        userReq,
+        getResourceId(context),
+        resourceType,
+        note,
+        getFlightInformationOfInterest(context),
+        clearHistory);
     return StepResult.getStepResultSuccess();
   }
 

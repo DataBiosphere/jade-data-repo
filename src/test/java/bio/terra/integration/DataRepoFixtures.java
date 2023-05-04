@@ -1191,6 +1191,19 @@ public class DataRepoFixtures {
     return assertSuccessful(response, "bulkLoadArray failed");
   }
 
+  public ErrorModel bulkLoadArrayFailure(
+      TestConfiguration.User user, UUID datasetId, BulkLoadArrayRequestModel requestModel)
+      throws Exception {
+
+    DataRepoResponse<JobModel> launchResponse = bulkLoadArrayRaw(user, datasetId, requestModel);
+
+    DataRepoResponse<BulkLoadArrayResultModel> response =
+        dataRepoClient.waitForResponse(user, launchResponse, new TypeReference<>() {});
+    assertFalse("bulk load array failed", response.getStatusCode().is2xxSuccessful());
+    assertTrue("bulk load array error response is present", response.getErrorObject().isPresent());
+    return response.getErrorObject().get();
+  }
+
   public DataRepoResponse<JobModel> bulkLoadRaw(
       TestConfiguration.User user, UUID datasetId, BulkLoadRequestModel requestModel)
       throws Exception {
@@ -1216,6 +1229,17 @@ public class DataRepoFixtures {
     DataRepoResponse<BulkLoadResultModel> response =
         dataRepoClient.waitForResponse(user, launchResponse, new TypeReference<>() {});
     return assertSuccessful(response, "bulkLoad failed");
+  }
+
+  public ErrorModel bulkLoadFailure(
+      TestConfiguration.User user, UUID datasetId, BulkLoadRequestModel requestModel)
+      throws Exception {
+    DataRepoResponse<JobModel> launchResponse = bulkLoadRaw(user, datasetId, requestModel);
+    DataRepoResponse<ErrorModel> response =
+        dataRepoClient.waitForResponse(user, launchResponse, new TypeReference<>() {});
+    assertFalse("bulk load failed", response.getStatusCode().is2xxSuccessful());
+    assertTrue("bulk load error response is present", response.getErrorObject().isPresent());
+    return response.getErrorObject().get();
   }
 
   public BulkLoadHistoryModelList getLoadHistory(

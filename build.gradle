@@ -244,6 +244,8 @@ dependencies {
         }
     }
 
+    implementation group: "bio.terra", name: "terra-policy-client", version: "0.2.50-SNAPSHOT"
+    implementation group: "bio.terra", name: "terra-policy-service", version: "0.2.9-SNAPSHOT"
     implementation group: "bio.terra", name: "terra-resource-buffer-client", version: "0.4.3-SNAPSHOT"
     implementation group: "bio.terra", name: "externalcreds-client-resttemplate", version: "0.72.0-SNAPSHOT"
     implementation group: "org.glassfish.jersey.inject", name: "jersey-hk2", version: "2.30.1"

@@ -1183,15 +1183,14 @@ public class AzureSynapsePdao {
         return switch (column.getType()) {
           case BOOLEAN -> resultSet.getBoolean(column.getName());
           case BYTES -> resultSet.getBytes(column.getName());
-          case DATE -> resultSet.getDate(column.getName());
-          case DIRREF, FILEREF, STRING, TEXT -> resultSet.getString(column.getName());
+          case DIRREF, FILEREF, STRING, TEXT, DATE, DATETIME, TIMESTAMP -> resultSet.getString(
+              column.getName());
           case FLOAT -> resultSet.getFloat(column.getName());
           case FLOAT64 -> resultSet.getDouble(column.getName());
           case INTEGER -> resultSet.getInt(column.getName());
           case INT64 -> resultSet.getLong(column.getName());
           case NUMERIC -> resultSet.getFloat(column.getName());
           case TIME -> resultSet.getTime(column.getName());
-          case DATETIME, TIMESTAMP -> resultSet.getTimestamp(column.getName());
           default -> throw new IllegalArgumentException(
               "Unknown datatype '" + column.getType() + "'");
         };

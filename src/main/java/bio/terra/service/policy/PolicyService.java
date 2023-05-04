@@ -1,7 +1,9 @@
 package bio.terra.service.policy;
 
 import bio.terra.app.configuration.PolicyServiceConfiguration;
-import bio.terra.common.logging.RequestIdFilter;
+import bio.terra.common.ExceptionUtils;
+import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.policy.api.PublicApi;
 import bio.terra.policy.api.TpsApi;
 import bio.terra.policy.client.ApiClient;
 import bio.terra.policy.client.ApiException;
@@ -14,14 +16,12 @@ import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
 import bio.terra.service.policy.exception.PolicyServiceDuplicateException;
 import bio.terra.service.policy.exception.PolicyServiceNotFoundException;
 import bio.terra.service.policy.exception.PolicyConflictException;
-import io.opencensus.contrib.spring.aop.Traced;
 import java.io.IOException;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -39,12 +39,10 @@ public class PolicyService {
   }
 
   // -- Policy Attribute Object Interface --
-  @Traced
   public void createSnapshotPao(UUID snapshotId, @Nullable TpsPolicyInputs policyInputs) {
     createPao(snapshotId, TpsObjectType.SNAPSHOT, policyInputs);
   }
 
-  @Traced
   public void createPao(UUID resourceId, TpsObjectType resourceType, @Nullable TpsPolicyInputs policyInputs) {
     policyServiceConfiguration.tpsEnabledCheck();
     TpsPolicyInputs inputs = (policyInputs == null) ? new TpsPolicyInputs() : policyInputs;
@@ -62,7 +60,6 @@ public class PolicyService {
     }
   }
 
-  @Traced
   public void deletePao(UUID resourceId) {
     policyServiceConfiguration.tpsEnabledCheck();
     TpsApi tpsApi = policyApi();
@@ -78,12 +75,14 @@ public class PolicyService {
   }
 
   private ApiClient getApiClient(String accessToken) {
-    ApiClient client =
-        new ApiClient()
-            .addDefaultHeader(
-                RequestIdFilter.REQUEST_ID_HEADER,
-                MDC.get(RequestIdFilter.REQUEST_ID_MDC_KEY));
+    ApiClient client = new ApiClient();
     client.setAccessToken(accessToken);
+    return client;
+  }
+
+  private ApiClient getUnAuthApiClient() {
+    ApiClient client = new ApiClient();
+    client.setBasePath(policyServiceConfiguration.getBasePath());
     return client;
   }
 
@@ -115,4 +114,26 @@ public class PolicyService {
       return new PolicyServiceAPIException(ex);
     }
   }
+
+  /**
+   * @return status of Terra Policy Service (client does not return subsystem info)
+   */
+  public RepositoryStatusModelSystems status() {
+    PublicApi publicApi = new PublicApi(getUnAuthApiClient());
+    try {
+      publicApi.getStatus();
+      return new RepositoryStatusModelSystems()
+          .ok(true)
+          .critical(policyServiceConfiguration.getEnabled())
+          .message("Terra Policy Service status ok");
+    } catch (Exception ex) {
+      String errorMsg = "Terra Policy Service status check failed";
+      logger.error(errorMsg, ex);
+      return new RepositoryStatusModelSystems()
+          .ok(false)
+          .critical(policyServiceConfiguration.getEnabled())
+          .message(errorMsg + ": " + ExceptionUtils.formatException(ex));
+    }
+  }
+
 }

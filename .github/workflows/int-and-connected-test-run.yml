@@ -244,19 +244,6 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-  set-app-version-in-environment:
-    uses: broadinstitute/sherlock/.github/workflows/client-set-environment-app-version.yaml@main
-    needs:
-      - deploy_test_integration
-      - report-to-sherlock
-    with:
-      new-version: ${{ needs.deploy_test_integration.outputs.api_image_tag }}
-      chart-name: 'datarepo'
-      environment-name: 'datarepo-latest'
-    secrets:
-      sync-git-token: ${{ secrets.BROADBOT_TOKEN }}
-    permissions:
-      id-token: 'write'
   publish_test_reports:
     name: "Save execution reports and notify"
     timeout-minutes: 60

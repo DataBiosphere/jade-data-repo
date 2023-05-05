@@ -291,21 +291,30 @@ public class GcsPdao implements CloudFileReader {
   }
 
   /**
-   * Given a list a source paths, validate that the specified user has a pat service account with
-   * read permissions
+   * Given a list of source paths, validate that the specified user has a pet service account with
+   * read permissions. This method is a no-op if the destination dataset does not necessitate access
+   * validation.
    *
    * @param sourcePaths A list of gs:// formatted paths
    * @param cloudEncapsulationId The dataset project to bill to if any of the source buckets are
    *     configured to use requester pays
    * @param user An authenticated user
+   * @param dataset destination dataset for this ingestion
    * @throws BlobAccessNotAuthorizedException if the user does not have an authorized pet
    * @throws IllegalArgumentException if the source path is not a valid blob url
    */
   public void validateUserCanRead(
-      List<String> sourcePaths, String cloudEncapsulationId, AuthenticatedUserRequest user) {
+      List<String> sourcePaths,
+      String cloudEncapsulationId,
+      AuthenticatedUserRequest user,
+      Dataset dataset) {
     // If the connected profile is used, skip this check since we don't specify users when mocking
     // requests
     if (List.of(environment.getActiveProfiles()).contains("connectedtest")) {
+      return;
+    }
+    // If destination dataset doesn't necessitate access validation, skip this check.
+    if (!dataset.shouldValidateIngesterFileAccess()) {
       return;
     }
     // Obtain a token for the user's pet service account that can verify that it is allowed to read

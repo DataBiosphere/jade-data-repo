@@ -283,7 +283,8 @@ public final class IngestUtils {
       AuthenticatedUserRequest userRequest,
       String cloudEncapsulationId,
       List<Column> fileRefColumns,
-      ErrorCollector errorCollector) {
+      ErrorCollector errorCollector,
+      Dataset dataset) {
     try (var nodesStream =
         IngestUtils.getBulkFileLoadModelsStream(
             cloudFileReader,
@@ -299,7 +300,10 @@ public final class IngestUtils {
                 try {
                   validateBulkLoadFileModel(loadFileModel);
                   cloudFileReader.validateUserCanRead(
-                      List.of(loadFileModel.getSourcePath()), cloudEncapsulationId, userRequest);
+                      List.of(loadFileModel.getSourcePath()),
+                      cloudEncapsulationId,
+                      userRequest,
+                      dataset);
                 } catch (BlobAccessNotAuthorizedException
                     | BadRequestException
                     | IllegalArgumentException

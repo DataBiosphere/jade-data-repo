@@ -39,6 +39,7 @@ public class IngestJsonFileSetupGcpStep extends IngestJsonFileSetupStep {
         userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
         fileRefColumns,
-        errorCollector);
+        errorCollector,
+        dataset);
   }
 }

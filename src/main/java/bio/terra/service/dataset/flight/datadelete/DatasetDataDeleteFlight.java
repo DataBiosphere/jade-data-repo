@@ -73,7 +73,7 @@ public class DatasetDataDeleteFlight extends Flight {
     if (request.getSpecType() == DataDeletionRequest.SpecTypeEnum.GCSFILE) {
       addStep(
           new ValidateBucketAccessStep(
-              gcsPdao, UUID.fromString(datasetId), datasetService, userReq),
+              gcsPdao, userReq, datasetService.retrieveAvailable(UUID.fromString(datasetId))),
           getDefaultExponentialBackoffRetryRule());
     }
 

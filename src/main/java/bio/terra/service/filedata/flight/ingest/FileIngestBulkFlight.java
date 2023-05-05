@@ -198,6 +198,7 @@ public class FileIngestBulkFlight extends Flight {
                 executor,
                 appConfig.getMaxPerformanceThreadQueueSize()));
       } else {
+        // TODO: also validate file access for non-array bulk ingest.
         addStep(
             new IngestBulkGcpBulkFileStep(
                 loadTag,
@@ -220,8 +221,7 @@ public class FileIngestBulkFlight extends Flight {
       } else {
         if (platform.isGcp()) {
           addStep(
-              new ValidateBucketAccessStep(
-                  gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq),
+              new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
               getDefaultExponentialBackoffRetryRule());
           addStep(
               new IngestPopulateFileStateFromFileGcpStep(
@@ -242,7 +242,8 @@ public class FileIngestBulkFlight extends Flight {
                   azureBlobStorePdao,
                   bulkLoadObjectMapper,
                   executor,
-                  userReq));
+                  userReq,
+                  dataset));
         }
       }
       addStep(

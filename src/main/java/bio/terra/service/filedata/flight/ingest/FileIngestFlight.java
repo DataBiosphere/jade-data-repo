@@ -136,8 +136,7 @@ public class FileIngestFlight extends FileIngestTypeFlight {
     if (platform.isGcp()) {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));
       addStep(
-          new ValidateBucketAccessStep(
-              gcsPdao, dataset.getProjectResource().getGoogleProjectId(), userReq),
+          new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
           getDefaultExponentialBackoffRetryRule());
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
       if (!dataset.isSelfHosted()) {

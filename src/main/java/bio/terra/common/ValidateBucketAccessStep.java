@@ -6,46 +6,33 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
-import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.google.cloud.storage.StorageException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ValidateBucketAccessStep implements Step {
+public class ValidateBucketAccessStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(ValidateBucketAccessStep.class);
 
   private final GcsPdao gcsPdao;
   private final AuthenticatedUserRequest userRequest;
-  private final String projectId;
+  private final Dataset dataset;
 
   public ValidateBucketAccessStep(
-      GcsPdao gcsPdao, String projectId, AuthenticatedUserRequest userRequest) {
-    this.gcsPdao = gcsPdao;
-    this.projectId = projectId;
-    this.userRequest = userRequest;
-  }
-
-  public ValidateBucketAccessStep(
-      GcsPdao gcsPdao,
-      UUID datasetId,
-      DatasetService datasetService,
-      AuthenticatedUserRequest userRequest) {
+      GcsPdao gcsPdao, AuthenticatedUserRequest userRequest, Dataset dataset) {
     this.gcsPdao = gcsPdao;
     this.userRequest = userRequest;
-    this.projectId =
-        datasetService.retrieveAvailable(datasetId).getProjectResource().getGoogleProjectId();
+    this.dataset = dataset;
   }
 
   @Override
@@ -56,34 +43,31 @@ public class ValidateBucketAccessStep implements Step {
               + "fact be a GoogleJsonResponseException")
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap inputParameters = context.getInputParameters();
-    List<String> sourcePath;
+    List<String> sourcePaths;
     Object loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), Object.class);
-    if (loadModel instanceof FileLoadModel) {
+    if (loadModel instanceof FileLoadModel fileLoadModel) {
       // Single file ingest
-      sourcePath = List.of(((FileLoadModel) loadModel).getSourcePath());
-    } else if (loadModel instanceof BulkLoadRequestModel) {
+      sourcePaths = List.of(fileLoadModel.getSourcePath());
+    } else if (loadModel instanceof BulkLoadRequestModel bulkLoadRequestModel) {
       // Bulk file ingest
-      sourcePath = List.of(((BulkLoadRequestModel) loadModel).getLoadControlFile());
-    } else if (loadModel instanceof IngestRequestModel) {
-      // Metadata ingests
+      sourcePaths = List.of(bulkLoadRequestModel.getLoadControlFile());
+    } else if (loadModel instanceof IngestRequestModel ingestRequestModel) {
       // Don't validate if we are ingesting as a payload object
-      if (((IngestRequestModel) loadModel).getFormat().equals(FormatEnum.ARRAY)) {
-        sourcePath = List.of();
+      if (ingestRequestModel.getFormat().equals(FormatEnum.ARRAY)) {
+        sourcePaths = List.of();
       } else {
-        sourcePath = List.of(((IngestRequestModel) loadModel).getPath());
+        sourcePaths = List.of(ingestRequestModel.getPath());
       }
-    } else if (loadModel instanceof DataDeletionRequest) {
+    } else if (loadModel instanceof DataDeletionRequest dataDeletionRequest) {
       // Soft deletes
-      sourcePath =
-          ((DataDeletionRequest) loadModel)
-              .getTables().stream()
-                  .map(t -> t.getGcsFileSpec().getPath())
-                  .collect(Collectors.toList());
+      sourcePaths =
+          dataDeletionRequest.getTables().stream().map(t -> t.getGcsFileSpec().getPath()).toList();
     } else {
       throw new IllegalArgumentException("Invalid request type");
     }
     try {
-      gcsPdao.validateUserCanRead(sourcePath, projectId, userRequest);
+      String projectId = dataset.getProjectResource().getGoogleProjectId();
+      gcsPdao.validateUserCanRead(sourcePaths, projectId, userRequest, dataset);
     } catch (StorageException e) {
       if (e.getCode() == HttpStatus.SC_FORBIDDEN
           && e.getMessage()
@@ -94,11 +78,6 @@ public class ValidateBucketAccessStep implements Step {
       }
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
     }
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

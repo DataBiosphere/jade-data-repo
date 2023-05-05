@@ -43,6 +43,7 @@ public class IngestJsonFileSetupAzureStep extends IngestJsonFileSetupStep {
         userRequest,
         tenantId,
         fileRefColumns,
-        errorCollector);
+        errorCollector,
+        dataset);
   }
 }

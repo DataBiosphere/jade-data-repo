@@ -31,8 +31,7 @@ public class IngestRequestValidator implements Validator {
       value = "UC_USELESS_VOID_METHOD",
       justification = "FB mistake - this clearly validates and returns data in errors")
   public void validate(@NotNull Object target, Errors errors) {
-    if (target instanceof IngestRequestModel) {
-      IngestRequestModel ingestRequest = (IngestRequestModel) target;
+    if (target instanceof IngestRequestModel ingestRequest) {
       validateTableName(ingestRequest.getTable(), errors);
       boolean isPayloadIngest =
           ingestRequest.getFormat().equals(IngestRequestModel.FormatEnum.ARRAY);
@@ -57,8 +56,7 @@ public class IngestRequestValidator implements Validator {
             "DataPayloadIsPresent",
             "Records should not be specified when ingesting from a path");
       }
-    } else if (target instanceof FileLoadModel) {
-      FileLoadModel fileLoadModel = (FileLoadModel) target;
+    } else if (target instanceof FileLoadModel fileLoadModel) {
       if (fileLoadModel.getProfileId() == null) {
         errors.rejectValue("profileId", "ProfileIdMissing", "File ingest requires a profile id.");
       }

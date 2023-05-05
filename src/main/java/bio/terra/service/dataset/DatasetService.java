@@ -640,7 +640,8 @@ public class DatasetService {
           return BigQueryPdao.getStatsForNumericColumn(
               dataset, bqFormattedTableName, column, filter);
         } else if (column.isTextType()) {
-          return BigQueryPdao.getStatsForTextColumn(dataset, bqFormattedTableName, column, filter);
+          return BigQueryPdao.getStatsForTextColumn(
+              dataset, bqFormattedTableName, tableName, column, filter);
         }
         return new ColumnStatisticsModel();
       } catch (InterruptedException e) {

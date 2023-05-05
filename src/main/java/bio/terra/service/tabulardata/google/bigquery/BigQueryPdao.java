@@ -1,6 +1,7 @@
 package bio.terra.service.tabulardata.google.bigquery;
 
 import static bio.terra.common.PdaoConstant.PDAO_COUNT_ALIAS;
+import static bio.terra.common.PdaoConstant.PDAO_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_FILTERED_ROW_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
@@ -13,6 +14,7 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnStatisticsNumericModel;
 import bio.terra.model.ColumnStatisticsTextModel;
+import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.google.BigQueryProject;
@@ -253,12 +255,12 @@ public abstract class BigQueryPdao {
   public static final String ARRAY_TEXT_COLUMN_STATS_TEMPLATE =
       """
           WITH array_field AS (Select <column> FROM <table> <whereClause>)
-            Select DISTINCT flattened_array_field AS <column> FROM array_field CROSS JOIN UNNEST(array_field.<column>)
-            AS flattened_array_field ORDER BY flattened_array_field <direction>
+            Select flattened_array_field AS <column>, COUNT(*) AS <countColumn> FROM array_field CROSS JOIN UNNEST(array_field.<column>)
+            AS flattened_array_field GROUP BY flattened_array_field ORDER BY flattened_array_field <direction>
           """;
   public static final String TEXT_COLUMN_STATS_TEMPLATE =
       """
-        SELECT DISTINCT <column> FROM <table> <whereClause> ORDER BY <column> <direction>
+        SELECT <column>, COUNT(*) AS <countColumn> FROM <table> AS <tableName> <whereClause> GROUP BY <tableName>.<column> ORDER BY <column> <direction>
       """;
 
   public static final String ARRAY_NUMERIC_COLUMN_STATS_TEMPLATE =
@@ -274,7 +276,11 @@ public abstract class BigQueryPdao {
       """;
 
   public static ColumnStatisticsTextModel getStatsForTextColumn(
-      FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
+      FSContainerInterface tdrResource,
+      String bqFormattedTableName,
+      String tableName,
+      Column column,
+      String filter)
       throws InterruptedException {
     String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
@@ -285,7 +291,9 @@ public abstract class BigQueryPdao {
     final String bigQuerySQL =
         new ST(column.isArrayOf() ? ARRAY_TEXT_COLUMN_STATS_TEMPLATE : TEXT_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
+            .add("countColumn", PDAO_COUNT_COLUMN_NAME)
             .add("table", bigQueryTable)
+            .add("tableName", tableName)
             .add("whereClause", whereClause)
             .add("direction", SqlSortDirection.ASC)
             .render();
@@ -294,19 +302,23 @@ public abstract class BigQueryPdao {
     return new ColumnStatisticsTextModel().values(aggregateColumnStats(result, columnName));
   }
 
-  private static List<String> aggregateColumnStats(TableResult result, String column) {
-    List<String> values = new ArrayList<>();
+  private static List<ColumnStatisticsTextValue> aggregateColumnStats(
+      TableResult result, String column) {
+    List<ColumnStatisticsTextValue> values = new ArrayList<>();
     result
         .iterateAll()
         .forEach(
             rows -> {
-              FieldValue fieldValue = rows.get(column);
-              if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
-                fieldValue.getRepeatedValue().stream()
-                    .forEach(val -> values.add(val.getStringValue()));
-              } else {
-                values.add(fieldValue.getStringValue());
-              }
+              ColumnStatisticsTextValue val = new ColumnStatisticsTextValue();
+              val.value(rows.get(column).getStringValue());
+              val.count((int) (rows.get(PDAO_COUNT_COLUMN_NAME).getLongValue()));
+              values.add(val);
+              // I don't _think_ we need to handle array fields b/c we flatten them
+              //              if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
+              //                fieldValue.getRepeatedValue().stream()
+              //                    .forEach(val -> values.add(val.getStringValue()));
+              //              } else {
+
             });
     return values;
   }

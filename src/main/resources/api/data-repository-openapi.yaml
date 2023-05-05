@@ -4773,8 +4773,14 @@ components:
             values:
               type: array
               items:
-                type: string
-              description: list
+                $ref: '#/components/schemas/ColumnStatisticsTextValue'
+    ColumnStatisticsTextValue:
+      type: object
+      properties:
+        value:
+          type: string
+        count:
+          type: integer
     ColumnStatisticsNumericModel:
       allOf:
         - $ref: '#/components/schemas/ColumnStatisticsModel'

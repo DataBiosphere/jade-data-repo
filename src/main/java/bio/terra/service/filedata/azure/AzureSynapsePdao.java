@@ -1050,14 +1050,16 @@ public class AzureSynapsePdao {
 
   public static ColumnStatisticsNumericModel getStatsForNumericColumn(
       Column column, String dataSourceName, String parquetFileLocation) {
-    throw new FeatureNotImplementedException("This feature is not yet supported for Azure-backed datasets.");
-//    return new ColumnStatisticsNumericModel();
+    throw new FeatureNotImplementedException(
+        "This feature is not yet supported for Azure-backed datasets.");
+    //    return new ColumnStatisticsNumericModel();
   }
 
   public static ColumnStatisticsTextModel getStatsForTextColumn(
       Column column, String dataSourceName, String parquetFileLocation) {
-    throw new FeatureNotImplementedException("This feature is not yet supported for Azure-backed datasets.");
-//    return new ColumnStatisticsTextModel();
+    throw new FeatureNotImplementedException(
+        "This feature is not yet supported for Azure-backed datasets.");
+    //    return new ColumnStatisticsTextModel();
   }
 
   public List<SynapseDataResultModel> getTableData(

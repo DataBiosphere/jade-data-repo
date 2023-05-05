@@ -79,7 +79,7 @@ public class AzureSynapsePdaoConnectedTest {
           Stream.of(
                   Map.entry("boolCol", true),
                   Map.entry("dateCol", Date.valueOf("2021-08-01")),
-                  Map.entry("dateTimeCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("dateTimeCol", Timestamp.valueOf("2021-08-01 23:59:59.9999990")),
                   Map.entry("dirRefCol", UUID.fromString("7a1e4648-fb95-11eb-9a03-0242ac130003")),
                   Map.entry("file", UUID.fromString("816ca5ca-fb95-11eb-9a03-0242ac130003")),
                   Map.entry("float64Col", 1.79E+308D),
@@ -90,13 +90,13 @@ public class AzureSynapsePdaoConnectedTest {
                   Map.entry("first_name", "Bob"),
                   Map.entry("textCol", "Dao"),
                   Map.entry("timeCol", Time.valueOf("01:01:00")),
-                  Map.entry("timestampCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("timestampCol", Timestamp.valueOf("2021-08-01 23:59:59.9999990")),
                   Map.entry("arrayCol", List.of("lion", "tiger")))
               .collect(Collectors.toMap(Entry::getKey, e -> Optional.of(e.getValue()))),
           Stream.of(
                   Map.entry("boolCol", false),
                   Map.entry("dateCol", Date.valueOf("2021-01-01")),
-                  Map.entry("dateTimeCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("dateTimeCol", Timestamp.valueOf("2021-08-01 23:59:59.9999990")),
                   Map.entry("dirRefCol", UUID.fromString("856d0926-fb95-11eb-9a03-0242ac130003")),
                   Map.entry("file", UUID.fromString("89875e76-fb95-11eb-9a03-0242ac130003")),
                   Map.entry("float64Col", -1.79E+308D),
@@ -107,7 +107,7 @@ public class AzureSynapsePdaoConnectedTest {
                   Map.entry("first_name", "Sally"),
                   Map.entry("textCol", "Jones"),
                   Map.entry("timeCol", Time.valueOf("01:01:00")),
-                  Map.entry("timestampCol", Timestamp.valueOf("2021-08-01 23:59:59.999999")),
+                  Map.entry("timestampCol", Timestamp.valueOf("2021-08-01 23:59:59.9999990")),
                   Map.entry("arrayCol", List.of("horse", "dog")))
               .collect(Collectors.toMap(Entry::getKey, e -> Optional.of(e.getValue()))));
   private static final List<Map<String, Optional<Object>>> SAMPLE_DATA_CSV =

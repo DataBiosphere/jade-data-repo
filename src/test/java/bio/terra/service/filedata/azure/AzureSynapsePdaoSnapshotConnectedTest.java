@@ -301,7 +301,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
     allDataTypesTable =
         synapseUtils.ingestIntoAllDataTypesTable(
             csvIngestRequestModel,
-            "azure-simple-dataset-ingest-request.csv",
+            "azure-simple-dataset-ingest-request-May2023.csv",
             randomFlightId,
             datasetStorageAccountResource,
             billingProfile);

@@ -153,7 +153,7 @@ public class AzureIngestFileConnectedTest {
         synapseUtils.ingestRequestURL(
             testConfig.getSourceStorageAccountName(),
             testConfig.getIngestRequestContainer(),
-            "azure-simple-dataset-ingest-request.json");
+            "azure-simple-dataset-ingest-request-May2023.json");
 
     targetPath = "/test/path/file.json";
     fileLoadModel =

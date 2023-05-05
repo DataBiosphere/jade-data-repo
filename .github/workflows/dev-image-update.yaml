@@ -103,6 +103,19 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
+  set-app-version-in-environment:
+    uses: broadinstitute/sherlock/.github/workflows/client-set-environment-app-version.yaml@main
+    needs:
+      - update_image
+      - report-to-sherlock
+    with:
+      new-version: ${{ needs.update_image.outputs.api_image_tag }}
+      chart-name: 'datarepo'
+      environment-name: 'datarepo-latest'
+    secrets:
+      sync-git-token: ${{ secrets.BROADBOT_TOKEN }}
+    permissions:
+      id-token: 'write'
   helm_tag_bumper:
     needs: update_image
     uses: ./.github/workflows/helmtagbumper.yaml

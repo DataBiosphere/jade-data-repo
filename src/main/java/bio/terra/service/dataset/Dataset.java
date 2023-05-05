@@ -288,6 +288,31 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return this;
   }
 
+  /**
+   * When ingesting to a GCP dataset, TDR can bypass the costly permission checking of all ingested
+   * files if the dataset has a dedicated service account, as such accounts are unique to the
+   * dataset and ingests will correctly fail if it lacks needed permission on the files.
+   *
+   * <p>Otherwise, we must preserve this check to ensure that a user cannot ingest files
+   * inaccessible to them, but accessible to the general TDR service account.
+   *
+   * <p>This check is not needed for Azure datasets because we use signed URLS that by default check
+   * permissions.
+   *
+   * @return whether TDR should verify that the ingester has access to the files they're trying to
+   *     ingest.
+   */
+  public boolean shouldValidateIngesterFileAccess() {
+    if (getCloudPlatform() == CloudPlatform.AZURE) {
+      return false;
+    }
+    boolean hasDedicatedServiceAccount =
+        Optional.ofNullable(projectResource)
+            .map(GoogleProjectResource::hasDedicatedServiceAccount)
+            .orElse(false);
+    return !hasDedicatedServiceAccount;
+  }
+
   @Override
   public FireStoreProject firestoreConnection() {
     return FireStoreProject.get(getProjectResource().getGoogleProjectId());

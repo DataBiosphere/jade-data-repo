@@ -36,6 +36,12 @@ on:
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
 jobs:
+  test_fail:
+    runs-on: ubuntu-latest
+    steps:
+    - name: "test failure to see if we need always"
+      run: |-
+        failfailfail
   test_check:
     name: "Checkout, verify and run unit tests"
     outputs:

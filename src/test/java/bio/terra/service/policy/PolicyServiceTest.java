@@ -27,8 +27,8 @@ import org.springframework.test.context.ActiveProfiles;
 @Category(Unit.class)
 public class PolicyServiceTest {
 
-  @Mock private PublicApi publicApi;
   @Mock private PolicyServiceConfiguration policyServiceConfiguration;
+  @Mock private PolicyApiService policyApiService;
   private PolicyService policyService;
 
   @Before
@@ -36,7 +36,7 @@ public class PolicyServiceTest {
     when(policyServiceConfiguration.getEnabled()).thenReturn(true);
     when(policyServiceConfiguration.getBasePath())
         .thenReturn("https://tps.dsde-dev.broadinstitute.org");
-    policyService = new PolicyService(policyServiceConfiguration);
+    policyService = new PolicyService(policyServiceConfiguration, policyApiService);
   }
 
   @Test

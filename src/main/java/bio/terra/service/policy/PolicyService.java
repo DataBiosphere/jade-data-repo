@@ -5,7 +5,6 @@ import bio.terra.common.ExceptionUtils;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.policy.api.PublicApi;
 import bio.terra.policy.api.TpsApi;
-import bio.terra.policy.client.ApiClient;
 import bio.terra.policy.client.ApiException;
 import bio.terra.policy.model.TpsComponent;
 import bio.terra.policy.model.TpsObjectType;
@@ -17,13 +16,11 @@ import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
 import bio.terra.service.policy.exception.PolicyServiceDuplicateException;
 import bio.terra.service.policy.exception.PolicyServiceNotFoundException;
 import com.google.common.annotations.VisibleForTesting;
-import java.io.IOException;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -31,9 +28,12 @@ import org.springframework.stereotype.Component;
 public class PolicyService {
   private static final Logger logger = LoggerFactory.getLogger(PolicyService.class);
   private final PolicyServiceConfiguration policyServiceConfiguration;
+  private final PolicyApiService policyApiService;
 
-  public PolicyService(PolicyServiceConfiguration policyServiceConfiguration) {
+  public PolicyService(
+      PolicyServiceConfiguration policyServiceConfiguration, PolicyApiService policyApiService) {
     this.policyServiceConfiguration = policyServiceConfiguration;
+    this.policyApiService = policyApiService;
   }
 
   // -- Policy Attribute Object Interface --
@@ -46,7 +46,7 @@ public class PolicyService {
     policyServiceConfiguration.tpsEnabledCheck();
     TpsPolicyInputs inputs = (policyInputs == null) ? new TpsPolicyInputs() : policyInputs;
 
-    TpsApi tpsApi = policyApi();
+    TpsApi tpsApi = policyApiService.getPolicyApi();
     try {
       tpsApi.createPao(
           new TpsPaoCreateRequest()
@@ -61,7 +61,7 @@ public class PolicyService {
 
   public void deletePao(UUID resourceId) {
     policyServiceConfiguration.tpsEnabledCheck();
-    TpsApi tpsApi = policyApi();
+    TpsApi tpsApi = policyApiService.getPolicyApi();
     try {
       try {
         tpsApi.deletePao(resourceId);
@@ -70,29 +70,6 @@ public class PolicyService {
       }
     } catch (PolicyServiceNotFoundException e) {
       // Not found should not cause a failure on delete.
-    }
-  }
-
-  private ApiClient getApiClient(String accessToken) {
-    ApiClient client = new ApiClient();
-    client.setAccessToken(accessToken);
-    return client;
-  }
-
-  private ApiClient getUnAuthApiClient() {
-    ApiClient client = new ApiClient();
-    client.setBasePath(policyServiceConfiguration.getBasePath());
-    return client;
-  }
-
-  private TpsApi policyApi() {
-    try {
-      return new TpsApi(
-          getApiClient(policyServiceConfiguration.getAccessToken())
-              .setBasePath(policyServiceConfiguration.getBasePath()));
-    } catch (IOException e) {
-      throw new PolicyServiceAuthorizationException(
-          "Error reading or parsing credentials file", e.getCause());
     }
   }
 
@@ -118,7 +95,7 @@ public class PolicyService {
    * @return status of Terra Policy Service (client does not return subsystem info)
    */
   public RepositoryStatusModelSystems status() {
-    PublicApi publicApi = new PublicApi(getUnAuthApiClient());
+    PublicApi publicApi = policyApiService.getUnauthPolicyApi();
     try {
       publicApi.getStatus();
       return new RepositoryStatusModelSystems()

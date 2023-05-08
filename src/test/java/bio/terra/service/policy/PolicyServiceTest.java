@@ -1,18 +1,11 @@
 package bio.terra.service.policy;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.PolicyServiceConfiguration;
 import bio.terra.common.category.Unit;
-import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.policy.api.PublicApi;
 import bio.terra.policy.client.ApiException;
 import bio.terra.service.policy.exception.PolicyConflictException;
@@ -73,5 +66,4 @@ public class PolicyServiceTest {
         policyService.convertApiException(generalException),
         instanceOf(PolicyServiceAPIException.class));
   }
-
 }

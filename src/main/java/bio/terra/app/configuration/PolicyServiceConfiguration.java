@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-/** Configuration for managing connection to Buffer Service. * */
+/** Configuration for managing connection to Terra Policy Service. * */
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "tps")

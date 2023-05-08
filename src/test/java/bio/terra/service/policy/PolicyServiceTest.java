@@ -9,7 +9,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.policy.api.PublicApi;
 import bio.terra.policy.client.ApiException;
 import bio.terra.service.policy.exception.PolicyConflictException;
-import bio.terra.service.policy.exception.PolicyServiceAPIException;
+import bio.terra.service.policy.exception.PolicyServiceApiException;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
 import bio.terra.service.policy.exception.PolicyServiceDuplicateException;
 import bio.terra.service.policy.exception.PolicyServiceNotFoundException;
@@ -43,27 +43,27 @@ public class PolicyServiceTest {
   public void testConvertApiException() {
     var unauthorizedException = new ApiException(HttpStatus.UNAUTHORIZED.value(), "unauthorized");
     assertThat(
-        policyService.convertApiException(unauthorizedException),
+        PolicyService.convertApiException(unauthorizedException),
         instanceOf(PolicyServiceAuthorizationException.class));
 
     var notFoundException = new ApiException(HttpStatus.NOT_FOUND.value(), "not found");
     assertThat(
-        policyService.convertApiException(notFoundException),
+        PolicyService.convertApiException(notFoundException),
         instanceOf(PolicyServiceNotFoundException.class));
 
     var badRequestException = new ApiException(HttpStatus.BAD_REQUEST.value(), "duplicate object");
     assertThat(
-        policyService.convertApiException(badRequestException),
+        PolicyService.convertApiException(badRequestException),
         instanceOf(PolicyServiceDuplicateException.class));
 
     var conflictException = new ApiException(HttpStatus.CONFLICT.value(), "conflict");
     assertThat(
-        policyService.convertApiException(conflictException),
+        PolicyService.convertApiException(conflictException),
         instanceOf(PolicyConflictException.class));
 
     var generalException = new ApiException(HttpStatus.I_AM_A_TEAPOT.value(), "error");
     assertThat(
-        policyService.convertApiException(generalException),
-        instanceOf(PolicyServiceAPIException.class));
+        PolicyService.convertApiException(generalException),
+        instanceOf(PolicyServiceApiException.class));
   }
 }

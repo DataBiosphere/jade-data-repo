@@ -12,7 +12,7 @@ import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoCreateRequest;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.policy.exception.PolicyConflictException;
-import bio.terra.service.policy.exception.PolicyServiceAPIException;
+import bio.terra.service.policy.exception.PolicyServiceApiException;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
 import bio.terra.service.policy.exception.PolicyServiceDuplicateException;
 import bio.terra.service.policy.exception.PolicyServiceNotFoundException;
@@ -32,10 +32,8 @@ public class PolicyService {
   private static final Logger logger = LoggerFactory.getLogger(PolicyService.class);
   private final PolicyServiceConfiguration policyServiceConfiguration;
 
-  @Autowired
   public PolicyService(PolicyServiceConfiguration policyServiceConfiguration) {
     this.policyServiceConfiguration = policyServiceConfiguration;
-    logger.info("TPS base path: '{}'", policyServiceConfiguration.getBasePath());
   }
 
   // -- Policy Attribute Object Interface --
@@ -99,7 +97,7 @@ public class PolicyService {
   }
 
   @VisibleForTesting
-  public RuntimeException convertApiException(ApiException ex) {
+  static RuntimeException convertApiException(ApiException ex) {
     if (ex.getCode() == HttpStatus.UNAUTHORIZED.value()) {
       return new PolicyServiceAuthorizationException(
           "Not authorized to access Terra Policy Service", ex.getCause());
@@ -112,7 +110,7 @@ public class PolicyService {
     } else if (ex.getCode() == HttpStatus.CONFLICT.value()) {
       return new PolicyConflictException("Policy service throws conflict exception", ex);
     } else {
-      return new PolicyServiceAPIException(ex);
+      return new PolicyServiceApiException(ex);
     }
   }
 

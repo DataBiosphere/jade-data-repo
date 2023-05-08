@@ -7,10 +7,10 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 
 /** Wrapper exception for non-200 responses from calls to Terra Policy Service. */
-public class PolicyServiceAPIException extends ErrorReportException {
+public class PolicyServiceApiException extends ErrorReportException {
   private ApiException apiException;
 
-  public PolicyServiceAPIException(ApiException ex) {
+  public PolicyServiceApiException(ApiException ex) {
     super(
         "Error from Policy Service: ",
         ex,
@@ -19,23 +19,23 @@ public class PolicyServiceAPIException extends ErrorReportException {
     this.apiException = ex;
   }
 
-  public PolicyServiceAPIException(String message) {
+  public PolicyServiceApiException(String message) {
     super(message);
   }
 
-  public PolicyServiceAPIException(String message, Throwable cause) {
+  public PolicyServiceApiException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public PolicyServiceAPIException(Throwable cause) {
+  public PolicyServiceApiException(Throwable cause) {
     super(cause);
   }
 
-  public PolicyServiceAPIException(String message, List<String> causes, HttpStatus statusCode) {
+  public PolicyServiceApiException(String message, List<String> causes, HttpStatus statusCode) {
     super(message, causes, statusCode);
   }
 
-  public PolicyServiceAPIException(
+  public PolicyServiceApiException(
       String message, Throwable cause, List<String> causes, HttpStatus statusCode) {
     super(message, cause, causes, statusCode);
   }

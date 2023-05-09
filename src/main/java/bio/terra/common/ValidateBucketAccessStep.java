@@ -2,6 +2,7 @@ package bio.terra.common;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.FileLoadModel;
@@ -16,6 +17,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.google.cloud.storage.StorageException;
+import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import org.apache.http.HttpStatus;
@@ -45,6 +47,12 @@ public class ValidateBucketAccessStep extends DefaultUndoStep {
     this.dataset = dataset;
   }
 
+  // Expected substring in Google storage exception message when delays in pet account access
+  // propagation may impact our ability to verify access
+  @VisibleForTesting
+  static final String PET_PROPAGATION_ERROR_MSG =
+      "does not have serviceusage.services.use access to the Google Cloud project.";
+
   @Override
   @SuppressFBWarnings(
       value = "BC",
@@ -59,20 +67,22 @@ public class ValidateBucketAccessStep extends DefaultUndoStep {
       // Single file ingest
       sourcePaths = List.of(fileLoadModel.getSourcePath());
     } else if (loadModel instanceof BulkLoadRequestModel bulkLoadRequestModel) {
-      // Bulk file ingest
+      // Bulk file ingest (JSON format)
       sourcePaths = List.of(bulkLoadRequestModel.getLoadControlFile());
     } else if (loadModel instanceof BulkLoadArrayRequestModel bulkLoadArrayRequestModel) {
-      // Bulk array file ingest
+      // Bulk file ingest (array format)
       sourcePaths =
-          bulkLoadArrayRequestModel.getLoadArray().stream().map(l -> l.getSourcePath()).toList();
+          bulkLoadArrayRequestModel.getLoadArray().stream()
+              .map(BulkLoadFileModel::getSourcePath)
+              .toList();
     } else if (loadModel instanceof IngestRequestModel ingestRequestModel) {
       // Combined metadata and file ingest
       if (ingestRequestModel.getFormat().equals(FormatEnum.ARRAY)) {
-        // In array mode, TDR will write its own control file in a scratch bucket. The user
+        // Array format: TDR will write its own control file in a scratch bucket. The user
         // initiating the flight is not expected to have access to it.
         sourcePaths = List.of();
       } else {
-        // User-supplied control file
+        // JSON or CSV format: User-supplied control file
         sourcePaths = List.of(ingestRequestModel.getPath());
       }
     } else if (loadModel instanceof DataDeletionRequest dataDeletionRequest) {
@@ -87,9 +97,7 @@ public class ValidateBucketAccessStep extends DefaultUndoStep {
       gcsPdao.validateUserCanRead(sourcePaths, projectId, userRequest, dataset);
     } catch (StorageException e) {
       if (e.getCode() == HttpStatus.SC_FORBIDDEN
-          && e.getMessage()
-              .contains(
-                  "does not have serviceusage.services.use access to the Google Cloud project.")) {
+          && e.getMessage().contains(PET_PROPAGATION_ERROR_MSG)) {
         logger.warn("Pet service account has not propagated permissions yet", e);
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
       }

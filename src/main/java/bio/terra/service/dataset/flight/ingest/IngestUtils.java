@@ -276,7 +276,34 @@ public final class IngestUtils {
         .filter(Objects::nonNull);
   }
 
-  public static long countAndValidateBulkFileLoadModelsFromPath(
+  /**
+   * @return a stream consisting of `nodesStream` elements having first undergone format and access
+   *     validation, with any errors recorded to `errorCollector`
+   */
+  public static Stream<BulkLoadFileModel> validateBulkFileLoadModelsFromStream(
+      Stream<BulkLoadFileModel> nodesStream,
+      CloudFileReader cloudFileReader,
+      String cloudEncapsulationId,
+      AuthenticatedUserRequest userRequest,
+      ErrorCollector errorCollector,
+      Dataset dataset) {
+    logger.info("START validateBulkFileLoadModelsFromStream");
+    return nodesStream.peek(
+        loadFileModel -> {
+          try {
+            validateBulkLoadFileModel(loadFileModel);
+            cloudFileReader.validateUserCanRead(
+                List.of(loadFileModel.getSourcePath()), cloudEncapsulationId, userRequest, dataset);
+          } catch (BlobAccessNotAuthorizedException
+              | BadRequestException
+              | IllegalArgumentException
+              | StorageException ex) {
+            errorCollector.record("Error: %s", ex.getMessage());
+          }
+        });
+  }
+
+  public static long validateAndCountBulkFileLoadModelsFromPath(
       CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
@@ -294,23 +321,13 @@ public final class IngestUtils {
             cloudEncapsulationId,
             fileRefColumns,
             errorCollector)) {
-      return nodesStream
-          .peek(
-              loadFileModel -> {
-                try {
-                  validateBulkLoadFileModel(loadFileModel);
-                  cloudFileReader.validateUserCanRead(
-                      List.of(loadFileModel.getSourcePath()),
-                      cloudEncapsulationId,
-                      userRequest,
-                      dataset);
-                } catch (BlobAccessNotAuthorizedException
-                    | BadRequestException
-                    | IllegalArgumentException
-                    | StorageException ex) {
-                  errorCollector.record("Error: %s", ex.getMessage());
-                }
-              })
+      return IngestUtils.validateBulkFileLoadModelsFromStream(
+              nodesStream,
+              cloudFileReader,
+              cloudEncapsulationId,
+              userRequest,
+              errorCollector,
+              dataset)
           .count();
     }
   }

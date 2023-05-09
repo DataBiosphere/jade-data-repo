@@ -173,6 +173,9 @@ public class FileIngestBulkFlight extends Flight {
             randomBackoffRetry);
         addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
       }
+      addStep(
+          new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
+          getDefaultExponentialBackoffRetryRule());
     } else if (platform.isAzure()) {
       addStep(
           new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
@@ -198,7 +201,6 @@ public class FileIngestBulkFlight extends Flight {
                 executor,
                 appConfig.getMaxPerformanceThreadQueueSize()));
       } else {
-        // TODO: also validate file access for non-array bulk ingest.
         addStep(
             new IngestBulkGcpBulkFileStep(
                 loadTag,
@@ -220,9 +222,6 @@ public class FileIngestBulkFlight extends Flight {
         addStep(new IngestPopulateFileStateFromArrayStep(loadService));
       } else {
         if (platform.isGcp()) {
-          addStep(
-              new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
-              getDefaultExponentialBackoffRetryRule());
           addStep(
               new IngestPopulateFileStateFromFileGcpStep(
                   loadService,

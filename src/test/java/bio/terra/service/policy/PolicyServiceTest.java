@@ -7,8 +7,8 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.PolicyServiceConfiguration;
 import bio.terra.model.RepositoryStatusModelSystems;
@@ -48,14 +48,24 @@ public class PolicyServiceTest {
 
   @BeforeEach
   public void setup() throws Exception {
-    lenient().when(policyServiceConfiguration.getEnabled()).thenReturn(true);
-    lenient().when(policyApiService.getPolicyApi()).thenReturn(tpsApi);
-    lenient().when(policyApiService.getUnauthPolicyApi()).thenReturn(tpsUnauthApi);
     policyService = new PolicyService(policyServiceConfiguration, policyApiService);
   }
 
+  private void mockPolicyServiceConfiguration() {
+    when(policyServiceConfiguration.getEnabled()).thenReturn(true);
+  }
+
+  private void mockPolicyApi() {
+    when(policyApiService.getPolicyApi()).thenReturn(tpsApi);
+  }
+
+  private void mockUnauthPolicyApi() {
+    when(policyApiService.getUnauthPolicyApi()).thenReturn(tpsUnauthApi);
+  }
+
   @Test
-  public void testCreateSnapshotDao() throws Exception {
+  void testCreateSnapshotDao() throws Exception {
+    mockPolicyApi();
     UUID snapshotId = UUID.randomUUID();
     TpsPolicyInput policy = new TpsPolicyInput().namespace("terra").name("protected-data");
     TpsPolicyInputs policies = new TpsPolicyInputs().addInputsItem(policy);
@@ -70,7 +80,7 @@ public class PolicyServiceTest {
   }
 
   @Test
-  public void testConvertApiException() {
+  void testConvertApiException() {
     var unauthorizedException = new ApiException(HttpStatus.UNAUTHORIZED.value(), "unauthorized");
     assertThat(
         PolicyService.convertApiException(unauthorizedException),
@@ -98,7 +108,9 @@ public class PolicyServiceTest {
   }
 
   @Test
-  public void testStatusOk() {
+  void testStatusOk() {
+    mockPolicyServiceConfiguration();
+    mockUnauthPolicyApi();
     RepositoryStatusModelSystems status = policyService.status();
     assertTrue(status.isOk());
     assertThat(status.isCritical(), equalTo(policyServiceConfiguration.getEnabled()));
@@ -106,7 +118,9 @@ public class PolicyServiceTest {
   }
 
   @Test
-  public void testStatusNotOk() throws Exception {
+  void testStatusNotOk() throws Exception {
+    mockPolicyServiceConfiguration();
+    mockUnauthPolicyApi();
     var exception = new ApiException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "TPS error");
     doThrow(exception).when(tpsUnauthApi).getStatus();
     RepositoryStatusModelSystems status = policyService.status();

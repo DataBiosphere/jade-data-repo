@@ -19,9 +19,9 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -63,32 +63,34 @@ public class PolicyService {
     policyServiceConfiguration.tpsEnabledCheck();
     TpsApi tpsApi = policyApiService.getPolicyApi();
     try {
-      try {
-        tpsApi.deletePao(resourceId);
-      } catch (ApiException e) {
-        throw convertApiException(e);
+      tpsApi.deletePao(resourceId);
+    } catch (ApiException e) {
+      RuntimeException exception = convertApiException(e);
+      if (PolicyServiceNotFoundException.class.isAssignableFrom(exception.getClass())) {
+        throw exception;
       }
-    } catch (PolicyServiceNotFoundException e) {
-      // Not found should not cause a failure on delete.
     }
   }
 
   @VisibleForTesting
   static RuntimeException convertApiException(ApiException ex) {
-    if (ex.getCode() == HttpStatus.UNAUTHORIZED.value()) {
-      return new PolicyServiceAuthorizationException(
+    return switch (ex.getCode()) {
+      case HttpStatus.SC_UNAUTHORIZED -> new PolicyServiceAuthorizationException(
           "Not authorized to access Terra Policy Service", ex.getCause());
-    } else if (ex.getCode() == HttpStatus.NOT_FOUND.value()) {
-      return new PolicyServiceNotFoundException("Policy service returns not found exception", ex);
-    } else if (ex.getCode() == HttpStatus.BAD_REQUEST.value()
-        && StringUtils.containsIgnoreCase(ex.getMessage(), "duplicate")) {
-      return new PolicyServiceDuplicateException(
-          "Policy service throws duplicate object exception", ex);
-    } else if (ex.getCode() == HttpStatus.CONFLICT.value()) {
-      return new PolicyConflictException("Policy service throws conflict exception", ex);
-    } else {
-      return new PolicyServiceApiException(ex);
-    }
+      case HttpStatus.SC_NOT_FOUND -> new PolicyServiceNotFoundException(
+          "Policy access object not found", ex);
+      case HttpStatus.SC_BAD_REQUEST -> {
+        if (StringUtils.containsIgnoreCase(ex.getMessage(), "duplicate")) {
+          yield new PolicyServiceDuplicateException(
+              "Request contains duplicate policy attribute", ex);
+        } else {
+          yield new PolicyServiceApiException(ex);
+        }
+      }
+      case HttpStatus.SC_CONFLICT -> new PolicyConflictException(
+          "Policy access object already exists", ex);
+      default -> new PolicyServiceApiException(ex);
+    };
   }
 
   /**

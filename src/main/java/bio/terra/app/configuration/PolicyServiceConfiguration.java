@@ -19,7 +19,7 @@ public class PolicyServiceConfiguration {
   private boolean enabled;
   private String basePath;
 
-  private static final List<String> BUFFER_SCOPES = List.of("openid", "email", "profile");
+  private static final List<String> POLICY_SCOPES = List.of("openid", "email", "profile");
 
   public boolean getEnabled() {
     return enabled;
@@ -39,7 +39,7 @@ public class PolicyServiceConfiguration {
 
   public String getAccessToken() throws IOException {
     GoogleCredentials credentials =
-        ServiceAccountCredentials.getApplicationDefault().createScoped(BUFFER_SCOPES);
+        ServiceAccountCredentials.getApplicationDefault().createScoped(POLICY_SCOPES);
     AccessToken token = credentials.refreshAccessToken();
     return token.getTokenValue();
   }

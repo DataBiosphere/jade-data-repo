@@ -44,14 +44,14 @@ public class PolicyServiceTest {
   @Mock private PolicyApiService policyApiService;
   @Mock private TpsApi tpsApi;
   @Mock private PublicApi tpsUnauthApi;
-  private TerraPolicyService policyService;
+  private PolicyService policyService;
 
   @BeforeEach
   public void setup() throws Exception {
     lenient().when(policyServiceConfiguration.getEnabled()).thenReturn(true);
     lenient().when(policyApiService.getPolicyApi()).thenReturn(tpsApi);
     lenient().when(policyApiService.getUnauthPolicyApi()).thenReturn(tpsUnauthApi);
-    policyService = new TerraPolicyService(policyServiceConfiguration, policyApiService);
+    policyService = new PolicyService(policyServiceConfiguration, policyApiService);
   }
 
   @Test
@@ -73,27 +73,27 @@ public class PolicyServiceTest {
   public void testConvertApiException() {
     var unauthorizedException = new ApiException(HttpStatus.UNAUTHORIZED.value(), "unauthorized");
     assertThat(
-        TerraPolicyService.convertApiException(unauthorizedException),
+        PolicyService.convertApiException(unauthorizedException),
         instanceOf(PolicyServiceAuthorizationException.class));
 
     var notFoundException = new ApiException(HttpStatus.NOT_FOUND.value(), "not found");
     assertThat(
-        TerraPolicyService.convertApiException(notFoundException),
+        PolicyService.convertApiException(notFoundException),
         instanceOf(PolicyServiceNotFoundException.class));
 
     var badRequestException = new ApiException(HttpStatus.BAD_REQUEST.value(), "duplicate object");
     assertThat(
-        TerraPolicyService.convertApiException(badRequestException),
+        PolicyService.convertApiException(badRequestException),
         instanceOf(PolicyServiceDuplicateException.class));
 
     var conflictException = new ApiException(HttpStatus.CONFLICT.value(), "conflict");
     assertThat(
-        TerraPolicyService.convertApiException(conflictException),
+        PolicyService.convertApiException(conflictException),
         instanceOf(PolicyConflictException.class));
 
     var generalException = new ApiException(HttpStatus.I_AM_A_TEAPOT.value(), "error");
     assertThat(
-        TerraPolicyService.convertApiException(generalException),
+        PolicyService.convertApiException(generalException),
         instanceOf(PolicyServiceApiException.class));
   }
 

@@ -6,7 +6,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.duos.DuosService;
-import bio.terra.service.policy.TerraPolicyService;
+import bio.terra.service.policy.PolicyService;
 import bio.terra.service.resourcemanagement.BufferService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,7 @@ public class StatusService {
   private final IamProviderInterface iamProviderInterface;
   private final BufferService bufferService;
   private final DuosService duosService;
-  private final TerraPolicyService policyService;
+  private final PolicyService policyService;
 
   // Names of subservices included in status check
   public static final String POSTGRES = "Postgres";
@@ -38,7 +38,7 @@ public class StatusService {
       IamProviderInterface iamProviderInterface,
       BufferService bufferService,
       DuosService duosService,
-      TerraPolicyService policyService) {
+      PolicyService policyService) {
     this.configurationService = configurationService;
     this.datasetDao = datasetDao;
     this.iamProviderInterface = iamProviderInterface;

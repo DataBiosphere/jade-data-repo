@@ -14,7 +14,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.duos.DuosService;
-import bio.terra.service.policy.TerraPolicyService;
+import bio.terra.service.policy.PolicyService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.status.StatusService;
 import org.hamcrest.Matcher;
@@ -45,7 +45,7 @@ public class StatusTest {
   @MockBean private IamProviderInterface iamProviderInterface;
   @MockBean private BufferService bufferService;
   @MockBean private DuosService duosService;
-  @MockBean private TerraPolicyService policyService;
+  @MockBean private PolicyService policyService;
 
   private static RepositoryStatusModelSystems ok() {
     return new RepositoryStatusModelSystems().ok(true);

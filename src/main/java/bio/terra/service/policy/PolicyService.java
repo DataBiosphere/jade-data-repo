@@ -25,12 +25,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
-public class TerraPolicyService {
-  private static final Logger logger = LoggerFactory.getLogger(TerraPolicyService.class);
+public class PolicyService {
+  private static final Logger logger = LoggerFactory.getLogger(PolicyService.class);
   private final PolicyServiceConfiguration policyServiceConfiguration;
   private final PolicyApiService policyApiService;
 
-  public TerraPolicyService(
+  public PolicyService(
       PolicyServiceConfiguration policyServiceConfiguration, PolicyApiService policyApiService) {
     this.policyServiceConfiguration = policyServiceConfiguration;
     this.policyApiService = policyApiService;

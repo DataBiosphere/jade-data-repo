@@ -287,7 +287,6 @@ public final class IngestUtils {
       AuthenticatedUserRequest userRequest,
       ErrorCollector errorCollector,
       Dataset dataset) {
-    logger.info("START validateBulkFileLoadModelsFromStream");
     return nodesStream.peek(
         loadFileModel -> {
           try {

@@ -1,6 +1,7 @@
 package bio.terra.common;
 
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.FileLoadModel;
@@ -21,6 +22,15 @@ import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Validate that any GCS files specified directly in a flight request are readable by the caller.
+ * This spans a security hole for datasets which use the generic TDR service account for file
+ * operations: if the generic TDR SA has access to a file but the caller initiating the flight does
+ * not, we should fail the flight.
+ *
+ * <p>GCS files specified indirectly -- i.e. referenced in a control file -- do not have their
+ * access validated in this step.
+ */
 public class ValidateBucketAccessStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(ValidateBucketAccessStep.class);
 
@@ -51,11 +61,18 @@ public class ValidateBucketAccessStep extends DefaultUndoStep {
     } else if (loadModel instanceof BulkLoadRequestModel bulkLoadRequestModel) {
       // Bulk file ingest
       sourcePaths = List.of(bulkLoadRequestModel.getLoadControlFile());
+    } else if (loadModel instanceof BulkLoadArrayRequestModel bulkLoadArrayRequestModel) {
+      // Bulk array file ingest
+      sourcePaths =
+          bulkLoadArrayRequestModel.getLoadArray().stream().map(l -> l.getSourcePath()).toList();
     } else if (loadModel instanceof IngestRequestModel ingestRequestModel) {
-      // Don't validate if we are ingesting as a payload object
+      // Combined metadata and file ingest
       if (ingestRequestModel.getFormat().equals(FormatEnum.ARRAY)) {
+        // In array mode, TDR will write its own control file in a scratch bucket. The user
+        // initiating the flight is not expected to have access to it.
         sourcePaths = List.of();
       } else {
+        // User-supplied control file
         sourcePaths = List.of(ingestRequestModel.getPath());
       }
     } else if (loadModel instanceof DataDeletionRequest dataDeletionRequest) {

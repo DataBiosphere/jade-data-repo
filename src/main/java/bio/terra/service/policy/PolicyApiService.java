@@ -6,14 +6,12 @@ import bio.terra.policy.api.TpsApi;
 import bio.terra.policy.client.ApiClient;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
 import java.io.IOException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PolicyApiService {
   private final PolicyServiceConfiguration policyServiceConfiguration;
 
-  @Autowired
   public PolicyApiService(PolicyServiceConfiguration policyServiceConfiguration) {
     this.policyServiceConfiguration = policyServiceConfiguration;
   }

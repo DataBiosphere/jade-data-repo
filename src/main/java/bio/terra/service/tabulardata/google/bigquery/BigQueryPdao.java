@@ -12,7 +12,8 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.Query;
-import bio.terra.model.ColumnStatisticsNumericModel;
+import bio.terra.model.ColumnStatisticsDoubleModel;
+import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.SqlSortDirection;
@@ -146,7 +147,7 @@ public abstract class BigQueryPdao {
             .render();
     try {
       final TableResult result = bigQueryProject.query(bigQuerySQL);
-      return getNumericResult(result, PDAO_TOTAL_ROW_COUNT_COLUMN_NAME);
+      return getIntResult(result, PDAO_TOTAL_ROW_COUNT_COLUMN_NAME);
     } catch (InterruptedException ex) {
       logger.warn(
           "BQ request to get total row count for table {} was interupted. Defaulting to 0.",
@@ -323,7 +324,29 @@ public abstract class BigQueryPdao {
     return values;
   }
 
-  public static ColumnStatisticsNumericModel getStatsForNumericColumn(
+  public static ColumnStatisticsDoubleModel getStatsForDoubleColumn(
+      FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
+      throws InterruptedException {
+
+    final TableResult result =
+        retrieveColumnStats(tdrResource, bqFormattedTableName, column, filter);
+    return new ColumnStatisticsDoubleModel()
+        .maxValue(getDoubleResult(result, "max"))
+        .minValue(getDoubleResult(result, "min"));
+  }
+
+  public static ColumnStatisticsIntModel getStatsForIntColumn(
+      FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
+      throws InterruptedException {
+
+    final TableResult result =
+        retrieveColumnStats(tdrResource, bqFormattedTableName, column, filter);
+    return new ColumnStatisticsIntModel()
+        .maxValue(getIntResult(result, "max"))
+        .minValue(getIntResult(result, "min"));
+  }
+
+  private static TableResult retrieveColumnStats(
       FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
       throws InterruptedException {
     String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
@@ -341,14 +364,14 @@ public abstract class BigQueryPdao {
             .add("table", bigQueryTable)
             .add("whereClause", whereClause)
             .render();
-    final TableResult result = bigQueryProject.query(bigQuerySQL);
-
-    return new ColumnStatisticsNumericModel()
-        .maxValue(getNumericResult(result, "max"))
-        .minValue(getNumericResult(result, "min"));
+    return bigQueryProject.query(bigQuerySQL);
   }
 
-  private static int getNumericResult(TableResult tableResult, String resultColumnName) {
+  private static double getDoubleResult(TableResult tableResult, String resultColumnName) {
+    return tableResult.iterateAll().iterator().next().get(resultColumnName).getDoubleValue();
+  }
+
+  private static int getIntResult(TableResult tableResult, String resultColumnName) {
     return (int) tableResult.iterateAll().iterator().next().get(resultColumnName).getLongValue();
   }
 }

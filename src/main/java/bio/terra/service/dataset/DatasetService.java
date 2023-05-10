@@ -636,9 +636,11 @@ public class DatasetService {
     if (cloudPlatformWrapper.isGcp()) {
       try {
         String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
-        if (column.isNumericType()) {
-          return BigQueryPdao.getStatsForNumericColumn(
+        if (column.isDoubleType()) {
+          return BigQueryPdao.getStatsForDoubleColumn(
               dataset, bqFormattedTableName, column, filter);
+        } else if (column.isIntType()) {
+          return BigQueryPdao.getStatsForIntColumn(dataset, bqFormattedTableName, column, filter);
         } else if (column.isTextType()) {
           return BigQueryPdao.getStatsForTextColumn(
               dataset, bqFormattedTableName, tableName, column, filter);
@@ -666,9 +668,11 @@ public class DatasetService {
         throw new RuntimeException("Could not configure external datasource", e);
       }
 
-      if (column.isNumericType()) {
-        return azureSynapsePdao.getStatsForNumericColumn(
+      if (column.isDoubleType()) {
+        return azureSynapsePdao.getStatsForDoubleColumn(
             column, datasourceName, sourceParquetFilePath);
+      } else if (column.isIntType()) {
+        return azureSynapsePdao.getStatsForIntColumn(column, datasourceName, sourceParquetFilePath);
       } else if (column.isTextType()) {
         return azureSynapsePdao.getStatsForTextColumn(
             column, datasourceName, sourceParquetFilePath);

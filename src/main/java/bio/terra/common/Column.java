@@ -97,11 +97,19 @@ public class Column {
     }
   }
 
-  public boolean isNumericType() {
+  public boolean isDoubleType() {
     switch (this.type) {
       case NUMERIC:
       case FLOAT:
       case FLOAT64:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  public boolean isIntType() {
+    switch (this.type) {
       case INT64:
       case INTEGER:
         return true;

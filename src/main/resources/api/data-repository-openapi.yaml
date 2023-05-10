@@ -4781,7 +4781,7 @@ components:
           type: string
         count:
           type: integer
-    ColumnStatisticsNumericModel:
+    ColumnStatisticsIntModel:
       allOf:
         - $ref: '#/components/schemas/ColumnStatisticsModel'
         - type: object
@@ -4790,6 +4790,17 @@ components:
               type: integer
             maxValue:
               type: integer
+    ColumnStatisticsDoubleModel:
+      allOf:
+        - $ref: '#/components/schemas/ColumnStatisticsModel'
+        - type: object
+          properties:
+            minValue:
+              type: number
+              format: double
+            maxValue:
+              type: number
+              format: double
     ColumnStatisticsModel:
       type: object
       required:

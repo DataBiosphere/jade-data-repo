@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
@@ -61,6 +62,16 @@ public class PolicyServiceTest {
 
   private void mockUnauthPolicyApi() {
     when(policyApiService.getUnauthPolicyApi()).thenReturn(tpsUnauthApi);
+  }
+
+  @Test
+  void testGetProtectedDataPolicyInput() {
+    TpsPolicyInput actualPolicy = PolicyService.getProtectedDataPolicyInput();
+    TpsPolicyInput expectedPolicy =
+        new TpsPolicyInput()
+            .namespace(PolicyService.POLICY_NAMESPACE)
+            .name(PolicyService.PROTECTED_DATA_POLICY_NAME);
+    assertEquals(actualPolicy, expectedPolicy);
   }
 
   @Test

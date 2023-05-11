@@ -311,7 +311,10 @@ public abstract class BigQueryPdao {
         .forEach(
             rows -> {
               ColumnStatisticsTextValue val = new ColumnStatisticsTextValue();
-              val.value(rows.get(column).getStringValue());
+              FieldValue fieldValue = rows.get(column);
+              // getStringValue() throws NPE if value of field is null; getValue() does not
+              Object rowValue = fieldValue.getValue();
+              val.value(rowValue != null ? fieldValue.getStringValue() : null);
               val.count((int) (rows.get(PDAO_COUNT_COLUMN_NAME).getLongValue()));
               values.add(val);
               // I don't _think_ we need to handle array fields b/c we flatten them

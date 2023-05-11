@@ -26,6 +26,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
+import bio.terra.service.policy.PolicyService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.profile.flight.VerifyBillingAccountAccessStep;
@@ -87,6 +88,7 @@ public class SnapshotCreateFlight extends Flight {
     DrsService drsService = appContext.getBean(DrsService.class);
     DuosDao duosDao = appContext.getBean(DuosDao.class);
     DuosService duosService = appContext.getBean(DuosService.class);
+    PolicyService policyService = appContext.getBean(PolicyService.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -327,5 +329,6 @@ public class SnapshotCreateFlight extends Flight {
             datasetId,
             IamResourceType.DATASET,
             "A snapshot was created from this dataset."));
+    addStep(new CreateSnapshotPolicyStep(policyService, sourceDataset.isSecureMonitoringEnabled()));
   }
 }

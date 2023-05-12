@@ -4072,7 +4072,8 @@ components:
         ingestServiceAccount:
           type: string
           description: >
-            Google service account to grant storage.object.get access on source Google storage buckets to in order to ingest files
+            Google service account which must be granted `storage.objects.get` permissions on any
+            source buckets that TDR will ingest data from.
         predictableFileIds:
           type: boolean
           default: false
@@ -4173,17 +4174,34 @@ components:
           type: boolean
           default: false
           description: >
-            If true, for GCP-backed datasets, a service account will be created in the dataset's primary GCP project.
-            This service account must be granted `storage.objects.get` permissions on any source buckets that TDR will ingest data from.
-            The service account can be obtained when retrieving the dataset.  If this value is false and the dataset
-            is a GCP-backed dataset, then the global service account must be granted `storage.objects.get` permissions to source buckets.
+            This field is only relevant for GCP-backed datasets. If true, a unique service account
+            will be created in the dataset's primary GCP project, registered in Terra, and used to
+            facilitate ingests. If false, TDR's general service account will be used.
 
-            Note: this can be done by granting the "Storage Object Viewer", "Storage Legacy Object Reader", or "Storage Legacy Object Owner"
-            role to the source buckets
 
-            This might be useful to set as a security improvement since this provides a dedicated account that explicitly
-            does not have access to any other buckets.  It's also recommended if you need to authorize a large number of buckets
-            since the main service account could run into Google group membership quota violations.
+            The dataset's service account can be found when retrieving the dataset.  Whether it is
+            dedicated or general, it must be granted `storage.objects.get` permissions on any source
+            buckets that TDR will ingest data from.
+            This can be done by giving the service account the "Storage Object Viewer", "Storage
+            Legacy Object Reader", or "Storage Legacy Object Owner" role on the source buckets.
+
+
+            TDR recommends that this be set to true:
+
+
+            - A dedicated account that explicitly does not have access to other buckets is more
+              secure and isolated from issues that could impact the general account.
+            - Up to 2.5x speed improvements when ingesting files. TDR can bypass the costly
+              permission checking of all user-specified GCP files to ingest if the dataset has a
+              dedicated service account. Such accounts are unique to the dataset and ingests will
+              correctly fail if they lack needed permission on the files. Otherwise, we must
+              perform this check to ensure that a user cannot ingest files inaccessible to them, but
+              accessible to the general TDR service account.
+            - Only the dataset's dedicated account must be granted permissions on source ingest
+              buckets.  When using the general account, you must also grant permissions to the Terra
+              proxy user groups for any users triggering ingests.
+            - A dedicated service account is less likely to encounter Google group membership quota
+              violations, which is relevant if you need to authorize a large number of buckets.
         experimentalPredictableFileIds:
           type: boolean
           default: false

@@ -313,8 +313,11 @@ public class GcsPdao implements CloudFileReader {
     if (List.of(environment.getActiveProfiles()).contains("connectedtest")) {
       return;
     }
-    // If destination dataset doesn't necessitate access validation, skip this check.
-    if (!dataset.shouldValidateIngesterFileAccess()) {
+    // If a dataset has a dedicated GCP SA, it is unique to that dataset. Ingests will correctly
+    // fail if the account lacks needed permission on the GCS files to ingest.
+    // Otherwise, we must ensure that a user does not ingest files inaccessible to them, but
+    // accessible to the general TDR SA.
+    if (dataset.hasDedicatedGcpServiceAccount()) {
       return;
     }
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
@@ -376,8 +379,11 @@ public class GcsPdao implements CloudFileReader {
         }
         throw new BlobAccessNotAuthorizedException(
             String.format(
-                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account or your dataset's ingest service account and your Terra proxy user group (%s)",
-                bucket, user.getEmail(), proxyGroup));
+                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to your dataset's ingest service account (%s) and your Terra proxy user group (%s)",
+                bucket,
+                user.getEmail(),
+                dataset.getProjectResource().getServiceAccount(),
+                proxyGroup));
       }
     }
   }

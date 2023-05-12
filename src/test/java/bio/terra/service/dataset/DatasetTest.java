@@ -13,29 +13,29 @@ import org.junit.experimental.categories.Category;
 public class DatasetTest {
 
   @Test
-  public void testShouldValidateIngesterFileAccess() {
+  public void testHasDedicatedGcpServiceAccount() {
     var datasetSummary = new DatasetSummary();
     var projectResource = new GoogleProjectResource();
     var dataset = new Dataset(datasetSummary).projectResource(projectResource);
 
     datasetSummary.cloudPlatform(CloudPlatform.AZURE);
     assertFalse(
-        "Azure datasets do not validate that user can access ingested files",
-        dataset.shouldValidateIngesterFileAccess());
+        "Azure datasets do not have a dedicated GCP service account",
+        dataset.hasDedicatedGcpServiceAccount());
 
     datasetSummary.cloudPlatform(CloudPlatform.GCP);
-    assertTrue(
-        "GCP datasets by default validate that user can access ingested files",
-        dataset.shouldValidateIngesterFileAccess());
+    assertFalse(
+        "GCP datasets by default use the general TDR service account",
+        dataset.hasDedicatedGcpServiceAccount());
 
     projectResource.dedicatedServiceAccount(false);
-    assertTrue(
-        "GCP datasets with the general TDR SA validate that user can access ingested files",
-        dataset.shouldValidateIngesterFileAccess());
+    assertFalse(
+        "GCP dataset uses the general TDR service account",
+        dataset.hasDedicatedGcpServiceAccount());
 
     projectResource.dedicatedServiceAccount(true);
-    assertFalse(
-        "GCP datasets with dedicated SAs do not validate that user can access ingested files",
-        dataset.shouldValidateIngesterFileAccess());
+    assertTrue(
+        "GCP datasets uses a dedicated GCP service account",
+        dataset.hasDedicatedGcpServiceAccount());
   }
 }

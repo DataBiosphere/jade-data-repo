@@ -2,11 +2,13 @@ package bio.terra.app.controller;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.app.configuration.PolicyServiceConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.auth.iam.IamProviderInterface;
@@ -46,6 +48,7 @@ public class StatusTest {
   @MockBean private BufferService bufferService;
   @MockBean private DuosService duosService;
   @MockBean private PolicyService policyService;
+  @MockBean private PolicyServiceConfiguration policyServiceConfiguration;
 
   private static RepositoryStatusModelSystems ok() {
     return new RepositoryStatusModelSystems().ok(true);
@@ -58,6 +61,7 @@ public class StatusTest {
     when(bufferService.status()).thenReturn(ok().critical(false));
     when(duosService.status()).thenReturn(ok().critical(false));
     when(policyService.status()).thenReturn(ok().critical(false));
+    when(policyServiceConfiguration.getEnabled()).thenReturn(true);
   }
 
   @Test
@@ -138,6 +142,18 @@ public class StatusTest {
         "/Status response should indicate that tps is up",
         responseBody,
         containsSubserviceString(StatusService.TPS, true, false));
+  }
+
+  @Test
+  public void testStatusWhenTpsDisabled() throws Exception {
+    when(policyServiceConfiguration.getEnabled()).thenReturn(false);
+    MvcResult result = this.mvc.perform(get("/status")).andExpect(status().isOk()).andReturn();
+    MockHttpServletResponse response = result.getResponse();
+    String responseBody = response.getContentAsString();
+    assertThat(
+        "TPS is not included in /Status response when disabled",
+        responseBody,
+        not(containsSubserviceString(StatusService.TPS, true, false)));
   }
 
   private Matcher<String> containsSubserviceString(

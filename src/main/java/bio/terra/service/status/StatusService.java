@@ -1,5 +1,6 @@
 package bio.terra.service.status;
 
+import bio.terra.app.configuration.PolicyServiceConfiguration;
 import bio.terra.model.RepositoryStatusModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.configuration.ConfigEnum;
@@ -23,6 +24,7 @@ public class StatusService {
   private final BufferService bufferService;
   private final DuosService duosService;
   private final PolicyService policyService;
+  private final PolicyServiceConfiguration policyServiceConfiguration;
 
   // Names of subservices included in status check
   public static final String POSTGRES = "Postgres";
@@ -38,13 +40,15 @@ public class StatusService {
       IamProviderInterface iamProviderInterface,
       BufferService bufferService,
       DuosService duosService,
-      PolicyService policyService) {
+      PolicyService policyService,
+      PolicyServiceConfiguration policyServiceConfiguration) {
     this.configurationService = configurationService;
     this.datasetDao = datasetDao;
     this.iamProviderInterface = iamProviderInterface;
     this.bufferService = bufferService;
     this.duosService = duosService;
     this.policyService = policyService;
+    this.policyServiceConfiguration = policyServiceConfiguration;
   }
 
   public RepositoryStatusModel getStatus() {
@@ -61,7 +65,9 @@ public class StatusService {
     statusModel.putSystemsItem(SAM, iamProviderInterface.samStatus().critical(true));
     statusModel.putSystemsItem(RBS, bufferService.status());
     statusModel.putSystemsItem(DUOS, duosService.status());
-    statusModel.putSystemsItem(TPS, policyService.status());
+    if (policyServiceConfiguration.getEnabled()) {
+      statusModel.putSystemsItem(TPS, policyService.status());
+    }
 
     // if all critical systems are ok, then isOk = true
     // if any one critical system is down, then isOk = false

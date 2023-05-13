@@ -14,16 +14,22 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.usermetrics.UserLoggingMetrics;
+import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnStatisticsDoubleModel;
+import bio.terra.model.ColumnStatisticsIntModel;
+import bio.terra.model.ColumnStatisticsTextModel;
+import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.TableDataType;
 import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
@@ -164,7 +170,7 @@ public class DatasetServiceUnitTest {
   }
 
   private void testRetrieveDataGCP(int totalRowCount, int filteredRowCount) {
-    mockDataset(CloudPlatform.GCP);
+    mockDataset(CloudPlatform.GCP, TableDataType.STRING);
     List<BigQueryDataResultModel> values = new ArrayList<>();
     if (filteredRowCount > 0) {
       values.add(
@@ -188,7 +194,7 @@ public class DatasetServiceUnitTest {
   }
 
   private void testRetrieveDataAzure(int totalRowCount, int filteredRowCount) {
-    mockDataset(CloudPlatform.AZURE);
+    mockDataset(CloudPlatform.AZURE, TableDataType.STRING);
     List<SynapseDataResultModel> values = new ArrayList<>();
     if (filteredRowCount > 0) {
       values.add(
@@ -227,11 +233,74 @@ public class DatasetServiceUnitTest {
         equalTo(filteredRowCount));
   }
 
-  private void mockDataset(CloudPlatform cloudPlatform) {
+  @Test
+  public void testRetrieveColumnStatistics_GCP_TextColumn() {
+    mockDataset(CloudPlatform.GCP, TableDataType.STRING);
+    ColumnStatisticsTextValue expectedValue =
+        new ColumnStatisticsTextValue().value("val1").count(2);
+    try (MockedStatic<BigQueryPdao> utilities = Mockito.mockStatic(BigQueryPdao.class)) {
+      utilities
+          .when(() -> BigQueryPdao.getStatsForTextColumn(any(), any(), any(), any(), any()))
+          .thenReturn(new ColumnStatisticsTextModel().values(List.of(expectedValue)));
+      ColumnStatisticsTextModel statsModel =
+          (ColumnStatisticsTextModel)
+              datasetService.retrieveColumnStatistics(
+                  testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+      assertThat("Correct stats value", statsModel.getValues(), containsInAnyOrder(expectedValue));
+    }
+  }
+
+  @Test
+  public void testRetrieveColumnStatistics_GCP_DoubleColumn() {
+    mockDataset(CloudPlatform.GCP, TableDataType.FLOAT);
+    ColumnStatisticsDoubleModel expectedValue =
+        new ColumnStatisticsDoubleModel().maxValue(2.0).minValue(1.0);
+    try (MockedStatic<BigQueryPdao> utilities = Mockito.mockStatic(BigQueryPdao.class)) {
+      utilities
+          .when(() -> BigQueryPdao.getStatsForDoubleColumn(any(), any(), any(), any()))
+          .thenReturn(expectedValue);
+      ColumnStatisticsDoubleModel statsModel =
+          (ColumnStatisticsDoubleModel)
+              datasetService.retrieveColumnStatistics(
+                  testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+      assertThat(
+          "Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
+      assertThat(
+          "Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
+    }
+  }
+
+  @Test
+  public void testRetrieveColumnStatistics_GCP_IntColumn() {
+    mockDataset(CloudPlatform.GCP, TableDataType.INTEGER);
+    ColumnStatisticsIntModel expectedValue = new ColumnStatisticsIntModel().maxValue(2).minValue(1);
+    try (MockedStatic<BigQueryPdao> utilities = Mockito.mockStatic(BigQueryPdao.class)) {
+      utilities
+          .when(() -> BigQueryPdao.getStatsForIntColumn(any(), any(), any(), any()))
+          .thenReturn(expectedValue);
+      ColumnStatisticsIntModel statsModel =
+          (ColumnStatisticsIntModel)
+              datasetService.retrieveColumnStatistics(
+                  testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+      assertThat(
+          "Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
+      assertThat(
+          "Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
+    }
+  }
+
+  private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {
     List<DatasetTable> tables = List.of(new DatasetTable().name(datasetTableName));
     UUID datasetId = UUID.randomUUID();
     Dataset mockDataset =
-        new Dataset(new DatasetSummary().cloudPlatform(cloudPlatform)).id(datasetId).tables(tables);
+        new Dataset(new DatasetSummary().cloudPlatform(cloudPlatform))
+            .id(datasetId)
+            .tables(tables)
+            .tables(
+                List.of(
+                    new DatasetTable()
+                        .name(datasetTableName)
+                        .columns(List.of(new Column().name("column1").type(columnDataType)))));
     when(datasetDao.retrieve(any())).thenReturn(mockDataset);
     when(datasetTableDao.retrieveColumnNames(any(), anyBoolean())).thenReturn(List.of("column1"));
   }

@@ -14,6 +14,7 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnStatisticsDoubleModel;
 import bio.terra.model.ColumnStatisticsIntModel;
+import bio.terra.model.ColumnStatisticsModel;
 import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.SqlSortDirection;
@@ -276,7 +277,7 @@ public abstract class BigQueryPdao {
         SELECT MIN(<column>) AS min, MAX(<column>) AS max FROM <table> <whereClause>
       """;
 
-  public static ColumnStatisticsTextModel getStatsForTextColumn(
+  public static ColumnStatisticsModel getStatsForTextColumn(
       FSContainerInterface tdrResource,
       String bqFormattedTableName,
       String tableName,
@@ -300,7 +301,9 @@ public abstract class BigQueryPdao {
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
 
-    return new ColumnStatisticsTextModel().values(aggregateTextColumnStats(result, columnName));
+    return new ColumnStatisticsTextModel()
+        .values(aggregateTextColumnStats(result, columnName))
+        .dataType(column.getType().toString());
   }
 
   static List<ColumnStatisticsTextValue> aggregateTextColumnStats(
@@ -321,7 +324,7 @@ public abstract class BigQueryPdao {
     return values;
   }
 
-  public static ColumnStatisticsDoubleModel getStatsForDoubleColumn(
+  public static ColumnStatisticsModel getStatsForDoubleColumn(
       FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
       throws InterruptedException {
 
@@ -329,10 +332,11 @@ public abstract class BigQueryPdao {
         retrieveNumericColumnStats(tdrResource, bqFormattedTableName, column, filter);
     return new ColumnStatisticsDoubleModel()
         .maxValue(getDoubleResult(result, "max"))
-        .minValue(getDoubleResult(result, "min"));
+        .minValue(getDoubleResult(result, "min"))
+        .dataType(column.getType().toString());
   }
 
-  public static ColumnStatisticsIntModel getStatsForIntColumn(
+  public static ColumnStatisticsModel getStatsForIntColumn(
       FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
       throws InterruptedException {
 
@@ -340,7 +344,8 @@ public abstract class BigQueryPdao {
         retrieveNumericColumnStats(tdrResource, bqFormattedTableName, column, filter);
     return new ColumnStatisticsIntModel()
         .maxValue(getIntResult(result, "max"))
-        .minValue(getIntResult(result, "min"));
+        .minValue(getIntResult(result, "min"))
+        .dataType(column.getType().toString());
   }
 
   private static TableResult retrieveNumericColumnStats(

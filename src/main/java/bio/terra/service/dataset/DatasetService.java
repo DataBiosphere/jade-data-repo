@@ -622,7 +622,8 @@ public class DatasetService {
             .getTableByName(tableName)
             .orElseThrow(
                 () ->
-                    new InvalidTableException("No dataset table exists with the name: " + tableName))
+                    new InvalidTableException(
+                        "No dataset table exists with the name: " + tableName))
             .getColumnByName(columnName)
             .orElseThrow(
                 () ->

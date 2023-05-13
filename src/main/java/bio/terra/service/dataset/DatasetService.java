@@ -46,6 +46,8 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.dataset.exception.InvalidColumnException;
+import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
@@ -615,17 +617,16 @@ public class DatasetService {
       String filter) {
     Dataset dataset = retrieve(datasetId);
 
-    // TODO - create new exception instead of DatasetDataException
     Column column =
         dataset
             .getTableByName(tableName)
             .orElseThrow(
                 () ->
-                    new DatasetDataException("No dataset table exists with the name: " + tableName))
+                    new InvalidTableException("No dataset table exists with the name: " + tableName))
             .getColumnByName(columnName)
             .orElseThrow(
                 () ->
-                    new DatasetDataException(
+                    new InvalidColumnException(
                         "No column exists in table "
                             + tableName
                             + " with column name "

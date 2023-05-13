@@ -300,10 +300,10 @@ public abstract class BigQueryPdao {
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
 
-    return new ColumnStatisticsTextModel().values(aggregateColumnStats(result, columnName));
+    return new ColumnStatisticsTextModel().values(aggregateTextColumnStats(result, columnName));
   }
 
-  private static List<ColumnStatisticsTextValue> aggregateColumnStats(
+  static List<ColumnStatisticsTextValue> aggregateTextColumnStats(
       TableResult result, String column) {
     List<ColumnStatisticsTextValue> values = new ArrayList<>();
     result
@@ -317,12 +317,6 @@ public abstract class BigQueryPdao {
               val.value(rowValue != null ? fieldValue.getStringValue() : null);
               val.count((int) (rows.get(PDAO_COUNT_COLUMN_NAME).getLongValue()));
               values.add(val);
-              // I don't _think_ we need to handle array fields b/c we flatten them
-              //              if (fieldValue.getAttribute() == FieldValue.Attribute.REPEATED) {
-              //                fieldValue.getRepeatedValue().stream()
-              //                    .forEach(val -> values.add(val.getStringValue()));
-              //              } else {
-
             });
     return values;
   }
@@ -332,7 +326,7 @@ public abstract class BigQueryPdao {
       throws InterruptedException {
 
     final TableResult result =
-        retrieveColumnStats(tdrResource, bqFormattedTableName, column, filter);
+        retrieveNumericColumnStats(tdrResource, bqFormattedTableName, column, filter);
     return new ColumnStatisticsDoubleModel()
         .maxValue(getDoubleResult(result, "max"))
         .minValue(getDoubleResult(result, "min"));
@@ -343,13 +337,13 @@ public abstract class BigQueryPdao {
       throws InterruptedException {
 
     final TableResult result =
-        retrieveColumnStats(tdrResource, bqFormattedTableName, column, filter);
+        retrieveNumericColumnStats(tdrResource, bqFormattedTableName, column, filter);
     return new ColumnStatisticsIntModel()
         .maxValue(getIntResult(result, "max"))
         .minValue(getIntResult(result, "min"));
   }
 
-  private static TableResult retrieveColumnStats(
+  private static TableResult retrieveNumericColumnStats(
       FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
       throws InterruptedException {
     String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";

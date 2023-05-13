@@ -1,5 +1,6 @@
 package bio.terra.service.tabulardata.google.bigquery;
 
+import static bio.terra.common.PdaoConstant.PDAO_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
@@ -9,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWithIgnoringCase;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,6 +29,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
@@ -1106,6 +1109,43 @@ public class BigQueryPdaoUnitTest {
     assertEquals(stringTest, result.get(0).getRowResult().get("STRING"));
     assertEquals(intTest, result.get(0).getRowResult().get("INT64"));
     assertEquals(listTest, result.get(0).getRowResult().get("ARRAY"));
+  }
+
+  @Test
+  public void testAggregateTextColumnStats() {
+    String columnName = "Column1";
+    Schema schema =
+        Schema.of(
+            FieldList.of(
+                List.of(
+                    Field.newBuilder(columnName, StandardSQLTypeName.STRING).build(),
+                    Field.newBuilder(PDAO_COUNT_COLUMN_NAME, StandardSQLTypeName.INT64).build())));
+
+    Page<FieldValueList> page =
+        mockPage(
+            List.of(
+                FieldValueList.of(
+                    List.of(
+                        FieldValue.of(FieldValue.Attribute.PRIMITIVE, "Column1Value"),
+                        FieldValue.of(
+                            FieldValue.Attribute.PRIMITIVE,
+                            "2"))))); // For some reason, it wants the numeric value passed in as a
+    // string
+
+    TableResult table = new TableResult(schema, 10, page);
+
+    List<ColumnStatisticsTextValue> result =
+        BigQueryPdao.aggregateTextColumnStats(table, columnName);
+
+    assertThat("ColumnStatisticsTextValue should be returned", result, hasSize(1));
+    assertThat(
+        "ColumnStatisticsTextValue should have the correct value",
+        result.get(0).getValue(),
+        equalTo("Column1Value"));
+    assertThat(
+        "ColumnStatisticsTextValue should have the correct count",
+        result.get(0).getCount(),
+        equalTo(2));
   }
 
   private Dataset mockDataset() {

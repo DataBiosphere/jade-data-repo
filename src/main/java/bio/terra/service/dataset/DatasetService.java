@@ -89,7 +89,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -341,15 +340,21 @@ public class DatasetService {
     String loadTag = loadService.computeLoadTag(ingestRequestModel.getLoadTag());
     ingestRequestModel.setLoadTag(loadTag);
 
+    Dataset dataset = null;
+    // Set the profile id to the dataset's default if not specified
+    if (ingestRequestModel.getProfileId() == null) {
+      dataset = datasetDao.retrieve(UUID.fromString(id));
+      ingestRequestModel.setProfileId(dataset.getDefaultProfileId());
+    }
     String description;
     // Note: we are writing ingested to a bucket if specified before the flight starts so that the
     // data does not get materialized in the flight DB. This means that we also need to edit the
     // request to remove data that shouldn't get stored
     if (ingestRequestModel.getFormat().equals(FormatEnum.ARRAY)) {
-      Dataset dataset = datasetDao.retrieve(UUID.fromString(id));
-      ingestRequestModel.setProfileId(
-          Optional.ofNullable(ingestRequestModel.getProfileId())
-              .orElse(dataset.getDefaultProfileId()));
+      // get the dataset if it hasn't already been read
+      if (dataset == null) {
+        dataset = datasetDao.retrieve(UUID.fromString(id));
+      }
       // Create staging area if needed and get the path where the temp file will live
       String tempFilePath =
           jobService

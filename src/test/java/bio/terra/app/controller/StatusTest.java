@@ -14,6 +14,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.duos.DuosService;
+import bio.terra.service.policy.PolicyService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.status.StatusService;
 import org.hamcrest.Matcher;
@@ -44,6 +45,7 @@ public class StatusTest {
   @MockBean private IamProviderInterface iamProviderInterface;
   @MockBean private BufferService bufferService;
   @MockBean private DuosService duosService;
+  @MockBean private PolicyService policyService;
 
   private static RepositoryStatusModelSystems ok() {
     return new RepositoryStatusModelSystems().ok(true);
@@ -55,6 +57,7 @@ public class StatusTest {
     when(iamProviderInterface.samStatus()).thenReturn(ok());
     when(bufferService.status()).thenReturn(ok().critical(false));
     when(duosService.status()).thenReturn(ok().critical(false));
+    when(policyService.status()).thenReturn(ok().critical(false));
   }
 
   @Test
@@ -98,6 +101,10 @@ public class StatusTest {
         "/Status response should indicate that duos is up",
         responseBody,
         containsSubserviceString(StatusService.DUOS, true, false));
+    assertThat(
+        "/Status response should indicate that tps is up",
+        responseBody,
+        containsSubserviceString(StatusService.TPS, true, false));
   }
 
   @Test
@@ -127,6 +134,10 @@ public class StatusTest {
         "/Status response should indicate that duos is down",
         responseBody,
         containsSubserviceString(StatusService.DUOS, false, false));
+    assertThat(
+        "/Status response should indicate that tps is up",
+        responseBody,
+        containsSubserviceString(StatusService.TPS, true, false));
   }
 
   private Matcher<String> containsSubserviceString(

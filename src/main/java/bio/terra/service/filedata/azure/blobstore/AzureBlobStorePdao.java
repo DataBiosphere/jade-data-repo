@@ -1,11 +1,15 @@
 package bio.terra.service.filedata.azure.blobstore;
 
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
+import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM;
+import static bio.terra.service.filedata.google.gcs.GcsPdao.getProjectIdFromGsPath;
 
+import bio.terra.common.UriUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFileInfo;
@@ -16,9 +20,13 @@ import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
 import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedWriter;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
+import bio.terra.service.filedata.azure.util.BlobContainerCopier;
+import bio.terra.service.filedata.azure.util.BlobContainerCopyInfo;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
@@ -28,6 +36,8 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.FolderType;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.util.polling.LongRunningOperationStatus;
+import com.azure.core.util.polling.PollResponse;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
@@ -35,13 +45,17 @@ import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.Storage;
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -72,6 +86,8 @@ public class AzureBlobStorePdao implements CloudFileReader {
   private final AzureResourceDao azureResourceDao;
   private final AzureAuthService azureAuthService;
   private final FileIdService fileIdService;
+  private final GcsProjectFactory gcsProjectFactory;
+  private final GcsPdao gcsPdao;
 
   @Autowired
   public AzureBlobStorePdao(
@@ -80,13 +96,17 @@ public class AzureBlobStorePdao implements CloudFileReader {
       AzureResourceConfiguration resourceConfiguration,
       AzureResourceDao azureResourceDao,
       AzureAuthService azureAuthService,
-      FileIdService fileIdService) {
+      FileIdService fileIdService,
+      GcsProjectFactory gcsProjectFactory,
+      GcsPdao gcsPdao) {
     this.profileDao = profileDao;
     this.azureContainerPdao = azureContainerPdao;
     this.resourceConfiguration = resourceConfiguration;
     this.azureResourceDao = azureResourceDao;
     this.azureAuthService = azureAuthService;
     this.fileIdService = fileIdService;
+    this.gcsProjectFactory = gcsProjectFactory;
+    this.gcsPdao = gcsPdao;
   }
 
   private RequestRetryOptions getRetryOptions() {
@@ -107,6 +127,8 @@ public class AzureBlobStorePdao implements CloudFileReader {
       AzureStorageAccountResource storageAccountResource,
       AuthenticatedUserRequest userRequest) {
 
+    SourceFileInfo sourceFileInfo =
+        getSourceFileInfo(profileModel.getTenantId(), fileLoadModel.getSourcePath());
     BlobContainerClientFactory targetClientFactory =
         getTargetDataClientFactory(
             profileModel,
@@ -119,27 +141,14 @@ public class AzureBlobStorePdao implements CloudFileReader {
                     .setWritePermission(true),
                 userRequest.getEmail()));
 
-    BlobContainerClientFactory sourceClientFactory =
-        buildSourceClientFactory(profileModel.getTenantId(), fileLoadModel.getSourcePath());
-
     BlobCrl blobCrl = getBlobCrl(targetClientFactory);
 
     // Read the leaf node of the source file to use as a way to name the file we store
-    BlobUrlParts blobUrl = BlobUrlParts.parse(fileLoadModel.getSourcePath());
-    String fileName = getLastNameFromPath(blobUrl.getBlobName());
+    String fileName = getLastNameFromPath(UriUtils.toUri(fileLoadModel.getSourcePath()).getPath());
 
-    BlobProperties sourceBlobProperties =
-        sourceClientFactory
-            .getBlobContainerClient()
-            .getBlobClient(blobUrl.getBlobName())
-            .getProperties();
     Md5ValidationResult finalMd5 =
         FileMetadataUtils.validateFileMd5ForIngest(
-            fileLoadModel.getMd5(),
-            Optional.ofNullable(sourceBlobProperties.getContentMd5())
-                .map(Hex::encodeHexString)
-                .orElse(null),
-            fileLoadModel.getSourcePath());
+            fileLoadModel.getMd5(), sourceFileInfo.md5(), fileLoadModel.getSourcePath());
 
     String effectiveFileId;
     if (fileId == null) {
@@ -150,17 +159,38 @@ public class AzureBlobStorePdao implements CloudFileReader {
                   new FSItem()
                       .path(fileLoadModel.getTargetPath())
                       .checksumMd5(finalMd5.effectiveMd5())
-                      .size(sourceBlobProperties.getBlobSize()))
+                      .size(sourceFileInfo.size()))
               .toString();
     } else {
       effectiveFileId = fileId;
     }
 
     String blobName = getBlobName(effectiveFileId, fileName);
-    blobCrl
-        .createBlobContainerCopier(sourceClientFactory, blobUrl.getBlobName(), blobName)
-        .beginCopyOperation()
-        .waitForCompletion();
+    BlobContainerCopier blobContainerCopier;
+    if (sourceFileInfo.sourceClientFactory() != null) {
+      blobContainerCopier =
+          blobCrl.createBlobContainerCopier(
+              sourceFileInfo.sourceClientFactory(), sourceFileInfo.sourceUrl(), blobName);
+    } else {
+      // In the case sourceClientFactory is null, this indicates that we are loading from a gs URI
+      blobContainerCopier =
+          blobCrl.createBlobContainerCopier(UriUtils.toUri(sourceFileInfo.sourceUrl()), blobName);
+    }
+    Instant startTime = Instant.now();
+    logger.info("Starting copy operation for {}", blobName);
+    PollResponse<BlobContainerCopyInfo> copyResponse =
+        blobContainerCopier.beginCopyOperation().waitForCompletion();
+    logger.info(
+        "Finished copy operation for {} with status {} in {} seconds",
+        blobName,
+        copyResponse.getStatus(),
+        Duration.between(startTime, Instant.now()).getSeconds());
+
+    if (!copyResponse.getStatus().equals(LongRunningOperationStatus.SUCCESSFULLY_COMPLETED)) {
+      throw new PdaoException(
+          "Blob %s was not successfully copied with status: %s"
+              .formatted(blobName, copyResponse.getStatus()));
+    }
 
     BlobProperties blobProperties = blobCrl.getBlobProperties(blobName);
     Instant createTime = blobProperties.getCreationTime().toInstant();
@@ -169,10 +199,14 @@ public class AzureBlobStorePdao implements CloudFileReader {
     if (finalMd5.isUserProvided()) {
       checksumMd5 = finalMd5.effectiveMd5();
     } else {
+      // If the MD5 wasn't set in the cloud and it has been read from the source, explicitly set it
+      if (blobProperties.getContentMd5() == null && finalMd5.effectiveMd5() != null) {
+        blobCrl.setBlobMd5(blobName, finalMd5.effectiveMd5().getBytes(StandardCharsets.UTF_8));
+      }
       checksumMd5 =
           Optional.ofNullable(blobProperties.getContentMd5())
               .map(Hex::encodeHexString)
-              .orElse(null);
+              .orElse(finalMd5.effectiveMd5());
     }
     return new FSFileInfo()
         .fileId(effectiveFileId)
@@ -185,6 +219,37 @@ public class AzureBlobStorePdao implements CloudFileReader {
         .userSpecifiedMd5(finalMd5.isUserProvided())
         .size(blobProperties.getBlobSize())
         .bucketResourceId(storageAccountResource.getResourceId().toString());
+  }
+
+  private record SourceFileInfo(
+      String md5, long size, BlobContainerClientFactory sourceClientFactory, String sourceUrl) {}
+
+  private SourceFileInfo getSourceFileInfo(UUID tenantId, String sourcePath) {
+    if (GcsUriUtils.isGsUri(sourcePath)) {
+      String projectId = getProjectIdFromGsPath(sourcePath);
+      Storage storage = gcsProjectFactory.getStorage(projectId);
+      String sanitizedSourcePath =
+          UriUtils.omitQueryParameter(sourcePath, USER_PROJECT_QUERY_PARAM);
+      Blob sourceBlob = GcsPdao.getBlobFromGsPath(storage, sanitizedSourcePath, projectId);
+
+      return new SourceFileInfo(
+          sourceBlob.getMd5ToHexString(), sourceBlob.getSize(), null, sourcePath);
+    } else {
+      BlobContainerClientFactory sourceClientFactory =
+          buildSourceClientFactory(tenantId, sourcePath);
+      BlobUrlParts blobUrl = BlobUrlParts.parse(sourcePath);
+      BlobProperties sourceBlobProperties =
+          sourceClientFactory
+              .getBlobContainerClient()
+              .getBlobClient(blobUrl.getBlobName())
+              .getProperties();
+      String md5 =
+          Optional.ofNullable(sourceBlobProperties.getContentMd5())
+              .map(Hex::encodeHexString)
+              .orElse(null);
+      return new SourceFileInfo(
+          md5, sourceBlobProperties.getBlobSize(), sourceClientFactory, blobUrl.getBlobName());
+    }
   }
 
   /**
@@ -212,8 +277,23 @@ public class AzureBlobStorePdao implements CloudFileReader {
       String cloudEncapsulationId,
       AuthenticatedUserRequest user,
       Dataset dataset) {
-    // This check is not needed for Azure because we use signed URLS that by default check
-    // permissions.
+    // This check is not needed for Azure source files because we use signed URLS that by default
+    // check those permissions.  But this is needed if ingesting from GCS-hosted files.
+    List<String> gsPaths = sourcePaths.stream().filter(GcsUriUtils::isGsUri).toList();
+
+    // Extract the project ids from the userProject query parameter.  There can be 0 or 1 values
+    List<String> cloudEncapsulationIds =
+        gsPaths.stream()
+            .map(p -> UriUtils.getValueFromQueryParameter(p, USER_PROJECT_QUERY_PARAM))
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+    if (cloudEncapsulationIds.size() > 1) {
+      throw new IllegalArgumentException("Only a single billing project per ingest may be used");
+    }
+
+    gcsPdao.validateUserCanRead(
+        gsPaths, cloudEncapsulationIds.stream().findFirst().orElse(null), user, dataset);
   }
 
   public void writeBlobLines(String signedPath, List<String> lines) {

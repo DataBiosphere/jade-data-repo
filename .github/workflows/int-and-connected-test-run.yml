@@ -197,8 +197,8 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.484
-          helm_datarepo_ui_chart_version: 0.0.273
+          helm_datarepo_api_chart_version: 0.0.488
+          helm_datarepo_ui_chart_version: 0.0.274
           helm_gcloud_sqlproxy_chart_version: 0.19.9
           helm_oidc_proxy_chart_version: 0.0.41
       - name: "Fetch gitHash for deployed integration version"
@@ -236,8 +236,9 @@ jobs:
   report-to-sherlock:
     uses: broadinstitute/sherlock/.github/workflows/client-report-app-version.yaml@main
     needs: deploy_test_integration
-    # Always attempt to run, as we want to report the appVersion even if the tests fail.
-    if: always()
+    # Always attempt to run if pull_request, as we want to report the appVersion even if the tests fail.
+    # never run on cron or other runs as we don't want extranaeous build reporting.
+    if: github.event_name == 'pull_request'
     with:
       new-version: ${{ needs.deploy_test_integration.outputs.api_image_tag }}
       chart-name: 'datarepo'

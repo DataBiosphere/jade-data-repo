@@ -8,12 +8,15 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -23,9 +26,12 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobContainerCopier;
+import bio.terra.service.filedata.azure.util.BlobContainerCopyInfo;
 import bio.terra.service.filedata.azure.util.BlobContainerCopySyncPoller;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
@@ -33,12 +39,20 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.util.polling.LongRunningOperationStatus;
+import com.azure.core.util.polling.PollResponse;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobUrlParts;
+import com.azure.storage.blob.models.BlobCopyInfo;
 import com.azure.storage.blob.models.BlobProperties;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.Storage;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,6 +83,7 @@ public class AzureBlobStorePdaoTest {
   private static final UUID PROFILE_ID = UUID.randomUUID();
   private static final UUID RESOURCE_ID = UUID.randomUUID();
   private static final UUID TENANT_ID = UUID.randomUUID();
+  private static final UUID DATASET_ID = UUID.randomUUID();
   private static final String STORAGE_ACCOUNT_NAME = "sa";
   private static final BillingProfileModel BILLING_PROFILE =
       new BillingProfileModel().id(PROFILE_ID).tenantId(TENANT_ID);
@@ -79,10 +94,12 @@ public class AzureBlobStorePdaoTest {
           .name(STORAGE_ACCOUNT_NAME)
           .dataContainer("d")
           .metadataContainer("md");
+
   private static final String SOURCE_CONTAINER_NAME = "srcdata";
   private static final String SOURCE_FILE_NAME = "src.txt";
   private static final String SOURCE_BLOB_NAME = SOURCE_CONTAINER_NAME + "/" + SOURCE_FILE_NAME;
   private static final String SOURCE_PATH = "https://src.blob.core.windows.net/" + SOURCE_BLOB_NAME;
+  private static final String SOURCE_GCS_PATH = "gs://mybucket/" + SOURCE_BLOB_NAME;
   private static final String TARGET_PATH = "/foo/bar.txt";
   private static final OffsetDateTime BLOB_CREATION_TIME = OffsetDateTime.now();
   private static final long BLOB_SIZE = 1234567890L;
@@ -100,6 +117,8 @@ public class AzureBlobStorePdaoTest {
   @MockBean private AzureResourceConfiguration resourceConfiguration;
   @MockBean private AzureResourceDao azureResourceDao;
   @MockBean private AzureAuthService azureAuthService;
+  @MockBean private GcsPdao gcsPdao;
+  @MockBean private GcsProjectFactory gcsProjectFactory;
   @Autowired private AzureBlobStorePdao dao;
 
   @MockBean
@@ -107,6 +126,7 @@ public class AzureBlobStorePdaoTest {
   private NamedParameterJdbcTemplate synapseJdbcTemplate;
 
   private FileLoadModel fileLoadModel;
+  private Dataset dataset;
 
   @Before
   public void setUp() {
@@ -119,6 +139,7 @@ public class AzureBlobStorePdaoTest {
             .targetPath(TARGET_PATH)
             .loadTag(LOAD_TAG)
             .mimeType(MIME_TYPE);
+    dataset = new Dataset().id(DATASET_ID);
     when(profileDao.getBillingProfileById(PROFILE_ID)).thenReturn(BILLING_PROFILE);
     when(resourceConfiguration.getAppToken(TENANT_ID)).thenReturn(targetCredential);
     when(resourceConfiguration.getMaxRetries()).thenReturn(3);
@@ -145,7 +166,7 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
-            new Dataset().id(UUID.randomUUID()).predictableFileIds(false),
+            dataset.predictableFileIds(false),
             BILLING_PROFILE,
             fileLoadModel,
             fileId.toString(),
@@ -166,7 +187,46 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
-            new Dataset().id(UUID.randomUUID()).predictableFileIds(false),
+            dataset.predictableFileIds(false),
+            BILLING_PROFILE,
+            fileLoadModel,
+            fileId.toString(),
+            AZURE_STORAGE_ACCOUNT_RESOURCE,
+            TEST_USER);
+    assertThat("output is expected", fsFileInfo, samePropertyValuesAs(expectedFileInfo));
+  }
+
+  @Test
+  public void testCopyFileWithGcsFile() {
+    UUID fileId = UUID.randomUUID();
+    fileLoadModel.sourcePath(SOURCE_GCS_PATH);
+
+    mockGcsFileAccess(null);
+    FSFileInfo expectedFileInfo = mockFileCopy(fileId);
+
+    FSFileInfo fsFileInfo =
+        dao.copyFile(
+            dataset.predictableFileIds(false),
+            BILLING_PROFILE,
+            fileLoadModel,
+            fileId.toString(),
+            AZURE_STORAGE_ACCOUNT_RESOURCE,
+            TEST_USER);
+    assertThat("output is expected", fsFileInfo, samePropertyValuesAs(expectedFileInfo));
+  }
+
+  @Test
+  public void testCopyFileWithGcsFileAndProject() {
+    UUID fileId = UUID.randomUUID();
+    String userProject = "foo";
+    String sourcePath = SOURCE_GCS_PATH + "?userProject=" + userProject;
+    fileLoadModel.sourcePath(sourcePath);
+
+    mockGcsFileAccess(userProject);
+    FSFileInfo expectedFileInfo = mockFileCopy(fileId);
+    FSFileInfo fsFileInfo =
+        dao.copyFile(
+            dataset.predictableFileIds(false),
             BILLING_PROFILE,
             fileLoadModel,
             fileId.toString(),
@@ -280,15 +340,52 @@ public class AzureBlobStorePdaoTest {
                     + "sr=b&sig=mysig")));
   }
 
+  @Test
+  public void testValidateUserCanReadSimple() {
+    List<String> sourcePaths = List.of("gs://mybucket/myfile.txt");
+    dao.validateUserCanRead(sourcePaths, null, TEST_USER, dataset);
+    verify(gcsPdao).validateUserCanRead(sourcePaths, null, TEST_USER, dataset);
+  }
+
+  @Test
+  public void testValidateUserCanReadWithUserProject() {
+    List<String> sourcePaths =
+        List.of(
+            "gs://mybucket/myfile1.txt?userProject=foo",
+            "gs://mybucket/myfile2.txt?userProject=foo");
+    dao.validateUserCanRead(sourcePaths, null, TEST_USER, dataset);
+    verify(gcsPdao).validateUserCanRead(sourcePaths, "foo", TEST_USER, dataset);
+  }
+
+  @Test
+  public void testValidateUserCanReadWithMultipleUserProjects() {
+    List<String> sourcePaths =
+        List.of(
+            "gs://mybucket/myfile1.txt?userProject=foo",
+            "gs://mybucket/myfile2.txt?userProject=bar");
+    TestUtils.assertError(
+        IllegalArgumentException.class,
+        "Only a single billing project per ingest may be used",
+        () -> dao.validateUserCanRead(sourcePaths, null, TEST_USER, dataset));
+  }
+
   private FSFileInfo mockFileCopy(UUID fileId) {
     BlobContainerCopySyncPoller poller = mock(BlobContainerCopySyncPoller.class);
     BlobContainerCopier copier = mock(BlobContainerCopier.class);
     BlobProperties blobProperties = mock(BlobProperties.class);
+    BlobCopyInfo copyInfo = mock(BlobCopyInfo.class);
+    BlobContainerCopyInfo containerCopyInfo =
+        new BlobContainerCopyInfo(
+            List.of(
+                new PollResponse<>(LongRunningOperationStatus.SUCCESSFULLY_COMPLETED, copyInfo)));
     when(blobProperties.getCreationTime()).thenReturn(BLOB_CREATION_TIME);
     when(blobProperties.getBlobSize()).thenReturn(BLOB_SIZE);
     when(blobProperties.getContentMd5()).thenReturn(BLOB_CONTENT_MD5);
     when(copier.beginCopyOperation()).thenReturn(poller);
+    when(poller.waitForCompletion())
+        .thenReturn(new PollResponse<>(containerCopyInfo.getCopyStatus(), containerCopyInfo));
     when(blobCrl.createBlobContainerCopier(any(), anyString(), anyString())).thenReturn(copier);
+    when(blobCrl.createBlobContainerCopier(any(URI.class), anyString())).thenReturn(copier);
     String targetBlobName = "data/" + fileId + "/" + SOURCE_FILE_NAME;
     when(blobCrl.getBlobProperties(targetBlobName)).thenReturn(blobProperties);
     BlobContainerClient sourceBlobContainerClient = mock(BlobContainerClient.class);
@@ -302,6 +399,11 @@ public class AzureBlobStorePdaoTest {
     String targetContainerUrl = "https://" + STORAGE_ACCOUNT_NAME + ".blob.core.windows.net/data";
     when(targetBlobContainerClient.getBlobContainerUrl()).thenReturn(targetContainerUrl);
 
+    // Mock GCS file info
+    Blob gcsBlob = mock(Blob.class);
+    when(gcsBlob.getMd5ToHexString()).thenReturn(BLOB_CONTENT_MD5_HEX);
+    when(gcsBlob.getSize()).thenReturn(BLOB_SIZE);
+
     return new FSFileInfo()
         .fileId(fileId.toString())
         .createdDate(BLOB_CREATION_TIME.toInstant().toString())
@@ -309,5 +411,12 @@ public class AzureBlobStorePdaoTest {
         .checksumMd5(BLOB_CONTENT_MD5_HEX)
         .size(BLOB_SIZE)
         .bucketResourceId(RESOURCE_ID.toString());
+  }
+
+  private void mockGcsFileAccess(String projectId) {
+    Storage storage = mock(Storage.class);
+    Blob blob = mock(Blob.class);
+    when(storage.get(eq(BlobId.fromGsUtilUri(SOURCE_GCS_PATH)), any())).thenReturn(blob);
+    when(gcsProjectFactory.getStorage(projectId)).thenReturn(storage);
   }
 }

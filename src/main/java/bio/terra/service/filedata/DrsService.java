@@ -1,5 +1,8 @@
 package bio.terra.service.filedata;
 
+import static bio.terra.service.filedata.google.gcs.GcsConstants.REQUESTED_BY_QUERY_PARAM;
+import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM;
+
 import bio.terra.app.configuration.EcmConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
@@ -92,9 +95,7 @@ public class DrsService {
   private static final String ACCESS_ID_SEPARATOR = "*";
   private static final String DRS_OBJECT_VERSION = "0";
   private static final Duration URL_TTL = Duration.ofMinutes(15);
-  private static final String USER_PROJECT_QUERY_PARAM = "userProject";
-  private static final String REQUESTED_BY_QUERY_PARAM = "requestedBy";
-  // atomic counter that we incr on request arrival and decr on request response
+  // atomic counter that we increase on request arrival and decr on request response
   private final AtomicInteger currentDRSRequests = new AtomicInteger(0);
 
   private final SnapshotService snapshotService;

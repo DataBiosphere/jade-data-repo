@@ -91,6 +91,24 @@ public class PolicyServiceTest {
   }
 
   @Test
+  void testDeleteSnapshotDao() throws Exception {
+    mockPolicyApi();
+    UUID snapshotId = UUID.randomUUID();
+    policyService.deletePao(snapshotId);
+    verify(tpsApi).deletePao(snapshotId);
+  }
+
+  @Test
+  void testDeleteSnapshotDaoIgnoresNotFoundException() throws Exception {
+    mockPolicyApi();
+    UUID snapshotId = UUID.randomUUID();
+    var exception = new ApiException(HttpStatus.NOT_FOUND.value(), "Policy object not found");
+    doThrow(exception).when(tpsApi).deletePao(snapshotId);
+    policyService.deletePao(snapshotId);
+    verify(tpsApi).deletePao(snapshotId);
+  }
+
+  @Test
   void testConvertApiException() {
     var unauthorizedException = new ApiException(HttpStatus.UNAUTHORIZED.value(), "unauthorized");
     assertThat(

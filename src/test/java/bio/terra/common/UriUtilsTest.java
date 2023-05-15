@@ -39,11 +39,6 @@ public class UriUtilsTest {
         () -> UriUtils.getValueFromQueryParameter(badUri, "q"));
 
     TestUtils.assertError(
-        InvalidUriException.class,
-        "Invalid URI",
-        () -> UriUtils.getValueFromQueryParameter(badUri, "q"));
-
-    TestUtils.assertError(
         InvalidUriException.class, "Invalid URI", () -> UriUtils.omitQueryParameter(badUri, "q"));
   }
 

@@ -2,6 +2,7 @@ package bio.terra.service.filedata.google.gcs;
 
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
+import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM_TDR;
 
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
@@ -333,9 +334,15 @@ public class GcsPdao implements CloudFileReader {
       return;
     }
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
+    String tokenKey;
+    if (cloudEncapsulationId == null) {
+      tokenKey = user.getToken();
+    } else {
+      tokenKey = String.format("%s%s%s", user.getToken(), PSA_SEPARATOR, cloudEncapsulationId);
+    }
     Tokeninfo token =
         petAccountTokens.computeIfAbsent(
-            String.format("%s%s%s", user.getToken(), PSA_SEPARATOR, cloudEncapsulationId),
+            tokenKey,
             t -> {
               try {
                 String oauthToken = iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
@@ -358,16 +365,17 @@ public class GcsPdao implements CloudFileReader {
               }
             });
 
-    Storage storageAsPet =
+    StorageOptions.Builder storageAsPetBuilder =
         StorageOptions.newBuilder()
             .setCredentials(
                 OAuth2Credentials.create(
                     new AccessToken(
                         token.get(TOKEN_FIELD).toString(),
-                        Date.from(Instant.now().plusSeconds(token.getExpiresIn())))))
-            .setProjectId(cloudEncapsulationId)
-            .build()
-            .getService();
+                        Date.from(Instant.now().plusSeconds(token.getExpiresIn())))));
+    if (cloudEncapsulationId != null) {
+      storageAsPetBuilder.setProjectId(cloudEncapsulationId);
+    }
+    Storage storageAsPet = storageAsPetBuilder.build().getService();
 
     Set<String> buckets =
         sourcePaths.stream()
@@ -380,7 +388,7 @@ public class GcsPdao implements CloudFileReader {
             .orElseGet(() -> new BucketSourceOption[0]);
 
     for (String bucket : buckets) {
-      List<Boolean> permissions;
+      List<Boolean> permissions = List.of();
       try {
         permissions =
             storageAsPet.testIamPermissions(
@@ -389,7 +397,7 @@ public class GcsPdao implements CloudFileReader {
         // This is a potential failure mode for permissions checking: not being able to make the
         // permissions check call at all
         if (e.getCode() == HttpStatus.SC_FORBIDDEN) {
-          permissions = null;
+          permissions = List.of();
         } else {
           throw e;
         }
@@ -713,14 +721,6 @@ public class GcsPdao implements CloudFileReader {
     }
   }
 
-  /**
-   * Non-static version of {@link GcsPdao#getBlobFromGsPath(Storage, String, String)} to enable
-   * mocking in testing
-   */
-  public Blob getBlobFromGsPathNs(Storage storage, String gspath, String targetProjectId) {
-    return getBlobFromGsPath(storage, gspath, targetProjectId);
-  }
-
   public static Blob getBlobFromGsPath(Storage storage, String gspath, String targetProjectId) {
     BlobId locator = GcsUriUtils.parseBlobUri(gspath);
 
@@ -745,7 +745,7 @@ public class GcsPdao implements CloudFileReader {
    * @return the value of the userProject query parameter or null
    */
   public static String getProjectIdFromGsPath(String gspath) {
-    return UriUtils.getValueFromQueryParameter(gspath, "userProject");
+    return UriUtils.getValueFromQueryParameter(gspath, USER_PROJECT_QUERY_PARAM_TDR);
   }
 
   public static String getBlobContents(Storage storage, String projectId, BlobInfo blobInfo) {

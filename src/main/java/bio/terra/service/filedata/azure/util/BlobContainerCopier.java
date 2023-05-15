@@ -1,11 +1,12 @@
 package bio.terra.service.filedata.azure.util;
 
+import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM;
+import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM_TDR;
 import static bio.terra.service.filedata.google.gcs.GcsPdao.getProjectIdFromGsPath;
 
 import bio.terra.common.UriUtils;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.filedata.google.gcs.GcsConstants;
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobUrlParts;
@@ -38,7 +39,6 @@ public class BlobContainerCopier {
   private static final Logger logger = LoggerFactory.getLogger(BlobContainerCopier.class);
   private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
   private final BlobContainerClientFactory destinationClientFactory;
-  private static final String USER_PROJECT_QUERY_PARAM = "userProject";
   // Signing URL for 48 hours to handle large file transfers
   private static final long SIGNED_URL_DURATION_MINUTES = TimeUnit.HOURS.toMinutes(48);
 
@@ -279,8 +279,7 @@ public class BlobContainerCopier {
     }
     Storage storage = storageBuilder.build().getService();
 
-    String sanitizedUri =
-        UriUtils.omitQueryParameter(gspath, GcsConstants.USER_PROJECT_QUERY_PARAM);
+    String sanitizedUri = UriUtils.omitQueryParameter(gspath, USER_PROJECT_QUERY_PARAM_TDR);
     BlobId locator = GcsUriUtils.parseBlobUri(sanitizedUri);
     Blob blob = storage.get(locator, getOptions);
     if (blob == null) {

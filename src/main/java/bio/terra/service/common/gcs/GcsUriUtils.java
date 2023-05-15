@@ -1,5 +1,7 @@
 package bio.terra.service.common.gcs;
 
+import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QUERY_PARAM;
+
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -106,7 +108,7 @@ public final class GcsUriUtils {
     String gsPath = locator.getName();
     String userProjectParam;
     if (userProject != null) {
-      userProjectParam = "userProject=%s&".formatted(userProject);
+      userProjectParam = "%s=%s&".formatted(USER_PROJECT_QUERY_PARAM, userProject);
     } else {
       userProjectParam = "";
     }
@@ -121,7 +123,7 @@ public final class GcsUriUtils {
 
   /**
    * Performs rudimentary test on a potential gcs uri to see if it might be valid (note: does not
-   * confirm the validity of the gcs path
+   * confirm the validity of the gcs path)
    *
    * @param uri A path to evaluate
    * @return A boolean true is uri might be a valid gs path

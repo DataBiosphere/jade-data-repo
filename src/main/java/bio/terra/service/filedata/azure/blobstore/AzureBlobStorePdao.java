@@ -230,7 +230,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
       Storage storage = gcsProjectFactory.getStorage(projectId);
       String sanitizedSourcePath =
           UriUtils.omitQueryParameter(sourcePath, USER_PROJECT_QUERY_PARAM);
-      Blob sourceBlob = gcsPdao.getBlobFromGsPathNs(storage, sanitizedSourcePath, projectId);
+      Blob sourceBlob = GcsPdao.getBlobFromGsPath(storage, sanitizedSourcePath, projectId);
 
       return new SourceFileInfo(
           sourceBlob.getMd5ToHexString(), sourceBlob.getSize(), null, sourcePath);

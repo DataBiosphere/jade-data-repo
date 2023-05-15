@@ -35,7 +35,7 @@ public class DatasetTest {
 
     projectResource.dedicatedServiceAccount(true);
     assertTrue(
-        "GCP datasets uses a dedicated GCP service account",
+        "GCP dataset uses a dedicated GCP service account",
         dataset.hasDedicatedGcpServiceAccount());
   }
 }

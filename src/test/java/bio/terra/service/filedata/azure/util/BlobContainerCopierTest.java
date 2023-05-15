@@ -1,16 +1,21 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
+import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
+import bio.terra.service.filedata.google.util.GcsBlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
+import com.google.cloud.storage.StorageException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -48,7 +53,9 @@ public class BlobContainerCopierTest {
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
 
   private static final int POLL_INTERVAL_IN_SECONDS = 2;
-  private BlobIOTestUtility blobIOTestUtility;
+  private AzureBlobIOTestUtility blobIOTestUtilityAz;
+  private GcsBlobIOTestUtility blobIOTestUtilityGcs;
+  private GcsBlobIOTestUtility blobIOTestUtilityGcsRp;
   private Stream<BlobContainerCopier> copiersStream;
   private RequestRetryOptions retryOptions;
 
@@ -62,12 +69,19 @@ public class BlobContainerCopierTest {
             null,
             null,
             null);
-    blobIOTestUtility =
-        new BlobIOTestUtility(
+    blobIOTestUtilityAz =
+        new AzureBlobIOTestUtility(
             azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
             connectedTestConfiguration.getDestinationStorageAccountName(),
             retryOptions);
+
+    blobIOTestUtilityGcs =
+        new GcsBlobIOTestUtility(connectedTestConfiguration.getIngestbucket(), null);
+    blobIOTestUtilityGcsRp =
+        new GcsBlobIOTestUtility(
+            connectedTestConfiguration.getIngestRequesterPaysBucket(),
+            connectedTestConfiguration.getIngestRequesterPaysBucketBillingProject());
 
     Duration pollDuration = Duration.ofSeconds(POLL_INTERVAL_IN_SECONDS);
     BlobContainerCopier copierWithSharedKeyCredentials =
@@ -84,10 +98,12 @@ public class BlobContainerCopierTest {
 
   @After
   public void cleanUp() {
-    blobIOTestUtility.deleteContainers();
+    blobIOTestUtilityAz.teardown();
+    blobIOTestUtilityGcs.teardown();
+    blobIOTestUtilityGcsRp.teardown();
   }
   /*
-  Tests in this class should be parameterized tests. However, since we are using
+  Many tests in this class should be parameterized tests. However, since we are using
   JUnit 4 the implementation would be convoluted. Instead, the execution pattern
   followed here should make it easier to migrate to JUnit 5 when appropriate.
 
@@ -102,7 +118,7 @@ public class BlobContainerCopierTest {
   }
 
   private void testCopySingleFile_FileIsCopied_Impl(BlobContainerCopier copier) {
-    String blobName = blobIOTestUtility.uploadSourceFiles(1, MIB / 10).iterator().next();
+    String blobName = blobIOTestUtilityAz.uploadSourceFiles(1, MIB / 10).iterator().next();
 
     BlobCopySourceDestinationPair pair = new BlobCopySourceDestinationPair(blobName, "");
     copier.setSourceDestinationPairs(Collections.singletonList(pair));
@@ -112,7 +128,7 @@ public class BlobContainerCopierTest {
     poller.waitForCompletion();
 
     assertThat(
-        blobIOTestUtility.getDestinationBlobContainerClient().getBlobClient(blobName).exists(),
+        blobIOTestUtilityAz.getDestinationBlobContainerClient().getBlobClient(blobName).exists(),
         is(true));
   }
 
@@ -124,7 +140,7 @@ public class BlobContainerCopierTest {
 
   private void testCopy2FilesWithDestinationNames_FilesAreCopiedWithDestinationNames_Impl(
       BlobContainerCopier copier) {
-    List<String> blobs = blobIOTestUtility.uploadSourceFiles(2, MIB / 10);
+    List<String> blobs = blobIOTestUtilityAz.uploadSourceFiles(2, MIB / 10);
 
     List<BlobCopySourceDestinationPair> sourceDestinationPairs =
         blobs.stream()
@@ -140,7 +156,7 @@ public class BlobContainerCopierTest {
     sourceDestinationPairs.forEach(
         b ->
             assertThat(
-                blobIOTestUtility
+                blobIOTestUtilityAz
                     .getDestinationBlobContainerClient()
                     .getBlobClient(b.getDestinationBlobName())
                     .exists(),
@@ -153,7 +169,7 @@ public class BlobContainerCopierTest {
   }
 
   private void testCopy5FilesUsingEmptyPrefix_AllFilesAreCopied_Impl(BlobContainerCopier copier) {
-    List<String> blobs = blobIOTestUtility.uploadSourceFiles(5, MIB / 10);
+    List<String> blobs = blobIOTestUtilityAz.uploadSourceFiles(5, MIB / 10);
 
     copier.setBlobSourcePrefix("");
 
@@ -164,51 +180,107 @@ public class BlobContainerCopierTest {
     blobs.forEach(
         b ->
             assertThat(
-                blobIOTestUtility.getDestinationBlobContainerClient().getBlobClient(b).exists(),
+                blobIOTestUtilityAz.getDestinationBlobContainerClient().getBlobClient(b).exists(),
                 is(true)));
   }
 
   @Test
   public void testCopySingleBlobWithSignedURl_FileIsCopied() {
-    String blobName = blobIOTestUtility.uploadSourceFiles(1, MIB / 10).iterator().next();
+    String blobName = blobIOTestUtilityAz.uploadSourceFiles(1, MIB / 10).iterator().next();
 
     BlobContainerClientFactory sourceFactory = createSourceClientFactoryWithSharedKey();
 
     BlobContainerCopier copier =
-        new BlobContainerCopier(blobIOTestUtility.createDestinationClientFactory());
+        new BlobContainerCopier(blobIOTestUtilityAz.createDestinationClientFactory());
     copier.setSourceBlobUrl(
         sourceFactory
             .getBlobSasUrlFactory()
-            .createSasUrlForBlob(blobName, blobIOTestUtility.createReadOnlyTokenOptions()));
+            .createSasUrlForBlob(blobName, blobIOTestUtilityAz.createReadOnlyTokenOptions()));
 
     copier.beginCopyOperation().waitForCompletion();
 
     assertThat(
-        blobIOTestUtility.getDestinationBlobContainerClient().getBlobClient(blobName).exists(),
+        blobIOTestUtilityAz.getDestinationBlobContainerClient().getBlobClient(blobName).exists(),
         is(true));
   }
 
   @Test
   public void testCopySingleBLobWithSignedURlAndDestinationName_FileCopiedWithDestinationName() {
-    String blobName = blobIOTestUtility.uploadSourceFiles(1, MIB / 10).iterator().next();
+    String blobName = blobIOTestUtilityAz.uploadSourceFiles(1, MIB / 10).iterator().next();
     String destinationBlobName = "myBlob";
     BlobContainerClientFactory sourceFactory = createSourceClientFactoryWithSharedKey();
 
     BlobContainerCopier copier =
-        new BlobContainerCopier(blobIOTestUtility.createDestinationClientFactory());
+        new BlobContainerCopier(blobIOTestUtilityAz.createDestinationClientFactory());
     copier.setSourceBlobUrl(
         sourceFactory
             .getBlobSasUrlFactory()
-            .createSasUrlForBlob(blobName, blobIOTestUtility.createReadOnlyTokenOptions()));
+            .createSasUrlForBlob(blobName, blobIOTestUtilityAz.createReadOnlyTokenOptions()));
     copier.setDestinationBlobName(destinationBlobName);
     copier.beginCopyOperation().waitForCompletion();
 
     assertThat(
-        blobIOTestUtility
+        blobIOTestUtilityAz
             .getDestinationBlobContainerClient()
             .getBlobClient(destinationBlobName)
             .exists(),
         is(true));
+  }
+
+  @Test
+  public void testCopySingleBlobFromGcs() {
+    long blobSize = MIB / 10;
+    String blobName = blobIOTestUtilityGcs.uploadSourceFiles(1, blobSize).iterator().next();
+    String blobUrl = blobIOTestUtilityGcs.getFullyQualifiedBlobName(blobName);
+
+    String destinationBlobName = "myBlob";
+
+    BlobContainerCopier copier =
+        new BlobContainerCopier(blobIOTestUtilityAz.createDestinationClientFactory());
+
+    copier.setSourceBlobUrl(blobUrl);
+    copier.setDestinationBlobName(destinationBlobName);
+    copier.beginCopyOperation().waitForCompletion();
+
+    BlobClient blobClient =
+        blobIOTestUtilityAz.getDestinationBlobContainerClient().getBlobClient(destinationBlobName);
+    assertTrue("The destination blob exists", blobClient.exists());
+    assertThat(
+        "The destination size is valid", blobClient.getProperties().getBlobSize(), is(blobSize));
+  }
+
+  @Test
+  public void testCopySingleBlobFromGcsRp() {
+    long blobSize = MIB / 10;
+    String blobName = blobIOTestUtilityGcsRp.uploadSourceFiles(1, blobSize).iterator().next();
+    String blobUrl =
+        blobIOTestUtilityGcsRp.getFullyQualifiedBlobName(blobName)
+            + "?userProject=%s"
+                .formatted(connectedTestConfiguration.getIngestRequesterPaysBucketBillingProject());
+
+    String destinationBlobName = "myBlob";
+
+    BlobContainerCopier copier =
+        new BlobContainerCopier(blobIOTestUtilityAz.createDestinationClientFactory());
+
+    copier.setDestinationBlobName(destinationBlobName);
+
+    // Fails when not specifying a userProject in the gs URI
+    copier.setSourceBlobUrl(blobIOTestUtilityGcsRp.getFullyQualifiedBlobName(blobName));
+    TestUtils.assertError(
+        StorageException.class,
+        "Bucket is a requester pays bucket but no user project provided.",
+        () -> copier.beginCopyOperation().waitForCompletion());
+
+    // Now it should pass
+    copier.setSourceBlobUrl(blobUrl);
+    copier.beginCopyOperation().waitForCompletion();
+
+    BlobClient blobClient =
+        blobIOTestUtilityAz.getDestinationBlobContainerClient().getBlobClient(destinationBlobName);
+    assertTrue("The destination blob exists", blobClient.exists());
+    assertThat(
+        "The destination size is valid", blobClient.getProperties().getBlobSize(), is(blobSize));
   }
 
   private String getSourceStorageAccountPrimarySharedKey() {
@@ -231,7 +303,7 @@ public class BlobContainerCopierTest {
   private BlobContainerCopier createBlobCopierWithSharedKeyInSource(Duration pollingInterval) {
 
     BlobContainerCopier copier =
-        new BlobContainerCopier(this.blobIOTestUtility.createDestinationClientFactory());
+        new BlobContainerCopier(this.blobIOTestUtilityAz.createDestinationClientFactory());
     copier.setPollingInterval(pollingInterval);
 
     copier.setSourceClientFactory(createSourceClientFactoryWithSharedKey());
@@ -241,7 +313,7 @@ public class BlobContainerCopierTest {
 
   private BlobContainerClientFactory createSourceClientFactoryWithSharedKey() {
     String sourceContainer =
-        blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();
+        blobIOTestUtilityAz.getSourceBlobContainerClient().getBlobContainerName();
     return new BlobContainerClientFactory(
         connectedTestConfiguration.getSourceStorageAccountName(),
         getSourceStorageAccountPrimarySharedKey(),
@@ -252,10 +324,10 @@ public class BlobContainerCopierTest {
   private BlobContainerCopier createBlobCopierWithTokenCredsInSource(Duration pollingInterval) {
 
     BlobContainerCopier copier =
-        new BlobContainerCopier(blobIOTestUtility.createDestinationClientFactory());
+        new BlobContainerCopier(blobIOTestUtilityAz.createDestinationClientFactory());
     copier.setPollingInterval(pollingInterval);
     String sourceContainer =
-        blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();
+        blobIOTestUtilityAz.getSourceBlobContainerClient().getBlobContainerName();
     copier.setSourceClientFactory(
         new BlobContainerClientFactory(
             connectedTestConfiguration.getSourceStorageAccountName(),
@@ -269,7 +341,7 @@ public class BlobContainerCopierTest {
   private BlobContainerCopier createBlobCopierWithSasCredsInSource(Duration pollingInterval) {
 
     BlobContainerCopier copier =
-        new BlobContainerCopier(blobIOTestUtility.createDestinationClientFactory());
+        new BlobContainerCopier(blobIOTestUtilityAz.createDestinationClientFactory());
     copier.setPollingInterval(pollingInterval);
     copier.setSourceClientFactory(createSourceClientFactoryWithSasCreds());
 
@@ -278,7 +350,7 @@ public class BlobContainerCopierTest {
 
   private BlobContainerClientFactory createSourceClientFactoryWithSasCreds() {
     return new BlobContainerClientFactory(
-        blobIOTestUtility.generateSourceContainerUrlWithSasReadAndListPermissions(
+        blobIOTestUtilityAz.generateSourceContainerUrlWithSasReadAndListPermissions(
             getSourceStorageAccountPrimarySharedKey()),
         retryOptions);
   }

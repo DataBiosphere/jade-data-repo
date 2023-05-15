@@ -2,6 +2,7 @@ package bio.terra.service.filedata.azure.util;
 
 import static bio.terra.service.resourcemanagement.AzureDataLocationSelector.armUniqueString;
 
+import bio.terra.service.filedata.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
 import com.azure.resourcemanager.AzureResourceManager;
@@ -16,17 +17,11 @@ import com.azure.storage.common.sas.SasProtocol;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Random;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.RandomStringUtils;
 
 /**
@@ -36,9 +31,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 @SuppressFBWarnings(
     value = "DMI_RANDOM_USED_ONLY_ONCE",
     justification = "False positive introduced in 4.2.3, fixed in 4.4.2")
-public class BlobIOTestUtility {
-  public static final long MIB = 1024 * 1024;
-  private static final String SOURCE_BLOB_NAME = "myTestBlob";
+public class AzureBlobIOTestUtility implements BlobIOTestUtility {
   private final BlobContainerClient sourceBlobContainerClient;
 
   public BlobContainerClient getSourceBlobContainerClient() {
@@ -55,7 +48,7 @@ public class BlobIOTestUtility {
   private final TokenCredential tokenCredential;
   private final RequestRetryOptions retryOptions;
 
-  public BlobIOTestUtility(
+  public AzureBlobIOTestUtility(
       TokenCredential tokenCredential,
       String sourceAccountName,
       String destinationAccountName,
@@ -136,21 +129,13 @@ public class BlobIOTestUtility {
     return armUniqueString(RandomStringUtils.random(10), 30);
   }
 
-  public List<String> uploadSourceFiles(int numOfFiles, long length) {
-    return Stream.iterate(0, n -> n + 1)
-        .limit(numOfFiles)
-        .map(
-            i ->
-                uploadSourceFile(
-                    String.format("%s/%s%s", i, SOURCE_BLOB_NAME, UUID.randomUUID()), length))
-        .collect(Collectors.toList());
-  }
-
+  @Override
   public String uploadSourceFile(String blobName, long length) {
     sourceBlobContainerClient.getBlobClient(blobName).upload(createInputStream(length), length);
     return blobName;
   }
 
+  @Override
   public String uploadFileWithContents(String blobName, String contents) {
     var bytes = contents.getBytes(StandardCharsets.UTF_8);
     try (var byteStream = new ByteArrayInputStream(bytes)) {
@@ -182,23 +167,8 @@ public class BlobIOTestUtility {
         createSourcePath(sourceFile), generateBlobSasTokenWithReadPermissions(key, sourceFile));
   }
 
-  private InputStream createInputStream(long length) {
-    return new InputStream() {
-      private long dataProduced;
-      private final Random rand = new Random();
-
-      @Override
-      public int read() {
-        if (dataProduced == length) {
-          return -1;
-        }
-        dataProduced++;
-        return rand.nextInt(100 - 65) + 65; // starting at "A"
-      }
-    };
-  }
-
-  public void deleteContainers() {
+  @Override
+  public void teardown() {
     destinationBlobContainerClient.ifPresent(BlobContainerClient::delete);
     sourceBlobContainerClient.delete();
   }
@@ -215,7 +185,7 @@ public class BlobIOTestUtility {
     return new BlobSasTokenOptions(
         Duration.ofHours(1),
         new BlobSasPermission().setReadPermission(true),
-        BlobIOTestUtility.class.getName());
+        AzureBlobIOTestUtility.class.getName());
   }
 
   public String getSourceStorageAccountPrimarySharedKey(

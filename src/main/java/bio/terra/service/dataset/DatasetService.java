@@ -630,7 +630,7 @@ public class DatasetService {
                     new InvalidColumnException(
                         "No column exists in table "
                             + tableName
-                            + " with column name "
+                            + " with column name: "
                             + columnName));
 
     var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());

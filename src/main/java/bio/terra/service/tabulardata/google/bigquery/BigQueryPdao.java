@@ -255,8 +255,8 @@ public abstract class BigQueryPdao {
   // COLUMN STATS
   public static final String ARRAY_TEXT_COLUMN_STATS_TEMPLATE =
       """
-          WITH array_field AS (Select <column> FROM <table> <whereClause>)
-            Select flattened_array_field AS <column>, COUNT(*) AS <countColumn> FROM array_field CROSS JOIN UNNEST(array_field.<column>)
+          WITH array_field AS (SELECT <column> FROM <table> <whereClause>)
+            SELECT flattened_array_field AS <column>, COUNT(*) AS <countColumn> FROM array_field CROSS JOIN UNNEST(array_field.<column>)
             AS flattened_array_field GROUP BY flattened_array_field ORDER BY flattened_array_field <direction>
           """;
   public static final String TEXT_COLUMN_STATS_TEMPLATE =
@@ -266,8 +266,8 @@ public abstract class BigQueryPdao {
 
   public static final String ARRAY_NUMERIC_COLUMN_STATS_TEMPLATE =
       """
-          WITH array_field AS (Select <column> FROM <table> <whereClause>)
-            Select MIN(flattened_array_field) AS min, MAX(flattened_array_field) AS max FROM array_field CROSS JOIN UNNEST(array_field.<column>)
+          WITH array_field AS (SELECT <column> FROM <table> <whereClause>)
+            SELECT MIN(flattened_array_field) AS min, MAX(flattened_array_field) AS max FROM array_field CROSS JOIN UNNEST(array_field.<column>)
             AS flattened_array_field
           """;
 

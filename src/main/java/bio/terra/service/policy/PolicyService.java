@@ -74,7 +74,7 @@ public class PolicyService {
     } catch (ApiException e) {
       // Ignore the exception if the policy object being deleted does not exist
       RuntimeException exception = convertApiException(e);
-      if (!PolicyServiceNotFoundException.class.isAssignableFrom(exception.getClass())) {
+      if (!(exception instanceof PolicyServiceNotFoundException)) {
         throw exception;
       }
     }

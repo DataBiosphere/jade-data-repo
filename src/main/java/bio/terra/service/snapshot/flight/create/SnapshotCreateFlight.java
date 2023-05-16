@@ -319,6 +319,8 @@ public class SnapshotCreateFlight extends Flight {
       addStep(new CreateSnapshotCleanSynapseAzureStep(azureSynapsePdao, snapshotService));
     }
 
+    addStep(new CreateSnapshotPolicyStep(policyService, sourceDataset.isSecureMonitoringEnabled()));
+
     // unlock the snapshot metadata row
     addStep(new UnlockSnapshotStep(snapshotDao, null));
     addStep(new CreateSnapshotJournalEntryStep(journalService, userReq));
@@ -329,6 +331,5 @@ public class SnapshotCreateFlight extends Flight {
             datasetId,
             IamResourceType.DATASET,
             "A snapshot was created from this dataset."));
-    addStep(new CreateSnapshotPolicyStep(policyService, sourceDataset.isSecureMonitoringEnabled()));
   }
 }

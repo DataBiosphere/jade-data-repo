@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.policy.PolicyService;
@@ -37,6 +38,8 @@ public class CreateSnapshotPolicyStep implements Step {
         policyService.createSnapshotPao(snapshotId, policyInputs);
       } catch (PolicyConflictException ex) {
         logger.warn("Policy access object already exists for snapshot {}", snapshotId);
+      } catch (FeatureNotImplementedException ex) {
+        logger.info("Terra Policy Service is not enabled");
       }
     }
     return StepResult.getStepResultSuccess();

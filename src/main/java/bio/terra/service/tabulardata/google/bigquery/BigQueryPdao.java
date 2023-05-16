@@ -330,11 +330,11 @@ public abstract class BigQueryPdao {
 
     final TableResult result =
         retrieveNumericColumnStats(tdrResource, bqFormattedTableName, column, filter);
-    return (ColumnStatisticsDoubleModel)
-        new ColumnStatisticsDoubleModel()
-            .maxValue(getDoubleResult(result, "max"))
-            .minValue(getDoubleResult(result, "min"))
-            .dataType(column.getType().toString());
+    ColumnStatisticsDoubleModel doubleModel =
+        (ColumnStatisticsDoubleModel)
+            new ColumnStatisticsDoubleModel().dataType(column.getType().toString());
+    setMinMaxDoubleResult(result, doubleModel);
+    return doubleModel;
   }
 
   public static ColumnStatisticsIntModel getStatsForIntColumn(
@@ -343,11 +343,11 @@ public abstract class BigQueryPdao {
 
     final TableResult result =
         retrieveNumericColumnStats(tdrResource, bqFormattedTableName, column, filter);
-    return (ColumnStatisticsIntModel)
-        new ColumnStatisticsIntModel()
-            .maxValue(getIntResult(result, "max"))
-            .minValue(getIntResult(result, "min"))
-            .dataType(column.getType().toString());
+    ColumnStatisticsIntModel intModel =
+        (ColumnStatisticsIntModel)
+            new ColumnStatisticsIntModel().dataType(column.getType().toString());
+    setMinMaxIntResult(result, intModel);
+    return intModel;
   }
 
   private static TableResult retrieveNumericColumnStats(
@@ -371,11 +371,34 @@ public abstract class BigQueryPdao {
     return bigQueryProject.query(bigQuerySQL);
   }
 
-  private static double getDoubleResult(TableResult tableResult, String resultColumnName) {
-    return tableResult.iterateAll().iterator().next().get(resultColumnName).getDoubleValue();
+  private static void setMinMaxDoubleResult(
+      TableResult tableResult, ColumnStatisticsDoubleModel doubleModel) {
+    if (resultHasValue(tableResult, "min") && resultHasValue(tableResult, "max")) {
+      doubleModel.minValue(getDoubleResult(tableResult, "min"));
+      doubleModel.maxValue(getDoubleResult(tableResult, "max"));
+    }
   }
 
-  private static int getIntResult(TableResult tableResult, String resultColumnName) {
-    return (int) tableResult.iterateAll().iterator().next().get(resultColumnName).getLongValue();
+  private static void setMinMaxIntResult(
+      TableResult tableResult, ColumnStatisticsIntModel intModel) {
+    if (resultHasValue(tableResult, "min") && resultHasValue(tableResult, "max")) {
+      intModel.minValue(getIntResult(tableResult, "min"));
+      intModel.maxValue(getIntResult(tableResult, "max"));
+    }
+  }
+
+  // min and max fields will be undefined if the column only has null values or the table is empty
+  private static boolean resultHasValue(TableResult tableResult, String statColumnName) {
+    FieldValue fieldValue = tableResult.iterateAll().iterator().next().get(statColumnName);
+    Object value = fieldValue.getValue();
+    return value != null;
+  }
+
+  private static int getIntResult(TableResult tableResult, String statColumnName) {
+    return (int) tableResult.iterateAll().iterator().next().get(statColumnName).getLongValue();
+  }
+
+  private static double getDoubleResult(TableResult tableResult, String statColumnName) {
+    return tableResult.iterateAll().iterator().next().get(statColumnName).getDoubleValue();
   }
 }

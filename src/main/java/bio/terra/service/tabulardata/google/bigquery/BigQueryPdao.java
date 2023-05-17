@@ -154,8 +154,6 @@ public abstract class BigQueryPdao {
   }
 
   public static String bqTableName(FSContainerInterface tdrResource, String tableName) {
-    final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
-    final String projectId = bigQueryProject.getProjectId();
     return new ST(BQ_TABLE_NAME_TEMPLATE)
         .add("pdaoPrefix", tdrResource.isDataset() ? PDAO_PREFIX : "")
         .add("resourceName", tdrResource.getName())

@@ -670,7 +670,7 @@ public class DatasetService {
         return azureSynapsePdao.getStatsForIntColumn(column, datasourceName, sourceParquetFilePath);
       } else if (column.isTextType()) {
         return azureSynapsePdao.getStatsForTextColumn(
-            column, datasourceName, sourceParquetFilePath);
+            column, datasourceName, sourceParquetFilePath, filter);
       }
       return new ColumnStatisticsModel();
     } else {

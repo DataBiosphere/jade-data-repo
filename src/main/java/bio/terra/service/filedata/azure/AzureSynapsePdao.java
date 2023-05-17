@@ -19,6 +19,7 @@ import bio.terra.grammar.Query;
 import bio.terra.model.ColumnStatisticsDoubleModel;
 import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
+import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -305,12 +306,12 @@ public class AzureSynapsePdao {
   private static final String queryTextColumnStatsTemplate =
       """
       SELECT <column>,count(*) AS <countColumn>
-              FROM OPENROWSET(BULK '<parquetFileLocation>',
-                            DATA_SOURCE = '<datasource>',
-                            FORMAT='PARQUET') AS rows
-              ) AS all_rows
-            WHERE (<userFilter>)
-      ORDER BY <column> <direction>;""";
+        FROM OPENROWSET(BULK '<parquetFileLocation>',
+                        DATA_SOURCE = '<datasource>',
+                        FORMAT='PARQUET') AS rows
+          WHERE (<userFilter>)
+          GROUP BY <column>
+          ORDER BY <column> <direction>;""";
 
   private static final String queryNumericColumnStatsTemplate =
       """
@@ -318,7 +319,6 @@ SELECT MIN(<column>) AS min, MAX(<column>) AS max
         FROM OPENROWSET(BULK '<parquetFileLocation>',
                       DATA_SOURCE = '<datasource>',
                       FORMAT='PARQUET') AS rows
-        ) AS all_rows
       WHERE (<userFilter>)
 ORDER BY <column> <direction>;""";
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
@@ -1085,11 +1085,12 @@ ORDER BY <column> <direction>;""";
   }
 
   public ColumnStatisticsTextModel getStatsForTextColumn(
-      Column column, String dataSourceName, String parquetFileLocation, String userFilter) {
-
+      Column column, String dataSourceName, String parquetFileLocation, String filter) {
+    String userFilter = StringUtils.defaultIfBlank(filter, "1=1");
+    String columnName = column.getName();
     final String sql =
         new ST(queryTextColumnStatsTemplate)
-            .add("column", column)
+            .add("column", columnName)
             .add("countColumn", PDAO_COUNT_COLUMN_NAME)
             .add("datasource", dataSourceName)
             .add("parquetFileLocation", parquetFileLocation)
@@ -1098,32 +1099,23 @@ ORDER BY <column> <direction>;""";
             .render();
 
     try {
-      return synapseJdbcTemplate.query(
-          sql,
-          (rs, rowNum) -> {
-            SynapseDataResultModel resultModel =
-                new SynapseDataResultModel()
-                    .rowResult(
-                        columns.stream()
-                            .collect(
-                                Collectors.toMap(
-                                    Column::getName,
-                                    c -> Optional.ofNullable(extractValue(rs, c)))))
-                    .filteredCount(rs.getInt(PDAO_FILTERED_ROW_COUNT_COLUMN_NAME));
-            if (includeTotalRowCount) {
-              resultModel.totalCount(rs.getInt(PDAO_TOTAL_ROW_COUNT_COLUMN_NAME));
-            }
-            return resultModel;
-          });
+      return (ColumnStatisticsTextModel)
+          new ColumnStatisticsTextModel()
+              .values(
+                  synapseJdbcTemplate.query(
+                      sql,
+                      (rs, rowNum) ->
+                          new ColumnStatisticsTextValue()
+                              .value(rs.getString(columnName))
+                              .count((int) rs.getLong(PDAO_COUNT_COLUMN_NAME))))
+              .dataType(column.getType().toString());
     } catch (DataAccessException ex) {
       logger.warn(
           "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
           ex);
-      return new ArrayList<>();
+      return (ColumnStatisticsTextModel)
+          new ColumnStatisticsTextModel().values(List.of()).dataType(column.getType().toString());
     }
-    throw new FeatureNotImplementedException(
-        "This feature is not yet supported for Azure-backed datasets.");
-    //    return new ColumnStatisticsTextModel();
   }
 
   public List<SynapseDataResultModel> getTableData(

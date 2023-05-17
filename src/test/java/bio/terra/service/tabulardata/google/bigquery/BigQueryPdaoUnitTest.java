@@ -1150,11 +1150,29 @@ public class BigQueryPdaoUnitTest {
   }
 
   @Test
-  public void testBQDatasetTableName() {
+  public void testBQDatasetFullyQualifiedTableName() {
     Dataset dataset = mockDataset();
     String tableName = "table";
     String expected =
         "`" + DATASET_PROJECT_ID + "." + PDAO_PREFIX + dataset.getName() + "." + tableName + "`";
+    String actual = BigQueryPdao.bqFullyQualifiedTableName(dataset, tableName);
+    assertThat("Dataset BQ table name is correctly formatted", expected, equalTo(actual));
+  }
+
+  @Test
+  public void testBQSnapshotFullyQualifiedTableName() {
+    Snapshot snapshot = mockSnapshot();
+    String tableName = "table";
+    String expected = "`" + SNAPSHOT_PROJECT_ID + "." + snapshot.getName() + "." + tableName + "`";
+    String actual = BigQueryPdao.bqFullyQualifiedTableName(snapshot, tableName);
+    assertThat("Snapshot BQ table name is correctly formatted", expected, equalTo(actual));
+  }
+
+  @Test
+  public void testBQDatasetTableName() {
+    Dataset dataset = mockDataset();
+    String tableName = "table";
+    String expected = PDAO_PREFIX + dataset.getName() + "." + tableName;
     String actual = BigQueryPdao.bqTableName(dataset, tableName);
     assertThat("Dataset BQ table name is correctly formatted", expected, equalTo(actual));
   }
@@ -1163,7 +1181,7 @@ public class BigQueryPdaoUnitTest {
   public void testBQSnapshotTableName() {
     Snapshot snapshot = mockSnapshot();
     String tableName = "table";
-    String expected = "`" + SNAPSHOT_PROJECT_ID + "." + snapshot.getName() + "." + tableName + "`";
+    String expected = snapshot.getName() + "." + tableName;
     String actual = BigQueryPdao.bqTableName(snapshot, tableName);
     assertThat("Snapshot BQ table name is correctly formatted", expected, equalTo(actual));
   }

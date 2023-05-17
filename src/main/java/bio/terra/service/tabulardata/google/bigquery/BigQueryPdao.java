@@ -135,15 +135,28 @@ public abstract class BigQueryPdao {
         SELECT count(*) <totalRowCountColumnName> FROM <table>
       """;
 
+  public static final String BQ_TABLE_NAME_TEMPLATE = "<pdaoPrefix><resourceName>.<tableName>";
+
   // The bigquery sql table name must be enclosed in backticks
-  public static final String BQ_TABLE_NAME_TEMPLATE =
-      "`<projectId>.<pdaoPrefix><resourceName>.<tableName>`";
+  public static final String BQ_FULLY_QUALIFIED_TABLE_NAME_TEMPLATE =
+      "`<projectId>." + BQ_TABLE_NAME_TEMPLATE + "`";
+
+  public static String bqFullyQualifiedTableName(
+      FSContainerInterface tdrResource, String tableName) {
+    final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
+    final String projectId = bigQueryProject.getProjectId();
+    return new ST(BQ_FULLY_QUALIFIED_TABLE_NAME_TEMPLATE)
+        .add("projectId", projectId)
+        .add("pdaoPrefix", tdrResource.isDataset() ? PDAO_PREFIX : "")
+        .add("resourceName", tdrResource.getName())
+        .add("tableName", tableName)
+        .render();
+  }
 
   public static String bqTableName(FSContainerInterface tdrResource, String tableName) {
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
     final String projectId = bigQueryProject.getProjectId();
     return new ST(BQ_TABLE_NAME_TEMPLATE)
-        .add("projectId", projectId)
         .add("pdaoPrefix", tdrResource.isDataset() ? PDAO_PREFIX : "")
         .add("resourceName", tdrResource.getName())
         .add("tableName", tableName)
@@ -153,7 +166,7 @@ public abstract class BigQueryPdao {
   public static int getTableTotalRowCount(FSContainerInterface tdrResource, String tableName) {
     final String bigQuerySQL =
         new ST(TABLE_ROW_COUNT_TEMPLATE)
-            .add("table", bqTableName(tdrResource, tableName))
+            .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .render();
     try {
@@ -213,7 +226,7 @@ public abstract class BigQueryPdao {
     final String bigQuerySQL =
         new ST(DATA_TEMPLATE)
             .add("columns", columns)
-            .add("table", bqTableName(tdrResource, tableName))
+            .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
             .add("filterParams", filterParams)
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
@@ -296,7 +309,7 @@ public abstract class BigQueryPdao {
         new ST(column.isArrayOf() ? ARRAY_TEXT_COLUMN_STATS_TEMPLATE : TEXT_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
             .add("countColumn", PDAO_COUNT_COLUMN_NAME)
-            .add("table", bqTableName(tdrResource, tableName))
+            .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
             .add("tableName", tableName)
             .add("whereClause", whereClause)
             .add("direction", SqlSortDirection.ASC)
@@ -363,7 +376,7 @@ public abstract class BigQueryPdao {
                     ? ARRAY_NUMERIC_COLUMN_STATS_TEMPLATE
                     : NUMERIC_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
-            .add("table", bqTableName(tdrResource, tableName))
+            .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
             .add("whereClause", whereClause)
             .render();
     return bigQueryProject.query(bigQuerySQL);

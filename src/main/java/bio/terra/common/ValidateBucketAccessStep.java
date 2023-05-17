@@ -8,6 +8,7 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
+import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.DefaultUndoStep;
@@ -32,6 +33,10 @@ import org.slf4j.LoggerFactory;
  *
  * <p>GCS files specified indirectly -- i.e. referenced in a control file -- do not have their
  * access validated in this step.
+ *
+ * <p>Since GCS files can be ingested to Azure-backed datasets, this step should be added
+ * unconditionally to flights which take in user-specified files no matter the platform of the
+ * destination dataset.
  */
 public class ValidateBucketAccessStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(ValidateBucketAccessStep.class);
@@ -92,9 +97,12 @@ public class ValidateBucketAccessStep extends DefaultUndoStep {
     } else {
       throw new IllegalArgumentException("Invalid request type");
     }
+    // This check is not needed for Azure source files because we use signed URLS that by default
+    // check those permissions.  But this is needed if ingesting from GCS-hosted files.
+    List<String> gsPaths = sourcePaths.stream().filter(GcsUriUtils::isGsUri).toList();
+    String projectId = dataset.getProjectResource().getGoogleProjectId();
     try {
-      String projectId = dataset.getProjectResource().getGoogleProjectId();
-      gcsPdao.validateUserCanRead(sourcePaths, projectId, userRequest, dataset);
+      gcsPdao.validateUserCanRead(gsPaths, projectId, userRequest, dataset);
     } catch (StorageException e) {
       if (e.getCode() == HttpStatus.SC_FORBIDDEN
           && e.getMessage().contains(PET_PROPAGATION_ERROR_MSG)) {

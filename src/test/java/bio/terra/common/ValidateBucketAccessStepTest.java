@@ -29,6 +29,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.google.cloud.storage.StorageException;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.http.HttpStatus;
 import org.junit.Before;
@@ -64,9 +65,17 @@ public class ValidateBucketAccessStepTest {
     when(flightContext.getInputParameters()).thenReturn(inputParameters);
   }
 
+  private String gsPath(String basePath) {
+    return "gs://" + basePath;
+  }
+
+  private String httpsPath(String basePath) {
+    return "https://" + basePath;
+  }
+
   @Test
-  public void testValidateSingleFileIngest() throws InterruptedException {
-    var sourcePath = "singleFileSourcePath";
+  public void testValidateGsSingleFileIngest() throws InterruptedException {
+    var sourcePath = gsPath("singleFileSourcePath");
     var request = new FileLoadModel().sourcePath(sourcePath);
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
 
@@ -76,8 +85,19 @@ public class ValidateBucketAccessStepTest {
   }
 
   @Test
-  public void testValidateBulkFileJsonIngest() throws InterruptedException {
-    var controlPath = "bulkFileControlPath";
+  public void testValidateHttpsSingleFileIngest() throws InterruptedException {
+    var sourcePath = httpsPath("singleFileSourcePath");
+    var request = new FileLoadModel().sourcePath(sourcePath);
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
+
+    StepResult doResult = step.doStep(flightContext);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(gcsPdao).validateUserCanRead(List.of(), PROJECT_ID, TEST_USER, dataset);
+  }
+
+  @Test
+  public void testValidateGsBulkFileJsonIngest() throws InterruptedException {
+    var controlPath = gsPath("bulkFileControlPath");
     var request = new BulkLoadRequestModel().loadControlFile(controlPath);
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
 
@@ -87,15 +107,32 @@ public class ValidateBucketAccessStepTest {
   }
 
   @Test
+  public void testValidateHttpsBulkFileJsonIngest() throws InterruptedException {
+    var controlPath = httpsPath("bulkFileControlPath");
+    var request = new BulkLoadRequestModel().loadControlFile(controlPath);
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
+
+    StepResult doResult = step.doStep(flightContext);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(gcsPdao).validateUserCanRead(List.of(), PROJECT_ID, TEST_USER, dataset);
+  }
+
+  @Test
   public void testValidateBulkFileArrayIngest() throws InterruptedException {
-    var sourcePaths = List.of("a", "b", "c");
+    List<String> basePaths = List.of("a", "b", "c");
+    List<String> gsSourcePaths = basePaths.stream().map(this::gsPath).toList();
+    List<String> httpsSourcePaths = basePaths.stream().map(this::httpsPath).toList();
+    List<String> sourcePaths = new ArrayList<>();
+    sourcePaths.addAll(gsSourcePaths);
+    sourcePaths.addAll(httpsSourcePaths);
+
     var files = sourcePaths.stream().map(this::createBulkFileLoadModel).toList();
     var request = new BulkLoadArrayRequestModel().loadArray(files);
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
 
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(gcsPdao).validateUserCanRead(sourcePaths, PROJECT_ID, TEST_USER, dataset);
+    verify(gcsPdao).validateUserCanRead(gsSourcePaths, PROJECT_ID, TEST_USER, dataset);
   }
 
   private BulkLoadFileModel createBulkFileLoadModel(String sourcePath) {
@@ -103,8 +140,8 @@ public class ValidateBucketAccessStepTest {
   }
 
   @Test
-  public void testValidateCombinedArrayIngest() throws InterruptedException {
-    var controlPath = "tdrGeneratedArrayControlPath";
+  public void testValidateGsCombinedArrayIngest() throws InterruptedException {
+    var controlPath = gsPath("tdrGeneratedArrayControlPath");
     var request = new IngestRequestModel().format(FormatEnum.ARRAY).path(controlPath);
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
 
@@ -114,8 +151,19 @@ public class ValidateBucketAccessStepTest {
   }
 
   @Test
-  public void testValidateCombinedJsonIngest() throws InterruptedException {
-    var controlPath = "userProvidedJsonControlPath";
+  public void testValidateHttpsCombinedArrayIngest() throws InterruptedException {
+    var controlPath = httpsPath("tdrGeneratedArrayControlPath");
+    var request = new IngestRequestModel().format(FormatEnum.ARRAY).path(controlPath);
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
+
+    StepResult doResult = step.doStep(flightContext);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(gcsPdao).validateUserCanRead(List.of(), PROJECT_ID, TEST_USER, dataset);
+  }
+
+  @Test
+  public void testValidateGsCombinedJsonIngest() throws InterruptedException {
+    var controlPath = gsPath("userProvidedJsonControlPath");
     var request = new IngestRequestModel().format(FormatEnum.JSON).path(controlPath);
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
 
@@ -125,8 +173,19 @@ public class ValidateBucketAccessStepTest {
   }
 
   @Test
-  public void testValidateCombinedCsvIngest() throws InterruptedException {
-    var controlPath = "userProvidedCsvControlPath";
+  public void testValidateHttpsCombinedJsonIngest() throws InterruptedException {
+    var controlPath = httpsPath("userProvidedJsonControlPath");
+    var request = new IngestRequestModel().format(FormatEnum.JSON).path(controlPath);
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
+
+    StepResult doResult = step.doStep(flightContext);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(gcsPdao).validateUserCanRead(List.of(), PROJECT_ID, TEST_USER, dataset);
+  }
+
+  @Test
+  public void testValidateGsCombinedCsvIngest() throws InterruptedException {
+    var controlPath = gsPath("userProvidedCsvControlPath");
     var request = new IngestRequestModel().format(FormatEnum.CSV).path(controlPath);
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
 
@@ -136,15 +195,32 @@ public class ValidateBucketAccessStepTest {
   }
 
   @Test
+  public void testValidateHttpsCombinedCsvIngest() throws InterruptedException {
+    var controlPath = httpsPath("userProvidedCsvControlPath");
+    var request = new IngestRequestModel().format(FormatEnum.CSV).path(controlPath);
+    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
+
+    StepResult doResult = step.doStep(flightContext);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(gcsPdao).validateUserCanRead(List.of(), PROJECT_ID, TEST_USER, dataset);
+  }
+
+  @Test
   public void testValidateSoftDeletes() throws InterruptedException {
-    var paths = List.of("a", "b", "c");
+    List<String> basePaths = List.of("a", "b", "c");
+    List<String> gsPaths = basePaths.stream().map(this::gsPath).toList();
+    List<String> httpsPaths = basePaths.stream().map(this::httpsPath).toList();
+    List<String> paths = new ArrayList<>();
+    paths.addAll(gsPaths);
+    paths.addAll(httpsPaths);
+
     var tables = paths.stream().map(this::createDataDeletionTableModel).toList();
     var request = new DataDeletionRequest().tables(tables);
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
 
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(gcsPdao).validateUserCanRead(paths, PROJECT_ID, TEST_USER, dataset);
+    verify(gcsPdao).validateUserCanRead(gsPaths, PROJECT_ID, TEST_USER, dataset);
   }
 
   private DataDeletionTableModel createDataDeletionTableModel(String path) {
@@ -159,7 +235,7 @@ public class ValidateBucketAccessStepTest {
 
   @Test
   public void testStepFailsOnGeneralStorageException() throws InterruptedException {
-    var sourcePath = "singleFileSourcePath";
+    var sourcePath = gsPath("singleFileSourcePath");
     var request = new FileLoadModel().sourcePath(sourcePath);
     inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
 

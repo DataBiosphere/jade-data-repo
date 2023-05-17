@@ -9,6 +9,7 @@ import bio.terra.policy.client.ApiException;
 import bio.terra.policy.model.TpsComponent;
 import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoCreateRequest;
+import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.policy.exception.PolicyConflictException;
 import bio.terra.service.policy.exception.PolicyServiceApiException;
@@ -26,6 +27,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class PolicyService {
+  public static final String POLICY_NAMESPACE = "terra";
+  public static final String PROTECTED_DATA_POLICY_NAME = "protected-data";
   private static final Logger logger = LoggerFactory.getLogger(PolicyService.class);
   private final PolicyServiceConfiguration policyServiceConfiguration;
   private final PolicyApiService policyApiService;
@@ -37,6 +40,10 @@ public class PolicyService {
   }
 
   // -- Policy Attribute Object Interface --
+  public static TpsPolicyInput getProtectedDataPolicyInput() {
+    return new TpsPolicyInput().namespace(POLICY_NAMESPACE).name(PROTECTED_DATA_POLICY_NAME);
+  }
+
   public void createSnapshotPao(UUID snapshotId, @Nullable TpsPolicyInputs policyInputs) {
     createPao(snapshotId, TpsObjectType.SNAPSHOT, policyInputs);
   }
@@ -65,8 +72,9 @@ public class PolicyService {
     try {
       tpsApi.deletePao(resourceId);
     } catch (ApiException e) {
+      // Ignore the exception if the policy object being deleted does not exist
       RuntimeException exception = convertApiException(e);
-      if (PolicyServiceNotFoundException.class.isAssignableFrom(exception.getClass())) {
+      if (!(exception instanceof PolicyServiceNotFoundException)) {
         throw exception;
       }
     }

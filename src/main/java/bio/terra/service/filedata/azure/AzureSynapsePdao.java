@@ -1049,21 +1049,21 @@ public class AzureSynapsePdao {
     }
   }
 
-  public static ColumnStatisticsDoubleModel getStatsForDoubleColumn(
+  public ColumnStatisticsDoubleModel getStatsForDoubleColumn(
       Column column, String dataSourceName, String parquetFileLocation) {
     throw new FeatureNotImplementedException(
         "This feature is not yet supported for Azure-backed datasets.");
     //    return new ColumnStatisticsNumericModel();
   }
 
-  public static ColumnStatisticsIntModel getStatsForIntColumn(
+  public ColumnStatisticsIntModel getStatsForIntColumn(
       Column column, String dataSourceName, String parquetFileLocation) {
     throw new FeatureNotImplementedException(
         "This feature is not yet supported for Azure-backed datasets.");
     //    return new ColumnStatisticsNumericModel();
   }
 
-  public static ColumnStatisticsTextModel getStatsForTextColumn(
+  public ColumnStatisticsTextModel getStatsForTextColumn(
       Column column, String dataSourceName, String parquetFileLocation) {
     throw new FeatureNotImplementedException(
         "This feature is not yet supported for Azure-backed datasets.");

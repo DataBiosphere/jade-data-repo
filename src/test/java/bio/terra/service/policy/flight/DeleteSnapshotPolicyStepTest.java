@@ -5,9 +5,14 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
 
 import bio.terra.common.exception.FeatureNotImplementedException;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetSummary;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.policy.PolicyService;
 import bio.terra.service.snapshot.flight.delete.DeleteSnapshotPolicyStep;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
@@ -21,19 +26,30 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @Tag("bio.terra.common.category.Unit")
 public class DeleteSnapshotPolicyStepTest {
+  @Mock private DatasetService datasetService;
   @Mock private PolicyService policyService;
   @Mock private FlightContext flightContext;
 
+  private static final UUID DATASET_ID = UUID.randomUUID();
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
   private DeleteSnapshotPolicyStep step;
 
   @BeforeEach
   public void setup() throws Exception {
-    step = new DeleteSnapshotPolicyStep(policyService, SNAPSHOT_ID);
+    FlightMap workingMap = new FlightMap();
+    workingMap.put(DatasetWorkingMapKeys.DATASET_ID, DATASET_ID);
+    when(flightContext.getWorkingMap()).thenReturn(workingMap);
+    step = new DeleteSnapshotPolicyStep(datasetService, policyService, SNAPSHOT_ID);
+  }
+
+  private void mockSecureMonitoringEnabledDataset() {
+    when(datasetService.retrieve(DATASET_ID))
+        .thenReturn(new Dataset(new DatasetSummary().secureMonitoringEnabled(true)));
   }
 
   @Test
   void testDeletePolicyDoUndo() throws Exception {
+    mockSecureMonitoringEnabledDataset();
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(policyService).deletePao(SNAPSHOT_ID);
@@ -43,6 +59,7 @@ public class DeleteSnapshotPolicyStepTest {
 
   @Test
   void testDeletePolicyServiceNotEnabled() throws Exception {
+    mockSecureMonitoringEnabledDataset();
     var exception = new FeatureNotImplementedException("Policy service is not enabled");
     doThrow(exception).when(policyService).deletePao(SNAPSHOT_ID);
     StepResult doResult = step.doStep(flightContext);
@@ -50,5 +67,13 @@ public class DeleteSnapshotPolicyStepTest {
     verify(policyService).deletePao(SNAPSHOT_ID);
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+  }
+
+  @Test
+  void testNoPolicyToDelete() throws Exception {
+    when(datasetService.retrieve(DATASET_ID)).thenReturn(new Dataset());
+    StepResult doResult = step.doStep(flightContext);
+    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verifyNoInteractions(policyService);
   }
 }

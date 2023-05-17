@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
@@ -550,16 +549,15 @@ public class DatasetService {
     if (cloudPlatformWrapper.isGcp()) {
       try {
         List<String> columns = datasetTableDao.retrieveColumnNames(table, true);
-        String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
         List<BigQueryDataResultModel> values =
             BigQueryPdao.getTable(
-                dataset, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
+                dataset, tableName, columns, limit, offset, sort, direction, filter);
         return new DatasetDataModel()
             .result(
                 List.copyOf(values.stream().map(BigQueryDataResultModel::getRowResult).toList()))
             .totalRowCount(
                 values.isEmpty()
-                    ? BigQueryPdao.getTableTotalRowCount(dataset, bqFormattedTableName)
+                    ? BigQueryPdao.getTableTotalRowCount(dataset, tableName)
                     : values.get(0).getTotalCount())
             .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
       } catch (InterruptedException e) {
@@ -636,15 +634,12 @@ public class DatasetService {
 
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
         if (column.isDoubleType()) {
-          return BigQueryPdao.getStatsForDoubleColumn(
-              dataset, bqFormattedTableName, column, filter);
+          return BigQueryPdao.getStatsForDoubleColumn(dataset, tableName, column, filter);
         } else if (column.isIntType()) {
-          return BigQueryPdao.getStatsForIntColumn(dataset, bqFormattedTableName, column, filter);
+          return BigQueryPdao.getStatsForIntColumn(dataset, tableName, column, filter);
         } else if (column.isTextType()) {
-          return BigQueryPdao.getStatsForTextColumn(
-              dataset, bqFormattedTableName, tableName, column, filter);
+          return BigQueryPdao.getStatsForTextColumn(dataset, tableName, column, filter);
         }
         return new ColumnStatisticsModel();
       } catch (InterruptedException e) {

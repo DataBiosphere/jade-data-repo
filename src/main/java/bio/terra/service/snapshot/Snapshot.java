@@ -289,4 +289,14 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());
   }
+
+  @Override
+  public boolean isSnapshot() {
+    return true;
+  }
+
+  @Override
+  public boolean isDataset() {
+    return false;
+  }
 }

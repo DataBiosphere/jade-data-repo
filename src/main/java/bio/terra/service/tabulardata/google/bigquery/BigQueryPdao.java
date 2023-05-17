@@ -135,23 +135,35 @@ public abstract class BigQueryPdao {
         SELECT count(*) <totalRowCountColumnName> FROM <table>
       """;
 
-  public static int getTableTotalRowCount(
-      FSContainerInterface tdrResource, String bqFormattedTableName) {
+  // The bigquery sql table name must be enclosed in backticks
+  public static final String BQ_TABLE_NAME_TEMPLATE =
+      "`<projectId>.<pdaoPrefix><resourceName>.<tableName>`";
+
+  public static String bqTableName(FSContainerInterface tdrResource, String tableName) {
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
-    final String datasetProjectId = bigQueryProject.getProjectId();
-    String bigQueryTable = "`" + datasetProjectId + "." + bqFormattedTableName + "`";
+    final String projectId = bigQueryProject.getProjectId();
+    return new ST(BQ_TABLE_NAME_TEMPLATE)
+        .add("projectId", projectId)
+        .add("pdaoPrefix", tdrResource.isDataset() ? PDAO_PREFIX : "")
+        .add("resourceName", tdrResource.getName())
+        .add("tableName", tableName)
+        .render();
+  }
+
+  public static int getTableTotalRowCount(FSContainerInterface tdrResource, String tableName) {
     final String bigQuerySQL =
         new ST(TABLE_ROW_COUNT_TEMPLATE)
-            .add("table", bigQueryTable)
+            .add("table", bqTableName(tdrResource, tableName))
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .render();
     try {
+      final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
       final TableResult result = bigQueryProject.query(bigQuerySQL);
       return getIntResult(result, PDAO_TOTAL_ROW_COUNT_COLUMN_NAME);
     } catch (InterruptedException ex) {
       logger.warn(
           "BQ request to get total row count for table {} was interupted. Defaulting to 0.",
-          bigQueryTable,
+          tableName,
           ex);
       return 0;
     }
@@ -161,7 +173,7 @@ public abstract class BigQueryPdao {
    */
   public static List<BigQueryDataResultModel> getTable(
       FSContainerInterface tdrResource,
-      String bqFormattedTableName,
+      String tableName,
       List<String> columnNames,
       int limit,
       int offset,
@@ -169,8 +181,6 @@ public abstract class BigQueryPdao {
       SqlSortDirection direction,
       String filter)
       throws InterruptedException {
-    final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
-    final String datasetProjectId = bigQueryProject.getProjectId();
     String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     boolean isDataset = tdrResource.getCollectionType().equals(CollectionType.DATASET);
 
@@ -180,7 +190,7 @@ public abstract class BigQueryPdao {
     final String sql =
         new ST(DATA_TEMPLATE)
             .add("columns", columns)
-            .add("table", bqFormattedTableName)
+            .add("table", bqTableName(tdrResource, tableName))
             .add("filterParams", whereClause)
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
@@ -192,7 +202,6 @@ public abstract class BigQueryPdao {
     Query.parse(sql);
 
     // The bigquery sql table name must be enclosed in backticks
-    String bigQueryTable = "`" + datasetProjectId + "." + bqFormattedTableName + "`";
     final String filterParams =
         new ST(DATA_FILTER_TEMPLATE)
             .add("whereClause", whereClause)
@@ -204,7 +213,7 @@ public abstract class BigQueryPdao {
     final String bigQuerySQL =
         new ST(DATA_TEMPLATE)
             .add("columns", columns)
-            .add("table", bigQueryTable)
+            .add("table", bqTableName(tdrResource, tableName))
             .add("filterParams", filterParams)
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
@@ -213,6 +222,7 @@ public abstract class BigQueryPdao {
                 "pdaoRowIdColumn",
                 columnNames.contains(PDAO_ROW_ID_COLUMN) ? "" : PDAO_ROW_ID_COLUMN + ",")
             .render();
+    final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
     final TableResult result = bigQueryProject.query(bigQuerySQL);
     return aggregateTableData(result);
   }
@@ -277,23 +287,16 @@ public abstract class BigQueryPdao {
       """;
 
   public static ColumnStatisticsTextModel getStatsForTextColumn(
-      FSContainerInterface tdrResource,
-      String bqFormattedTableName,
-      String tableName,
-      Column column,
-      String filter)
+      FSContainerInterface tdrResource, String tableName, Column column, String filter)
       throws InterruptedException {
     String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
-    final String datasetProjectId = bigQueryProject.getProjectId();
-    // The bigquery sql table name must be enclosed in backticks
-    String bigQueryTable = "`" + datasetProjectId + "." + bqFormattedTableName + "`";
     String columnName = column.getName();
     final String bigQuerySQL =
         new ST(column.isArrayOf() ? ARRAY_TEXT_COLUMN_STATS_TEMPLATE : TEXT_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
             .add("countColumn", PDAO_COUNT_COLUMN_NAME)
-            .add("table", bigQueryTable)
+            .add("table", bqTableName(tdrResource, tableName))
             .add("tableName", tableName)
             .add("whereClause", whereClause)
             .add("direction", SqlSortDirection.ASC)
@@ -325,11 +328,10 @@ public abstract class BigQueryPdao {
   }
 
   public static ColumnStatisticsDoubleModel getStatsForDoubleColumn(
-      FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
+      FSContainerInterface tdrResource, String tableName, Column column, String filter)
       throws InterruptedException {
 
-    final TableResult result =
-        retrieveNumericColumnStats(tdrResource, bqFormattedTableName, column, filter);
+    final TableResult result = retrieveNumericColumnStats(tdrResource, tableName, column, filter);
     ColumnStatisticsDoubleModel doubleModel =
         (ColumnStatisticsDoubleModel)
             new ColumnStatisticsDoubleModel().dataType(column.getType().toString());
@@ -338,11 +340,10 @@ public abstract class BigQueryPdao {
   }
 
   public static ColumnStatisticsIntModel getStatsForIntColumn(
-      FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
+      FSContainerInterface tdrResource, String tableName, Column column, String filter)
       throws InterruptedException {
 
-    final TableResult result =
-        retrieveNumericColumnStats(tdrResource, bqFormattedTableName, column, filter);
+    final TableResult result = retrieveNumericColumnStats(tdrResource, tableName, column, filter);
     ColumnStatisticsIntModel intModel =
         (ColumnStatisticsIntModel)
             new ColumnStatisticsIntModel().dataType(column.getType().toString());
@@ -351,13 +352,10 @@ public abstract class BigQueryPdao {
   }
 
   private static TableResult retrieveNumericColumnStats(
-      FSContainerInterface tdrResource, String bqFormattedTableName, Column column, String filter)
+      FSContainerInterface tdrResource, String tableName, Column column, String filter)
       throws InterruptedException {
     String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
-    final String datasetProjectId = bigQueryProject.getProjectId();
-    // The bigquery sql table name must be enclosed in backticks
-    String bigQueryTable = "`" + datasetProjectId + "." + bqFormattedTableName + "`";
     String columnName = column.getName();
     final String bigQuerySQL =
         new ST(
@@ -365,7 +363,7 @@ public abstract class BigQueryPdao {
                     ? ARRAY_NUMERIC_COLUMN_STATS_TEMPLATE
                     : NUMERIC_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
-            .add("table", bigQueryTable)
+            .add("table", bqTableName(tdrResource, tableName))
             .add("whereClause", whereClause)
             .render();
     return bigQueryProject.query(bigQuerySQL);

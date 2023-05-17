@@ -240,7 +240,7 @@ public class DatasetServiceUnitTest {
         new ColumnStatisticsTextValue().value("val1").count(2);
     try (MockedStatic<BigQueryPdao> utilities = Mockito.mockStatic(BigQueryPdao.class)) {
       utilities
-          .when(() -> BigQueryPdao.getStatsForTextColumn(any(), any(), any(), any(), any()))
+          .when(() -> BigQueryPdao.getStatsForTextColumn(any(), any(), any(), any()))
           .thenReturn(new ColumnStatisticsTextModel().values(List.of(expectedValue)));
       ColumnStatisticsTextModel statsModel =
           (ColumnStatisticsTextModel)

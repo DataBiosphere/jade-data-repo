@@ -3,6 +3,7 @@ package bio.terra.service.tabulardata.google.bigquery;
 import static bio.terra.common.PdaoConstant.PDAO_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.service.tabulardata.google.bigquery.BigQueryPdao.prefixName;
@@ -1146,6 +1147,25 @@ public class BigQueryPdaoUnitTest {
         "ColumnStatisticsTextValue should have the correct count",
         result.get(0).getCount(),
         equalTo(2));
+  }
+
+  @Test
+  public void testBQDatasetTableName() {
+    Dataset dataset = mockDataset();
+    String tableName = "table";
+    String expected =
+        "`" + DATASET_PROJECT_ID + "." + PDAO_PREFIX + dataset.getName() + "." + tableName + "`";
+    String actual = BigQueryPdao.bqTableName(dataset, tableName);
+    assertThat("Dataset BQ table name is correctly formatted", expected, equalTo(actual));
+  }
+
+  @Test
+  public void testBQSnapshotTableName() {
+    Snapshot snapshot = mockSnapshot();
+    String tableName = "table";
+    String expected = "`" + SNAPSHOT_PROJECT_ID + "." + snapshot.getName() + "." + tableName + "`";
+    String actual = BigQueryPdao.bqTableName(snapshot, tableName);
+    assertThat("Snapshot BQ table name is correctly formatted", expected, equalTo(actual));
   }
 
   private Dataset mockDataset() {

@@ -132,12 +132,12 @@ public class FileIngestFlight extends FileIngestTypeFlight {
     addStep(new LockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
     addStep(new IngestFileIdStep(configService));
+    addStep(
+        new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
+        getDefaultExponentialBackoffRetryRule());
 
     if (platform.isGcp()) {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));
-      addStep(
-          new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
-          getDefaultExponentialBackoffRetryRule());
       addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
       if (!dataset.isSelfHosted()) {
         addStep(new IngestFileGetProjectStep(dataset, googleProjectService));

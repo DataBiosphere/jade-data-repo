@@ -16,7 +16,7 @@ select_statement: SELECT (ALL | DISTINCT)?
 
 from_statement : FROM from_item (',' from_item )* ;
 
-from_item : (fully_qualified_table_expr | table_expr) (AS? alias_name)?  (FOR SYSTEM TIME AS OF string)?
+from_item : table_expr (AS? alias_name)?  (FOR SYSTEM TIME AS OF string)?
     | from_item join_type? JOIN from_item (on_clause | using_clause)
     | '(' query_expr ')' (AS? alias_name)?
     | UNNEST'(' array_expr ')' (AS? alias_name)? (WITH OFFSET (AS? alias_name))?
@@ -110,9 +110,7 @@ function_name : name;
 join_name : name;
 member_name : name;
 struct_name : name;
-project_id : name;
 table_name : name;
-fully_qualified_table_expr: '`'project_id '.' table_expr'`';
 table_expr : dataset_name '.' table_name;
 
 number : integer_type | float_type ;

@@ -86,36 +86,24 @@ public class Column {
   }
 
   public boolean isTextType() {
-    switch (this.type) {
-      case TEXT:
-      case STRING:
-      case DIRREF:
-      case FILEREF:
-        return true;
-      default:
-        return false;
-    }
+    return switch (this.type) {
+      case TEXT, STRING, DIRREF, FILEREF -> true;
+      default -> false;
+    };
   }
 
   public boolean isDoubleType() {
-    switch (this.type) {
-      case NUMERIC:
-      case FLOAT:
-      case FLOAT64:
-        return true;
-      default:
-        return false;
-    }
+    return switch (this.type) {
+      case NUMERIC, FLOAT, FLOAT64 -> true;
+      default -> false;
+    };
   }
 
   public boolean isIntType() {
-    switch (this.type) {
-      case INT64:
-      case INTEGER:
-        return true;
-      default:
-        return false;
-    }
+    return switch (this.type) {
+      case INT64, INTEGER -> true;
+      default -> false;
+    };
   }
 
   public boolean isArrayOf() {

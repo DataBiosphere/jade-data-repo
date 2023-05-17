@@ -961,7 +961,7 @@ public class DataRepoFixtures {
         retrieveColumnStats(user, datasetId, tableName, columnName, null).getValues().stream()
             .filter(val -> val.getValue() != null ? val.getValue().equals(columnTextValue) : false)
             .findFirst()
-            .orElseThrow()
+            .orElseThrow(() -> new Exception("Value " + columnTextValue + " not found in table " + tableName + " column " + columnName))
             .getCount();
     assertThat(
         "Expected count for column value matches actual count", count, equalTo(expectedValueCount));

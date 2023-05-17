@@ -1849,6 +1849,7 @@ paths:
           description: >-
             A SQL WHERE clause to filter results included in column statistics.
 
+
             For GCP array string columns, if you wanted to include all rows that contain 'value1' in column1,
             the filter clause would look like 'WHERE 'value1' IN UNNEST(column1)'. Note that "count" value
             includes all occurrences of a value including duplicates of the same value in a single array.

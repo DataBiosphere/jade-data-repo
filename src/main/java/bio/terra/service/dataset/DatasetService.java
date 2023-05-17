@@ -563,7 +563,6 @@ public class DatasetService {
                     : values.get(0).getTotalCount())
             .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
       } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
@@ -649,7 +648,6 @@ public class DatasetService {
         }
         return new ColumnStatisticsModel();
       } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {

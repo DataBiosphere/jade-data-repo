@@ -111,7 +111,8 @@ public class DataRepoFixtures {
           + "<if(hasFlightId)>jsonPayload.flightId=\"<flightId>\"<endif>";
 
   /** Roles which must be held by a dataset's SA to facilitate an ingestion * */
-  private static final List<Role> INGEST_ROLES = List.of(StorageRoles.objectViewer());
+  private static final List<Role> INGEST_ROLES =
+      List.of(StorageRoles.objectViewer(), StorageRoles.legacyBucketReader());
 
   @Autowired private JsonLoader jsonLoader;
 

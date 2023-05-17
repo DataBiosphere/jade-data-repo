@@ -163,6 +163,9 @@ public class FileIngestBulkFlight extends Flight {
     if (!isBulkMode) {
       addStep(new LoadLockStep(loadService));
     }
+    addStep(
+        new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
+        getDefaultExponentialBackoffRetryRule());
     if (platform.isGcp()) {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));
       if (!dataset.isSelfHosted()) {
@@ -173,9 +176,6 @@ public class FileIngestBulkFlight extends Flight {
             randomBackoffRetry);
         addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
       }
-      addStep(
-          new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
-          getDefaultExponentialBackoffRetryRule());
     } else if (platform.isAzure()) {
       addStep(
           new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);

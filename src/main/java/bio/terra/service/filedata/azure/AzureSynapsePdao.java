@@ -2,6 +2,8 @@ package bio.terra.service.filedata.azure;
 
 import static bio.terra.common.PdaoConstant.PDAO_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_FILTERED_ROW_COUNT_COLUMN_NAME;
+import static bio.terra.common.PdaoConstant.PDAO_MAX_VALUE_COLUMN_NAME;
+import static bio.terra.common.PdaoConstant.PDAO_MIN_VALUE_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_PARQUET_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
@@ -315,12 +317,13 @@ public class AzureSynapsePdao {
 
   private static final String queryNumericColumnStatsTemplate =
       """
-SELECT MIN(<column>) AS min, MAX(<column>) AS max
-        FROM OPENROWSET(BULK '<parquetFileLocation>',
-                      DATA_SOURCE = '<datasource>',
-                      FORMAT='PARQUET') AS rows
-      WHERE (<userFilter>)
-ORDER BY <column> <direction>;""";
+        SELECT MIN(<column>) AS min, MAX(<column>) AS max
+          FROM OPENROWSET(BULK '<parquetFileLocation>',
+                          DATA_SOURCE = '<datasource>',
+                          FORMAT='PARQUET') AS rows
+          WHERE (<userFilter>)
+          GROUP BY <column>
+          ORDER BY <column> <direction>;""";
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
   private static final String dropDataSourceTemplate =
@@ -1070,18 +1073,42 @@ ORDER BY <column> <direction>;""";
   }
 
   public ColumnStatisticsDoubleModel getStatsForDoubleColumn(
-      Column column, String dataSourceName, String parquetFileLocation) {
+      Column column, String dataSourceName, String parquetFileLocation, String filter) {
 
     throw new FeatureNotImplementedException(
         "This feature is not yet supported for Azure-backed datasets.");
     //    return new ColumnStatisticsNumericModel();
   }
 
+  private String queryColumnStats(Column column, String dataSourceName, String parquetFileLocation, String filter, String sqlTemplate) {
+    String userFilter = StringUtils.defaultIfBlank(filter, "1=1");
+    String columnName = column.getName();
+    return new ST(queryNumericColumnStatsTemplate)
+            .add("column", columnName)
+            .add("countColumn", PDAO_COUNT_COLUMN_NAME)
+            .add("datasource", dataSourceName)
+            .add("parquetFileLocation", parquetFileLocation)
+            .add("direction", SqlSortDirection.ASC)
+            .add("userFilter", userFilter)
+            .render();
+  }
+
   public ColumnStatisticsIntModel getStatsForIntColumn(
-      Column column, String dataSourceName, String parquetFileLocation) {
-    throw new FeatureNotImplementedException(
-        "This feature is not yet supported for Azure-backed datasets.");
-    //    return new ColumnStatisticsNumericModel();
+      Column column, String dataSourceName, String parquetFileLocation, String filter) {
+    final String sql = queryColumnStats(column, dataSourceName, parquetFileLocation, filter, queryNumericColumnStatsTemplate);
+    ColumnStatisticsIntModel intModel = (ColumnStatisticsIntModel) new ColumnStatisticsIntModel().dataType(column.getType().toString());
+    try {
+      synapseJdbcTemplate.query(
+          sql,
+          (rs, rowNum) ->
+              intModel.maxValue((int)rs.getLong(PDAO_MAX_VALUE_COLUMN_NAME))
+                  .minValue((int)rs.getLong(PDAO_MIN_VALUE_COLUMN_NAME)));
+    } catch (DataAccessException ex) {
+      logger.warn(
+          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
+          ex);
+    }
+    return intModel;
   }
 
   public ColumnStatisticsTextModel getStatsForTextColumn(

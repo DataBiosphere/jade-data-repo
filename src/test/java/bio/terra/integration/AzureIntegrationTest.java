@@ -37,6 +37,7 @@ import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
@@ -575,6 +576,18 @@ public class AzureIntegrationTest extends UsersBase {
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) vocabRows.get(1)).get("vocabulary_id").toString(),
         equalTo("2"));
+    List<String> vocabList =
+        dataRepoFixtures.retrieveColumnTextValues(
+            steward, datasetId, "vocabulary", "vocabulary_id");
+    assertThat(
+        "Vocabulary table contains correct vocabulary_ids",
+        vocabList,
+        containsInAnyOrder("1", "2"));
+    ColumnStatisticsIntModel intModel =
+        dataRepoFixtures.retrieveColumnIntStats(
+            steward, datasetId, "vocabulary", "vocabulary_concept_id", "");
+    assertThat("Correct max values in vocabulary_concept_id", intModel.getMaxValue(), equalTo(2));
+    assertThat("Correct min values in vocabulary_concept_id", intModel.getMinValue(), equalTo(1));
     List<Object> flippedVocabRows =
         dataRepoFixtures
             .retrieveDatasetData(

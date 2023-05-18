@@ -29,6 +29,7 @@ import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
@@ -1034,15 +1035,23 @@ public class DataRepoFixtures {
         .toList();
   }
 
+  public ColumnStatisticsIntModel retrieveColumnIntStats(
+      TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
+      throws Exception {
+    DataRepoResponse<ColumnStatisticsIntModel> response =
+        retrieveColumnStatsRaw(user, datasetId, table, columnName, filter);
+    return validateResponse(response, "dataset column stats", HttpStatus.OK, null);
+  }
+
   public ColumnStatisticsTextModel retrieveColumnStats(
       TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
       throws Exception {
     DataRepoResponse<ColumnStatisticsTextModel> response =
-        retrieveColumnStatsTextRaw(user, datasetId, table, columnName, filter);
+        retrieveColumnStatsRaw(user, datasetId, table, columnName, filter);
     return validateResponse(response, "dataset column stats", HttpStatus.OK, null);
   }
 
-  private DataRepoResponse<ColumnStatisticsTextModel> retrieveColumnStatsTextRaw(
+  private <T> DataRepoResponse<T> retrieveColumnStatsRaw(
       TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
       throws Exception {
     String url =

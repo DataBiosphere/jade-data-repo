@@ -6,29 +6,36 @@ import bio.terra.policy.api.TpsApi;
 import bio.terra.policy.client.ApiClient;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
 import java.io.IOException;
+import javax.ws.rs.client.Client;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PolicyApiService {
   private final PolicyServiceConfiguration policyServiceConfiguration;
+  /** Clients should be shared among requests to reduce latency and save memory * */
+  private final Client sharedHttpClient;
 
   public PolicyApiService(PolicyServiceConfiguration policyServiceConfiguration) {
     this.policyServiceConfiguration = policyServiceConfiguration;
+    this.sharedHttpClient = new ApiClient().getHttpClient();
   }
 
   // -- Policy Attribute Object Interface --
 
+  private ApiClient getApiClient() {
+    return new ApiClient()
+        .setHttpClient(sharedHttpClient)
+        .setBasePath(policyServiceConfiguration.getBasePath());
+  }
+
   private ApiClient getApiClient(String accessToken) {
-    ApiClient client = new ApiClient();
+    ApiClient client = getApiClient();
     client.setAccessToken(accessToken);
-    client.setBasePath(policyServiceConfiguration.getBasePath());
     return client;
   }
 
   public PublicApi getUnauthPolicyApi() {
-    ApiClient client = new ApiClient();
-    client.setBasePath(policyServiceConfiguration.getBasePath());
-    return new PublicApi(client);
+    return new PublicApi(getApiClient());
   }
 
   public TpsApi getPolicyApi() {

@@ -1,6 +1,5 @@
 package bio.terra.common;
 
-import bio.terra.service.job.OptionalStep;
 import bio.terra.stairway.Flight;
 import java.util.List;
 

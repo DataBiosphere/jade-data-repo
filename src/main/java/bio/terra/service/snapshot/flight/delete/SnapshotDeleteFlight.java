@@ -153,7 +153,9 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(new PerformGcpStep(new DeleteSnapshotProjectMetadataStep(resourceService)));
 
     // delete policy object in Terra Policy Service
-    addStep(new DeleteSnapshotPolicyStep(datasetService, policyService, snapshotId));
+    addStep(
+        new PerformDatasetStep(
+            new DeleteSnapshotPolicyStep(datasetService, policyService, snapshotId)));
 
     addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, false)));
     addStep(

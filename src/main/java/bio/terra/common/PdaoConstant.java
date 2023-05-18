@@ -45,4 +45,6 @@ public final class PdaoConstant {
   public static final String PDAO_GS_MAPPING_TABLE = PDAO_PREFIX + "gs_path_mapping";
   public static final String PDAO_COUNT_ALIAS = "count";
   public static final String PDAO_COUNT_COLUMN_NAME = "count_column";
+  public static final String PDAO_MAX_VALUE_COLUMN_NAME = "max";
+  public static final String PDAO_MIN_VALUE_COLUMN_NAME = "min";
 }

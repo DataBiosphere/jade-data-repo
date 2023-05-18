@@ -263,7 +263,7 @@ public class SnapshotIntegrationTest extends UsersBase {
             participantTableName,
             0,
             participantTableRowCount + 1,
-            "id = 'participant_1'");
+            "WHERE id = 'participant_1'");
     int expectedFilteredRowCount = 1;
     assertThat(
         "With no limit, number of results should equal the filtered row count",
@@ -286,7 +286,7 @@ public class SnapshotIntegrationTest extends UsersBase {
             participantTableName,
             0,
             participantTableRowCount + 1,
-            "id = 'invalid'");
+            "WHERE (id = 'invalid')");
     expectedFilteredRowCount = 0;
     assertThat(
         "With no limit, number of results should equal the filtered row count",

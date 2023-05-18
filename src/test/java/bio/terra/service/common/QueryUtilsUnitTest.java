@@ -71,18 +71,21 @@ public class QueryUtilsUnitTest {
   @Test
   public void testInvalidWhereClause_MisspelledWhere() {
     String misspelledWhere = "WERE a = 1";
-    assertThrows(InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(misspelledWhere));
+    assertThrows(
+        InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(misspelledWhere));
   }
 
   @Test
   public void testInvalidWhereClause_MissingParenAtEnd() {
     String missingParen = "WHERE (a = 1";
-    assertThrows(InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
+    assertThrows(
+        InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
   }
 
   @Test
   public void testInvalidWhereClause_MissingParen() {
     String missingParen = "WHERE a = 1)";
-    assertThrows(InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
+    assertThrows(
+        InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
   }
 }

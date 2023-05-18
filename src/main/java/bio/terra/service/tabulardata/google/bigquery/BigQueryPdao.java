@@ -19,6 +19,7 @@ import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.common.QueryUtils;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Acl;
@@ -33,17 +34,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
 public abstract class BigQueryPdao {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
-
-  private static String whereClause(String filter) {
-    return StringUtils.isNotEmpty(filter) ? "WHERE " + filter : "";
-  }
 
   static void grantReadAccessWorker(
       BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails)
@@ -207,7 +203,7 @@ public abstract class BigQueryPdao {
         new ST(DATA_TEMPLATE)
             .add("columns", columns)
             .add("table", bqTableName(tdrResource, tableName))
-            .add("filterParams", whereClause(filter))
+            .add("filterParams", QueryUtils.whereClause(filter))
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
@@ -220,7 +216,7 @@ public abstract class BigQueryPdao {
     // The bigquery sql table name must be enclosed in backticks
     final String filterParams =
         new ST(DATA_FILTER_TEMPLATE)
-            .add("whereClause", whereClause(filter))
+            .add("whereClause", QueryUtils.whereClause(filter))
             .add("sort", sort)
             .add("direction", direction)
             .add("limit", limit)
@@ -313,7 +309,7 @@ public abstract class BigQueryPdao {
             .add("countColumn", PDAO_COUNT_COLUMN_NAME)
             .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
             .add("tableName", tableName)
-            .add("whereClause", whereClause(filter))
+            .add("whereClause", QueryUtils.whereClause(filter))
             .add("direction", SqlSortDirection.ASC)
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
@@ -378,7 +374,7 @@ public abstract class BigQueryPdao {
                     : NUMERIC_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
             .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
-            .add("whereClause", whereClause(filter))
+            .add("whereClause", QueryUtils.whereClause(filter))
             .add("minColumnName", PDAO_MIN_VALUE_COLUMN_NAME)
             .add("maxColumnName", PDAO_MAX_VALUE_COLUMN_NAME)
             .render();

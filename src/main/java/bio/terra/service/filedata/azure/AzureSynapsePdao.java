@@ -15,7 +15,6 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
 import bio.terra.common.Table;
-import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnStatisticsDoubleModel;
@@ -1074,10 +1073,25 @@ public class AzureSynapsePdao {
 
   public ColumnStatisticsDoubleModel getStatsForDoubleColumn(
       Column column, String dataSourceName, String parquetFileLocation, String filter) {
-
-    throw new FeatureNotImplementedException(
-        "This feature is not yet supported for Azure-backed datasets.");
-    //    return new ColumnStatisticsNumericModel();
+    final String sql =
+        queryColumnStats(
+            column, dataSourceName, parquetFileLocation, filter, queryNumericColumnStatsTemplate);
+    ColumnStatisticsDoubleModel doubleModel =
+        (ColumnStatisticsDoubleModel)
+            new ColumnStatisticsDoubleModel().dataType(column.getType().toString());
+    try {
+      synapseJdbcTemplate.query(
+          sql,
+          (rs, rowNum) ->
+              doubleModel
+                  .maxValue(rs.getDouble(PDAO_MAX_VALUE_COLUMN_NAME))
+                  .minValue(rs.getDouble(PDAO_MIN_VALUE_COLUMN_NAME)));
+    } catch (DataAccessException ex) {
+      logger.warn(
+          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
+          ex);
+    }
+    return doubleModel;
   }
 
   private String queryColumnStats(
@@ -1088,7 +1102,7 @@ public class AzureSynapsePdao {
       String sqlTemplate) {
     String userFilter = StringUtils.defaultIfBlank(filter, "1=1");
     String columnName = column.getName();
-    return new ST(queryNumericColumnStatsTemplate)
+    return new ST(sqlTemplate)
         .add("column", columnName)
         .add("countColumn", PDAO_COUNT_COLUMN_NAME)
         .add("datasource", dataSourceName)
@@ -1111,8 +1125,8 @@ public class AzureSynapsePdao {
           sql,
           (rs, rowNum) ->
               intModel
-                  .maxValue((int) rs.getLong(PDAO_MAX_VALUE_COLUMN_NAME))
-                  .minValue((int) rs.getLong(PDAO_MIN_VALUE_COLUMN_NAME)));
+                  .maxValue(rs.getInt(PDAO_MAX_VALUE_COLUMN_NAME))
+                  .minValue(rs.getInt(PDAO_MIN_VALUE_COLUMN_NAME)));
     } catch (DataAccessException ex) {
       logger.warn(
           "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",

@@ -100,7 +100,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     env:
-      ENVIRONMENT: "juyang-swatomation-frozen-albatross"
+      ENVIRONMENT: "juyang-swatomation-nice-marmoset" # TODO: changeme, demo env
     steps:
       - name: 'Generate IAP token to talk to Sherlock'
         id: 'auth-iap'
@@ -172,12 +172,12 @@ jobs:
 
   plan-to-prod:
     runs-on: ubuntu-latest
-    needs: [test-staging]
+    needs: [create-bee-workflow, test-staging]
     permissions:
       contents: 'read'
       id-token: 'write'
     env:
-      ENVIRONMENT: "juyang-swatomation-frozen-albatross"
+      ENVIRONMENT: "juyang-frozen-albatross" # TODO: changeme, demo env
     steps:
       - name: 'Generate IAP token to talk to Sherlock'
         id: 'auth-iap'
@@ -237,4 +237,4 @@ jobs:
           status: ${{ job.status }}
           channel: "#jade-alerts"
           username: "Data Repo Prod Deploy"
-          text: "Click here to finish deploying to Prod: https://beehive-dev.dsp-devops.broadinstitute.org/review-changesets?changeset=${{ steps.plan-to-prod.outputs.changset-id }}"
+          text: "Click here to finish deploying to Prod: https://beehive-dev.dsp-devops.broadinstitute.org/review-changesets?changeset=${{ steps.plan-to-prod.outputs.changeset-id }}"

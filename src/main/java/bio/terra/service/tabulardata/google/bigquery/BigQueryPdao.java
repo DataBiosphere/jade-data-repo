@@ -386,7 +386,8 @@ public abstract class BigQueryPdao {
 
   private static void setMinMaxDoubleResult(
       TableResult tableResult, ColumnStatisticsDoubleModel doubleModel) {
-    if (resultHasValue(tableResult, PDAO_MIN_VALUE_COLUMN_NAME) && resultHasValue(tableResult, PDAO_MAX_VALUE_COLUMN_NAME)) {
+    if (resultHasValue(tableResult, PDAO_MIN_VALUE_COLUMN_NAME)
+        && resultHasValue(tableResult, PDAO_MAX_VALUE_COLUMN_NAME)) {
       doubleModel.minValue(getDoubleResult(tableResult, PDAO_MIN_VALUE_COLUMN_NAME));
       doubleModel.maxValue(getDoubleResult(tableResult, PDAO_MAX_VALUE_COLUMN_NAME));
     }
@@ -394,7 +395,8 @@ public abstract class BigQueryPdao {
 
   private static void setMinMaxIntResult(
       TableResult tableResult, ColumnStatisticsIntModel intModel) {
-    if (resultHasValue(tableResult, PDAO_MIN_VALUE_COLUMN_NAME) && resultHasValue(tableResult, PDAO_MAX_VALUE_COLUMN_NAME)) {
+    if (resultHasValue(tableResult, PDAO_MIN_VALUE_COLUMN_NAME)
+        && resultHasValue(tableResult, PDAO_MAX_VALUE_COLUMN_NAME)) {
       intModel.minValue(getIntResult(tableResult, PDAO_MIN_VALUE_COLUMN_NAME));
       intModel.maxValue(getIntResult(tableResult, PDAO_MAX_VALUE_COLUMN_NAME));
     }

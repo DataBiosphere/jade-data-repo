@@ -1080,29 +1080,39 @@ public class AzureSynapsePdao {
     //    return new ColumnStatisticsNumericModel();
   }
 
-  private String queryColumnStats(Column column, String dataSourceName, String parquetFileLocation, String filter, String sqlTemplate) {
+  private String queryColumnStats(
+      Column column,
+      String dataSourceName,
+      String parquetFileLocation,
+      String filter,
+      String sqlTemplate) {
     String userFilter = StringUtils.defaultIfBlank(filter, "1=1");
     String columnName = column.getName();
     return new ST(queryNumericColumnStatsTemplate)
-            .add("column", columnName)
-            .add("countColumn", PDAO_COUNT_COLUMN_NAME)
-            .add("datasource", dataSourceName)
-            .add("parquetFileLocation", parquetFileLocation)
-            .add("direction", SqlSortDirection.ASC)
-            .add("userFilter", userFilter)
-            .render();
+        .add("column", columnName)
+        .add("countColumn", PDAO_COUNT_COLUMN_NAME)
+        .add("datasource", dataSourceName)
+        .add("parquetFileLocation", parquetFileLocation)
+        .add("direction", SqlSortDirection.ASC)
+        .add("userFilter", userFilter)
+        .render();
   }
 
   public ColumnStatisticsIntModel getStatsForIntColumn(
       Column column, String dataSourceName, String parquetFileLocation, String filter) {
-    final String sql = queryColumnStats(column, dataSourceName, parquetFileLocation, filter, queryNumericColumnStatsTemplate);
-    ColumnStatisticsIntModel intModel = (ColumnStatisticsIntModel) new ColumnStatisticsIntModel().dataType(column.getType().toString());
+    final String sql =
+        queryColumnStats(
+            column, dataSourceName, parquetFileLocation, filter, queryNumericColumnStatsTemplate);
+    ColumnStatisticsIntModel intModel =
+        (ColumnStatisticsIntModel)
+            new ColumnStatisticsIntModel().dataType(column.getType().toString());
     try {
       synapseJdbcTemplate.query(
           sql,
           (rs, rowNum) ->
-              intModel.maxValue((int)rs.getLong(PDAO_MAX_VALUE_COLUMN_NAME))
-                  .minValue((int)rs.getLong(PDAO_MIN_VALUE_COLUMN_NAME)));
+              intModel
+                  .maxValue((int) rs.getLong(PDAO_MAX_VALUE_COLUMN_NAME))
+                  .minValue((int) rs.getLong(PDAO_MIN_VALUE_COLUMN_NAME)));
     } catch (DataAccessException ex) {
       logger.warn(
           "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",

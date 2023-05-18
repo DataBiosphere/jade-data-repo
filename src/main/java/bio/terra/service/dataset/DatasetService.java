@@ -665,9 +665,10 @@ public class DatasetService {
 
       if (column.isDoubleType()) {
         return azureSynapsePdao.getStatsForDoubleColumn(
-            column, datasourceName, sourceParquetFilePath, String filter);
+            column, datasourceName, sourceParquetFilePath, filter);
       } else if (column.isIntType()) {
-        return azureSynapsePdao.getStatsForIntColumn(column, datasourceName, sourceParquetFilePath, filter);
+        return azureSynapsePdao.getStatsForIntColumn(
+            column, datasourceName, sourceParquetFilePath, filter);
       } else if (column.isTextType()) {
         return azureSynapsePdao.getStatsForTextColumn(
             column, datasourceName, sourceParquetFilePath, filter);

@@ -1071,7 +1071,6 @@ ORDER BY <column> <direction>;""";
 
   public ColumnStatisticsDoubleModel getStatsForDoubleColumn(
       Column column, String dataSourceName, String parquetFileLocation) {
-
     throw new FeatureNotImplementedException(
         "This feature is not yet supported for Azure-backed datasets.");
     //    return new ColumnStatisticsNumericModel();

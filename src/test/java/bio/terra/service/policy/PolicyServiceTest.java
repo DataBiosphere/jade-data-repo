@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
@@ -64,6 +65,16 @@ public class PolicyServiceTest {
   }
 
   @Test
+  void testGetProtectedDataPolicyInput() {
+    TpsPolicyInput actualPolicy = PolicyService.getProtectedDataPolicyInput();
+    TpsPolicyInput expectedPolicy =
+        new TpsPolicyInput()
+            .namespace(PolicyService.POLICY_NAMESPACE)
+            .name(PolicyService.PROTECTED_DATA_POLICY_NAME);
+    assertEquals(actualPolicy, expectedPolicy);
+  }
+
+  @Test
   void testCreateSnapshotDao() throws Exception {
     mockPolicyApi();
     UUID snapshotId = UUID.randomUUID();
@@ -77,6 +88,24 @@ public class PolicyServiceTest {
                 .component(TpsComponent.TDR)
                 .objectType(TpsObjectType.SNAPSHOT)
                 .attributes(policies));
+  }
+
+  @Test
+  void testDeleteSnapshotDao() throws Exception {
+    mockPolicyApi();
+    UUID snapshotId = UUID.randomUUID();
+    policyService.deletePao(snapshotId);
+    verify(tpsApi).deletePao(snapshotId);
+  }
+
+  @Test
+  void testDeleteSnapshotDaoIgnoresNotFoundException() throws Exception {
+    mockPolicyApi();
+    UUID snapshotId = UUID.randomUUID();
+    var exception = new ApiException(HttpStatus.NOT_FOUND.value(), "Policy object not found");
+    doThrow(exception).when(tpsApi).deletePao(snapshotId);
+    policyService.deletePao(snapshotId);
+    verify(tpsApi).deletePao(snapshotId);
   }
 
   @Test

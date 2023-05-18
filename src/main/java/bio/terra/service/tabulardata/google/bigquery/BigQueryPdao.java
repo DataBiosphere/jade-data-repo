@@ -41,6 +41,10 @@ import org.stringtemplate.v4.ST;
 public abstract class BigQueryPdao {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
 
+  private static String whereClause(String filter) {
+    return StringUtils.isNotEmpty(filter) ? "WHERE " + filter : "";
+  }
+
   static void grantReadAccessWorker(
       BigQueryProject bigQueryProject, String name, Collection<String> policyGroupEmails)
       throws InterruptedException {
@@ -194,7 +198,6 @@ public abstract class BigQueryPdao {
       SqlSortDirection direction,
       String filter)
       throws InterruptedException {
-    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     boolean isDataset = tdrResource.getCollectionType().equals(CollectionType.DATASET);
 
     String columns = String.join(",", columnNames);
@@ -204,7 +207,7 @@ public abstract class BigQueryPdao {
         new ST(DATA_TEMPLATE)
             .add("columns", columns)
             .add("table", bqTableName(tdrResource, tableName))
-            .add("filterParams", whereClause)
+            .add("filterParams", whereClause(filter))
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
@@ -217,7 +220,7 @@ public abstract class BigQueryPdao {
     // The bigquery sql table name must be enclosed in backticks
     final String filterParams =
         new ST(DATA_FILTER_TEMPLATE)
-            .add("whereClause", whereClause)
+            .add("whereClause", whereClause(filter))
             .add("sort", sort)
             .add("direction", direction)
             .add("limit", limit)
@@ -302,7 +305,6 @@ public abstract class BigQueryPdao {
   public static ColumnStatisticsTextModel getStatsForTextColumn(
       FSContainerInterface tdrResource, String tableName, Column column, String filter)
       throws InterruptedException {
-    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
     String columnName = column.getName();
     final String bigQuerySQL =
@@ -311,7 +313,7 @@ public abstract class BigQueryPdao {
             .add("countColumn", PDAO_COUNT_COLUMN_NAME)
             .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
             .add("tableName", tableName)
-            .add("whereClause", whereClause)
+            .add("whereClause", whereClause(filter))
             .add("direction", SqlSortDirection.ASC)
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
@@ -367,7 +369,6 @@ public abstract class BigQueryPdao {
   private static TableResult retrieveNumericColumnStats(
       FSContainerInterface tdrResource, String tableName, Column column, String filter)
       throws InterruptedException {
-    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
     String columnName = column.getName();
     final String bigQuerySQL =
@@ -377,7 +378,7 @@ public abstract class BigQueryPdao {
                     : NUMERIC_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
             .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
-            .add("whereClause", whereClause)
+            .add("whereClause", whereClause(filter))
             .add("minColumnName", PDAO_MIN_VALUE_COLUMN_NAME)
             .add("maxColumnName", PDAO_MAX_VALUE_COLUMN_NAME)
             .render();

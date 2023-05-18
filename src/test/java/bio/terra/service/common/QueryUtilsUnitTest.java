@@ -5,7 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.category.Unit;
-import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.grammar.exception.InvalidFilterException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -72,20 +72,20 @@ public class QueryUtilsUnitTest {
   public void testInvalidWhereClause_MisspelledWhere() {
     String misspelledWhere = "WERE a = 1";
     assertThrows(
-        InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(misspelledWhere));
+        InvalidFilterException.class, () -> QueryUtils.formatAndParseUserFilter(misspelledWhere));
   }
 
   @Test
   public void testInvalidWhereClause_MissingParenAtEnd() {
     String missingParen = "WHERE (a = 1";
     assertThrows(
-        InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
+        InvalidFilterException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
   }
 
   @Test
   public void testInvalidWhereClause_MissingParen() {
     String missingParen = "WHERE a = 1)";
     assertThrows(
-        InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
+        InvalidFilterException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
   }
 }

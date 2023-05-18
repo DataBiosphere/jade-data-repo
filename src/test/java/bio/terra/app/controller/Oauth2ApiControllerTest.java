@@ -7,8 +7,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -18,105 +16,95 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.app.configuration.OpenIDConnectConfiguration;
-import bio.terra.common.category.Unit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.RestTemplate;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@ContextConfiguration(classes = Oauth2ApiController.class)
+@Tag("bio.terra.common.category.Unit")
+@WebMvcTest
 public class Oauth2ApiControllerTest {
-
-  @SpyBean private OpenIDConnectConfiguration openIDConnectConfiguration;
-  @SpyBean private Oauth2ApiController controller;
-  @Autowired private ObjectMapper objectMapper;
   @Autowired private MockMvc mvc;
+  @MockBean private RestTemplate restTemplate;
+  @MockBean private OpenIDConnectConfiguration openIDConnectConfiguration;
+  @Autowired private ObjectMapper objectMapper;
 
   @Captor private ArgumentCaptor<HttpEntity<String>> postCaptor;
 
-  @Before
-  public void setUp() throws Exception {
-    openIDConnectConfiguration.setAddClientIdToScope(false);
-    openIDConnectConfiguration.setExtraAuthParams(null);
+  private static final String OIDC_AUTH_ENDPOINT = "oidc/config/auth/endpoint";
+
+  @BeforeEach
+  void setUp() {
+    when(openIDConnectConfiguration.getAuthorizationEndpoint()).thenReturn(OIDC_AUTH_ENDPOINT);
+    when(openIDConnectConfiguration.isAddClientIdToScope()).thenReturn(false);
   }
 
   @Test
-  public void testForwardingLogic() throws Exception {
-    openIDConnectConfiguration.setAddClientIdToScope(false);
+  void testForwardingLogic() throws Exception {
     mvc.perform(get(AUTHORIZE_ENDPOINT + "?id=client_idwith\"fun'characters&scope=foo bar"))
         .andExpect(status().is3xxRedirection())
         .andExpect(
             redirectedUrl(
-                openIDConnectConfiguration.getAuthorizationEndpoint()
-                    + "?id=client_idwith%22fun%27characters&scope=foo+bar"));
+                OIDC_AUTH_ENDPOINT + "?id=client_idwith%22fun%27characters&scope=foo+bar"));
   }
 
   @Test
-  public void testForwardingLogicWithClientIdInjected() throws Exception {
-    openIDConnectConfiguration.setClientId("my_id");
-    openIDConnectConfiguration.setAddClientIdToScope(true);
+  void testForwardingLogicWithClientIdInjected() throws Exception {
+    when(openIDConnectConfiguration.isAddClientIdToScope()).thenReturn(true);
+    when(openIDConnectConfiguration.getClientId()).thenReturn("my_id");
+
+    mvc.perform(get(AUTHORIZE_ENDPOINT + "?id=client_id&scope=foo bar"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(OIDC_AUTH_ENDPOINT + "?id=client_id&scope=foo+bar+my_id"));
+  }
+
+  @Test
+  void testForwardingLogicWithClientIdInjectedAndNewParameters() throws Exception {
+    when(openIDConnectConfiguration.isAddClientIdToScope()).thenReturn(true);
+    when(openIDConnectConfiguration.getClientId()).thenReturn("my_id");
+    when(openIDConnectConfiguration.getExtraAuthParams()).thenReturn("foo=1&bar='2'");
+
     mvc.perform(get(AUTHORIZE_ENDPOINT + "?id=client_id&scope=foo bar"))
         .andExpect(status().is3xxRedirection())
         .andExpect(
             redirectedUrl(
-                openIDConnectConfiguration.getAuthorizationEndpoint()
-                    + "?id=client_id&scope=foo+bar+my_id"));
+                OIDC_AUTH_ENDPOINT + "?id=client_id&scope=foo+bar+my_id&foo=1&bar=%272%27"));
   }
 
   @Test
-  public void testForwardingLogicWithClientIdInjectedAndNewParameters() throws Exception {
-    openIDConnectConfiguration.setClientId("my_id");
-    openIDConnectConfiguration.setAddClientIdToScope(true);
-    openIDConnectConfiguration.setExtraAuthParams("foo=1&bar='2'");
-    mvc.perform(get(AUTHORIZE_ENDPOINT + "?id=client_id&scope=foo bar"))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(
-            redirectedUrl(
-                openIDConnectConfiguration.getAuthorizationEndpoint()
-                    + "?id=client_id&scope=foo+bar+my_id&foo=1&bar=%272%27"));
-  }
-
-  @Test
-  public void testProxyTokenLogic() throws Exception {
+  void testProxyTokenLogic() throws Exception {
     testProxyTokenLogic(null);
   }
 
   @Test
-  public void testProxyTokenLogicWithSecret() throws Exception {
+  void testProxyTokenLogicWithSecret() throws Exception {
     testProxyTokenLogic("supersecret");
   }
 
   private void testProxyTokenLogic(String clientSecret) throws Exception {
-    RestTemplate restTemplate = mock(RestTemplate.class);
     String tokenEndpoint = "http://foo.com/token";
     String requestBody = "access_token=foo";
     JsonNode returnNode = objectMapper.readValue("{\"access_token\": \"tkn\"}", JsonNode.class);
+
     when(openIDConnectConfiguration.getTokenEndpoint()).thenReturn(tokenEndpoint);
-    openIDConnectConfiguration.setClientSecret(clientSecret);
+    when(openIDConnectConfiguration.getClientSecret()).thenReturn(clientSecret);
     when(restTemplate.exchange(
             anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(JsonNode.class)))
         .thenReturn(ResponseEntity.ok().body(returnNode));
-    when(controller.getRestTemplate()).thenReturn(restTemplate);
 
     mvc.perform(
             post(TOKEN_REFRESH_ENDPOINT)
@@ -125,7 +113,7 @@ public class Oauth2ApiControllerTest {
         .andExpect(status().is2xxSuccessful())
         .andExpect(jsonPath("$.access_token").value("tkn"));
 
-    verify(restTemplate, times(1))
+    verify(restTemplate)
         .exchange(eq(tokenEndpoint), eq(HttpMethod.POST), postCaptor.capture(), eq(JsonNode.class));
 
     String expectedBody =

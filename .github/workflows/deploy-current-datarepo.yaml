@@ -189,7 +189,8 @@ jobs:
           service_account: 'dsp-tools-iap-access@dsp-tools-k8s.iam.gserviceaccount.com'
           id_token_include_email: true
       # These Sherlock calls are all separate so they can fail without affecting the others
-      - name: plan-to-prod
+      - name: 'Create changeset plan to production'
+        id: 'plan-to-prod'
         run: |
           curl -X 'POST' \
             'https://sherlock-dev.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan' \

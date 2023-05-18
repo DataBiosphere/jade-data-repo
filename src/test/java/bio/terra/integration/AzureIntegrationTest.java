@@ -585,7 +585,7 @@ public class AzureIntegrationTest extends UsersBase {
         containsInAnyOrder("1", "2"));
     ColumnStatisticsIntModel intModel =
         dataRepoFixtures.retrieveColumnIntStats(
-            steward, datasetId, "vocabulary", "vocabulary_concept_id", "");
+            steward, datasetId, "vocabulary", "vocabulary_concept_id", null);
     assertThat("Correct max values in vocabulary_concept_id", intModel.getMaxValue(), equalTo(2));
     assertThat("Correct min values in vocabulary_concept_id", intModel.getMinValue(), equalTo(1));
     List<Object> flippedVocabRows =

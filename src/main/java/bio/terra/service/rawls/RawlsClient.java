@@ -13,7 +13,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -27,10 +26,9 @@ public class RawlsClient {
   private final HttpHeaders headers;
 
   @Autowired
-  public RawlsClient(RawlsConfiguration rawlsConfiguration) {
+  public RawlsClient(RawlsConfiguration rawlsConfiguration, RestTemplate restTemplate) {
     this.rawlsConfiguration = rawlsConfiguration;
-    this.restTemplate = new RestTemplate();
-    restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+    this.restTemplate = restTemplate;
     this.headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
   }

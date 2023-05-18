@@ -4,6 +4,8 @@ import static bio.terra.common.PdaoConstant.PDAO_COUNT_ALIAS;
 import static bio.terra.common.PdaoConstant.PDAO_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_FILTERED_ROW_COUNT_COLUMN_NAME;
+import static bio.terra.common.PdaoConstant.PDAO_MAX_VALUE_COLUMN_NAME;
+import static bio.terra.common.PdaoConstant.PDAO_MIN_VALUE_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TOTAL_ROW_COUNT_COLUMN_NAME;
@@ -288,13 +290,13 @@ public abstract class BigQueryPdao {
   public static final String ARRAY_NUMERIC_COLUMN_STATS_TEMPLATE =
       """
           WITH array_field AS (SELECT <column> FROM <table> <whereClause>)
-            SELECT MIN(flattened_array_field) AS min, MAX(flattened_array_field) AS max FROM array_field CROSS JOIN UNNEST(array_field.<column>)
+            SELECT MIN(flattened_array_field) AS <minColumnName>, MAX(flattened_array_field) AS <maxColumnName> FROM array_field CROSS JOIN UNNEST(array_field.<column>)
             AS flattened_array_field
           """;
 
   public static final String NUMERIC_COLUMN_STATS_TEMPLATE =
       """
-        SELECT MIN(<column>) AS min, MAX(<column>) AS max FROM <table> <whereClause>
+        SELECT MIN(<column>) AS <minColumnName>, MAX(<column>) AS <maxColumnName> FROM <table> <whereClause>
       """;
 
   public static ColumnStatisticsTextModel getStatsForTextColumn(
@@ -376,23 +378,25 @@ public abstract class BigQueryPdao {
             .add("column", columnName)
             .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
             .add("whereClause", whereClause)
+            .add("minColumnName", PDAO_MIN_VALUE_COLUMN_NAME)
+            .add("maxColumnName", PDAO_MAX_VALUE_COLUMN_NAME)
             .render();
     return bigQueryProject.query(bigQuerySQL);
   }
 
   private static void setMinMaxDoubleResult(
       TableResult tableResult, ColumnStatisticsDoubleModel doubleModel) {
-    if (resultHasValue(tableResult, "min") && resultHasValue(tableResult, "max")) {
-      doubleModel.minValue(getDoubleResult(tableResult, "min"));
-      doubleModel.maxValue(getDoubleResult(tableResult, "max"));
+    if (resultHasValue(tableResult, PDAO_MIN_VALUE_COLUMN_NAME) && resultHasValue(tableResult, PDAO_MAX_VALUE_COLUMN_NAME)) {
+      doubleModel.minValue(getDoubleResult(tableResult, PDAO_MIN_VALUE_COLUMN_NAME));
+      doubleModel.maxValue(getDoubleResult(tableResult, PDAO_MAX_VALUE_COLUMN_NAME));
     }
   }
 
   private static void setMinMaxIntResult(
       TableResult tableResult, ColumnStatisticsIntModel intModel) {
-    if (resultHasValue(tableResult, "min") && resultHasValue(tableResult, "max")) {
-      intModel.minValue(getIntResult(tableResult, "min"));
-      intModel.maxValue(getIntResult(tableResult, "max"));
+    if (resultHasValue(tableResult, PDAO_MIN_VALUE_COLUMN_NAME) && resultHasValue(tableResult, PDAO_MAX_VALUE_COLUMN_NAME)) {
+      intModel.minValue(getIntResult(tableResult, PDAO_MIN_VALUE_COLUMN_NAME));
+      intModel.maxValue(getIntResult(tableResult, PDAO_MAX_VALUE_COLUMN_NAME));
     }
   }
 

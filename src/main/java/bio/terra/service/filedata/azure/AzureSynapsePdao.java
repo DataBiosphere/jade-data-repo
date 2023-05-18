@@ -320,9 +320,7 @@ public class AzureSynapsePdao {
           FROM OPENROWSET(BULK '<parquetFileLocation>',
                           DATA_SOURCE = '<datasource>',
                           FORMAT='PARQUET') AS rows
-          WHERE (<userFilter>)
-          GROUP BY <column>
-          ORDER BY <column> <direction>;""";
+          WHERE (<userFilter>);""";
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
   private static final String dropDataSourceTemplate =

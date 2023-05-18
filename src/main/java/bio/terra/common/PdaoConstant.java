@@ -44,4 +44,5 @@ public final class PdaoConstant {
   public static final String PDAO_FIRESTORE_DUMP_GSPATH_KEY = "gs_path";
   public static final String PDAO_GS_MAPPING_TABLE = PDAO_PREFIX + "gs_path_mapping";
   public static final String PDAO_COUNT_ALIAS = "count";
+  public static final String PDAO_COUNT_COLUMN_NAME = "count_column";
 }

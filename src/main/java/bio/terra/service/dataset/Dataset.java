@@ -47,6 +47,16 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return CollectionType.DATASET;
   }
 
+  @Override
+  public boolean isSnapshot() {
+    return false;
+  }
+
+  @Override
+  public boolean isDataset() {
+    return true;
+  }
+
   public List<DatasetTable> getTables() {
     return Collections.unmodifiableList(tables);
   }

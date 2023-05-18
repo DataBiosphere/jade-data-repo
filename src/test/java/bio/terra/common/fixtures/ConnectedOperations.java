@@ -567,8 +567,7 @@ public class ConnectedOperations {
 
   public void checkTableRowCount(
       FSContainerInterface tdrResource, String tableName, String prefix, int expectedRowCount) {
-    String participantBQFormattedTableName = prefix + tdrResource.getName() + "." + tableName;
-    int rowCount = BigQueryPdao.getTableTotalRowCount(tdrResource, participantBQFormattedTableName);
+    int rowCount = BigQueryPdao.getTableTotalRowCount(tdrResource, tableName);
     assertThat("Expected row count", rowCount, equalTo(expectedRowCount));
   }
 
@@ -579,11 +578,10 @@ public class ConnectedOperations {
       String tableName,
       int expectedRowCount)
       throws InterruptedException {
-    String participantBQFormattedTableName = prefix + tdrResource.getName() + "." + tableName;
     List<BigQueryDataResultModel> results =
         BigQueryPdao.getTable(
             tdrResource,
-            participantBQFormattedTableName,
+            tableName,
             columnNames,
             expectedRowCount + 1,
             0,

@@ -821,10 +821,9 @@ public class SnapshotService {
       try {
         List<String> columns =
             snapshotTableDao.retrieveColumns(table).stream().map(Column::getName).toList();
-        String bqFormattedTableName = snapshot.getName() + "." + tableName;
         List<BigQueryDataResultModel> values =
             BigQueryPdao.getTable(
-                snapshot, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
+                snapshot, tableName, columns, limit, offset, sort, direction, filter);
         return new SnapshotPreviewModel()
             .result(
                 List.copyOf(values.stream().map(BigQueryDataResultModel::getRowResult).toList()))

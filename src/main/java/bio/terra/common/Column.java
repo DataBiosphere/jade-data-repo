@@ -85,6 +85,27 @@ public class Column {
     return this;
   }
 
+  public boolean isTextType() {
+    return switch (this.type) {
+      case TEXT, STRING, DIRREF, FILEREF -> true;
+      default -> false;
+    };
+  }
+
+  public boolean isDoubleType() {
+    return switch (this.type) {
+      case NUMERIC, FLOAT, FLOAT64 -> true;
+      default -> false;
+    };
+  }
+
+  public boolean isIntType() {
+    return switch (this.type) {
+      case INT64, INTEGER -> true;
+      default -> false;
+    };
+  }
+
   public boolean isArrayOf() {
     return arrayOf;
   }

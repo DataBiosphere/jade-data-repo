@@ -3,6 +3,7 @@ package bio.terra.integration;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -28,6 +29,7 @@ import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
@@ -936,6 +938,70 @@ public class DataRepoFixtures {
     }
     if (direction != null) {
       queryParams += "&direction=%s".formatted(direction);
+    }
+    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
+  }
+
+  public void assertColumnTextValueCount(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String tableName,
+      String columnName,
+      String columnTextValue,
+      int expectedValueCount)
+      throws Exception {
+    if (expectedValueCount == 0) {
+      assertThat(
+          "Column value is not present",
+          retrieveColumnTextValues(user, datasetId, tableName, columnName),
+          not(hasItem(columnTextValue)));
+      return;
+    }
+    int count =
+        retrieveColumnStats(user, datasetId, tableName, columnName, null).getValues().stream()
+            .filter(val -> val.getValue() != null ? val.getValue().equals(columnTextValue) : false)
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new Exception(
+                        "Value "
+                            + columnTextValue
+                            + " not found in table "
+                            + tableName
+                            + " column "
+                            + columnName))
+            .getCount();
+    assertThat(
+        "Expected count for column value matches actual count", count, equalTo(expectedValueCount));
+  }
+
+  public List<String> retrieveColumnTextValues(
+      TestConfiguration.User user, UUID datasetId, String tableName, String columnName)
+      throws Exception {
+    return retrieveColumnStats(user, datasetId, tableName, columnName, null).getValues().stream()
+        .map(val -> val.getValue())
+        .toList();
+  }
+
+  public ColumnStatisticsTextModel retrieveColumnStats(
+      TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
+      throws Exception {
+    DataRepoResponse<ColumnStatisticsTextModel> response =
+        retrieveColumnStatsTextRaw(user, datasetId, table, columnName, filter);
+    return validateResponse(response, "dataset column stats", HttpStatus.OK, null);
+  }
+
+  private DataRepoResponse<ColumnStatisticsTextModel> retrieveColumnStatsTextRaw(
+      TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
+      throws Exception {
+    String url =
+        "/api/repository/v1/datasets/%s/data/%s/statistics/%s"
+            .formatted(datasetId, table, columnName);
+
+    String queryParams = "";
+
+    if (filter != null) {
+      queryParams += "&filter=%s".formatted(filter);
     }
     return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
   }

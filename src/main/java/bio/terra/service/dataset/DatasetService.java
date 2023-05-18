@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.service.filedata.azure.AzureSynapsePdao.getDataSourceName;
 
@@ -9,6 +8,7 @@ import bio.terra.app.usermetrics.BardEventProperties;
 import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.CollectionType;
+import bio.terra.common.Column;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -17,6 +17,7 @@ import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnStatisticsModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
@@ -44,6 +45,8 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.dataset.exception.InvalidColumnException;
+import bio.terra.service.dataset.exception.InvalidTableException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
@@ -546,20 +549,18 @@ public class DatasetService {
     if (cloudPlatformWrapper.isGcp()) {
       try {
         List<String> columns = datasetTableDao.retrieveColumnNames(table, true);
-        String bqFormattedTableName = PDAO_PREFIX + dataset.getName() + "." + tableName;
         List<BigQueryDataResultModel> values =
             BigQueryPdao.getTable(
-                dataset, bqFormattedTableName, columns, limit, offset, sort, direction, filter);
+                dataset, tableName, columns, limit, offset, sort, direction, filter);
         return new DatasetDataModel()
             .result(
                 List.copyOf(values.stream().map(BigQueryDataResultModel::getRowResult).toList()))
             .totalRowCount(
                 values.isEmpty()
-                    ? BigQueryPdao.getTableTotalRowCount(dataset, bqFormattedTableName)
+                    ? BigQueryPdao.getTableTotalRowCount(dataset, tableName)
                     : values.get(0).getTotalCount())
             .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
       } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
         throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
       }
     } else if (cloudPlatformWrapper.isAzure()) {
@@ -600,6 +601,78 @@ public class DatasetService {
                       tableName, datasourceName, sourceParquetFilePath)
                   : values.get(0).getTotalCount())
           .filteredRowCount(values.isEmpty() ? 0 : values.get(0).getFilteredCount());
+    } else {
+      throw new DatasetDataException("Cloud not supported");
+    }
+  }
+
+  public ColumnStatisticsModel retrieveColumnStatistics(
+      AuthenticatedUserRequest userRequest,
+      UUID datasetId,
+      String tableName,
+      String columnName,
+      String filter) {
+    Dataset dataset = retrieve(datasetId);
+
+    Column column =
+        dataset
+            .getTableByName(tableName)
+            .orElseThrow(
+                () ->
+                    new InvalidTableException(
+                        "No dataset table exists with the name: " + tableName))
+            .getColumnByName(columnName)
+            .orElseThrow(
+                () ->
+                    new InvalidColumnException(
+                        "No column exists in table "
+                            + tableName
+                            + " with column name: "
+                            + columnName));
+
+    var cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+
+    if (cloudPlatformWrapper.isGcp()) {
+      try {
+        if (column.isDoubleType()) {
+          return BigQueryPdao.getStatsForDoubleColumn(dataset, tableName, column, filter);
+        } else if (column.isIntType()) {
+          return BigQueryPdao.getStatsForIntColumn(dataset, tableName, column, filter);
+        } else if (column.isTextType()) {
+          return BigQueryPdao.getStatsForTextColumn(dataset, tableName, column, filter);
+        }
+        return new ColumnStatisticsModel();
+      } catch (InterruptedException e) {
+        throw new DatasetDataException("Error retrieving data for dataset " + dataset.getName(), e);
+      }
+    } else if (cloudPlatformWrapper.isAzure()) {
+      AccessInfoModel accessInfoModel =
+          metadataDataAccessUtils.accessInfoFromDataset(dataset, userRequest);
+      String credName = AzureSynapsePdao.getCredentialName(dataset.getId(), userRequest.getEmail());
+      String datasourceName = getDataSourceName(dataset.getId(), userRequest.getEmail());
+      String metadataUrl =
+          "%s?%s"
+              .formatted(
+                  accessInfoModel.getParquet().getUrl(),
+                  accessInfoModel.getParquet().getSasToken());
+      String sourceParquetFilePath = IngestUtils.getSourceDatasetParquetFilePath(tableName);
+
+      try {
+        azureSynapsePdao.getOrCreateExternalDataSource(metadataUrl, credName, datasourceName);
+      } catch (Exception e) {
+        throw new RuntimeException("Could not configure external datasource", e);
+      }
+
+      if (column.isDoubleType()) {
+        return azureSynapsePdao.getStatsForDoubleColumn(
+            column, datasourceName, sourceParquetFilePath);
+      } else if (column.isIntType()) {
+        return azureSynapsePdao.getStatsForIntColumn(column, datasourceName, sourceParquetFilePath);
+      } else if (column.isTextType()) {
+        return azureSynapsePdao.getStatsForTextColumn(
+            column, datasourceName, sourceParquetFilePath);
+      }
+      return new ColumnStatisticsModel();
     } else {
       throw new DatasetDataException("Cloud not supported");
     }

@@ -15,6 +15,7 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.ColumnStatisticsModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
@@ -192,6 +193,15 @@ public class DatasetsApiController implements DatasetsApi {
         datasetService.retrieveData(
             getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
     return ResponseEntity.ok(previewModel);
+  }
+
+  @Override
+  public ResponseEntity<ColumnStatisticsModel> lookupDatasetColumnStatisticsById(
+      UUID id, String table, String column, String filter) {
+    datasetService.verifyDatasetReadable(id, getAuthenticatedInfo());
+    ColumnStatisticsModel columnStatisticsModel =
+        datasetService.retrieveColumnStatistics(getAuthenticatedInfo(), id, table, column, filter);
+    return ResponseEntity.ok(columnStatisticsModel);
   }
 
   @Override

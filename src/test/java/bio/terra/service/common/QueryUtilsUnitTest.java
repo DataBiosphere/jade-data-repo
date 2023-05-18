@@ -26,7 +26,7 @@ public class QueryUtilsUnitTest {
     String filterWithWhere = "WHERE ( a = 1 )";
     assertThat(
         "Where clause should not add another 'WHERE' statement",
-        QueryUtils.whereClause(filterWithWhere),
+        QueryUtils.formatAndParseUserFilter(filterWithWhere),
         equalTo(filterWithWhere));
   }
 
@@ -35,7 +35,7 @@ public class QueryUtilsUnitTest {
     String filterWithWhere = "where ( a = 1 )";
     assertThat(
         "Where clause should not add another 'where' statement",
-        QueryUtils.whereClause(filterWithWhere),
+        QueryUtils.formatAndParseUserFilter(filterWithWhere),
         equalTo(filterWithWhere));
   }
 
@@ -44,7 +44,7 @@ public class QueryUtilsUnitTest {
     String filterWithWhere = "WHERE a = 1 ";
     assertThat(
         "Where clause should not add another 'WHERE' statement",
-        QueryUtils.whereClause(filterWithWhere),
+        QueryUtils.formatAndParseUserFilter(filterWithWhere),
         equalTo(filterWithWhere));
   }
 
@@ -54,29 +54,35 @@ public class QueryUtilsUnitTest {
     String filterWithWhere = "WHERE (a = 1)";
     assertThat(
         "Where clause should add the 'WHERE' statement",
-        QueryUtils.whereClause(filterNoWhere),
+        QueryUtils.formatAndParseUserFilter(filterNoWhere),
         equalTo(filterWithWhere));
   }
 
   @Test
   public void testWhereClauseNullFilter() {
-    assertThat("return empty filter", QueryUtils.whereClause(null), equalTo(""));
+    assertThat("return empty filter", QueryUtils.formatAndParseUserFilter(null), equalTo(""));
   }
 
   @Test
   public void testWhereClauseEmptyFilter() {
-    assertThat("return empty filter", QueryUtils.whereClause(""), equalTo(""));
+    assertThat("return empty filter", QueryUtils.formatAndParseUserFilter(""), equalTo(""));
   }
 
   @Test
   public void testInvalidWhereClause_MisspelledWhere() {
     String misspelledWhere = "WERE a = 1";
-    assertThrows(InvalidQueryException.class, () -> QueryUtils.whereClause(misspelledWhere));
+    assertThrows(InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(misspelledWhere));
+  }
+
+  @Test
+  public void testInvalidWhereClause_MissingParenAtEnd() {
+    String missingParen = "WHERE (a = 1";
+    assertThrows(InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
   }
 
   @Test
   public void testInvalidWhereClause_MissingParen() {
-    String missingParen = "WHERE (a = 1";
-    assertThrows(InvalidQueryException.class, () -> QueryUtils.whereClause(missingParen));
+    String missingParen = "WHERE a = 1)";
+    assertThrows(InvalidQueryException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
   }
 }

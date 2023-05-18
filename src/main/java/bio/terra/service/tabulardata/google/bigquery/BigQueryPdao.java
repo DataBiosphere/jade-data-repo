@@ -203,7 +203,7 @@ public abstract class BigQueryPdao {
         new ST(DATA_TEMPLATE)
             .add("columns", columns)
             .add("table", bqTableName(tdrResource, tableName))
-            .add("filterParams", QueryUtils.whereClause(filter))
+            .add("filterParams", QueryUtils.formatAndParseUserFilter(filter))
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
@@ -216,7 +216,7 @@ public abstract class BigQueryPdao {
     // The bigquery sql table name must be enclosed in backticks
     final String filterParams =
         new ST(DATA_FILTER_TEMPLATE)
-            .add("whereClause", QueryUtils.whereClause(filter))
+            .add("whereClause", QueryUtils.formatAndParseUserFilter(filter))
             .add("sort", sort)
             .add("direction", direction)
             .add("limit", limit)
@@ -309,7 +309,7 @@ public abstract class BigQueryPdao {
             .add("countColumn", PDAO_COUNT_COLUMN_NAME)
             .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
             .add("tableName", tableName)
-            .add("whereClause", QueryUtils.whereClause(filter))
+            .add("whereClause", QueryUtils.formatAndParseUserFilter(filter))
             .add("direction", SqlSortDirection.ASC)
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
@@ -374,7 +374,7 @@ public abstract class BigQueryPdao {
                     : NUMERIC_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
             .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
-            .add("whereClause", QueryUtils.whereClause(filter))
+            .add("whereClause", QueryUtils.formatAndParseUserFilter(filter))
             .add("minColumnName", PDAO_MIN_VALUE_COLUMN_NAME)
             .add("maxColumnName", PDAO_MAX_VALUE_COLUMN_NAME)
             .render();

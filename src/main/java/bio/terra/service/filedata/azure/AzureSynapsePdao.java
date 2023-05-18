@@ -16,7 +16,6 @@ import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
-import bio.terra.grammar.Query;
 import bio.terra.model.ColumnStatisticsDoubleModel;
 import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
@@ -27,6 +26,7 @@ import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableDataType;
+import bio.terra.service.common.QueryUtils;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
@@ -299,7 +299,7 @@ public class AzureSynapsePdao {
                             DATA_SOURCE = '<datasource>',
                             FORMAT='PARQUET') AS rows
               ) AS all_rows
-            WHERE (<userFilter>)
+            <userFilter>
          ) AS tbl
       WHERE tbl.datarepo_row_number >= :offset
         AND tbl.datarepo_row_number \\<= :offset + :limit;""";
@@ -310,7 +310,7 @@ public class AzureSynapsePdao {
         FROM OPENROWSET(BULK '<parquetFileLocation>',
                         DATA_SOURCE = '<datasource>',
                         FORMAT='PARQUET') AS rows
-          WHERE (<userFilter>)
+          <userFilter>
           GROUP BY <column>
           ORDER BY <column> <direction>;""";
 
@@ -320,7 +320,7 @@ public class AzureSynapsePdao {
           FROM OPENROWSET(BULK '<parquetFileLocation>',
                           DATA_SOURCE = '<datasource>',
                           FORMAT='PARQUET') AS rows
-          WHERE (<userFilter>);""";
+          <userFilter>;""";
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
   private static final String dropDataSourceTemplate =
@@ -1096,9 +1096,8 @@ public class AzureSynapsePdao {
       Column column,
       String dataSourceName,
       String parquetFileLocation,
-      String filter,
+      String userFilter,
       String sqlTemplate) {
-    String userFilter = StringUtils.defaultIfBlank(filter, "1=1");
     String columnName = column.getName();
     return new ST(sqlTemplate)
         .add("column", columnName)
@@ -1106,7 +1105,7 @@ public class AzureSynapsePdao {
         .add("datasource", dataSourceName)
         .add("parquetFileLocation", parquetFileLocation)
         .add("direction", SqlSortDirection.ASC)
-        .add("userFilter", userFilter)
+        .add("userFilter", QueryUtils.formatAndParseUserFilter(userFilter))
         .render();
   }
 
@@ -1134,8 +1133,7 @@ public class AzureSynapsePdao {
   }
 
   public ColumnStatisticsTextModel getStatsForTextColumn(
-      Column column, String dataSourceName, String parquetFileLocation, String filter) {
-    String userFilter = StringUtils.defaultIfBlank(filter, "1=1");
+      Column column, String dataSourceName, String parquetFileLocation, String userFilter) {
     String columnName = column.getName();
     final String sql =
         new ST(queryTextColumnStatsTemplate)
@@ -1144,7 +1142,7 @@ public class AzureSynapsePdao {
             .add("datasource", dataSourceName)
             .add("parquetFileLocation", parquetFileLocation)
             .add("direction", SqlSortDirection.ASC)
-            .add("userFilter", userFilter)
+            .add("userFilter", QueryUtils.formatAndParseUserFilter(userFilter))
             .render();
 
     try {
@@ -1176,7 +1174,7 @@ public class AzureSynapsePdao {
       int offset,
       String sort,
       SqlSortDirection direction,
-      String filter,
+      String userFilter,
       CollectionType collectionType) {
 
     // Ensure that the sort column is a valid column
@@ -1189,10 +1187,6 @@ public class AzureSynapsePdao {
                       "Column %s was not found in the snapshot table %s"
                           .formatted(sort, tableName)));
     }
-    String userFilter = StringUtils.defaultIfBlank(filter, "1=1");
-
-    // Parse a Sql skeleton with the filter
-    Query.parse("select * from schema.table where (" + userFilter + ")");
 
     List<Column> columns =
         ListUtils.union(
@@ -1206,7 +1200,7 @@ public class AzureSynapsePdao {
             .add("parquetFileLocation", parquetFileLocation)
             .add("sort", sort)
             .add("direction", direction)
-            .add("userFilter", userFilter)
+            .add("userFilter", QueryUtils.formatAndParseUserFilter(userFilter))
             .add("includeTotalRowCount", includeTotalRowCount)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)

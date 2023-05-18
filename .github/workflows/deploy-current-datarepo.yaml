@@ -1,0 +1,239 @@
+name: Release newest to production (demo)
+on:
+  # TODO: remove this, running on PRs just for demo/test purposes
+  pull_request:
+    paths:
+    - '.github/workflows/deploy-current-datarepo.yaml'
+  workflow_dispatch: {}
+jobs:
+  create-bee-workflow:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    outputs:
+      app-version: ${{ steps.get-versions.outputs.app-version }}
+      chart-version: ${{ steps.get-versions.outputs.chart-version }}
+    steps:
+    - name: Output Inputs
+      run: echo "${{ toJSON(github.event.inputs) }}"
+    - name: Set up IAP access
+      id: "auth-iap"
+      uses: google-github-actions/auth@v0
+      with:
+        token_format: "id_token"
+        id_token_audience: "1038484894585-k8qvf7l876733laev0lm8kenfa2lj6bn.apps.googleusercontent.com"
+        workload_identity_provider: "projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider"
+        service_account: "dsp-tools-iap-access@dsp-tools-k8s.iam.gserviceaccount.com"
+        id_token_include_email: true
+    
+    # Generate versions file
+    - name: Discover and Generate Versions
+      id: get-versions
+      run: |
+        set -exo pipefail
+        
+        ENV="datarepo-swatomation"
+        SHERLOCK_URL="https://sherlock.dsp-devops.broadinstitute.org"
+        CHART="datarepo"
+        GIT_BRANCH="develop"
+
+        curl --fail-with-body \
+          -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
+          -H 'accept: application/json' \
+          "${SHERLOCK_URL}/api/v2/app-versions?chart=${CHART}&gitBranch=${GIT_BRANCH}&limit=1"\
+          > app-version.json
+
+        curl --fail-with-body \
+          -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
+          -H 'accept: application/json' \
+          "${SHERLOCK_URL}/api/v2/chart-versions?chart=${CHART}&limit=1"\
+          > chart-version.json
+
+        # Process individually
+        APP_VERSION=$(jq '.[0].appVersion' app-version.json | tr -d '"')
+        CHART_VERSION=$(jq '.[0].chartVersion' chart-version.json | tr -d '"')
+        CUSTOM_JSON_VERSION="{ \"$CHART\":{\"appVersion\": \"$APP_VERSION\", \"chartVersion\": \"$CHART_VERSION\"}}"
+
+        # create the correct 
+        echo {} | jq \
+          --arg custom_json_version "$CUSTOM_JSON_VERSION" \
+          '. + { "bee-name": "tdr-${{ github.run_id }}", "version-template": "prod", "custom-version-json": $custom_json_version }' > bee_input.json
+        echo "bee-input=$( cat bee_input.json | tr '\n' ' ' )" >> $GITHUB_ENV
+        echo "app-version=$APP_VERSION" >> $GITHUB_OUTPUT
+        echo "chart-version=$CHART_VERSION" >> $GITHUB_OUTPUT
+#    TODO: comment when done
+#    - name: dispatch to terra-github-workflows
+#      uses: broadinstitute/workflow-dispatch@v3
+#      with:
+#        workflow: .github/workflows/bee-create.yaml
+#        repo: broadinstitute/terra-github-workflows
+#        ref: refs/heads/main
+#        token: ${{ secrets.BROADBOT_TOKEN}} # github token for access to kick off a job in the private repo
+#        inputs: ${{ env.bee-input }}
+
+  destroy-bee-workflow:
+    runs-on: ubuntu-latest
+    needs: [create-bee-workflow]
+    if: always() # always run to confirm bee is destroyed
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: dummy step
+        run: echo "true"
+#      - name: dispatch to terra-github-workflows
+#        uses: broadinstitute/workflow-dispatch@v3
+#        with:
+#          workflow: bee-destroy
+#          repo: broadinstitute/terra-github-workflows
+#          ref: refs/heads/main
+#          token: ${{ secrets.BROADBOT_TOKEN}} # github token for access to kick off a job in the private repo
+#          # manually recalculate b/c env context is broken https://github.com/actions/runner/issues/480
+#          inputs: '{ "bee-name": "tdr-${{ github.run_id }}" }'
+
+  # proceed only if the BEE started successfully
+  deploy-to-staging:
+    runs-on: ubuntu-latest
+    needs: [create-bee-workflow]
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    env:
+      ENVIRONMENT: "juyang-swatomation-frozen-albatross"
+    steps:
+      - name: 'Generate IAP token to talk to Sherlock'
+        id: 'auth-iap'
+        uses: google-github-actions/auth@v0
+        with:
+          token_format: 'id_token'
+          id_token_audience: '1038484894585-k8qvf7l876733laev0lm8kenfa2lj6bn.apps.googleusercontent.com'
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'dsp-tools-iap-access@dsp-tools-k8s.iam.gserviceaccount.com'
+          id_token_include_email: true
+      # These Sherlock calls are all separate so they can fail without affecting the others
+      - name: 'Update Sherlock'
+        run: |
+          echo '${{ needs.create-bee-workflow.outputs.app-version }}'
+          echo '${{ needs.create-bee-workflow.outputs.chart-version }}'
+          curl -X 'POST' \
+            'https://sherlock-dev.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan-and-apply' \
+            -H 'accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
+            -d "{
+              \"chartReleases\": [
+                {
+                  \"chartRelease\": \"${{ env.ENVIRONMENT }}/datarepo\",
+                  \"toAppVersionExact\": \"${{ needs.create-bee-workflow.outputs.app-version }}\",
+                  \"toAppVersionResolver\": \"exact\",
+                  \"toChartVersionExact\": \"${{ needs.create-bee-workflow.outputs.chart-version }}\",
+                  \"toChartVersionResolver\": \"exact\",
+                  \"toHelmfileRef\": \"HEAD\"
+                }
+              ]
+            }"
+          #curl --fail -X 'POST' \
+          #  'https://sherlock.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan-and-apply' \
+          #  -H 'accept: application/json' \
+          #  -H 'Content-Type: application/json' \
+          #  -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
+          #  -d "{
+          #    \"chartReleases\": [
+          #      {
+          #        \"chartRelease\": \"${{ env.ENVIRONMENT }}/datarepo\",
+          #        \"toAppVersionExact\": \"${{ needs.create-bee-workflow.outputs.app-version }}\",
+          #        \"toAppVersionResolver\": \"exact\",
+          #        \"toChartVersionExact\": \"${{ needs.create-bee-workflow.outputs.chart-version }}\",
+          #        \"toChartVersionResolver\": \"exact\",
+          #        \"toHelmfileRef\": \"HEAD\"
+          #      }
+          #    ]
+          #  }"
+
+  test-staging:
+    runs-on: ubuntu-latest
+    needs: [deploy-to-staging]
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+        # need a way to check if the deployment is done (check status loop?)
+        - name: test true
+          run: |-
+            echo "true"
+#       - name: dispatch to datarepo smoke tests
+#         uses: broadinstitute/workflow-dispatch@v3
+#         with:
+#           workflow: staging-smoke-tests
+#           repo: databiosphere/jade-data-repo
+#           ref: refs/heads/develop
+#           token: ${{ secrets.BROADBOT_TOKEN}} # github token for access to kick off a job in the private repo
+
+  plan-to-prod:
+    runs-on: ubuntu-latest
+    needs: [test-staging]
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    env:
+      ENVIRONMENT: "juyang-swatomation-frozen-albatross"
+    steps:
+      - name: 'Generate IAP token to talk to Sherlock'
+        id: 'auth-iap'
+        uses: google-github-actions/auth@v0
+        with:
+          token_format: 'id_token'
+          id_token_audience: '1038484894585-k8qvf7l876733laev0lm8kenfa2lj6bn.apps.googleusercontent.com'
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'dsp-tools-iap-access@dsp-tools-k8s.iam.gserviceaccount.com'
+          id_token_include_email: true
+      # These Sherlock calls are all separate so they can fail without affecting the others
+      - name: plan-to-prod
+        run: |
+          curl -X 'POST' \
+            'https://sherlock-dev.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan' \
+            -H 'accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
+            -d "{
+              \"chartReleases\": [
+                {
+                  \"chartRelease\": \"${{ env.ENVIRONMENT }}/datarepo\",
+                  \"toAppVersionExact\": \"${{ needs.create-bee-workflow.outputs.app-version }}\",
+                  \"toAppVersionResolver\": \"exact\",
+                  \"toChartVersionExact\": \"${{ needs.create-bee-workflow.outputs.chart-version }}\",
+                  \"toChartVersionResolver\": \"exact\",
+                  \"toHelmfileRef\": \"HEAD\"
+                }
+              ]
+            }" > prod-plan.json
+          #curl --fail -X 'POST' \
+          #  'https://sherlock.dsp-devops.broadinstitute.org/api/v2/procedures/changesets/plan' \
+          #  -H 'accept: application/json' \
+          #  -H 'Content-Type: application/json' \
+          #  -H 'Authorization: Bearer ${{ steps.auth-iap.outputs.id_token }}' \
+          #  -d "{
+          #    \"chartReleases\": [
+          #      {
+          #        \"chartRelease\": \"${{ env.ENVIRONMENT }}/datarepo\",
+          #        \"toAppVersionExact\": \"${{ needs.create-bee-workflow.outputs.app-version }}\",
+          #        \"toAppVersionResolver\": \"exact\",
+          #        \"toChartVersionExact\": \"${{ needs.create-bee-workflow.outputs.chart-version }}\",
+          #        \"toChartVersionResolver\": \"exact\",
+          #        \"toHelmfileRef\": \"HEAD\"
+          #      }
+          #    ]
+          #  }" > prod-plan.json
+          echo "changeset-id=$(jq '.[0].id' prod-plan.json)" >> $GITHUB_OUTPUT
+
+      - name: "Notify Jade Slack"
+        uses: broadinstitute/action-slack@v3.15.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          channel: "#jade-alerts"
+          username: "Data Repo Prod Deploy"
+          text: "Click here to finish deploying to Prod: https://beehive-dev.dsp-devops.broadinstitute.org/review-changesets?changeset=${{ steps.plan-to-prod.outputs.changset-id }}"

@@ -74,7 +74,7 @@ jobs:
 
   destroy-bee-workflow:
     runs-on: ubuntu-latest
-    needs: [create-bee-workflow]
+    needs: [create-bee-workflow, deploy-to-staging]
     if: always() # always run to confirm bee is destroyed
     permissions:
       contents: 'read'
@@ -100,6 +100,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     env:
+      FROM_ENVIRONMENT: "juyang-swatomation-nice-marmoset"
       ENVIRONMENT: "juyang-swatomation-nice-marmoset" # TODO: changeme, demo env
     steps:
       - name: 'Generate IAP token to talk to Sherlock'
@@ -125,10 +126,7 @@ jobs:
               \"chartReleases\": [
                 {
                   \"chartRelease\": \"${{ env.ENVIRONMENT }}/datarepo\",
-                  \"toAppVersionExact\": \"${{ needs.create-bee-workflow.outputs.app-version }}\",
-                  \"toAppVersionResolver\": \"exact\",
-                  \"toChartVersionExact\": \"${{ needs.create-bee-workflow.outputs.chart-version }}\",
-                  \"toChartVersionResolver\": \"exact\",
+                  \"useExactVersionsFromOtherChartRelease\": \"${{ env.FROM_ENVIRONMENT }}/datarepo\",
                   \"toHelmfileRef\": \"HEAD\"
                 }
               ]
@@ -177,6 +175,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     env:
+      FROM_ENVIRONMENT: "juyang-swatomation-nice-marmoset"
       ENVIRONMENT: "juyang-frozen-albatross" # TODO: changeme, demo env
     steps:
       - name: 'Generate IAP token to talk to Sherlock'
@@ -201,10 +200,7 @@ jobs:
               \"chartReleases\": [
                 {
                   \"chartRelease\": \"${{ env.ENVIRONMENT }}/datarepo\",
-                  \"toAppVersionExact\": \"${{ needs.create-bee-workflow.outputs.app-version }}\",
-                  \"toAppVersionResolver\": \"exact\",
-                  \"toChartVersionExact\": \"${{ needs.create-bee-workflow.outputs.chart-version }}\",
-                  \"toChartVersionResolver\": \"exact\",
+                  \"useExactVersionsFromOtherChartRelease\": \"${{ env.FROM_ENVIRONMENT }}/datarepo\",
                   \"toHelmfileRef\": \"HEAD\"
                 }
               ]
@@ -235,6 +231,6 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
           status: ${{ job.status }}
-          channel: "#jade-alerts"
+          channel: "#jade-spam"
           username: "Data Repo Prod Deploy"
-          text: "Click here to finish deploying to Prod: https://beehive-dev.dsp-devops.broadinstitute.org/review-changesets?changeset=${{ steps.plan-to-prod.outputs.changeset-id }}"
+          text: "(Dev/Demo) Click here to finish deploying to Prod: https://beehive-dev.dsp-devops.broadinstitute.org/review-changesets?changeset=${{ steps.plan-to-prod.outputs.changeset-id }}"

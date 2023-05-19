@@ -3,7 +3,6 @@ package bio.terra.integration;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
@@ -34,7 +33,7 @@ public class SamFixtures {
   public SamFixtures() {
     headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON));
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
     restTemplate = new RestTemplate();
     restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());

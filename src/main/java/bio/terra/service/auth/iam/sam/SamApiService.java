@@ -4,6 +4,7 @@ import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import java.util.concurrent.TimeUnit;
+import okhttp3.OkHttpClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.GroupApi;
@@ -19,11 +20,14 @@ public class SamApiService {
 
   private final SamConfiguration samConfig;
   private final ConfigurationService configurationService;
+  /** OkHttpClients should be shared among requests to reduce latency and save memory * */
+  private final OkHttpClient sharedHttpClient;
 
   @Autowired
   public SamApiService(SamConfiguration samConfig, ConfigurationService configurationService) {
     this.samConfig = samConfig;
     this.configurationService = configurationService;
+    this.sharedHttpClient = new ApiClient().getHttpClient();
   }
 
   public ResourcesApi resourcesApi(String accessToken) {
@@ -51,10 +55,10 @@ public class SamApiService {
   }
 
   private ApiClient createUnauthApiClient() {
-    ApiClient apiClient = new ApiClient();
-    apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java"); // only logs an error in sam
-    apiClient.setBasePath(samConfig.getBasePath());
-    return apiClient;
+    return new ApiClient()
+        .setHttpClient(sharedHttpClient)
+        .setUserAgent("OpenAPI-Generator/1.0.0 java") // only logs an error in sam
+        .setBasePath(samConfig.getBasePath());
   }
 
   private ApiClient createApiClient(String accessToken) {

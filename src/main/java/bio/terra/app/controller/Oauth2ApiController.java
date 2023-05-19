@@ -4,11 +4,9 @@ import bio.terra.app.configuration.OpenIDConnectConfiguration;
 import bio.terra.common.exception.BadRequestException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.api.client.util.Charsets;
-import com.google.common.annotations.VisibleForTesting;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -21,7 +19,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -33,13 +30,14 @@ public class Oauth2ApiController {
   static final String TOKEN_REFRESH_ENDPOINT = "/oauth2/token";
   private static final String SCOPE_PARAM = "scope";
   private static final String CLIENT_SECRET_PARAM = "client_secret";
-  private final RestTemplate restTemplate;
   private final OpenIDConnectConfiguration openIDConnectConfiguration;
+  private final RestTemplate restTemplate;
 
   @Autowired
-  public Oauth2ApiController(OpenIDConnectConfiguration openIDConnectConfiguration) {
+  public Oauth2ApiController(
+      OpenIDConnectConfiguration openIDConnectConfiguration, RestTemplate restTemplate) {
     this.openIDConnectConfiguration = openIDConnectConfiguration;
-    restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
+    this.restTemplate = restTemplate;
   }
 
   @RequestMapping(value = AUTHORIZE_ENDPOINT)
@@ -69,7 +67,7 @@ public class Oauth2ApiController {
                     return p;
                   }
                 })
-            .collect(Collectors.toList());
+            .toList();
 
     return URLEncodedUtils.format(parameters, Charsets.UTF_8);
   }
@@ -94,12 +92,8 @@ public class Oauth2ApiController {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-    return getRestTemplate()
-        .exchange(
-            actualEndpoint,
-            HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers),
-            JsonNode.class);
+    return restTemplate.exchange(
+        actualEndpoint, HttpMethod.POST, new HttpEntity<>(requestBody, headers), JsonNode.class);
   }
 
   // Modify the form url encoded body and add the client secret if it was not specified
@@ -118,10 +112,5 @@ public class Oauth2ApiController {
     }
 
     return URLEncodedUtils.format(parameters, Charsets.UTF_8);
-  }
-
-  @VisibleForTesting
-  RestTemplate getRestTemplate() {
-    return restTemplate;
   }
 }

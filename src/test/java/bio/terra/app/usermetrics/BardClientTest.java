@@ -2,127 +2,100 @@ package bio.terra.app.usermetrics;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.UserMetricsConfiguration;
-import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import java.util.Map;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.mockito.Mockito;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.RestTemplate;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
-@ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
-@SuppressWarnings("rawtypes")
+@ExtendWith(MockitoExtension.class)
+@Tag("bio.terra.common.category.Unit")
 public class BardClientTest {
 
-  @SpyBean UserMetricsConfiguration userMetricsConfiguration;
-
-  private AuthenticatedUserRequest user1;
-
-  private AuthenticatedUserRequest user2;
-
-  private String SYNC_PATH;
-
-  private String API_PATH;
-
+  @Mock private UserMetricsConfiguration userMetricsConfiguration;
+  @Mock private RestTemplate restTemplate;
   private BardClient bardClient;
 
-  private RestTemplate restTemplate;
+  private static AuthenticatedUserRequest USER_1 = AuthenticationFixtures.randomUserRequest();
+  private static AuthenticatedUserRequest USER_2 = AuthenticationFixtures.randomUserRequest();
 
-  @Before
-  public void setup() {
-    bardClient = spy(new BardClient(userMetricsConfiguration));
-    restTemplate = mock(RestTemplate.class);
+  private String SYNC_PATH;
+  private String API_PATH;
+
+  @BeforeEach
+  void setup() {
+    when(userMetricsConfiguration.getSyncRefreshIntervalSeconds()).thenReturn(1000);
+
+    bardClient = new BardClient(userMetricsConfiguration, restTemplate);
 
     when(restTemplate.exchange(
-            eq(bardClient.getApiURL()), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
+            eq(bardClient.getApiUrl()), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(new ResponseEntity(HttpStatus.OK));
-    when(bardClient.getRestTemplate()).thenReturn(restTemplate);
 
-    API_PATH = bardClient.getApiURL();
-    SYNC_PATH = bardClient.getSyncPathURL();
-
-    user1 =
-        AuthenticatedUserRequest.builder()
-            .setSubjectId("Bob")
-            .setEmail("bob")
-            .setToken("bob token")
-            .build();
-
-    user2 =
-        AuthenticatedUserRequest.builder()
-            .setSubjectId("alice")
-            .setEmail("alice")
-            .setToken("alice token")
-            .build();
+    API_PATH = bardClient.getApiUrl();
+    SYNC_PATH = bardClient.getSyncPathUrl();
   }
 
   @Test
-  public void testBardClientLogEvent_happy() {
+  void testBardClientLogEvent_happy() {
     when(restTemplate.exchange(
             eq(SYNC_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(new ResponseEntity(HttpStatus.OK));
 
-    logEventForUser(bardClient, user1);
+    logEventForUser(bardClient, USER_1);
 
-    verifyRestTemplatePathAndCount(restTemplate, SYNC_PATH, 1);
-    verifyRestTemplatePathAndCount(restTemplate, API_PATH, 1);
+    verifyRestTemplatePathAndCount(SYNC_PATH, 1);
+    verifyRestTemplatePathAndCount(API_PATH, 1);
 
-    logEventForUser(bardClient, user1);
+    logEventForUser(bardClient, USER_1);
 
-    verifyRestTemplatePathAndCount(restTemplate, SYNC_PATH, 1);
-    verifyRestTemplatePathAndCount(restTemplate, API_PATH, 2);
+    verifyRestTemplatePathAndCount(SYNC_PATH, 1);
+    verifyRestTemplatePathAndCount(API_PATH, 2);
 
-    logEventForUser(bardClient, user2);
+    logEventForUser(bardClient, USER_2);
 
-    verifyRestTemplatePathAndCount(restTemplate, SYNC_PATH, 2);
-    verifyRestTemplatePathAndCount(restTemplate, API_PATH, 3);
+    verifyRestTemplatePathAndCount(SYNC_PATH, 2);
+    verifyRestTemplatePathAndCount(API_PATH, 3);
 
-    logEventForUser(bardClient, user2);
+    logEventForUser(bardClient, USER_2);
 
-    verifyRestTemplatePathAndCount(restTemplate, SYNC_PATH, 2);
-    verifyRestTemplatePathAndCount(restTemplate, API_PATH, 4);
+    verifyRestTemplatePathAndCount(SYNC_PATH, 2);
+    verifyRestTemplatePathAndCount(API_PATH, 4);
   }
 
   @Test
-  public void testBardClientLogEvent_sad_sync() {
+  void testBardClientLogEvent_sad_sync() {
     when(restTemplate.exchange(
             eq(SYNC_PATH), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class)))
         .thenReturn(new ResponseEntity(HttpStatus.FORBIDDEN));
 
-    logEventForUser(bardClient, user1);
+    logEventForUser(bardClient, USER_1);
 
-    verifyRestTemplatePathAndCount(restTemplate, SYNC_PATH, 1);
-    verifyRestTemplatePathAndCount(restTemplate, API_PATH, 1);
+    verifyRestTemplatePathAndCount(SYNC_PATH, 1);
+    verifyRestTemplatePathAndCount(API_PATH, 1);
 
-    logEventForUser(bardClient, user1);
+    logEventForUser(bardClient, USER_1);
 
-    verifyRestTemplatePathAndCount(restTemplate, SYNC_PATH, 2);
-    verifyRestTemplatePathAndCount(restTemplate, API_PATH, 2);
+    verifyRestTemplatePathAndCount(SYNC_PATH, 2);
+    verifyRestTemplatePathAndCount(API_PATH, 2);
   }
 
-  private void verifyRestTemplatePathAndCount(RestTemplate template, String path, int count) {
-    verify(template, Mockito.times(count))
+  private void verifyRestTemplatePathAndCount(String path, int count) {
+    verify(restTemplate, times(count))
         .exchange(eq(path), eq(HttpMethod.POST), any(HttpEntity.class), eq(Void.class));
   }
 

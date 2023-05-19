@@ -17,6 +17,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
@@ -163,8 +164,9 @@ public class FileIngestBulkFlight extends Flight {
     if (!isBulkMode) {
       addStep(new LoadLockStep(loadService));
     }
+    CloudFileReader cloudFileReader = (platform.isGcp()) ? gcsPdao : azureBlobStorePdao;
     addStep(
-        new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
+        new ValidateBucketAccessStep(cloudFileReader, userReq, dataset),
         getDefaultExponentialBackoffRetryRule());
     if (platform.isGcp()) {
       addStep(new VerifyBillingAccountAccessStep(googleBillingService));

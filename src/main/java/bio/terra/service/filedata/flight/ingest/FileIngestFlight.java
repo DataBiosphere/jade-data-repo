@@ -16,6 +16,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
@@ -132,8 +133,10 @@ public class FileIngestFlight extends FileIngestTypeFlight {
     addStep(new LockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
     addStep(new IngestFileIdStep(configService));
+
+    CloudFileReader cloudFileReader = (platform.isGcp()) ? gcsPdao : azureBlobStorePdao;
     addStep(
-        new ValidateBucketAccessStep(gcsPdao, userReq, dataset),
+        new ValidateBucketAccessStep(cloudFileReader, userReq, dataset),
         getDefaultExponentialBackoffRetryRule());
 
     if (platform.isGcp()) {

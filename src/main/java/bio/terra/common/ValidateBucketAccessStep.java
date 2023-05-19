@@ -35,9 +35,8 @@ import org.slf4j.LoggerFactory;
  * <p>GCS files specified indirectly -- i.e. referenced in a control file -- do not have their
  * access validated in this step.
  *
- * <p>Since GCS files can be ingested to Azure-backed datasets, this step should be added
- * unconditionally to flights which take in user-specified files no matter the platform of the
- * destination dataset.
+ * <p>This step should be added to flights when GCS files could be specified directly in the
+ * request, which could include instances where the destination dataset is backed by Azure.
  */
 public class ValidateBucketAccessStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(ValidateBucketAccessStep.class);
@@ -98,6 +97,7 @@ public class ValidateBucketAccessStep extends DefaultUndoStep {
     } else {
       throw new IllegalArgumentException("Invalid request type");
     }
+    // The destination dataset may be Azure-based, and thus would not have a Google project ID
     String cloudEncapsulationId =
         Optional.ofNullable(dataset.getProjectResource())
             .map(GoogleProjectResource::getGoogleProjectId)

@@ -3,17 +3,16 @@ package bio.terra.service.dataset;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-@Category(Unit.class)
+@Tag("bio.terra.common.category.Unit")
 public class DatasetTest {
 
   @Test
-  public void testHasDedicatedGcpServiceAccount() {
+  void testHasDedicatedGcpServiceAccount() {
     var datasetSummary = new DatasetSummary();
     var projectResource = new GoogleProjectResource();
     var dataset = new Dataset(datasetSummary).projectResource(projectResource);

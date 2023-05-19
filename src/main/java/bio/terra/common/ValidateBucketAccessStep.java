@@ -8,11 +8,11 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
-import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -21,6 +21,7 @@ import com.google.cloud.storage.StorageException;
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
+import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,13 +42,13 @@ import org.slf4j.LoggerFactory;
 public class ValidateBucketAccessStep extends DefaultUndoStep {
   private static final Logger logger = LoggerFactory.getLogger(ValidateBucketAccessStep.class);
 
-  private final GcsPdao gcsPdao;
+  private final CloudFileReader cloudFileReader;
   private final AuthenticatedUserRequest userRequest;
   private final Dataset dataset;
 
   public ValidateBucketAccessStep(
-      GcsPdao gcsPdao, AuthenticatedUserRequest userRequest, Dataset dataset) {
-    this.gcsPdao = gcsPdao;
+      CloudFileReader cloudFileReader, AuthenticatedUserRequest userRequest, Dataset dataset) {
+    this.cloudFileReader = cloudFileReader;
     this.userRequest = userRequest;
     this.dataset = dataset;
   }
@@ -97,12 +98,12 @@ public class ValidateBucketAccessStep extends DefaultUndoStep {
     } else {
       throw new IllegalArgumentException("Invalid request type");
     }
-    // This check is not needed for Azure source files because we use signed URLS that by default
-    // check those permissions.  But this is needed if ingesting from GCS-hosted files.
-    List<String> gsPaths = sourcePaths.stream().filter(GcsUriUtils::isGsUri).toList();
-    String projectId = dataset.getProjectResource().getGoogleProjectId();
+    String cloudEncapsulationId =
+        Optional.ofNullable(dataset.getProjectResource())
+            .map(GoogleProjectResource::getGoogleProjectId)
+            .orElse(null);
     try {
-      gcsPdao.validateUserCanRead(gsPaths, projectId, userRequest, dataset);
+      cloudFileReader.validateUserCanRead(sourcePaths, cloudEncapsulationId, userRequest, dataset);
     } catch (StorageException e) {
       if (e.getCode() == HttpStatus.SC_FORBIDDEN
           && e.getMessage().contains(PET_PROPAGATION_ERROR_MSG)) {

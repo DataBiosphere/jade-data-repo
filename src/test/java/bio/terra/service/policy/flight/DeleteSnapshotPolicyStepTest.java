@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
 
 import bio.terra.common.exception.FeatureNotImplementedException;
+import bio.terra.policy.model.TpsPolicyInput;
+import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
@@ -32,6 +34,10 @@ public class DeleteSnapshotPolicyStepTest {
 
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
+  private static final TpsPolicyInput protectedDataPolicy =
+      PolicyService.getProtectedDataPolicyInput();
+  private static final TpsPolicyInputs policies =
+      new TpsPolicyInputs().addInputsItem(protectedDataPolicy);
   private DeleteSnapshotPolicyStep step;
 
   @BeforeEach
@@ -53,8 +59,10 @@ public class DeleteSnapshotPolicyStepTest {
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(policyService).deletePao(SNAPSHOT_ID);
+
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
   }
 
   @Test
@@ -62,11 +70,15 @@ public class DeleteSnapshotPolicyStepTest {
     mockSecureMonitoringEnabledDataset();
     var exception = new FeatureNotImplementedException("Policy service is not enabled");
     doThrow(exception).when(policyService).deletePao(SNAPSHOT_ID);
+    doThrow(exception).when(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
+
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(policyService).deletePao(SNAPSHOT_ID);
+
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    verify(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
   }
 
   @Test
@@ -74,6 +86,8 @@ public class DeleteSnapshotPolicyStepTest {
     when(datasetService.retrieve(DATASET_ID)).thenReturn(new Dataset());
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
+    StepResult undoResult = step.undoStep(flightContext);
+    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verifyNoInteractions(policyService);
   }
 }

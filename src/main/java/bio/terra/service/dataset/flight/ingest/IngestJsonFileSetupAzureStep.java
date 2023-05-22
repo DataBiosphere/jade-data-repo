@@ -36,13 +36,14 @@ public class IngestJsonFileSetupAzureStep extends IngestJsonFileSetupStep {
         IngestUtils.getIngestBillingProfileFromDataset(dataset, ingestRequest)
             .getTenantId()
             .toString();
-    return IngestUtils.countAndValidateBulkFileLoadModelsFromPath(
+    return IngestUtils.validateAndCountBulkFileLoadModelsFromPath(
         azureBlobStorePdao,
         objectMapper,
         ingestRequest,
         userRequest,
         tenantId,
         fileRefColumns,
-        errorCollector);
+        errorCollector,
+        dataset);
   }
 }

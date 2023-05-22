@@ -273,9 +273,12 @@ public class AzureBlobStorePdao implements CloudFileReader {
 
   @Override
   public void validateUserCanRead(
-      List<String> sourcePaths, String cloudEncapsulationId, AuthenticatedUserRequest user) {
-    // This check is not needed for Azure source because we use signed URLS that by default check
-    // permissions but this is needed if ingesting from a GCS hosted file
+      List<String> sourcePaths,
+      String cloudEncapsulationId,
+      AuthenticatedUserRequest user,
+      Dataset dataset) {
+    // This check is not needed for Azure source files because we use signed URLS that by default
+    // check those permissions.  But this is needed if ingesting from GCS-hosted files.
     List<String> gsPaths = sourcePaths.stream().filter(GcsUriUtils::isGsUri).toList();
 
     // Extract the project ids from the userProject query parameter.  There can be 0 or 1 values
@@ -290,7 +293,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
     }
 
     gcsPdao.validateUserCanRead(
-        gsPaths, cloudEncapsulationIds.stream().findFirst().orElse(null), user, false);
+        gsPaths, cloudEncapsulationIds.stream().findFirst().orElse(null), user, dataset);
   }
 
   public void writeBlobLines(String signedPath, List<String> lines) {

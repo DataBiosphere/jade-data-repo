@@ -7,6 +7,7 @@ import static bio.terra.service.filedata.google.gcs.GcsConstants.USER_PROJECT_QU
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.AclUtils;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.FutureUtils;
 import bio.terra.common.UriUtils;
 import bio.terra.common.exception.PdaoException;
@@ -293,33 +294,15 @@ public class GcsPdao implements CloudFileReader {
   }
 
   /**
-   * Given a list a source paths, validate that the specified user has a pat service account with
-   * read permissions
+   * Given a list of source paths, validate that the specified user has a pet service account with
+   * read permissions. This method is a no-op if the destination dataset does not necessitate access
+   * validation.
    *
    * @param sourcePaths A list of gs:// formatted paths
    * @param cloudEncapsulationId The dataset project to bill to if any of the source buckets are
    *     configured to use requester pays
    * @param user An authenticated user
-   * @throws BlobAccessNotAuthorizedException if the user does not have an authorized pet
-   * @throws IllegalArgumentException if the source path is not a valid blob url
-   */
-  public void validateUserCanRead(
-      List<String> sourcePaths, String cloudEncapsulationId, AuthenticatedUserRequest user) {
-    validateUserCanRead(sourcePaths, cloudEncapsulationId, user, true);
-  }
-
-  /**
-   * Given a list a source paths, validate that the specified user has a pat service account with
-   * read permissions
-   *
-   * @param sourcePaths A list of gs:// formatted paths
-   * @param cloudEncapsulationId The dataset project to bill to if any of the source buckets are
-   *     configured to use requester pays
-   * @param user An authenticated user
-   * @param addPSAToDatasetProject if true, grant permissions on the dataset's project to the user's
-   *     pet service account so that it can be used to ingest data. Note: this should only be true
-   *     when ingesting into a GCP backed dataset. In the case of Azure backed datasets, there is no
-   *     such bucket and the ingest mechanism does not require it
+   * @param dataset destination dataset for this ingestion
    * @throws BlobAccessNotAuthorizedException if the user does not have an authorized pet
    * @throws IllegalArgumentException if the source path is not a valid blob url
    */
@@ -327,10 +310,17 @@ public class GcsPdao implements CloudFileReader {
       List<String> sourcePaths,
       String cloudEncapsulationId,
       AuthenticatedUserRequest user,
-      boolean addPSAToDatasetProject) {
+      Dataset dataset) {
     // If the connected profile is used, skip this check since we don't specify users when mocking
     // requests
     if (List.of(environment.getActiveProfiles()).contains("connectedtest")) {
+      return;
+    }
+    // If a dataset has a dedicated GCP SA, it is unique to that dataset. Ingests will correctly
+    // fail if the account lacks needed permission on the GCS files to ingest.
+    // Otherwise, we must ensure that a user does not ingest files inaccessible to them, but
+    // accessible to the general TDR SA.
+    if (dataset.hasDedicatedGcpServiceAccount()) {
       return;
     }
     // Obtain a token for the user's pet service account that can verify that it is allowed to read
@@ -348,8 +338,12 @@ public class GcsPdao implements CloudFileReader {
                 String oauthToken = iamClient.getPetToken(user, GCS_VERIFICATION_SCOPES);
                 Tokeninfo tokeninfo =
                     GoogleOauthUtils.getOauth2TokenInfo(oauthToken).set(TOKEN_FIELD, oauthToken);
-                // Only needed when ingesting into a GCP-backed dataset
-                if (addPSAToDatasetProject) {
+                // Ingests to GCP-backed datasets require that the user's pet service account be
+                // granted permissions on the dataset's project so that it can be used to ingest
+                // data.
+                // Azure-backed datasets have no such bucket and their ingest mechanism does not
+                // require it.
+                if (CloudPlatformWrapper.of(dataset.getCloudPlatform()).isGcp()) {
                   addPetServiceAccountToDatasetProject(cloudEncapsulationId, tokeninfo.getEmail());
                 }
                 return tokeninfo;
@@ -396,14 +390,12 @@ public class GcsPdao implements CloudFileReader {
       } catch (StorageException e) {
         // This is a potential failure mode for permissions checking: not being able to make the
         // permissions check call at all
-        if (e.getCode() == HttpStatus.SC_FORBIDDEN) {
-          permissions = List.of();
-        } else {
+        if (e.getCode() != HttpStatus.SC_FORBIDDEN) {
           throw e;
         }
       }
 
-      if (permissions == null || !permissions.equals(List.of(true))) {
+      if (!permissions.equals(List.of(true))) {
         String proxyGroup;
         try {
           proxyGroup = iamClient.getProxyGroup(user);
@@ -414,8 +406,11 @@ public class GcsPdao implements CloudFileReader {
         }
         throw new BlobAccessNotAuthorizedException(
             String.format(
-                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to the TDR service account or your dataset's ingest service account and your Terra proxy user group (%s)",
-                bucket, user.getEmail(), proxyGroup));
+                "Accessing bucket %s is not authorized for user %s. Please be sure to grant \"Storage Object Viewer\" permissions to your dataset's ingest service account (%s) and your Terra proxy user group (%s)",
+                bucket,
+                user.getEmail(),
+                dataset.getProjectResource().getServiceAccount(),
+                proxyGroup));
       }
     }
   }

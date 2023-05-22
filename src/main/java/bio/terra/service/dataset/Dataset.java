@@ -298,6 +298,15 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return this;
   }
 
+  /**
+   * @return whether this dataset has a dedicated GCP service account
+   */
+  public boolean hasDedicatedGcpServiceAccount() {
+    return Optional.ofNullable(projectResource)
+        .map(GoogleProjectResource::hasDedicatedServiceAccount)
+        .orElse(false);
+  }
+
   @Override
   public FireStoreProject firestoreConnection() {
     return FireStoreProject.get(getProjectResource().getGoogleProjectId());

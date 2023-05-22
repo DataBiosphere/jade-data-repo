@@ -60,14 +60,19 @@ public class IngestBulkGcpBulkFileStep extends IngestBulkGcpStep {
                 + ingestRequest.getLoadControlFile()
                 + " could not be processed");
 
-    return IngestUtils.getStreamFromFile(
-        gcsPdao,
-        objectMapper,
-        ingestRequest.getLoadControlFile(),
-        userReq,
-        dataset.getProjectResource().getGoogleProjectId(),
-        errorCollector,
-        // Casting explicitly since it's losing the type downstream
-        new TypeReference<BulkLoadFileModel>() {});
+    var cloudEncapsulationId = dataset.getProjectResource().getGoogleProjectId();
+    try (var nodesStream =
+        IngestUtils.getStreamFromFile(
+            gcsPdao,
+            objectMapper,
+            ingestRequest.getLoadControlFile(),
+            userReq,
+            cloudEncapsulationId,
+            errorCollector,
+            // Casting explicitly since it's losing the type downstream
+            new TypeReference<BulkLoadFileModel>() {})) {
+      return IngestUtils.validateBulkFileLoadModelsFromStream(
+          nodesStream, gcsPdao, cloudEncapsulationId, userReq, errorCollector, dataset);
+    }
   }
 }

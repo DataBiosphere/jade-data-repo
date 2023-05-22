@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -319,15 +320,18 @@ public class GoogleResourceDao {
     return jdbcTemplate.query(
         sql,
         params,
-        (rs, rowNum) ->
-            new GoogleProjectResource()
-                .id(rs.getObject("id", UUID.class))
-                .profileId(rs.getObject("profile_id", UUID.class))
-                .googleProjectId(rs.getString("google_project_id"))
-                .googleProjectNumber(rs.getString("google_project_number"))
-                .serviceAccount(
-                    Optional.ofNullable(rs.getString("service_account"))
-                        .orElse(tdrServiceAccountEmail)));
+        (rs, rowNum) -> {
+          String serviceAccount = rs.getString("service_account");
+          return new GoogleProjectResource()
+              .id(rs.getObject("id", UUID.class))
+              .profileId(rs.getObject("profile_id", UUID.class))
+              .googleProjectId(rs.getString("google_project_id"))
+              .googleProjectNumber(rs.getString("google_project_number"))
+              .serviceAccount(Optional.ofNullable(serviceAccount).orElse(tdrServiceAccountEmail))
+              .dedicatedServiceAccount(
+                  StringUtils.isNotEmpty(serviceAccount)
+                      && !StringUtils.equalsIgnoreCase(serviceAccount, tdrServiceAccountEmail));
+        });
   }
 
   // -- bucket resource methods --

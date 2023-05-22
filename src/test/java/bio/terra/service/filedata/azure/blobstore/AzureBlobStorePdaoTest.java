@@ -12,7 +12,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -84,6 +83,7 @@ public class AzureBlobStorePdaoTest {
   private static final UUID PROFILE_ID = UUID.randomUUID();
   private static final UUID RESOURCE_ID = UUID.randomUUID();
   private static final UUID TENANT_ID = UUID.randomUUID();
+  private static final UUID DATASET_ID = UUID.randomUUID();
   private static final String STORAGE_ACCOUNT_NAME = "sa";
   private static final BillingProfileModel BILLING_PROFILE =
       new BillingProfileModel().id(PROFILE_ID).tenantId(TENANT_ID);
@@ -94,6 +94,7 @@ public class AzureBlobStorePdaoTest {
           .name(STORAGE_ACCOUNT_NAME)
           .dataContainer("d")
           .metadataContainer("md");
+
   private static final String SOURCE_CONTAINER_NAME = "srcdata";
   private static final String SOURCE_FILE_NAME = "src.txt";
   private static final String SOURCE_BLOB_NAME = SOURCE_CONTAINER_NAME + "/" + SOURCE_FILE_NAME;
@@ -125,6 +126,7 @@ public class AzureBlobStorePdaoTest {
   private NamedParameterJdbcTemplate synapseJdbcTemplate;
 
   private FileLoadModel fileLoadModel;
+  private Dataset dataset;
 
   @Before
   public void setUp() {
@@ -137,6 +139,7 @@ public class AzureBlobStorePdaoTest {
             .targetPath(TARGET_PATH)
             .loadTag(LOAD_TAG)
             .mimeType(MIME_TYPE);
+    dataset = new Dataset().id(DATASET_ID);
     when(profileDao.getBillingProfileById(PROFILE_ID)).thenReturn(BILLING_PROFILE);
     when(resourceConfiguration.getAppToken(TENANT_ID)).thenReturn(targetCredential);
     when(resourceConfiguration.getMaxRetries()).thenReturn(3);
@@ -163,7 +166,7 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
-            new Dataset().id(UUID.randomUUID()).predictableFileIds(false),
+            dataset.predictableFileIds(false),
             BILLING_PROFILE,
             fileLoadModel,
             fileId.toString(),
@@ -184,7 +187,7 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
-            new Dataset().id(UUID.randomUUID()).predictableFileIds(false),
+            dataset.predictableFileIds(false),
             BILLING_PROFILE,
             fileLoadModel,
             fileId.toString(),
@@ -203,7 +206,7 @@ public class AzureBlobStorePdaoTest {
 
     FSFileInfo fsFileInfo =
         dao.copyFile(
-            new Dataset().id(UUID.randomUUID()).predictableFileIds(false),
+            dataset.predictableFileIds(false),
             BILLING_PROFILE,
             fileLoadModel,
             fileId.toString(),
@@ -223,7 +226,7 @@ public class AzureBlobStorePdaoTest {
     FSFileInfo expectedFileInfo = mockFileCopy(fileId);
     FSFileInfo fsFileInfo =
         dao.copyFile(
-            new Dataset().id(UUID.randomUUID()).predictableFileIds(false),
+            dataset.predictableFileIds(false),
             BILLING_PROFILE,
             fileLoadModel,
             fileId.toString(),
@@ -340,8 +343,8 @@ public class AzureBlobStorePdaoTest {
   @Test
   public void testValidateUserCanReadSimple() {
     List<String> sourcePaths = List.of("gs://mybucket/myfile.txt");
-    dao.validateUserCanRead(sourcePaths, null, TEST_USER);
-    verify(gcsPdao, times(1)).validateUserCanRead(sourcePaths, null, TEST_USER, false);
+    dao.validateUserCanRead(sourcePaths, null, TEST_USER, dataset);
+    verify(gcsPdao).validateUserCanRead(sourcePaths, null, TEST_USER, dataset);
   }
 
   @Test
@@ -350,8 +353,8 @@ public class AzureBlobStorePdaoTest {
         List.of(
             "gs://mybucket/myfile1.txt?userProject=foo",
             "gs://mybucket/myfile2.txt?userProject=foo");
-    dao.validateUserCanRead(sourcePaths, null, TEST_USER);
-    verify(gcsPdao, times(1)).validateUserCanRead(sourcePaths, "foo", TEST_USER, false);
+    dao.validateUserCanRead(sourcePaths, null, TEST_USER, dataset);
+    verify(gcsPdao).validateUserCanRead(sourcePaths, "foo", TEST_USER, dataset);
   }
 
   @Test
@@ -363,7 +366,7 @@ public class AzureBlobStorePdaoTest {
     TestUtils.assertError(
         IllegalArgumentException.class,
         "Only a single billing project per ingest may be used",
-        () -> dao.validateUserCanRead(sourcePaths, null, TEST_USER));
+        () -> dao.validateUserCanRead(sourcePaths, null, TEST_USER, dataset));
   }
 
   private FSFileInfo mockFileCopy(UUID fileId) {

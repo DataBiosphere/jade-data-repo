@@ -32,13 +32,14 @@ public class IngestJsonFileSetupGcpStep extends IngestJsonFileSetupStep {
       IngestRequestModel ingestRequest,
       List<Column> fileRefColumns,
       ErrorCollector errorCollector) {
-    return IngestUtils.countAndValidateBulkFileLoadModelsFromPath(
+    return IngestUtils.validateAndCountBulkFileLoadModelsFromPath(
         gcsPdao,
         objectMapper,
         ingestRequest,
         userRequest,
         dataset.getProjectResource().getGoogleProjectId(),
         fileRefColumns,
-        errorCollector);
+        errorCollector,
+        dataset);
   }
 }

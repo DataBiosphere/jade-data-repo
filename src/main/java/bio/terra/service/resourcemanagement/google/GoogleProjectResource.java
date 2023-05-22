@@ -8,6 +8,7 @@ public class GoogleProjectResource {
   private String googleProjectId; // google's user specified, globally unique id of the project
   private String googleProjectNumber; // google's auto generated numeric id of the project
   private String serviceAccount; // service account associated with this project
+  private boolean dedicatedServiceAccount; // whether this project has a dedicated service account
 
   // Default constructor for JSON serdes
   public GoogleProjectResource() {}
@@ -54,6 +55,15 @@ public class GoogleProjectResource {
 
   public GoogleProjectResource serviceAccount(String serviceAccount) {
     this.serviceAccount = serviceAccount;
+    return this;
+  }
+
+  public boolean hasDedicatedServiceAccount() {
+    return dedicatedServiceAccount;
+  }
+
+  public GoogleProjectResource dedicatedServiceAccount(boolean dedicatedServiceAccount) {
+    this.dedicatedServiceAccount = dedicatedServiceAccount;
     return this;
   }
 }

@@ -70,8 +70,10 @@ import bio.terra.service.filedata.DrsService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.Role;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.cloud.storage.StorageRoles;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -91,6 +93,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
@@ -109,11 +112,21 @@ public class DataRepoFixtures {
           + "labels.k8s-pod/component=\"integration-<intNumber>-jade-datarepo-api\"\n"
           + "<if(hasFlightId)>jsonPayload.flightId=\"<flightId>\"<endif>";
 
+  /** Roles which must be held by a dataset's SA to facilitate an ingestion * */
+  private static final List<Role> INGEST_ROLES =
+      List.of(StorageRoles.objectViewer(), StorageRoles.legacyBucketReader());
+
   @Autowired private JsonLoader jsonLoader;
 
   @Autowired private DataRepoClient dataRepoClient;
 
   @Autowired private TestConfiguration testConfig;
+
+  @Autowired private SamFixtures samFixtures;
+
+  @Autowired
+  @Qualifier("tdrServiceAccountEmail")
+  private String tdrServiceAccountEmail;
 
   // Create a Billing Profile model: expect successful creation
   public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
@@ -324,6 +337,25 @@ public class DataRepoFixtures {
     assertTrue("dataset create error response is present", response.getErrorObject().isPresent());
   }
 
+  private boolean isDedicatedServiceAccount(String serviceAccount) {
+    return StringUtils.isNotEmpty(serviceAccount)
+        && !StringUtils.equalsIgnoreCase(serviceAccount, tdrServiceAccountEmail);
+  }
+
+  /**
+   * If the dataset has its own service account, grant it the roles it needs to ingest data from the
+   * specified ingest bucket.
+   */
+  public void grantIngestBucketPermissionsToDedicatedSa(DatasetModel dataset, String ingestBucket) {
+    String serviceAccount = dataset.getIngestServiceAccount();
+    if (ingestBucket != null && isDedicatedServiceAccount(serviceAccount)) {
+      for (var role : INGEST_ROLES) {
+        GcsFixtures.addServiceAccountRoleToBucket(
+            ingestBucket, serviceAccount, role, dataset.getDataProject());
+      }
+    }
+  }
+
   public DataRepoResponse<JobModel> deleteDataRaw(
       TestConfiguration.User user, UUID datasetId, DataDeletionRequest request) throws Exception {
     String url = String.format("/api/repository/v1/datasets/%s/deletes", datasetId);
@@ -348,6 +380,25 @@ public class DataRepoFixtures {
   public void deleteDataset(TestConfiguration.User user, UUID datasetId) throws Exception {
     DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetLog(user, datasetId);
     assertGoodDeleteResponse(deleteResponse);
+  }
+
+  /**
+   * Delete the dataset, first performing any resource clean-up necessary if the dataset has its own
+   * dedicated ingest service account (revoking ingest bucket permissions and deleting the SA from
+   * Terra).
+   */
+  public void deleteDataset(TestConfiguration.User user, UUID datasetId, String ingestBucket)
+      throws Exception {
+    DatasetModel dataset = getDataset(user, datasetId);
+    String serviceAccount = dataset.getIngestServiceAccount();
+    if (ingestBucket != null && isDedicatedServiceAccount(serviceAccount)) {
+      for (var role : INGEST_ROLES) {
+        GcsFixtures.removeServiceAccountRoleFromBucket(
+            ingestBucket, serviceAccount, role, dataset.getDataProject());
+      }
+      samFixtures.deleteServiceAccountFromTerra(user, serviceAccount);
+    }
+    deleteDataset(user, datasetId);
   }
 
   public void deleteDatasetShouldFail(TestConfiguration.User user, UUID datasetId)

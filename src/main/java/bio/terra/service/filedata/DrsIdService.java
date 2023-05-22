@@ -79,6 +79,15 @@ public class DrsIdService {
     return parseObjectId(drsObjectId).build();
   }
 
+  public boolean isValidObjectId(String drsObjectId) {
+    try {
+      parseObjectId(drsObjectId);
+      return true;
+    } catch (InvalidDrsIdException e) {
+      return false;
+    }
+  }
+
   private DrsId.Builder parseObjectId(String objectId) {
     return parseObjectId(datarepoDnsName, objectId);
   }

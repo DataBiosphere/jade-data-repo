@@ -46,9 +46,11 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
+import bio.terra.service.filedata.DrsDao.DrsAlias;
 import bio.terra.service.filedata.DrsService.SnapshotCacheResult;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
+import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.filedata.exception.InvalidDrsObjectException;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.job.JobService;
@@ -87,6 +89,15 @@ import org.springframework.test.context.ActiveProfiles;
         "This fails with not allowing absolute paths but they're not file paths in our case")
 public class DrsServiceTest {
 
+  private static final AuthenticatedUserRequest TEST_USER =
+      AuthenticatedUserRequest.builder()
+          .setSubjectId("DatasetUnit")
+          .setEmail("dataset@unit.com")
+          .setToken("token")
+          .build();
+
+  private static final String RAS_ISSUER = "https://stsstg.nih.gov";
+
   @Mock private SnapshotService snapshotService;
   @Mock private FileService fileService;
   @Mock private IamService samService;
@@ -97,9 +108,10 @@ public class DrsServiceTest {
   @Mock private AzureBlobStorePdao azureBlobStorePdao;
   @Mock private GcsProjectFactory gcsProjectFactory;
   @Mock private EcmConfiguration ecmConfiguration;
-  @Mock private DrsIdDao drsIdDao;
+  @Mock private DrsDao drsDao;
+  @Mock private ApplicationConfiguration appConfig;
 
-  private final DrsIdService drsIdService = new DrsIdService(new ApplicationConfiguration());
+  private DrsIdService drsIdService;
 
   private DrsService drsService;
 
@@ -117,17 +129,9 @@ public class DrsServiceTest {
 
   private DRSPassportRequestModel drsPassportRequestModel;
 
-  private final AuthenticatedUserRequest authUser =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
-
-  private String rasIssuer = "https://stsstg.nih.gov";
-
   @Before
   public void before() throws Exception {
+    drsIdService = new DrsIdService(appConfig);
     drsService =
         new DrsService(
             snapshotService,
@@ -141,7 +145,8 @@ public class DrsServiceTest {
             azureBlobStorePdao,
             gcsProjectFactory,
             ecmConfiguration,
-            drsIdDao);
+            drsDao,
+            appConfig);
     when(jobService.getActivePodCount()).thenReturn(1);
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
 
@@ -198,17 +203,17 @@ public class DrsServiceTest {
     drsPassportRequestModel =
         new DRSPassportRequestModel().addPassportsItem("longPassportToken").expand(false);
 
-    when(ecmConfiguration.getRasIssuer()).thenReturn(rasIssuer);
+    when(ecmConfiguration.getRasIssuer()).thenReturn(RAS_ISSUER);
   }
 
   @Test
   public void testLookupPositive() {
-    DRSObject googleDrsObject = drsService.lookupObjectByDrsId(authUser, googleDrsObjectId, false);
+    DRSObject googleDrsObject = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
     assertThat(googleDrsObject.getId(), is(googleDrsObjectId));
     assertThat(googleDrsObject.getSize(), is(googleFsFile.getSize()));
     assertThat(googleDrsObject.getName(), is(googleFsFile.getPath()));
 
-    DRSObject azureDrsObject = drsService.lookupObjectByDrsId(authUser, azureDrsObjectId, false);
+    DRSObject azureDrsObject = drsService.lookupObjectByDrsId(TEST_USER, azureDrsObjectId, false);
     assertThat(azureDrsObject.getId(), is(azureDrsObjectId));
     assertThat(azureDrsObject.getSize(), is(azureFsFile.getSize()));
     assertThat(azureDrsObject.getName(), is(azureFsFile.getPath()));
@@ -219,14 +224,14 @@ public class DrsServiceTest {
     doThrow(IamForbiddenException.class)
         .when(samService)
         .verifyAuthorization(
-            authUser, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
+            TEST_USER, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
     assertThrows(
         IamForbiddenException.class,
-        () -> drsService.lookupObjectByDrsId(authUser, googleDrsObjectId, false));
+        () -> drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false));
 
     assertThrows(
         IamForbiddenException.class,
-        () -> drsService.lookupObjectByDrsId(authUser, azureDrsObjectId, false));
+        () -> drsService.lookupObjectByDrsId(TEST_USER, azureDrsObjectId, false));
   }
 
   @Test
@@ -279,7 +284,7 @@ public class DrsServiceTest {
     when(resourceService.lookupBucketMetadata(bucketB.getResourceId().toString()))
         .thenReturn(bucketB);
     DrsId drsId = new DrsId("", "v2", null, googleFileId.toString(), false);
-    when(drsIdDao.retrieveReferencedSnapshotIds(any()))
+    when(drsDao.retrieveReferencedSnapshotIds(any()))
         .thenReturn(List.of(snpId1, snpId2, snpId3, snpId4));
 
     // Mock the files returned from the various snapshots
@@ -304,7 +309,7 @@ public class DrsServiceTest {
                   .bucketResourceId(bucketId);
             });
 
-    DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, drsId.toDrsObjectId(), false);
+    DRSObject drsObject = drsService.lookupObjectByDrsId(TEST_USER, drsId.toDrsObjectId(), false);
     assertThat(drsObject.getId(), is(drsId.toDrsObjectId()));
     assertThat(drsObject.getSize(), is(googleFsFile.getSize()));
     assertThat(drsObject.getName(), is(googleFsFile.getPath()));
@@ -372,7 +377,7 @@ public class DrsServiceTest {
     when(resourceService.lookupStorageAccountMetadata(bucketB.getResourceId().toString()))
         .thenReturn(bucketB);
     DrsId drsId = new DrsId("", "v2", null, googleFileId.toString(), false);
-    when(drsIdDao.retrieveReferencedSnapshotIds(any())).thenReturn(List.of(snpId1, snpId2));
+    when(drsDao.retrieveReferencedSnapshotIds(any())).thenReturn(List.of(snpId1, snpId2));
 
     // Mock the files returned from the various snapshots
     when(fileService.lookupSnapshotFSItem(any(), any(), anyInt()))
@@ -399,7 +404,7 @@ public class DrsServiceTest {
                   .bucketResourceId(bucketId);
             });
 
-    DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, drsId.toDrsObjectId(), false);
+    DRSObject drsObject = drsService.lookupObjectByDrsId(TEST_USER, drsId.toDrsObjectId(), false);
     assertThat(drsObject.getId(), is(drsId.toDrsObjectId()));
     assertThat(drsObject.getSize(), is(googleFsFile.getSize()));
     assertThat(drsObject.getName(), is(googleFsFile.getPath()));
@@ -452,7 +457,7 @@ public class DrsServiceTest {
   @Test
   public void testLookupSnapshot() {
     List<SnapshotCacheResult> cacheResults =
-        drsService.lookupSnapshotsForDRSObject(googleDrsObjectId);
+        drsService.lookupSnapshotsForDRSObject(drsIdService.fromObjectId(googleDrsObjectId));
     assertThat("retrieves correct number of snapshots", cacheResults, hasSize(1));
     assertThat("retrieves correct snapshot", cacheResults.get(0).getId(), equalTo(snapshotId));
   }
@@ -466,7 +471,9 @@ public class DrsServiceTest {
     String drsObjectIdWithInvalidSnapshotId = drsIdWithInvalidSnapshotId.toDrsObjectId();
     assertThrows(
         DrsObjectNotFoundException.class,
-        () -> drsService.lookupSnapshotsForDRSObject(drsObjectIdWithInvalidSnapshotId));
+        () ->
+            drsService.lookupSnapshotsForDRSObject(
+                drsIdService.fromObjectId(drsObjectIdWithInvalidSnapshotId)));
   }
 
   @Test
@@ -563,14 +570,14 @@ public class DrsServiceTest {
     assertThat(
         "Passport issuer supplied when authorized for passport",
         auths.getPassportAuthIssuers(),
-        contains(rasIssuer));
+        contains(RAS_ISSUER));
   }
 
   @Test
   public void lookupObjectByDrsId() {
     when(snapshotService.retrieveSnapshotSummary(snapshotId))
         .thenReturn(new SnapshotSummaryModel().id(snapshotId));
-    DRSObject object = drsService.lookupObjectByDrsId(authUser, googleDrsObjectId, false);
+    DRSObject object = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
     DRSAccessMethod accessMethod = object.getAccessMethods().get(0);
     assertThat(
         "Only BEARER authorization is included",
@@ -665,7 +672,7 @@ public class DrsServiceTest {
 
     DRSAccessURL result =
         drsService.getAccessUrlForObjectId(
-            authUser, azureDrsObjectId, "az-centralus*" + snapshotId);
+            TEST_USER, azureDrsObjectId, "az-centralus*" + snapshotId);
     assertEquals(urlString, result.getUrl());
   }
 
@@ -684,7 +691,7 @@ public class DrsServiceTest {
 
     when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(googleFsFile);
     for (var drsId : googleDrsObjectIds) {
-      drsService.lookupObjectByDrsId(authUser, drsId, false);
+      drsService.lookupObjectByDrsId(TEST_USER, drsId, false);
     }
     verify(snapshotService, times(1)).retrieve(any());
     verify(snapshotService, times(1)).retrieveAvailableSnapshotProject(any());
@@ -702,7 +709,7 @@ public class DrsServiceTest {
 
     when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(azureFsFile);
     for (var drsId : azureDrsObjectIds) {
-      drsService.lookupObjectByDrsId(authUser, drsId, false);
+      drsService.lookupObjectByDrsId(TEST_USER, drsId, false);
     }
     verify(snapshotService, times(1)).retrieve(any());
     verify(snapshotService, times(1)).retrieveAvailableSnapshotProject(any());
@@ -947,6 +954,30 @@ public class DrsServiceTest {
                     .region(GoogleRegion.ASIA_SOUTH1.getValue())
                     .accessId("gcp-" + GoogleRegion.ASIA_SOUTH1.getValue())
                     .type(TypeEnum.HTTPS))));
+  }
+
+  @Test
+  public void testLookupDrsObjectByAlias() {
+    String alias = "foo";
+    String flightId = "myflight";
+    // Before mocking the call should fail
+    assertThrows(
+        InvalidDrsIdException.class, () -> drsService.lookupObjectByDrsId(TEST_USER, alias, false));
+
+    when(drsDao.retrieveDrsAliasByAlias(alias))
+        .thenReturn(
+            new DrsAlias(
+                UUID.randomUUID(),
+                alias,
+                drsIdService.fromObjectId(googleDrsObjectId),
+                Instant.now(),
+                TEST_USER.getEmail(),
+                flightId));
+
+    DRSObject googleDrsObject = drsService.lookupObjectByDrsId(TEST_USER, alias, false);
+    assertThat(googleDrsObject.getId(), is(googleDrsObjectId));
+    assertThat(googleDrsObject.getSize(), is(googleFsFile.getSize()));
+    assertThat(googleDrsObject.getName(), is(googleFsFile.getPath()));
   }
 
   @SuppressFBWarnings(

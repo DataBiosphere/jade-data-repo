@@ -3180,6 +3180,35 @@ paths:
             application/json:
               schema:
                 type: object
+  /api/repository/v1/admin/register-drs-aliases:
+    post:
+      tags:
+        - admin
+        - repository
+      description: >
+        Load Drs Aliases into TDR.  It is possible to have an alias to a DRS ID that does not exist 
+        in TDR.
+      operationId: registerDrsAliases
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/DrsAliasModel'
+      responses:
+        200:
+          description: Drs alias registration job submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        500:
+          description: An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/configs/{name}:
     get:
       tags:
@@ -5935,6 +5964,16 @@ components:
           type: string
           format: uri
           description: the URI of oauth authority for the UI to use (e.g. .well-known/openid-configuration gets appended to it)
+    DrsAliasModel:
+      type: object
+      properties:
+        aliasDrsObjectId:
+          type: string
+          description: the alias to a TDR DRS object ID
+        tdrDrsObjectId:
+          type: string
+          description: the TDR DRS object ID the alias references
+      description: A mapping from a user provider DRS alias to a TDR DRS object ID
     ConfigModel:
       type: object
       properties:

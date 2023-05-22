@@ -50,7 +50,11 @@ public class CreateSnapshotPolicyStep implements Step {
     if (enableSecureMonitoring) {
       FlightMap flightMap = flightContext.getWorkingMap();
       UUID snapshotId = flightMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-      policyService.deletePao(snapshotId);
+      try {
+        policyService.deletePao(snapshotId);
+      } catch (FeatureNotImplementedException ex) {
+        logger.info("Terra Policy Service is not enabled");
+      }
     }
     return StepResult.getStepResultSuccess();
   }

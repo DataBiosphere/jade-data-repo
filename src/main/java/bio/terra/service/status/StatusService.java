@@ -2,8 +2,6 @@ package bio.terra.service.status;
 
 import bio.terra.model.RepositoryStatusModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.duos.DuosService;
 import bio.terra.service.policy.PolicyService;
@@ -17,7 +15,6 @@ import org.springframework.stereotype.Service;
 public class StatusService {
 
   private static final Logger logger = LoggerFactory.getLogger(StatusService.class);
-  private final ConfigurationService configurationService;
   private final DatasetDao datasetDao;
   private final IamProviderInterface iamProviderInterface;
   private final BufferService bufferService;
@@ -33,13 +30,11 @@ public class StatusService {
 
   @Autowired
   public StatusService(
-      ConfigurationService configurationService,
       DatasetDao datasetDao,
       IamProviderInterface iamProviderInterface,
       BufferService bufferService,
       DuosService duosService,
       PolicyService policyService) {
-    this.configurationService = configurationService;
     this.datasetDao = datasetDao;
     this.iamProviderInterface = iamProviderInterface;
     this.bufferService = bufferService;
@@ -49,13 +44,6 @@ public class StatusService {
 
   public RepositoryStatusModel getStatus() {
     RepositoryStatusModel statusModel = new RepositoryStatusModel();
-
-    // Used by Unit test: StatusTest
-    if (configurationService.testInsertFault(ConfigEnum.LIVENESS_FAULT)) {
-      logger.info("LIVENESS_FAULT insertion - failing status response");
-      statusModel.setOk(false);
-      return statusModel;
-    }
 
     statusModel.putSystemsItem(POSTGRES, datasetDao.statusCheck().critical(true));
     statusModel.putSystemsItem(SAM, iamProviderInterface.samStatus().critical(true));

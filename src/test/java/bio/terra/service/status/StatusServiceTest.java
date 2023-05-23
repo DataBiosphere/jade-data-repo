@@ -22,8 +22,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
 
-@ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"google", "unittest"})
+@ExtendWith(MockitoExtension.class)
 @Tag("bio.terra.common.category.Unit")
 public class StatusServiceTest {
 

@@ -11,6 +11,7 @@ import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoCreateRequest;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
+import bio.terra.service.duos.exception.DuosDatasetNotFoundException;
 import bio.terra.service.policy.exception.PolicyConflictException;
 import bio.terra.service.policy.exception.PolicyServiceApiException;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
@@ -66,13 +67,16 @@ public class PolicyService {
     }
   }
 
-  public void deletePao(UUID resourceId) {
+  /**
+   * Delete the policy access object by its id. If it does not exist in the policy service,
+   * ignore the PolicyServiceNotFoundException exception.
+   */
+  public void deletePaoIfExists(UUID resourceId) {
     policyServiceConfiguration.tpsEnabledCheck();
     TpsApi tpsApi = policyApiService.getPolicyApi();
     try {
       tpsApi.deletePao(resourceId);
     } catch (ApiException e) {
-      // Ignore the exception if the policy object being deleted does not exist
       RuntimeException exception = convertApiException(e);
       if (!(exception instanceof PolicyServiceNotFoundException)) {
         throw exception;

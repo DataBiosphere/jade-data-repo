@@ -51,7 +51,7 @@ public class CreateSnapshotPolicyStep implements Step {
       FlightMap flightMap = flightContext.getWorkingMap();
       UUID snapshotId = flightMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
       try {
-        policyService.deletePao(snapshotId);
+        policyService.deletePaoIfExists(snapshotId);
       } catch (FeatureNotImplementedException ex) {
         logger.info("Terra Policy Service is not enabled");
       }

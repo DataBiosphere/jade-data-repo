@@ -38,7 +38,7 @@ public class DeleteSnapshotPolicyStep implements Step {
     Dataset dataset = datasetService.retrieve(datasetId);
     if (dataset.isSecureMonitoringEnabled()) {
       try {
-        policyService.deletePao(snapshotId);
+        policyService.deletePaoIfExists(snapshotId);
       } catch (FeatureNotImplementedException ex) {
         logger.info("Terra Policy Service is not enabled");
       }

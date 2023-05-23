@@ -94,7 +94,7 @@ public class PolicyServiceTest {
   void testDeleteSnapshotDao() throws Exception {
     mockPolicyApi();
     UUID snapshotId = UUID.randomUUID();
-    policyService.deletePao(snapshotId);
+    policyService.deletePaoIfExists(snapshotId);
     verify(tpsApi).deletePao(snapshotId);
   }
 
@@ -104,7 +104,7 @@ public class PolicyServiceTest {
     UUID snapshotId = UUID.randomUUID();
     var exception = new ApiException(HttpStatus.NOT_FOUND.value(), "Policy object not found");
     doThrow(exception).when(tpsApi).deletePao(snapshotId);
-    policyService.deletePao(snapshotId);
+    policyService.deletePaoIfExists(snapshotId);
     verify(tpsApi).deletePao(snapshotId);
   }
 

@@ -52,7 +52,7 @@ public class CreateSnapshotPolicyStepTest {
     verify(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(policyService).deletePao(SNAPSHOT_ID);
+    verify(policyService).deletePaoIfExists(SNAPSHOT_ID);
   }
 
   @Test
@@ -74,7 +74,7 @@ public class CreateSnapshotPolicyStepTest {
     verify(policyService, never()).createSnapshotPao(SNAPSHOT_ID, policies);
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(policyService, never()).deletePao(SNAPSHOT_ID);
+    verify(policyService, never()).deletePaoIfExists(SNAPSHOT_ID);
   }
 
   @Test
@@ -83,7 +83,7 @@ public class CreateSnapshotPolicyStepTest {
     CreateSnapshotPolicyStep step = new CreateSnapshotPolicyStep(policyService, true);
     var exception = new FeatureNotImplementedException("Policy service is not enabled");
     doThrow(exception).when(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
-    doThrow(exception).when(policyService).deletePao(SNAPSHOT_ID);
+    doThrow(exception).when(policyService).deletePaoIfExists(SNAPSHOT_ID);
 
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
@@ -91,6 +91,6 @@ public class CreateSnapshotPolicyStepTest {
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(policyService).deletePao(SNAPSHOT_ID);
+    verify(policyService).deletePaoIfExists(SNAPSHOT_ID);
   }
 }

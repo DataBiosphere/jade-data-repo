@@ -58,7 +58,7 @@ public class DeleteSnapshotPolicyStepTest {
     mockSecureMonitoringEnabledDataset();
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(policyService).deletePao(SNAPSHOT_ID);
+    verify(policyService).deletePaoIfExists(SNAPSHOT_ID);
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
@@ -69,12 +69,12 @@ public class DeleteSnapshotPolicyStepTest {
   void testDeletePolicyServiceNotEnabled() throws Exception {
     mockSecureMonitoringEnabledDataset();
     var exception = new FeatureNotImplementedException("Policy service is not enabled");
-    doThrow(exception).when(policyService).deletePao(SNAPSHOT_ID);
+    doThrow(exception).when(policyService).deletePaoIfExists(SNAPSHOT_ID);
     doThrow(exception).when(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
 
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(policyService).deletePao(SNAPSHOT_ID);
+    verify(policyService).deletePaoIfExists(SNAPSHOT_ID);
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));

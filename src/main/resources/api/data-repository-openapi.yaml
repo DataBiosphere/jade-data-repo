@@ -4211,7 +4211,7 @@ components:
           description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
         dedicatedIngestServiceAccount:
           type: boolean
-          default: false
+          default: true
           description: >
             This field is only relevant for GCP-backed datasets. If true, a unique service account
             will be created in the dataset's primary GCP project, registered in Terra, and used to
@@ -4225,7 +4225,7 @@ components:
             Legacy Object Reader", or "Storage Legacy Object Owner" role on the source buckets.
 
 
-            TDR recommends that this be set to true:
+            TDR sets this to true by default for the following reasons:
 
 
             - A dedicated account that explicitly does not have access to other buckets is more

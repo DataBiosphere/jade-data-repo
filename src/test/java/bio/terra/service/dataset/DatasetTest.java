@@ -14,17 +14,20 @@ public class DatasetTest {
   @Test
   void testHasDedicatedGcpServiceAccount() {
     var datasetSummary = new DatasetSummary();
-    var projectResource = new GoogleProjectResource();
+    var projectResource =
+        new GoogleProjectResource()
+            .serviceAccount("testserviceaccount@gmail.com")
+            .dedicatedServiceAccount(true);
     var dataset = new Dataset(datasetSummary).projectResource(projectResource);
 
     datasetSummary.cloudPlatform(CloudPlatform.AZURE);
-    assertFalse(
-        "Azure datasets do not have a dedicated GCP service account",
+    assertTrue(
+        "Azure datasets have a dedicated GCP service account",
         dataset.hasDedicatedGcpServiceAccount());
 
     datasetSummary.cloudPlatform(CloudPlatform.GCP);
-    assertFalse(
-        "GCP datasets by default use the general TDR service account",
+    assertTrue(
+        "GCP datasets by default use a dedicated GCP service account",
         dataset.hasDedicatedGcpServiceAccount());
 
     projectResource.dedicatedServiceAccount(false);

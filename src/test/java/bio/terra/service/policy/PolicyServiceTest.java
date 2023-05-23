@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,7 +46,11 @@ public class PolicyServiceTest {
   @Mock private PolicyApiService policyApiService;
   @Mock private TpsApi tpsApi;
   @Mock private PublicApi tpsUnauthApi;
+  private final UUID snapshotId = UUID.randomUUID();
   private PolicyService policyService;
+  private final TpsPolicyInput policy =
+      new TpsPolicyInput().namespace("terra").name("protected-data");
+  private final TpsPolicyInputs policies = new TpsPolicyInputs().addInputsItem(policy);
 
   @BeforeEach
   public void setup() throws Exception {
@@ -76,10 +81,8 @@ public class PolicyServiceTest {
 
   @Test
   void testCreateSnapshotDao() throws Exception {
+    mockPolicyServiceConfiguration();
     mockPolicyApi();
-    UUID snapshotId = UUID.randomUUID();
-    TpsPolicyInput policy = new TpsPolicyInput().namespace("terra").name("protected-data");
-    TpsPolicyInputs policies = new TpsPolicyInputs().addInputsItem(policy);
     policyService.createSnapshotPao(snapshotId, policies);
     verify(tpsApi)
         .createPao(
@@ -91,17 +94,35 @@ public class PolicyServiceTest {
   }
 
   @Test
+  void testCreatePaoPolicyServiceNotEnabled() throws Exception {
+    policyService.createSnapshotPao(snapshotId, policies);
+    verify(tpsApi, never())
+        .createPao(
+            new TpsPaoCreateRequest()
+                .objectId(snapshotId)
+                .component(TpsComponent.TDR)
+                .objectType(TpsObjectType.SNAPSHOT)
+                .attributes(policies));
+  }
+
+  @Test
   void testDeleteSnapshotDao() throws Exception {
+    mockPolicyServiceConfiguration();
     mockPolicyApi();
-    UUID snapshotId = UUID.randomUUID();
     policyService.deletePaoIfExists(snapshotId);
     verify(tpsApi).deletePao(snapshotId);
   }
 
   @Test
+  void testDeletePaoPolicyServiceNotEnabled() throws Exception {
+    policyService.deletePaoIfExists(snapshotId);
+    verify(tpsApi, never()).deletePao(snapshotId);
+  }
+
+  @Test
   void testDeleteSnapshotDaoIgnoresNotFoundException() throws Exception {
+    mockPolicyServiceConfiguration();
     mockPolicyApi();
-    UUID snapshotId = UUID.randomUUID();
     var exception = new ApiException(HttpStatus.NOT_FOUND.value(), "Policy object not found");
     doThrow(exception).when(tpsApi).deletePao(snapshotId);
     policyService.deletePaoIfExists(snapshotId);

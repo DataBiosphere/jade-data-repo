@@ -11,7 +11,6 @@ import bio.terra.policy.model.TpsObjectType;
 import bio.terra.policy.model.TpsPaoCreateRequest;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
-import bio.terra.service.duos.exception.DuosDatasetNotFoundException;
 import bio.terra.service.policy.exception.PolicyConflictException;
 import bio.terra.service.policy.exception.PolicyServiceApiException;
 import bio.terra.service.policy.exception.PolicyServiceAuthorizationException;
@@ -51,7 +50,10 @@ public class PolicyService {
 
   public void createPao(
       UUID resourceId, TpsObjectType resourceType, @Nullable TpsPolicyInputs policyInputs) {
-    policyServiceConfiguration.tpsEnabledCheck();
+    if (!policyServiceConfiguration.getEnabled()) {
+      logger.info("Terra Policy Service is not enabled.");
+      return;
+    }
     TpsPolicyInputs inputs = (policyInputs == null) ? new TpsPolicyInputs() : policyInputs;
 
     TpsApi tpsApi = policyApiService.getPolicyApi();
@@ -68,11 +70,14 @@ public class PolicyService {
   }
 
   /**
-   * Delete the policy access object by its id. If it does not exist in the policy service,
-   * ignore the PolicyServiceNotFoundException exception.
+   * Delete the policy access object by its id. If it does not exist in the policy service, ignore
+   * the PolicyServiceNotFoundException exception.
    */
   public void deletePaoIfExists(UUID resourceId) {
-    policyServiceConfiguration.tpsEnabledCheck();
+    if (!policyServiceConfiguration.getEnabled()) {
+      logger.info("Terra Policy Service is not enabled.");
+      return;
+    }
     TpsApi tpsApi = policyApiService.getPolicyApi();
     try {
       tpsApi.deletePao(resourceId);

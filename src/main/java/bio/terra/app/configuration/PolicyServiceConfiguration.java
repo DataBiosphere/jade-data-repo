@@ -1,6 +1,5 @@
 package bio.terra.app.configuration;
 
-import bio.terra.common.exception.FeatureNotImplementedException;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
@@ -42,11 +41,5 @@ public class PolicyServiceConfiguration {
         ServiceAccountCredentials.getApplicationDefault().createScoped(POLICY_SCOPES);
     AccessToken token = credentials.refreshAccessToken();
     return token.getTokenValue();
-  }
-
-  public void tpsEnabledCheck() {
-    if (!this.enabled) {
-      throw new FeatureNotImplementedException("Terra Policy Service is not enabled");
-    }
   }
 }

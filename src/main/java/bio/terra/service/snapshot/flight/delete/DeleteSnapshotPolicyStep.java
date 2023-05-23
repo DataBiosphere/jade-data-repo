@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.delete;
 
-import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.dataset.Dataset;
@@ -37,11 +36,7 @@ public class DeleteSnapshotPolicyStep implements Step {
     UUID datasetId = map.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
     Dataset dataset = datasetService.retrieve(datasetId);
     if (dataset.isSecureMonitoringEnabled()) {
-      try {
-        policyService.deletePaoIfExists(snapshotId);
-      } catch (FeatureNotImplementedException ex) {
-        logger.info("Terra Policy Service is not enabled");
-      }
+      policyService.deletePaoIfExists(snapshotId);
     }
     return StepResult.getStepResultSuccess();
   }
@@ -59,8 +54,6 @@ public class DeleteSnapshotPolicyStep implements Step {
         policyService.createSnapshotPao(snapshotId, policyInputs);
       } catch (PolicyConflictException ex) {
         logger.warn("Policy access object already exists for snapshot {}", snapshotId);
-      } catch (FeatureNotImplementedException ex) {
-        logger.info("Terra Policy Service is not enabled");
       }
     }
     return StepResult.getStepResultSuccess();

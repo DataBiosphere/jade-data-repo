@@ -7,7 +7,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.policy.PolicyService;
@@ -75,22 +74,5 @@ public class CreateSnapshotPolicyStepTest {
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(policyService, never()).deletePaoIfExists(SNAPSHOT_ID);
-  }
-
-  @Test
-  void testCreatePolicyServiceNotEnabled() throws Exception {
-    mockFlightMap();
-    CreateSnapshotPolicyStep step = new CreateSnapshotPolicyStep(policyService, true);
-    var exception = new FeatureNotImplementedException("Policy service is not enabled");
-    doThrow(exception).when(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
-    doThrow(exception).when(policyService).deletePaoIfExists(SNAPSHOT_ID);
-
-    StepResult doResult = step.doStep(flightContext);
-    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
-
-    StepResult undoResult = step.undoStep(flightContext);
-    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(policyService).deletePaoIfExists(SNAPSHOT_ID);
   }
 }

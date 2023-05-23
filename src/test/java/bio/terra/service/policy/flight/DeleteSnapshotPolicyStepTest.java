@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.*;
 
-import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.policy.model.TpsPolicyInput;
 import bio.terra.policy.model.TpsPolicyInputs;
 import bio.terra.service.dataset.Dataset;
@@ -56,22 +55,6 @@ public class DeleteSnapshotPolicyStepTest {
   @Test
   void testDeletePolicyDoUndo() throws Exception {
     mockSecureMonitoringEnabledDataset();
-    StepResult doResult = step.doStep(flightContext);
-    assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(policyService).deletePaoIfExists(SNAPSHOT_ID);
-
-    StepResult undoResult = step.undoStep(flightContext);
-    assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
-  }
-
-  @Test
-  void testDeletePolicyServiceNotEnabled() throws Exception {
-    mockSecureMonitoringEnabledDataset();
-    var exception = new FeatureNotImplementedException("Policy service is not enabled");
-    doThrow(exception).when(policyService).deletePaoIfExists(SNAPSHOT_ID);
-    doThrow(exception).when(policyService).createSnapshotPao(SNAPSHOT_ID, policies);
-
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     verify(policyService).deletePaoIfExists(SNAPSHOT_ID);

@@ -50,7 +50,10 @@ public class PolicyService {
 
   public void createPao(
       UUID resourceId, TpsObjectType resourceType, @Nullable TpsPolicyInputs policyInputs) {
-    policyServiceConfiguration.tpsEnabledCheck();
+    if (!policyServiceConfiguration.getEnabled()) {
+      logger.info("Terra Policy Service is not enabled.");
+      return;
+    }
     TpsPolicyInputs inputs = (policyInputs == null) ? new TpsPolicyInputs() : policyInputs;
 
     TpsApi tpsApi = policyApiService.getPolicyApi();
@@ -66,13 +69,19 @@ public class PolicyService {
     }
   }
 
-  public void deletePao(UUID resourceId) {
-    policyServiceConfiguration.tpsEnabledCheck();
+  /**
+   * Delete the policy access object by its id. If it does not exist in the policy service, ignore
+   * the PolicyServiceNotFoundException exception.
+   */
+  public void deletePaoIfExists(UUID resourceId) {
+    if (!policyServiceConfiguration.getEnabled()) {
+      logger.info("Terra Policy Service is not enabled.");
+      return;
+    }
     TpsApi tpsApi = policyApiService.getPolicyApi();
     try {
       tpsApi.deletePao(resourceId);
     } catch (ApiException e) {
-      // Ignore the exception if the policy object being deleted does not exist
       RuntimeException exception = convertApiException(e);
       if (!(exception instanceof PolicyServiceNotFoundException)) {
         throw exception;

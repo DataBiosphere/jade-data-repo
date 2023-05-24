@@ -18,6 +18,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.journal.JournalService;
+import bio.terra.service.policy.PolicyService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -59,6 +60,7 @@ public class SnapshotDeleteFlight extends Flight {
     JournalService journalService = appContext.getBean(JournalService.class);
     DrsService drsService = appContext.getBean(DrsService.class);
     String tdrServiceAccountEmail = appContext.getBean("tdrServiceAccountEmail", String.class);
+    PolicyService policyService = appContext.getBean(PolicyService.class);
 
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
@@ -149,6 +151,11 @@ public class SnapshotDeleteFlight extends Flight {
             new DeleteSnapshotMarkProjectStep(resourceService, snapshotId, snapshotService)));
     addStep(new PerformGcpStep(new DeleteSnapshotDeleteProjectStep(resourceService)));
     addStep(new PerformGcpStep(new DeleteSnapshotProjectMetadataStep(resourceService)));
+
+    // delete policy object in Terra Policy Service
+    addStep(
+        new PerformDatasetStep(
+            new DeleteSnapshotPolicyStep(datasetService, policyService, snapshotId)));
 
     addStep(new PerformDatasetStep(new UnlockDatasetStep(datasetService, false)));
     addStep(

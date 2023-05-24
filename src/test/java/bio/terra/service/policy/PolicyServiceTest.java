@@ -80,7 +80,7 @@ public class PolicyServiceTest {
   }
 
   @Test
-  void testCreateSnapshotDao() throws Exception {
+  void testCreateSnapshotPao() throws Exception {
     mockPolicyServiceConfiguration();
     mockPolicyApi();
     policyService.createSnapshotPao(snapshotId, policies);
@@ -106,7 +106,7 @@ public class PolicyServiceTest {
   }
 
   @Test
-  void testDeleteSnapshotDao() throws Exception {
+  void testDeleteSnapshotPao() throws Exception {
     mockPolicyServiceConfiguration();
     mockPolicyApi();
     policyService.deletePaoIfExists(snapshotId);
@@ -120,7 +120,7 @@ public class PolicyServiceTest {
   }
 
   @Test
-  void testDeleteSnapshotDaoIgnoresNotFoundException() throws Exception {
+  void testDeleteSnapshotPaoIgnoresNotFoundException() throws Exception {
     mockPolicyServiceConfiguration();
     mockPolicyApi();
     var exception = new ApiException(HttpStatus.NOT_FOUND.value(), "Policy object not found");

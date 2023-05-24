@@ -28,7 +28,7 @@ public class DrsAliasRegisterFlight extends Flight {
     DrsDao drsDao = appContext.getBean(DrsDao.class);
 
     // Steps
-    addStep(new DrsAliasVerifyStep(drsIdService, aliases, userReq));
+    addStep(new DrsAliasVerifyStep(drsIdService, aliases));
     addStep(new DrsAliasRegisterStep(drsDao, drsIdService, aliases, userReq));
   }
 }

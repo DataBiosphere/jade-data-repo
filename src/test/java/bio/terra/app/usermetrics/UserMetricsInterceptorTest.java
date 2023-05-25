@@ -32,15 +32,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 
 @ActiveProfiles({"google", "unittest"})
 @ContextConfiguration(classes = UserLoggingMetrics.class)
+@SpringBootTest
 @Tag("bio.terra.common.category.Unit")
-@WebMvcTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
 public class UserMetricsInterceptorTest {
   @Autowired private UserLoggingMetrics eventProperties;
   @MockBean private BardClient bardClient;

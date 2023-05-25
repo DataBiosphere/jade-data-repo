@@ -3,8 +3,7 @@ package bio.terra.service.status;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -67,7 +66,7 @@ public class StatusServiceTest {
   @Test
   void testStatusAllSystemsUp() {
     var status = statusService.getStatus();
-    assertTrue("TDR is up when all systems are up", status.isOk());
+    assertThat("TDR is up when all systems are up", status.isOk(), is(true));
     var systems = status.getSystems();
     assertThat(
         "All expected systems are included in status check",
@@ -108,7 +107,7 @@ public class StatusServiceTest {
     when(datasetDao.statusCheck()).thenReturn(notOk());
 
     var status = statusService.getStatus();
-    assertFalse("TDR is down when one critical system is down", status.isOk());
+    assertThat("TDR is down when one critical system is down", status.isOk(), is(false));
     var systems = status.getSystems();
     assertThat(
         "All expected systems are included in status check",
@@ -149,7 +148,7 @@ public class StatusServiceTest {
     when(duosService.status()).thenReturn(notOk().critical(false));
 
     var status = statusService.getStatus();
-    assertTrue("TDR is up even if non-critical systems are down", status.isOk());
+    assertThat("TDR is up even if non-critical systems are down", status.isOk(), is(true));
     var systems = status.getSystems();
     assertThat(
         "All expected systems are included in status check",

@@ -3,7 +3,6 @@ package bio.terra.app.controller;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -35,6 +34,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -62,7 +62,7 @@ import org.springframework.test.web.servlet.MvcResult;
       SnapshotRequestValidator.class
     })
 @Tag("bio.terra.common.category.Unit")
-@WebMvcTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
+@WebMvcTest
 public class SnapshotValidationTest {
 
   @Autowired private MockMvc mvc;
@@ -101,8 +101,8 @@ public class SnapshotValidationTest {
     MockHttpServletResponse response = result.getResponse();
     String responseBody = response.getContentAsString();
 
-    assertTrue(
-        "Error model was returned on failure", StringUtils.contains(responseBody, "message"));
+    assertThat(
+        "Error model was returned on failure", responseBody, Matchers.containsString("message"));
     return TestUtils.mapFromJson(responseBody, ErrorModel.class);
   }
 

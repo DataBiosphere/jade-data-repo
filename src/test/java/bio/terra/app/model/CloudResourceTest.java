@@ -5,30 +5,27 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import bio.terra.common.category.Unit;
+import bio.terra.app.configuration.ApplicationConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.ContextConfiguration;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@ContextConfiguration(classes = ApplicationConfiguration.class)
+@Tag("bio.terra.common.category.Unit")
+@WebMvcTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
 public class CloudResourceTest {
 
   @Autowired private ObjectMapper objectMapper;
 
   @Test
-  public void testDeserializeHappyPath() throws JsonProcessingException {
+  void testDeserializeHappyPath() throws JsonProcessingException {
     assertThat(
         objectMapper.readValue("\"BIGQUERY\"", CloudResource.class),
         equalTo(GoogleCloudResource.BIGQUERY));
@@ -38,7 +35,7 @@ public class CloudResourceTest {
   }
 
   @Test
-  public void testDeserializeBadResourceValue() {
+  void testDeserializeBadResourceValue() {
     assertThat(
         assertThrows(
                 InvalidFormatException.class,
@@ -49,7 +46,7 @@ public class CloudResourceTest {
   }
 
   @Test
-  public void testDeserializeBadResourceFormat() {
+  void testDeserializeBadResourceFormat() {
     assertThat(
         assertThrows(
                 InvalidFormatException.class,

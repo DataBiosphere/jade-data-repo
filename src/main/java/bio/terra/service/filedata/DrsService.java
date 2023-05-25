@@ -823,9 +823,6 @@ public class DrsService {
   }
 
   public String registerDrsAliases(List<DrsAliasModel> aliases, AuthenticatedUserRequest userReq) {
-    // Make sure the user is a steward by checking for list jobs action
-    samService.verifyAuthorization(
-        userReq, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.LIST_JOBS);
     return jobService
         .newJob("Register DRS Aliases", DrsAliasRegisterFlight.class, aliases, userReq)
         .submit();

@@ -29,9 +29,9 @@ public class DrsAliasVerifyStep extends DefaultUndoStep {
               "One or more aliases are valid TDR DRS IDs which is not allowed"));
     }
 
-    boolean anyTDRIdsAreInvalid =
+    boolean anyTdrIdsAreInvalid =
         aliases.stream().anyMatch(a -> !drsIdService.isValidObjectId(a.getTdrDrsObjectId()));
-    if (anyTDRIdsAreInvalid) {
+    if (anyTdrIdsAreInvalid) {
       return new StepResult(
           StepStatus.STEP_RESULT_FAILURE_FATAL,
           new IllegalArgumentException("One or more TDR Ids are invalid"));

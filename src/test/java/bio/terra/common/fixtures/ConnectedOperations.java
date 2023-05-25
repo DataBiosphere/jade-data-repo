@@ -21,6 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
+import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.GcsFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
@@ -77,6 +79,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.hamcrest.CoreMatchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,6 +102,7 @@ public class ConnectedOperations {
   private final JsonLoader jsonLoader;
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
   private final ConnectedTestConfiguration testConfig;
+  private final DataRepoFixtures dataRepoFixtures;
 
   private boolean deleteOnTeardown;
   private List<UUID> createdSnapshotIds;
@@ -110,10 +114,14 @@ public class ConnectedOperations {
 
   @Autowired
   public ConnectedOperations(
-      MockMvc mvc, JsonLoader jsonLoader, ConnectedTestConfiguration testConfig) {
+      MockMvc mvc,
+      JsonLoader jsonLoader,
+      ConnectedTestConfiguration testConfig,
+      DataRepoFixtures dataRepoFixtures) {
     this.mvc = mvc;
     this.jsonLoader = jsonLoader;
     this.testConfig = testConfig;
+    this.dataRepoFixtures = dataRepoFixtures;
 
     createdSnapshotIds = new ArrayList<>();
     createdDatasetIds = new ArrayList<>();
@@ -165,6 +173,9 @@ public class ConnectedOperations {
 
     doNothing().when(samService).createProfileResource(any(), any());
     doNothing().when(samService).deleteProfileResource(any(), any());
+
+    // Mock the sam call to register a dataset's dedicated ingest service account
+    when(samService.registerUser(any())).thenReturn(new UserStatus());
   }
 
   /**
@@ -198,6 +209,9 @@ public class ConnectedOperations {
     DatasetSummaryModel datasetSummaryModel =
         handleSuccessCase(response, DatasetSummaryModel.class);
     addDataset(datasetSummaryModel.getId());
+    DatasetModel datasetModel = getDataset(datasetSummaryModel.getId());
+    dataRepoFixtures.grantIngestBucketPermissionsToDedicatedSa(
+        datasetModel, testConfig.getIngestbucket());
     return datasetSummaryModel;
   }
 
@@ -477,6 +491,19 @@ public class ConnectedOperations {
   }
 
   public boolean deleteTestDataset(UUID id) throws Exception {
+    DatasetModel dataset = getDataset(id);
+    String serviceAccount = dataset.getIngestServiceAccount();
+    String ingestBucket = testConfig.getIngestbucket();
+    if (ingestBucket != null && dataRepoFixtures.isDedicatedServiceAccount(serviceAccount)) {
+      for (var role : DataRepoFixtures.INGEST_ROLES) {
+        GcsFixtures.removeServiceAccountRoleFromBucket(
+            ingestBucket, serviceAccount, role, dataset.getDataProject());
+      }
+    }
+    return deleteDataset(id);
+  }
+
+  public boolean deleteDataset(UUID id) throws Exception {
     MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
     return checkDeleteResponse(response);

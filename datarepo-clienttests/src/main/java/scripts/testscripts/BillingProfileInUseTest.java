@@ -9,6 +9,7 @@ import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
+import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
@@ -17,6 +18,7 @@ import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import com.google.cloud.storage.BlobId;
 import common.utils.FileUtils;
+import common.utils.GcsUtils;
 import common.utils.StorageUtils;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -77,7 +79,10 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       // owner2 creates a dataset and grants userUser the "custodian" role
       dataset = ownerUser2Api.createDataset(profileId, "dataset-simple.json", true);
       ownerUser2Api.addDatasetPolicyMember(dataset.getId(), "custodian", userUser.userEmail);
-      ingestDataIntoDataset(dataset, profileId);
+      String ingestBucket = "jade-testdata";
+      DatasetModel datasetModel = ownerUser2Api.retrieveDataset(dataset.getId());
+      GcsUtils.grantIngestBucketPermissionsToDedicatedSa(datasetModel, ingestBucket, server);
+      ingestDataIntoDataset(dataset, profileId, ingestBucket);
 
       // user creates a snapshot
       snapshot =
@@ -94,6 +99,8 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       // attempt to delete profile should fail due to dataset dependency
       tryDeleteProfile(ownerUser1Api, profileId, false);
 
+      GcsUtils.revokeIngestBucketPermissionsFromDedicatedSa(
+          ownerUser2, datasetModel, ingestBucket, server);
       assertThat(
           ownerUser2Api.deleteDataset(dataset.getId()).getObjectState(),
           equalTo(DeleteResponseModel.ObjectStateEnum.DELETED));
@@ -131,15 +138,17 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
     assertThat("success meets expectations", success, equalTo(expectSuccess));
   }
 
-  private void ingestDataIntoDataset(DatasetSummaryModel dataset, UUID profileId) throws Exception {
+  private void ingestDataIntoDataset(
+      DatasetSummaryModel dataset, UUID profileId, String ingestBucket) throws Exception {
     // load data into the new dataset
     // note that there's a fileref in the dataset
     // ingest a file -- TODO CannedTestData.getMeA1KBFile
     // get the ApiClient for the snapshot creator, same as the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(userUser, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
-    URI sourceUri = new URI("gs://jade-testdata/fileloadprofiletest/1KBfile.txt");
 
+    String sourcePath = "gs://" + ingestBucket + "/fileloadprofiletest/1KBfile.txt";
+    URI sourceUri = new URI(sourcePath);
     String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
 
     BulkLoadFileModel fileLoadModel =

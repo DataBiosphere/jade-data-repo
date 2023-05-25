@@ -47,7 +47,7 @@ public final class GcsFixtures {
         options);
   }
 
-  static void removeServiceAccountRoleFromBucket(
+  public static void removeServiceAccountRoleFromBucket(
       String bucket, String serviceAccount, Role role, String userProject) {
     logger.info("Revoking role {} from {} on bucket {}", role, serviceAccount, bucket);
     Storage storage = StorageOptions.getDefaultInstance().getService();

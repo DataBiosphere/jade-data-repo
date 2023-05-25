@@ -113,7 +113,7 @@ public class DataRepoFixtures {
           + "<if(hasFlightId)>jsonPayload.flightId=\"<flightId>\"<endif>";
 
   /** Roles which must be held by a dataset's SA to facilitate an ingestion * */
-  private static final List<Role> INGEST_ROLES =
+  public static final List<Role> INGEST_ROLES =
       List.of(StorageRoles.objectViewer(), StorageRoles.legacyBucketReader());
 
   @Autowired private JsonLoader jsonLoader;
@@ -337,7 +337,7 @@ public class DataRepoFixtures {
     assertTrue("dataset create error response is present", response.getErrorObject().isPresent());
   }
 
-  private boolean isDedicatedServiceAccount(String serviceAccount) {
+  public boolean isDedicatedServiceAccount(String serviceAccount) {
     return StringUtils.isNotEmpty(serviceAccount)
         && !StringUtils.equalsIgnoreCase(serviceAccount, tdrServiceAccountEmail);
   }

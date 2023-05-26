@@ -208,7 +208,7 @@ dependencies {
     implementation "org.springframework.cloud:spring-cloud-starter-sleuth:3.0.2"
     implementation 'org.broadinstitute.dsde.workbench:sam-client_2.13:0.1-7bfd91d'
     implementation 'org.antlr:ST4:4.3'                          // String templating
-    implementation group: 'io.kubernetes', name: 'client-java', version: '10.0.0'
+    implementation group: 'io.kubernetes', name: 'client-java', version: '18.0.0'
 
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'javax.servlet:jstl:1.2'
@@ -239,7 +239,7 @@ dependencies {
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
         implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.2'
     } else {
-        implementation ('bio.terra:terra-common-lib:0.0.55-SNAPSHOT') {
+        implementation ('bio.terra:terra-common-lib:0.0.89-SNAPSHOT') {
             exclude group: 'org.broadinstitute.dsde.workbench', module: 'sam-client_2.12'
         }
     }
@@ -249,6 +249,8 @@ dependencies {
     implementation group: "bio.terra", name: "externalcreds-client-resttemplate", version: "0.72.0-SNAPSHOT"
     implementation group: "org.glassfish.jersey.inject", name: "jersey-hk2", version: "2.30.1"
 
+    // Pin the version of the OkHttp client to avoid a conflict with the version used by the Sam client
+    implementation group: "com.squareup.okhttp3", name: "okhttp", version: "4.10.0"
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus:1.8.6'
 

@@ -237,6 +237,7 @@ public class SamIam implements IamProviderInterface {
         IamRole.SNAPSHOT_CREATOR.toString(),
         createAccessPolicyV2(IamRole.SNAPSHOT_CREATOR, policies.getSnapshotCreators()));
 
+    req.authDomain(List.of());
     logger.debug("SAM request: " + req);
     return req;
   }

@@ -18,7 +18,7 @@ public enum IamAction {
   // datarepo
   LIST_JOBS,
   DELETE_JOBS,
-  // CONFIGURE is only available to admin users so can be used to check for admin access to TDR
+  /* CONFIGURE is only available to admin users so can be used to check for admin access to TDR */
   CONFIGURE,
   SYNC_DUOS_USERS,
   // dataset

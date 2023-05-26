@@ -53,7 +53,7 @@ public class AdminApiController implements AdminApi {
   @Override
   public ResponseEntity<JobModel> registerDrsAliases(List<DrsAliasModel> aliases) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-    // Make sure the user is an admin by checking for list jobs action
+    // Make sure the user is an admin by checking for configure action
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.CONFIGURE);
     String jobId = drsService.registerDrsAliases(aliases, userReq);

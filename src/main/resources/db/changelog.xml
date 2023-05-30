@@ -74,4 +74,5 @@
     <include file="changesets/20230307_sharestorageaccounts.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20230314_datasettags.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20230314_snapshottags.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20230519_drsalias.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

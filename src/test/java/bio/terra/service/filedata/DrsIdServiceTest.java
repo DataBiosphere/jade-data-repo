@@ -2,7 +2,9 @@ package bio.terra.service.filedata;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
@@ -131,5 +133,15 @@ public class DrsIdServiceTest {
         "badly formed uri - just a host",
         InvalidDrsIdException.class,
         () -> DrsIdService.fromUri("drs://" + HOSTNAME));
+  }
+
+  @Test
+  public void testDrsObjectIdValidation() {
+    UUID snapshotId = UUID.randomUUID();
+    UUID fileId = UUID.randomUUID();
+
+    assertTrue("v1 id is valid", drsIdService.isValidObjectId("v1_" + snapshotId + "_" + fileId));
+    assertTrue("v2 id is valid", drsIdService.isValidObjectId("v2_" + fileId));
+    assertFalse("invalid id is invalid", drsIdService.isValidObjectId("v3_foo"));
   }
 }

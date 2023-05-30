@@ -45,8 +45,8 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.duos.DuosDao;
+import bio.terra.service.filedata.DrsDao;
 import bio.terra.service.filedata.DrsId;
-import bio.terra.service.filedata.DrsIdDao;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -93,7 +93,7 @@ public class SnapshotDaoTest {
 
   @Autowired private DuosDao duosDao;
 
-  @Autowired private DrsIdDao drsIdDao;
+  @Autowired private DrsDao drsDao;
 
   private Dataset dataset;
   private UUID datasetId;
@@ -907,54 +907,54 @@ public class SnapshotDaoTest {
     // Load drs ids (attempt loading duplicates)
     assertThat(
         "drsIds were inserted into snp1",
-        drsIdDao.recordDrsIdToSnapshot(snapshot1.getId(), drsIds),
+        drsDao.recordDrsIdToSnapshot(snapshot1.getId(), drsIds),
         equalTo(1000L));
     assertThat(
         "drsIds were ignored on reinsert into snp1",
-        drsIdDao.recordDrsIdToSnapshot(snapshot1.getId(), drsIds),
+        drsDao.recordDrsIdToSnapshot(snapshot1.getId(), drsIds),
         equalTo(0L));
 
     assertThrows(
         "can't insert id for an invalid snapshot",
         Exception.class,
-        () -> drsIdDao.recordDrsIdToSnapshot(UUID.randomUUID(), drsIds));
+        () -> drsDao.recordDrsIdToSnapshot(UUID.randomUUID(), drsIds));
 
     // A subset of drs ids are in snapshot 2
     assertThat(
         "drsIds were inserted into snp2",
-        drsIdDao.recordDrsIdToSnapshot(snapshot2.getId(), drsIds.subList(0, 100)),
+        drsDao.recordDrsIdToSnapshot(snapshot2.getId(), drsIds.subList(0, 100)),
         equalTo(100L));
     assertThat(
         "new drsIds were inserted into snp2",
-        drsIdDao.recordDrsIdToSnapshot(snapshot2.getId(), drsIds.subList(50, 150)),
+        drsDao.recordDrsIdToSnapshot(snapshot2.getId(), drsIds.subList(50, 150)),
         equalTo(50L));
 
     // Drs IDs are linked to correct snapshots
     assertThat(
         "lower numbered drs id is in snapshot 1 and snapshot 2",
-        drsIdDao.retrieveReferencedSnapshotIds(drsIds.get(0)),
+        drsDao.retrieveReferencedSnapshotIds(drsIds.get(0)),
         containsInAnyOrder(snapshot1.getId(), snapshot2.getId()));
 
     // Drs IDs are linked to correct snapshots
     assertThat(
         "higher numbered drs id is in snapshot 1 only",
-        drsIdDao.retrieveReferencedSnapshotIds(drsIds.get(500)),
+        drsDao.retrieveReferencedSnapshotIds(drsIds.get(500)),
         containsInAnyOrder(snapshot1.getId()));
 
     // Deleting snapshot 1 removes entries
     assertThat(
         "all 1000 entries removed when deleting the first snapshot",
-        drsIdDao.deleteDrsIdToSnapshotsBySnapshot(snapshot1.getId()),
+        drsDao.deleteDrsIdToSnapshotsBySnapshot(snapshot1.getId()),
         equalTo(1000L));
     assertThat(
         "lower numbered drs id is now only in snapshot 2",
-        drsIdDao.retrieveReferencedSnapshotIds(drsIds.get(0)),
+        drsDao.retrieveReferencedSnapshotIds(drsIds.get(0)),
         containsInAnyOrder(snapshot2.getId()));
 
     // Deleting snapshot 2 removes entries
     assertThat(
         "all 150 entries removed when deleting the second snapshot",
-        drsIdDao.deleteDrsIdToSnapshotsBySnapshot(snapshot2.getId()),
+        drsDao.deleteDrsIdToSnapshotsBySnapshot(snapshot2.getId()),
         equalTo(150L));
   }
 

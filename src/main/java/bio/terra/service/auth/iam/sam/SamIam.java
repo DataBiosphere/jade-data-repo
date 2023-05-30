@@ -641,6 +641,26 @@ public class SamIam implements IamProviderInterface {
     return samApiService.googleApi(userReq.getToken()).getArbitraryPetServiceAccountToken(scopes);
   }
 
+  @Override
+  public String signUrlForBlob(
+      AuthenticatedUserRequest userReq, String project, String path, Duration duration)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService, () -> signUrlForBlobInner(userReq, project, path, duration));
+  }
+
+  private String signUrlForBlobInner(
+      AuthenticatedUserRequest userReq, String project, String path, Duration duration)
+      throws ApiException {
+    BlobId blobId = GcsUriUtils.parseBlobUri(path);
+    SignedUrlRequest request =
+        new SignedUrlRequest()
+            .bucketName(blobId.getBucket())
+            .blobName(blobId.getName())
+            .duration(BigDecimal.valueOf(duration.toMinutes()));
+    return samApiService.googleApi(userReq.getToken()).getSignedUrlForBlob(project, request);
+  }
+
   private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {
     UserStatusInfo userStatusInfo = getUserInfo(userReq);
     if (!userStatusInfo.isEnabled()) {

@@ -3732,6 +3732,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: x-user-project
+          in: header
+          description: >
+            For GCP hosted files, this will indicate the user project to bill when accessing the
+            signed url.  This value must be a valid Terra billing project ID that the caller has
+            access to and only applies to GCP hosted data.
+          required: false
+          schema:
+            type: string
       responses:
         200:
           description: The access URL was found successfully.
@@ -3806,6 +3815,15 @@ paths:
           in: path
           description: An `access_id` from the `access_methods` list of a Data Object
           required: true
+          schema:
+            type: string
+        - name: x-user-project
+          in: header
+          description: >
+            For GCP hosted files, this will indicate the user project to bill when accessing the
+            signed url.  This value must be a valid Terra billing project ID that the caller has
+            access to and only applies to GCP hosted data.
+          required: false
           schema:
             type: string
       requestBody:

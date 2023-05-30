@@ -37,6 +37,8 @@ import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import com.google.api.client.http.HttpStatusCodes;
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +56,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEn
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
+import org.broadinstitute.dsde.workbench.client.sam.model.SignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.SubsystemStatus;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserInfo;
@@ -742,5 +745,22 @@ public class SamIamTest {
         IamNotFoundException.class,
         () -> samIam.deleteGroup(accessToken, groupName));
     verify(samGroupApi).deleteGroup(groupName);
+  }
+
+  @Test
+  public void testSignUrl() throws InterruptedException, ApiException {
+    String project = "myProject";
+    String path = "gs://bucket/path/to/file";
+    Duration duration = Duration.ofMinutes(15);
+    samIam.signUrlForBlob(TEST_USER, project, path, duration);
+
+    // Verify the arguments are properly parsed and passed through
+    verify(samGoogleApi)
+        .getSignedUrlForBlob(
+            project,
+            new SignedUrlRequest()
+                .bucketName("bucket")
+                .blobName("path/to/file")
+                .duration(BigDecimal.valueOf(15)));
   }
 }

@@ -98,7 +98,7 @@ public class DrsService {
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
   private static final String ACCESS_ID_SEPARATOR = "*";
   private static final String DRS_OBJECT_VERSION = "0";
-  private static final Duration URL_TTL = Duration.ofMinutes(15);
+  @VisibleForTesting static final Duration URL_TTL = Duration.ofMinutes(15);
   // atomic counter that we increase on request arrival and decr on request response
   private final AtomicInteger currentDRSRequests = new AtomicInteger(0);
 
@@ -459,19 +459,22 @@ public class DrsService {
   }
 
   public DRSAccessURL postAccessUrlForObjectId(
-      String objectId, String accessId, DRSPassportRequestModel passportRequestModel) {
+      String objectId,
+      String accessId,
+      DRSPassportRequestModel passportRequestModel,
+      String userProject) {
     DRSObject drsObject = lookupObjectByDrsIdPassport(objectId, passportRequestModel);
-    return getAccessURL(null, drsObject, accessId);
+    return getAccessURL(null, drsObject, accessId, userProject);
   }
 
   public DRSAccessURL getAccessUrlForObjectId(
-      AuthenticatedUserRequest authUser, String objectId, String accessId) {
+      AuthenticatedUserRequest authUser, String objectId, String accessId, String userProject) {
     DRSObject drsObject = lookupObjectByDrsId(authUser, objectId, false);
-    return getAccessURL(authUser, drsObject, accessId);
+    return getAccessURL(authUser, drsObject, accessId, userProject);
   }
 
   private DRSAccessURL getAccessURL(
-      AuthenticatedUserRequest authUser, DRSObject drsObject, String accessId) {
+      AuthenticatedUserRequest authUser, DRSObject drsObject, String accessId, String userProject) {
     // To avoid having to re-resolve the DRS Id in case it is an alias, use the id from the passed
     // in DRS object.
     DrsId drsId = drsIdService.fromObjectId(drsObject.getId());
@@ -506,7 +509,7 @@ public class DrsService {
 
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(cachedSnapshot.cloudPlatform);
     if (platform.isGcp()) {
-      return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser);
+      return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser, userProject);
     } else if (platform.isAzure()) {
       return signAzureUrl(billingProfileModel, fsFile, authUser);
     } else {
@@ -557,10 +560,20 @@ public class DrsService {
   }
 
   private DRSAccessURL signGoogleUrl(
-      SnapshotCacheResult cachedSnapshot, String gsPath, AuthenticatedUserRequest authUser) {
+      SnapshotCacheResult cachedSnapshot,
+      String gsPath,
+      AuthenticatedUserRequest authUser,
+      String userProject) {
     Storage storage;
     if (cachedSnapshot.isSelfHosted) {
-      // In the case of a self-hosted dataset, use the dataset's service account to sign the url
+      // If a userProject is explicitly passed in, then use that to sign the url.
+      // Note: the expectation is that this is a Terra hosted bucket
+      if (!StringUtils.isEmpty(userProject)) {
+        return new DRSAccessURL()
+            .url(samService.signUrlForBlob(authUser, userProject, gsPath, URL_TTL));
+      }
+      // In the base case of a self-hosted dataset, use the dataset's service account to sign the
+      // url
       storage = gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId);
     } else {
       storage =
@@ -574,7 +587,14 @@ public class DrsService {
     BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();
 
     Map<String, String> queryParams = new HashMap<>();
-    queryParams.put(USER_PROJECT_QUERY_PARAM, cachedSnapshot.googleProjectId);
+    // If a user specifies a billing project in the request, prefer that over the snapshot's
+    // project.  If a billing project is required to access the data, and it is not provided,
+    // nothing will fail until the user tries to access the signed URL.
+    if (!StringUtils.isEmpty(userProject)) {
+      queryParams.put(USER_PROJECT_QUERY_PARAM, userProject);
+    } else {
+      queryParams.put(USER_PROJECT_QUERY_PARAM, cachedSnapshot.googleProjectId);
+    }
     if (authUser != null) {
       queryParams.put(REQUESTED_BY_QUERY_PARAM, authUser.getEmail());
     }

@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import static bio.terra.service.filedata.DrsService.URL_TTL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -14,6 +15,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +26,7 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.UriUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -52,6 +55,7 @@ import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.filedata.exception.InvalidDrsObjectException;
+import bio.terra.service.filedata.google.gcs.GcsConstants;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -64,7 +68,12 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.Bucket;
+import com.google.cloud.storage.Storage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Comparator;
@@ -97,6 +106,7 @@ public class DrsServiceTest {
           .build();
 
   private static final String RAS_ISSUER = "https://stsstg.nih.gov";
+  private static final String SNAPSHOT_DATA_PROJECT = "google-project";
 
   @Mock private SnapshotService snapshotService;
   @Mock private FileService fileService;
@@ -122,6 +132,8 @@ public class DrsServiceTest {
   private FSFile azureFsFile;
 
   private FSFile googleFsFile;
+
+  private BillingProfileModel billingProfile;
 
   private UUID snapshotId;
 
@@ -154,10 +166,11 @@ public class DrsServiceTest {
     SnapshotProject snapshotProject = new SnapshotProject();
     when(snapshotService.retrieveAvailableSnapshotProject(any())).thenReturn(snapshotProject);
 
-    BillingProfileModel billingProfile = new BillingProfileModel().id(UUID.randomUUID());
+    billingProfile = new BillingProfileModel().id(UUID.randomUUID());
     when(snapshotService.retrieve(snapshotId))
         .thenReturn(
-            mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, "google-project"));
+            mockSnapshot(
+                snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT));
 
     String bucketResourceId = UUID.randomUUID().toString();
     String storageAccountResourceId = UUID.randomUUID().toString();
@@ -630,7 +643,10 @@ public class DrsServiceTest {
         .thenReturn(new ValidatePassportResult().putAuditInfoItem("test", "log").valid(true));
     DRSAccessURL url =
         drsService.postAccessUrlForObjectId(
-            googleDrsObjectId, "gcp-passport-us-central1*" + snapshotId, drsPassportRequestModel);
+            googleDrsObjectId,
+            "gcp-passport-us-central1*" + snapshotId,
+            drsPassportRequestModel,
+            null);
 
     assertThat(
         "returns url",
@@ -651,14 +667,91 @@ public class DrsServiceTest {
         UnauthorizedException.class,
         () ->
             drsService.postAccessUrlForObjectId(
-                googleDrsObjectId, "gcp-passport-us-central1", drsPassportRequestModel));
+                googleDrsObjectId, "gcp-passport-us-central1", drsPassportRequestModel, null));
+  }
+
+  @Test
+  public void testSignGcpUrlNoProject() {
+    testSignGcpUrl(null, false);
+  }
+
+  @Test
+  public void testSignGcpUrlSpecifiedProject() {
+    testSignGcpUrl("myProject", false);
+  }
+
+  @Test
+  public void testSignGcpUrlSpecifiedProjectSelfHosted() {
+    testSignGcpUrl("myProject", true);
+  }
+
+  public void testSignGcpUrl(String billingProject, boolean selfHostedDataset) {
+    SnapshotSummaryModel snapshotSummary =
+        new SnapshotSummaryModel().id(snapshotId).selfHosted(selfHostedDataset);
+    Snapshot snapshot =
+        mockSnapshot(snapshotId, billingProfile.getId(), CloudPlatform.GCP, SNAPSHOT_DATA_PROJECT);
+    snapshot.getSourceDataset().getDatasetSummary().selfHosted(selfHostedDataset);
+
+    if (selfHostedDataset) {
+      String sourcePath = "gs://path/to/file.txt";
+      String datasetProject = snapshot.getSourceDataset().getProjectResource().getGoogleProjectId();
+      snapshotSummary.selfHosted(selfHostedDataset);
+      Storage storage = mock(Storage.class);
+      Bucket bucket = mock(Bucket.class);
+      when(bucket.getLocation()).thenReturn("us-central1");
+      when(storage.get(eq(BlobId.fromGsUtilUri(sourcePath).getBucket()), any())).thenReturn(bucket);
+      // This mock is needed in order to get the region from the bucket
+      when(gcsProjectFactory.getStorage(datasetProject)).thenReturn(storage);
+
+      when(samService.signUrlForBlob(
+              eq(TEST_USER), eq(billingProject), eq(sourcePath), eq(URL_TTL)))
+          .thenReturn(
+              "https://storage.googleapis.com/path/to/file.txt"
+                  + "?requestedBy=%s&userProject=%s"
+                      .formatted(
+                          URLEncoder.encode(TEST_USER.getEmail(), StandardCharsets.UTF_8),
+                          billingProject));
+    }
+    when(snapshotService.retrieve(snapshotId)).thenReturn(snapshot);
+    when(snapshotService.retrieveSnapshotSummary(snapshotId)).thenReturn(snapshotSummary);
+
+    DRSObject object = drsService.lookupObjectByDrsId(TEST_USER, googleDrsObjectId, false);
+    DRSAccessMethod accessMethod = object.getAccessMethods().get(0);
+    assertThat(
+        "Only BEARER authorization is included",
+        accessMethod.getAuthorizations().getSupportedTypes().size(),
+        equalTo(1));
+
+    DRSAccessURL url =
+        drsService.getAccessUrlForObjectId(
+            TEST_USER, googleDrsObjectId, "gcp-us-central1*" + snapshotId, billingProject);
+
+    assertThat(
+        "returns url",
+        url.getUrl(),
+        containsString("https://storage.googleapis.com/path/to/file.txt"));
+    if (billingProject == null) {
+      assertThat(
+          "contains snapshot's billing project",
+          UriUtils.getValueFromQueryParameter(url.getUrl(), GcsConstants.USER_PROJECT_QUERY_PARAM),
+          equalTo(SNAPSHOT_DATA_PROJECT));
+    } else {
+      assertThat(
+          "contains user specified billing project",
+          UriUtils.getValueFromQueryParameter(url.getUrl(), GcsConstants.USER_PROJECT_QUERY_PARAM),
+          equalTo(billingProject));
+    }
+    assertThat(
+        "contains requester email",
+        UriUtils.getValueFromQueryParameter(url.getUrl(), GcsConstants.REQUESTED_BY_QUERY_PARAM),
+        equalTo(TEST_USER.getEmail()));
   }
 
   @Test
   public void testSignAzureUrl() throws InterruptedException {
     UUID defaultProfileModelId = UUID.randomUUID();
     Snapshot snapshot =
-        mockSnapshot(snapshotId, defaultProfileModelId, CloudPlatform.AZURE, "google-project");
+        mockSnapshot(snapshotId, defaultProfileModelId, CloudPlatform.AZURE, SNAPSHOT_DATA_PROJECT);
     // Make this a global file id snapshot to test access ids
     snapshot.globalFileIds(true);
     DrsId drsId = drsIdService.fromObjectId(azureDrsObjectId);
@@ -672,7 +765,7 @@ public class DrsServiceTest {
 
     DRSAccessURL result =
         drsService.getAccessUrlForObjectId(
-            TEST_USER, azureDrsObjectId, "az-centralus*" + snapshotId);
+            TEST_USER, azureDrsObjectId, "az-centralus*" + snapshotId, null);
     assertEquals(urlString, result.getUrl());
   }
 

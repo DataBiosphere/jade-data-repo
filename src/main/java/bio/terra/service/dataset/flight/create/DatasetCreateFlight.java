@@ -94,7 +94,8 @@ public class DatasetCreateFlight extends Flight {
       // Create the service account to use to ingest data and register it in Terra
       if (datasetRequest.isDedicatedIngestServiceAccount()) {
         addStep(new CreateDatasetCreateIngestServiceAccountStep(resourceService, datasetRequest));
-        addStep(new CreateDatasetRegisterIngestServiceAccountStep(iamService),
+        addStep(
+            new CreateDatasetRegisterIngestServiceAccountStep(iamService),
             getDefaultExponentialBackoffRetryRule());
       }
     }

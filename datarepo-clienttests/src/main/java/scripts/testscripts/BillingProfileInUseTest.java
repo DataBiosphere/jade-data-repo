@@ -18,7 +18,7 @@ import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import com.google.cloud.storage.BlobId;
 import common.utils.FileUtils;
-import common.utils.GcsUtils;
+import common.utils.IngestServiceAccountUtils;
 import common.utils.StorageUtils;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -81,7 +81,8 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       ownerUser2Api.addDatasetPolicyMember(dataset.getId(), "custodian", userUser.userEmail);
       String ingestBucket = "jade-testdata";
       DatasetModel datasetModel = ownerUser2Api.retrieveDataset(dataset.getId());
-      GcsUtils.grantIngestBucketPermissionsToDedicatedSa(datasetModel, ingestBucket, server);
+      IngestServiceAccountUtils.grantIngestBucketPermissionsToDedicatedSa(
+          datasetModel, ingestBucket, server);
       ingestDataIntoDataset(dataset, profileId, ingestBucket);
 
       // user creates a snapshot
@@ -99,7 +100,7 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       // attempt to delete profile should fail due to dataset dependency
       tryDeleteProfile(ownerUser1Api, profileId, false);
 
-      GcsUtils.revokeIngestBucketPermissionsFromDedicatedSa(
+      IngestServiceAccountUtils.revokeIngestBucketPermissionsFromDedicatedSa(
           ownerUser2, datasetModel, ingestBucket, server);
       assertThat(
           ownerUser2Api.deleteDataset(dataset.getId()).getObjectState(),

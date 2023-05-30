@@ -277,7 +277,7 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         createDatasetRaw(
-            user, profileId, filename, cloudPlatform, usePetAccount, false, false, false, null);
+            user, profileId, filename, cloudPlatform, usePetAccount, false, true, false, null);
     return waitForDatasetCreate(user, jobResponse);
   }
 
@@ -289,7 +289,7 @@ public class DataRepoFixtures {
       throws Exception {
     DataRepoResponse<JobModel> jobResponse =
         createDatasetRaw(
-            user, profileId, filename, CloudPlatform.GCP, false, false, false, false, policies);
+            user, profileId, filename, CloudPlatform.GCP, false, false, true, false, policies);
     return waitForDatasetCreate(user, jobResponse);
   }
 

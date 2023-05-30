@@ -11,9 +11,11 @@ import java.util.List;
 import java.util.Map;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
+import org.broadinstitute.dsde.workbench.client.sam.api.AdminApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.VersionApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.SamVersion;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -85,6 +87,25 @@ public class SAMUtils {
       throws ApiException {
     ResourcesApi resourcesApi = new ResourcesApi(apiClient);
     return resourcesApi.resourcePermissionV2("datarepo", datarepoResourceId, "create_dataset");
+  }
+
+  public static void deleteServiceAccountFromTerra(
+      TestUserSpecification testUser, ServerSpecification server, String serviceAccount)
+      throws IOException, ApiException {
+    ApiClient apiClient = getClientForTestUser(testUser, server);
+    AdminApi samAdminApi = new AdminApi(apiClient);
+    try {
+      UserStatus userStatus = samAdminApi.adminGetUserByEmail(serviceAccount);
+      logger.info(
+          "Found user {} with id {}",
+          userStatus.getUserInfo().getUserEmail(),
+          userStatus.getUserInfo().getUserSubjectId());
+      // Disable the user
+      samAdminApi.disableUser(userStatus.getUserInfo().getUserSubjectId());
+    } catch (ApiException e) {
+      throw new RuntimeException(
+          "Error deleting account %s from Terra".formatted(serviceAccount), e);
+    }
   }
 
   /**

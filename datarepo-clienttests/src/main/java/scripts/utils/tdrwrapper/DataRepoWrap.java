@@ -12,6 +12,7 @@ import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetRequestModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
@@ -201,6 +202,10 @@ public class DataRepoWrap {
   public PolicyResponse addDatasetPolicyMember(UUID id, String policyName, String userEmail) {
     PolicyMemberRequest addRequest = new PolicyMemberRequest().email(userEmail);
     return apiCallThrow(() -> repositoryApi.addDatasetPolicyMember(id, policyName, addRequest));
+  }
+
+  public DatasetModel retrieveDataset(UUID datasetId) {
+    return DataRepoWrap.apiCallThrow(() -> repositoryApi.retrieveDataset(datasetId, List.of()));
   }
 
   public DatasetSummaryModel createDataset(

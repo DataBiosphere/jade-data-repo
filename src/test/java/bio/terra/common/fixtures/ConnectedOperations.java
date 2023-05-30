@@ -212,6 +212,7 @@ public class ConnectedOperations {
     DatasetModel datasetModel = getDataset(datasetSummaryModel.getId());
     dataRepoFixtures.grantIngestBucketPermissionsToDedicatedSa(
         datasetModel, testConfig.getIngestbucket());
+    Thread.sleep(5 * 60 * 1000);
     return datasetSummaryModel;
   }
 

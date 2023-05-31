@@ -74,6 +74,7 @@ import com.google.cloud.Role;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.cloud.storage.StorageRoles;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -346,7 +347,8 @@ public class DataRepoFixtures {
    * If the dataset has its own service account, grant it the roles it needs to ingest data from the
    * specified ingest bucket.
    */
-  public void grantIngestBucketPermissionsToDedicatedSa(DatasetModel dataset, String ingestBucket) {
+  public void grantIngestBucketPermissionsToDedicatedSa(DatasetModel dataset, String ingestBucket)
+      throws IOException {
     String serviceAccount = dataset.getIngestServiceAccount();
     if (ingestBucket != null && isDedicatedServiceAccount(serviceAccount)) {
       for (var role : INGEST_ROLES) {

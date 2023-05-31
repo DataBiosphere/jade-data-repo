@@ -1,12 +1,13 @@
 package common.utils;
 
 import bio.terra.datarepo.model.DatasetModel;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.Identity;
 import com.google.cloud.Policy;
 import com.google.cloud.Role;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 import com.google.cloud.storage.StorageRoles;
+import java.io.IOException;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -31,7 +32,7 @@ public final class IngestServiceAccountUtils {
   }
 
   public static void grantIngestBucketPermissionsToDedicatedSa(
-      DatasetModel dataset, String ingestBucket, ServerSpecification server) {
+      DatasetModel dataset, String ingestBucket, ServerSpecification server) throws IOException {
     String serviceAccount = dataset.getIngestServiceAccount();
     if (ingestBucket != null && isDedicatedServiceAccount(serviceAccount, server)) {
       for (var role : INGEST_ROLES) {
@@ -40,9 +41,10 @@ public final class IngestServiceAccountUtils {
     }
   }
 
-  static void addServiceAccountRoleToBucket(String bucket, String serviceAccount, Role role) {
+  static void addServiceAccountRoleToBucket(String bucket, String serviceAccount, Role role)
+      throws IOException {
     logger.info("Granting role {} to {} on bucket {}", role, serviceAccount, bucket);
-    Storage storage = StorageOptions.getDefaultInstance().getService();
+    Storage storage = StorageUtils.getStorage(GoogleCredentials.getApplicationDefault());
     Storage.BucketSourceOption[] options = new Storage.BucketSourceOption[0];
     Policy iamPolicy = storage.getIamPolicy(bucket, options);
     storage.setIamPolicy(
@@ -69,9 +71,9 @@ public final class IngestServiceAccountUtils {
   }
 
   public static void removeServiceAccountRoleFromBucket(
-      String bucket, String serviceAccount, Role role, String userProject) {
+      String bucket, String serviceAccount, Role role, String userProject) throws IOException {
     logger.info("Revoking role {} from {} on bucket {}", role, serviceAccount, bucket);
-    Storage storage = StorageOptions.getDefaultInstance().getService();
+    Storage storage = StorageUtils.getStorage(GoogleCredentials.getApplicationDefault());
     Storage.BucketSourceOption[] options = new Storage.BucketSourceOption[0];
     Policy iamPolicy = storage.getIamPolicy(bucket, options);
     storage.setIamPolicy(

@@ -78,7 +78,8 @@ public class DatasetLockConnectedTest {
         jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
     datasetRequest
         .name(Names.randomizeName(datasetRequest.getName()))
-        .defaultProfileId(billingProfile.getId());
+        .defaultProfileId(billingProfile.getId())
+        .dedicatedIngestServiceAccount(false);
     summaryModel = connectedOperations.createDataset(datasetRequest);
     logger.info("--------begin test---------");
   }

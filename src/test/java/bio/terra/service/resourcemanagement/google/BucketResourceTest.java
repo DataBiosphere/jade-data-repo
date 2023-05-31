@@ -112,7 +112,8 @@ public class BucketResourceTest {
         jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
     datasetRequest
         .name(Names.randomizeName(datasetRequest.getName()))
-        .defaultProfileId(profile.getId());
+        .defaultProfileId(profile.getId())
+        .dedicatedIngestServiceAccount(false);
 
     DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
     datasetId = summaryModel.getId();

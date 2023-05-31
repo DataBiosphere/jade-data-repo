@@ -8,7 +8,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.cloud.storage.StorageRoles;
 import java.util.List;
-import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,20 +35,15 @@ public final class IngestServiceAccountUtils {
     String serviceAccount = dataset.getIngestServiceAccount();
     if (ingestBucket != null && isDedicatedServiceAccount(serviceAccount, server)) {
       for (var role : INGEST_ROLES) {
-        addServiceAccountRoleToBucket(ingestBucket, serviceAccount, role, dataset.getDataProject());
+        addServiceAccountRoleToBucket(ingestBucket, serviceAccount, role);
       }
     }
   }
 
-  static void addServiceAccountRoleToBucket(
-      String bucket, String serviceAccount, Role role, String userProject) {
+  static void addServiceAccountRoleToBucket(String bucket, String serviceAccount, Role role) {
     logger.info("Granting role {} to {} on bucket {}", role, serviceAccount, bucket);
     Storage storage = StorageOptions.getDefaultInstance().getService();
-    Storage.BucketSourceOption[] options =
-        Optional.ofNullable(userProject)
-            .map(p -> new Storage.BucketSourceOption[] {Storage.BucketSourceOption.userProject(p)})
-            .orElseGet(() -> new Storage.BucketSourceOption[0]);
-
+    Storage.BucketSourceOption[] options = new Storage.BucketSourceOption[0];
     Policy iamPolicy = storage.getIamPolicy(bucket, options);
     storage.setIamPolicy(
         bucket,
@@ -78,10 +72,7 @@ public final class IngestServiceAccountUtils {
       String bucket, String serviceAccount, Role role, String userProject) {
     logger.info("Revoking role {} from {} on bucket {}", role, serviceAccount, bucket);
     Storage storage = StorageOptions.getDefaultInstance().getService();
-    Storage.BucketSourceOption[] options =
-        Optional.ofNullable(userProject)
-            .map(p -> new Storage.BucketSourceOption[] {Storage.BucketSourceOption.userProject(p)})
-            .orElseGet(() -> new Storage.BucketSourceOption[0]);
+    Storage.BucketSourceOption[] options = new Storage.BucketSourceOption[0];
     Policy iamPolicy = storage.getIamPolicy(bucket, options);
     storage.setIamPolicy(
         bucket,

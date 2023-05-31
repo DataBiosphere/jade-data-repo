@@ -3186,7 +3186,7 @@ paths:
         - admin
         - repository
       description: >
-        Load Drs Aliases into TDR.  It is possible to have an alias to a DRS ID that does not exist 
+        Load Drs Aliases into TDR.  It is possible to have an alias to a DRS ID that does not exist
         in TDR.
       operationId: registerDrsAliases
       requestBody:
@@ -4240,7 +4240,7 @@ components:
           description: Additional JSON metadata about the dataset (this does not need to adhere to a particular schema)
         dedicatedIngestServiceAccount:
           type: boolean
-          default: false
+          default: true
           description: >
             This field is only relevant for GCP-backed datasets. If true, a unique service account
             will be created in the dataset's primary GCP project, registered in Terra, and used to

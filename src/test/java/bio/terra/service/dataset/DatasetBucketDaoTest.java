@@ -1,14 +1,14 @@
 package bio.terra.service.dataset;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
@@ -25,22 +25,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit4.SpringRunner;
 
-@ActiveProfiles({"google", "unittest"})
-@AutoConfigureMockMvc
-@EmbeddedDatabaseTest
+@RunWith(SpringRunner.class)
 @SpringBootTest
-@Tag("bio.terra.common.category.Unit")
+@AutoConfigureMockMvc
+@ActiveProfiles({"google", "unittest"})
+@Category(Unit.class)
+@EmbeddedDatabaseTest
 public class DatasetBucketDaoTest {
   private static final Logger logger = LoggerFactory.getLogger(DatasetBucketDaoTest.class);
 
@@ -73,8 +76,8 @@ public class DatasetBucketDaoTest {
   private String ingestFileFlightId;
   private String bucketName;
 
-  @BeforeEach
-  void setup() throws IOException {
+  @Before
+  public void setup() throws IOException {
     BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
     billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
     billingProfileIds.add(billingProfile.getId());
@@ -89,8 +92,8 @@ public class DatasetBucketDaoTest {
     datasetIds.add(datasetId);
   }
 
-  @AfterEach
-  void teardown() {
+  @After
+  public void teardown() {
 
     datasetIdsToBucketResourceIds.forEach(
         (datasetId, bucketResourceId) -> {
@@ -142,7 +145,7 @@ public class DatasetBucketDaoTest {
   }
 
   @Test
-  void testGetProjectForDatasetProfileCombo() throws Exception {
+  public void testGetProjectForDatasetProfileCombo() throws Exception {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
     datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
@@ -151,7 +154,7 @@ public class DatasetBucketDaoTest {
         datasetBucketDao.getProjectResourceForBucket(datasetId, billingProfile.getId());
 
     assertEquals(
-        projectResource.getGoogleProjectId(), newProjectName, "Should retrieve existing project");
+        "Should retrieve existing project", projectResource.getGoogleProjectId(), newProjectName);
 
     // Get Project given new billing profile
     BillingProfileRequestModel profileRequest2 = ProfileFixtures.randomBillingProfileRequest();
@@ -159,12 +162,12 @@ public class DatasetBucketDaoTest {
         profileDao.createBillingProfile(profileRequest2, "testUser");
     billingProfileIds.add(billingProfile2.getId());
     assertNull(
-        datasetBucketDao.getProjectResourceForBucket(datasetId, billingProfile2.getId()),
-        "Should NOT retrieve existing project");
+        "Should NOT retrieve existing project",
+        datasetBucketDao.getProjectResourceForBucket(datasetId, billingProfile2.getId()));
 
     List<UUID> projectResourceIds =
         datasetBucketDao.getProjectResourceIdsForBucketPerDataset(datasetId);
-    assertEquals(1, projectResourceIds.size(), "Just one bucket linked right now");
+    assertEquals("Just one bucket linked right now", 1, projectResourceIds.size());
 
     // Link dataset to new billing profile via bucket
     GoogleProjectResource ingestProjectResource =
@@ -178,9 +181,9 @@ public class DatasetBucketDaoTest {
     List<UUID> projectResourceIds_after =
         datasetBucketDao.getProjectResourceIdsForBucketPerDataset(datasetId);
     assertEquals(
+        "Should return both projects for both billing profiles for dataset 1",
         2,
-        projectResourceIds_after.size(),
-        "Should return both projects for both billing profiles for dataset 1");
+        projectResourceIds_after.size());
 
     // Get project given a new dataset
     Dataset dataset_second =
@@ -188,88 +191,88 @@ public class DatasetBucketDaoTest {
     datasetIds.add(dataset_second.getId());
     createBucketDbEntry(projectResource);
     assertNull(
+        "Should NOT retrieve existing project",
         datasetBucketDao.getProjectResourceForBucket(
-            dataset_second.getId(), billingProfile.getId()),
-        "Should NOT retrieve existing project");
+            dataset_second.getId(), billingProfile.getId()));
   }
 
   @Test
-  void testDatasetBucketLink() {
+  public void testDatasetBucketLink() {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
     // initial check - link should not yet exist
     boolean linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
-    assertFalse(linkExists, "Link should not yet exist.");
+    assertFalse("Link should not yet exist.", linkExists);
 
     // create link
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
     datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
     linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
-    assertTrue(linkExists, "Link should now exist.");
+    assertTrue("Link should now exist.", linkExists);
 
     // delete link
     datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResourceId);
     linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
-    assertFalse(linkExists, "Link should no longer exists.");
+    assertFalse("Link should no longer exists.", linkExists);
   }
 
   @Test
-  void testMultipleLinks() {
+  public void testMultipleLinks() {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
     // initial check - link should not yet exist
     boolean linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
-    assertFalse(linkExists, "Link should not yet exist.");
+    assertFalse("Link should not yet exist.", linkExists);
 
     // create link
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
     datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
     linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
-    assertTrue(linkExists, "Link should now exist.");
+    assertTrue("Link should now exist.", linkExists);
     int linkCount =
         datasetBucketDao.datasetBucketSuccessfulIngestCount(datasetId, bucketResourceId);
-    assertEquals(1, linkCount, "Link count should be 1.");
+    assertEquals("Link count should be 1.", 1, linkCount);
 
     // create link
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
     datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
     linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
-    assertTrue(linkExists, "Link should now exist.");
+    assertTrue("Link should now exist.", linkExists);
     linkCount = datasetBucketDao.datasetBucketSuccessfulIngestCount(datasetId, bucketResourceId);
-    assertEquals(2, linkCount, "Link count should be 2.");
+    assertEquals("Link count should be 2.", 2, linkCount);
 
     // delete link
     datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResourceId);
     linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
-    assertFalse(linkExists, "Link should no longer exists.");
+    assertFalse("Link should no longer exists.", linkExists);
   }
 
   @Test
-  void testDecrementLink() {
+  public void testDecrementLink() {
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
     // initial check - link should not yet exist
     boolean linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
-    assertFalse(linkExists, "Link should not yet exist.");
+    assertFalse("Link should not yet exist.", linkExists);
 
     // create link
     datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
     datasetIdsToBucketResourceIds.put(datasetId, bucketResourceId);
     linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
-    assertTrue(linkExists, "Link should now exist.");
+    assertTrue("Link should now exist.", linkExists);
 
     // decrement the link
     datasetBucketDao.decrementDatasetBucketLink(datasetId, bucketResourceId);
     int linkCount =
         datasetBucketDao.datasetBucketSuccessfulIngestCount(datasetId, bucketResourceId);
     assertEquals(
-        0, linkCount, "After decrementing bucket link, successful ingest count should equal 0.");
+        "After decrementing bucket link, successful ingest count should equal 0.", 0, linkCount);
   }
 
   // Test key restraints - There must be entries in the dataset table and bucket_resource table
   // in order to create a link in the dataset_bucket table
-  @Test
-  void datasetMustExistToLink() {
+  @Test(expected = Exception.class)
+  public void datasetMustExistToLink() {
     // create bucket for dataset
     UUID bucketResourceId = createBucketDbEntry(projectResource);
 
@@ -279,15 +282,13 @@ public class DatasetBucketDaoTest {
     // initial check - link should not yet exist
     boolean linkExists =
         datasetBucketDao.datasetBucketLinkExists(randomDatasetId, bucketResourceId);
-    assertFalse(linkExists, "Link should not yet exist.");
+    assertFalse("Link should not yet exist.", linkExists);
 
-    assertThrows(
-        Exception.class,
-        () -> datasetBucketDao.createDatasetBucketLink(randomDatasetId, bucketResourceId),
-        "Real dataset and bucket required to link");
+    // this should fail -> no requires real dataset and bucket to link
+    datasetBucketDao.createDatasetBucketLink(randomDatasetId, bucketResourceId);
   }
 
-  @Test
+  @Test(expected = Exception.class)
   public void bucketMustExistToLink() {
     // fake datasetId
     UUID randomBucketResourceId = UUID.randomUUID();
@@ -295,12 +296,10 @@ public class DatasetBucketDaoTest {
     // initial check - link should not yet exist
     boolean linkExists =
         datasetBucketDao.datasetBucketLinkExists(datasetId, randomBucketResourceId);
-    assertFalse(linkExists, "Link should not yet exist.");
+    assertFalse("Link should not yet exist.", linkExists);
 
-    assertThrows(
-        Exception.class,
-        () -> datasetBucketDao.createDatasetBucketLink(datasetId, randomBucketResourceId),
-        "Real dataset and bucket required to link");
+    // this should fail -> no requires real dataset and bucket to link
+    datasetBucketDao.createDatasetBucketLink(datasetId, randomBucketResourceId);
   }
 
   @Test
@@ -308,10 +307,10 @@ public class DatasetBucketDaoTest {
     boolean autoclassEnabled = true;
     UUID bucketId = createBucketDbEntry(projectResource, autoclassEnabled);
     GoogleBucketResource bucket = resourceDao.retrieveBucketById(bucketId);
-    assertTrue(bucket.getAutoclassEnabled(), "Correct autoclass setting is returned");
+    assertTrue("Correct autoclass setting is returned", bucket.getAutoclassEnabled());
     GoogleBucketResource retrievedBucket =
         resourceDao.getBucket(bucketName, projectResource.getId());
-    assertTrue(retrievedBucket.getAutoclassEnabled(), "Correct autoclass setting is returned");
+    assertTrue("Correct autoclass setting is returned", retrievedBucket.getAutoclassEnabled());
   }
 
   @Test
@@ -319,10 +318,10 @@ public class DatasetBucketDaoTest {
     boolean autoclassEnabled = false;
     UUID bucketId = createBucketDbEntry(projectResource, autoclassEnabled);
     GoogleBucketResource bucket = resourceDao.retrieveBucketById(bucketId);
-    assertFalse(bucket.getAutoclassEnabled(), "Correct autoclass setting is returned");
+    assertFalse("Correct autoclass setting is returned", bucket.getAutoclassEnabled());
     GoogleBucketResource retrievedBucket =
         resourceDao.getBucket(bucketName, projectResource.getId());
-    assertFalse(retrievedBucket.getAutoclassEnabled(), "Correct autoclass setting is returned");
+    assertFalse("Correct autoclass setting is returned", retrievedBucket.getAutoclassEnabled());
   }
 
   private UUID createBucketDbEntry(GoogleProjectResource projectResource2) {

@@ -296,7 +296,8 @@ public class JobServiceTest {
   private String runFlight(
       String description, Class<? extends Flight> clazz, AuthenticatedUserRequest testUser) {
     String jobId = jobService.newJob(description, clazz, null, testUser).submit();
-    jobService.waitForJob(jobId);
+    // Poll repeatedly with no breaks: we expect the job to complete quickly.
+    jobService.waitForJob(jobId, 0);
     jobIds.add(jobId);
     return jobId;
   }
@@ -313,7 +314,8 @@ public class JobServiceTest {
             .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), resourceId)
             .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
             .submit();
-    jobService.waitForJob(jobId);
+    // Poll repeatedly with no breaks: we expect the job to complete quickly.
+    jobService.waitForJob(jobId, 0);
     jobIds.add(jobId);
     return jobId;
   }

@@ -218,9 +218,24 @@ public class JobService {
     return retrieveJobResult(jobId, resultClass, userReq).getResult();
   }
 
-  void waitForJob(String jobId) {
+  /**
+   * Wait for a flight to complete, polling Stairway at its default interval.
+   *
+   * @param jobId the flight to wait for
+   */
+  private void waitForJob(String jobId) {
+    waitForJob(jobId, null);
+  }
+
+  /**
+   * Wait for a flight to complete, polling Stairway at the specified interval.
+   *
+   * @param jobId the flight to wait for
+   * @param pollSeconds sleep time for each poll cycle
+   */
+  void waitForJob(String jobId, Integer pollSeconds) {
     try {
-      stairway.waitForFlight(jobId, null, null);
+      stairway.waitForFlight(jobId, pollSeconds, null);
     } catch (InterruptedException ex) {
       throw new JobServiceShutdownException("Job service interrupted", ex);
     }

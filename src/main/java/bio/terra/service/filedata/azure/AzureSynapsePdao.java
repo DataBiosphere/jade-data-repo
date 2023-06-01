@@ -289,8 +289,10 @@ public class AzureSynapsePdao {
           """;
   private static final String queryFromDatasourceTemplate =
       """
-      SELECT <columns:{c|tbl.[<c>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,tbl.[<totalRowCountColumnName>]<endif>
-        FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
+      SELECT <columns:{c|final_rows.[<c>]}; separator=",">,final_rows.[<filteredRowCountColumnName>]<if(includeTotalRowCount)>,final_rows.[<totalRowCountColumnName>]<endif>
+      FROM (
+        SELECT rows_filtered.[datarepo_row_number],<columns:{c|rows_filtered.[<c>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,rows_filtered.[<totalRowCountColumnName>]<endif>
+          FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
                  <columns:{c|all_rows.[<c>]}; separator=","><if(includeTotalRowCount)>,all_rows.[<totalRowCountColumnName>]<endif>
             FROM (
               SELECT <columns:{c|rows.[<c>]}; separator=","> <if(includeTotalRowCount)>,
@@ -300,9 +302,9 @@ public class AzureSynapsePdao {
                             FORMAT='PARQUET') AS rows
               ) AS all_rows
             <userFilter>
-         ) AS tbl
-      WHERE tbl.datarepo_row_number >= :offset
-        AND tbl.datarepo_row_number \\<= :offset + :limit;""";
+         ) AS rows_filtered) AS final_rows
+      WHERE final_rows.[datarepo_row_number] >= :offset
+        AND final_rows.[datarepo_row_number] \\<= :offset + :limit;""";
 
   private static final String queryTextColumnStatsTemplate =
       """

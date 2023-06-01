@@ -28,11 +28,12 @@ public class SynapseVisitor extends DatasetAwareVisitor {
       OPENROWSET(
         BULK '%s',
         DATA_SOURCE = '%s',
-        FORMAT = 'parquet') AS %s)
+        FORMAT = 'parquet') AS %s) AS %s
       """
         .formatted(
             FolderType.METADATA.getPath("parquet/%s/*/*.parquet".formatted(tableName)),
             sourceDatasetDatasource,
+            "inner_" + alias,
             alias);
   }
 

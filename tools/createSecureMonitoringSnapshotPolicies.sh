@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# This script creates a "protected-data" policy for snapshots that have `secureMonitoringEnabled`.
+# The script goes through the following steps:
+# 1. Authenticate as your Data Repo admin user
+# 2. Get snapshots from the Data Repo snapshots GET endpoint
+# 3. Filter the response for snapshots with `secureMonitoringEnabled` and get their ids
+# 4. Authenticate as the Data Repo service account (required for TPS)
+# 5. For each snapshot id, create a "protected-data" policy in the Terra Policy Service.
+
 echo "This script will create a protected-data policy for snapshots with secureMonitoringEnabled."
 PS3="❓ Select an environment:"
 select ENV in dev alpha staging prod; do
@@ -33,8 +41,10 @@ select ENV in dev alpha staging prod; do
 done
 printf "\n"
 
-echo "Retrieving snapshots with secureMonitoringEnabled..."
+gcloud auth login
 TOKEN=$(gcloud auth print-access-token)
+
+echo "Retrieving snapshots with secureMonitoringEnabled..."
 SNAPSHOTS=$(curl -s -X GET "${DATAREPO_URL}/api/repository/v1/snapshots?direction=desc&limit=4000&offset=0&sort=created_date" -H "accept: application/json" -H "authorization: Bearer ${TOKEN}" | jq -c '.items[] | select(.secureMonitoringEnabled == true) | .id')
 SNAPSHOTS_ARR=($SNAPSHOTS)
 N_SNAPSHOTS=${#SNAPSHOTS_ARR[@]}

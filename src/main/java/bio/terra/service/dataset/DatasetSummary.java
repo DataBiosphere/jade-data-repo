@@ -35,6 +35,7 @@ public class DatasetSummary {
   private Object properties;
   private boolean predictableFileIds;
   private List<String> tags;
+  private String lockingJobId;
 
   public UUID getId() {
     return id;
@@ -242,6 +243,15 @@ public class DatasetSummary {
     return this;
   }
 
+  public String getLockingJobId() {
+    return lockingJobId;
+  }
+
+  public DatasetSummary lockingJobId(String lockingJobId) {
+    this.lockingJobId = lockingJobId;
+    return this;
+  }
+
   public DatasetSummaryModel toModel() {
     return new DatasetSummaryModel()
         .id(getId())
@@ -257,7 +267,8 @@ public class DatasetSummary {
         .phsId(getPhsId())
         .selfHosted(isSelfHosted())
         .predictableFileIds(hasPredictableFileIds())
-        .tags(getTags());
+        .tags(getTags())
+        .lockingJobId(getLockingJobId());
   }
 
   List<StorageResourceModel> toStorageResourceModel() {

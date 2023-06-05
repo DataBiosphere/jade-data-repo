@@ -361,6 +361,10 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return datasetSummary.getTags();
   }
 
+  public String getLockingJobId() {
+    return datasetSummary.getLockingJobId();
+  }
+
   @Override
   public String toLogString() {
     return String.format("%s (%s)", this.getName(), this.getId());

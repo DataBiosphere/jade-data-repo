@@ -104,7 +104,8 @@ public final class DatasetJsonConversion {
             .phsId(dataset.getPhsId())
             .selfHosted(dataset.isSelfHosted())
             .predictableFileIds(dataset.hasPredictableFileIds())
-            .tags(dataset.getTags());
+            .tags(dataset.getTags())
+            .lockingJobId(dataset.getLockingJobId());
 
     if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
       return datasetModel;

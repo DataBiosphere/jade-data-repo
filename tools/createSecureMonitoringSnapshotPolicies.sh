@@ -45,24 +45,24 @@ gcloud auth login
 TOKEN=$(gcloud auth print-access-token)
 
 echo "Retrieving snapshots with secureMonitoringEnabled..."
-SNAPSHOTS=$(curl -s -X GET "${DATAREPO_URL}/api/repository/v1/snapshots?direction=desc&limit=4000&offset=0&sort=created_date" -H "accept: application/json" -H "authorization: Bearer ${TOKEN}" | jq -c '.items[] | select(.secureMonitoringEnabled == true) | .id')
-SNAPSHOTS_ARR=($SNAPSHOTS)
+SNAPSHOTS=$(curl -s -X GET "${DATAREPO_URL}/api/repository/v1/snapshots?direction=desc&limit=4000&offset=0&sort=created_date" -H "accept: application/json" -H "authorization: Bearer ${TOKEN}" | jq -r '.items[] | select(.secureMonitoringEnabled == true) | .id' | tr "\n" " ")
+IFS=" " read -r -a SNAPSHOTS_ARR <<< "$SNAPSHOTS"
 N_SNAPSHOTS=${#SNAPSHOTS_ARR[@]}
 echo "${N_SNAPSHOTS} snapshots found in ${ENV} with secureMonitoringEnabled"
-if [ $N_SNAPSHOTS -eq 0 ]; then
+if [ "$N_SNAPSHOTS" -eq 0 ]; then
   exit 0
 fi
 
 echo "Activating Data Repo service account (required to authenticate to TPS)..."
-if [ ${ENV} == "dev" ]; then
-  vault read -format=json ${DATAREPO_SERVICE_ACCOUNT_VAULT_PATH} | jq .data | tee ${DATAREPO_SERVICE_ACCOUNT_OUTPUT_PATH}
+if [ "${ENV}" == "dev" ]; then
+  vault read -format=json "${DATAREPO_SERVICE_ACCOUNT_VAULT_PATH}" | jq .data | tee "${DATAREPO_SERVICE_ACCOUNT_OUTPUT_PATH}"
 else
-  echo $(vault read -format=json ${DATAREPO_SERVICE_ACCOUNT_VAULT_PATH} | jq -r .data.key | base64 --decode) | tee ${DATAREPO_SERVICE_ACCOUNT_OUTPUT_PATH}
+  vault read -format=json "${DATAREPO_SERVICE_ACCOUNT_VAULT_PATH}" | jq -r .data.key | base64 --decode | tee "${DATAREPO_SERVICE_ACCOUNT_OUTPUT_PATH}"
 fi
-gcloud auth activate-service-account --key-file ${DATAREPO_SERVICE_ACCOUNT_OUTPUT_PATH}
+gcloud auth activate-service-account --key-file "${DATAREPO_SERVICE_ACCOUNT_OUTPUT_PATH}"
 SA_TOKEN=$(gcloud auth print-access-token)
 
-if [ ${ENV} != "dev" ]; then
+if [ "${ENV}" != "dev" ]; then
   echo "Skipping policy creation (TPS only exists in dev)"
   exit 0
 fi
@@ -74,7 +74,7 @@ do
       -H "accept: */*" \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer ${SA_TOKEN}" \
-      -d '{"objectId": '${SNAPSHOT_ID}',
+      -d '{"objectId": '"${SNAPSHOT_ID}"',
       "component": "TDR",
       "objectType": "snapshot",
       "attributes": {

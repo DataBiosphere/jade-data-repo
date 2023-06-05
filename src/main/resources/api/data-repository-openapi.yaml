@@ -3186,7 +3186,7 @@ paths:
         - admin
         - repository
       description: >
-        Load Drs Aliases into TDR.  It is possible to have an alias to a DRS ID that does not exist 
+        Load Drs Aliases into TDR.  It is possible to have an alias to a DRS ID that does not exist
         in TDR.
       operationId: registerDrsAliases
       requestBody:
@@ -4153,7 +4153,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
-
+        lockingJobId:
+          $ref: '#/components/schemas/ShortIdProperty'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -4203,6 +4204,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+        lockingJobId:
+          $ref: '#/components/schemas/ShortIdProperty'
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -5369,6 +5372,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+        lockingJobId:
+          $ref: '#/components/schemas/ShortIdProperty'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -5486,6 +5491,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+        lockingJobId:
+          $ref: '#/components/schemas/ShortIdProperty'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:

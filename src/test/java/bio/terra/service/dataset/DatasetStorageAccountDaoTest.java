@@ -94,7 +94,7 @@ public class DatasetStorageAccountDaoTest {
       datasetStorageAccountDao.deleteDatasetStorageAccountLink(
           datasetId, storageAccountResourceIds.get(0));
 
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.delete(datasetId);
     }
 
     azureResourceDao.deleteApplicationDeploymentMetadata(List.of(applicationId));

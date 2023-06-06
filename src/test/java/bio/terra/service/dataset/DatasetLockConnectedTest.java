@@ -91,6 +91,10 @@ public class DatasetLockConnectedTest {
     connectedOperations.teardown();
   }
 
+  private String getExclusiveLock(UUID datasetId) {
+    return datasetDao.retrieveSummaryById(datasetId).getLockingJobId();
+  }
+
   @Test
   public void testSharedLockFileIngest() throws Exception {
     // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before
@@ -122,7 +126,7 @@ public class DatasetLockConnectedTest {
     // check that the dataset metadata row has a shared lock
     // note: asserts are below outside the hang block
     UUID datasetId = UUID.fromString(summaryModel.getId().toString());
-    String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock1 = getExclusiveLock(datasetId);
     String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
     // try to ingest a separate file
@@ -144,7 +148,7 @@ public class DatasetLockConnectedTest {
 
     // check that the dataset metadata row has two shared locks
     // note: asserts are below outside the hang block
-    String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock2 = getExclusiveLock(datasetId);
     String[] sharedLocks2 = datasetDao.getSharedLocks(datasetId);
 
     // try to delete the dataset, this should fail with a lock exception
@@ -243,7 +247,7 @@ public class DatasetLockConnectedTest {
     // check that the dataset metadata row has a shared lock
     // note: asserts are below outside the hang block
     UUID datasetId = summaryModel.getId();
-    String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock1 = getExclusiveLock(datasetId);
     String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
     // try to delete the second file
@@ -259,7 +263,7 @@ public class DatasetLockConnectedTest {
 
     // check that the dataset metadata row has two shared locks
     // note: asserts are below outside the hang block
-    String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock2 = getExclusiveLock(datasetId);
     String[] sharedLocks2 = datasetDao.getSharedLocks(datasetId);
 
     // try to delete the dataset, this should fail with a lock exception
@@ -342,7 +346,7 @@ public class DatasetLockConnectedTest {
     // check that the dataset metadata row has a shared lock
     // note: asserts are below outside the hang block
     UUID datasetId = summaryModel.getId();
-    String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock1 = getExclusiveLock(datasetId);
     String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
     // kick off the second table ingest. it should hang in the cleanup step.
@@ -356,7 +360,7 @@ public class DatasetLockConnectedTest {
 
     // check that the dataset metadata row has two shared locks
     // note: asserts are below outside the hang block
-    String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock2 = getExclusiveLock(datasetId);
     String[] sharedLocks2 = datasetDao.getSharedLocks(datasetId);
 
     // try to delete the dataset, this should fail with a lock exception
@@ -407,7 +411,7 @@ public class DatasetLockConnectedTest {
   @Test
   public void retryAndAcquireExclusiveLock() throws Exception {
     UUID datasetId = summaryModel.getId();
-    String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock1 = getExclusiveLock(datasetId);
     assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
     configService.setFault(ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT.toString(), true);
@@ -416,7 +420,7 @@ public class DatasetLockConnectedTest {
     logger.info(
         "Sleeping for 2 seconds during delete dataset flight. It should fail to acquire exclusive lock.");
     TimeUnit.SECONDS.sleep(2);
-    String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock2 = getExclusiveLock(datasetId);
     assertNull("Exclusive lock should be null while fault is set", exclusiveLock2);
 
     configService.setFault(ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT.toString(), false);
@@ -438,7 +442,7 @@ public class DatasetLockConnectedTest {
   @Test
   public void retryAndFailAcquireExclusiveLock() throws Exception {
     UUID datasetId = summaryModel.getId();
-    String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock1 = getExclusiveLock(datasetId);
     assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
     configService.setFault(ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT.toString(), true);
@@ -446,7 +450,7 @@ public class DatasetLockConnectedTest {
     MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
     logger.info("Sleeping for 5 seconds while delete dataset attempts to delete. It should fail.");
     TimeUnit.SECONDS.sleep(5);
-    String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock2 = getExclusiveLock(datasetId);
     assertNull("Exclusive lock should be null while fault is set", exclusiveLock2);
 
     MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
@@ -457,7 +461,7 @@ public class DatasetLockConnectedTest {
   @Test
   public void retryAndAcquireExclusiveUnlock() throws Exception {
     UUID datasetId = summaryModel.getId();
-    String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock1 = getExclusiveLock(datasetId);
     assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
     configService.setFault(ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT.toString(), true);
@@ -486,7 +490,7 @@ public class DatasetLockConnectedTest {
   @Test
   public void retryAndFailAcquireExclusiveUnlock() throws Exception {
     UUID datasetId = summaryModel.getId();
-    String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock1 = getExclusiveLock(datasetId);
     assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
     configService.setFault(ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT.toString(), true);
@@ -526,7 +530,7 @@ public class DatasetLockConnectedTest {
   public void testExcludeLockedFromDatasetLookups() throws Exception {
     // check that the dataset metadata row is unlocked
     UUID datasetId = summaryModel.getId();
-    String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock = getExclusiveLock(datasetId);
     assertNull("dataset row is not exclusively locked", exclusiveLock);
     String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
     assertEquals("dataset row has no shared lock", 0, sharedLocks.length);
@@ -563,7 +567,7 @@ public class DatasetLockConnectedTest {
 
     // check that the dataset metadata row has an exclusive lock
     // note: asserts are below outside the hang block
-    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    exclusiveLock = getExclusiveLock(datasetId);
     sharedLocks = datasetDao.getSharedLocks(datasetId);
 
     // retrieve the dataset, should return not found
@@ -619,7 +623,7 @@ public class DatasetLockConnectedTest {
   public void testExcludeLockedFromFileLookups() throws Exception {
     // check that the dataset metadata row is unlocked
     UUID datasetId = summaryModel.getId();
-    String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock = getExclusiveLock(datasetId);
     assertNull("dataset row is not exclusively locked", exclusiveLock);
     String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
     assertEquals("dataset row has no shared lock", 0, sharedLocks.length);
@@ -668,7 +672,7 @@ public class DatasetLockConnectedTest {
 
     // check that the dataset metadata row has an exclusive lock
     // note: asserts are below outside the hang block
-    exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+    exclusiveLock = getExclusiveLock(datasetId);
     sharedLocks = datasetDao.getSharedLocks(datasetId);
 
     // lookup the file by id and check that it's NOT found

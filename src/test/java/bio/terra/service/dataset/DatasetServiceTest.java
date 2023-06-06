@@ -174,7 +174,7 @@ public class DatasetServiceTest {
   @After
   public void teardown() {
     for (UUID datasetId : datasetIdList) {
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.delete(datasetId);
     }
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(billingProfile.getId());
@@ -188,8 +188,7 @@ public class DatasetServiceTest {
   @Test(expected = DatasetNotFoundException.class)
   public void datasetDeleteTest() throws IOException, SQLException {
     UUID datasetId = createDataset("dataset-create-test.json");
-    assertThat(
-        "dataset delete signals success", datasetDao.delete(datasetId, TEST_USER), equalTo(true));
+    assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
     datasetDao.retrieve(datasetId);
   }
 
@@ -243,7 +242,7 @@ public class DatasetServiceTest {
         dataset.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
   }
 
   @Test
@@ -336,7 +335,7 @@ public class DatasetServiceTest {
         dataset.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
   }
 
   @Test
@@ -421,8 +420,8 @@ public class DatasetServiceTest {
         dataset2.getAssetSpecificationByName(assetName).isPresent(),
         equalTo(true));
 
-    datasetDao.delete(datasetId1, TEST_USER);
-    datasetDao.delete(datasetId2, TEST_USER);
+    datasetDao.delete(datasetId1);
+    datasetDao.delete(datasetId2);
   }
 
   @Test
@@ -481,7 +480,7 @@ public class DatasetServiceTest {
             equalTo(2));
       }
     } finally {
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.delete(datasetId);
     }
   }
 
@@ -525,7 +524,7 @@ public class DatasetServiceTest {
     assertThat(
         "dataset has one less asset spec", dataset.getAssetSpecifications().size(), equalTo(1));
 
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
   }
 
   @Test

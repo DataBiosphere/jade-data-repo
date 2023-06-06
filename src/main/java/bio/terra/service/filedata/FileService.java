@@ -205,7 +205,7 @@ public class FileService {
   }
 
   public Optional<FileModel> lookupOptionalPath(String datasetId, String path, int depth) {
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     final Optional<FSItem> file;
@@ -229,13 +229,8 @@ public class FileService {
     return file.map(this::fileModelFromFSItem);
   }
 
-  /**
-   * Note that this method will only return a file if the encompassing dataset is NOT exclusively
-   * locked. It is intended for user-facing calls (e.g. from RepositoryApiController), not internal
-   * calls that may require an exclusively locked dataset to be returned (e.g. file deletion).
-   */
   FSItem lookupFSItem(String datasetId, String fileId, int depth) throws InterruptedException {
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
@@ -262,13 +257,8 @@ public class FileService {
     }
   }
 
-  /**
-   * Note that this method will only return a file if the encompassing dataset is NOT exclusively
-   * locked. It is intended for user-facing calls (e.g. from RepositoryApiController), not internal
-   * calls that may require an exclusively locked dataset to be returned (e.g. file deletion).
-   */
   FSItem lookupFSItemByPath(String datasetId, String path, int depth) throws InterruptedException {
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {

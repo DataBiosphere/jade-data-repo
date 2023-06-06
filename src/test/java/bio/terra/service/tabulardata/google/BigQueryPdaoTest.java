@@ -185,7 +185,7 @@ public class BigQueryPdaoTest {
       bigQueryDatasetPdao.deleteDataset(dataset);
       assertThatDatasetAndTablesShouldExist(dataset, false);
     } finally {
-      datasetDao.delete(dataset.getId(), TEST_USER);
+      datasetDao.delete(dataset.getId());
     }
   }
 
@@ -277,7 +277,7 @@ public class BigQueryPdaoTest {
       bigQueryDatasetPdao.deleteDataset(dataset);
       // Need to manually clean up the DAO because `readDataset` bypasses the
       // `connectedOperations` object, so we can't rely on its auto-teardown logic.
-      datasetDao.delete(dataset.getId(), TEST_USER);
+      datasetDao.delete(dataset.getId());
     }
   }
 
@@ -377,7 +377,7 @@ public class BigQueryPdaoTest {
       bigQueryDatasetPdao.deleteDataset(dataset);
       // Need to manually clean up the DAO because `readDataset` bypasses the
       // `connectedOperations` object, so we can't rely on its auto-teardown logic.
-      datasetDao.delete(dataset.getId(), TEST_USER);
+      datasetDao.delete(dataset.getId());
     }
   }
 
@@ -485,7 +485,7 @@ public class BigQueryPdaoTest {
       bigQueryDatasetPdao.deleteDataset(dataset);
       assertThatDatasetAndTablesShouldExist(dataset, false);
     } finally {
-      datasetDao.delete(dataset.getId(), TEST_USER);
+      datasetDao.delete(dataset.getId());
     }
   }
 

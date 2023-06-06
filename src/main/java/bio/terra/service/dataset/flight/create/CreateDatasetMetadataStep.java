@@ -71,7 +71,7 @@ public class CreateDatasetMetadataStep implements Step {
     logger.debug("Dataset creation failed. Deleting metadata.");
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    datasetDao.delete(datasetId, userReq);
+    datasetDao.delete(datasetId);
     return StepResult.getStepResultSuccess();
   }
 }

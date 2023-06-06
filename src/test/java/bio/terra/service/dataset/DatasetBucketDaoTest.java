@@ -109,7 +109,7 @@ public class DatasetBucketDaoTest {
     datasetIds.forEach(
         datasetId -> {
           try {
-            datasetDao.delete(datasetId, TEST_USER);
+            datasetDao.delete(datasetId);
           } catch (Exception ex) {
             logger.error("[CLEANUP] Unable to delete dataset {}", datasetId);
           }

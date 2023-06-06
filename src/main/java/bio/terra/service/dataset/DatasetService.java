@@ -184,16 +184,6 @@ public class DatasetService {
   }
 
   /**
-   * Fetch existing Dataset object that is NOT exclusively locked.
-   *
-   * @param id in UUID format
-   * @return a Dataset object
-   */
-  public Dataset retrieveAvailable(UUID id) {
-    return datasetDao.retrieveAvailable(id);
-  }
-
-  /**
    * Fetch existing Dataset object using the name.
    *
    * @param name
@@ -208,18 +198,14 @@ public class DatasetService {
    * object. Unlike the Dataset object, the Model object includes a reference to the associated
    * cloud project.
    *
-   * <p>Note that this method will only return a dataset if it is NOT exclusively locked. It is
-   * intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may
-   * require an exclusively locked dataset to be returned (e.g. dataset deletion).
-   *
    * @param id in UUID format
    * @return a DatasetModel = API output-friendly representation of the Dataset
    */
-  public DatasetModel retrieveAvailableDatasetModel(
+  public DatasetModel retrieveDatasetModel(
       UUID id,
       AuthenticatedUserRequest userRequest,
       List<DatasetRequestAccessIncludeModel> include) {
-    Dataset dataset = retrieveAvailable(id);
+    Dataset dataset = retrieve(id);
     return retrieveModel(dataset, userRequest, include);
   }
 
@@ -483,35 +469,6 @@ public class DatasetService {
     } else {
       throw new InvalidCloudPlatformException();
     }
-  }
-
-  @FunctionalInterface
-  public interface IamAuthorizedCall {
-    void get() throws IamForbiddenException;
-  }
-
-  /**
-   * Throw if the user cannot access the dataset via SAM permissions.
-   *
-   * @param iamAuthorizedCall throws if dataset inaccessible via SAM permissions
-   */
-  void verifyDatasetAccessible(IamAuthorizedCall iamAuthorizedCall) {
-    try {
-      iamAuthorizedCall.get();
-    } catch (Exception iamEx) {
-      throw new ForbiddenException(
-          "Error accessing dataset: see errorDetails",
-          Collections.singletonList(iamEx.getMessage()));
-    }
-  }
-
-  /** Throw if the user cannot read the dataset. */
-  public void verifyDatasetReadable(UUID datasetId, AuthenticatedUserRequest userReq) {
-    IamAuthorizedCall canRead =
-        () ->
-            iamService.verifyAuthorization(
-                userReq, IamResourceType.DATASET, datasetId.toString(), IamAction.READ_DATA);
-    verifyDatasetAccessible(canRead);
   }
 
   public DatasetDataModel retrieveData(

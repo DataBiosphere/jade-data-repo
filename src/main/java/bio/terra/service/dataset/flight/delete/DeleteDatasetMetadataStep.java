@@ -24,7 +24,7 @@ public class DeleteDatasetMetadataStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    boolean success = datasetDao.delete(datasetId, userReq);
+    boolean success = datasetDao.delete(datasetId);
     DeleteResponseModel.ObjectStateEnum stateEnum =
         (success)
             ? DeleteResponseModel.ObjectStateEnum.DELETED

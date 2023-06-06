@@ -162,7 +162,7 @@ public class SnapshotDaoTest {
         snapshotDao.delete(id, TEST_USER);
       }
     }
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(profileId);
     duosDao.deleteFirecloudGroup(duosFirecloudGroupId);

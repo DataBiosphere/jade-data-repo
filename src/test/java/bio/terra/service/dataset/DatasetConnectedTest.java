@@ -136,8 +136,7 @@ public class DatasetConnectedTest {
         "fetched dataset name matches request", datasetRequest.getName(), datasetModel.getName());
 
     // check that the dataset metadata row is unlocked
-    String exclusiveLock = datasetDao.getExclusiveLock(summaryModel.getId());
-    assertNull("dataset row is unlocked", exclusiveLock);
+    assertNull("dataset row is unlocked", datasetModel.getLockingJobId());
 
     // try to create the same dataset again and check that it fails
     datasetRequest.description("Make sure nothing is getting overwritten");

@@ -93,7 +93,7 @@ public class GoogleResourceDaoUnitTest {
   @After
   public void teardown() {
     for (UUID datasetId : datasetIds) {
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.delete(datasetId);
     }
     for (UUID projectResourceId : projectResourceIds) {
       googleResourceDao.deleteProject(projectResourceId);

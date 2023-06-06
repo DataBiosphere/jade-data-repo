@@ -1,6 +1,5 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.dataset.Dataset;
@@ -22,17 +21,14 @@ import org.springframework.http.HttpStatus;
 
 public class CreateDatasetMetadataStep implements Step {
 
-  private final AuthenticatedUserRequest userReq;
   private DatasetDao datasetDao;
   private DatasetRequestModel datasetRequest;
 
   private static Logger logger = LoggerFactory.getLogger(CreateDatasetMetadataStep.class);
 
-  public CreateDatasetMetadataStep(
-      DatasetDao datasetDao, DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
+  public CreateDatasetMetadataStep(DatasetDao datasetDao, DatasetRequestModel datasetRequest) {
     this.datasetDao = datasetDao;
     this.datasetRequest = datasetRequest;
-    this.userReq = userReq;
   }
 
   @Override
@@ -49,7 +45,7 @@ public class CreateDatasetMetadataStep implements Step {
               .projectResourceId(projectResourceId)
               .applicationDeploymentResourceId(applicationDeploymentResourceId)
               .id(datasetId);
-      datasetDao.createAndLock(newDataset, context.getFlightId(), userReq);
+      datasetDao.createAndLock(newDataset, context.getFlightId());
 
       DatasetSummaryModel datasetSummary = newDataset.getDatasetSummary().toModel();
       workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);

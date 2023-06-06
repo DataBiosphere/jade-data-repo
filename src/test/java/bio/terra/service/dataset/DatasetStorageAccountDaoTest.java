@@ -136,7 +136,7 @@ public class DatasetStorageAccountDaoTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
+    datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     return datasetId;
   }

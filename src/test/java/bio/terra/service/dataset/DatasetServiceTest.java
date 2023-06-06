@@ -120,13 +120,6 @@ public class DatasetServiceTest {
   private ArrayList<String> flightIdsList;
   private ArrayList<UUID> datasetIdList;
 
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticatedUserRequest.builder()
-          .setSubjectId("DatasetUnit")
-          .setEmail("dataset@unit.com")
-          .setToken("token")
-          .build();
-
   private UUID createDataset(DatasetRequestModel datasetRequest, String newName)
       throws IOException, SQLException {
     datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
@@ -137,7 +130,7 @@ public class DatasetServiceTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
+    datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(datasetId, createFlightId);
     datasetIdList.add(datasetId);
     return datasetId;

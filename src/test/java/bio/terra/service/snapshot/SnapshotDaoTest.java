@@ -131,7 +131,7 @@ public class SnapshotDaoTest {
     String createFlightId = UUID.randomUUID().toString();
     datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
+    datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     dataset = datasetDao.retrieve(datasetId);
 

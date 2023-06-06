@@ -630,7 +630,7 @@ public class BigQueryPdaoTest {
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
+    datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     connectedOperations.addDataset(dataset.getId());
     return dataset;

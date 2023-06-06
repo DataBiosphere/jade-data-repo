@@ -4,25 +4,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThrows;
 
-import bio.terra.common.category.Unit;
 import bio.terra.grammar.exception.InvalidFilterException;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(properties = {"datarepo.testWithEmbeddedDatabase=false"})
-@AutoConfigureMockMvc
 @ActiveProfiles({"google", "unittest"})
-@Category(Unit.class)
+@Tag("bio.terra.common.category.Unit")
 public class QueryUtilsUnitTest {
 
   @Test
-  public void testWhereClause() {
+  void testWhereClause() {
     String filterWithWhere = "WHERE ( a = 1 )";
     assertThat(
         "Where clause should not add another 'WHERE' statement",
@@ -31,7 +23,7 @@ public class QueryUtilsUnitTest {
   }
 
   @Test
-  public void testWhereClauseLowercase() {
+  void testWhereClauseLowercase() {
     String filterWithWhere = "where ( a = 1 )";
     assertThat(
         "Where clause should not add another 'where' statement",
@@ -40,7 +32,7 @@ public class QueryUtilsUnitTest {
   }
 
   @Test
-  public void testWhereClauseNoParen() {
+  void testWhereClauseNoParen() {
     String filterWithWhere = "WHERE a = 1 ";
     assertThat(
         "Where clause should not add another 'WHERE' statement",
@@ -49,7 +41,7 @@ public class QueryUtilsUnitTest {
   }
 
   @Test
-  public void testWhereClauseNoWHERE() {
+  void testWhereClauseNoWHERE() {
     String filterNoWhere = "a = 1";
     String filterWithWhere = "WHERE (a = 1)";
     assertThat(
@@ -59,31 +51,31 @@ public class QueryUtilsUnitTest {
   }
 
   @Test
-  public void testWhereClauseNullFilter() {
+  void testWhereClauseNullFilter() {
     assertThat("return empty filter", QueryUtils.formatAndParseUserFilter(null), equalTo(""));
   }
 
   @Test
-  public void testWhereClauseEmptyFilter() {
+  void testWhereClauseEmptyFilter() {
     assertThat("return empty filter", QueryUtils.formatAndParseUserFilter(""), equalTo(""));
   }
 
   @Test
-  public void testInvalidWhereClause_MisspelledWhere() {
+  void testInvalidWhereClause_MisspelledWhere() {
     String misspelledWhere = "WERE a = 1";
     assertThrows(
         InvalidFilterException.class, () -> QueryUtils.formatAndParseUserFilter(misspelledWhere));
   }
 
   @Test
-  public void testInvalidWhereClause_MissingParenAtEnd() {
+  void testInvalidWhereClause_MissingParenAtEnd() {
     String missingParen = "WHERE (a = 1";
     assertThrows(
         InvalidFilterException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));
   }
 
   @Test
-  public void testInvalidWhereClause_MissingParen() {
+  void testInvalidWhereClause_MissingParen() {
     String missingParen = "WHERE a = 1)";
     assertThrows(
         InvalidFilterException.class, () -> QueryUtils.formatAndParseUserFilter(missingParen));

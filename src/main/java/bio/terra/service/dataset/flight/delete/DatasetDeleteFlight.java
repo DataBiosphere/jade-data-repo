@@ -124,7 +124,7 @@ public class DatasetDeleteFlight extends Flight {
       addStep(
           new DeleteDatasetDeleteStorageAccountsStep(resourceService, datasetService, datasetId));
     }
-    addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId, userReq));
+    addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
     addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
 
     // delete dataset project

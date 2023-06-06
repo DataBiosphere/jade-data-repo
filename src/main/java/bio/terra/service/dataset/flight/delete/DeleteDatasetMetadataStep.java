@@ -1,7 +1,6 @@
 package bio.terra.service.dataset.flight.delete;
 
 import bio.terra.common.FlightUtils;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.stairway.FlightContext;
@@ -13,13 +12,10 @@ import org.springframework.http.HttpStatus;
 public class DeleteDatasetMetadataStep implements Step {
   private DatasetDao datasetDao;
   private UUID datasetId;
-  private AuthenticatedUserRequest userReq;
 
-  public DeleteDatasetMetadataStep(
-      DatasetDao datasetDao, UUID datasetId, AuthenticatedUserRequest userReq) {
+  public DeleteDatasetMetadataStep(DatasetDao datasetDao, UUID datasetId) {
     this.datasetDao = datasetDao;
     this.datasetId = datasetId;
-    this.userReq = userReq;
   }
 
   @Override

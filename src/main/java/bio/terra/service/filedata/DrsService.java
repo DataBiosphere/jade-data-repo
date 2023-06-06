@@ -993,13 +993,13 @@ public class DrsService {
   @VisibleForTesting
   static class SnapshotCacheResult {
     private final UUID id;
-    private final Boolean isSelfHosted;
+    private final boolean isSelfHosted;
     private final BillingProfileModel datasetBillingProfileModel;
     private final UUID snapshotBillingProfileId;
     private final CloudPlatform cloudPlatform;
     private final String googleProjectId;
     private final String datasetProjectId;
-    private final Boolean globalFileIds;
+    private final boolean globalFileIds;
 
     public SnapshotCacheResult(Snapshot snapshot) {
       this.id = snapshot.getId();

@@ -44,6 +44,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private boolean globalFileIds;
   private String compactIdPrefix;
   private List<String> tags;
+  private String lockingJobId;
 
   @Override
   public CollectionType getCollectionType() {
@@ -277,6 +278,15 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
 
   public Snapshot tags(List<String> tags) {
     this.tags = tags;
+    return this;
+  }
+
+  public String getLockingJobId() {
+    return lockingJobId;
+  }
+
+  public Snapshot lockingJobId(String lockingJobId) {
+    this.lockingJobId = lockingJobId;
     return this;
   }
 

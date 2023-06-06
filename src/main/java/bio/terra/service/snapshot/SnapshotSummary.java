@@ -26,6 +26,7 @@ public class SnapshotSummary {
   private boolean selfHosted;
   private boolean globalFileIds;
   private List<String> tags;
+  private String lockingJobId;
 
   public UUID getId() {
     return id;
@@ -162,6 +163,15 @@ public class SnapshotSummary {
     return this;
   }
 
+  public String getLockingJobId() {
+    return lockingJobId;
+  }
+
+  public SnapshotSummary lockingJobId(String lockingJobId) {
+    this.lockingJobId = lockingJobId;
+    return this;
+  }
+
   public SnapshotSummaryModel toModel() {
     return new SnapshotSummaryModel()
         .id(getId())
@@ -178,7 +188,8 @@ public class SnapshotSummary {
         .phsId(getPhsId())
         .selfHosted(isSelfHosted())
         .globalFileIds(isGlobalFileIds())
-        .tags(getTags());
+        .tags(getTags())
+        .lockingJobId(getLockingJobId());
   }
 
   private List<StorageResourceModel> toStorageResourceModel() {

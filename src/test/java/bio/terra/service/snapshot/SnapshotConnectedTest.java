@@ -315,7 +315,7 @@ public class SnapshotConnectedTest {
     assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
     // check that the snapshot metadata row is unlocked
-    String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotModel.getId());
+    String exclusiveLock = snapshotModel.getLockingJobId();
     assertNull("snapshot row is unlocked", exclusiveLock);
 
     // try to create the same snapshot again and check that it fails
@@ -371,7 +371,7 @@ public class SnapshotConnectedTest {
     assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
     // check that the snapshot metadata row is unlocked
-    String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotModel.getId());
+    String exclusiveLock = snapshotModel.getLockingJobId();
     assertNull("snapshot row is unlocked", exclusiveLock);
 
     // delete and confirm deleted

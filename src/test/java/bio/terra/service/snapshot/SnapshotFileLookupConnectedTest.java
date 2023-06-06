@@ -121,13 +121,13 @@ public class SnapshotFileLookupConnectedTest {
     // create a snapshot
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(datasetSummary, "snapshot-test-snapshot.json", "_d2_");
+    UUID id = snapshotSummary.getId();
 
     // check that the snapshot metadata row is unlocked
-    String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotSummary.getId());
-    assertNull("snapshot row is unlocked", exclusiveLock);
+    assertNull("snapshot row is unlocked", snapshotSummary.getLockingJobId());
 
     // retrieve the snapshot and check that it finds it
-    SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummary.getId());
+    SnapshotModel snapshotModel = connectedOperations.getSnapshot(id);
     assertEquals(
         "Lookup unlocked snapshot succeeds", snapshotSummary.getName(), snapshotModel.getName());
 
@@ -137,7 +137,7 @@ public class SnapshotFileLookupConnectedTest {
     List<SnapshotSummaryModel> enumeratedSnapshots = enumerateSnapshotModelModel.getItems();
     boolean foundSnapshotWithMatchingId = false;
     for (SnapshotSummaryModel enumeratedSnapshot : enumeratedSnapshots) {
-      if (enumeratedSnapshot.getId().equals(snapshotSummary.getId())) {
+      if (enumeratedSnapshot.getId().equals(id)) {
         foundSnapshotWithMatchingId = true;
         break;
       }
@@ -152,17 +152,15 @@ public class SnapshotFileLookupConnectedTest {
 
     // kick off a request to delete the snapshot. this should hang before unlocking the snapshot
     // object.
-    MvcResult deleteResult =
-        mvc.perform(delete("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+    MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
     TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
     // note: asserts are below outside the hang block
-    exclusiveLock = snapshotDao.getExclusiveLockState(snapshotSummary.getId());
+    String exclusiveLock = snapshotDao.retrieveSummaryById(id).getLockingJobId();
 
     // retrieve the snapshot and check that it returns not found
     // note: asserts are below outside the hang block
-    MvcResult retrieveResult =
-        mvc.perform(get("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+    MvcResult retrieveResult = mvc.perform(get("/api/repository/v1/snapshots/" + id)).andReturn();
 
     // enumerate snapshots and check that this snapshot is not included in the set
     // note: asserts are below outside the hang block
@@ -188,7 +186,7 @@ public class SnapshotFileLookupConnectedTest {
     enumeratedSnapshots = enumerateSnapshotModelModel.getItems();
     foundSnapshotWithMatchingId = false;
     for (SnapshotSummaryModel enumeratedSnapshot : enumeratedSnapshots) {
-      if (enumeratedSnapshot.getId().equals(snapshotSummary.getId())) {
+      if (enumeratedSnapshot.getId().equals(id)) {
         foundSnapshotWithMatchingId = true;
         break;
       }
@@ -206,7 +204,7 @@ public class SnapshotFileLookupConnectedTest {
         deleteResponseModel.getObjectState());
 
     // try to fetch the snapshot again and confirm nothing is returned
-    connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
+    connectedOperations.getSnapshotExpectError(id, HttpStatus.NOT_FOUND);
   }
 
   @Test
@@ -258,10 +256,10 @@ public class SnapshotFileLookupConnectedTest {
     SnapshotSummaryModel snapshotSummary =
         connectedOperations.createSnapshot(
             datasetRefSummary, "simple-with-filerefs-snapshot.json", "");
+    UUID snapshotId = snapshotSummary.getId();
 
     // check that the snapshot metadata row is unlocked
-    String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotSummary.getId());
-    assertNull("snapshot row is unlocked", exclusiveLock);
+    assertNull("snapshot row is unlocked", snapshotSummary.getLockingJobId());
 
     /*
      * WARNING: if making any changes to this test make sure to notify the #dsp-batch channel! Describe the change
@@ -275,8 +273,7 @@ public class SnapshotFileLookupConnectedTest {
     // lookup the snapshot file by DRS id, make sure it's returned (lookupSnapshotFileSuccess will
     // already check)
     FileModel fsObjById =
-        connectedOperations.lookupSnapshotFileSuccess(
-            snapshotSummary.getId(), drsId.getFsObjectId());
+        connectedOperations.lookupSnapshotFileSuccess(snapshotId, drsId.getFsObjectId());
     assertEquals(
         "Retrieve snapshot file by DRS id matches desc",
         fsObjById.getDescription(),
@@ -284,7 +281,7 @@ public class SnapshotFileLookupConnectedTest {
 
     // lookup the snapshot file by DRS path and check that it's found
     FileModel fsObjByPath =
-        connectedOperations.lookupSnapshotFileByPathSuccess(snapshotSummary.getId(), filePath, 0);
+        connectedOperations.lookupSnapshotFileByPathSuccess(snapshotId, filePath, 0);
     assertEquals(
         "Retrieve snapshot file by path matches desc",
         fsObjByPath.getDescription(),
@@ -308,7 +305,7 @@ public class SnapshotFileLookupConnectedTest {
     TimeUnit.SECONDS.sleep(5); // give the flight time to launch and get to the hang
 
     // check that the snapshot metadata row has an exclusive lock
-    exclusiveLock = snapshotDao.getExclusiveLockState(snapshotSummary.getId());
+    String exclusiveLock = snapshotDao.retrieveSummaryById(snapshotId).getLockingJobId();
 
     // lookup the snapshot file by id and check that it's NOT found
     MockHttpServletResponse failedGetSnapshotByIdResponse =
@@ -409,8 +406,7 @@ public class SnapshotFileLookupConnectedTest {
             datasetRefSummary, "simple-with-filerefs-snapshot.json", "");
 
     // check that the snapshot metadata row is unlocked
-    String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotSummary.getId());
-    assertNull("snapshot row is unlocked", exclusiveLock);
+    assertNull("snapshot row is unlocked", snapshotSummary.getLockingJobId());
 
     /*
      * WARNING: if making any changes to this test make sure to notify the #dsp-batch channel! Describe the change

@@ -152,7 +152,7 @@ public class DrsServiceTest {
 
     snapshotId = UUID.randomUUID();
     SnapshotProject snapshotProject = new SnapshotProject();
-    when(snapshotService.retrieveAvailableSnapshotProject(any())).thenReturn(snapshotProject);
+    when(snapshotService.retrieveSnapshotProject(any())).thenReturn(snapshotProject);
 
     BillingProfileModel billingProfile = new BillingProfileModel().id(UUID.randomUUID());
     when(snapshotService.retrieve(snapshotId))
@@ -267,7 +267,7 @@ public class DrsServiceTest {
     when(snapshotService.retrieve(eq(snpId2))).thenReturn(snp2);
     when(snapshotService.retrieve(eq(snpId3))).thenReturn(snp3);
     when(snapshotService.retrieve(eq(snpId4))).thenReturn(snp4);
-    when(snapshotService.retrieveAvailableSnapshotProject(any()))
+    when(snapshotService.retrieveSnapshotProject(any()))
         .then(
             a ->
                 new SnapshotProject()
@@ -360,7 +360,7 @@ public class DrsServiceTest {
     Snapshot snp2 = mockSnapshot(snpId2, billingIdB, CloudPlatform.AZURE, null).globalFileIds(true);
     when(snapshotService.retrieve(eq(snpId1))).thenReturn(snp1);
     when(snapshotService.retrieve(eq(snpId2))).thenReturn(snp2);
-    when(snapshotService.retrieveAvailableSnapshotProject(any()))
+    when(snapshotService.retrieveSnapshotProject(any()))
         .then(
             a ->
                 new SnapshotProject()
@@ -694,7 +694,7 @@ public class DrsServiceTest {
       drsService.lookupObjectByDrsId(TEST_USER, drsId, false);
     }
     verify(snapshotService, times(1)).retrieve(any());
-    verify(snapshotService, times(1)).retrieveAvailableSnapshotProject(any());
+    verify(snapshotService, times(1)).retrieveSnapshotProject(any());
 
     List<String> azureDrsObjectIds =
         IntStream.range(0, 5)
@@ -712,7 +712,7 @@ public class DrsServiceTest {
       drsService.lookupObjectByDrsId(TEST_USER, drsId, false);
     }
     verify(snapshotService, times(1)).retrieve(any());
-    verify(snapshotService, times(1)).retrieveAvailableSnapshotProject(any());
+    verify(snapshotService, times(1)).retrieveSnapshotProject(any());
   }
 
   @Test

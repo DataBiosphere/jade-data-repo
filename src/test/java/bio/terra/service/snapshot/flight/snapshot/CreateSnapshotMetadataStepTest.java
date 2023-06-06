@@ -9,9 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.fixtures.DuosFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.snapshot.Snapshot;
@@ -43,8 +41,6 @@ public class CreateSnapshotMetadataStepTest {
   @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
 
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticationFixtures.randomUserRequest();
   private static final String FLIGHT_ID = String.valueOf(UUID.randomUUID());
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
   private static final UUID PROJECT_RESOURCE_ID = UUID.randomUUID();
@@ -73,19 +69,17 @@ public class CreateSnapshotMetadataStepTest {
   @Test
   public void testDoAndUndoStep() throws InterruptedException {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    step =
-        new CreateSnapshotMetadataStep(
-            snapshotDao, snapshotService, snapshotRequestModel, TEST_USER);
+    step = new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotRequestModel);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     snapshot.id(UUID.randomUUID()).projectResourceId(PROJECT_RESOURCE_ID);
     ArgumentCaptor<Snapshot> argument = ArgumentCaptor.forClass(Snapshot.class);
-    verify(snapshotDao).createAndLock(argument.capture(), eq(FLIGHT_ID), eq(TEST_USER));
+    verify(snapshotDao).createAndLock(argument.capture(), eq(FLIGHT_ID));
     assertNull(argument.getValue().getDuosFirecloudGroupId());
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(snapshotDao).delete(SNAPSHOT_ID, TEST_USER);
+    verify(snapshotDao).delete(SNAPSHOT_ID);
   }
 
   @Test
@@ -94,9 +88,7 @@ public class CreateSnapshotMetadataStepTest {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
     snapshotRequestModel.duosId(DUOS_ID);
 
-    step =
-        new CreateSnapshotMetadataStep(
-            snapshotDao, snapshotService, snapshotRequestModel, TEST_USER);
+    step = new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotRequestModel);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
     snapshot
@@ -104,11 +96,11 @@ public class CreateSnapshotMetadataStepTest {
         .projectResourceId(PROJECT_RESOURCE_ID)
         .duosFirecloudGroupId(DUOS_FIRECLOUD_GROUP.getId());
     ArgumentCaptor<Snapshot> argument = ArgumentCaptor.forClass(Snapshot.class);
-    verify(snapshotDao).createAndLock(argument.capture(), eq(FLIGHT_ID), eq(TEST_USER));
+    verify(snapshotDao).createAndLock(argument.capture(), eq(FLIGHT_ID));
     assertEquals(argument.getValue().getDuosFirecloudGroupId(), DUOS_FIRECLOUD_GROUP.getId());
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(snapshotDao).delete(SNAPSHOT_ID, TEST_USER);
+    verify(snapshotDao).delete(SNAPSHOT_ID);
   }
 }

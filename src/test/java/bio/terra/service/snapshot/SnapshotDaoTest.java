@@ -159,7 +159,7 @@ public class SnapshotDaoTest {
   public void teardown() throws Exception {
     if (snapshotIds != null) {
       for (UUID id : snapshotIds) {
-        snapshotDao.delete(id, TEST_USER);
+        snapshotDao.delete(id);
       }
     }
     datasetDao.delete(datasetId);
@@ -182,7 +182,7 @@ public class SnapshotDaoTest {
   }
 
   private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
-    snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
+    snapshotDao.createAndLock(snapshot, flightId);
     snapshotDao.unlock(snapshot.getId(), flightId);
     snapshotIds.add(snapshot.getId());
     return snapshotDao.retrieveSnapshot(snapshot.getId());
@@ -426,7 +426,7 @@ public class SnapshotDaoTest {
               .datasetStorageContainsRegion(GoogleRegion.DEFAULT_GOOGLE_REGION));
 
       // Test retrieve SnapshotProject object
-      SnapshotProject snapshotProject = snapshotDao.retrieveSnapshotProject(s.getId(), true);
+      SnapshotProject snapshotProject = snapshotDao.retrieveSnapshotProject(s.getId());
       assertThat("snapshot project id matches", snapshotProject.getId(), equalTo(s.getId()));
       assertThat("snapshot project name matches", snapshotProject.getName(), equalTo(s.getName()));
       assertThat(

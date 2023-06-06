@@ -134,7 +134,7 @@ public class SnapshotDeleteFlight extends Flight {
     // Delete Metadata
     addStep(new DeleteSnapshotDrsIdsStep(drsService, snapshotId));
     addStep(
-        new DeleteSnapshotMetadataStep(snapshotDao, snapshotId, userReq),
+        new DeleteSnapshotMetadataStep(snapshotDao, snapshotId),
         getDefaultExponentialBackoffRetryRule());
     addStep(new PerformAzureStep(new DeleteSnapshotMetadataAzureStep(azureStorageAccountService)));
     addStep(new PerformSnapshotStep(new UnlockSnapshotStep(snapshotDao, snapshotId)));

@@ -281,7 +281,7 @@ public class FileService {
     try {
       // note: this method only returns snapshots that are NOT exclusively locked
       SnapshotProject snapshot =
-          snapshotService.retrieveAvailableSnapshotProject(UUID.fromString(snapshotId));
+          snapshotService.retrieveSnapshotProject(UUID.fromString(snapshotId));
       return fileModelFromFSItem(lookupSnapshotFSItem(snapshot, fileId, depth));
     } catch (InterruptedException ex) {
       throw new FileSystemExecutionException(
@@ -347,8 +347,7 @@ public class FileService {
 
   FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth)
       throws InterruptedException {
-    // note: this method only returns snapshots that are NOT exclusively locked
-    Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
+    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
     return fileDao.retrieveByPath(snapshot, path, depth);
   }
 

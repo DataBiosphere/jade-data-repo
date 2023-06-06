@@ -569,31 +569,15 @@ public class DrsService {
 
     BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();
 
-    String signingProject;
-    String signingUser;
-    // If a user specifies a billing project in the request, prefer that over the snapshot's
-    // project.  If a billing project is required to access the data, and it is not provided,
-    // nothing will fail until the user tries to access the signed URL.
-    if (!StringUtils.isEmpty(userProject)) {
-      signingProject = userProject;
-    } else {
-      signingProject = cachedSnapshot.googleProjectId;
-    }
-    if (authUser != null) {
-      signingUser = authUser.getEmail();
-    } else {
-      signingUser = null;
-    }
-
     Function<Storage, URL> signUrlFunction =
         storage ->
             storage.signUrl(
                 blobInfo,
                 URL_TTL.toMinutes(),
                 TimeUnit.MINUTES,
-                getUrlSigningOptions(signingUser, signingProject));
+                getUrlSigningOptions(cachedSnapshot, userProject, authUser));
 
-    URL signedUrl;
+    final URL signedUrl;
     if (cachedSnapshot.isSelfHosted) {
       // If a userProject is explicitly passed in, then use that to sign the url.
       // Note: the expectation is that this is a Terra hosted bucket
@@ -624,11 +608,29 @@ public class DrsService {
   /**
    * Returns the options to use when signing a URL from TDR
    *
-   * @param signingUser The Terra user requesting the signed URL
-   * @param signingProject The Google project being billed for the accessing the signed URL
+   * @param cachedSnapshot Snapshot where the drs request initiated
+   * @param userProject The Google project being billed for the accessing the signed URL
+   * @param authUser The user requesting the signed URL
    * @return The options to use when signing a URL from TDR
    */
-  private Storage.SignUrlOption[] getUrlSigningOptions(String signingUser, String signingProject) {
+  private Storage.SignUrlOption[] getUrlSigningOptions(
+      SnapshotCacheResult cachedSnapshot, String userProject, AuthenticatedUserRequest authUser) {
+    final String signingProject;
+    final String signingUser;
+    // If a user specifies a billing project in the request, prefer that over the snapshot's
+    // project.  If a billing project is required to access the data, and it is not provided,
+    // nothing will fail until the user tries to access the signed URL.
+    if (!StringUtils.isEmpty(userProject)) {
+      signingProject = userProject;
+    } else {
+      signingProject = cachedSnapshot.googleProjectId;
+    }
+    if (authUser != null) {
+      signingUser = authUser.getEmail();
+    } else {
+      signingUser = null;
+    }
+
     Map<String, String> queryParams = new HashMap<>();
     queryParams.put(USER_PROJECT_QUERY_PARAM, signingProject);
     if (signingUser != null) {

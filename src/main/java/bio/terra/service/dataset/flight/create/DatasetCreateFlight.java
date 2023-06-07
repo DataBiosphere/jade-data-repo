@@ -151,6 +151,8 @@ public class DatasetCreateFlight extends Flight {
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
     }
     addStep(new UnlockDatasetStep(datasetService, false));
+    // once unlocked, the dataset summary can be written as the job response
+    addStep(new CreateDatasetSetResponseStep(datasetService));
     addStep(new CreateDatasetJournalEntryStep(journalService, userReq));
   }
 }

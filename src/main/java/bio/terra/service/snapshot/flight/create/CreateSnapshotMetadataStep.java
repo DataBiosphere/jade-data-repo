@@ -3,7 +3,6 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -58,10 +57,6 @@ public class CreateSnapshotMetadataStep implements Step {
         snapshot.duosFirecloudGroupId(duosFirecloudGroupId);
       }
       snapshotDao.createAndLock(snapshot, context.getFlightId());
-
-      SnapshotSummaryModel response = snapshotService.retrieveSnapshotSummary(snapshotId);
-
-      FlightUtils.setResponse(context, response, HttpStatus.CREATED);
       return StepResult.getStepResultSuccess();
     } catch (InvalidSnapshotException isEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, isEx);

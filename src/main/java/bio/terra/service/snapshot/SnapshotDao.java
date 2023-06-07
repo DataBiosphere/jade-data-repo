@@ -181,7 +181,7 @@ public class SnapshotDao implements TaggableResourceDao {
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
   public boolean unlock(UUID snapshotId, String flightId) {
     // update the snapshot entry to remove the flightid IF it is currently set to this flightid
-    String sql = "UPDATE snapshot SET flightid = NULL " + "WHERE id = :id AND flightid = :flightid";
+    String sql = "UPDATE snapshot SET flightid = NULL WHERE id = :id AND flightid = :flightid";
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("id", snapshotId).addValue("flightid", flightId);
     int numRowsUpdated = jdbcTemplate.update(sql, params);

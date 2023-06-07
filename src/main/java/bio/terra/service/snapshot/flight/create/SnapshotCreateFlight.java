@@ -323,6 +323,8 @@ public class SnapshotCreateFlight extends Flight {
 
     // unlock the snapshot metadata row
     addStep(new UnlockSnapshotStep(snapshotDao, null));
+    // once unlocked, the snapshot summary can be written as the job response
+    addStep(new CreateSnapshotSetResponseStep(snapshotService));
     addStep(new CreateSnapshotJournalEntryStep(journalService, userReq));
     addStep(
         new JournalRecordUpdateEntryStep(

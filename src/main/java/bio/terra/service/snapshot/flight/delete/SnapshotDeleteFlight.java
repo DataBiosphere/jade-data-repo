@@ -8,7 +8,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.common.JournalRecordDeleteEntryStep;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.DrsService;
@@ -49,7 +48,6 @@ public class SnapshotDeleteFlight extends Flight {
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     IamService iamClient = appContext.getBean(IamService.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     TableDependencyDao tableDependencyDao = appContext.getBean(TableDependencyDao.class);
     TableDao tableDao = appContext.getBean(TableDao.class);

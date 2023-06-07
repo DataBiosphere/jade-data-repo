@@ -313,11 +313,11 @@ public abstract class BigQueryPdao {
             .add("direction", SqlSortDirection.ASC)
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
-
-    return (ColumnStatisticsTextModel)
-        new ColumnStatisticsTextModel()
-            .values(aggregateTextColumnStats(result, columnName))
-            .dataType(column.getType().toString());
+    ColumnStatisticsTextModel textModel = new ColumnStatisticsTextModel();
+    textModel
+        .values(aggregateTextColumnStats(result, columnName))
+        .dataType(column.getType().toString());
+    return textModel;
   }
 
   static List<ColumnStatisticsTextValue> aggregateTextColumnStats(
@@ -343,9 +343,8 @@ public abstract class BigQueryPdao {
       throws InterruptedException {
 
     final TableResult result = retrieveNumericColumnStats(tdrResource, tableName, column, filter);
-    ColumnStatisticsDoubleModel doubleModel =
-        (ColumnStatisticsDoubleModel)
-            new ColumnStatisticsDoubleModel().dataType(column.getType().toString());
+    ColumnStatisticsDoubleModel doubleModel = new ColumnStatisticsDoubleModel();
+    doubleModel.dataType(column.getType().toString());
     setMinMaxDoubleResult(result, doubleModel);
     return doubleModel;
   }
@@ -355,9 +354,8 @@ public abstract class BigQueryPdao {
       throws InterruptedException {
 
     final TableResult result = retrieveNumericColumnStats(tdrResource, tableName, column, filter);
-    ColumnStatisticsIntModel intModel =
-        (ColumnStatisticsIntModel)
-            new ColumnStatisticsIntModel().dataType(column.getType().toString());
+    ColumnStatisticsIntModel intModel = new ColumnStatisticsIntModel();
+    intModel.dataType(column.getType().toString());
     setMinMaxIntResult(result, intModel);
     return intModel;
   }

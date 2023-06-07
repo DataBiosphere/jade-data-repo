@@ -1147,4 +1147,32 @@ public class DatasetDaoTest {
         "No rows are updated when updating tags on nonexistent dataset",
         datasetDao.updateTags(UUID.randomUUID(), new TagUpdateRequestModel()));
   }
+
+  @Test
+  public void testRetrieveExclusivelyLockedDataset() throws Exception {
+    UUID datasetId = createDataset("dataset-minimal.json");
+    String flightId = "flightId";
+
+    // After exclusively locking the dataset, we should still be able to retrieve it
+    datasetDao.lockExclusive(datasetId, flightId);
+
+    Dataset lockedDataset = datasetDao.retrieve(datasetId);
+    assertThat(
+        "Locked dataset can be retrieved", lockedDataset.getLockingJobId(), equalTo(flightId));
+
+    DatasetSummary lockedDatasetSummary = datasetDao.retrieveSummaryById(datasetId);
+    assertThat(
+        "Locked dataset summary can be retrieved",
+        lockedDatasetSummary.getLockingJobId(),
+        equalTo(flightId));
+
+    MetadataEnumeration<DatasetSummary> datasetEnumeration =
+        datasetDao.enumerate(0, 1, null, null, null, null, datasetIds, null);
+    assertThat(datasetEnumeration.getTotal(), equalTo(1));
+    DatasetSummary lockedDatasetSummaryEnumerationItem = datasetEnumeration.getItems().get(0);
+    assertThat(
+        "Locked dataset summary can be enumerated",
+        lockedDatasetSummaryEnumerationItem.getLockingJobId(),
+        equalTo(flightId));
+  }
 }

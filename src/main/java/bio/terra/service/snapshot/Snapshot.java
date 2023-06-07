@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.LogPrintable;
@@ -120,10 +119,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   }
 
   public Dataset getSourceDataset() {
-    if (snapshotSources.isEmpty()) {
-      throw new CorruptMetadataException("Snapshot sources should never be empty!");
-    }
-    return snapshotSources.get(0).getDataset();
+    return getFirstSnapshotSource().getDataset();
   }
 
   public Optional<SnapshotTable> getTableById(UUID id) {
@@ -231,10 +227,6 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   public FireStoreProject firestoreConnection() {
     String datasetProjectId = getSourceDataset().getProjectResource().getGoogleProjectId();
     return FireStoreProject.get(datasetProjectId);
-  }
-
-  public AzureRegion getStorageAccountRegion() {
-    return getSourceDataset().getStorageAccountRegion();
   }
 
   public boolean isSecureMonitoringEnabled() {

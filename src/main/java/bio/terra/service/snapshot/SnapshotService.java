@@ -20,7 +20,6 @@ import bio.terra.externalcreds.model.ValidatePassportResult;
 import bio.terra.grammar.Query;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.ColumnModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.ErrorModel;
@@ -64,7 +63,6 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.duos.DuosClient;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -1134,27 +1132,11 @@ public class SnapshotService {
   }
 
   private SnapshotSourceModel makeSourceModelFromSource(SnapshotSource source) {
-    // TODO: when source summary methods are available, use those. Here I roll my own
     Dataset dataset = source.getDataset();
-    DatasetSummaryModel summaryModel =
-        new DatasetSummaryModel()
-            .id(dataset.getId())
-            .name(dataset.getName())
-            .description(dataset.getDescription())
-            .defaultProfileId(dataset.getDefaultProfileId())
-            .createdDate(dataset.getCreatedDate().toString())
-            .storage(
-                dataset.getDatasetSummary().getStorage().stream()
-                    .map(StorageResource::toModel)
-                    .collect(Collectors.toList()))
-            .secureMonitoringEnabled(dataset.isSecureMonitoringEnabled())
-            .phsId(dataset.getPhsId())
-            .selfHosted(dataset.isSelfHosted())
-            .tags(dataset.getTags())
-            .lockingJobId(dataset.getLockingJobId());
-
     SnapshotSourceModel sourceModel =
-        new SnapshotSourceModel().dataset(summaryModel).datasetProperties(dataset.getProperties());
+        new SnapshotSourceModel()
+            .dataset(dataset.getDatasetSummary().toModel())
+            .datasetProperties(dataset.getProperties());
 
     AssetSpecification assetSpec = source.getAssetSpecification();
     if (assetSpec != null) {

@@ -117,7 +117,7 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(
         new PerformGcpStep(
             new DeleteSnapshotPrimaryDataGcpStep(
-                bigQuerySnapshotPdao, snapshotService, fileDao, snapshotId, configService)),
+                bigQuerySnapshotPdao, snapshotService, fileDao, snapshotId)),
         randomBackoffRetry);
     // --- Azure --
     addStep(

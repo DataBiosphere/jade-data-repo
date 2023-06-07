@@ -425,43 +425,7 @@ public class SnapshotDaoTest {
               .getDatasetSummary()
               .datasetStorageContainsRegion(GoogleRegion.DEFAULT_GOOGLE_REGION));
 
-      // Test retrieve SnapshotProject object
-      SnapshotProject snapshotProject = snapshotDao.retrieveSnapshotProject(s.getId());
-      assertThat("snapshot project id matches", snapshotProject.getId(), equalTo(s.getId()));
-      assertThat("snapshot project name matches", snapshotProject.getName(), equalTo(s.getName()));
-      assertThat(
-          "snapshot project profile id matches",
-          snapshotProject.getProfileId(),
-          equalTo(snapshot.getProfileId()));
-      assertThat(
-          "snapshot project data project name matches",
-          snapshotProject.getDataProject(),
-          equalTo(snapshot.getProjectResource().getGoogleProjectId()));
-      assertThat(
-          "snapshot project has a single source dataset",
-          snapshotProject.getSourceDatasetProjects(),
-          hasSize(1));
-      assertThat(
-          "dataset project id matches",
-          snapshotProject.getFirstSourceDatasetProject().getId(),
-          equalTo(snapshot.getSourceDataset().getId()));
-      assertThat(
-          "dataset project name matches",
-          snapshotProject.getFirstSourceDatasetProject().getName(),
-          equalTo(snapshot.getSourceDataset().getName()));
-      assertThat(
-          "dataset project profile id matches",
-          snapshotProject.getFirstSourceDatasetProject().getProfileId(),
-          equalTo(snapshot.getSourceDataset().getProjectResource().getProfileId()));
-      assertThat(
-          "dataset project data project name matches",
-          snapshotProject.getFirstSourceDatasetProject().getDataProject(),
-          equalTo(
-              snapshot
-                  .getFirstSnapshotSource()
-                  .getDataset()
-                  .getProjectResource()
-                  .getGoogleProjectId()));
+      verifySnapshotProject(snapshot);
     }
 
     MetadataEnumeration<SnapshotSummary> summaryEnum =
@@ -559,6 +523,46 @@ public class SnapshotDaoTest {
         "snapshot filter by tags returns correct total",
         incompleteTagMatchEnum.getTotal(),
         equalTo(6));
+  }
+
+  private void verifySnapshotProject(Snapshot snapshot) {
+    SnapshotProject snapshotProject = snapshotDao.retrieveSnapshotProject(snapshot.getId());
+    assertThat("snapshot project id matches", snapshotProject.getId(), equalTo(snapshot.getId()));
+    assertThat(
+        "snapshot project name matches", snapshotProject.getName(), equalTo(snapshot.getName()));
+    assertThat(
+        "snapshot project profile id matches",
+        snapshotProject.getProfileId(),
+        equalTo(snapshot.getProfileId()));
+    assertThat(
+        "snapshot project data project name matches",
+        snapshotProject.getDataProject(),
+        equalTo(snapshot.getProjectResource().getGoogleProjectId()));
+    assertThat(
+        "snapshot project has a single source dataset",
+        snapshotProject.getSourceDatasetProjects(),
+        hasSize(1));
+    assertThat(
+        "dataset project id matches",
+        snapshotProject.getFirstSourceDatasetProject().getId(),
+        equalTo(snapshot.getSourceDataset().getId()));
+    assertThat(
+        "dataset project name matches",
+        snapshotProject.getFirstSourceDatasetProject().getName(),
+        equalTo(snapshot.getSourceDataset().getName()));
+    assertThat(
+        "dataset project profile id matches",
+        snapshotProject.getFirstSourceDatasetProject().getProfileId(),
+        equalTo(snapshot.getSourceDataset().getProjectResource().getProfileId()));
+    assertThat(
+        "dataset project data project name matches",
+        snapshotProject.getFirstSourceDatasetProject().getDataProject(),
+        equalTo(
+            snapshot
+                .getFirstSnapshotSource()
+                .getDataset()
+                .getProjectResource()
+                .getGoogleProjectId()));
   }
 
   private String makeName(String baseName, int index) {
@@ -1014,5 +1018,37 @@ public class SnapshotDaoTest {
         reason + " when retrieving snapshot summary",
         snapshotDao.retrieveSummaryById(snapshot.getId()).getTags(),
         containsInAnyOrder(expectedTags.toArray()));
+  }
+
+  @Test
+  public void testRetrieveLockedSnapshot() {
+    Snapshot snapshot = createSnapshot(snapshotRequest);
+    UUID snapshotId = snapshot.getId();
+    String flightId = "flightId";
+
+    // After locking the snapshot, we should still be able to retrieve it
+    snapshotDao.lock(snapshotId, flightId);
+
+    Snapshot lockedSnapshot = snapshotDao.retrieveSnapshot(snapshotId);
+    assertThat(
+        "Locked snapshot can be retrieved", lockedSnapshot.getLockingJobId(), equalTo(flightId));
+
+    SnapshotSummary lockedSnapshotSummary = snapshotDao.retrieveSummaryById(snapshotId);
+    assertThat(
+        "Locked snapshot summary can be retrieved",
+        lockedSnapshotSummary.getLockingJobId(),
+        equalTo(flightId));
+
+    MetadataEnumeration<SnapshotSummary> snapshotEnumeration =
+        snapshotDao.retrieveSnapshots(0, 1, null, null, null, null, datasetIds, snapshotIds, null);
+    assertThat(snapshotEnumeration.getTotal(), equalTo(1));
+    SnapshotSummary lockedSnapshotSummaryEnumerationItem = snapshotEnumeration.getItems().get(0);
+    assertThat(
+        "Locked snapshot summary can be enumerated",
+        lockedSnapshotSummaryEnumerationItem.getLockingJobId(),
+        equalTo(flightId));
+
+    // Locked snapshot's project can be retrieved
+    verifySnapshotProject(snapshot);
   }
 }

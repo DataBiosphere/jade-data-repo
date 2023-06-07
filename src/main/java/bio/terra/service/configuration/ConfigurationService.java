@@ -37,8 +37,6 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_CACHE_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
@@ -258,15 +256,6 @@ public class ConfigurationService {
         100,
         ConfigFaultCountedModel.RateStyleEnum.FIXED);
     addFaultSimple(DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
-
-    // Snapshot delete lock faults. These are used by SnapshotConnectedTest > testOverlappingDeletes
-    addFaultCounted(
-        SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        1,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
 
     // File ingest lock faults. These are used by DatasetConnectedTest > testSharedLockFileIngest
     addFaultCounted(

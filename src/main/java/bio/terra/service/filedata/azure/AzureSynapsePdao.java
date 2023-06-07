@@ -85,6 +85,8 @@ public class AzureSynapsePdao {
   private static final String PARSER_VERSION = "2.0";
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
   private static final String DEFAULT_CSV_QUOTE = "\"";
+  private static final String EMPTY_TABLE_ERROR_MESSAGE =
+      "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";
 
   private static final String scopedCredentialCreateTemplate =
       """
@@ -619,9 +621,7 @@ public class AzureSynapsePdao {
     try {
       rows = executeSynapseQuery(queryTemplate.render());
     } catch (DataAccessException ex) {
-      throw new PdaoException(
-          "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      throw new PdaoException(EMPTY_TABLE_ERROR_MESSAGE, ex);
     }
 
     tableRowCounts.put(rootTableName, (long) rows);
@@ -709,9 +709,7 @@ public class AzureSynapsePdao {
     try {
       rows = synapseJdbcTemplate.update(query, params);
     } catch (DataAccessException ex) {
-      throw new PdaoException(
-          "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      throw new PdaoException(EMPTY_TABLE_ERROR_MESSAGE, ex);
     }
 
     tableRowCounts.put(rootTableName, (long) rows);
@@ -1064,9 +1062,7 @@ public class AzureSynapsePdao {
               .render();
       return executeCountQuery(sql);
     } catch (SQLException ex) {
-      logger.warn(
-          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
       return 0;
     }
   }
@@ -1087,9 +1083,7 @@ public class AzureSynapsePdao {
                   .maxValue(rs.getDouble(PDAO_MAX_VALUE_COLUMN_NAME))
                   .minValue(rs.getDouble(PDAO_MIN_VALUE_COLUMN_NAME)));
     } catch (DataAccessException ex) {
-      logger.warn(
-          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
     }
     return doubleModel;
   }
@@ -1127,9 +1121,7 @@ public class AzureSynapsePdao {
                   .maxValue(rs.getInt(PDAO_MAX_VALUE_COLUMN_NAME))
                   .minValue(rs.getInt(PDAO_MIN_VALUE_COLUMN_NAME)));
     } catch (DataAccessException ex) {
-      logger.warn(
-          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
     }
     return intModel;
   }
@@ -1159,9 +1151,7 @@ public class AzureSynapsePdao {
                               .count((int) rs.getLong(PDAO_COUNT_COLUMN_NAME))))
               .dataType(column.getType().toString());
     } catch (DataAccessException ex) {
-      logger.warn(
-          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
       return (ColumnStatisticsTextModel)
           new ColumnStatisticsTextModel().values(List.of()).dataType(column.getType().toString());
     }
@@ -1230,9 +1220,7 @@ public class AzureSynapsePdao {
             return resultModel;
           });
     } catch (DataAccessException ex) {
-      logger.warn(
-          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
       return new ArrayList<>();
     }
   }

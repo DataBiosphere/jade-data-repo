@@ -22,11 +22,15 @@ import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.auth.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.auth.iam.exception.IamNotFoundException;
 import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
+import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigurationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
+import com.google.cloud.storage.BlobId;
 import com.google.common.annotations.VisibleForTesting;
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,6 +54,8 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEn
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
+import org.broadinstitute.dsde.workbench.client.sam.model.SignedUrlRequest;
+import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
@@ -231,6 +237,7 @@ public class SamIam implements IamProviderInterface {
         IamRole.SNAPSHOT_CREATOR.toString(),
         createAccessPolicyV2(IamRole.SNAPSHOT_CREATOR, policies.getSnapshotCreators()));
 
+    req.authDomain(List.of());
     logger.debug("SAM request: " + req);
     return req;
   }
@@ -297,6 +304,7 @@ public class SamIam implements IamProviderInterface {
         IamRole.DISCOVERER.toString(),
         createAccessPolicyV2(IamRole.DISCOVERER, policies.getDiscoverers()));
 
+    req.authDomain(List.of());
     logger.debug("SAM request: " + req);
     return req;
   }
@@ -315,10 +323,10 @@ public class SamIam implements IamProviderInterface {
   private String syncOnePolicy(
       AuthenticatedUserRequest userReq, IamResourceType resourceType, UUID id, IamRole role)
       throws ApiException {
-    Map<String, List<Object>> results =
+    Map<String, List<SyncReportEntry>> results =
         samApiService
             .googleApi(userReq.getToken())
-            .syncPolicy(resourceType.toString(), id.toString(), role.toString());
+            .syncPolicy(resourceType.toString(), id.toString(), role.toString(), null);
     String policyEmail = getPolicyGroupEmailFromResponse(results);
     logger.debug(
         "Policy Group Resource: {} Role: {} Email:  {} ",
@@ -346,6 +354,7 @@ public class SamIam implements IamProviderInterface {
         IamRole.OWNER.toString(),
         createAccessPolicyOneV2(IamRole.OWNER, userStatusInfo.getUserEmail()));
     req.putPoliciesItem(IamRole.USER.toString(), createAccessPolicyV2(IamRole.USER, null));
+    req.authDomain(List.of());
 
     ResourcesApi samResourceApi = samApiService.resourcesApi(userReq.getToken());
     logger.debug("SAM request: " + req);
@@ -398,7 +407,9 @@ public class SamIam implements IamProviderInterface {
                       .name(entry.getPolicyName())
                       .members(entry.getPolicy().getMemberEmails())
                       .memberPolicies(
-                          entry.getPolicy().getMemberPolicies().stream()
+                          Optional.ofNullable(entry.getPolicy().getMemberPolicies())
+                              .orElseGet(List::of)
+                              .stream()
                               .map(
                                   pid ->
                                       new ResourcePolicyModel()
@@ -465,7 +476,7 @@ public class SamIam implements IamProviderInterface {
         policyName,
         userEmail);
     samResourceApi.addUserToPolicyV2(
-        iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
+        iamResourceType.toString(), resourceId.toString(), policyName, userEmail, null);
   }
 
   @Override
@@ -561,7 +572,7 @@ public class SamIam implements IamProviderInterface {
         () -> {
           try {
             logger.info("Running the registration process");
-            samApiService.usersApi(accessToken).createUserV2();
+            samApiService.usersApi(accessToken).createUserV2(null);
           } catch (ApiException e) {
             // This conflict could happen if the request timed out originally.
             // In that case, it's ok to assume that this is a success and move on
@@ -586,7 +597,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   private void createGroupInner(String accessToken, String groupName) throws ApiException {
-    samApiService.groupApi(accessToken).postGroup(groupName);
+    samApiService.groupApi(accessToken).postGroup(groupName, null);
   }
 
   private String getGroupEmail(String accessToken, String groupName) throws ApiException {
@@ -630,6 +641,26 @@ public class SamIam implements IamProviderInterface {
     return samApiService.googleApi(userReq.getToken()).getArbitraryPetServiceAccountToken(scopes);
   }
 
+  @Override
+  public String signUrlForBlob(
+      AuthenticatedUserRequest userReq, String project, String path, Duration duration)
+      throws InterruptedException {
+    return SamRetry.retry(
+        configurationService, () -> signUrlForBlobInner(userReq, project, path, duration));
+  }
+
+  private String signUrlForBlobInner(
+      AuthenticatedUserRequest userReq, String project, String path, Duration duration)
+      throws ApiException {
+    BlobId blobId = GcsUriUtils.parseBlobUri(path);
+    SignedUrlRequest request =
+        new SignedUrlRequest()
+            .bucketName(blobId.getBucket())
+            .blobName(blobId.getName())
+            .duration(BigDecimal.valueOf(duration.toMinutes()));
+    return samApiService.googleApi(userReq.getToken()).getSignedUrlForBlob(project, request);
+  }
+
   private UserStatusInfo getUserInfoAndVerify(AuthenticatedUserRequest userReq) {
     UserStatusInfo userStatusInfo = getUserInfo(userReq);
     if (!userStatusInfo.isEnabled()) {
@@ -660,7 +691,8 @@ public class SamIam implements IamProviderInterface {
    * @param syncPolicyResponse map with one key that is an email
    * @return the policy group email
    */
-  private String getPolicyGroupEmailFromResponse(Map<String, List<Object>> syncPolicyResponse) {
+  private String getPolicyGroupEmailFromResponse(
+      Map<String, List<SyncReportEntry>> syncPolicyResponse) {
     if (syncPolicyResponse.size() != 1) {
       throw new IllegalArgumentException(
           "Expecting syncPolicyResponse to be an object with one key");

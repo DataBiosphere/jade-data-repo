@@ -108,7 +108,7 @@ public class GcsPdao implements CloudFileReader {
       "roles/serviceusage.serviceUsageConsumer";
 
   private static final String PSA_SEPARATOR = "|";
-  // Cache of pet service account tokens keys on a given user's actual access_token + separator +
+  // Cache of pet service account tokens keyed on a given user's actual access_token + separator +
   // projectid combo
   private final Map<String, Tokeninfo> petAccountTokens =
       Collections.synchronizedMap(new PassiveExpiringMap<>(30, TimeUnit.MINUTES));

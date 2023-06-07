@@ -1,7 +1,9 @@
 package bio.terra.service.snapshot.flight.create;
 
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
@@ -13,6 +15,8 @@ import bio.terra.service.common.JournalRecordUpdateEntryStep;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.duos.DuosDao;
 import bio.terra.service.duos.DuosService;
 import bio.terra.service.filedata.DrsIdService;
@@ -89,6 +93,7 @@ public class SnapshotCreateFlight extends Flight {
     DuosDao duosDao = appContext.getBean(DuosDao.class);
     DuosService duosService = appContext.getBean(DuosService.class);
     PolicyService policyService = appContext.getBean(PolicyService.class);
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -96,6 +101,9 @@ public class SnapshotCreateFlight extends Flight {
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
+    RetryRule randomBackoffRetry =
+        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
     // TODO note that with multi-dataset snapshots this will need to change
     List<Dataset> sourceDatasets =
@@ -106,6 +114,10 @@ public class SnapshotCreateFlight extends Flight {
 
     var platform =
         CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
+
+    // Take out a shared lock on the source dataset, to guard against it being deleted out from
+    // under us (for example)
+    addStep(new LockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
 
     // Make sure this user is authorized to use the billing profile in SAM
     addStep(
@@ -321,10 +333,12 @@ public class SnapshotCreateFlight extends Flight {
 
     addStep(new CreateSnapshotPolicyStep(policyService, sourceDataset.isSecureMonitoringEnabled()));
 
-    // unlock the snapshot metadata row
+    // unlock the resource metadata rows
     addStep(new UnlockSnapshotStep(snapshotDao, null));
+    addStep(new UnlockDatasetStep(datasetService, datasetId, true));
     // once unlocked, the snapshot summary can be written as the job response
     addStep(new CreateSnapshotSetResponseStep(snapshotService));
+
     addStep(new CreateSnapshotJournalEntryStep(journalService, userReq));
     addStep(
         new JournalRecordUpdateEntryStep(

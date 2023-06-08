@@ -251,6 +251,26 @@ public class DatasetServiceUnitTest {
   }
 
   @Test
+  public void testRetrieveColumnStatistics_Azure_TextColumn() {
+    mockDataset(CloudPlatform.AZURE, TableDataType.STRING);
+    ColumnStatisticsTextValue expectedValue =
+        new ColumnStatisticsTextValue().value("val1").count(2);
+    ColumnStatisticsTextModel expectedModel =
+        new ColumnStatisticsTextModel().values(List.of(expectedValue));
+    when(azureSynapsePdao.getStatsForTextColumn(any(), any(), any(), any()))
+        .thenReturn(expectedModel);
+    when(metadataDataAccessUtils.accessInfoFromDataset(any(), any()))
+        .thenReturn(
+            new AccessInfoModel()
+                .parquet(new AccessInfoParquetModel().url("fake.url").sasToken("fake.sas.token")));
+    ColumnStatisticsTextModel statsModel =
+        (ColumnStatisticsTextModel)
+            datasetService.retrieveColumnStatistics(
+                testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+    assertThat("Correct stats value", statsModel.getValues(), containsInAnyOrder(expectedValue));
+  }
+
+  @Test
   public void testRetrieveColumnStatistics_GCP_DoubleColumn() {
     mockDataset(CloudPlatform.GCP, TableDataType.FLOAT);
     ColumnStatisticsDoubleModel expectedValue =
@@ -271,6 +291,25 @@ public class DatasetServiceUnitTest {
   }
 
   @Test
+  public void testRetrieveColumnStatistics_Azure_DoubleColumn() {
+    mockDataset(CloudPlatform.AZURE, TableDataType.FLOAT);
+    ColumnStatisticsDoubleModel expectedValue =
+        new ColumnStatisticsDoubleModel().maxValue(2.0).minValue(1.0);
+    when(azureSynapsePdao.getStatsForDoubleColumn(any(), any(), any(), any()))
+        .thenReturn(expectedValue);
+    when(metadataDataAccessUtils.accessInfoFromDataset(any(), any()))
+        .thenReturn(
+            new AccessInfoModel()
+                .parquet(new AccessInfoParquetModel().url("fake.url").sasToken("fake.sas.token")));
+    ColumnStatisticsDoubleModel statsModel =
+        (ColumnStatisticsDoubleModel)
+            datasetService.retrieveColumnStatistics(
+                testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+    assertThat("Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
+    assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
+  }
+
+  @Test
   public void testRetrieveColumnStatistics_GCP_IntColumn() {
     mockDataset(CloudPlatform.GCP, TableDataType.INTEGER);
     ColumnStatisticsIntModel expectedValue = new ColumnStatisticsIntModel().maxValue(2).minValue(1);
@@ -287,6 +326,24 @@ public class DatasetServiceUnitTest {
       assertThat(
           "Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
     }
+  }
+
+  @Test
+  public void testRetrieveColumnStatistics_Azure_IntColumn() {
+    mockDataset(CloudPlatform.AZURE, TableDataType.INTEGER);
+    ColumnStatisticsIntModel expectedValue = new ColumnStatisticsIntModel().maxValue(3).minValue(1);
+    when(azureSynapsePdao.getStatsForIntColumn(any(), any(), any(), any()))
+        .thenReturn(expectedValue);
+    when(metadataDataAccessUtils.accessInfoFromDataset(any(), any()))
+        .thenReturn(
+            new AccessInfoModel()
+                .parquet(new AccessInfoParquetModel().url("fake.url").sasToken("fake.sas.token")));
+    ColumnStatisticsIntModel statsModel =
+        (ColumnStatisticsIntModel)
+            datasetService.retrieveColumnStatistics(
+                testUser, UUID.randomUUID(), datasetTableName, "column1", "");
+    assertThat("Correct max value", statsModel.getMaxValue(), equalTo(expectedValue.getMaxValue()));
+    assertThat("Correct min value", statsModel.getMinValue(), equalTo(expectedValue.getMinValue()));
   }
 
   private void mockDataset(CloudPlatform cloudPlatform, TableDataType columnDataType) {

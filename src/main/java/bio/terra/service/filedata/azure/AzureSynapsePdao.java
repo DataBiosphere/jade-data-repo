@@ -1,6 +1,9 @@
 package bio.terra.service.filedata.azure;
 
+import static bio.terra.common.PdaoConstant.PDAO_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_FILTERED_ROW_COUNT_COLUMN_NAME;
+import static bio.terra.common.PdaoConstant.PDAO_MAX_VALUE_COLUMN_NAME;
+import static bio.terra.common.PdaoConstant.PDAO_MIN_VALUE_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_PARQUET_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
@@ -12,18 +15,18 @@ import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
 import bio.terra.common.Table;
-import bio.terra.common.exception.FeatureNotImplementedException;
 import bio.terra.common.exception.PdaoException;
-import bio.terra.grammar.Query;
 import bio.terra.model.ColumnStatisticsDoubleModel;
 import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
+import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableDataType;
+import bio.terra.service.common.QueryUtils;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
@@ -82,6 +85,8 @@ public class AzureSynapsePdao {
   private static final String PARSER_VERSION = "2.0";
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
   private static final String DEFAULT_CSV_QUOTE = "\"";
+  private static final String EMPTY_TABLE_ERROR_MESSAGE =
+      "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";
 
   private static final String scopedCredentialCreateTemplate =
       """
@@ -286,8 +291,10 @@ public class AzureSynapsePdao {
           """;
   private static final String queryFromDatasourceTemplate =
       """
-      SELECT <columns:{c|tbl.[<c>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,tbl.[<totalRowCountColumnName>]<endif>
-        FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
+      SELECT <columns:{c|final_rows.[<c>]}; separator=",">,final_rows.[<filteredRowCountColumnName>]<if(includeTotalRowCount)>,final_rows.[<totalRowCountColumnName>]<endif>
+      FROM (
+        SELECT rows_filtered.[datarepo_row_number],<columns:{c|rows_filtered.[<c>]}; separator=",">,count(*) over () <filteredRowCountColumnName><if(includeTotalRowCount)>,rows_filtered.[<totalRowCountColumnName>]<endif>
+          FROM (SELECT row_number() over (order by <sort> <direction>) AS datarepo_row_number,
                  <columns:{c|all_rows.[<c>]}; separator=","><if(includeTotalRowCount)>,all_rows.[<totalRowCountColumnName>]<endif>
             FROM (
               SELECT <columns:{c|rows.[<c>]}; separator=","> <if(includeTotalRowCount)>,
@@ -296,11 +303,28 @@ public class AzureSynapsePdao {
                             DATA_SOURCE = '<datasource>',
                             FORMAT='PARQUET') AS rows
               ) AS all_rows
-            WHERE (<userFilter>)
-         ) AS tbl
-      WHERE tbl.datarepo_row_number >= :offset
-        AND tbl.datarepo_row_number \\<= :offset + :limit;""";
+            <userFilter>
+         ) AS rows_filtered) AS final_rows
+      WHERE final_rows.[datarepo_row_number] >= :offset
+        AND final_rows.[datarepo_row_number] \\<= :offset + :limit;""";
 
+  private static final String queryTextColumnStatsTemplate =
+      """
+      SELECT <column>,count(*) AS <countColumn>
+        FROM OPENROWSET(BULK '<parquetFileLocation>',
+                        DATA_SOURCE = '<datasource>',
+                        FORMAT='PARQUET') AS rows
+          <userFilter>
+          GROUP BY <column>
+          ORDER BY <column> <direction>;""";
+
+  private static final String queryNumericColumnStatsTemplate =
+      """
+        SELECT MIN(<column>) AS min, MAX(<column>) AS max
+          FROM OPENROWSET(BULK '<parquetFileLocation>',
+                          DATA_SOURCE = '<datasource>',
+                          FORMAT='PARQUET') AS rows
+          <userFilter>;""";
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
   private static final String dropDataSourceTemplate =
@@ -597,9 +621,7 @@ public class AzureSynapsePdao {
     try {
       rows = executeSynapseQuery(queryTemplate.render());
     } catch (DataAccessException ex) {
-      throw new PdaoException(
-          "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      throw new PdaoException(EMPTY_TABLE_ERROR_MESSAGE, ex);
     }
 
     tableRowCounts.put(rootTableName, (long) rows);
@@ -687,9 +709,7 @@ public class AzureSynapsePdao {
     try {
       rows = synapseJdbcTemplate.update(query, params);
     } catch (DataAccessException ex) {
-      throw new PdaoException(
-          "Unable to create parquet file for the root table. This is most likely because the source dataset table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      throw new PdaoException(EMPTY_TABLE_ERROR_MESSAGE, ex);
     }
 
     tableRowCounts.put(rootTableName, (long) rows);
@@ -1042,32 +1062,99 @@ public class AzureSynapsePdao {
               .render();
       return executeCountQuery(sql);
     } catch (SQLException ex) {
-      logger.warn(
-          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
       return 0;
     }
   }
 
   public ColumnStatisticsDoubleModel getStatsForDoubleColumn(
-      Column column, String dataSourceName, String parquetFileLocation) {
-    throw new FeatureNotImplementedException(
-        "This feature is not yet supported for Azure-backed datasets.");
-    //    return new ColumnStatisticsNumericModel();
+      Column column, String dataSourceName, String parquetFileLocation, String filter) {
+    final String sql =
+        queryColumnStats(
+            column, dataSourceName, parquetFileLocation, filter, queryNumericColumnStatsTemplate);
+    ColumnStatisticsDoubleModel doubleModel =
+        (ColumnStatisticsDoubleModel)
+            new ColumnStatisticsDoubleModel().dataType(column.getType().toString());
+    try {
+      synapseJdbcTemplate.query(
+          sql,
+          (rs, rowNum) ->
+              doubleModel
+                  .maxValue(rs.getDouble(PDAO_MAX_VALUE_COLUMN_NAME))
+                  .minValue(rs.getDouble(PDAO_MIN_VALUE_COLUMN_NAME)));
+    } catch (DataAccessException ex) {
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
+    }
+    return doubleModel;
+  }
+
+  private String queryColumnStats(
+      Column column,
+      String dataSourceName,
+      String parquetFileLocation,
+      String userFilter,
+      String sqlTemplate) {
+    String columnName = column.getName();
+    return new ST(sqlTemplate)
+        .add("column", columnName)
+        .add("countColumn", PDAO_COUNT_COLUMN_NAME)
+        .add("datasource", dataSourceName)
+        .add("parquetFileLocation", parquetFileLocation)
+        .add("direction", SqlSortDirection.ASC)
+        .add("userFilter", QueryUtils.formatAndParseUserFilter(userFilter))
+        .render();
   }
 
   public ColumnStatisticsIntModel getStatsForIntColumn(
-      Column column, String dataSourceName, String parquetFileLocation) {
-    throw new FeatureNotImplementedException(
-        "This feature is not yet supported for Azure-backed datasets.");
-    //    return new ColumnStatisticsNumericModel();
+      Column column, String dataSourceName, String parquetFileLocation, String filter) {
+    final String sql =
+        queryColumnStats(
+            column, dataSourceName, parquetFileLocation, filter, queryNumericColumnStatsTemplate);
+    ColumnStatisticsIntModel intModel =
+        (ColumnStatisticsIntModel)
+            new ColumnStatisticsIntModel().dataType(column.getType().toString());
+    try {
+      synapseJdbcTemplate.query(
+          sql,
+          (rs, rowNum) ->
+              intModel
+                  .maxValue(rs.getInt(PDAO_MAX_VALUE_COLUMN_NAME))
+                  .minValue(rs.getInt(PDAO_MIN_VALUE_COLUMN_NAME)));
+    } catch (DataAccessException ex) {
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
+    }
+    return intModel;
   }
 
   public ColumnStatisticsTextModel getStatsForTextColumn(
-      Column column, String dataSourceName, String parquetFileLocation) {
-    throw new FeatureNotImplementedException(
-        "This feature is not yet supported for Azure-backed datasets.");
-    //    return new ColumnStatisticsTextModel();
+      Column column, String dataSourceName, String parquetFileLocation, String userFilter) {
+    String columnName = column.getName();
+    final String sql =
+        new ST(queryTextColumnStatsTemplate)
+            .add("column", columnName)
+            .add("countColumn", PDAO_COUNT_COLUMN_NAME)
+            .add("datasource", dataSourceName)
+            .add("parquetFileLocation", parquetFileLocation)
+            .add("direction", SqlSortDirection.ASC)
+            .add("userFilter", QueryUtils.formatAndParseUserFilter(userFilter))
+            .render();
+
+    try {
+      return (ColumnStatisticsTextModel)
+          new ColumnStatisticsTextModel()
+              .values(
+                  synapseJdbcTemplate.query(
+                      sql,
+                      (rs, rowNum) ->
+                          new ColumnStatisticsTextValue()
+                              .value(rs.getString(columnName))
+                              .count((int) rs.getLong(PDAO_COUNT_COLUMN_NAME))))
+              .dataType(column.getType().toString());
+    } catch (DataAccessException ex) {
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
+      return (ColumnStatisticsTextModel)
+          new ColumnStatisticsTextModel().values(List.of()).dataType(column.getType().toString());
+    }
   }
 
   public List<SynapseDataResultModel> getTableData(
@@ -1079,7 +1166,7 @@ public class AzureSynapsePdao {
       int offset,
       String sort,
       SqlSortDirection direction,
-      String filter,
+      String userFilter,
       CollectionType collectionType) {
 
     // Ensure that the sort column is a valid column
@@ -1092,10 +1179,6 @@ public class AzureSynapsePdao {
                       "Column %s was not found in the snapshot table %s"
                           .formatted(sort, tableName)));
     }
-    String userFilter = StringUtils.defaultIfBlank(filter, "1=1");
-
-    // Parse a Sql skeleton with the filter
-    Query.parse("select * from schema.table where (" + userFilter + ")");
 
     List<Column> columns =
         ListUtils.union(
@@ -1109,7 +1192,7 @@ public class AzureSynapsePdao {
             .add("parquetFileLocation", parquetFileLocation)
             .add("sort", sort)
             .add("direction", direction)
-            .add("userFilter", userFilter)
+            .add("userFilter", QueryUtils.formatAndParseUserFilter(userFilter))
             .add("includeTotalRowCount", includeTotalRowCount)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
@@ -1137,9 +1220,7 @@ public class AzureSynapsePdao {
             return resultModel;
           });
     } catch (DataAccessException ex) {
-      logger.warn(
-          "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.",
-          ex);
+      logger.warn(EMPTY_TABLE_ERROR_MESSAGE, ex);
       return new ArrayList<>();
     }
   }

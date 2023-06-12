@@ -22,6 +22,7 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.common.ResourceLocksUtils;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
@@ -557,7 +558,7 @@ public class DatasetDaoTest {
   }
 
   private String getExclusiveLock(UUID datasetId) {
-    return datasetDao.retrieveSummaryById(datasetId).getLockingJobId();
+    return DatasetDaoUtils.getExclusiveLock(datasetDao, datasetId);
   }
 
   @Test
@@ -1157,22 +1158,25 @@ public class DatasetDaoTest {
     datasetDao.lockExclusive(datasetId, flightId);
 
     Dataset lockedDataset = datasetDao.retrieve(datasetId);
-    assertThat(
-        "Locked dataset can be retrieved", lockedDataset.getLockingJobId(), equalTo(flightId));
+    String datasetExclusiveLock =
+        ResourceLocksUtils.getExclusiveLock(lockedDataset.getResourceLocks());
+    assertThat("Locked dataset can be retrieved", datasetExclusiveLock, equalTo(flightId));
 
     DatasetSummary lockedDatasetSummary = datasetDao.retrieveSummaryById(datasetId);
+    String datasetSummaryExclusiveLock =
+        ResourceLocksUtils.getExclusiveLock(lockedDatasetSummary.getResourceLocks());
     assertThat(
-        "Locked dataset summary can be retrieved",
-        lockedDatasetSummary.getLockingJobId(),
-        equalTo(flightId));
+        "Locked dataset summary can be retrieved", datasetSummaryExclusiveLock, equalTo(flightId));
 
     MetadataEnumeration<DatasetSummary> datasetEnumeration =
         datasetDao.enumerate(0, 1, null, null, null, null, datasetIds, null);
     assertThat(datasetEnumeration.getTotal(), equalTo(1));
     DatasetSummary lockedDatasetSummaryEnumerationItem = datasetEnumeration.getItems().get(0);
+    String lockedDatasetSummaryEnumerationItemExclusiveLock =
+        ResourceLocksUtils.getExclusiveLock(lockedDatasetSummaryEnumerationItem.getResourceLocks());
     assertThat(
         "Locked dataset summary can be enumerated",
-        lockedDatasetSummaryEnumerationItem.getLockingJobId(),
+        lockedDatasetSummaryEnumerationItemExclusiveLock,
         equalTo(flightId));
   }
 }

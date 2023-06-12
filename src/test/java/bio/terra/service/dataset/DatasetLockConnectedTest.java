@@ -92,7 +92,7 @@ public class DatasetLockConnectedTest {
   }
 
   private String getExclusiveLock(UUID datasetId) {
-    return datasetDao.retrieveSummaryById(datasetId).getLockingJobId();
+    return DatasetDaoUtils.getExclusiveLock(datasetDao, datasetId);
   }
 
   @Test

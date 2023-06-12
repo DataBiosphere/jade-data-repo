@@ -8,6 +8,7 @@ import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
 import bio.terra.model.AssetModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ResourceLocks;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
@@ -361,8 +362,8 @@ public class Dataset implements FSContainerInterface, LogPrintable {
     return datasetSummary.getTags();
   }
 
-  public String getLockingJobId() {
-    return datasetSummary.getLockingJobId();
+  public ResourceLocks getResourceLocks() {
+    return datasetSummary.getResourceLocks();
   }
 
   @Override

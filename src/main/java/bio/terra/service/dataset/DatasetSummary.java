@@ -8,6 +8,7 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import java.time.Instant;
@@ -35,7 +36,7 @@ public class DatasetSummary {
   private Object properties;
   private boolean predictableFileIds;
   private List<String> tags;
-  private String lockingJobId;
+  private ResourceLocks resourceLocks;
 
   public UUID getId() {
     return id;
@@ -243,12 +244,12 @@ public class DatasetSummary {
     return this;
   }
 
-  public String getLockingJobId() {
-    return lockingJobId;
+  public ResourceLocks getResourceLocks() {
+    return resourceLocks;
   }
 
-  public DatasetSummary lockingJobId(String lockingJobId) {
-    this.lockingJobId = lockingJobId;
+  public DatasetSummary resourceLocks(ResourceLocks resourceLocks) {
+    this.resourceLocks = resourceLocks;
     return this;
   }
 
@@ -268,7 +269,7 @@ public class DatasetSummary {
         .selfHosted(isSelfHosted())
         .predictableFileIds(hasPredictableFileIds())
         .tags(getTags())
-        .lockingJobId(getLockingJobId());
+        .resourceLocks(getResourceLocks());
   }
 
   List<StorageResourceModel> toStorageResourceModel() {

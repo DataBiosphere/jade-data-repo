@@ -14,6 +14,7 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.configuration.ConfigEnum;
@@ -695,7 +696,7 @@ public class DatasetDao implements TaggableResourceDao {
           .predictableFileIds(rs.getBoolean("predictable_file_ids"))
           .properties(properties)
           .tags(DaoUtils.getStringList(rs, "tags"))
-          .lockingJobId(rs.getString("flightid"));
+          .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")));
     }
   }
 

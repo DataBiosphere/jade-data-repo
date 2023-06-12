@@ -95,6 +95,7 @@ public class DatasetConnectedTest {
 
   private DatasetRequestModel datasetRequest;
   private DatasetSummaryModel summaryModel;
+  private UUID datasetId;
   private static final Logger logger = LoggerFactory.getLogger(DatasetConnectedTest.class);
   private String tableName;
   private String columnName;
@@ -112,6 +113,7 @@ public class DatasetConnectedTest {
         .name(Names.randomizeName(datasetRequest.getName()))
         .defaultProfileId(billingProfile.getId());
     summaryModel = connectedOperations.createDataset(datasetRequest);
+    datasetId = summaryModel.getId();
     tableName = "thetable";
     columnName = "thecolumn";
     logger.info("--------begin test---------");
@@ -130,13 +132,13 @@ public class DatasetConnectedTest {
     assertNotNull("created dataset successfully the first time", summaryModel);
 
     // fetch the dataset and confirm the metadata matches the request
-    DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
+    DatasetModel datasetModel = connectedOperations.getDataset(datasetId);
     assertNotNull("fetched dataset successfully after creation", datasetModel);
     assertEquals(
         "fetched dataset name matches request", datasetRequest.getName(), datasetModel.getName());
 
     // check that the dataset metadata row is unlocked
-    assertNull("dataset row is unlocked", datasetModel.getLockingJobId());
+    assertNull("dataset row is unlocked", DatasetDaoUtils.getExclusiveLock(datasetDao, datasetId));
 
     // try to create the same dataset again and check that it fails
     datasetRequest.description("Make sure nothing is getting overwritten");
@@ -148,14 +150,14 @@ public class DatasetConnectedTest {
         containsString("Dataset name or id already exists"));
 
     // fetch the dataset and confirm the metadata still matches the original
-    DatasetModel origModel = connectedOperations.getDataset(summaryModel.getId());
+    DatasetModel origModel = connectedOperations.getDataset(datasetId);
     assertEquals("fetched dataset remains unchanged", datasetModel, origModel);
 
     // delete the dataset and check that it succeeds
-    connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
+    connectedOperations.deleteTestDatasetAndCleanup(datasetId);
 
     // try to fetch the dataset again and confirm nothing is returned
-    connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+    connectedOperations.getDatasetExpectError(datasetId, HttpStatus.NOT_FOUND);
   }
 
   @Test
@@ -170,13 +172,11 @@ public class DatasetConnectedTest {
     configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT.name(), true);
 
     // try to delete the dataset
-    MvcResult result1 =
-        mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+    MvcResult result1 = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
     TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
     // try to delete the dataset again
-    MvcResult result2 =
-        mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+    MvcResult result2 = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
     TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
     // disable hang in DeleteDatasetPrimaryDataStep
@@ -202,7 +202,7 @@ public class DatasetConnectedTest {
         startsWith("Failed to lock the dataset"));
 
     // try to fetch the dataset again and confirm nothing is returned
-    connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+    connectedOperations.getDatasetExpectError(datasetId, HttpStatus.NOT_FOUND);
   }
 
   @Test
@@ -219,7 +219,7 @@ public class DatasetConnectedTest {
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath)
             .csvGenerateRowIds(true);
-    connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+    connectedOperations.ingestTableSuccess(datasetId, ingestRequest);
     assertSuccessfulIngest();
   }
 
@@ -236,14 +236,14 @@ public class DatasetConnectedTest {
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath)
             .csvGenerateRowIds(true);
-    connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+    connectedOperations.ingestTableSuccess(datasetId, ingestRequest);
     assertSuccessfulIngest();
   }
 
   private void assertSuccessfulIngest() throws Exception {
     DatasetDataModel datasetDataModel =
         connectedOperations.retrieveDatasetDataByIdSuccess(
-            summaryModel.getId(), tableName, 100, 0, null, columnName);
+            datasetId, tableName, 100, 0, null, columnName);
     List<String> retrieveEndpointDatasetNames = new ArrayList<>();
     datasetDataModel
         .getResult()
@@ -266,8 +266,7 @@ public class DatasetConnectedTest {
             .loadControlFile(ingestControlFilePath)
             .loadTag(bulkLoadTag)
             .profileId(summaryModel.getDefaultProfileId());
-    ErrorModel errorModel =
-        connectedOperations.ingestBulkFileFailure(summaryModel.getId(), request);
+    ErrorModel errorModel = connectedOperations.ingestBulkFileFailure(datasetId, request);
     assertThat(
         "Error message detail should include that the sourcePath and targetPath were not defined in the control file.",
         errorModel.getErrorDetail().get(0),
@@ -290,10 +289,9 @@ public class DatasetConnectedTest {
             .path(tableIngestInputFilePath)
             .csvGenerateRowIds(true)
             .loadTag(loadTag);
-    connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+    connectedOperations.ingestTableSuccess(datasetId, ingestRequest);
 
-    Optional<DatasetTable> table =
-        datasetDao.retrieve(summaryModel.getId()).getTableByName(tableName);
+    Optional<DatasetTable> table = datasetDao.retrieve(datasetId).getTableByName(tableName);
     String metadataTableName;
     if (table.isPresent()) {
       metadataTableName = table.get().getRowMetadataTableName();
@@ -347,7 +345,7 @@ public class DatasetConnectedTest {
         .defaultProfileId(billingProfile.getId());
     DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
     // retrieve dataset and store project id
-    DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
+    DatasetModel datasetModel = connectedOperations.getDataset(datasetId);
     assertNotNull("fetched dataset successfully after creation", datasetModel);
     String datasetGoogleProjectId = datasetModel.getDataProject();
     assertNotNull(
@@ -368,13 +366,12 @@ public class DatasetConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetFilePath)
             .profileId(billingProfile_diff.getId());
-    FileModel fileModel =
-        connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel);
+    FileModel fileModel = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
 
     // Retrieve list of projects associated with dataset/bucket
     // there will be two buckets: the primary one and the one where we performed the ingest
     List<UUID> projectResourceIds =
-        datasetBucketDao.getProjectResourceIdsForBucketPerDataset(summaryModel.getId());
+        datasetBucketDao.getProjectResourceIdsForBucketPerDataset(datasetId);
     assertThat("There are two buckets", projectResourceIds, hasSize(2));
     String ingestGoogleProjectId =
         googleResourceDao.retrieveProjectById(projectResourceIds.get(1)).getGoogleProjectId();
@@ -400,7 +397,7 @@ public class DatasetConnectedTest {
         equalTo(LifecycleState.DELETE_REQUESTED.toString()));
     // We don't need to clean up the file in connected operations cleanup since the project was
     // deleted
-    connectedOperations.removeFile(summaryModel.getId(), fileModel.getFileId());
+    connectedOperations.removeFile(datasetId, fileModel.getFileId());
   }
 
   private String uploadIngestInputFile(String resourceFileName, String dirInCloud)

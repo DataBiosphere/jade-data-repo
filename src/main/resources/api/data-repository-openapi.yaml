@@ -4153,8 +4153,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
-        lockingJobId:
-          $ref: '#/components/schemas/ShortIdProperty'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -4204,8 +4204,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
-        lockingJobId:
-          $ref: '#/components/schemas/ShortIdProperty'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -6212,6 +6212,15 @@ components:
         count:
           type: integer
           description: Number of occurrences of this tag across accessible same-typed resources
+
+    ResourceLocks:
+      type: object
+      description: >
+        An exclusive lock on a resource may prevent other resource modifications from running
+        concurrently.
+      properties:
+        exclusive:
+          $ref: '#/components/schemas/ShortIdProperty'
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

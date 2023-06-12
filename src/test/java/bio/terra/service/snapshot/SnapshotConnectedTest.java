@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.ResourceLocksUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -310,8 +311,9 @@ public class SnapshotConnectedTest {
     assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
     // check that the snapshot metadata row is unlocked
-    String exclusiveLock = snapshotModel.getLockingJobId();
-    assertNull("snapshot row is unlocked", exclusiveLock);
+    assertNull(
+        "snapshot row is unlocked",
+        ResourceLocksUtils.getExclusiveLock(snapshotModel.getResourceLocks()));
 
     // try to create the same snapshot again and check that it fails
     snapshotRequest.setName(snapshotModel.getName());
@@ -366,8 +368,9 @@ public class SnapshotConnectedTest {
     assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
     // check that the snapshot metadata row is unlocked
-    String exclusiveLock = snapshotModel.getLockingJobId();
-    assertNull("snapshot row is unlocked", exclusiveLock);
+    assertNull(
+        "snapshot row is unlocked",
+        ResourceLocksUtils.getExclusiveLock(snapshotModel.getResourceLocks()));
 
     // delete and confirm deleted
     connectedOperations.deleteTestSnapshot(snapshotModel.getId());

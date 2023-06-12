@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.ResourceLocksUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
@@ -154,7 +155,8 @@ public class SnapshotFileLookupConnectedTest {
             datasetRefSummary, "simple-with-filerefs-snapshot.json", "");
 
     // check that the snapshot metadata row is unlocked
-    assertNull("snapshot row is unlocked", snapshotSummary.getLockingJobId());
+    String exclusiveLock = ResourceLocksUtils.getExclusiveLock(snapshotSummary.getResourceLocks());
+    assertNull("snapshot row is unlocked", exclusiveLock);
 
     /*
      * WARNING: if making any changes to this test make sure to notify the #dsp-batch channel! Describe the change

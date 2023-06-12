@@ -1069,7 +1069,7 @@ public class SnapshotService {
             .globalFileIds(snapshot.hasGlobalFileIds())
             .compactIdPrefix(snapshot.getCompactIdPrefix())
             .tags(snapshot.getTags())
-            .lockingJobId(snapshot.getLockingJobId());
+            .resourceLocks(snapshot.getResourceLocks());
 
     // In case NONE is specified, this should supersede any other value being passed in
     if (include.contains(SnapshotRetrieveIncludeModel.NONE)) {

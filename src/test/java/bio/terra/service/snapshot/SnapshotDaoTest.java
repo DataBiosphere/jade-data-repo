@@ -22,6 +22,7 @@ import bio.terra.common.Column;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
+import bio.terra.common.ResourceLocksUtils;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
@@ -1030,22 +1031,28 @@ public class SnapshotDaoTest {
     snapshotDao.lock(snapshotId, flightId);
 
     Snapshot lockedSnapshot = snapshotDao.retrieveSnapshot(snapshotId);
-    assertThat(
-        "Locked snapshot can be retrieved", lockedSnapshot.getLockingJobId(), equalTo(flightId));
+    String snapshotExclusiveLock =
+        ResourceLocksUtils.getExclusiveLock(lockedSnapshot.getResourceLocks());
+    assertThat("Locked snapshot can be retrieved", snapshotExclusiveLock, equalTo(flightId));
 
     SnapshotSummary lockedSnapshotSummary = snapshotDao.retrieveSummaryById(snapshotId);
+    String snapshotSummaryExclusiveLock =
+        ResourceLocksUtils.getExclusiveLock(lockedSnapshotSummary.getResourceLocks());
     assertThat(
         "Locked snapshot summary can be retrieved",
-        lockedSnapshotSummary.getLockingJobId(),
+        snapshotSummaryExclusiveLock,
         equalTo(flightId));
 
     MetadataEnumeration<SnapshotSummary> snapshotEnumeration =
         snapshotDao.retrieveSnapshots(0, 1, null, null, null, null, datasetIds, snapshotIds, null);
     assertThat(snapshotEnumeration.getTotal(), equalTo(1));
     SnapshotSummary lockedSnapshotSummaryEnumerationItem = snapshotEnumeration.getItems().get(0);
+    String lockedSnapshotSummaryEnumerationItemExclusiveLock =
+        ResourceLocksUtils.getExclusiveLock(
+            lockedSnapshotSummaryEnumerationItem.getResourceLocks());
     assertThat(
         "Locked snapshot summary can be enumerated",
-        lockedSnapshotSummaryEnumerationItem.getLockingJobId(),
+        lockedSnapshotSummaryEnumerationItemExclusiveLock,
         equalTo(flightId));
 
     // Locked snapshot's project can be retrieved

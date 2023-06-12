@@ -5372,8 +5372,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
-        lockingJobId:
-          $ref: '#/components/schemas/ShortIdProperty'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -5491,8 +5491,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
-        lockingJobId:
-          $ref: '#/components/schemas/ShortIdProperty'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.dataset.StorageResource;
@@ -26,7 +27,7 @@ public class SnapshotSummary {
   private boolean selfHosted;
   private boolean globalFileIds;
   private List<String> tags;
-  private String lockingJobId;
+  private ResourceLocks resourceLocks;
 
   public UUID getId() {
     return id;
@@ -163,12 +164,12 @@ public class SnapshotSummary {
     return this;
   }
 
-  public String getLockingJobId() {
-    return lockingJobId;
+  public ResourceLocks getResourceLocks() {
+    return resourceLocks;
   }
 
-  public SnapshotSummary lockingJobId(String lockingJobId) {
-    this.lockingJobId = lockingJobId;
+  public SnapshotSummary resourceLocks(ResourceLocks resourceLocks) {
+    this.resourceLocks = resourceLocks;
     return this;
   }
 
@@ -189,7 +190,7 @@ public class SnapshotSummary {
         .selfHosted(isSelfHosted())
         .globalFileIds(isGlobalFileIds())
         .tags(getTags())
-        .lockingJobId(getLockingJobId());
+        .resourceLocks(getResourceLocks());
   }
 
   private List<StorageResourceModel> toStorageResourceModel() {

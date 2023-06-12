@@ -10,6 +10,7 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotPatchRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SqlSortDirection;
@@ -393,7 +394,7 @@ public class SnapshotDao implements TaggableResourceDao {
                           DaoUtils.stringToProperties(objectMapper, rs.getString("properties")))
                       .duosFirecloudGroupId(rs.getObject("duos_firecloud_group_id", UUID.class))
                       .tags(DaoUtils.getStringList(rs, "tags"))
-                      .lockingJobId(rs.getString("flightid")));
+                      .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid"))));
 
       // needed for findbugs. but really can't be null
       if (snapshot != null) {
@@ -821,7 +822,7 @@ public class SnapshotDao implements TaggableResourceDao {
           .selfHosted(rs.getBoolean("self_hosted"))
           .globalFileIds(rs.getBoolean("global_file_ids"))
           .tags(DaoUtils.getStringList(rs, "tags"))
-          .lockingJobId(rs.getString("flightid"));
+          .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")));
     }
   }
 }

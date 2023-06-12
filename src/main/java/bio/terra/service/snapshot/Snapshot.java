@@ -6,6 +6,7 @@ import bio.terra.common.LogPrintable;
 import bio.terra.common.Relationship;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DuosFirecloudGroupModel;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -43,7 +44,7 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
   private boolean globalFileIds;
   private String compactIdPrefix;
   private List<String> tags;
-  private String lockingJobId;
+  private ResourceLocks resourceLocks;
 
   @Override
   public CollectionType getCollectionType() {
@@ -273,12 +274,12 @@ public class Snapshot implements FSContainerInterface, LogPrintable {
     return this;
   }
 
-  public String getLockingJobId() {
-    return lockingJobId;
+  public ResourceLocks getResourceLocks() {
+    return resourceLocks;
   }
 
-  public Snapshot lockingJobId(String lockingJobId) {
-    this.lockingJobId = lockingJobId;
+  public Snapshot resourceLocks(ResourceLocks resourceLocks) {
+    this.resourceLocks = resourceLocks;
     return this;
   }
 

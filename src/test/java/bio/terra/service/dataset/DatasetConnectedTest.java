@@ -334,16 +334,6 @@ public class DatasetConnectedTest {
 
   @Test
   public void testProjectDeleteAfterDatasetDelete() throws Exception {
-    String resourcePath = "snapshot-test-dataset.json";
-    // --- create billing profile and dataset ----
-    BillingProfileModel billingProfile =
-        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
-    DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-    datasetRequest
-        .name(Names.randomizeName(datasetRequest.getName()))
-        .defaultProfileId(billingProfile.getId());
-    DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
     // retrieve dataset and store project id
     DatasetModel datasetModel = connectedOperations.getDataset(datasetId);
     assertNotNull("fetched dataset successfully after creation", datasetModel);

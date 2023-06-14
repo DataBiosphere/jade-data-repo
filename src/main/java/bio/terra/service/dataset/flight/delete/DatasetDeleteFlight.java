@@ -9,8 +9,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamService;
 import bio.terra.service.common.JournalRecordDeleteEntryStep;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
@@ -54,7 +52,6 @@ public class DatasetDeleteFlight extends Flight {
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     IamService iamClient = appContext.getBean(IamService.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     TableDao tableDao = appContext.getBean(TableDao.class);
     ProfileDao profileDao = appContext.getBean(ProfileDao.class);
@@ -75,11 +72,7 @@ public class DatasetDeleteFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule primaryDataDeleteRetry = getDefaultExponentialBackoffRetryRule();
 
-    if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT)) {
-      addStep(new LockDatasetStep(datasetService, datasetId, false, true));
-    } else {
-      addStep(new LockDatasetStep(datasetService, datasetId, false, true), lockDatasetRetry);
-    }
+    addStep(new LockDatasetStep(datasetService, datasetId, false, true), lockDatasetRetry);
     if (platform.isGcp()) {
       addStep(new DeleteDatasetStoreProjectIdStep(datasetId, datasetService, datasetBucketDao));
       // TODO: Do this check for Azure datasets
@@ -87,7 +80,7 @@ public class DatasetDeleteFlight extends Flight {
           new DeleteDatasetGcpValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
       addStep(
           new DeleteDatasetPrimaryDataStep(
-              bigQueryDatasetPdao, gcsPdao, fileDao, datasetService, datasetId, configService),
+              bigQueryDatasetPdao, gcsPdao, fileDao, datasetService, datasetId),
           primaryDataDeleteRetry);
       // Delete access control on objects that were explicitly added by data repo operations.
       // Do this before delete resource from SAM to ensure we can get the metadata needed to
@@ -108,15 +101,7 @@ public class DatasetDeleteFlight extends Flight {
               profileDao,
               resourceService));
       addStep(
-          new DeleteDatasetAzurePrimaryDataStep(
-              azureBlobStorePdao,
-              tableDao,
-              datasetService,
-              datasetId,
-              configService,
-              resourceService,
-              profileDao,
-              userReq),
+          new DeleteDatasetAzurePrimaryDataStep(azureBlobStorePdao, tableDao, datasetId, userReq),
           primaryDataDeleteRetry);
       addStep(
           new DeleteDatasetLoadHistoryStorageTableStep(

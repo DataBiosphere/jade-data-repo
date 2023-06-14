@@ -5,11 +5,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
@@ -26,13 +24,11 @@ import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -52,7 +48,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -66,11 +61,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -155,51 +148,6 @@ public class DatasetConnectedTest {
 
     // delete the dataset and check that it succeeds
     connectedOperations.deleteTestDatasetAndCleanup(datasetId);
-
-    // try to fetch the dataset again and confirm nothing is returned
-    connectedOperations.getDatasetExpectError(datasetId, HttpStatus.NOT_FOUND);
-  }
-
-  @Test
-  public void testOverlappingDeletes() throws Exception {
-    // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before
-    // disabling the hang
-    // ====================================================
-    // enable hang in DeleteDatasetPrimaryDataStep
-    configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
-
-    // Make sure that dataset delete fails on lock conflict
-    configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT.name(), true);
-
-    // try to delete the dataset
-    MvcResult result1 = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
-    TimeUnit.SECONDS.sleep(5); // give the flight time to launch
-
-    // try to delete the dataset again
-    MvcResult result2 = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
-    TimeUnit.SECONDS.sleep(5); // give the flight time to launch
-
-    // disable hang in DeleteDatasetPrimaryDataStep
-    configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
-    // ====================================================
-
-    // check the response from the first delete request
-    MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
-    DeleteResponseModel deleteResponseModel =
-        connectedOperations.handleSuccessCase(response1, DeleteResponseModel.class);
-    assertEquals(
-        "First delete returned successfully",
-        DeleteResponseModel.ObjectStateEnum.DELETED,
-        deleteResponseModel.getObjectState());
-
-    // check that the second delete failed with a lock exception
-    MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
-    ErrorModel errorModel2 =
-        connectedOperations.handleFailureCase(response2, HttpStatus.INTERNAL_SERVER_ERROR);
-    assertThat(
-        "delete failed on lock exception",
-        errorModel2.getMessage(),
-        startsWith("Failed to lock the dataset"));
 
     // try to fetch the dataset again and confirm nothing is returned
     connectedOperations.getDatasetExpectError(datasetId, HttpStatus.NOT_FOUND);

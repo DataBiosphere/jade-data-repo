@@ -155,7 +155,7 @@ public class DatasetIngestFlight extends Flight {
       autocommit = true;
     }
 
-    addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
+    addStep(new IngestSetupStep(datasetService, cloudPlatform));
 
     CloudFileReader cloudFileReader = (cloudPlatform.isGcp()) ? gcsPdao : azureBlobStorePdao;
     // Verify that the user is allowed to access the bucket where a control file lives:

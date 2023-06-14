@@ -1,86 +1,77 @@
-package bio.terra.service.snapshot.flight.create;
+package bio.terra.service.filedata.flight.delete;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInRelativeOrder;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.FlightTestUtils;
-import bio.terra.model.SnapshotRequestContentsModel;
-import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightMap;
-import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
 @Tag("bio.terra.common.category.Unit")
-public class SnapshotCreateFlightTest {
+public class FileDeleteFlightTest {
 
   @Mock private ApplicationContext context;
+  @Mock private DatasetSummary datasetSummary;
   private FlightMap inputParameters;
 
   @BeforeEach
   void beforeEach() {
+    UUID datasetId = UUID.randomUUID();
+    UUID fileId = UUID.randomUUID();
+
+    DatasetService datasetService = mock(DatasetService.class);
+    when(datasetService.retrieve(datasetId)).thenReturn(new Dataset(datasetSummary));
+
     ApplicationConfiguration appConfig = mock(ApplicationConfiguration.class);
     when(appConfig.getMaxStairwayThreads()).thenReturn(1);
 
-    SnapshotService snapshotService = mock(SnapshotService.class);
-    DatasetSummary datasetSummary = mock(DatasetSummary.class);
-    when(snapshotService.getSourceDatasetsFromSnapshotRequest(any()))
-        .thenReturn(List.of(new Dataset(datasetSummary)));
-
     when(context.getBean(any(Class.class))).thenReturn(null);
-    when(context.getBean(anyString(), any(Class.class))).thenReturn(null);
     // Beans that are interacted with directly in flight construction rather than simply passed
     // to steps need to be added to our context mock.
+    when(context.getBean(DatasetService.class)).thenReturn(datasetService);
     when(context.getBean(ApplicationConfiguration.class)).thenReturn(appConfig);
-    when(context.getBean(SnapshotService.class)).thenReturn(snapshotService);
 
     inputParameters = new FlightMap();
-    SnapshotRequestModel request =
-        new SnapshotRequestModel()
-            .addContentsItem(
-                new SnapshotRequestContentsModel()
-                    .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW));
-    inputParameters.put(JobMapKeys.REQUEST.getKeyName(), request);
+    inputParameters.put(JobMapKeys.DATASET_ID.getKeyName(), datasetId.toString());
+    inputParameters.put(JobMapKeys.FILE_ID.getKeyName(), fileId.toString());
   }
 
-  @Test
-  void testSnapshotCreateFlight() {
-    var flight = new SnapshotCreateFlight(inputParameters, context);
+  @ParameterizedTest
+  @EnumSource(names = {"GCP", "AZURE"})
+  void testFileDeleteFlight(CloudPlatform cloudPlatform) {
+    when(datasetSummary.getStorageCloudPlatform()).thenReturn(cloudPlatform);
 
+    var flight = new FileDeleteFlight(inputParameters, context);
     assertThat(
-        "Snapshot creation flight locks resources, then unlocks them, then writes response",
+        "File delete flight locks " + cloudPlatform + " dataset, then unlocks dataset",
         FlightTestUtils.getStepNames(flight),
-        containsInRelativeOrder(
-            "LockDatasetStep",
-            "CreateSnapshotMetadataStep", // Also locks the snapshot
-            "UnlockSnapshotStep",
-            "UnlockDatasetStep",
-            "CreateSnapshotSetResponseStep"));
+        containsInRelativeOrder("LockDatasetStep", "UnlockDatasetStep"));
 
     LockDatasetStep lockDatasetStep =
         FlightTestUtils.getStepWithClass(flight, LockDatasetStep.class);
     assertThat(
-        "Snapshot creation flight obtains shared dataset lock",
-        lockDatasetStep.isSharedLock(),
-        is(true));
+        "File delete flight obtains shared dataset lock", lockDatasetStep.isSharedLock(), is(true));
     assertThat(
         "Dataset lock step does not suppress 'dataset not found' exceptions",
         lockDatasetStep.shouldSuppressNotFoundException(),
@@ -89,7 +80,7 @@ public class SnapshotCreateFlightTest {
     UnlockDatasetStep unlockDatasetStep =
         FlightTestUtils.getStepWithClass(flight, UnlockDatasetStep.class);
     assertThat(
-        "Snapshot creation flight removes shared dataset lock",
+        "File delete flight removes shared dataset lock",
         unlockDatasetStep.isSharedLock(),
         is(true));
   }

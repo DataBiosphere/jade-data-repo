@@ -4,6 +4,8 @@ import static bio.terra.common.PdaoConstant.PDAO_COUNT_ALIAS;
 import static bio.terra.common.PdaoConstant.PDAO_COUNT_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_FILTERED_ROW_COUNT_COLUMN_NAME;
+import static bio.terra.common.PdaoConstant.PDAO_MAX_VALUE_COLUMN_NAME;
+import static bio.terra.common.PdaoConstant.PDAO_MIN_VALUE_COLUMN_NAME;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TOTAL_ROW_COUNT_COLUMN_NAME;
@@ -17,6 +19,7 @@ import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ColumnStatisticsTextValue;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.common.QueryUtils;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Acl;
@@ -31,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
@@ -192,7 +194,6 @@ public abstract class BigQueryPdao {
       SqlSortDirection direction,
       String filter)
       throws InterruptedException {
-    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     boolean isDataset = tdrResource.getCollectionType().equals(CollectionType.DATASET);
 
     String columns = String.join(",", columnNames);
@@ -202,7 +203,7 @@ public abstract class BigQueryPdao {
         new ST(DATA_TEMPLATE)
             .add("columns", columns)
             .add("table", bqTableName(tdrResource, tableName))
-            .add("filterParams", whereClause)
+            .add("filterParams", QueryUtils.formatAndParseUserFilter(filter))
             .add("includeTotalRowCount", isDataset)
             .add("totalRowCountColumnName", PDAO_TOTAL_ROW_COUNT_COLUMN_NAME)
             .add("filteredRowCountColumnName", PDAO_FILTERED_ROW_COUNT_COLUMN_NAME)
@@ -215,7 +216,7 @@ public abstract class BigQueryPdao {
     // The bigquery sql table name must be enclosed in backticks
     final String filterParams =
         new ST(DATA_FILTER_TEMPLATE)
-            .add("whereClause", whereClause)
+            .add("whereClause", QueryUtils.formatAndParseUserFilter(filter))
             .add("sort", sort)
             .add("direction", direction)
             .add("limit", limit)
@@ -288,19 +289,18 @@ public abstract class BigQueryPdao {
   public static final String ARRAY_NUMERIC_COLUMN_STATS_TEMPLATE =
       """
           WITH array_field AS (SELECT <column> FROM <table> <whereClause>)
-            SELECT MIN(flattened_array_field) AS min, MAX(flattened_array_field) AS max FROM array_field CROSS JOIN UNNEST(array_field.<column>)
+            SELECT MIN(flattened_array_field) AS <minColumnName>, MAX(flattened_array_field) AS <maxColumnName> FROM array_field CROSS JOIN UNNEST(array_field.<column>)
             AS flattened_array_field
           """;
 
   public static final String NUMERIC_COLUMN_STATS_TEMPLATE =
       """
-        SELECT MIN(<column>) AS min, MAX(<column>) AS max FROM <table> <whereClause>
+        SELECT MIN(<column>) AS <minColumnName>, MAX(<column>) AS <maxColumnName> FROM <table> <whereClause>
       """;
 
   public static ColumnStatisticsTextModel getStatsForTextColumn(
       FSContainerInterface tdrResource, String tableName, Column column, String filter)
       throws InterruptedException {
-    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
     String columnName = column.getName();
     final String bigQuerySQL =
@@ -309,15 +309,15 @@ public abstract class BigQueryPdao {
             .add("countColumn", PDAO_COUNT_COLUMN_NAME)
             .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
             .add("tableName", tableName)
-            .add("whereClause", whereClause)
+            .add("whereClause", QueryUtils.formatAndParseUserFilter(filter))
             .add("direction", SqlSortDirection.ASC)
             .render();
     final TableResult result = bigQueryProject.query(bigQuerySQL);
-
-    return (ColumnStatisticsTextModel)
-        new ColumnStatisticsTextModel()
-            .values(aggregateTextColumnStats(result, columnName))
-            .dataType(column.getType().toString());
+    ColumnStatisticsTextModel textModel = new ColumnStatisticsTextModel();
+    textModel
+        .values(aggregateTextColumnStats(result, columnName))
+        .dataType(column.getType().toString());
+    return textModel;
   }
 
   static List<ColumnStatisticsTextValue> aggregateTextColumnStats(
@@ -343,9 +343,8 @@ public abstract class BigQueryPdao {
       throws InterruptedException {
 
     final TableResult result = retrieveNumericColumnStats(tdrResource, tableName, column, filter);
-    ColumnStatisticsDoubleModel doubleModel =
-        (ColumnStatisticsDoubleModel)
-            new ColumnStatisticsDoubleModel().dataType(column.getType().toString());
+    ColumnStatisticsDoubleModel doubleModel = new ColumnStatisticsDoubleModel();
+    doubleModel.dataType(column.getType().toString());
     setMinMaxDoubleResult(result, doubleModel);
     return doubleModel;
   }
@@ -355,9 +354,8 @@ public abstract class BigQueryPdao {
       throws InterruptedException {
 
     final TableResult result = retrieveNumericColumnStats(tdrResource, tableName, column, filter);
-    ColumnStatisticsIntModel intModel =
-        (ColumnStatisticsIntModel)
-            new ColumnStatisticsIntModel().dataType(column.getType().toString());
+    ColumnStatisticsIntModel intModel = new ColumnStatisticsIntModel();
+    intModel.dataType(column.getType().toString());
     setMinMaxIntResult(result, intModel);
     return intModel;
   }
@@ -365,7 +363,6 @@ public abstract class BigQueryPdao {
   private static TableResult retrieveNumericColumnStats(
       FSContainerInterface tdrResource, String tableName, Column column, String filter)
       throws InterruptedException {
-    String whereClause = StringUtils.isNotEmpty(filter) ? filter : "";
     final BigQueryProject bigQueryProject = BigQueryProject.from(tdrResource);
     String columnName = column.getName();
     final String bigQuerySQL =
@@ -375,24 +372,28 @@ public abstract class BigQueryPdao {
                     : NUMERIC_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
             .add("table", bqFullyQualifiedTableName(tdrResource, tableName))
-            .add("whereClause", whereClause)
+            .add("whereClause", QueryUtils.formatAndParseUserFilter(filter))
+            .add("minColumnName", PDAO_MIN_VALUE_COLUMN_NAME)
+            .add("maxColumnName", PDAO_MAX_VALUE_COLUMN_NAME)
             .render();
     return bigQueryProject.query(bigQuerySQL);
   }
 
   private static void setMinMaxDoubleResult(
       TableResult tableResult, ColumnStatisticsDoubleModel doubleModel) {
-    if (resultHasValue(tableResult, "min") && resultHasValue(tableResult, "max")) {
-      doubleModel.minValue(getDoubleResult(tableResult, "min"));
-      doubleModel.maxValue(getDoubleResult(tableResult, "max"));
+    if (resultHasValue(tableResult, PDAO_MIN_VALUE_COLUMN_NAME)
+        && resultHasValue(tableResult, PDAO_MAX_VALUE_COLUMN_NAME)) {
+      doubleModel.minValue(getDoubleResult(tableResult, PDAO_MIN_VALUE_COLUMN_NAME));
+      doubleModel.maxValue(getDoubleResult(tableResult, PDAO_MAX_VALUE_COLUMN_NAME));
     }
   }
 
   private static void setMinMaxIntResult(
       TableResult tableResult, ColumnStatisticsIntModel intModel) {
-    if (resultHasValue(tableResult, "min") && resultHasValue(tableResult, "max")) {
-      intModel.minValue(getIntResult(tableResult, "min"));
-      intModel.maxValue(getIntResult(tableResult, "max"));
+    if (resultHasValue(tableResult, PDAO_MIN_VALUE_COLUMN_NAME)
+        && resultHasValue(tableResult, PDAO_MAX_VALUE_COLUMN_NAME)) {
+      intModel.minValue(getIntResult(tableResult, PDAO_MIN_VALUE_COLUMN_NAME));
+      intModel.maxValue(getIntResult(tableResult, PDAO_MAX_VALUE_COLUMN_NAME));
     }
   }
 

@@ -60,6 +60,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.junit.function.ThrowingRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.stringtemplate.v4.ST;
 
 public final class TestUtils {
@@ -345,5 +346,20 @@ public final class TestUtils {
       ThrowingRunnable runnable) {
     Throwable throwable = assertThrows("expect a failure", expectedThrowable, runnable);
     assertThat(throwable.getMessage(), containsString(expectedMessage));
+  }
+
+  /**
+   * Given an object with a private field, extract the value of that field and return it. Note: this
+   * should not be used for classes that we control but for third party library classes that aren't
+   * easily mocked (e.g. certain Google client SDK configuration classes)
+   *
+   * @param object The object to extract the value from
+   * @param fieldName The name of the field to extract
+   * @return A typed object containing the value of the field
+   * @param <T> The expected type of the field
+   */
+  public static <T> T extractValueFromPrivateObject(Object object, String fieldName) {
+    return objectMapper.convertValue(
+        ReflectionTestUtils.getField(object, fieldName), new TypeReference<>() {});
   }
 }

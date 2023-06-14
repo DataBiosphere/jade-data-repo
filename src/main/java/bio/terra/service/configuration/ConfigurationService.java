@@ -17,7 +17,6 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIES;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIEVE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.LIVENESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_FILES;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_INGESTS;
@@ -264,8 +263,5 @@ public class ConfigurationService {
 
     addFaultCounted(
         FIRESTORE_RETRIEVE_FAULT, 0, 11, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
-
-    // Fault inserted into /status endpoint
-    addFaultCounted(LIVENESS_FAULT, 0, 50, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
   }
 }

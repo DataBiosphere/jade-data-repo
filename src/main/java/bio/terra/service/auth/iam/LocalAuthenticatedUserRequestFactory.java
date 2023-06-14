@@ -8,7 +8,7 @@ import bio.terra.service.auth.oauth2.exceptions.OauthTokeninfoRetrieveException;
 import com.google.api.services.oauth2.model.Tokeninfo;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

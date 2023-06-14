@@ -9,17 +9,14 @@ import bio.terra.model.RepositoryConfigurationModel;
 import bio.terra.model.RepositoryStatusModel;
 import bio.terra.service.job.JobService;
 import bio.terra.service.status.StatusService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Properties;
-import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,8 +28,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Api(tags = {"unauthenticated"})
 public class UnauthenticatedApiController implements UnauthenticatedApi {
 
-  private final ObjectMapper objectMapper;
-  private final HttpServletRequest request;
   private final OauthConfiguration oauthConfig;
   private final OpenIDConnectConfiguration openIDConnectConfiguration;
   private final Logger logger = LoggerFactory.getLogger(UnauthenticatedApiController.class);
@@ -48,10 +43,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
   private final String semVer;
   private final String gitHash;
 
-  @Autowired
   public UnauthenticatedApiController(
-      ObjectMapper objectMapper,
-      HttpServletRequest request,
       OauthConfiguration oauthConfig,
       OpenIDConnectConfiguration openIDConnectConfiguration,
       JobService jobService,
@@ -59,8 +51,6 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
       StatusService statusService,
       TerraConfiguration terraConfiguration,
       SamConfiguration samConfiguration) {
-    this.objectMapper = objectMapper;
-    this.request = request;
     this.oauthConfig = oauthConfig;
     this.openIDConnectConfiguration = openIDConnectConfiguration;
     this.jobService = jobService;
@@ -78,16 +68,6 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     }
     semVer = Optional.ofNullable(properties.getProperty("semVer")).orElse(DEFAULT_SEMVER);
     gitHash = Optional.ofNullable(properties.getProperty("gitHash")).orElse(DEFAULT_GITHASH);
-  }
-
-  @Override
-  public Optional<ObjectMapper> getObjectMapper() {
-    return Optional.ofNullable(objectMapper);
-  }
-
-  @Override
-  public Optional<HttpServletRequest> getRequest() {
-    return Optional.ofNullable(request);
   }
 
   @Override

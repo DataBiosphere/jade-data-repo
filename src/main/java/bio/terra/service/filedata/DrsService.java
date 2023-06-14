@@ -37,6 +37,7 @@ import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.filedata.exception.GoogleInternalServerErrorException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.filedata.exception.InvalidDrsObjectException;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
@@ -98,7 +99,7 @@ public class DrsService {
   private static final String ACCESS_ID_PREFIX_PASSPORT = "passport-";
   private static final String ACCESS_ID_SEPARATOR = "*";
   private static final String DRS_OBJECT_VERSION = "0";
-  private static final Duration URL_TTL = Duration.ofMinutes(15);
+  @VisibleForTesting static final Duration URL_TTL = Duration.ofMinutes(15);
   // atomic counter that we increase on request arrival and decr on request response
   private final AtomicInteger currentDRSRequests = new AtomicInteger(0);
 
@@ -459,19 +460,22 @@ public class DrsService {
   }
 
   public DRSAccessURL postAccessUrlForObjectId(
-      String objectId, String accessId, DRSPassportRequestModel passportRequestModel) {
+      String objectId,
+      String accessId,
+      DRSPassportRequestModel passportRequestModel,
+      String userProject) {
     DRSObject drsObject = lookupObjectByDrsIdPassport(objectId, passportRequestModel);
-    return getAccessURL(null, drsObject, accessId);
+    return getAccessURL(null, drsObject, accessId, userProject);
   }
 
   public DRSAccessURL getAccessUrlForObjectId(
-      AuthenticatedUserRequest authUser, String objectId, String accessId) {
+      AuthenticatedUserRequest authUser, String objectId, String accessId, String userProject) {
     DRSObject drsObject = lookupObjectByDrsId(authUser, objectId, false);
-    return getAccessURL(authUser, drsObject, accessId);
+    return getAccessURL(authUser, drsObject, accessId, userProject);
   }
 
   private DRSAccessURL getAccessURL(
-      AuthenticatedUserRequest authUser, DRSObject drsObject, String accessId) {
+      AuthenticatedUserRequest authUser, DRSObject drsObject, String accessId, String userProject) {
     // To avoid having to re-resolve the DRS Id in case it is an alias, use the id from the passed
     // in DRS object.
     DrsId drsId = drsIdService.fromObjectId(drsObject.getId());
@@ -506,7 +510,7 @@ public class DrsService {
 
     CloudPlatformWrapper platform = CloudPlatformWrapper.of(cachedSnapshot.cloudPlatform);
     if (platform.isGcp()) {
-      return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser);
+      return signGoogleUrl(cachedSnapshot, fsFile.getCloudPath(), authUser, userProject);
     } else if (platform.isAzure()) {
       return signAzureUrl(billingProfileModel, fsFile, authUser);
     } else {
@@ -557,36 +561,84 @@ public class DrsService {
   }
 
   private DRSAccessURL signGoogleUrl(
-      SnapshotCacheResult cachedSnapshot, String gsPath, AuthenticatedUserRequest authUser) {
-    Storage storage;
-    if (cachedSnapshot.isSelfHosted) {
-      // In the case of a self-hosted dataset, use the dataset's service account to sign the url
-      storage = gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId);
-    } else {
-      storage =
-          StorageOptions.newBuilder()
-              .setProjectId(cachedSnapshot.googleProjectId)
-              .build()
-              .getService();
-    }
+      SnapshotCacheResult cachedSnapshot,
+      String gsPath,
+      AuthenticatedUserRequest authUser,
+      String userProject) {
     BlobId locator = GcsUriUtils.parseBlobUri(gsPath);
 
     BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();
 
-    Map<String, String> queryParams = new HashMap<>();
-    queryParams.put(USER_PROJECT_QUERY_PARAM, cachedSnapshot.googleProjectId);
-    if (authUser != null) {
-      queryParams.put(REQUESTED_BY_QUERY_PARAM, authUser.getEmail());
-    }
-    URL url =
-        storage.signUrl(
-            blobInfo,
-            URL_TTL.toMinutes(),
-            TimeUnit.MINUTES,
-            Storage.SignUrlOption.withQueryParams(queryParams),
-            Storage.SignUrlOption.withV4Signature());
+    Function<Storage, URL> signUrlFunction =
+        storage ->
+            storage.signUrl(
+                blobInfo,
+                URL_TTL.toMinutes(),
+                TimeUnit.MINUTES,
+                getUrlSigningOptions(cachedSnapshot, userProject, authUser));
 
-    return new DRSAccessURL().url(url.toString());
+    final URL signedUrl;
+    if (cachedSnapshot.isSelfHosted) {
+      // If a userProject is explicitly passed in, then use that to sign the url.
+      // Note: the expectation is that this is a Terra hosted bucket
+      if (!StringUtils.isEmpty(userProject)) {
+        return new DRSAccessURL()
+            .url(samService.signUrlForBlob(authUser, userProject, gsPath, URL_TTL));
+      }
+      // In the base case of a self-hosted dataset, use the dataset's service account to sign the
+      // url
+      signedUrl =
+          signUrlFunction.apply(gcsProjectFactory.getStorage(cachedSnapshot.datasetProjectId));
+    } else {
+      try (Storage storage = initStorage(cachedSnapshot.googleProjectId)) {
+        signedUrl = signUrlFunction.apply(storage);
+      } catch (Exception e) {
+        throw new GoogleInternalServerErrorException("Error getting storage ", e);
+      }
+    }
+
+    return new DRSAccessURL().url(signedUrl.toString());
+  }
+
+  @VisibleForTesting
+  Storage initStorage(String projectId) {
+    return StorageOptions.newBuilder().setProjectId(projectId).build().getService();
+  }
+
+  /**
+   * Returns the options to use when signing a URL from TDR
+   *
+   * @param cachedSnapshot Snapshot where the drs request initiated
+   * @param userProject The Google project being billed for the accessing the signed URL
+   * @param authUser The user requesting the signed URL
+   * @return The options to use when signing a URL from TDR
+   */
+  private Storage.SignUrlOption[] getUrlSigningOptions(
+      SnapshotCacheResult cachedSnapshot, String userProject, AuthenticatedUserRequest authUser) {
+    final String signingProject;
+    final String signingUser;
+    // If a user specifies a billing project in the request, prefer that over the snapshot's
+    // project.  If a billing project is required to access the data, and it is not provided,
+    // nothing will fail until the user tries to access the signed URL.
+    if (!StringUtils.isEmpty(userProject)) {
+      signingProject = userProject;
+    } else {
+      signingProject = cachedSnapshot.googleProjectId;
+    }
+    if (authUser != null) {
+      signingUser = authUser.getEmail();
+    } else {
+      signingUser = null;
+    }
+
+    Map<String, String> queryParams = new HashMap<>();
+    queryParams.put(USER_PROJECT_QUERY_PARAM, signingProject);
+    if (signingUser != null) {
+      queryParams.put(REQUESTED_BY_QUERY_PARAM, signingUser);
+    }
+    return new Storage.SignUrlOption[] {
+      Storage.SignUrlOption.withQueryParams(queryParams), Storage.SignUrlOption.withV4Signature()
+    };
   }
 
   private DRSObject drsObjectFromFSFile(
@@ -941,13 +993,13 @@ public class DrsService {
   @VisibleForTesting
   static class SnapshotCacheResult {
     private final UUID id;
-    private final Boolean isSelfHosted;
+    private final boolean isSelfHosted;
     private final BillingProfileModel datasetBillingProfileModel;
     private final UUID snapshotBillingProfileId;
     private final CloudPlatform cloudPlatform;
     private final String googleProjectId;
     private final String datasetProjectId;
-    private final Boolean globalFileIds;
+    private final boolean globalFileIds;
 
     public SnapshotCacheResult(Snapshot snapshot) {
       this.id = snapshot.getId();

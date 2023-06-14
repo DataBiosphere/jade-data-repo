@@ -37,6 +37,8 @@ import bio.terra.service.auth.iam.exception.IamUnauthorizedException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import com.google.api.client.http.HttpStatusCodes;
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +56,8 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEn
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequestV2;
 import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
 import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
+import org.broadinstitute.dsde.workbench.client.sam.model.SignedUrlRequest;
+import org.broadinstitute.dsde.workbench.client.sam.model.SubsystemStatus;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserInfo;
 import org.broadinstitute.dsde.workbench.client.sam.model.UserResourcesResponse;
@@ -185,10 +189,20 @@ public class SamIamTest {
   public void testGetStatus() throws ApiException {
     when(samStatusApi.getSystemStatus())
         .thenReturn(
-            new SystemStatus().ok(true).systems(Map.of("GooglePubSub", Map.of("ok", true))));
+            new SystemStatus()
+                .ok(true)
+                .systems(Map.of("GooglePubSub", new SubsystemStatus().ok(true))));
     assertThat(
         samIam.samStatus(),
-        is(new RepositoryStatusModelSystems().ok(true).message("{GooglePubSub={ok=true}}")));
+        is(
+            new RepositoryStatusModelSystems()
+                .ok(true)
+                .message(
+                    """
+                        {GooglePubSub=class SubsystemStatus {
+                            ok: true
+                            messages: null
+                        }}""")));
   }
 
   @Test
@@ -294,7 +308,8 @@ public class SamIamTest {
       when(samGoogleApi.syncPolicy(
               IamResourceType.DATASET.getSamResourceName(),
               datasetId.toString(),
-              policy.toString()))
+              policy.toString(),
+              null))
           .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", List.of()));
     }
 
@@ -411,7 +426,8 @@ public class SamIamTest {
       when(samGoogleApi.syncPolicy(
               IamResourceType.DATASNAPSHOT.getSamResourceName(),
               snapshotId.toString(),
-              policy.toString()))
+              policy.toString(),
+              null))
           .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", List.of()));
     }
 
@@ -522,7 +538,8 @@ public class SamIamTest {
       when(samGoogleApi.syncPolicy(
               IamResourceType.DATASNAPSHOT.getSamResourceName(),
               profileId.toString(),
-              policy.toString()))
+              policy.toString(),
+              null))
           .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", List.of()));
     }
 
@@ -549,7 +566,8 @@ public class SamIamTest {
             IamResourceType.SPEND_PROFILE.getSamResourceName(),
             id.toString(),
             IamRole.OWNER.toString(),
-            userEmail);
+            userEmail,
+            null);
   }
 
   @Test
@@ -622,12 +640,12 @@ public class SamIamTest {
                 new UserInfo()
                     .userEmail("tdr-ingest-sa@my-project.iam.gserviceaccount.com")
                     .userSubjectId("subid"));
-    when(samUsersApi.createUserV2()).thenReturn(userStatus);
+    when(samUsersApi.createUserV2(null)).thenReturn(userStatus);
     when(samTosApi.acceptTermsOfService(anyString())).thenReturn(userStatus);
     UserStatus returnedUserStatus = samIam.registerUser(TEST_USER.getToken());
 
     // Verify that the correct Sam API calls were made
-    verify(samUsersApi).createUserV2();
+    verify(samUsersApi).createUserV2(null);
     verify(samTosApi).acceptTermsOfService(TOS_URL);
 
     assertThat("expected user is returned", returnedUserStatus, is(userStatus));
@@ -644,7 +662,7 @@ public class SamIamTest {
         "Firecloud group email is returned when creation succeeds and email returned by SAM",
         samIam.createGroup(accessToken, groupName),
         equalTo(groupEmail));
-    verify(samGroupApi).postGroup(groupName);
+    verify(samGroupApi).postGroup(groupName, null);
     verify(samGroupApi).getGroup(groupName);
   }
 
@@ -655,12 +673,12 @@ public class SamIamTest {
 
     ApiException samEx =
         new ApiException(HttpStatusCodes.STATUS_CODE_CONFLICT, "Group already exists");
-    doThrow(samEx).when(samGroupApi).postGroup(groupName);
+    doThrow(samEx).when(samGroupApi).postGroup(groupName, null);
     assertThrows(
         "IamConflictException is thrown when the group already exists",
         IamConflictException.class,
         () -> samIam.createGroup(accessToken, groupName));
-    verify(samGroupApi).postGroup(groupName);
+    verify(samGroupApi).postGroup(groupName, null);
     verify(samGroupApi, never()).getGroup(groupName);
   }
 
@@ -675,7 +693,7 @@ public class SamIamTest {
         "IamNotFoundException is thrown when the user cannot access their created group",
         IamNotFoundException.class,
         () -> samIam.createGroup(accessToken, groupName));
-    verify(samGroupApi).postGroup(groupName);
+    verify(samGroupApi).postGroup(groupName, null);
     verify(samGroupApi).getGroup(groupName);
   }
 
@@ -727,5 +745,22 @@ public class SamIamTest {
         IamNotFoundException.class,
         () -> samIam.deleteGroup(accessToken, groupName));
     verify(samGroupApi).deleteGroup(groupName);
+  }
+
+  @Test
+  public void testSignUrl() throws InterruptedException, ApiException {
+    String project = "myProject";
+    String path = "gs://bucket/path/to/file";
+    Duration duration = Duration.ofMinutes(15);
+    samIam.signUrlForBlob(TEST_USER, project, path, duration);
+
+    // Verify the arguments are properly parsed and passed through
+    verify(samGoogleApi)
+        .getSignedUrlForBlob(
+            project,
+            new SignedUrlRequest()
+                .bucketName("bucket")
+                .blobName("path/to/file")
+                .duration(BigDecimal.valueOf(15)));
   }
 }

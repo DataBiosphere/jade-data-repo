@@ -1,6 +1,5 @@
 package bio.terra.service.auth.iam.sam;
 
-import static bio.terra.service.auth.iam.sam.SamIam.TOS_URL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -646,7 +645,6 @@ public class SamIamTest {
 
     // Verify that the correct Sam API calls were made
     verify(samUsersApi).createUserV2(null);
-    verify(samTosApi).acceptTermsOfService(TOS_URL);
 
     assertThat("expected user is returned", returnedUserStatus, is(userStatus));
   }

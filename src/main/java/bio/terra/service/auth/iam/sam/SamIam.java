@@ -567,27 +567,23 @@ public class SamIam implements IamProviderInterface {
   @Override
   public UserStatus registerUser(String accessToken) throws InterruptedException {
     logger.info("Registering the ingest service account into Terra");
-    SamRetry.retry(
+    return SamRetry.retry(
         configurationService,
         () -> {
           try {
             logger.info("Running the registration process");
-            samApiService.usersApi(accessToken).createUserV2(null);
+            return samApiService.usersApi(accessToken).createUserV2(null);
           } catch (ApiException e) {
             // This conflict could happen if the request timed out originally.
             // In that case, it's ok to assume that this is a success and move on
             if (e.getCode() == 409) {
               logger.warn("User already exists - skipping", e);
+              return null;
             } else {
               throw e;
             }
           }
         });
-
-    logger.info("Accepting terms of service for the ingest service account in Terra");
-    return SamRetry.retry(
-        configurationService,
-        () -> samApiService.termsOfServiceApi(accessToken).acceptTermsOfService(TOS_URL));
   }
 
   @Override

@@ -72,9 +72,6 @@ public class SamIam implements IamProviderInterface {
   private final ConfigurationService configurationService;
   private final SamApiService samApiService;
 
-  // This value is the same for all environments which is why this is hardcoded instead of config
-  static final String TOS_URL = "app.terra.bio/#terms-of-service";
-
   @Autowired
   public SamIam(
       SamConfiguration samConfig,

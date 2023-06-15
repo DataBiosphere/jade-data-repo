@@ -47,7 +47,7 @@
     <!--    <logger name="bio.terra.service.iam.sam.SamIam" level="debug" />-->
     <!--    <logger name="bio.terra.service.tabulardata.google.BigQueryProject" level="debug" />-->
 
-    <if condition="${SENTRY_ENABLED} == true">
+    <if condition='isDefined("SENTRY_DSN")'>
         <then>
           <appender name="Sentry" class="io.sentry.logback.SentryAppender"/>
         </then>
@@ -55,7 +55,7 @@
 
     <root level="INFO">
         <appender-ref ref="${TDR_LOG_APPENDER}"/>
-        <if condition="${SENTRY_ENABLED} == true">
+        <if condition='isDefined("SENTRY_DSN")'>
           <then>
             <appender-ref ref="Sentry"/>
           </then>

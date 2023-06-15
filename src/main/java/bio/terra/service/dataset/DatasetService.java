@@ -85,6 +85,7 @@ import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sentry.Sentry;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -260,6 +261,7 @@ public class DatasetService {
       String region,
       Map<UUID, Set<IamRole>> idsAndRoles,
       List<String> tags) {
+    Sentry.captureException(new Exception("Test sentry captured exception"));
     if (idsAndRoles.isEmpty()) {
       return new EnumerateDatasetModel().total(0).items(List.of());
     }

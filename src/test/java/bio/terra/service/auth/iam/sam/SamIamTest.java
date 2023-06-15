@@ -88,11 +88,11 @@ public class SamIamTest {
     samIam = new SamIam(samConfig, configurationService, samApiService);
   }
 
-  void mockAdminGroupEmail() {
+  private void mockAdminGroupEmail() {
     when(samConfig.getAdminsGroupEmail()).thenReturn(ADMIN_EMAIL);
   }
 
-  void mockConfigService() {
+  private void mockConfigService() {
     when(configurationService.getParameterValue(ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS))
         .thenReturn(0);
     when(configurationService.getParameterValue(ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS))
@@ -101,23 +101,23 @@ public class SamIamTest {
         .thenReturn(0);
   }
 
-  void mockSamResourceApi() {
+  private void mockSamResourceApi() {
     when(samApiService.resourcesApi(TEST_USER.getToken())).thenReturn(samResourceApi);
   }
 
-  void mockSamStatusApi() {
+  private void mockSamStatusApi() {
     when(samApiService.statusApi()).thenReturn(samStatusApi);
   }
 
-  void mockSamGoogleApi() {
+  private void mockSamGoogleApi() {
     when(samApiService.googleApi(TEST_USER.getToken())).thenReturn(samGoogleApi);
   }
 
-  void mockSamUsersApi() {
+  private void mockSamUsersApi() {
     when(samApiService.usersApi(TEST_USER.getToken())).thenReturn(samUsersApi);
   }
 
-  void mockSamGroupApi() {
+  private void mockSamGroupApi() {
     when(samApiService.groupApi(TEST_USER.getToken())).thenReturn(samGroupApi);
   }
 
@@ -326,12 +326,10 @@ public class SamIamTest {
 
     final UUID datasetId = UUID.randomUUID();
     // Note: in our case, policies have a 1:1 relationship with roles
-    final List<IamRole> allPolicies =
-        List.of(IamRole.ADMIN, IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.SNAPSHOT_CREATOR);
     final List<IamRole> syncedPolicies =
         List.of(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.SNAPSHOT_CREATOR);
 
-    for (IamRole policy : allPolicies) {
+    for (IamRole policy : syncedPolicies) {
       when(samGoogleApi.syncPolicy(
               IamResourceType.DATASET.getSamResourceName(),
               datasetId.toString(),
@@ -450,11 +448,9 @@ public class SamIamTest {
 
     final UUID snapshotId = UUID.randomUUID();
     // Note: in our case, policies have a 1:1 relationship with roles
-    final List<IamRole> allPolicies =
-        List.of(IamRole.ADMIN, IamRole.STEWARD, IamRole.READER, IamRole.DISCOVERER);
     final List<IamRole> syncedPolicies = List.of(IamRole.STEWARD, IamRole.READER);
 
-    for (IamRole policy : allPolicies) {
+    for (IamRole policy : syncedPolicies) {
       when(samGoogleApi.syncPolicy(
               IamResourceType.DATASNAPSHOT.getSamResourceName(),
               snapshotId.toString(),
@@ -562,24 +558,10 @@ public class SamIamTest {
   void testCreateProfile() throws InterruptedException, ApiException {
     mockConfigService();
     mockSamResourceApi();
-    mockSamGoogleApi();
     final String userSubjectId = "userid";
     final String userEmail = "a@a.com";
     mockUserInfo(userSubjectId, userEmail);
-
     final UUID profileId = UUID.randomUUID();
-    // Note: in our case, policies have a 1:1 relationship with roles
-    final List<IamRole> allPolicies = List.of(IamRole.ADMIN, IamRole.OWNER, IamRole.USER);
-
-    for (IamRole policy : allPolicies) {
-      when(samGoogleApi.syncPolicy(
-              IamResourceType.DATASNAPSHOT.getSamResourceName(),
-              profileId.toString(),
-              policy.toString(),
-              null))
-          .thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", List.of()));
-    }
-
     samIam.createProfileResource(TEST_USER, profileId.toString());
   }
 

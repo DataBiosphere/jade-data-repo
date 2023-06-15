@@ -474,6 +474,41 @@ public class AzureIntegrationTest extends UsersBase {
     DatasetSpecificationModel datasetSchema = datasetModel.getSchema();
 
     // dataset ingest
+    // Ingest Metadata - 1 row in ARRAY mode
+    String arrayIngestTableName = "person";
+    String personIdField = "person_id";
+    String personYearOfBirthField = "year_of_birth";
+    Map<String, Integer> records = Map.of(personIdField, 1, personYearOfBirthField, 1980);
+    IngestRequestModel arrayIngestRequest =
+        new IngestRequestModel()
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table(arrayIngestTableName)
+            .profileId(profileId)
+            .addRecordsItem(records)
+            .format(IngestRequestModel.FormatEnum.ARRAY)
+            .loadTag(Names.randomizeName("azureArrayIngest"));
+
+    IngestResponseModel arrayIngestResponse =
+        dataRepoFixtures.ingestJsonData(steward, datasetId, arrayIngestRequest);
+    assertThat("1 row was ingested", arrayIngestResponse.getRowCount(), equalTo(1L));
+    tableRowCount.put(arrayIngestTableName, 1);
+
+    Object firstPersonRow =
+        dataRepoFixtures
+            .retrieveDatasetData(steward, datasetId, arrayIngestTableName, 0, 1, null)
+            .getResult()
+            .get(0);
+    assertThat(
+        "record looks as expected - person_id",
+        ((LinkedHashMap) firstPersonRow).get(personIdField),
+        equalTo(records.get(personIdField)));
+
+    assertThat(
+        "record looks as expected - person_id",
+        ((LinkedHashMap) firstPersonRow).get(personYearOfBirthField),
+        equalTo(records.get(personYearOfBirthField)));
+
     // Ingest Metadata - 1 row from JSON file
     String datasetIngestFlightId = UUID.randomUUID().toString();
     String datasetIngestControlFileBlob =

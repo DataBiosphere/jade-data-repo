@@ -28,7 +28,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
-import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -368,7 +367,7 @@ public class IamService {
     return iamProvider.getUserInfo(userReq);
   }
 
-  public UserStatus registerUser(String serviceAccountEmail) {
+  public void registerUser(String serviceAccountEmail) {
     logger.info("Registering user %s in Terra".formatted(serviceAccountEmail));
     ImpersonatedCredentials impersonatedCredentials =
         ImpersonatedCredentials.create(
@@ -378,7 +377,7 @@ public class IamService {
             SCOPES,
             (int) TOKEN_LENGTH.toSeconds());
     String accessToken = googleCredentialsService.getAccessToken(impersonatedCredentials, SCOPES);
-    return callProvider(() -> iamProvider.registerUser(accessToken));
+    callProvider(() -> iamProvider.registerUser(accessToken));
   }
 
   // -- managed group support --

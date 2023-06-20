@@ -57,7 +57,6 @@ import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
-import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,9 +70,6 @@ public class SamIam implements IamProviderInterface {
   private final SamConfiguration samConfig;
   private final ConfigurationService configurationService;
   private final SamApiService samApiService;
-
-  // This value is the same for all environments which is why this is hardcoded instead of config
-  static final String TOS_URL = "app.terra.bio/#terms-of-service";
 
   @Autowired
   public SamIam(
@@ -565,29 +561,25 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public UserStatus registerUser(String accessToken) throws InterruptedException {
+  public void registerUser(String accessToken) throws InterruptedException {
     logger.info("Registering the ingest service account into Terra");
     SamRetry.retry(
         configurationService,
         () -> {
           try {
             logger.info("Running the registration process");
-            samApiService.usersApi(accessToken).createUserV2(null);
+            return samApiService.usersApi(accessToken).createUserV2(null);
           } catch (ApiException e) {
             // This conflict could happen if the request timed out originally.
             // In that case, it's ok to assume that this is a success and move on
             if (e.getCode() == 409) {
               logger.warn("User already exists - skipping", e);
+              return null;
             } else {
               throw e;
             }
           }
         });
-
-    logger.info("Accepting terms of service for the ingest service account in Terra");
-    return SamRetry.retry(
-        configurationService,
-        () -> samApiService.termsOfServiceApi(accessToken).acceptTermsOfService(TOS_URL));
   }
 
   @Override

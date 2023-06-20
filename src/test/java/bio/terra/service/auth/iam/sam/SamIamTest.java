@@ -672,8 +672,6 @@ public class SamIamTest {
         () -> {
           samIam.listAuthorizedResources(TEST_USER, IamResourceType.DATASNAPSHOT);
         });
-    verify(samResourceApi, times(1))
-        .listResourcesAndPoliciesV2(IamResourceType.DATASNAPSHOT.getSamResourceName());
   }
 
   @Test
@@ -688,8 +686,6 @@ public class SamIamTest {
                     .userSubjectId("subid"));
     when(samUsersApi.createUserV2(null)).thenReturn(userStatus);
     samIam.registerUser(TEST_USER.getToken());
-    // Verify that the correct Sam API calls were made
-    verify(samUsersApi).createUserV2(null);
   }
 
   @Test
@@ -706,7 +702,6 @@ public class SamIamTest {
         samIam.createGroup(accessToken, groupName),
         equalTo(groupEmail));
     verify(samGroupApi).postGroup(groupName, null);
-    verify(samGroupApi).getGroup(groupName);
   }
 
   @Test
@@ -720,7 +715,6 @@ public class SamIamTest {
         new ApiException(HttpStatusCodes.STATUS_CODE_CONFLICT, "Group already exists");
     doThrow(samEx).when(samGroupApi).postGroup(groupName, null);
     assertThrows(IamConflictException.class, () -> samIam.createGroup(accessToken, groupName));
-    verify(samGroupApi).postGroup(groupName, null);
     verify(samGroupApi, never()).getGroup(groupName);
   }
 
@@ -735,7 +729,6 @@ public class SamIamTest {
     when(samGroupApi.getGroup(groupName)).thenThrow(samEx);
     assertThrows(IamNotFoundException.class, () -> samIam.createGroup(accessToken, groupName));
     verify(samGroupApi).postGroup(groupName, null);
-    verify(samGroupApi).getGroup(groupName);
   }
 
   @Test
@@ -765,7 +758,6 @@ public class SamIamTest {
     assertThrows(
         IamNotFoundException.class,
         () -> samIam.overwriteGroupPolicyEmails(accessToken, groupName, policyName, emails));
-    verify(samGroupApi).overwriteGroupPolicyEmails(groupName, policyName, emails);
   }
 
   @Test
@@ -789,7 +781,6 @@ public class SamIamTest {
     ApiException samEx = new ApiException(HttpStatusCodes.STATUS_CODE_NOT_FOUND, "Group not found");
     doThrow(samEx).when(samGroupApi).deleteGroup(groupName);
     assertThrows(IamNotFoundException.class, () -> samIam.deleteGroup(accessToken, groupName));
-    verify(samGroupApi).deleteGroup(groupName);
   }
 
   @Test

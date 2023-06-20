@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 
 /**
  * This is the interface to IAM used in the main body of the repository code. Right now, the only
@@ -207,9 +206,8 @@ public interface IamProviderInterface {
    * token
    *
    * @param accessToken valid oauth token for user that is being registered in Terra
-   * @return the fully registered user
    */
-  UserStatus registerUser(String accessToken) throws InterruptedException;
+  void registerUser(String accessToken) throws InterruptedException;
 
   /**
    * Get Sam Status

@@ -57,7 +57,6 @@ import org.broadinstitute.dsde.workbench.client.sam.model.RolesAndActions;
 import org.broadinstitute.dsde.workbench.client.sam.model.SignedUrlRequest;
 import org.broadinstitute.dsde.workbench.client.sam.model.SyncReportEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
-import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -562,9 +561,9 @@ public class SamIam implements IamProviderInterface {
   }
 
   @Override
-  public UserStatus registerUser(String accessToken) throws InterruptedException {
+  public void registerUser(String accessToken) throws InterruptedException {
     logger.info("Registering the ingest service account into Terra");
-    return SamRetry.retry(
+    SamRetry.retry(
         configurationService,
         () -> {
           try {

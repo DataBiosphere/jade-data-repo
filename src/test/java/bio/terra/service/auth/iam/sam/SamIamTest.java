@@ -672,12 +672,9 @@ public class SamIamTest {
                     .userEmail("tdr-ingest-sa@my-project.iam.gserviceaccount.com")
                     .userSubjectId("subid"));
     when(samUsersApi.createUserV2(null)).thenReturn(userStatus);
-    UserStatus returnedUserStatus = samIam.registerUser(TEST_USER.getToken());
-
+    samIam.registerUser(TEST_USER.getToken());
     // Verify that the correct Sam API calls were made
     verify(samUsersApi).createUserV2(null);
-
-    assertThat("expected user is returned", returnedUserStatus, is(userStatus));
   }
 
   @Test

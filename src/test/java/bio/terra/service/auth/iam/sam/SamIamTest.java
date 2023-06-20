@@ -9,7 +9,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -269,20 +268,17 @@ public class SamIamTest {
     samIam.deleteDatasetResource(TEST_USER, datasetId);
     // Verify that the correct Sam API call was made
     verify(samResourceApi, times(1))
-        .deleteResourceV2(
-            eq(IamResourceType.DATASET.getSamResourceName()), eq(datasetId.toString()));
+        .deleteResourceV2(IamResourceType.DATASET.getSamResourceName(), datasetId.toString());
 
     final UUID snapshotId = UUID.randomUUID();
     samIam.deleteSnapshotResource(TEST_USER, snapshotId);
     verify(samResourceApi, times(1))
-        .deleteResourceV2(
-            eq(IamResourceType.DATASNAPSHOT.getSamResourceName()), eq(snapshotId.toString()));
+        .deleteResourceV2(IamResourceType.DATASNAPSHOT.getSamResourceName(), snapshotId.toString());
 
     final UUID profileId = UUID.randomUUID();
     samIam.deleteProfileResource(TEST_USER, profileId.toString());
     verify(samResourceApi, times(1))
-        .deleteResourceV2(
-            eq(IamResourceType.SPEND_PROFILE.getSamResourceName()), eq(profileId.toString()));
+        .deleteResourceV2(IamResourceType.SPEND_PROFILE.getSamResourceName(), profileId.toString());
   }
 
   @Test
@@ -556,13 +552,32 @@ public class SamIamTest {
 
   @Test
   void testCreateProfile() throws InterruptedException, ApiException {
-    mockConfigService();
-    mockSamResourceApi();
+    final UUID profileId = UUID.randomUUID();
     final String userSubjectId = "userid";
     final String userEmail = "a@a.com";
     mockUserInfo(userSubjectId, userEmail);
-    final UUID profileId = UUID.randomUUID();
+    mockConfigService();
+    mockAdminGroupEmail();
+    mockSamResourceApi();
+
+    CreateResourceRequestV2 req = new CreateResourceRequestV2();
+    req.setResourceId(profileId.toString());
+    req.putPoliciesItem(
+        IamRole.ADMIN.toString(),
+        new AccessPolicyMembershipV2()
+            .memberEmails(List.of(samConfig.getAdminsGroupEmail()))
+            .roles(List.of(IamRole.ADMIN.toString())));
+    req.putPoliciesItem(
+        IamRole.OWNER.toString(),
+        new AccessPolicyMembershipV2()
+            .memberEmails(List.of(userEmail))
+            .roles(List.of(IamRole.OWNER.toString())));
+    req.putPoliciesItem(
+        IamRole.USER.toString(),
+        new AccessPolicyMembershipV2().roles(List.of(IamRole.USER.toString())));
+    req.authDomain(List.of());
     samIam.createProfileResource(TEST_USER, profileId.toString());
+    verify(samResourceApi).createResourceV2(IamResourceType.SPEND_PROFILE.toString(), req);
   }
 
   @Test

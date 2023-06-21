@@ -198,7 +198,7 @@ public class FireStoreFile {
   public static FireStoreFile fromTableEntity(TableEntity entity) {
     return new FireStoreFile()
         .fileId(entity.getProperty(FILE_ID_FIELD_NAME).toString())
-        .mimeType(entity.getProperty(MIME_TYPE_FIELD_NAME).toString())
+        .mimeType((String) entity.getProperty(MIME_TYPE_FIELD_NAME))
         .description((String) entity.getProperty(DESCRIPTION_FIELD_NAME))
         .bucketResourceId(entity.getProperty(BUCKET_RESOURCE_ID_FIELD_NAME).toString())
         .loadTag((String) entity.getProperty(LOAD_TAG_FIELD_NAME))

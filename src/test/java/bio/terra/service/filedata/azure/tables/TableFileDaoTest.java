@@ -2,6 +2,7 @@ package bio.terra.service.filedata.azure.tables;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.spy;
@@ -42,18 +43,7 @@ public class TableFileDaoTest {
   private static final String PARTITION_KEY = "partitionKey";
   private static final String DATASET_ID = UUID.randomUUID().toString();
   private static final String FILE_ID = UUID.randomUUID().toString();
-  private final TableEntity entity =
-      new TableEntity(PARTITION_KEY, FILE_ID)
-          .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, FILE_ID)
-          .addProperty(FireStoreFile.MIME_TYPE_FIELD_NAME, "application/json")
-          .addProperty(FireStoreFile.DESCRIPTION_FIELD_NAME, "A test entity")
-          .addProperty(FireStoreFile.BUCKET_RESOURCE_ID_FIELD_NAME, "bucketResourceId")
-          .addProperty(FireStoreFile.LOAD_TAG_FIELD_NAME, "loadTag")
-          .addProperty(FireStoreFile.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
-          .addProperty(FireStoreFile.GS_PATH_FIELD_NAME, "gsPath")
-          .addProperty(FireStoreFile.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
-          .addProperty(FireStoreFile.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")
-          .addProperty(FireStoreFile.SIZE_FIELD_NAME, 1L);
+  private final TableEntity entity = createTableEntity(true);
 
   @MockBean private AzureAuthService authService;
   @MockBean private TableServiceClient tableServiceClient;
@@ -84,6 +74,13 @@ public class TableFileDaoTest {
   }
 
   @Test
+  public void testFromTableEntityMissingMimeType() {
+    TableEntity entity = createTableEntity(false);
+    FireStoreFile expected = FireStoreFile.fromTableEntity(entity);
+    assertNull("Entity mimeType does not throw NPE", expected.getMimeType());
+  }
+
+  @Test
   public void testDeleteFileMetadata() {
     boolean exists = dao.deleteFileMetadata(tableServiceClient, DATASET_ID, FILE_ID);
     assertTrue("Existing row is deleted", exists);
@@ -101,5 +98,23 @@ public class TableFileDaoTest {
     assertEquals(
         "A file record is found for each directory entry", files.size(), expectedFiles.size());
     assertEquals("The same object is returned", files.get(0), expectedFiles.get(0));
+  }
+
+  private TableEntity createTableEntity(boolean hasMimeType) {
+    TableEntity entity =
+        new TableEntity(PARTITION_KEY, FILE_ID)
+            .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, FILE_ID)
+            .addProperty(FireStoreFile.DESCRIPTION_FIELD_NAME, "A test entity")
+            .addProperty(FireStoreFile.BUCKET_RESOURCE_ID_FIELD_NAME, "bucketResourceId")
+            .addProperty(FireStoreFile.LOAD_TAG_FIELD_NAME, "loadTag")
+            .addProperty(FireStoreFile.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
+            .addProperty(FireStoreFile.GS_PATH_FIELD_NAME, "gsPath")
+            .addProperty(FireStoreFile.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
+            .addProperty(FireStoreFile.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")
+            .addProperty(FireStoreFile.SIZE_FIELD_NAME, 1L);
+    if (hasMimeType) {
+      entity.addProperty(FireStoreFile.MIME_TYPE_FIELD_NAME, "application/json");
+    }
+    return entity;
   }
 }

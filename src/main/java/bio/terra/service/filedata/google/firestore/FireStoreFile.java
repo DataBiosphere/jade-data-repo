@@ -197,13 +197,13 @@ public class FireStoreFile {
 
   public static FireStoreFile fromTableEntity(TableEntity entity) {
     return new FireStoreFile()
-        .fileId(entity.getProperty(FILE_ID_FIELD_NAME).toString())
-        .mimeType(entity.getProperty(MIME_TYPE_FIELD_NAME).toString())
+        .fileId((String) entity.getProperty(FILE_ID_FIELD_NAME))
+        .mimeType((String) entity.getProperty(MIME_TYPE_FIELD_NAME))
         .description((String) entity.getProperty(DESCRIPTION_FIELD_NAME))
-        .bucketResourceId(entity.getProperty(BUCKET_RESOURCE_ID_FIELD_NAME).toString())
+        .bucketResourceId((String) entity.getProperty(BUCKET_RESOURCE_ID_FIELD_NAME))
         .loadTag((String) entity.getProperty(LOAD_TAG_FIELD_NAME))
-        .fileCreatedDate(entity.getProperty(FILE_CREATED_DATE_FIELD_NAME).toString())
-        .gspath(entity.getProperty(GS_PATH_FIELD_NAME).toString())
+        .fileCreatedDate((String) entity.getProperty(FILE_CREATED_DATE_FIELD_NAME))
+        .gspath((String) entity.getProperty(GS_PATH_FIELD_NAME))
         .checksumCrc32c((String) entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME))
         .checksumMd5((String) entity.getProperty(CHECKSUM_MD5_FIELD_NAME))
         .userSpecifiedMd5(

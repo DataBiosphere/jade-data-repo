@@ -73,7 +73,6 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.rawls.RawlsService;
 import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotPreviewException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
@@ -96,7 +95,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -560,8 +558,6 @@ public class SnapshotService {
         SnapshotRequestRowIdModel requestRowIdModel = requestContents.getRowIdSpec();
         conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
       }
-      default -> throw new InvalidSnapshotException(
-          "Snapshot does not have required mode information");
     }
 
     return snapshot
@@ -845,16 +841,12 @@ public class SnapshotService {
     SnapshotRequestAssetModel requestAssetModel = requestContents.getAssetSpec();
     Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
 
-    Optional<AssetSpecification> optAsset =
-        dataset.getAssetSpecificationByName(requestAssetModel.getAssetName());
-    if (optAsset.isEmpty()) {
-      throw new AssetNotFoundException(
-          "Asset specification not found: " + requestAssetModel.getAssetName());
-    }
-
-    // the map construction will go here. For MVM, we generate the mapping data directly from the
-    // asset spec.
-    return optAsset.get();
+    return dataset
+        .getAssetSpecificationByName(requestAssetModel.getAssetName())
+        .orElseThrow(
+            () ->
+                new AssetNotFoundException(
+                    "Asset specification not found: " + requestAssetModel.getAssetName()));
   }
 
   /**

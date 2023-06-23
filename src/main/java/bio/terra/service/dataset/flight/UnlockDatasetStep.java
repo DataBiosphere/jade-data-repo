@@ -32,7 +32,7 @@ public class UnlockDatasetStep extends DefaultUndoStep {
 
   @VisibleForTesting
   public boolean isSharedLock() {
-    return this.sharedLock;
+    return sharedLock;
   }
 
   @Override

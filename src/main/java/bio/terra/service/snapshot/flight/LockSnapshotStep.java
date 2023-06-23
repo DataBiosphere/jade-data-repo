@@ -36,7 +36,7 @@ public class LockSnapshotStep implements Step {
 
   @VisibleForTesting
   public boolean shouldSuppressNotFoundException() {
-    return this.suppressNotFoundException;
+    return suppressNotFoundException;
   }
 
   @Override

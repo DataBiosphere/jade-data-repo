@@ -5,7 +5,6 @@ import bio.terra.model.DatasetModel;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
@@ -45,8 +44,7 @@ public class DeleteDatasetAuthzBqAclsStep implements Step {
     // TODO: this probably should fail with a 404 before the flight is even attempted
     DatasetModel datasetModel;
     try {
-      Dataset dataset = datasetService.retrieve(datasetId);
-      datasetModel = datasetService.retrieveModel(dataset, userReq);
+      datasetModel = datasetService.retrieveDatasetModel(datasetId, userReq);
     } catch (DatasetNotFoundException | InvalidDatasetException e) {
       logger.warn("Dataset {} metadata was not found.  Ignoring explicit ACL clear.", datasetId);
       return StepResult.getStepResultSuccess();

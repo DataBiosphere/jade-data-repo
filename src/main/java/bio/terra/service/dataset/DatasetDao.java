@@ -185,7 +185,7 @@ public class DatasetDao implements TaggableResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
 
-    performLockQuery(sql, params, LockOperation.LockExclusive, datasetId);
+    performLockQuery(sql, params, LockOperation.LOCK_EXCLUSIVE, datasetId);
 
     logger.debug(
         "Lock Operation: Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
@@ -214,7 +214,7 @@ public class DatasetDao implements TaggableResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
 
-    int numRowsUpdated = performLockQuery(sql, params, LockOperation.UnlockExclusive, null);
+    int numRowsUpdated = performLockQuery(sql, params, LockOperation.UNLOCK_EXCLUSIVE, null);
 
     boolean unlockSucceeded = (numRowsUpdated == 1);
     logger.debug(
@@ -265,7 +265,7 @@ public class DatasetDao implements TaggableResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
 
-    int numRowsUpdated = performLockQuery(sql, params, LockOperation.LockShared, datasetId);
+    int numRowsUpdated = performLockQuery(sql, params, LockOperation.LOCK_SHARED, datasetId);
 
     logger.debug(
         "Lock Operation: Shared lock acquired for dataset {}, flight {}, with {} rows updated",
@@ -300,7 +300,7 @@ public class DatasetDao implements TaggableResourceDao {
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
     logger.debug("Unlocking shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
 
-    int numRowsUpdated = performLockQuery(sql, params, LockOperation.UnlockShared, null);
+    int numRowsUpdated = performLockQuery(sql, params, LockOperation.UNLOCK_SHARED, null);
 
     boolean unlockSucceeded = (numRowsUpdated == 1);
     logger.debug(

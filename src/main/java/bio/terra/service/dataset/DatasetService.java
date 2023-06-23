@@ -206,6 +206,10 @@ public class DatasetService {
     return retrieveModel(dataset, userRequest, include);
   }
 
+  public DatasetModel retrieveDatasetModel(UUID id, AuthenticatedUserRequest userRequest) {
+    return retrieveDatasetModel(id, userRequest, getDefaultIncludes());
+  }
+
   /**
    * Convenience wrapper to grab the dataset model from the dataset object, avoids having to
    * retrieve the dataset a second time if you already have it

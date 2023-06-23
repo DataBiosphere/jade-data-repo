@@ -49,12 +49,12 @@ public class LockDatasetStep implements Step {
 
   @VisibleForTesting
   public boolean isSharedLock() {
-    return this.sharedLock;
+    return sharedLock;
   }
 
   @VisibleForTesting
   public boolean shouldSuppressNotFoundException() {
-    return this.suppressNotFoundException;
+    return suppressNotFoundException;
   }
 
   @Override

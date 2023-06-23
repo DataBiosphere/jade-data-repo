@@ -68,8 +68,7 @@ public class DatasetsApiControllerTest {
   private static final String RETRIEVE_DATASET_ENDPOINT = "/api/repository/v1/datasets/{id}";
   private static final DatasetRequestAccessIncludeModel INCLUDE =
       DatasetRequestAccessIncludeModel.NONE;
-  private static final String GET_PREVIEW_ENDPOINT =
-      "%s/data/{table}".formatted(RETRIEVE_DATASET_ENDPOINT);
+  private static final String GET_PREVIEW_ENDPOINT = RETRIEVE_DATASET_ENDPOINT + "/data/{table}";
   private static final SqlSortDirection DIRECTION = SqlSortDirection.ASC;
   private static final UUID DATASET_ID = UUID.randomUUID();
   private static final int LIMIT = 10;

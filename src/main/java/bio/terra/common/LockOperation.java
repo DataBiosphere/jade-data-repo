@@ -4,11 +4,24 @@ import java.util.List;
 
 /** Actions which could be taken to modify the locks held on a resource (dataset, snapshot). */
 public enum LockOperation {
-  LockExclusive,
-  LockShared,
-  UnlockExclusive,
-  UnlockShared;
+  LOCK_EXCLUSIVE(true, "an exclusive lock", "locked"),
+  LOCK_SHARED(true, "a shared lock", "exclusively locked"),
+  UNLOCK_EXCLUSIVE(false),
+  UNLOCK_SHARED(false);
 
+  private final boolean isLock;
+  private final String description;
+  private final String conflict;
+
+  LockOperation(boolean isLock, String description, String conflict) {
+    this.isLock = isLock;
+    this.description = description;
+    this.conflict = conflict;
+  }
+
+  LockOperation(boolean isLock) {
+    this(isLock, null, null);
+  }
   /**
    * @return additional guidance for users investigating a failed lock operation, usually as part of
    *     a failed job / flight.
@@ -16,11 +29,10 @@ public enum LockOperation {
   public List<String> getErrorDetails() {
     var template =
         "A failure to obtain %s on a resource likely means that it's already %s by another process.";
-    return switch (this) {
-      case LockShared -> List.of(template.formatted("a shared lock", "exclusively locked"));
-      case LockExclusive -> List.of(template.formatted("an exclusive lock", "locked"));
-      default -> List.of();
-    };
+    if (description != null && conflict != null) {
+      return List.of(template.formatted(description, conflict));
+    }
+    return List.of();
   }
 
   /**
@@ -28,6 +40,6 @@ public enum LockOperation {
    *     unlock)
    */
   public boolean lockAttempted() {
-    return this.equals(LockExclusive) || this.equals(LockShared);
+    return isLock;
   }
 }

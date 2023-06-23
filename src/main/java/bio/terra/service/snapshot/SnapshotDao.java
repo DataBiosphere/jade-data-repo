@@ -164,7 +164,7 @@ public class SnapshotDao implements TaggableResourceDao {
       retrieveSummaryById(snapshotId);
 
       throw new SnapshotLockException(
-          "Failed to lock the snapshot", LockOperation.LockExclusive.getErrorDetails());
+          "Failed to lock the snapshot", LockOperation.LOCK_EXCLUSIVE.getErrorDetails());
     }
   }
 
@@ -336,11 +336,11 @@ public class SnapshotDao implements TaggableResourceDao {
             WHERE snapshot.id = :id
             """;
     MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", snapshotId);
-    SnapshotProject snapshotProject = retrieveSnapshotProject(sql, params);
-    if (snapshotProject == null) {
+    try {
+      return jdbcTemplate.queryForObject(sql, params, new SnapshotProjectMapper());
+    } catch (EmptyResultDataAccessException ex) {
       throw new SnapshotNotFoundException("Snapshot not found - id: " + snapshotId);
     }
-    return snapshotProject;
   }
 
   @Transactional(
@@ -431,32 +431,6 @@ public class SnapshotDao implements TaggableResourceDao {
     }
   }
 
-  private SnapshotProject retrieveSnapshotProject(String sql, MapSqlParameterSource params) {
-    try {
-      return jdbcTemplate.queryForObject(
-          sql,
-          params,
-          (rs, rowNum) -> {
-            List<DatasetProject> datasetProjects;
-            try {
-              datasetProjects =
-                  objectMapper.readValue(rs.getString("dataset_sources"), new TypeReference<>() {});
-            } catch (JsonProcessingException e) {
-              throw new CorruptMetadataException("Invalid dataset sources for snapshot");
-            }
-            return new SnapshotProject()
-                .id(rs.getObject("id", UUID.class))
-                .name(rs.getString("name"))
-                .profileId(rs.getObject("profile_id", UUID.class))
-                .dataProject(rs.getString("google_project_id"))
-                .cloudPlatform(CloudPlatform.fromValue(rs.getString("cloud_platform")))
-                .sourceDatasetProjects(datasetProjects);
-          });
-    } catch (EmptyResultDataAccessException ex) {
-      return null;
-    }
-  }
-
   private List<SnapshotSource> retrieveSnapshotSources(Snapshot snapshot) {
     // We collect all the source ids first to avoid introducing a recursive query. While the
     // recursive query might work, it makes debugging errors more difficult.
@@ -490,10 +464,11 @@ public class SnapshotDao implements TaggableResourceDao {
         // Find the matching asset in the dataset
         Optional<AssetSpecification> assetSpecification =
             dataset.getAssetSpecificationById(raw.assetId);
-        if (assetSpecification.isEmpty()) {
-          throw new CorruptMetadataException("Asset referenced by snapshot source was not found!");
-        }
-        snapshotSource.assetSpecification(assetSpecification.get());
+        snapshotSource.assetSpecification(
+            assetSpecification.orElseThrow(
+                () ->
+                    new CorruptMetadataException(
+                        "Asset referenced by snapshot source was not found!")));
       }
 
       // Now that we have access to all the parts, build the map structure
@@ -823,6 +798,25 @@ public class SnapshotDao implements TaggableResourceDao {
           .globalFileIds(rs.getBoolean("global_file_ids"))
           .tags(DaoUtils.getStringList(rs, "tags"))
           .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")));
+    }
+  }
+
+  private class SnapshotProjectMapper implements RowMapper<SnapshotProject> {
+    public SnapshotProject mapRow(ResultSet rs, int rowNum) throws SQLException {
+      List<DatasetProject> datasetProjects;
+      try {
+        datasetProjects =
+            objectMapper.readValue(rs.getString("dataset_sources"), new TypeReference<>() {});
+      } catch (JsonProcessingException e) {
+        throw new CorruptMetadataException("Invalid dataset sources for snapshot", e);
+      }
+      return new SnapshotProject()
+          .id(rs.getObject("id", UUID.class))
+          .name(rs.getString("name"))
+          .profileId(rs.getObject("profile_id", UUID.class))
+          .dataProject(rs.getString("google_project_id"))
+          .cloudPlatform(CloudPlatform.fromValue(rs.getString("cloud_platform")))
+          .sourceDatasetProjects(datasetProjects);
     }
   }
 }

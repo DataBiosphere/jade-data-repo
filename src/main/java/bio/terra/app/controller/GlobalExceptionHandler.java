@@ -135,7 +135,9 @@ public class GlobalExceptionHandler {
       combinedCauseString.append("cause: " + cause.toString() + ", ");
     }
     logger.error("Global exception handler: " + combinedCauseString.toString(), ex);
-    Sentry.captureException(ex);
+    if (captureInSentry) {
+      Sentry.captureException(ex);
+    }
     return new ErrorModel().message(ex.getMessage()).errorDetail(errorDetail);
   }
 }

@@ -12,6 +12,7 @@ import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.auth.iam.sam.SamIam;
 import bio.terra.service.job.exception.JobResponseException;
+import io.sentry.Sentry;
 import java.util.List;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -31,37 +32,37 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(NotFoundException.class)
   @ResponseStatus(HttpStatus.NOT_FOUND)
   public ErrorModel notFoundHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex, ex.getCauses(), false);
   }
 
   @ExceptionHandler(BadRequestException.class)
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public ErrorModel badRequestHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex, ex.getCauses(), false);
   }
 
   @ExceptionHandler(InternalServerErrorException.class)
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   public ErrorModel internalServerErrorHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex, ex.getCauses(), true);
   }
 
   @ExceptionHandler(ServiceUnavailableException.class)
   @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
   public ErrorModel serviceUnavailableHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex, ex.getCauses(), true);
   }
 
   @ExceptionHandler(NotImplementedException.class)
   @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
   public ErrorModel notImplementedHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex, ex.getCauses(), false);
   }
 
   @ExceptionHandler(ConflictException.class)
   @ResponseStatus(HttpStatus.CONFLICT)
   public ErrorModel conflictHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex, ex.getCauses(), false);
   }
 
   // -- exceptions from validations - we don't control the exception raised --
@@ -79,13 +80,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(UnauthorizedException.class)
   @ResponseStatus(HttpStatus.UNAUTHORIZED)
   public ErrorModel samAuthorizationException(UnauthorizedException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex, ex.getCauses(), false);
   }
 
   @ExceptionHandler(ForbiddenException.class)
   @ResponseStatus(HttpStatus.FORBIDDEN)
   public ErrorModel forbiddenHandler(ErrorReportException ex) {
-    return buildErrorModel(ex, ex.getCauses());
+    return buildErrorModel(ex, ex.getCauses(), false);
   }
 
   // -- job response exception -- we use the JobResponseException to wrap non-runtime exceptions
@@ -124,15 +125,17 @@ public class GlobalExceptionHandler {
   // This error handler logs the complete error list so we can debug the underlying causes
   // of errors. We do not want to return that to the client, but need it for our own debugging.
   private ErrorModel buildErrorModel(Throwable ex) {
-    return buildErrorModel(ex, null);
+    return buildErrorModel(ex, null, true);
   }
 
-  private ErrorModel buildErrorModel(Throwable ex, List<String> errorDetail) {
+  private ErrorModel buildErrorModel(
+      Throwable ex, List<String> errorDetail, boolean captureInSentry) {
     StringBuilder combinedCauseString = new StringBuilder();
     for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
       combinedCauseString.append("cause: " + cause.toString() + ", ");
     }
     logger.error("Global exception handler: " + combinedCauseString.toString(), ex);
+    Sentry.captureException(ex);
     return new ErrorModel().message(ex.getMessage()).errorDetail(errorDetail);
   }
 }

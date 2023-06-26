@@ -501,7 +501,7 @@ public class DrsService {
       fsFile =
           (FSFile)
               fileService.lookupSnapshotFSItem(
-                  snapshotService.retrieveAvailableSnapshotProject(cachedSnapshot.id),
+                  snapshotService.retrieveSnapshotProject(cachedSnapshot.id),
                   drsId.getFsObjectId(),
                   1);
     } catch (InterruptedException e) {
@@ -861,7 +861,7 @@ public class DrsService {
 
   private SnapshotProject getSnapshotProject(UUID snapshotId) {
     return snapshotProjectsCache.computeIfAbsent(
-        snapshotId, snapshotService::retrieveAvailableSnapshotProject);
+        snapshotId, snapshotService::retrieveSnapshotProject);
   }
 
   private SnapshotCacheResult getSnapshot(UUID snapshotId) {

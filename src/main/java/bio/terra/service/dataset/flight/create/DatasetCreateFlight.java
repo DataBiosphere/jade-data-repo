@@ -112,7 +112,7 @@ public class DatasetCreateFlight extends Flight {
 
     // Create dataset metadata objects in postgres and lock the dataset
     addStep(
-        new CreateDatasetMetadataStep(datasetDao, datasetRequest, userReq),
+        new CreateDatasetMetadataStep(datasetDao, datasetRequest),
         getDefaultExponentialBackoffRetryRule());
 
     // For azure backed datasets, add a link co connect the storage account to the dataset
@@ -151,6 +151,8 @@ public class DatasetCreateFlight extends Flight {
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));
     }
     addStep(new UnlockDatasetStep(datasetService, false));
+    // once unlocked, the dataset summary can be written as the job response
+    addStep(new CreateDatasetSetResponseStep(datasetService));
     addStep(new CreateDatasetJournalEntryStep(journalService, userReq));
   }
 }

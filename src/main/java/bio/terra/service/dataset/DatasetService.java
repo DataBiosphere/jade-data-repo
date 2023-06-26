@@ -9,7 +9,6 @@ import bio.terra.app.usermetrics.UserLoggingMetrics;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.CollectionType;
 import bio.terra.common.Column;
-import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.InvalidCloudPlatformException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.AccessInfoModel;
@@ -41,7 +40,6 @@ import bio.terra.service.auth.iam.IamAction;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.iam.IamService;
-import bio.terra.service.auth.iam.exception.IamForbiddenException;
 import bio.terra.service.dataset.exception.DatasetDataException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.IngestFailureException;
@@ -87,7 +85,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -184,16 +181,6 @@ public class DatasetService {
   }
 
   /**
-   * Fetch existing Dataset object that is NOT exclusively locked.
-   *
-   * @param id in UUID format
-   * @return a Dataset object
-   */
-  public Dataset retrieveAvailable(UUID id) {
-    return datasetDao.retrieveAvailable(id);
-  }
-
-  /**
    * Fetch existing Dataset object using the name.
    *
    * @param name
@@ -208,19 +195,19 @@ public class DatasetService {
    * object. Unlike the Dataset object, the Model object includes a reference to the associated
    * cloud project.
    *
-   * <p>Note that this method will only return a dataset if it is NOT exclusively locked. It is
-   * intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may
-   * require an exclusively locked dataset to be returned (e.g. dataset deletion).
-   *
    * @param id in UUID format
    * @return a DatasetModel = API output-friendly representation of the Dataset
    */
-  public DatasetModel retrieveAvailableDatasetModel(
+  public DatasetModel retrieveDatasetModel(
       UUID id,
       AuthenticatedUserRequest userRequest,
       List<DatasetRequestAccessIncludeModel> include) {
-    Dataset dataset = retrieveAvailable(id);
+    Dataset dataset = retrieve(id);
     return retrieveModel(dataset, userRequest, include);
+  }
+
+  public DatasetModel retrieveDatasetModel(UUID id, AuthenticatedUserRequest userRequest) {
+    return retrieveDatasetModel(id, userRequest, getDefaultIncludes());
   }
 
   /**
@@ -483,35 +470,6 @@ public class DatasetService {
     } else {
       throw new InvalidCloudPlatformException();
     }
-  }
-
-  @FunctionalInterface
-  public interface IamAuthorizedCall {
-    void get() throws IamForbiddenException;
-  }
-
-  /**
-   * Throw if the user cannot access the dataset via SAM permissions.
-   *
-   * @param iamAuthorizedCall throws if dataset inaccessible via SAM permissions
-   */
-  void verifyDatasetAccessible(IamAuthorizedCall iamAuthorizedCall) {
-    try {
-      iamAuthorizedCall.get();
-    } catch (Exception iamEx) {
-      throw new ForbiddenException(
-          "Error accessing dataset: see errorDetails",
-          Collections.singletonList(iamEx.getMessage()));
-    }
-  }
-
-  /** Throw if the user cannot read the dataset. */
-  public void verifyDatasetReadable(UUID datasetId, AuthenticatedUserRequest userReq) {
-    IamAuthorizedCall canRead =
-        () ->
-            iamService.verifyAuthorization(
-                userReq, IamResourceType.DATASET, datasetId.toString(), IamAction.READ_DATA);
-    verifyDatasetAccessible(canRead);
   }
 
   public DatasetDataModel retrieveData(

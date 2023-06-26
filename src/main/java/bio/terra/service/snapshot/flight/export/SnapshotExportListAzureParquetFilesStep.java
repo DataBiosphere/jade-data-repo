@@ -40,7 +40,7 @@ public class SnapshotExportListAzureParquetFilesStep extends DefaultUndoStep {
   public StepResult doStep(FlightContext context) throws InterruptedException, RetryException {
     FlightMap workingMap = context.getWorkingMap();
     SnapshotModel snapshot =
-        snapshotService.retrieveAvailableSnapshotModel(
+        snapshotService.retrieveSnapshotModel(
             snapshotId,
             List.of(
                 SnapshotRetrieveIncludeModel.ACCESS_INFORMATION,

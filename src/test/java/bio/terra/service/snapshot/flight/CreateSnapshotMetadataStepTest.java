@@ -1,31 +1,26 @@
-package bio.terra.service.snapshot.flight.snapshot;
+package bio.terra.service.snapshot.flight;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.fixtures.DuosFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotRequestModelPolicies;
-import bio.terra.service.auth.iam.IamService;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.snapshot.flight.create.SnapshotAuthzIamStep;
+import bio.terra.service.snapshot.flight.create.CreateSnapshotMetadataStep;
 import bio.terra.service.snapshot.flight.duos.SnapshotDuosMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,69 +34,72 @@ import org.springframework.test.context.ActiveProfiles;
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 @ActiveProfiles({"google", "unittest"})
 @Category(Unit.class)
-public class SnapshotAuthzIamStepTest {
-  @Mock private IamService iamService;
+public class CreateSnapshotMetadataStepTest {
+
+  @Mock private SnapshotDao snapshotDao;
   @Mock private SnapshotService snapshotService;
   @Mock private FlightContext flightContext;
 
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticationFixtures.randomUserRequest();
+  private static final String FLIGHT_ID = String.valueOf(UUID.randomUUID());
   private static final UUID SNAPSHOT_ID = UUID.randomUUID();
+  private static final UUID PROJECT_RESOURCE_ID = UUID.randomUUID();
   private static final String DUOS_ID = "DUOS-123456";
   private static final DuosFirecloudGroupModel DUOS_FIRECLOUD_GROUP =
       DuosFixtures.createDbFirecloudGroup(DUOS_ID);
 
-  private SnapshotAuthzIamStep step;
+  private CreateSnapshotMetadataStep step;
   private FlightMap workingMap;
   private SnapshotRequestModel snapshotRequestModel;
+  private Snapshot snapshot;
 
   @Before
   public void setup() {
     workingMap = new FlightMap();
     workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, SNAPSHOT_ID);
+    workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, PROJECT_RESOURCE_ID);
+    when(flightContext.getFlightId()).thenReturn(FLIGHT_ID);
+
     snapshotRequestModel = new SnapshotRequestModel();
-    when(iamService.deriveSnapshotPolicies(snapshotRequestModel))
-        .thenReturn(new SnapshotRequestModelPolicies().readers(new ArrayList<>()));
+    snapshot = new Snapshot();
+    when(snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel))
+        .thenReturn(snapshot);
   }
 
   @Test
   public void testDoAndUndoStep() throws InterruptedException {
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-    step = new SnapshotAuthzIamStep(iamService, snapshotService, snapshotRequestModel, TEST_USER);
+    step = new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotRequestModel);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-
-    ArgumentCaptor<SnapshotRequestModelPolicies> argument =
-        ArgumentCaptor.forClass(SnapshotRequestModelPolicies.class);
-    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), argument.capture());
-    List<String> readers = argument.getValue().getReaders();
-    assertFalse(readers.contains(DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail()));
+    snapshot.id(UUID.randomUUID()).projectResourceId(PROJECT_RESOURCE_ID);
+    ArgumentCaptor<Snapshot> argument = ArgumentCaptor.forClass(Snapshot.class);
+    verify(snapshotDao).createAndLock(argument.capture(), eq(FLIGHT_ID));
+    assertNull(argument.getValue().getDuosFirecloudGroupId());
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(iamService).deleteSnapshotResource(TEST_USER, SNAPSHOT_ID);
+    verify(snapshotDao).delete(SNAPSHOT_ID);
   }
 
   @Test
   public void testDoAndUndoStepWithDUOS() throws InterruptedException {
     workingMap.put(SnapshotDuosMapKeys.FIRECLOUD_GROUP, DUOS_FIRECLOUD_GROUP);
     when(flightContext.getWorkingMap()).thenReturn(workingMap);
-
     snapshotRequestModel.duosId(DUOS_ID);
-    step = new SnapshotAuthzIamStep(iamService, snapshotService, snapshotRequestModel, TEST_USER);
+
+    step = new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotRequestModel);
     StepResult doResult = step.doStep(flightContext);
     assertThat(doResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-
-    SnapshotRequestModelPolicies policies = iamService.deriveSnapshotPolicies(snapshotRequestModel);
-    policies.addReadersItem(DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail());
-    ArgumentCaptor<SnapshotRequestModelPolicies> argument =
-        ArgumentCaptor.forClass(SnapshotRequestModelPolicies.class);
-    verify(iamService).createSnapshotResource(eq(TEST_USER), eq(SNAPSHOT_ID), argument.capture());
-    List<String> readers = argument.getValue().getReaders();
-    assertTrue(readers.contains(DUOS_FIRECLOUD_GROUP.getFirecloudGroupEmail()));
+    snapshot
+        .id(SNAPSHOT_ID)
+        .projectResourceId(PROJECT_RESOURCE_ID)
+        .duosFirecloudGroupId(DUOS_FIRECLOUD_GROUP.getId());
+    ArgumentCaptor<Snapshot> argument = ArgumentCaptor.forClass(Snapshot.class);
+    verify(snapshotDao).createAndLock(argument.capture(), eq(FLIGHT_ID));
+    assertEquals(argument.getValue().getDuosFirecloudGroupId(), DUOS_FIRECLOUD_GROUP.getId());
 
     StepResult undoResult = step.undoStep(flightContext);
     assertThat(undoResult.getStepStatus(), equalTo(StepStatus.STEP_RESULT_SUCCESS));
-    verify(iamService).deleteSnapshotResource(TEST_USER, SNAPSHOT_ID);
+    verify(snapshotDao).delete(SNAPSHOT_ID);
   }
 }

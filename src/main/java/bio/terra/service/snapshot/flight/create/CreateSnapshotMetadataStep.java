@@ -1,10 +1,8 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.DuosFirecloudGroupModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -30,17 +28,12 @@ public class CreateSnapshotMetadataStep implements Step {
   private final SnapshotRequestModel snapshotReq;
 
   private static final Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
-  private final AuthenticatedUserRequest userReq;
 
   public CreateSnapshotMetadataStep(
-      SnapshotDao snapshotDao,
-      SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq,
-      AuthenticatedUserRequest userReq) {
+      SnapshotDao snapshotDao, SnapshotService snapshotService, SnapshotRequestModel snapshotReq) {
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
-    this.userReq = userReq;
   }
 
   @Override
@@ -63,11 +56,7 @@ public class CreateSnapshotMetadataStep implements Step {
             SnapshotDuosFlightUtils.getDuosFirecloudGroupId(duosFirecloudGroup);
         snapshot.duosFirecloudGroupId(duosFirecloudGroupId);
       }
-      snapshotDao.createAndLock(snapshot, context.getFlightId(), userReq);
-
-      SnapshotSummaryModel response = snapshotService.retrieveSnapshotSummary(snapshotId);
-
-      FlightUtils.setResponse(context, response, HttpStatus.CREATED);
+      snapshotDao.createAndLock(snapshot, context.getFlightId());
       return StepResult.getStepResultSuccess();
     } catch (InvalidSnapshotException isEx) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, isEx);
@@ -85,7 +74,7 @@ public class CreateSnapshotMetadataStep implements Step {
     logger.debug("Snapshot creation failed. Deleting metadata.");
     FlightMap workingMap = context.getWorkingMap();
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-    snapshotDao.delete(snapshotId, userReq);
+    snapshotDao.delete(snapshotId);
     return StepResult.getStepResultSuccess();
   }
 }

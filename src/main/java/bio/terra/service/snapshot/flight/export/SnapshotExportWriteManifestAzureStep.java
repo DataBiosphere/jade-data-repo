@@ -93,7 +93,7 @@ public class SnapshotExportWriteManifestAzureStep extends DefaultUndoStep {
                         .paths(entry.getValue()))
             .collect(Collectors.toList());
 
-    SnapshotModel snapshot = snapshotService.retrieveAvailableSnapshotModel(snapshotId, userReq);
+    SnapshotModel snapshot = snapshotService.retrieveSnapshotModel(snapshotId, userReq);
 
     SnapshotExportResponseModel responseModel =
         new SnapshotExportResponseModel()

@@ -1,7 +1,9 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInRelativeOrder;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -18,6 +20,8 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
+import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.job.JobMapKeys;
@@ -90,12 +94,36 @@ public class DatasetIngestFlightTest {
 
     var flight = new DatasetIngestFlight(inputParameters, context);
     List<String> stepNames = FlightTestUtils.getStepNames(flight);
+    String flightDescription =
+        "Combined %s ingest to %s dataset (bulk mode = %b)"
+            .formatted(format, cloudPlatform, bulkMode);
 
     assertThat(
-        "Combined %s ingest to %s dataset (bulk mode = %b) validates accessibility of directly specified files"
-            .formatted(format, cloudPlatform, bulkMode),
+        flightDescription + " locks dataset, validates file accessibility, then unlocks dataset",
         stepNames,
-        hasItems("ValidateBucketAccessStep"));
+        containsInRelativeOrder(
+            "LockDatasetStep",
+            "ValidateBucketAccessStep", // Validates accessibility of directly specified files
+            "UnlockDatasetStep"));
+
+    LockDatasetStep lockDatasetStep =
+        FlightTestUtils.getStepWithClass(flight, LockDatasetStep.class);
+    assertThat(
+        flightDescription + " obtains shared dataset lock",
+        lockDatasetStep.isSharedLock(),
+        is(true));
+    assertThat(
+        flightDescription + " does not suppress 'dataset not found' exceptions",
+        lockDatasetStep.shouldSuppressNotFoundException(),
+        is(false));
+
+    UnlockDatasetStep unlockDatasetStep =
+        FlightTestUtils.getStepWithClass(flight, UnlockDatasetStep.class);
+    assertThat(
+        flightDescription + " removes shared dataset lock",
+        unlockDatasetStep.isSharedLock(),
+        is(true));
+
     if (jsonTypeIngest) {
       // CSV ingests can only be run for metadata, not files
       String expectedIndirectFileValidationStep =
@@ -103,8 +131,7 @@ public class DatasetIngestFlightTest {
               ? "IngestJsonFileSetupGcpStep"
               : "IngestJsonFileSetupAzureStep";
       assertThat(
-          "Combined %s ingest to %s dataset (bulk mode = %b) validates accessibility of indirectly specified files"
-              .formatted(format, cloudPlatform, bulkMode),
+          flightDescription + " validates accessibility of indirectly specified files",
           stepNames,
           hasItems(expectedIndirectFileValidationStep));
     }

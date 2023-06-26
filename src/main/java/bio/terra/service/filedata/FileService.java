@@ -43,14 +43,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class FileService {
-  private final Logger logger = LoggerFactory.getLogger(FileService.class);
 
   private final JobService jobService;
   private final FireStoreDao fileDao;
@@ -205,7 +202,7 @@ public class FileService {
   }
 
   public Optional<FileModel> lookupOptionalPath(String datasetId, String path, int depth) {
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     final Optional<FSItem> file;
@@ -229,13 +226,8 @@ public class FileService {
     return file.map(this::fileModelFromFSItem);
   }
 
-  /**
-   * Note that this method will only return a file if the encompassing dataset is NOT exclusively
-   * locked. It is intended for user-facing calls (e.g. from RepositoryApiController), not internal
-   * calls that may require an exclusively locked dataset to be returned (e.g. file deletion).
-   */
   FSItem lookupFSItem(String datasetId, String fileId, int depth) throws InterruptedException {
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
@@ -262,13 +254,8 @@ public class FileService {
     }
   }
 
-  /**
-   * Note that this method will only return a file if the encompassing dataset is NOT exclusively
-   * locked. It is intended for user-facing calls (e.g. from RepositoryApiController), not internal
-   * calls that may require an exclusively locked dataset to be returned (e.g. file deletion).
-   */
   FSItem lookupFSItemByPath(String datasetId, String path, int depth) throws InterruptedException {
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (cloudPlatformWrapper.isGcp()) {
@@ -291,7 +278,7 @@ public class FileService {
     try {
       // note: this method only returns snapshots that are NOT exclusively locked
       SnapshotProject snapshot =
-          snapshotService.retrieveAvailableSnapshotProject(UUID.fromString(snapshotId));
+          snapshotService.retrieveSnapshotProject(UUID.fromString(snapshotId));
       return fileModelFromFSItem(lookupSnapshotFSItem(snapshot, fileId, depth));
     } catch (InterruptedException ex) {
       throw new FileSystemExecutionException(
@@ -357,8 +344,7 @@ public class FileService {
 
   FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth)
       throws InterruptedException {
-    // note: this method only returns snapshots that are NOT exclusively locked
-    Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
+    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
     return fileDao.retrieveByPath(snapshot, path, depth);
   }
 

@@ -258,11 +258,14 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2'
 
     // Azure related dependencies
-    implementation 'com.azure:azure-identity:1.2.5'
-    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.4.0'
-    implementation 'com.azure:azure-storage-common:12.11.1'
-    implementation 'com.azure:azure-storage-file-datalake:12.5.1'
-    implementation 'com.azure:azure-data-tables:12.1.0'
+    implementation 'com.azure:azure-identity:1.9.1'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.28.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager-loganalytics:1.0.0-beta.3'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager-securityinsights:1.0.0-beta.4'
+    implementation 'com.azure:azure-storage-common:12.21.1'
+    implementation 'com.azure:azure-storage-file-datalake:12.15.2'
+    implementation 'com.azure:azure-data-tables:12.3.11'
+
 
     implementation 'io.sentry:sentry-logback:6.5.0'
 

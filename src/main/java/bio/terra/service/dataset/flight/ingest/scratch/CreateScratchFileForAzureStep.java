@@ -42,8 +42,4 @@ public class CreateScratchFileForAzureStep extends DefaultUndoStep {
     return StepResult.getStepResultSuccess();
   }
 
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    return StepResult.getStepResultSuccess();
-  }
 }

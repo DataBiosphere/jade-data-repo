@@ -8,6 +8,7 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.flight.ingest.CreateBucketForBigQueryScratchStep;
+import bio.terra.service.filedata.flight.ingest.IngestCreateAzureContainerStep;
 import bio.terra.service.filedata.flight.ingest.IngestCreateAzureStorageAccountStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
@@ -55,6 +56,7 @@ public class DatasetScratchFilePrepareFlight extends Flight {
     } else if (cloudPlatform.isAzure()) {
       addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
+      addStep(new IngestCreateAzureContainerStep(resourceService, azureContainerPdao, dataset));
       addStep(
           new CreateScratchFileForAzureStep(azureContainerPdao),
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));

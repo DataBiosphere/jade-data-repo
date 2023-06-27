@@ -38,6 +38,7 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -94,6 +95,7 @@ public class SnapshotCreateFlight extends Flight {
     DuosService duosService = appContext.getBean(DuosService.class);
     PolicyService policyService = appContext.getBean(PolicyService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -161,6 +163,8 @@ public class SnapshotCreateFlight extends Flight {
 
     if (platform.isAzure()) {
       addStep(new CreateSnapshotCreateAzureStorageAccountStep(resourceService, sourceDataset));
+      addStep(new CreateSnapshotCreateAzureContainerStep(resourceService, azureContainerPdao));
+
       addStep(
           new CreateSnapshotSourceDatasetDataSourceAzureStep(
               azureSynapsePdao, azureBlobStorePdao, userReq));

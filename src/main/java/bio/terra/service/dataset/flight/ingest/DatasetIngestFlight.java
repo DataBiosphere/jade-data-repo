@@ -35,6 +35,7 @@ import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFi
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToStorageTableStep;
+import bio.terra.service.filedata.flight.ingest.IngestCreateAzureContainerStep;
 import bio.terra.service.filedata.flight.ingest.IngestCreateAzureStorageAccountStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileAzureMakeStorageAccountLinkStep;
@@ -127,6 +128,7 @@ public class DatasetIngestFlight extends Flight {
               profileService, ingestRequestModel.getProfileId(), userReq));
 
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
+      addStep(new IngestCreateAzureContainerStep(resourceService, azureContainerPdao, dataset));
     }
 
     addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);

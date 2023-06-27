@@ -1,5 +1,7 @@
 package bio.terra.service.resourcemanagement.azure;
 
+import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
+
 import bio.terra.app.model.AzureRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.profile.ProfileDao;
@@ -317,7 +319,7 @@ public class AzureStorageAccountService {
               storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
               storageAccountResource.getName());
     } catch (ManagementException e) {
-      if (e.getValue().getCode().equals("ResourceNotFound")) {
+      if (e.getValue().getCode().equals(RESOURCE_NOT_FOUND_CODE)) {
         return null;
       }
       throw new AzureResourceException("Could not check storage account existence", e);

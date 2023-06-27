@@ -40,6 +40,21 @@ public class AzureContainerPdao {
     return blobContainerClient;
   }
 
+  /**
+   * Delete a container in an Azure storage account
+   *
+   * @param profileModel The profile that describes information needed to access the storage account
+   * @param storageAccountResource Metadata describing the storage account that contains the
+   *     container
+   */
+  public void deleteContainer(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    BlobContainerClient blobContainerClient =
+        authService.getBlobContainerClient(
+            profileModel, storageAccountResource, storageAccountResource.getTopLevelContainer());
+    blobContainerClient.deleteIfExists();
+  }
+
   public String getDestinationContainerSignedUrl(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,

@@ -58,6 +58,8 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
+import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringProvider;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
@@ -96,6 +98,7 @@ public class DatasetIngestFlight extends Flight {
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     JournalService journalService = appContext.getBean(JournalService.class);
+    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
 
     IngestRequestModel ingestRequestModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
@@ -106,6 +109,9 @@ public class DatasetIngestFlight extends Flight {
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
+    AzureStorageMonitoringProvider azureStorageMonitoringProvider =
+        new AzureStorageMonitoringProvider(monitoringService);
 
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
@@ -129,6 +135,11 @@ public class DatasetIngestFlight extends Flight {
 
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
       addStep(new IngestCreateAzureContainerStep(resourceService, azureContainerPdao, dataset));
+      // Turn on logging and monitoring for the storage account associated with the dataset and
+      // billing profile
+      azureStorageMonitoringProvider
+          .configureSteps(dataset.isSecureMonitoringEnabled())
+          .forEach(s -> this.addStep(s.step(), s.retryRule()));
     }
 
     addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);

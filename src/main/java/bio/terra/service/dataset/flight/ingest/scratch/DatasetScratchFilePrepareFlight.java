@@ -15,6 +15,8 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
+import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringProvider;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -34,6 +36,10 @@ public class DatasetScratchFilePrepareFlight extends Flight {
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
+    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
+
+    AzureStorageMonitoringProvider azureStorageMonitoringProvider =
+        new AzureStorageMonitoringProvider(monitoringService);
 
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
@@ -57,6 +63,11 @@ public class DatasetScratchFilePrepareFlight extends Flight {
       addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
       addStep(new IngestCreateAzureStorageAccountStep(resourceService, dataset));
       addStep(new IngestCreateAzureContainerStep(resourceService, azureContainerPdao, dataset));
+      // Turn on logging and monitoring for the storage account associated with the dataset and
+      // billing profile
+      azureStorageMonitoringProvider
+          .configureSteps(dataset.isSecureMonitoringEnabled())
+          .forEach(s -> this.addStep(s.step(), s.retryRule()));
       addStep(
           new CreateScratchFileForAzureStep(azureContainerPdao),
           getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads()));

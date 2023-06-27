@@ -43,10 +43,13 @@ import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import com.azure.resourcemanager.loganalytics.models.Workspace;
+import com.azure.resourcemanager.monitor.models.DiagnosticSetting;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import java.io.IOException;
@@ -111,6 +114,7 @@ public class DatasetServiceTest {
   @MockBean private GcsPdao gcsPdao;
   @MockBean private AzureContainerPdao azureContainerPdao;
   @MockBean private AzureBlobStorePdao azureBlobStorePdao;
+  @MockBean private AzureMonitoringService azureMonitoringService;
 
   @Captor private ArgumentCaptor<List<String>> listCaptor;
   @Captor private ArgumentCaptor<IngestRequestModel> requestCaptor;
@@ -591,6 +595,12 @@ public class DatasetServiceTest {
     when(storageAccountResource.getApplicationResource()).thenReturn(applicationResource);
     when(resourceService.getOrCreateDatasetStorageAccount(any(), any(), any()))
         .thenReturn(storageAccountResource);
+    // Mock that the monitoring stack already exists so creation steps are skipped
+    when(azureMonitoringService.getLogAnalyticsWorkspace(any(), any()))
+        .thenReturn(mock(Workspace.class));
+    when(azureMonitoringService.getDiagnosticSetting(any(), any()))
+        .thenReturn(mock(DiagnosticSetting.class));
+    when(azureContainerPdao.getContainer(any(), any())).thenReturn(containerClient);
     when(azureContainerPdao.getOrCreateContainer(any(), any())).thenReturn(containerClient);
     when(azureBlobStorePdao.signFile(any(), eq(storageAccountResource), eq(filePath), any()))
         .thenReturn(signedPath);

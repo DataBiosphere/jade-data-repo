@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.AzureStorageAccountSkuType;
+import com.azure.resourcemanager.resources.fluentcore.arm.ResourceId;
 import java.util.Objects;
 import java.util.UUID;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -104,6 +105,10 @@ public class AzureApplicationDeploymentResource {
       AzureStorageAccountSkuType storageAccountSkuType) {
     this.storageAccountSkuType = storageAccountSkuType;
     return this;
+  }
+
+  public UUID getSubscriptionId() {
+    return UUID.fromString(ResourceId.fromString(azureApplicationDeploymentId).subscriptionId());
   }
 
   @Override

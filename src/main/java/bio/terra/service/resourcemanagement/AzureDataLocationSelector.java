@@ -14,10 +14,17 @@ import org.springframework.stereotype.Component;
 public class AzureDataLocationSelector {
 
   public String createStorageAccountName(
-      String prefix, AzureRegion region, BillingProfileModel billingProfile) {
+      String prefix,
+      AzureRegion region,
+      BillingProfileModel billingProfile,
+      boolean isSecureMonitoringEnabled) {
     int maxStorageAccountNameLength = 24;
     int randomLength = maxStorageAccountNameLength - prefix.length();
-    return prefix + armUniqueString(region.getValue() + billingProfile.toString(), randomLength);
+    String seed = region.getValue() + billingProfile;
+    if (isSecureMonitoringEnabled) {
+      seed += " secure";
+    }
+    return prefix + armUniqueString(seed, randomLength);
   }
 
   /**

@@ -90,7 +90,11 @@ public class SnapshotStorageAccountDaoTest {
 
     AzureStorageAccountResource azureStorageAccountResource =
         resourceService.createSnapshotStorageAccount(
-            snapshotId, dataset.getStorageAccountRegion(), billingProfile, flightId);
+            snapshotId,
+            dataset.getStorageAccountRegion(),
+            billingProfile,
+            flightId,
+            dataset.isSecureMonitoringEnabled());
 
     assertThat(
         "Returns the new storage account resource", azureStorageAccountResource, notNullValue());

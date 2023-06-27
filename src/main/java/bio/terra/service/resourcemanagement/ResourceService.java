@@ -273,7 +273,8 @@ public class ResourceService {
                 azureDataLocationSelector.createStorageAccountName(
                     applicationResource.getStorageAccountPrefix(),
                     dataset.getStorageAccountRegion(),
-                    billingProfile));
+                    billingProfile,
+                    dataset.isSecureMonitoringEnabled()));
 
     return storageAccountService.getOrCreateStorageAccount(
         storageAccountName, dataset.getId().toString(), applicationResource, region, flightId);
@@ -283,14 +284,18 @@ public class ResourceService {
       UUID snapshotId,
       AzureRegion datasetAzureRegion,
       BillingProfileModel billingProfile,
-      String flightId)
+      String flightId,
+      boolean isSecureMonitoringEnabled)
       throws InterruptedException {
 
     final AzureApplicationDeploymentResource applicationResource =
         applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
     String computedStorageAccountName =
         azureDataLocationSelector.createStorageAccountName(
-            applicationResource.getStorageAccountPrefix(), datasetAzureRegion, billingProfile);
+            applicationResource.getStorageAccountPrefix(),
+            datasetAzureRegion,
+            billingProfile,
+            isSecureMonitoringEnabled);
 
     AzureStorageAccountResource storageAccountResource =
         storageAccountService.getOrCreateStorageAccount(

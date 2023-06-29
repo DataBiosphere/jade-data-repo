@@ -7,6 +7,7 @@ public final class CommonMapKeys {
 
   public static final String DATASET_STORAGE_AUTH_INFO = PREFIX + "datasetStorageAuthInfo";
   public static final String SNAPSHOT_STORAGE_AUTH_INFO = PREFIX + "snapshotStorageAuthInfo";
+  public static final String SHOULD_PERFORM_CONTAINER_ROLLBACK = PREFIX + "rollbackContainer";
   public static final String DATASET_STORAGE_ACCOUNT_RESOURCE =
       PREFIX + "datasetStorageAccountResource";
   public static final String SNAPSHOT_STORAGE_ACCOUNT_RESOURCE =

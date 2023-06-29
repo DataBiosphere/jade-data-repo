@@ -41,6 +41,24 @@ public class AzureContainerPdao {
   }
 
   /**
+   * Get a container in an Azure storage account. Note: this will return a client even if the
+   * container does not exist. Existence can be checked with the exists() method on the client.
+   *
+   * @param profileModel The profile that describes information needed to access the storage account
+   * @param storageAccountResource Metadata describing the storage account that contains the
+   *     container
+   * @return A client connection object that can be used to create folders and files
+   */
+  public BlobContainerClient getContainer(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    BlobContainerClient blobContainerClient =
+        authService.getBlobContainerClient(
+            profileModel, storageAccountResource, storageAccountResource.getTopLevelContainer());
+
+    return blobContainerClient;
+  }
+
+  /**
    * Delete a container in an Azure storage account
    *
    * @param profileModel The profile that describes information needed to access the storage account

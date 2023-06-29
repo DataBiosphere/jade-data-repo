@@ -1,5 +1,7 @@
 package bio.terra.service.common;
 
+import static bio.terra.service.common.CommonMapKeys.SHOULD_PERFORM_CONTAINER_ROLLBACK;
+
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -9,6 +11,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import com.azure.storage.blob.BlobContainerClient;
 
 /**
  * Extend this class to ensure that a created storage container gets created in a way that can be
@@ -34,7 +37,13 @@ public abstract class CreateAzureContainerStep implements Step {
 
     // Create the storage container if needed.  Note creating directly with the pdao since there
     // is no new metadata being recorded with this operation.
-    azureContainerPdao.getOrCreateContainer(profileModel, storageAccount);
+    BlobContainerClient container = azureContainerPdao.getContainer(profileModel, storageAccount);
+    if (!container.exists()) {
+      container.create();
+      context.getWorkingMap().put(SHOULD_PERFORM_CONTAINER_ROLLBACK, true);
+    } else {
+      context.getWorkingMap().put(SHOULD_PERFORM_CONTAINER_ROLLBACK, false);
+    }
 
     // Store the storage account in the working map.  This will be used in case of needing to undo
     context.getWorkingMap().put(getStorageAccountContextKey(), storageAccount);
@@ -49,10 +58,13 @@ public abstract class CreateAzureContainerStep implements Step {
     AzureStorageAccountResource datasetAzureStorageAccountResource =
         workingMap.get(getStorageAccountContextKey(), AzureStorageAccountResource.class);
 
-    resourceService.deleteStorageContainer(
-        datasetAzureStorageAccountResource.getResourceId(),
-        profileModel.getId(),
-        context.getFlightId());
+    // If the container was created, delete it
+    if (workingMap.get(SHOULD_PERFORM_CONTAINER_ROLLBACK, Boolean.class)) {
+      resourceService.deleteStorageContainer(
+          datasetAzureStorageAccountResource.getResourceId(),
+          profileModel.getId(),
+          context.getFlightId());
+    }
 
     return StepResult.getStepResultSuccess();
   }

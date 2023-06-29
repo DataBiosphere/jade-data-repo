@@ -43,7 +43,7 @@ public class AzureAuthService {
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL, maxRetries, retryTimeoutSeconds, null, null, null);
     // wrap the cache map with a synchronized map to safely share the cache across threads
-    authorizedMap = Collections.synchronizedMap(new PassiveExpiringMap<>(24, TimeUnit.HOURS));
+    authorizedMap = Collections.synchronizedMap(new PassiveExpiringMap<>(15, TimeUnit.MINUTES));
   }
 
   /**

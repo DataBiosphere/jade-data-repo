@@ -1,7 +1,11 @@
 package bio.terra.service.resourcemanagement.flight;
 
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
+import static bio.terra.stairway.RetryRuleNone.getRetryRuleNone;
+
 import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
 import bio.terra.stairway.RetryRule;
+import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.RetryRuleNone;
 import bio.terra.stairway.Step;
 import java.util.ArrayList;
@@ -24,7 +28,8 @@ public class AzureStorageMonitoringProvider {
    */
   public List<StepDef> configureSteps(boolean isSecureMonitoringEnabled) {
     List<StepDef> steps = new ArrayList<>();
-    RetryRuleNone noRetry = RetryRuleNone.getRetryRuleNone();
+    RetryRuleNone noRetry = getRetryRuleNone();
+    RetryRuleExponentialBackoff expBackoffRetry = getDefaultExponentialBackoffRetryRule();
 
     // Deploy a Log Analytics Workspace if it doesn't exist already
     steps.add(new StepDef(new CreateLogAnalyticsWorkspaceStep(monitoringService), noRetry));
@@ -41,8 +46,9 @@ public class AzureStorageMonitoringProvider {
       steps.add(new StepDef(new CreateExportRuleStep(monitoringService), noRetry));
       // Deploy a Sentinel Workspace if it doesn't exist already
       steps.add(new StepDef(new CreateSentinelStep(monitoringService), noRetry));
-      // Add any rules to Sentinel that will detect events of interest
-      steps.add(new StepDef(new CreateSentinelAlertRulesStep(monitoringService), noRetry));
+      // Add any rules to Sentinel that will detect events of interest.  It takes a little bit for
+      // Sentinel to be available so adding a retry rule here.
+      steps.add(new StepDef(new CreateSentinelAlertRulesStep(monitoringService), expBackoffRetry));
       // Add a notification playbook rule to the Sentinel instance.  This ensures that a Slack
       // notification is sent when an alert is triggered.
       steps.add(new StepDef(new CreateSentinelNotificationRuleStep(monitoringService), noRetry));

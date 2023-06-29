@@ -203,6 +203,7 @@ public class AzureResourceConfiguration {
     private String sqlAdminPassword;
     private String databaseName;
     private String parquetFileFormatName;
+    private String encryptionKey;
 
     public String getWorkspaceName() {
       return workspaceName;
@@ -242,6 +243,14 @@ public class AzureResourceConfiguration {
 
     public void setParquetFileFormatName(String parquetFileFormatName) {
       this.parquetFileFormatName = parquetFileFormatName;
+    }
+
+    public String getEncryptionKey() {
+      return encryptionKey;
+    }
+
+    public void setEncryptionKey(String encryptionKey) {
+      this.encryptionKey = encryptionKey;
     }
   }
 

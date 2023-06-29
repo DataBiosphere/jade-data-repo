@@ -82,11 +82,33 @@ public class AzureSynapsePdao {
 
   private final AzureResourceConfiguration azureResourceConfiguration;
   private final NamedParameterJdbcTemplate synapseJdbcTemplate;
+  private static final String DEFAULT_DB_NAME = "master";
   private static final String PARSER_VERSION = "2.0";
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
   private static final String DEFAULT_CSV_QUOTE = "\"";
   private static final String EMPTY_TABLE_ERROR_MESSAGE =
       "Unable to query the parquet file for this table. This is most likely because the table is empty.  See exception details if this does not appear to be the case.";
+
+  private static final String DB_CREATION_TEMPLATE =
+      """
+      IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '<dbname>')
+        CREATE DATABASE <dbname>;
+    """;
+
+  private static final String DB_ENCRYPTION_TEMPLATE =
+      """
+      IF NOT EXISTS (SELECT * FROM sys.symmetric_keys)
+        CREATE MASTER KEY ENCRYPTION BY PASSWORD = '<encryptionKey>';
+    """;
+
+  private static final String DB_PARQUET_FORMAT_TEMPLATE =
+      """
+      IF NOT EXISTS (select * from sys.external_file_formats where name = '<parquetFormatName>')
+        CREATE EXTERNAL FILE FORMAT [<parquetFormatName>]
+           WITH (
+              FORMAT_TYPE = PARQUET
+           )
+    """;
 
   private static final String scopedCredentialCreateTemplate =
       """
@@ -349,6 +371,44 @@ public class AzureSynapsePdao {
     this.drsIdService = drsIdService;
     this.objectMapper = objectMapper;
     this.synapseJdbcTemplate = synapseJdbcTemplate;
+  }
+
+  /**
+   * Initialize a Synapse database with the given name and encryption key. Note: we need to connect
+   * to the default `master` database to create the new database.
+   *
+   * @param dbName Name of the database of initialize
+   * @param encryptionKey The key to use for encrypting secrets
+   * @param parquetFormatName The name to give the parquet format
+   */
+  public void initializeDb(String dbName, String encryptionKey, String parquetFormatName) {
+    logger.info("Initializing Synapse database {}", dbName);
+    SQLServerDataSource dsInit = getDatasource(DEFAULT_DB_NAME);
+    try (Connection connection = dsInit.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute(new ST(DB_CREATION_TEMPLATE).add("dbname", dbName).render());
+    } catch (SQLException e) {
+      throw new PdaoException("Error creating database", e);
+    }
+
+    // Connect to the newly created db to set up encryption
+    SQLServerDataSource ds = getDatasource();
+    try (Connection connection = ds.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute(
+          new ST(DB_ENCRYPTION_TEMPLATE).add("encryptionKey", encryptionKey).render());
+    } catch (SQLException e) {
+      throw new PdaoException("Error setting up database encryption", e);
+    }
+
+    // Connect to the newly created db to set up the parquet file format used to transform data
+    try (Connection connection = ds.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute(
+          new ST(DB_PARQUET_FORMAT_TEMPLATE).add("parquetFormatName", parquetFormatName).render());
+    } catch (SQLException e) {
+      throw new PdaoException("Error setting up parquet file format", e);
+    }
   }
 
   public List<String> getRefIds(
@@ -1249,11 +1309,15 @@ public class AzureSynapsePdao {
 
   @VisibleForTesting
   public SQLServerDataSource getDatasource() {
+    return getDatasource(azureResourceConfiguration.getSynapse().getDatabaseName());
+  }
+
+  private SQLServerDataSource getDatasource(String databaseName) {
     SQLServerDataSource ds = new SQLServerDataSource();
     ds.setServerName(azureResourceConfiguration.getSynapse().getWorkspaceName());
     ds.setUser(azureResourceConfiguration.getSynapse().getSqlAdminUser());
     ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
-    ds.setDatabaseName(azureResourceConfiguration.getSynapse().getDatabaseName());
+    ds.setDatabaseName(databaseName);
     return ds;
   }
 

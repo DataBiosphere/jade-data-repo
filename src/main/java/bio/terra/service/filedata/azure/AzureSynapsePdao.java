@@ -110,7 +110,7 @@ public class AzureSynapsePdao {
            )
     """;
 
-  private static final String scopedCredentialCreateTemplate =
+  private static final String SCOPED_CREDENTIAL_CREATE_TEMPLATE =
       """
           IF EXISTS (SELECT * FROM sys.database_scoped_credentials WHERE name = '<scopedCredentialName>')
               ALTER DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]
@@ -121,7 +121,7 @@ public class AzureSynapsePdao {
               WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
                    SECRET = '<secret>' ;""";
 
-  private static final String dataSourceCreateTemplate =
+  private static final String DATA_SOURCE_CREATE_TEMPLATE =
       """
       IF NOT EXISTS (SELECT * FROM sys.external_data_sources WHERE name = '<dataSourceName>')
       CREATE EXTERNAL DATA SOURCE [<dataSourceName>]
@@ -130,7 +130,7 @@ public class AzureSynapsePdao {
               CREDENTIAL = [<credential>]
           );""";
 
-  private static final String createSnapshotTableTemplate =
+  private static final String CREATE_SNAPSHOT_TABLE_TEMPLATE =
       """
       CREATE EXTERNAL TABLE [<tableName>]
           WITH (
@@ -163,32 +163,32 @@ public class AzureSynapsePdao {
                  FORMAT = 'parquet') AS rows
               """;
 
-  private static final String createSnapshotTableByRowIdTemplate =
-      createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
+  private static final String CREATE_SNAPSHOT_TABLE_BY_ROW_ID_TEMPLATE =
+      CREATE_SNAPSHOT_TABLE_TEMPLATE + " WHERE rows.datarepo_row_id IN (:datarepoRowIds);";
 
-  private static final String createSnapshotTableByQueryTemplate =
-      createSnapshotTableTemplate + " WHERE rows.datarepo_row_id IN (<query>);";
+  private static final String CREATE_SNAPSHOT_TABLE_BY_QUERY_TEMPLATE =
+      CREATE_SNAPSHOT_TABLE_TEMPLATE + " WHERE rows.datarepo_row_id IN (<query>);";
 
-  private static final String createSnapshotTableArrayRootColumnClause =
+  private static final String CREATE_SNAPSHOT_TABLE_ARRAY_ROOT_COLUMN_CLAUSE =
       """
           <if(isRootColumnArray)>
            CROSS APPLY OPENJSON(<rootColumn>) WITH (value <arrayRootColumnType> '$')
           <endif>
           """;
-  private static final String createSnapshotTableArrayFromColumnClause =
+  private static final String CREATE_SNAPSHOT_TABLE_ARRAY_FROM_COLUMN_CLAUSE =
       """
           <if(isFromColumnArray)>
            CROSS APPLY OPENJSON(<fromTableColumn>) WITH (value <arrayFromColumnType> '$')
           <endif>
           """;
-  private static final String createSnapshotTableByAssetTemplate =
-      createSnapshotTableTemplate
-          + createSnapshotTableArrayRootColumnClause
+  private static final String CREATE_SNAPSHOT_TABLE_BY_ASSET_TEMPLATE =
+      CREATE_SNAPSHOT_TABLE_TEMPLATE
+          + CREATE_SNAPSHOT_TABLE_ARRAY_ROOT_COLUMN_CLAUSE
           + " WHERE <if(isRootColumnArray)>value<else>rows.<rootColumn><endif> in (:rootValues);";
 
-  private static final String createSnapshotTableWalkRelationshipTemplate =
-      createSnapshotTableTemplate
-          + createSnapshotTableArrayRootColumnClause
+  private static final String CREATE_SNAPSHOT_TABLE_WALK_RELATIONSHIP_TEMPLATE =
+      CREATE_SNAPSHOT_TABLE_TEMPLATE
+          + CREATE_SNAPSHOT_TABLE_ARRAY_ROOT_COLUMN_CLAUSE
           + """
             WHERE
             (<if(isRootColumnArray)>value<else>rows.<toTableColumn><endif> IN
@@ -200,11 +200,11 @@ public class AzureSynapsePdao {
                   FORMAT = 'parquet'
                 ) as from_rows
           """
-          + createSnapshotTableArrayFromColumnClause
+          + CREATE_SNAPSHOT_TABLE_ARRAY_FROM_COLUMN_CLAUSE
           + "   ))";
 
-  private static final String createSnapshotTableWithExistingRowsTemplate =
-      createSnapshotTableWalkRelationshipTemplate
+  private static final String CREATE_SNAPSHOT_TABLE_WITH_EXISTING_ROWS_TEMPLATE =
+      CREATE_SNAPSHOT_TABLE_WALK_RELATIONSHIP_TEMPLATE
           + """
          AND (rows.datarepo_row_id NOT IN
              (
@@ -217,7 +217,7 @@ public class AzureSynapsePdao {
             ));
           """;
 
-  private static final String createSnapshotRowIdTableTemplate =
+  private static final String CREATE_SNAPSHOT_ROW_ID_TABLE_TEMPLATE =
       """
       CREATE EXTERNAL TABLE [<tableName>]
           WITH (
@@ -225,7 +225,7 @@ public class AzureSynapsePdao {
               DATA_SOURCE = [<destinationDataSourceName>],
               FILE_FORMAT = [<fileFormat>]) AS  <selectStatements>""";
 
-  private static final String getLiveViewTableTemplate =
+  private static final String GET_LIVE_VIEW_TABLE_TEMPLATE =
       """
       SELECT '<tableId>' as <tableIdColumn>, <dataRepoRowIdColumn>
         FROM OPENROWSET(
@@ -233,10 +233,10 @@ public class AzureSynapsePdao {
                  DATA_SOURCE = '<snapshotDataSourceName>',
                  FORMAT = 'parquet') AS rows""";
 
-  private static final String mergeLiveViewTablesTemplate =
+  private static final String MERGE_LIVE_VIEW_TABLES_TEMPLATE =
       "<selectStatements; separator=\" UNION ALL \">;";
 
-  private static final String createTableTemplate =
+  private static final String CREATE_TABLE_TEMPLATE =
       """
       CREATE EXTERNAL TABLE [<tableName>]
           WITH (
@@ -278,10 +278,10 @@ public class AzureSynapsePdao {
           <endif>
           ) AS rows;""";
 
-  private static final String countNullsInTableTemplate =
+  private static final String COUNT_NULLS_IN_TABLE_TEMPLATE =
       "SELECT COUNT(DISTINCT(datarepo_row_id)) AS rows_with_nulls FROM [<tableName>] WHERE <nullChecks>;";
 
-  private static final String createFinalParquetFilesTemplate =
+  private static final String CREATE_FINAL_PARQUET_FILES_TEMPLATE =
       """
       CREATE EXTERNAL TABLE [<finalTableName>]
           WITH (
@@ -290,10 +290,10 @@ public class AzureSynapsePdao {
               FILE_FORMAT = [<fileFormat>]
           ) AS SELECT datarepo_row_id, <columns> FROM [<scratchTableName>] <where> <nullChecks>;""";
 
-  private static final String queryColumnsFromExternalTableTemplate =
+  private static final String QUERY_COLUMNS_FROM_EXTERNAL_TABLE_TEMPLATE =
       "SELECT DISTINCT [<refCol>] FROM [<tableName>] WHERE [<refCol>] IS NOT NULL;";
 
-  private static final String queryArrayColumnsFromExternalTableTemplate =
+  private static final String QUERY_ARRAY_COLUMNS_FROM_EXTERNAL_TABLE_TEMPLATE =
       """
       SELECT DISTINCT [Element] AS [<refCol>]
           FROM [<tableName>]
@@ -302,7 +302,7 @@ public class AzureSynapsePdao {
           WHERE [<refCol>] IS NOT NULL
           AND [Element] IS NOT NULL;""";
 
-  private static final String queryTableTotalRowCountTemplate =
+  private static final String QUERY_TABLE_TOTAL_ROW_COUNT_TEMPLATE =
       """
           SELECT count(*) <totalRowCountColumnName>
             FROM OPENROWSET(
@@ -311,7 +311,7 @@ public class AzureSynapsePdao {
               FORMAT='PARQUET'
             ) AS rows;
           """;
-  private static final String queryFromDatasourceTemplate =
+  private static final String QUERY_FROM_DATASOURCE_TEMPLATE =
       """
       SELECT <columns:{c|final_rows.[<c>]}; separator=",">,final_rows.[<filteredRowCountColumnName>]<if(includeTotalRowCount)>,final_rows.[<totalRowCountColumnName>]<endif>
       FROM (
@@ -330,7 +330,7 @@ public class AzureSynapsePdao {
       WHERE final_rows.[datarepo_row_number] >= :offset
         AND final_rows.[datarepo_row_number] \\<= :offset + :limit;""";
 
-  private static final String queryTextColumnStatsTemplate =
+  private static final String QUERY_TEXT_COLUMN_STATS_TEMPLATE =
       """
       SELECT <column>,count(*) AS <countColumn>
         FROM OPENROWSET(BULK '<parquetFileLocation>',
@@ -340,19 +340,19 @@ public class AzureSynapsePdao {
           GROUP BY <column>
           ORDER BY <column> <direction>;""";
 
-  private static final String queryNumericColumnStatsTemplate =
+  private static final String QUERY_NUMERIC_COLUMN_STATS_TEMPLATE =
       """
         SELECT MIN(<column>) AS min, MAX(<column>) AS max
           FROM OPENROWSET(BULK '<parquetFileLocation>',
                           DATA_SOURCE = '<datasource>',
                           FORMAT='PARQUET') AS rows
           <userFilter>;""";
-  private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
+  private static final String DROP_TABLE_TEMPLATE = "DROP EXTERNAL TABLE [<resourceName>];";
 
-  private static final String dropDataSourceTemplate =
+  private static final String DROP_DATA_SOURCE_TEMPLATE =
       "DROP EXTERNAL DATA SOURCE [<resourceName>];";
 
-  private static final String dropScopedCredentialTemplate =
+  private static final String DROP_SCOPED_CREDENTIAL_TEMPLATE =
       "DROP DATABASE SCOPED CREDENTIAL [<resourceName>];";
 
   private final ApplicationConfiguration applicationConfiguration;
@@ -416,8 +416,8 @@ public class AzureSynapsePdao {
 
     var template =
         refColumn.isArrayOf()
-            ? new ST(queryArrayColumnsFromExternalTableTemplate)
-            : new ST(queryColumnsFromExternalTableTemplate);
+            ? new ST(QUERY_ARRAY_COLUMNS_FROM_EXTERNAL_TABLE_TEMPLATE)
+            : new ST(QUERY_COLUMNS_FROM_EXTERNAL_TABLE_TEMPLATE);
 
     template.add("refCol", refColumn.getName());
     template.add("tableName", tableName);
@@ -488,12 +488,12 @@ public class AzureSynapsePdao {
 
     String credentialName = sanitizeStringForSql(scopedCredentialName);
     String dsName = sanitizeStringForSql(dataSourceName);
-    ST sqlScopedCredentialCreateTemplate = new ST(scopedCredentialCreateTemplate);
+    ST sqlScopedCredentialCreateTemplate = new ST(SCOPED_CREDENTIAL_CREATE_TEMPLATE);
     sqlScopedCredentialCreateTemplate.add("scopedCredentialName", credentialName);
     sqlScopedCredentialCreateTemplate.add("secret", blobContainerSasTokenCreds.getSignature());
     executeSynapseQuery(sqlScopedCredentialCreateTemplate.render());
 
-    ST sqlDataSourceCreateTemplate = new ST(dataSourceCreateTemplate);
+    ST sqlDataSourceCreateTemplate = new ST(DATA_SOURCE_CREATE_TEMPLATE);
     sqlDataSourceCreateTemplate.add("dataSourceName", dsName);
     sqlDataSourceCreateTemplate.add("scheme", signedBlobUrl.getScheme());
     sqlDataSourceCreateTemplate.add("host", signedBlobUrl.getHost());
@@ -517,7 +517,7 @@ public class AzureSynapsePdao {
 
     boolean isCSV = ingestType == FormatEnum.CSV;
 
-    ST sqlCreateTableTemplate = new ST(createTableTemplate);
+    ST sqlCreateTableTemplate = new ST(CREATE_TABLE_TEMPLATE);
     sqlCreateTableTemplate.add("isCSV", isCSV);
     if (isCSV) {
       sqlCreateTableTemplate.add("parserVersion", PARSER_VERSION);
@@ -552,7 +552,7 @@ public class AzureSynapsePdao {
       return 0;
     }
 
-    ST sqlCountNullsTemplate = new ST(countNullsInTableTemplate);
+    ST sqlCountNullsTemplate = new ST(COUNT_NULLS_IN_TABLE_TEMPLATE);
     sqlCountNullsTemplate.add("tableName", scratchTableName);
     sqlCountNullsTemplate.add("nullChecks", nullChecks);
 
@@ -567,7 +567,7 @@ public class AzureSynapsePdao {
       DatasetTable datasetTable)
       throws SQLException {
 
-    ST sqlCreateFinalParquetFilesTemplate = new ST(createFinalParquetFilesTemplate);
+    ST sqlCreateFinalParquetFilesTemplate = new ST(CREATE_FINAL_PARQUET_FILES_TEMPLATE);
     sqlCreateFinalParquetFilesTemplate.add("finalTableName", finalTableName);
     sqlCreateFinalParquetFilesTemplate.add("destinationParquetFile", destinationParquetFile);
     sqlCreateFinalParquetFilesTemplate.add("destinationDataSourceName", destinationDataSourceName);
@@ -618,7 +618,7 @@ public class AzureSynapsePdao {
             IngestUtils.getSnapshotParquetFilePathForQuery(table.getName());
 
         ST sqlTableTemplate =
-            new ST(getLiveViewTableTemplate)
+            new ST(GET_LIVE_VIEW_TABLE_TEMPLATE)
                 .add("tableId", table.getId().toString())
                 .add("tableIdColumn", PDAO_TABLE_ID_COLUMN)
                 .add("dataRepoRowIdColumn", PDAO_ROW_ID_COLUMN)
@@ -631,14 +631,14 @@ public class AzureSynapsePdao {
       throw new InvalidSnapshotException("Snapshot cannot be empty.");
     }
     ST sqlMergeTablesTemplate =
-        new ST(mergeLiveViewTablesTemplate).add("selectStatements", selectStatements);
+        new ST(MERGE_LIVE_VIEW_TABLES_TEMPLATE).add("selectStatements", selectStatements);
 
     // Create row id table
     String rowIdTableName = IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE);
     String rowIdParquetFile =
         IngestUtils.getSnapshotSliceParquetFilePath(PDAO_ROW_ID_TABLE, PDAO_ROW_ID_PARQUET_NAME);
     ST sqlCreateRowIdTable =
-        new ST(createSnapshotRowIdTableTemplate)
+        new ST(CREATE_SNAPSHOT_ROW_ID_TABLE_TEMPLATE)
             .add("tableName", rowIdTableName)
             .add("destinationParquetFile", rowIdParquetFile)
             .add("destinationDataSourceName", snapshotDataSourceName)
@@ -662,7 +662,7 @@ public class AzureSynapsePdao {
     AssetTable rootTable = assetSpec.getRootTable();
     String rootTableName = rootTable.getTable().getName();
 
-    ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByQueryTemplate);
+    ST sqlCreateSnapshotTableTemplate = new ST(CREATE_SNAPSHOT_TABLE_BY_QUERY_TEMPLATE);
     ST queryTemplate =
         generateSnapshotParquetCreateQuery(
             sqlCreateSnapshotTableTemplate,
@@ -740,7 +740,7 @@ public class AzureSynapsePdao {
     AssetTable rootTable = assetSpec.getRootTable();
     String rootTableName = rootTable.getTable().getName();
 
-    ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByAssetTemplate);
+    ST sqlCreateSnapshotTableTemplate = new ST(CREATE_SNAPSHOT_TABLE_BY_ASSET_TEMPLATE);
     ST queryTemplate =
         generateSnapshotParquetCreateQuery(
             sqlCreateSnapshotTableTemplate,
@@ -955,8 +955,8 @@ public class AzureSynapsePdao {
 
     return new ST(
         toTableAlreadyHasRows
-            ? createSnapshotTableWithExistingRowsTemplate
-            : createSnapshotTableWalkRelationshipTemplate + ";");
+            ? CREATE_SNAPSHOT_TABLE_WITH_EXISTING_ROWS_TEMPLATE
+            : CREATE_SNAPSHOT_TABLE_WALK_RELATIONSHIP_TEMPLATE + ";");
   }
 
   public Map<String, Long> createSnapshotParquetFilesByRowId(
@@ -988,7 +988,7 @@ public class AzureSynapsePdao {
                 .filter(c -> columnsToInclude.contains(c.getName()))
                 .map(Column::toSynapseColumn)
                 .collect(Collectors.toList());
-        sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableByRowIdTemplate);
+        sqlCreateSnapshotTableTemplate = new ST(CREATE_SNAPSHOT_TABLE_BY_ROW_ID_TEMPLATE);
         query =
             generateSnapshotParquetCreateQuery(
                     sqlCreateSnapshotTableTemplate,
@@ -1034,7 +1034,7 @@ public class AzureSynapsePdao {
     Map<String, Long> tableRowCounts = new HashMap<>();
 
     for (SnapshotTable table : tables) {
-      ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
+      ST sqlCreateSnapshotTableTemplate = new ST(CREATE_SNAPSHOT_TABLE_TEMPLATE);
 
       String query =
           generateSnapshotParquetCreateQuery(
@@ -1099,22 +1099,22 @@ public class AzureSynapsePdao {
   }
 
   public void dropTables(List<String> tableNames) {
-    cleanup(tableNames, dropTableTemplate);
+    cleanup(tableNames, DROP_TABLE_TEMPLATE);
   }
 
   public void dropDataSources(List<String> dataSourceNames) {
-    cleanup(dataSourceNames, dropDataSourceTemplate);
+    cleanup(dataSourceNames, DROP_DATA_SOURCE_TEMPLATE);
   }
 
   public void dropScopedCredentials(List<String> credentialNames) {
-    cleanup(credentialNames, dropScopedCredentialTemplate);
+    cleanup(credentialNames, DROP_SCOPED_CREDENTIAL_TEMPLATE);
   }
 
   public int getTableTotalRowCount(
       String tableName, String dataSourceName, String parquetFileLocation) {
     try {
       final String sql =
-          new ST(queryTableTotalRowCountTemplate)
+          new ST(QUERY_TABLE_TOTAL_ROW_COUNT_TEMPLATE)
               .add("datasource", dataSourceName)
               .add("parquetFileLocation", parquetFileLocation)
               .add("tableName", tableName)
@@ -1131,7 +1131,11 @@ public class AzureSynapsePdao {
       Column column, String dataSourceName, String parquetFileLocation, String filter) {
     final String sql =
         queryColumnStats(
-            column, dataSourceName, parquetFileLocation, filter, queryNumericColumnStatsTemplate);
+            column,
+            dataSourceName,
+            parquetFileLocation,
+            filter,
+            QUERY_NUMERIC_COLUMN_STATS_TEMPLATE);
     ColumnStatisticsDoubleModel doubleModel =
         (ColumnStatisticsDoubleModel)
             new ColumnStatisticsDoubleModel().dataType(column.getType().toString());
@@ -1169,7 +1173,11 @@ public class AzureSynapsePdao {
       Column column, String dataSourceName, String parquetFileLocation, String filter) {
     final String sql =
         queryColumnStats(
-            column, dataSourceName, parquetFileLocation, filter, queryNumericColumnStatsTemplate);
+            column,
+            dataSourceName,
+            parquetFileLocation,
+            filter,
+            QUERY_NUMERIC_COLUMN_STATS_TEMPLATE);
     ColumnStatisticsIntModel intModel =
         (ColumnStatisticsIntModel)
             new ColumnStatisticsIntModel().dataType(column.getType().toString());
@@ -1190,7 +1198,7 @@ public class AzureSynapsePdao {
       Column column, String dataSourceName, String parquetFileLocation, String userFilter) {
     String columnName = column.getName();
     final String sql =
-        new ST(queryTextColumnStatsTemplate)
+        new ST(QUERY_TEXT_COLUMN_STATS_TEMPLATE)
             .add("column", columnName)
             .add("countColumn", PDAO_COUNT_COLUMN_NAME)
             .add("datasource", dataSourceName)
@@ -1246,7 +1254,7 @@ public class AzureSynapsePdao {
             table.getColumns());
     boolean includeTotalRowCount = collectionType.equals(CollectionType.DATASET);
     final String sql =
-        new ST(queryFromDatasourceTemplate)
+        new ST(QUERY_FROM_DATASOURCE_TEMPLATE)
             .add("columns", columns.stream().map(Column::getName).toList())
             .add("datasource", dataSourceName)
             .add("parquetFileLocation", parquetFileLocation)

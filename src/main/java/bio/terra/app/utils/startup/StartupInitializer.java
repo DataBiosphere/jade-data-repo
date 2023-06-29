@@ -3,6 +3,7 @@ package bio.terra.app.utils.startup;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration.Synapse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -16,14 +17,18 @@ public final class StartupInitializer {
     // Initialize jobService, stairway, migrate databases, perform recovery
     applicationContext.getBean(JobService.class);
 
-    AzureResourceConfiguration config =
-        applicationContext.getBean(AzureResourceConfiguration.class);
     // Initialize the Synapse DB if needed
-    applicationContext
-        .getBean(AzureSynapsePdao.class)
-        .initializeDb(
-            config.getSynapse().getDatabaseName(),
-            config.getSynapse().getEncryptionKey(),
-            config.getSynapse().getParquetFileFormatName());
+    Synapse config = applicationContext.getBean(AzureResourceConfiguration.class).getSynapse();
+    if (config != null && config.isInitialize()) {
+      logger.info("Initializing Synapse DB");
+      applicationContext
+          .getBean(AzureSynapsePdao.class)
+          .initializeDb(
+              config.getDatabaseName(),
+              config.getEncryptionKey(),
+              config.getParquetFileFormatName());
+    } else {
+      logger.info("Skipping Synapse DB initialization");
+    }
   }
 }

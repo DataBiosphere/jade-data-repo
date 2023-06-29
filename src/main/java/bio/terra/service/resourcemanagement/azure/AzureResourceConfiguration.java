@@ -204,6 +204,7 @@ public class AzureResourceConfiguration {
     private String databaseName;
     private String parquetFileFormatName;
     private String encryptionKey;
+    private boolean initialize;
 
     public String getWorkspaceName() {
       return workspaceName;
@@ -251,6 +252,14 @@ public class AzureResourceConfiguration {
 
     public void setEncryptionKey(String encryptionKey) {
       this.encryptionKey = encryptionKey;
+    }
+
+    public boolean isInitialize() {
+      return initialize;
+    }
+
+    public void setInitialize(boolean initialize) {
+      this.initialize = initialize;
     }
   }
 

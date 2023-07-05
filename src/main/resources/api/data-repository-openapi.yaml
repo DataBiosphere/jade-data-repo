@@ -3732,6 +3732,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: x-user-project
+          in: header
+          description: >
+            For GCP hosted files, this will indicate the user project to bill when accessing the
+            signed url.  This value must be a valid Terra billing project ID that the caller has
+            access to and only applies to GCP hosted data.
+          required: false
+          schema:
+            type: string
       responses:
         200:
           description: The access URL was found successfully.
@@ -3806,6 +3815,15 @@ paths:
           in: path
           description: An `access_id` from the `access_methods` list of a Data Object
           required: true
+          schema:
+            type: string
+        - name: x-user-project
+          in: header
+          description: >
+            For GCP hosted files, this will indicate the user project to bill when accessing the
+            signed url.  This value must be a valid Terra billing project ID that the caller has
+            access to and only applies to GCP hosted data.
+          required: false
           schema:
             type: string
       requestBody:
@@ -4153,7 +4171,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
-
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -4203,6 +4222,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -5369,6 +5390,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -5486,6 +5509,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+        resourceLocks:
+          $ref: '#/components/schemas/ResourceLocks'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotExportResponseModel:
@@ -6205,6 +6230,15 @@ components:
         count:
           type: integer
           description: Number of occurrences of this tag across accessible same-typed resources
+
+    ResourceLocks:
+      type: object
+      description: >
+        An exclusive lock on a resource may prevent other resource modifications from running
+        concurrently.
+      properties:
+        exclusive:
+          $ref: '#/components/schemas/ShortIdProperty'
 
     ##############################################################################
     ## SEARCH API STANDARD MODELS

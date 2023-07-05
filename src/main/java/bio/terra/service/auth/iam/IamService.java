@@ -28,7 +28,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
-import org.broadinstitute.dsde.workbench.client.sam.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -368,7 +367,7 @@ public class IamService {
     return iamProvider.getUserInfo(userReq);
   }
 
-  public UserStatus registerUser(String serviceAccountEmail) {
+  public void registerUser(String serviceAccountEmail) {
     logger.info("Registering user %s in Terra".formatted(serviceAccountEmail));
     ImpersonatedCredentials impersonatedCredentials =
         ImpersonatedCredentials.create(
@@ -378,7 +377,7 @@ public class IamService {
             SCOPES,
             (int) TOKEN_LENGTH.toSeconds());
     String accessToken = googleCredentialsService.getAccessToken(impersonatedCredentials, SCOPES);
-    return callProvider(() -> iamProvider.registerUser(accessToken));
+    callProvider(() -> iamProvider.registerUser(accessToken));
   }
 
   // -- managed group support --
@@ -412,5 +411,22 @@ public class IamService {
   public void deleteGroup(String groupName) {
     String tdrSaAccessToken = googleCredentialsService.getApplicationDefaultAccessToken(SCOPES);
     callProvider(() -> iamProvider.deleteGroup(tdrSaAccessToken, groupName));
+  }
+
+  /**
+   * Gets a signed URL for the given blob, signed by the Pet Service account of the calling user.
+   * The signed URL is scoped to the permissions of the signing Pet Service Account. Will provide a
+   * signed URL for any object path, even if that object does not exist.
+   *
+   * @param userReq authenticated user
+   * @param project Google project to use to sign blob
+   * @param path path to blob to sign
+   * @param duration duration of the signed URL
+   * @return signed URL containing the project as well as the email address of the user who
+   *     requested the URL for auditing purposes
+   */
+  public String signUrlForBlob(
+      AuthenticatedUserRequest userReq, String project, String path, Duration duration) {
+    return callProvider(() -> iamProvider.signUrlForBlob(userReq, project, path, duration));
   }
 }

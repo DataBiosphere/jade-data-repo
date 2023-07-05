@@ -1,7 +1,5 @@
 package bio.terra.service.filedata.flight.delete;
 
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.exception.FileDependencyException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
@@ -9,48 +7,29 @@ import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.job.DefaultUndoStep;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class DeleteFileLookupStep implements Step {
-  private static Logger logger = LoggerFactory.getLogger(DeleteFileLookupStep.class);
+public class DeleteFileLookupStep extends DefaultUndoStep {
 
   private final FireStoreDao fileDao;
   private final String fileId;
   private final Dataset dataset;
   private final FireStoreDependencyDao dependencyDao;
-  private final ConfigurationService configService;
 
   public DeleteFileLookupStep(
-      FireStoreDao fileDao,
-      String fileId,
-      Dataset dataset,
-      FireStoreDependencyDao dependencyDao,
-      ConfigurationService configService) {
+      FireStoreDao fileDao, String fileId, Dataset dataset, FireStoreDependencyDao dependencyDao) {
     this.fileDao = fileDao;
     this.fileId = fileId;
     this.dataset = dataset;
     this.dependencyDao = dependencyDao;
-    this.configService = configService;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    if (configService.testInsertFault(ConfigEnum.FILE_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
-      logger.info("FILE_DELETE_LOCK_CONFLICT_STOP_FAULT");
-      while (!configService.testInsertFault(ConfigEnum.FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT)) {
-        logger.info("Sleeping for CONTINUE FAULT");
-        TimeUnit.SECONDS.sleep(5);
-      }
-      logger.info("FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
-    }
-
     try {
       // If we are restarting, we may have already retrieved and saved the file,
       // so we check the working map before doing the lookup.
@@ -75,11 +54,6 @@ public class DeleteFileLookupStep implements Step {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
     }
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

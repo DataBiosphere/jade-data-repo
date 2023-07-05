@@ -6,15 +6,8 @@ import static bio.terra.service.configuration.ConfigEnum.AZURE_SNAPSHOT_BATCH_SI
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_GRANT_ACCESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DRS_LOOKUP_MAX;
-import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_STOP_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT;
@@ -24,7 +17,6 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIES;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIEVE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.LIVENESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_FILES;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_INGESTS;
@@ -37,14 +29,10 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_CACHE_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.SamConfiguration;
@@ -250,57 +238,12 @@ public class ConfigurationService {
         BUCKET_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
     addFaultSimple(BUCKET_LOCK_CONFLICT_CONTINUE_FAULT);
 
-    // Dataset delete lock faults. These are used by DatasetConnectedTest > testOverlappingDeletes
-    addFaultCounted(
-        DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        1,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
-
-    // Snapshot delete lock faults. These are used by SnapshotConnectedTest > testOverlappingDeletes
-    addFaultCounted(
-        SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        1,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
-
-    // File ingest lock faults. These are used by DatasetConnectedTest > testSharedLockFileIngest
-    addFaultCounted(
-        FILE_INGEST_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        2,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(FILE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT);
-
     // File Ingest - aquire shared lock fault. These are used by FileOperationTest >
     // retryAndAcquireSharedLock
     addFaultSimple(FILE_INGEST_LOCK_FATAL_FAULT);
     addFaultSimple(FILE_INGEST_LOCK_RETRY_FAULT);
     addFaultSimple(FILE_INGEST_UNLOCK_FATAL_FAULT);
     addFaultSimple(FILE_INGEST_UNLOCK_RETRY_FAULT);
-
-    // File delete lock faults. These are used by DatasetConnectedTest > testSharedLockFileDelete
-    addFaultCounted(
-        FILE_DELETE_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        2,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
-
-    // Table ingest lock faults. These are used by DatasetConnectedTest > testSharedLockTableIngest
-    addFaultCounted(
-        TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT,
-        0,
-        2,
-        100,
-        ConfigFaultCountedModel.RateStyleEnum.FIXED);
-    addFaultSimple(TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT);
 
     // soft delete lock faults. These are used by DatasetConnectedTest > testConcurrentSoftDeletes
     addFaultCounted(
@@ -320,10 +263,5 @@ public class ConfigurationService {
 
     addFaultCounted(
         FIRESTORE_RETRIEVE_FAULT, 0, 11, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
-
-    // Fault inserted into /status endpoint
-    addFaultCounted(LIVENESS_FAULT, 0, 50, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
-
-    addFaultSimple(DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT);
   }
 }

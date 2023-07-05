@@ -1,7 +1,8 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.containsInRelativeOrder;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,8 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetSummary;
+import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightMap;
 import java.util.UUID;
@@ -55,13 +58,32 @@ public class FileIngestFlightTest {
 
   @ParameterizedTest
   @EnumSource(names = {"GCP", "AZURE"})
-  void testFileIngestFlightValidatesFileAccess(CloudPlatform cloudPlatform) {
+  void testFileIngestFlight(CloudPlatform cloudPlatform) {
     when(datasetSummary.getStorageCloudPlatform()).thenReturn(cloudPlatform);
 
     var flight = new FileIngestFlight(inputParameters, context);
     assertThat(
-        "File access validation performed for %s dataset".formatted(cloudPlatform),
+        "File ingest flight locks "
+            + cloudPlatform
+            + " dataset, then performs file access validation, then unlocks dataset",
         FlightTestUtils.getStepNames(flight),
-        hasItems("ValidateBucketAccessStep"));
+        containsInRelativeOrder(
+            "LockDatasetStep", "ValidateBucketAccessStep", "UnlockDatasetStep"));
+
+    LockDatasetStep lockDatasetStep =
+        FlightTestUtils.getStepWithClass(flight, LockDatasetStep.class);
+    assertThat(
+        "File ingest flight obtains shared dataset lock", lockDatasetStep.isSharedLock(), is(true));
+    assertThat(
+        "Dataset lock step does not suppress 'dataset not found' exceptions",
+        lockDatasetStep.shouldSuppressNotFoundException(),
+        is(false));
+
+    UnlockDatasetStep unlockDatasetStep =
+        FlightTestUtils.getStepWithClass(flight, UnlockDatasetStep.class);
+    assertThat(
+        "File ingest flight removes shared dataset lock",
+        unlockDatasetStep.isSharedLock(),
+        is(true));
   }
 }

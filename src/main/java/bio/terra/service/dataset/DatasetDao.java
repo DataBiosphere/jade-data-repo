@@ -5,6 +5,7 @@ import static bio.terra.common.DaoUtils.retryQuery;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.common.LockOperation;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.common.iam.AuthenticatedUserRequest;
@@ -13,6 +14,7 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.model.ResourceLocks;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.auth.iam.IamResourceType;
 import bio.terra.service.configuration.ConfigEnum;
@@ -77,7 +79,7 @@ public class DatasetDao implements TaggableResourceDao {
   private static final String summaryQueryColumns =
       " dataset.id, dataset.name, description, default_profile_id, project_resource_id, "
           + "dataset.application_resource_id, secure_monitoring, phs_id, self_hosted, "
-          + "properties, created_date, predictable_file_ids, tags, ";
+          + "properties, created_date, predictable_file_ids, tags, flightid, ";
 
   private static final String summaryCloudPlatformQuery =
       "(SELECT pr.google_project_id "
@@ -183,7 +185,7 @@ public class DatasetDao implements TaggableResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
 
-    performLockQuery(sql, params, LockType.LockExclusive, datasetId);
+    performLockQuery(sql, params, LockOperation.LOCK_EXCLUSIVE, datasetId);
 
     logger.debug(
         "Lock Operation: Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
@@ -208,11 +210,11 @@ public class DatasetDao implements TaggableResourceDao {
         flightId);
     // update the dataset entry to remove the flightid IF it is currently set to this flightid
     String sql =
-        "UPDATE dataset SET flightid = NULL " + "WHERE id = :datasetid AND flightid = :flightid";
+        "UPDATE dataset SET flightid = NULL WHERE id = :datasetid AND flightid = :flightid";
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
 
-    int numRowsUpdated = performLockQuery(sql, params, LockType.UnlockExclusive, null);
+    int numRowsUpdated = performLockQuery(sql, params, LockOperation.UNLOCK_EXCLUSIVE, null);
 
     boolean unlockSucceeded = (numRowsUpdated == 1);
     logger.debug(
@@ -263,7 +265,7 @@ public class DatasetDao implements TaggableResourceDao {
     MapSqlParameterSource params =
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
 
-    int numRowsUpdated = performLockQuery(sql, params, LockType.LockShared, datasetId);
+    int numRowsUpdated = performLockQuery(sql, params, LockOperation.LOCK_SHARED, datasetId);
 
     logger.debug(
         "Lock Operation: Shared lock acquired for dataset {}, flight {}, with {} rows updated",
@@ -298,7 +300,7 @@ public class DatasetDao implements TaggableResourceDao {
         new MapSqlParameterSource().addValue("datasetid", datasetId).addValue("flightid", flightId);
     logger.debug("Unlocking shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
 
-    int numRowsUpdated = performLockQuery(sql, params, LockType.UnlockShared, null);
+    int numRowsUpdated = performLockQuery(sql, params, LockOperation.UNLOCK_SHARED, null);
 
     boolean unlockSucceeded = (numRowsUpdated == 1);
     logger.debug(
@@ -309,16 +311,9 @@ public class DatasetDao implements TaggableResourceDao {
     return unlockSucceeded;
   }
 
-  private enum LockType {
-    LockExclusive,
-    LockShared,
-    UnlockExclusive,
-    UnlockShared
-  }
-
   private int performLockQuery(
-      String sql, MapSqlParameterSource params, LockType lockType, UUID datasetId) {
-    int numRowsUpdated = 0;
+      String sql, MapSqlParameterSource params, LockOperation lockType, UUID datasetId) {
+    int numRowsUpdated;
     DataAccessException faultToInsert = getFaultToInsert(lockType);
     try {
       if (faultToInsert != null) {
@@ -328,15 +323,14 @@ public class DatasetDao implements TaggableResourceDao {
 
       numRowsUpdated = jdbcTemplate.update(sql, params);
 
-      if (numRowsUpdated == 0
-          && (lockType.equals(LockType.LockExclusive) || lockType.equals(LockType.LockShared))) {
+      if (numRowsUpdated == 0 && lockType.lockAttempted()) {
         // this method checks if the dataset exists
         // if it does not exist, then the method throws a DatasetNotFoundException
         // we don't need the result (dataset summary) here, just the existence check,
         // so ignore the return value.
         retrieveSummaryById(datasetId);
 
-        throw new DatasetLockException("Failed to lock the dataset");
+        throw new DatasetLockException("Failed to lock the dataset", lockType.getErrorDetails());
       }
     } catch (DatasetNotFoundException notFound) {
       logger.error(
@@ -369,12 +363,12 @@ public class DatasetDao implements TaggableResourceDao {
     return numRowsUpdated;
   }
 
-  private DataAccessException getFaultToInsert(LockType lockType) {
+  private DataAccessException getFaultToInsert(LockOperation lockType) {
     // fault insert for tests DatasetConnectedTest & FileOperationTests
     ConfigEnum RetryableFault;
     ConfigEnum FatalFault;
 
-    if (lockType.equals(LockType.LockExclusive) || lockType.equals(LockType.LockShared)) {
+    if (lockType.lockAttempted()) {
       RetryableFault = ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT;
       FatalFault = ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT;
     } else {
@@ -400,13 +394,10 @@ public class DatasetDao implements TaggableResourceDao {
    * unlock.
    *
    * @param dataset the dataset object to create
-   * @return the id of the new dataset
-   * @throws IOException
    * @throws InvalidDatasetException if a row already exists with this dataset name
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void createAndLock(Dataset dataset, String flightId, AuthenticatedUserRequest userReq)
-      throws IOException {
+  public void createAndLock(Dataset dataset, String flightId) throws IOException {
     logger.debug(
         "Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
     String sql =
@@ -461,24 +452,6 @@ public class DatasetDao implements TaggableResourceDao {
   }
 
   /**
-   * TESTING ONLY. This method returns the internal state of the exclusive lock on a dataset. It is
-   * protected because it's for use in tests only. Currently, we don't expose the lock state of a
-   * dataset outside of the DAO for other API code to consume.
-   *
-   * @param id the dataset id
-   * @return the flightid that holds an exclusive lock. null if none.
-   */
-  protected String getExclusiveLock(UUID id) {
-    try {
-      String sql = "SELECT flightid FROM dataset WHERE id = :id";
-      MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-      return jdbcTemplate.queryForObject(sql, params, String.class);
-    } catch (EmptyResultDataAccessException ex) {
-      throw new DatasetNotFoundException("Dataset not found for id " + id);
-    }
-  }
-
-  /**
    * TESTING ONLY. This method returns the internal state of the shared locks on a dataset. It is
    * protected because it's for use in tests only. Currently, we don't expose the lock state of a
    * dataset outside of the DAO for other API code to consume.
@@ -502,40 +475,15 @@ public class DatasetDao implements TaggableResourceDao {
   }
 
   @Transactional
-  public boolean delete(UUID id, AuthenticatedUserRequest userReq) {
+  public boolean delete(UUID id) {
     int rowsAffected =
         jdbcTemplate.update(
             "DELETE FROM dataset WHERE id = :id", new MapSqlParameterSource().addValue("id", id));
     return rowsAffected > 0;
   }
 
-  @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public boolean deleteByNameAndFlight(String datasetName, String flightId) {
-    String sql = "DELETE FROM dataset WHERE name = :name AND flightid = :flightid";
-    MapSqlParameterSource params =
-        new MapSqlParameterSource().addValue("name", datasetName).addValue("flightid", flightId);
-    int rowsAffected = jdbcTemplate.update(sql, params);
-
-    // TODO: shouldn't we also be deleting from the auxiliary daos for this dataset (table,
-    // relationship, asset)?
-
-    return rowsAffected > 0;
-  }
-
   public Dataset retrieve(UUID id) {
     DatasetSummary summary = retrieveSummaryById(id);
-    return retrieveWorker(summary);
-  }
-
-  /**
-   * This is a convenience wrapper that returns a dataset only if it is NOT exclusively locked. This
-   * method is intended for user-facing API calls (e.g. from RepositoryApiController).
-   *
-   * @param id the dataset id
-   * @return the DatasetSummary object
-   */
-  public Dataset retrieveAvailable(UUID id) {
-    DatasetSummary summary = retrieveSummaryById(id, true);
     return retrieveWorker(summary);
   }
 
@@ -573,25 +521,12 @@ public class DatasetDao implements TaggableResourceDao {
   }
 
   /**
-   * This is a convenience wrapper that returns a dataset, regardless of whether it is exclusively
-   * locked. Most places in the API code that are retrieving a dataset will call this method.
+   * Retrieves a DatasetSummary object from the dataset id.
    *
    * @param id the dataset id
    * @return the DatasetSummary object
    */
   public DatasetSummary retrieveSummaryById(UUID id) {
-    return retrieveSummaryById(id, false);
-  }
-
-  /**
-   * Retrieves a DatasetSummary object from the dataset id.
-   *
-   * @param id the dataset id
-   * @param onlyRetrieveAvailable true to exclude datasets that are exclusively locked, false to
-   *     include all datasets
-   * @return the DatasetSummary object
-   */
-  public DatasetSummary retrieveSummaryById(UUID id, boolean onlyRetrieveAvailable) {
     try {
       String sql =
           "SELECT "
@@ -601,9 +536,6 @@ public class DatasetDao implements TaggableResourceDao {
               + billingProfileQuery
               + "FROM dataset "
               + "WHERE dataset.id = :id";
-      if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
-        sql += " AND dataset.flightid IS NULL";
-      }
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
       return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
     } catch (EmptyResultDataAccessException ex) {
@@ -629,9 +561,8 @@ public class DatasetDao implements TaggableResourceDao {
   }
 
   /**
-   * Fetch a list of all the available datasets. This method returns summary objects, which do not
-   * include sub-objects associated with datasets (e.g. tables). Note that this method will only
-   * return datasets that are NOT exclusively locked.
+   * Fetch a list of all the accessible datasets. This method returns summary objects, which do not
+   * include sub-objects associated with datasets (e.g. tables).
    *
    * @param offset skip this many datasets from the beginning of the list (intended for "scrolling"
    *     behavior)
@@ -659,7 +590,6 @@ public class DatasetDao implements TaggableResourceDao {
     MapSqlParameterSource params = new MapSqlParameterSource();
     List<String> whereClauses = new ArrayList<>();
     DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses, TABLE_NAME);
-    whereClauses.add(" dataset.flightid IS NULL"); // exclude datasets that are exclusively locked
 
     // get total count of objects
     String countSql =
@@ -765,7 +695,8 @@ public class DatasetDao implements TaggableResourceDao {
           .selfHosted(rs.getBoolean("self_hosted"))
           .predictableFileIds(rs.getBoolean("predictable_file_ids"))
           .properties(properties)
-          .tags(DaoUtils.getStringList(rs, "tags"));
+          .tags(DaoUtils.getStringList(rs, "tags"))
+          .resourceLocks(new ResourceLocks().exclusive(rs.getString("flightid")));
     }
   }
 
@@ -798,7 +729,7 @@ public class DatasetDao implements TaggableResourceDao {
     boolean patchSucceeded = (rowsAffected == 1);
 
     if (patchSucceeded) {
-      logger.info("Dataset {} patched with {}", id, patchRequest.toString());
+      logger.info("Dataset {} patched with {}", id, patchRequest);
       journalService.recordUpdate(
           userReq, id, IamResourceType.DATASET, "Patched dataset.", params.getValues());
     }

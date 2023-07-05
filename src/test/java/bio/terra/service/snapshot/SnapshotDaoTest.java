@@ -22,6 +22,7 @@ import bio.terra.common.Column;
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
+import bio.terra.common.ResourceLocksUtils;
 import bio.terra.common.Table;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.AuthenticationFixtures;
@@ -131,7 +132,7 @@ public class SnapshotDaoTest {
     String createFlightId = UUID.randomUUID().toString();
     datasetId = UUID.randomUUID();
     dataset.id(datasetId);
-    datasetDao.createAndLock(dataset, createFlightId, TEST_USER);
+    datasetDao.createAndLock(dataset, createFlightId);
     datasetDao.unlockExclusive(dataset.getId(), createFlightId);
     dataset = datasetDao.retrieve(datasetId);
 
@@ -159,10 +160,10 @@ public class SnapshotDaoTest {
   public void teardown() throws Exception {
     if (snapshotIds != null) {
       for (UUID id : snapshotIds) {
-        snapshotDao.delete(id, TEST_USER);
+        snapshotDao.delete(id);
       }
     }
-    datasetDao.delete(datasetId, TEST_USER);
+    datasetDao.delete(datasetId);
     resourceDao.deleteProject(projectId);
     profileDao.deleteBillingProfileById(profileId);
     duosDao.deleteFirecloudGroup(duosFirecloudGroupId);
@@ -182,7 +183,7 @@ public class SnapshotDaoTest {
   }
 
   private Snapshot insertAndRetrieveSnapshot(Snapshot snapshot, String flightId) {
-    snapshotDao.createAndLock(snapshot, flightId, TEST_USER);
+    snapshotDao.createAndLock(snapshot, flightId);
     snapshotDao.unlock(snapshot.getId(), flightId);
     snapshotIds.add(snapshot.getId());
     return snapshotDao.retrieveSnapshot(snapshot.getId());
@@ -425,43 +426,7 @@ public class SnapshotDaoTest {
               .getDatasetSummary()
               .datasetStorageContainsRegion(GoogleRegion.DEFAULT_GOOGLE_REGION));
 
-      // Test retrieve SnapshotProject object
-      SnapshotProject snapshotProject = snapshotDao.retrieveSnapshotProject(s.getId(), true);
-      assertThat("snapshot project id matches", snapshotProject.getId(), equalTo(s.getId()));
-      assertThat("snapshot project name matches", snapshotProject.getName(), equalTo(s.getName()));
-      assertThat(
-          "snapshot project profile id matches",
-          snapshotProject.getProfileId(),
-          equalTo(snapshot.getProfileId()));
-      assertThat(
-          "snapshot project data project name matches",
-          snapshotProject.getDataProject(),
-          equalTo(snapshot.getProjectResource().getGoogleProjectId()));
-      assertThat(
-          "snapshot project has a single source dataset",
-          snapshotProject.getSourceDatasetProjects(),
-          hasSize(1));
-      assertThat(
-          "dataset project id matches",
-          snapshotProject.getFirstSourceDatasetProject().getId(),
-          equalTo(snapshot.getSourceDataset().getId()));
-      assertThat(
-          "dataset project name matches",
-          snapshotProject.getFirstSourceDatasetProject().getName(),
-          equalTo(snapshot.getSourceDataset().getName()));
-      assertThat(
-          "dataset project profile id matches",
-          snapshotProject.getFirstSourceDatasetProject().getProfileId(),
-          equalTo(snapshot.getSourceDataset().getProjectResource().getProfileId()));
-      assertThat(
-          "dataset project data project name matches",
-          snapshotProject.getFirstSourceDatasetProject().getDataProject(),
-          equalTo(
-              snapshot
-                  .getFirstSnapshotSource()
-                  .getDataset()
-                  .getProjectResource()
-                  .getGoogleProjectId()));
+      verifySnapshotProject(snapshot);
     }
 
     MetadataEnumeration<SnapshotSummary> summaryEnum =
@@ -559,6 +524,46 @@ public class SnapshotDaoTest {
         "snapshot filter by tags returns correct total",
         incompleteTagMatchEnum.getTotal(),
         equalTo(6));
+  }
+
+  private void verifySnapshotProject(Snapshot snapshot) {
+    SnapshotProject snapshotProject = snapshotDao.retrieveSnapshotProject(snapshot.getId());
+    assertThat("snapshot project id matches", snapshotProject.getId(), equalTo(snapshot.getId()));
+    assertThat(
+        "snapshot project name matches", snapshotProject.getName(), equalTo(snapshot.getName()));
+    assertThat(
+        "snapshot project profile id matches",
+        snapshotProject.getProfileId(),
+        equalTo(snapshot.getProfileId()));
+    assertThat(
+        "snapshot project data project name matches",
+        snapshotProject.getDataProject(),
+        equalTo(snapshot.getProjectResource().getGoogleProjectId()));
+    assertThat(
+        "snapshot project has a single source dataset",
+        snapshotProject.getSourceDatasetProjects(),
+        hasSize(1));
+    assertThat(
+        "dataset project id matches",
+        snapshotProject.getFirstSourceDatasetProject().getId(),
+        equalTo(snapshot.getSourceDataset().getId()));
+    assertThat(
+        "dataset project name matches",
+        snapshotProject.getFirstSourceDatasetProject().getName(),
+        equalTo(snapshot.getSourceDataset().getName()));
+    assertThat(
+        "dataset project profile id matches",
+        snapshotProject.getFirstSourceDatasetProject().getProfileId(),
+        equalTo(snapshot.getSourceDataset().getProjectResource().getProfileId()));
+    assertThat(
+        "dataset project data project name matches",
+        snapshotProject.getFirstSourceDatasetProject().getDataProject(),
+        equalTo(
+            snapshot
+                .getFirstSnapshotSource()
+                .getDataset()
+                .getProjectResource()
+                .getGoogleProjectId()));
   }
 
   private String makeName(String baseName, int index) {
@@ -1014,5 +1019,43 @@ public class SnapshotDaoTest {
         reason + " when retrieving snapshot summary",
         snapshotDao.retrieveSummaryById(snapshot.getId()).getTags(),
         containsInAnyOrder(expectedTags.toArray()));
+  }
+
+  @Test
+  public void testRetrieveLockedSnapshot() {
+    Snapshot snapshot = createSnapshot(snapshotRequest);
+    UUID snapshotId = snapshot.getId();
+    String flightId = "flightId";
+
+    // After locking the snapshot, we should still be able to retrieve it
+    snapshotDao.lock(snapshotId, flightId);
+
+    Snapshot lockedSnapshot = snapshotDao.retrieveSnapshot(snapshotId);
+    String snapshotExclusiveLock =
+        ResourceLocksUtils.getExclusiveLock(lockedSnapshot.getResourceLocks());
+    assertThat("Locked snapshot can be retrieved", snapshotExclusiveLock, equalTo(flightId));
+
+    SnapshotSummary lockedSnapshotSummary = snapshotDao.retrieveSummaryById(snapshotId);
+    String snapshotSummaryExclusiveLock =
+        ResourceLocksUtils.getExclusiveLock(lockedSnapshotSummary.getResourceLocks());
+    assertThat(
+        "Locked snapshot summary can be retrieved",
+        snapshotSummaryExclusiveLock,
+        equalTo(flightId));
+
+    MetadataEnumeration<SnapshotSummary> snapshotEnumeration =
+        snapshotDao.retrieveSnapshots(0, 1, null, null, null, null, datasetIds, snapshotIds, null);
+    assertThat(snapshotEnumeration.getTotal(), equalTo(1));
+    SnapshotSummary lockedSnapshotSummaryEnumerationItem = snapshotEnumeration.getItems().get(0);
+    String lockedSnapshotSummaryEnumerationItemExclusiveLock =
+        ResourceLocksUtils.getExclusiveLock(
+            lockedSnapshotSummaryEnumerationItem.getResourceLocks());
+    assertThat(
+        "Locked snapshot summary can be enumerated",
+        lockedSnapshotSummaryEnumerationItemExclusiveLock,
+        equalTo(flightId));
+
+    // Locked snapshot's project can be retrieved
+    verifySnapshotProject(snapshot);
   }
 }

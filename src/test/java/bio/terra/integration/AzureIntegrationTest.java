@@ -4,6 +4,7 @@ import static bio.terra.service.filedata.azure.util.AzureBlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
@@ -37,6 +38,7 @@ import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
@@ -473,6 +475,14 @@ public class AzureIntegrationTest extends UsersBase {
     DatasetSpecificationModel datasetSchema = datasetModel.getSchema();
 
     // dataset ingest
+    // Ingest Metadata - 1 row in ARRAY mode
+    String arrayIngestTableName = "person";
+    String personIdField = "person_id";
+    String personYearOfBirthField = "year_of_birth";
+    Map<String, Integer> records = Map.of(personIdField, 1, personYearOfBirthField, 1980);
+    testMetadataArrayIngest(arrayIngestTableName, records);
+    tableRowCount.put(arrayIngestTableName, 1);
+
     // Ingest Metadata - 1 row from JSON file
     String datasetIngestFlightId = UUID.randomUUID().toString();
     String datasetIngestControlFileBlob =
@@ -575,6 +585,18 @@ public class AzureIntegrationTest extends UsersBase {
         "record looks as expected - vocabulary_id",
         ((LinkedHashMap) vocabRows.get(1)).get("vocabulary_id").toString(),
         equalTo("2"));
+    List<String> vocabList =
+        dataRepoFixtures.retrieveColumnTextValues(
+            steward, datasetId, "vocabulary", "vocabulary_id");
+    assertThat(
+        "Vocabulary table contains correct vocabulary_ids",
+        vocabList,
+        containsInAnyOrder("1", "2"));
+    ColumnStatisticsIntModel intModel =
+        dataRepoFixtures.retrieveColumnIntStats(
+            steward, datasetId, "vocabulary", "vocabulary_concept_id", null);
+    assertThat("Correct max values in vocabulary_concept_id", intModel.getMaxValue(), equalTo(2));
+    assertThat("Correct min values in vocabulary_concept_id", intModel.getMinValue(), equalTo(1));
     List<Object> flippedVocabRows =
         dataRepoFixtures
             .retrieveDatasetData(
@@ -1428,6 +1450,32 @@ public class AzureIntegrationTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
 
     dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
+  }
+
+  public void testMetadataArrayIngest(String arrayIngestTableName, Map<String, Integer> records)
+      throws Exception {
+    IngestRequestModel arrayIngestRequest =
+        new IngestRequestModel()
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table(arrayIngestTableName)
+            .profileId(profileId)
+            .addRecordsItem(records)
+            .format(IngestRequestModel.FormatEnum.ARRAY)
+            .loadTag(Names.randomizeName("azureArrayIngest"));
+
+    IngestResponseModel arrayIngestResponse =
+        dataRepoFixtures.ingestJsonData(steward, datasetId, arrayIngestRequest);
+    assertThat("1 row was ingested", arrayIngestResponse.getRowCount(), equalTo(1L));
+
+    @SuppressWarnings("unchecked")
+    Map<Object, Object> firstPersonRow =
+        (Map<Object, Object>)
+            dataRepoFixtures
+                .retrieveDatasetData(steward, datasetId, arrayIngestTableName, 0, 1, null)
+                .getResult()
+                .get(0);
+    records.forEach((key, value) -> assertThat(firstPersonRow, hasEntry(key, value)));
   }
 
   private String getSourceStorageAccountPrimarySharedKey() {

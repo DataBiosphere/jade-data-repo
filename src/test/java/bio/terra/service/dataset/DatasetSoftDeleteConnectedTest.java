@@ -233,7 +233,7 @@ public class DatasetSoftDeleteConnectedTest {
     // check that the dataset metadata row has a shared lock
     // note: asserts are below outside the hang block
     UUID datasetId = summaryModel.getId();
-    String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock1 = DatasetDaoUtils.getExclusiveLock(datasetDao, datasetId);
     String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
     // kick off the second soft delete request, it should also hang just before updating the soft
@@ -244,7 +244,7 @@ public class DatasetSoftDeleteConnectedTest {
 
     // check that the dataset metadata row has two shared locks
     // note: asserts are below outside the hang block
-    String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+    String exclusiveLock2 = DatasetDaoUtils.getExclusiveLock(datasetDao, datasetId);
     String[] sharedLocks2 = datasetDao.getSharedLocks(datasetId);
 
     // disable hang in DataDeletionStep

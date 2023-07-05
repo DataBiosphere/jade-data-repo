@@ -54,13 +54,11 @@ import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
@@ -80,7 +78,6 @@ public class DatasetsApiController implements DatasetsApi {
 
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE = "SCHEMA,PROFILE,DATA_PROJECT,STORAGE";
 
-  private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final JobService jobService;
   private final DatasetRequestValidator datasetRequestValidator;
@@ -96,7 +93,6 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Autowired
   public DatasetsApiController(
-      ObjectMapper objectMapper,
       HttpServletRequest request,
       JobService jobService,
       DatasetRequestValidator datasetRequestValidator,
@@ -108,7 +104,6 @@ public class DatasetsApiController implements DatasetsApi {
       IngestRequestValidator ingestRequestValidator,
       DataDeletionRequestValidator dataDeletionRequestValidator,
       DatasetSchemaUpdateValidator datasetSchemaUpdateValidator) {
-    this.objectMapper = objectMapper;
     this.request = request;
     this.jobService = jobService;
     this.datasetRequestValidator = datasetRequestValidator;
@@ -131,16 +126,6 @@ public class DatasetsApiController implements DatasetsApi {
     binder.addValidators(datasetSchemaUpdateValidator);
   }
 
-  @Override
-  public Optional<ObjectMapper> getObjectMapper() {
-    return Optional.ofNullable(objectMapper);
-  }
-
-  @Override
-  public Optional<HttpServletRequest> getRequest() {
-    return Optional.ofNullable(request);
-  }
-
   private AuthenticatedUserRequest getAuthenticatedInfo() {
     return authenticatedUserRequestFactory.from(request);
   }
@@ -156,9 +141,8 @@ public class DatasetsApiController implements DatasetsApi {
 
   @Override
   public ResponseEntity<DatasetModel> retrieveDataset(
-      @PathVariable("id") UUID id,
-      @Valid
-          @RequestParam(
+      UUID id,
+      @RequestParam(
               value = "include",
               required = false,
               defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
@@ -166,8 +150,7 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userRequest, IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
-    return ResponseEntity.ok(
-        datasetService.retrieveAvailableDatasetModel(id, userRequest, include));
+    return ResponseEntity.ok(datasetService.retrieveDatasetModel(id, userRequest, include));
   }
 
   @Override
@@ -186,21 +169,24 @@ public class DatasetsApiController implements DatasetsApi {
       String sort,
       SqlSortDirection direction,
       String filter) {
-    datasetService.verifyDatasetReadable(id, getAuthenticatedInfo());
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, id.toString(), IamAction.READ_DATA);
     // TODO: Remove after https://broadworkbench.atlassian.net/browse/DR-2588 is fixed
     SqlSortDirection sortDirection = Objects.requireNonNullElse(direction, SqlSortDirection.ASC);
     DatasetDataModel previewModel =
-        datasetService.retrieveData(
-            getAuthenticatedInfo(), id, table, limit, offset, sort, sortDirection, filter);
+        datasetService.retrieveData(userReq, id, table, limit, offset, sort, sortDirection, filter);
     return ResponseEntity.ok(previewModel);
   }
 
   @Override
   public ResponseEntity<ColumnStatisticsModel> lookupDatasetColumnStatisticsById(
       UUID id, String table, String column, String filter) {
-    datasetService.verifyDatasetReadable(id, getAuthenticatedInfo());
+    AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userReq, IamResourceType.DATASET, id.toString(), IamAction.READ_DATA);
     ColumnStatisticsModel columnStatisticsModel =
-        datasetService.retrieveColumnStatistics(getAuthenticatedInfo(), id, table, column, filter);
+        datasetService.retrieveColumnStatistics(userReq, id, table, column, filter);
     return ResponseEntity.ok(columnStatisticsModel);
   }
 

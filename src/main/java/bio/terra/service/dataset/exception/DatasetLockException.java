@@ -8,15 +8,11 @@ public class DatasetLockException extends InternalServerErrorException {
     super(message);
   }
 
+  public DatasetLockException(String message, List<String> causes) {
+    super(message, causes);
+  }
+
   public DatasetLockException(String message, Throwable cause) {
     super(message, cause);
-  }
-
-  public DatasetLockException(Throwable cause) {
-    super(cause);
-  }
-
-  public DatasetLockException(String message, Throwable cause, List<String> errorDetails) {
-    super(message, cause, errorDetails);
   }
 }

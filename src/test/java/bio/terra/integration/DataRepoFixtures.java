@@ -29,6 +29,7 @@ import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.ColumnStatisticsIntModel;
 import bio.terra.model.ColumnStatisticsTextModel;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
@@ -1029,9 +1030,18 @@ public class DataRepoFixtures {
   public List<String> retrieveColumnTextValues(
       TestConfiguration.User user, UUID datasetId, String tableName, String columnName)
       throws Exception {
-    return retrieveColumnStats(user, datasetId, tableName, columnName, null).getValues().stream()
-        .map(val -> val.getValue())
-        .toList();
+    ColumnStatisticsTextModel textModel =
+        retrieveColumnStats(user, datasetId, tableName, columnName, null);
+    List<String> values = textModel.getValues().stream().map(val -> val.getValue()).toList();
+    return values;
+  }
+
+  public ColumnStatisticsIntModel retrieveColumnIntStats(
+      TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
+      throws Exception {
+    DataRepoResponse<ColumnStatisticsIntModel> response =
+        retrieveColumnStatsIntRaw(user, datasetId, table, columnName, filter);
+    return validateResponse(response, "dataset column stats", HttpStatus.OK, null);
   }
 
   public ColumnStatisticsTextModel retrieveColumnStats(
@@ -1040,6 +1050,21 @@ public class DataRepoFixtures {
     DataRepoResponse<ColumnStatisticsTextModel> response =
         retrieveColumnStatsTextRaw(user, datasetId, table, columnName, filter);
     return validateResponse(response, "dataset column stats", HttpStatus.OK, null);
+  }
+
+  private DataRepoResponse<ColumnStatisticsIntModel> retrieveColumnStatsIntRaw(
+      TestConfiguration.User user, UUID datasetId, String table, String columnName, String filter)
+      throws Exception {
+    String url =
+        "/api/repository/v1/datasets/%s/data/%s/statistics/%s"
+            .formatted(datasetId, table, columnName);
+
+    String queryParams = "";
+
+    if (filter != null) {
+      queryParams += "?filter=%s".formatted(filter);
+    }
+    return dataRepoClient.get(user, url + queryParams, new TypeReference<>() {});
   }
 
   private DataRepoResponse<ColumnStatisticsTextModel> retrieveColumnStatsTextRaw(

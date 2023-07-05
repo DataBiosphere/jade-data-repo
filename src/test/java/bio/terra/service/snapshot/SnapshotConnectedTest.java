@@ -6,7 +6,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -14,12 +13,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.EmbeddedDatabaseTest;
+import bio.terra.common.ResourceLocksUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -28,7 +27,6 @@ import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetPatchRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
@@ -39,7 +37,6 @@ import bio.terra.service.auth.iam.IamProviderInterface;
 import bio.terra.service.auth.iam.IamRole;
 import bio.terra.service.auth.ras.EcmService;
 import bio.terra.service.auth.ras.RasDbgapPermissions;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.filedata.DrsIdService;
@@ -61,7 +58,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -315,8 +311,9 @@ public class SnapshotConnectedTest {
     assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
     // check that the snapshot metadata row is unlocked
-    String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotModel.getId());
-    assertNull("snapshot row is unlocked", exclusiveLock);
+    assertNull(
+        "snapshot row is unlocked",
+        ResourceLocksUtils.getExclusiveLock(snapshotModel.getResourceLocks()));
 
     // try to create the same snapshot again and check that it fails
     snapshotRequest.setName(snapshotModel.getName());
@@ -371,8 +368,9 @@ public class SnapshotConnectedTest {
     assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
     // check that the snapshot metadata row is unlocked
-    String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotModel.getId());
-    assertNull("snapshot row is unlocked", exclusiveLock);
+    assertNull(
+        "snapshot row is unlocked",
+        ResourceLocksUtils.getExclusiveLock(snapshotModel.getResourceLocks()));
 
     // delete and confirm deleted
     connectedOperations.deleteTestSnapshot(snapshotModel.getId());
@@ -435,54 +433,6 @@ public class SnapshotConnectedTest {
     assertEquals(
         LifecycleState.DELETE_REQUESTED.toString(),
         googleResourceManagerService.getProject(googleProjectId).getLifecycleState());
-  }
-
-  @Ignore("Remove ignore after DR-1770 is addressed")
-  @Test
-  public void testOverlappingDeletes() throws Exception {
-    // create a snapshot
-    SnapshotSummaryModel summaryModel =
-        connectedOperations.createSnapshot(datasetSummary, "snapshot-test-snapshot.json", "_d2_");
-
-    // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before
-    // disabling the hang
-    // ====================================================
-    // enable hang in DeleteSnapshotPrimaryDataStep
-    configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
-
-    // try to delete the snapshot
-    MvcResult result1 =
-        mvc.perform(delete("/api/repository/v1/snapshots/" + summaryModel.getId())).andReturn();
-
-    // try to delete the snapshot again, this should fail with a lock exception
-    // note: asserts are below outside the hang block
-    MvcResult result2 =
-        mvc.perform(delete("/api/repository/v1/snapshots/" + summaryModel.getId())).andReturn();
-
-    // disable hang in DeleteSnapshotPrimaryDataStep
-    configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
-    // ====================================================
-
-    // check the response from the first delete request
-    MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
-    DeleteResponseModel deleteResponseModel =
-        connectedOperations.handleSuccessCase(response1, DeleteResponseModel.class);
-    assertEquals(
-        "First delete returned successfully",
-        DeleteResponseModel.ObjectStateEnum.DELETED,
-        deleteResponseModel.getObjectState());
-
-    // check the response from the second delete request
-    MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
-    ErrorModel errorModel2 =
-        connectedOperations.handleFailureCase(response2, HttpStatus.INTERNAL_SERVER_ERROR);
-    assertThat(
-        "delete failed on lock exception",
-        errorModel2.getMessage(),
-        startsWith("Failed to lock the snapshot"));
-
-    // confirm deleted
-    connectedOperations.getSnapshotExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
   }
 
   private DatasetSummaryModel setupArrayStructDataset() throws Exception {

@@ -172,7 +172,7 @@ public class SnapshotServiceTest {
   public void testRetrieveSnapshot() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(snapshotId, TEST_USER),
+        service.retrieveSnapshotModel(snapshotId, TEST_USER),
         equalTo(
             expectedMockSnapshotModelBase()
                 .source(
@@ -213,7 +213,7 @@ public class SnapshotServiceTest {
   public void testRetrieveSnapshotNoFields() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.NONE), TEST_USER),
         equalTo(expectedMockSnapshotModelBase()));
   }
@@ -222,7 +222,7 @@ public class SnapshotServiceTest {
   public void testRetrieveSnapshotDefaultFields() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId,
             List.of(
                 SnapshotRetrieveIncludeModel.SOURCES,
@@ -232,14 +232,14 @@ public class SnapshotServiceTest {
                 SnapshotRetrieveIncludeModel.DATA_PROJECT,
                 SnapshotRetrieveIncludeModel.DUOS),
             TEST_USER),
-        equalTo(service.retrieveAvailableSnapshotModel(snapshotId, TEST_USER)));
+        equalTo(service.retrieveSnapshotModel(snapshotId, TEST_USER)));
   }
 
   @Test
   public void testRetrieveSnapshotOnlyCreationInfo() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.CREATION_INFORMATION), TEST_USER),
         equalTo(
             expectedMockSnapshotModelBase()
@@ -306,7 +306,7 @@ public class SnapshotServiceTest {
                                         + "`"))));
     when(metadataDataAccessUtils.accessInfoFromSnapshot(any(), any())).thenReturn(accessInfoModel);
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.ACCESS_INFORMATION), TEST_USER),
         equalTo(expectedMockSnapshotModelBase().accessInformation(accessInfoModel)));
   }
@@ -315,7 +315,7 @@ public class SnapshotServiceTest {
   public void testRetrieveSnapshotOnlyDuos() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId, List.of(SnapshotRetrieveIncludeModel.DUOS), TEST_USER),
         equalTo(expectedMockSnapshotModelBase().duosFirecloudGroup(duosFirecloudGroup)));
   }
@@ -324,7 +324,7 @@ public class SnapshotServiceTest {
   public void testRetrieveSnapshotMultiInfo() {
     mockSnapshot();
     assertThat(
-        service.retrieveAvailableSnapshotModel(
+        service.retrieveSnapshotModel(
             snapshotId,
             List.of(
                 SnapshotRetrieveIncludeModel.PROFILE, SnapshotRetrieveIncludeModel.DATA_PROJECT),
@@ -336,7 +336,7 @@ public class SnapshotServiceTest {
   }
 
   private void mockSnapshot() {
-    when(snapshotDao.retrieveAvailableSnapshot(snapshotId))
+    when(snapshotDao.retrieveSnapshot(snapshotId))
         .thenReturn(
             new Snapshot()
                 .id(snapshotId)

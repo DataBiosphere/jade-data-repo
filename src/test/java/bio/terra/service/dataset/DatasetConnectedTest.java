@@ -5,11 +5,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
@@ -26,13 +24,11 @@ import bio.terra.model.DatasetDataModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.auth.iam.IamProviderInterface;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -52,7 +48,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -66,11 +61,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -95,6 +88,7 @@ public class DatasetConnectedTest {
 
   private DatasetRequestModel datasetRequest;
   private DatasetSummaryModel summaryModel;
+  private UUID datasetId;
   private static final Logger logger = LoggerFactory.getLogger(DatasetConnectedTest.class);
   private String tableName;
   private String columnName;
@@ -113,6 +107,7 @@ public class DatasetConnectedTest {
         .defaultProfileId(billingProfile.getId())
         .dedicatedIngestServiceAccount(false);
     summaryModel = connectedOperations.createDataset(datasetRequest);
+    datasetId = summaryModel.getId();
     tableName = "thetable";
     columnName = "thecolumn";
     logger.info("--------begin test---------");
@@ -131,14 +126,13 @@ public class DatasetConnectedTest {
     assertNotNull("created dataset successfully the first time", summaryModel);
 
     // fetch the dataset and confirm the metadata matches the request
-    DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
+    DatasetModel datasetModel = connectedOperations.getDataset(datasetId);
     assertNotNull("fetched dataset successfully after creation", datasetModel);
     assertEquals(
         "fetched dataset name matches request", datasetRequest.getName(), datasetModel.getName());
 
     // check that the dataset metadata row is unlocked
-    String exclusiveLock = datasetDao.getExclusiveLock(summaryModel.getId());
-    assertNull("dataset row is unlocked", exclusiveLock);
+    assertNull("dataset row is unlocked", DatasetDaoUtils.getExclusiveLock(datasetDao, datasetId));
 
     // try to create the same dataset again and check that it fails
     datasetRequest.description("Make sure nothing is getting overwritten");
@@ -150,61 +144,14 @@ public class DatasetConnectedTest {
         containsString("Dataset name or id already exists"));
 
     // fetch the dataset and confirm the metadata still matches the original
-    DatasetModel origModel = connectedOperations.getDataset(summaryModel.getId());
+    DatasetModel origModel = connectedOperations.getDataset(datasetId);
     assertEquals("fetched dataset remains unchanged", datasetModel, origModel);
 
     // delete the dataset and check that it succeeds
-    connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
+    connectedOperations.deleteTestDatasetAndCleanup(datasetId);
 
     // try to fetch the dataset again and confirm nothing is returned
-    connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
-  }
-
-  @Test
-  public void testOverlappingDeletes() throws Exception {
-    // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before
-    // disabling the hang
-    // ====================================================
-    // enable hang in DeleteDatasetPrimaryDataStep
-    configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
-
-    // Make sure that dataset delete fails on lock conflict
-    configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT.name(), true);
-
-    // try to delete the dataset
-    MvcResult result1 =
-        mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
-    TimeUnit.SECONDS.sleep(5); // give the flight time to launch
-
-    // try to delete the dataset again
-    MvcResult result2 =
-        mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
-    TimeUnit.SECONDS.sleep(5); // give the flight time to launch
-
-    // disable hang in DeleteDatasetPrimaryDataStep
-    configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
-    // ====================================================
-
-    // check the response from the first delete request
-    MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
-    DeleteResponseModel deleteResponseModel =
-        connectedOperations.handleSuccessCase(response1, DeleteResponseModel.class);
-    assertEquals(
-        "First delete returned successfully",
-        DeleteResponseModel.ObjectStateEnum.DELETED,
-        deleteResponseModel.getObjectState());
-
-    // check that the second delete failed with a lock exception
-    MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
-    ErrorModel errorModel2 =
-        connectedOperations.handleFailureCase(response2, HttpStatus.INTERNAL_SERVER_ERROR);
-    assertThat(
-        "delete failed on lock exception",
-        errorModel2.getMessage(),
-        startsWith("Failed to lock the dataset"));
-
-    // try to fetch the dataset again and confirm nothing is returned
-    connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+    connectedOperations.getDatasetExpectError(datasetId, HttpStatus.NOT_FOUND);
   }
 
   @Test
@@ -221,7 +168,7 @@ public class DatasetConnectedTest {
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath)
             .csvGenerateRowIds(true);
-    connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+    connectedOperations.ingestTableSuccess(datasetId, ingestRequest);
     assertSuccessfulIngest();
   }
 
@@ -238,14 +185,14 @@ public class DatasetConnectedTest {
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath)
             .csvGenerateRowIds(true);
-    connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+    connectedOperations.ingestTableSuccess(datasetId, ingestRequest);
     assertSuccessfulIngest();
   }
 
   private void assertSuccessfulIngest() throws Exception {
     DatasetDataModel datasetDataModel =
         connectedOperations.retrieveDatasetDataByIdSuccess(
-            summaryModel.getId(), tableName, 100, 0, null, columnName);
+            datasetId, tableName, 100, 0, null, columnName);
     List<String> retrieveEndpointDatasetNames = new ArrayList<>();
     datasetDataModel
         .getResult()
@@ -268,8 +215,7 @@ public class DatasetConnectedTest {
             .loadControlFile(ingestControlFilePath)
             .loadTag(bulkLoadTag)
             .profileId(summaryModel.getDefaultProfileId());
-    ErrorModel errorModel =
-        connectedOperations.ingestBulkFileFailure(summaryModel.getId(), request);
+    ErrorModel errorModel = connectedOperations.ingestBulkFileFailure(datasetId, request);
     assertThat(
         "Error message detail should include that the sourcePath and targetPath were not defined in the control file.",
         errorModel.getErrorDetail().get(0),
@@ -292,10 +238,9 @@ public class DatasetConnectedTest {
             .path(tableIngestInputFilePath)
             .csvGenerateRowIds(true)
             .loadTag(loadTag);
-    connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+    connectedOperations.ingestTableSuccess(datasetId, ingestRequest);
 
-    Optional<DatasetTable> table =
-        datasetDao.retrieve(summaryModel.getId()).getTableByName(tableName);
+    Optional<DatasetTable> table = datasetDao.retrieve(datasetId).getTableByName(tableName);
     String metadataTableName;
     if (table.isPresent()) {
       metadataTableName = table.get().getRowMetadataTableName();
@@ -338,19 +283,8 @@ public class DatasetConnectedTest {
 
   @Test
   public void testProjectDeleteAfterDatasetDelete() throws Exception {
-    String resourcePath = "snapshot-test-dataset.json";
-    // --- create billing profile and dataset ----
-    BillingProfileModel billingProfile =
-        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
-    DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-    datasetRequest
-        .name(Names.randomizeName(datasetRequest.getName()))
-        .defaultProfileId(billingProfile.getId())
-        .dedicatedIngestServiceAccount(false);
-    DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
     // retrieve dataset and store project id
-    DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
+    DatasetModel datasetModel = connectedOperations.getDataset(datasetId);
     assertNotNull("fetched dataset successfully after creation", datasetModel);
     String datasetGoogleProjectId = datasetModel.getDataProject();
     assertNotNull(
@@ -371,13 +305,12 @@ public class DatasetConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetFilePath)
             .profileId(billingProfile_diff.getId());
-    FileModel fileModel =
-        connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel);
+    FileModel fileModel = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
 
     // Retrieve list of projects associated with dataset/bucket
     // there will be two buckets: the primary one and the one where we performed the ingest
     List<UUID> projectResourceIds =
-        datasetBucketDao.getProjectResourceIdsForBucketPerDataset(summaryModel.getId());
+        datasetBucketDao.getProjectResourceIdsForBucketPerDataset(datasetId);
     assertThat("There are two buckets", projectResourceIds, hasSize(2));
     String ingestGoogleProjectId =
         googleResourceDao.retrieveProjectById(projectResourceIds.get(1)).getGoogleProjectId();
@@ -403,7 +336,7 @@ public class DatasetConnectedTest {
         equalTo(LifecycleState.DELETE_REQUESTED.toString()));
     // We don't need to clean up the file in connected operations cleanup since the project was
     // deleted
-    connectedOperations.removeFile(summaryModel.getId(), fileModel.getFileId());
+    connectedOperations.removeFile(datasetId, fileModel.getFileId());
   }
 
   private String uploadIngestInputFile(String resourceFileName, String dirInCloud)

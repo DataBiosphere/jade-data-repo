@@ -132,7 +132,7 @@ public class FileIngestFlight extends FileIngestTypeFlight {
     addStep(new IngestFileValidateCloudPlatformStep(dataset));
     addStep(new LockDatasetStep(datasetService, datasetId, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
-    addStep(new IngestFileIdStep(configService));
+    addStep(new IngestFileIdStep());
 
     CloudFileReader cloudFileReader = (platform.isGcp()) ? gcsPdao : azureBlobStorePdao;
     addStep(

@@ -5,7 +5,6 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.iam.AuthenticatedUserRequest;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -38,7 +37,6 @@ public class FileDeleteFlight extends Flight {
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
-    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ProfileDao profileDao = appContext.getBean(ProfileDao.class);
 
     UUID datasetId =
@@ -75,16 +73,13 @@ public class FileDeleteFlight extends Flight {
     // data structure states are introduced by this flight.
     addStep(new LockDatasetStep(datasetService, datasetId, true), lockDatasetRetry);
     if (platform.isGcp()) {
-      addStep(
-          new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao, configService),
-          fileSystemRetry);
+      addStep(new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao), fileSystemRetry);
       addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset), fileSystemRetry);
       addStep(new DeleteFilePrimaryDataStep(gcsPdao));
       addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
       addStep(
-          new DeleteFileAzureLookupStep(
-              tableDao, fileId, dataset, configService, resourceService, profileDao),
+          new DeleteFileAzureLookupStep(tableDao, fileId, dataset, resourceService, profileDao),
           fileSystemRetry);
       addStep(new DeleteFileAzureMetadataStep(tableDao, fileId, dataset), fileSystemRetry);
       addStep(new DeleteFileAzurePrimaryDataStep(azureBlobStorePdao, userReq));

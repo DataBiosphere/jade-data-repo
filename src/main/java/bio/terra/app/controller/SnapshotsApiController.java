@@ -36,12 +36,10 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -50,7 +48,6 @@ import javax.validation.Valid;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
@@ -69,7 +66,6 @@ public class SnapshotsApiController implements SnapshotsApi {
   public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE =
       "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT,DUOS";
 
-  private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final JobService jobService;
   private final SnapshotRequestValidator snapshotRequestValidator;
@@ -80,9 +76,7 @@ public class SnapshotsApiController implements SnapshotsApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final AssetModelValidator assetModelValidator;
 
-  @Autowired
   public SnapshotsApiController(
-      ObjectMapper objectMapper,
       HttpServletRequest request,
       JobService jobService,
       SnapshotRequestValidator snapshotRequestValidator,
@@ -92,7 +86,6 @@ public class SnapshotsApiController implements SnapshotsApi {
       FileService fileService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       AssetModelValidator assetModelValidator) {
-    this.objectMapper = objectMapper;
     this.request = request;
     this.jobService = jobService;
     this.snapshotRequestValidator = snapshotRequestValidator;
@@ -109,16 +102,6 @@ public class SnapshotsApiController implements SnapshotsApi {
     binder.addValidators(snapshotRequestValidator);
     binder.addValidators(ingestRequestValidator);
     binder.addValidators(assetModelValidator);
-  }
-
-  @Override
-  public Optional<ObjectMapper> getObjectMapper() {
-    return Optional.ofNullable(objectMapper);
-  }
-
-  @Override
-  public Optional<HttpServletRequest> getRequest() {
-    return Optional.ofNullable(request);
   }
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
@@ -232,7 +215,7 @@ public class SnapshotsApiController implements SnapshotsApi {
     snapshotService.verifySnapshotReadable(id, authenticatedInfo);
     logger.debug("Retrieving snapshot");
     SnapshotModel snapshotModel =
-        snapshotService.retrieveAvailableSnapshotModel(id, include, authenticatedInfo);
+        snapshotService.retrieveSnapshotModel(id, include, authenticatedInfo);
     return ResponseEntity.ok(snapshotModel);
   }
 

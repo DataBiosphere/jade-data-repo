@@ -9,11 +9,9 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.AuthenticationFixtures;
 import bio.terra.common.fixtures.DaoOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
-import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.dataset.Dataset;
@@ -63,8 +61,6 @@ public class GoogleResourceDaoUnitTest {
   private BillingProfileModel billingProfile;
   private List<UUID> projectResourceIds;
   private List<UUID> datasetIds;
-  private static final AuthenticatedUserRequest TEST_USER =
-      AuthenticationFixtures.randomUserRequest();
 
   @Before
   public void setup() throws IOException, InterruptedException, SQLException {
@@ -93,7 +89,7 @@ public class GoogleResourceDaoUnitTest {
   @After
   public void teardown() {
     for (UUID datasetId : datasetIds) {
-      datasetDao.delete(datasetId, TEST_USER);
+      datasetDao.delete(datasetId);
     }
     for (UUID projectResourceId : projectResourceIds) {
       googleResourceDao.deleteProject(projectResourceId);
@@ -103,8 +99,7 @@ public class GoogleResourceDaoUnitTest {
 
   /* Helper method to create a minimal dataset and register its ID for cleanup */
   private Dataset createDataset(UUID projectResourceId) throws IOException {
-    Dataset dataset =
-        daoOperations.createMinimalDataset(billingProfile.getId(), projectResourceId, TEST_USER);
+    Dataset dataset = daoOperations.createMinimalDataset(billingProfile.getId(), projectResourceId);
     datasetIds.add(dataset.getId());
     return dataset;
   }

@@ -56,6 +56,7 @@ public final class IngestUtils {
   private static final String TARGET_DATA_SOURCE_PREFIX = "target_data_source_";
   private static final String INGEST_TABLE_NAME_PREFIX = "ingest_";
   private static final String SCRATCH_TABLE_NAME_PREFIX = "scratch_";
+  private static final String FLIGHT_ID_PREFIX = "flight_";
 
   private static final Logger logger = LoggerFactory.getLogger(IngestUtils.class);
 
@@ -386,7 +387,7 @@ public final class IngestUtils {
 
   // Note: this is the unqualified path (e.g. it gets used in metadata and scratch directories)
   public static String getParquetFilePath(String targetTableName, String flightId) {
-    return "parquet/" + targetTableName + "/" + flightId + ".parquet";
+    return "parquet/" + targetTableName + "/" + FLIGHT_ID_PREFIX + flightId + ".parquet";
   }
 
   /**

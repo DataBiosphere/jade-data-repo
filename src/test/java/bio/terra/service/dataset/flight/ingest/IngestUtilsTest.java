@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import bio.terra.model.IngestRequestModel;
@@ -12,6 +13,7 @@ import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.service.dataset.exception.InvalidBlobURLException;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.BlobUrlParts;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Tag;
@@ -121,6 +123,14 @@ public class IngestUtilsTest {
     assertTrue(
         "Ingests in merge mode will have any specified row IDs unset",
         IngestUtils.shouldIgnoreUserSpecifiedRowIds(flightMapMerge));
+  }
+
+  @Test
+  void testGetParquetFilePath() {
+    String targetTableName = "sample";
+    String flightId = "_" + ShortUUID.get();
+    String expectedPath = "parquet/" + targetTableName + "/flight_" + flightId + ".parquet";
+    assertEquals(IngestUtils.getParquetFilePath(targetTableName, flightId), expectedPath);
   }
 
   /**

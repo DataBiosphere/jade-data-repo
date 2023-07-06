@@ -407,11 +407,11 @@ public class SynapseUtils {
     // 3 - Retrieve info about database schema so that we can populate the parquet create query
     String tableName = destinationTable.getName();
     String destinationParquetFile =
-        FolderType.METADATA.getPath("parquet/" + tableName + "/" + ingestFlightId + ".parquet");
+        FolderType.METADATA.getPath(IngestUtils.getParquetFilePath(tableName, ingestFlightId));
 
     String scratchParquetFile =
         FolderType.SCRATCH.getPath(
-            "parquet/" + SCRATCH_TABLE_NAME_PREFIX + tableName + "/" + ingestFlightId + ".parquet");
+            IngestUtils.getParquetFilePath(SCRATCH_TABLE_NAME_PREFIX + tableName, ingestFlightId));
 
     // 4 - Create parquet files via external table
     // All inputs should be sanitized before passed into this method
@@ -492,7 +492,11 @@ public class SynapseUtils {
 
     String scratchParquetFile =
         FolderType.SCRATCH.getPath(
-            "parquet/scratch_" + destinationTable.getName() + "/" + randomFlightId + ".parquet");
+            "parquet/scratch_"
+                + destinationTable.getName()
+                + "/flight"
+                + randomFlightId
+                + ".parquet");
     addParquetFileName(scratchParquetFile, datasetStorageAccountResource);
     addParquetFileName(
         IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId),

@@ -86,7 +86,8 @@ public class SimpleDataset extends runner.TestScript {
             cloudPlatform,
             "dataset-simple.json",
             datasetCreator,
-            true);
+            true,
+            false);
 
     // save a reference to the dataset summary model so we can delete it in cleanup()
     datasetSummaryModel =

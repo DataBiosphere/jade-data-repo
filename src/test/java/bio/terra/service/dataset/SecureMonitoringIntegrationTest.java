@@ -172,6 +172,7 @@ public class SecureMonitoringIntegrationTest extends UsersBase {
     requestModel.setName(Names.randomizeName(requestModel.getName()));
     requestModel.setCloudPlatform(CloudPlatform.GCP);
     requestModel.setEnableSecureMonitoring(secureMonitoringEnabled);
+    requestModel.dedicatedIngestServiceAccount(false);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(steward(), requestModel, false);
     datasetId = summaryModel.getId();

@@ -73,7 +73,7 @@ public class GlobalExceptionHandler {
   })
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public ErrorModel validationExceptionHandler(Exception ex) {
-    return buildErrorModel(ex);
+    return buildErrorModel(ex, false);
   }
 
   // -- auth errors from sam
@@ -96,7 +96,7 @@ public class GlobalExceptionHandler {
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   public ErrorModel jobResponseExceptionHandler(Exception ex) {
     Throwable nestedException = ex.getCause();
-    return buildErrorModel(nestedException);
+    return buildErrorModel(nestedException, true);
   }
 
   @ExceptionHandler(ApiException.class)
@@ -109,23 +109,23 @@ public class GlobalExceptionHandler {
     // but want to add in a logging message that there's an escaped SAM ApiException somewhere.
     logger.error("SAM ApiException caught outside the service/iam package", ex);
     ErrorReportException drex = SamIam.convertSAMExToDataRepoEx(ex);
-    return buildErrorModel(drex);
+    return buildErrorModel(drex, true);
   }
 
   // -- catchall - log so we can understand what we have missed in the handlers above
   @ExceptionHandler(Exception.class)
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   public ErrorModel catchallHandler(Exception ex) {
-    logger.error("Exception caught by catchall hander", ex);
-    return buildErrorModel(ex);
+    logger.error("Exception caught by catchall handler", ex);
+    return buildErrorModel(ex, true);
   }
 
   // This method takes throwable so it can be shared by the JobResponseException handler:
   // the type returned from getCause() is a Throwable.
   // This error handler logs the complete error list so we can debug the underlying causes
   // of errors. We do not want to return that to the client, but need it for our own debugging.
-  private ErrorModel buildErrorModel(Throwable ex) {
-    return buildErrorModel(ex, null, true);
+  private ErrorModel buildErrorModel(Throwable ex, boolean captureInSentry) {
+    return buildErrorModel(ex, null, captureInSentry);
   }
 
   private ErrorModel buildErrorModel(
@@ -136,8 +136,12 @@ public class GlobalExceptionHandler {
     }
     logger.error("Global exception handler: " + combinedCauseString.toString(), ex);
     if (captureInSentry) {
-      Sentry.captureException(ex);
+      captureSentryException(ex);
     }
     return new ErrorModel().message(ex.getMessage()).errorDetail(errorDetail);
+  }
+
+  void captureSentryException(Throwable ex) {
+    Sentry.captureException(ex);
   }
 }

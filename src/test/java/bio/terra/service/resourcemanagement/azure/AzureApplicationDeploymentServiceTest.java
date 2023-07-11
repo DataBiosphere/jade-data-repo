@@ -13,10 +13,10 @@ import static org.mockito.Mockito.when;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.AzureStorageAccountSkuType;
-import bio.terra.common.AzureUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
@@ -67,7 +67,7 @@ public class AzureApplicationDeploymentServiceTest {
                     DEFAULT_REGION_KEY, Map.of(PARAMETER_VALUE_KEY, "AUSTRALIA"),
                     STORAGE_PREFIX_KEY, Map.of(PARAMETER_VALUE_KEY, "tdr"),
                     STORAGE_TYPE_KEY, Map.of(PARAMETER_VALUE_KEY, "Standard_LRS"))));
-    String appResourceId = AzureUtils.getApplicationDeploymentResourceId(billingProfileModel);
+    String appResourceId = MetadataDataAccessUtils.getApplicationDeploymentId(billingProfileModel);
     when(genericResources.getById(appResourceId, resourceConfiguration.getApiVersion()))
         .thenReturn(genericResource);
     when(client.genericResources()).thenReturn(genericResources);

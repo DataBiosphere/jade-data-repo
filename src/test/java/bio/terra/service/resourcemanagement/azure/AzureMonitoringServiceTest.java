@@ -8,8 +8,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.AzureUtils;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration.Credentials;
 import com.azure.core.http.HttpResponse;
 import com.azure.core.management.exception.ManagementError;
@@ -63,7 +63,7 @@ class AzureMonitoringServiceTest {
       new AzureApplicationDeploymentResource()
           .azureResourceGroupName(RESOURCE_GROUP)
           .azureApplicationDeploymentId(
-              AzureUtils.getApplicationDeploymentResourceId(
+              MetadataDataAccessUtils.getApplicationDeploymentId(
                   SUBSCRIPTION_ID, RESOURCE_GROUP, APPLICATION_NAME));
 
   private static final AzureStorageAccountResource STORAGE_ACCOUNT =

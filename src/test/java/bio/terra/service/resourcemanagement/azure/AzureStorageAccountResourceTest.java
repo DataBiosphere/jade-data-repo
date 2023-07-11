@@ -3,7 +3,7 @@ package bio.terra.service.resourcemanagement.azure;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import bio.terra.common.AzureUtils;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,7 @@ class AzureStorageAccountResourceTest {
   void testGetStorageAccountResourceId() {
     UUID subscriptionId = UUID.fromString("deadbeef-face-cafe-bead-0ddba11deed5");
     String resourceId =
-        AzureUtils.getApplicationDeploymentResourceId(subscriptionId, "TDR", "myapp");
+        MetadataDataAccessUtils.getApplicationDeploymentId(subscriptionId, "TDR", "myapp");
     AzureApplicationDeploymentResource appResource =
         new AzureApplicationDeploymentResource()
             .azureApplicationDeploymentId(resourceId)

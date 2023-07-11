@@ -2,13 +2,12 @@ package bio.terra.service.resourcemanagement.azure;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.*;
 
+import bio.terra.common.AzureUtils;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
-import org.stringtemplate.v4.ST;
 
 @ActiveProfiles({"google", "unittest"})
 @Tag("bio.terra.common.category.Unit")
@@ -17,12 +16,7 @@ class AzureStorageAccountResourceTest {
   void testGetStorageAccountResourceId() {
     UUID subscriptionId = UUID.fromString("deadbeef-face-cafe-bead-0ddba11deed5");
     String resourceId =
-        new ST(
-                "/subscriptions/<subscriptionId>/resourceGroups/<resourceGroup>/providers/microsoft.solutions/applications/<appName>")
-            .add("subscriptionId", subscriptionId)
-            .add("resourceGroup", "TDR")
-            .add("appName", "myapp")
-            .render();
+        AzureUtils.getApplicationDeploymentResourceId(subscriptionId, "TDR", "myapp");
     AzureApplicationDeploymentResource appResource =
         new AzureApplicationDeploymentResource()
             .azureApplicationDeploymentId(resourceId)

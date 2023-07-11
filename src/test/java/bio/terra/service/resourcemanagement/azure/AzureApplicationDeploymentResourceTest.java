@@ -3,11 +3,11 @@ package bio.terra.service.resourcemanagement.azure;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import bio.terra.common.AzureUtils;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
-import org.stringtemplate.v4.ST;
 
 @ActiveProfiles({"google", "unittest"})
 @Tag("bio.terra.common.category.Unit")
@@ -18,12 +18,7 @@ class AzureApplicationDeploymentResourceTest {
     UUID subscriptionId = UUID.randomUUID();
 
     String resourceId =
-        new ST(
-                "/subscriptions/<subscriptionId>/resourceGroups/<resourceGroup>/providers/microsoft.solutions/applications/<appName>")
-            .add("subscriptionId", subscriptionId)
-            .add("resourceGroup", "TDR")
-            .add("appName", "myapp")
-            .render();
+        AzureUtils.getApplicationDeploymentResourceId(subscriptionId, "TDR", "myapp");
 
     AzureApplicationDeploymentResource resource =
         new AzureApplicationDeploymentResource().azureApplicationDeploymentId(resourceId);

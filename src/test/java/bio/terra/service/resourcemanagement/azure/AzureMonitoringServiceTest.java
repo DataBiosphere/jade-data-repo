@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import bio.terra.common.AzureUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration.Credentials;
 import com.azure.core.http.HttpResponse;
@@ -35,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.stringtemplate.v4.ST;
 
 @ExtendWith(MockitoExtension.class)
 @Tag("bio.terra.common.category.Unit")
@@ -63,12 +63,8 @@ class AzureMonitoringServiceTest {
       new AzureApplicationDeploymentResource()
           .azureResourceGroupName(RESOURCE_GROUP)
           .azureApplicationDeploymentId(
-              new ST(
-                      "/subscriptions/<subscriptionId>/resourceGroups/<resourceGroup>/providers/microsoft.solutions/applications/<appName>")
-                  .add("subscriptionId", SUBSCRIPTION_ID)
-                  .add("resourceGroup", RESOURCE_GROUP)
-                  .add("appName", APPLICATION_NAME)
-                  .render());
+              AzureUtils.getApplicationDeploymentResourceId(
+                  SUBSCRIPTION_ID, RESOURCE_GROUP, APPLICATION_NAME));
 
   private static final AzureStorageAccountResource STORAGE_ACCOUNT =
       new AzureStorageAccountResource()

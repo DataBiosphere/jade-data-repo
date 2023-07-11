@@ -25,7 +25,9 @@ public abstract class CreateAzureContainerStep implements Step {
   protected final String storageAccountContextKey;
 
   protected CreateAzureContainerStep(
-      ResourceService resourceService, AzureContainerPdao azureContainerPdao, String storageAccountContextKey) {
+      ResourceService resourceService,
+      AzureContainerPdao azureContainerPdao,
+      String storageAccountContextKey) {
     this.resourceService = resourceService;
     this.azureContainerPdao = azureContainerPdao;
     this.storageAccountContextKey = storageAccountContextKey;

@@ -348,8 +348,7 @@ public class AzureMonitoringService {
       return sentinelOnboardingState;
     } catch (ManagementException e) {
       logger.debug("No Sentinel instance found", e);
-      if (Objects.equals(e.getValue().getCode(), RESOURCE_NOT_FOUND_CODE)
-          || Objects.equals(e.getValue().getCode(), NOT_FOUND_CODE)) {
+      if (List.of(RESOURCE_NOT_FOUND_CODE, NOT_FOUND_CODE).contains(e.getValue().getCode())) {
         return null;
       } else {
         throw e;
@@ -433,8 +432,7 @@ public class AzureMonitoringService {
       return alertRule;
     } catch (ManagementException e) {
       logger.debug("No Sentinel UnauthorizedAccess alert rule found", e);
-      if (Objects.equals(e.getValue().getCode(), RESOURCE_NOT_FOUND_CODE)
-          || Objects.equals(e.getValue().getCode(), NOT_FOUND_CODE)
+      if (List.of(RESOURCE_NOT_FOUND_CODE, NOT_FOUND_CODE).contains(e.getValue().getCode())
           || (Objects.equals(e.getValue().getCode(), BAD_REQUEST_CODE)
               && e.getMessage().contains("is not onboarded to Microsoft Sentinel"))) {
         return null;
@@ -545,8 +543,7 @@ public class AzureMonitoringService {
       return automationRule;
     } catch (ManagementException e) {
       logger.debug("No Sentinel alert rule", e);
-      if (Objects.equals(e.getValue().getCode(), RESOURCE_NOT_FOUND_CODE)
-          || Objects.equals(e.getValue().getCode(), NOT_FOUND_CODE)) {
+      if (List.of(RESOURCE_NOT_FOUND_CODE, NOT_FOUND_CODE).contains(e.getValue().getCode())) {
         return null;
       } else {
         throw e;

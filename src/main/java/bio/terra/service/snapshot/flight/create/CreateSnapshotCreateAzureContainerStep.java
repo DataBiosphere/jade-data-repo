@@ -17,8 +17,6 @@ public class CreateSnapshotCreateAzureContainerStep extends CreateAzureContainer
   @Override
   protected AzureStorageAccountResource getAzureStorageAccountResource(
       FlightContext context, BillingProfileModel profileModel) throws InterruptedException {
-    return context
-        .getWorkingMap()
-        .get(storageAccountContextKey, AzureStorageAccountResource.class);
+    return context.getWorkingMap().get(storageAccountContextKey, AzureStorageAccountResource.class);
   }
 }

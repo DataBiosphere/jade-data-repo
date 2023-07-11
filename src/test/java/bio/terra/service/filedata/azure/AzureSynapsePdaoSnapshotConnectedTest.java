@@ -319,7 +319,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
     assertThat(
         "Table row count should equal 4 for destination table",
         tableRowCounts,
-        hasEntry(participantTable.getName(), 4));
+        hasEntry(participantTable.getName(), 4L));
   }
 
   private void setupFourTableDataset() throws SQLException, IOException {

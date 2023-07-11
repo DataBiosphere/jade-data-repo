@@ -59,7 +59,9 @@ public abstract class CreateAzureContainerStep implements Step {
         workingMap.get(getStorageAccountContextKey(), AzureStorageAccountResource.class);
 
     // If the container was created, delete it
-    if (workingMap.get(SHOULD_PERFORM_CONTAINER_ROLLBACK, Boolean.class)) {
+    Boolean shouldPerformRollback =
+        workingMap.get(SHOULD_PERFORM_CONTAINER_ROLLBACK, Boolean.class);
+    if (shouldPerformRollback != null && shouldPerformRollback) {
       resourceService.deleteStorageContainer(
           datasetAzureStorageAccountResource.getResourceId(),
           profileModel.getId(),

@@ -4,6 +4,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 
 import bio.terra.common.EmbeddedDatabaseTest;
 import bio.terra.common.Relationship;
@@ -296,7 +297,7 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
 
   @Test
   public void testQuerySnapshotWithUnderscoreInFlightId() throws SQLException, IOException {
-    String ingestFlightId = "_" + UUID.randomUUID().toString();
+    String ingestFlightId = "_" + UUID.randomUUID();
     SnapshotTable participantSnapshotTable = setupParticipantTable(ingestFlightId);
     List<SnapshotTable> tables = List.of(participantSnapshotTable);
     snapshot.snapshotTables(tables);
@@ -317,8 +318,8 @@ public class AzureSynapsePdaoSnapshotConnectedTest {
         equalTo(List.of("Sally", "Bobby", "Freddy", "Charles")));
     assertThat(
         "Table row count should equal 4 for destination table",
-        tableRowCounts.get(participantTable.getName()),
-        equalTo(4L));
+        tableRowCounts,
+        hasEntry(participantTable.getName(), 4));
   }
 
   private void setupFourTableDataset() throws SQLException, IOException {

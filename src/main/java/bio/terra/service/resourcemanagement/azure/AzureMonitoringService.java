@@ -84,10 +84,10 @@ public class AzureMonitoringService {
               .getByResourceGroup(
                   storageAccount.getApplicationResource().getAzureResourceGroupName(),
                   storageAccount.getName());
-      logger.info("Found Log Analytics Workspace");
+      logger.debug("Found Log Analytics Workspace");
       return byResourceGroup;
     } catch (ManagementException e) {
-      logger.warn("No Log Analytics Workspace found", e);
+      logger.debug("No Log Analytics Workspace found", e);
       if (Objects.equals(e.getValue().getCode(), RESOURCE_NOT_FOUND_CODE)) {
         return null;
       } else {

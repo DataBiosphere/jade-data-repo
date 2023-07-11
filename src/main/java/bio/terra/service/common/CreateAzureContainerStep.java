@@ -21,7 +21,7 @@ public abstract class CreateAzureContainerStep implements Step {
   protected final ResourceService resourceService;
   protected final AzureContainerPdao azureContainerPdao;
 
-  public CreateAzureContainerStep(
+  protected CreateAzureContainerStep(
       ResourceService resourceService, AzureContainerPdao azureContainerPdao) {
     this.resourceService = resourceService;
     this.azureContainerPdao = azureContainerPdao;

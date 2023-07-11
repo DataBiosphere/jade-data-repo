@@ -19,13 +19,8 @@ public class CreateDatasetGetOrCreateContainerStep extends CreateAzureContainerS
       ResourceService resourceService,
       DatasetRequestModel datasetRequestModel,
       AzureContainerPdao azureContainerPdao) {
-    super(resourceService, azureContainerPdao);
+    super(resourceService, azureContainerPdao, CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE);
     this.datasetRequestModel = datasetRequestModel;
-  }
-
-  @Override
-  protected String getStorageAccountContextKey() {
-    return CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE;
   }
 
   @Override

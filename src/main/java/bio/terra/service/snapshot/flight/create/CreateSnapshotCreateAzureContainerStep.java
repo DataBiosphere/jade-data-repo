@@ -11,12 +11,7 @@ import bio.terra.stairway.FlightContext;
 public class CreateSnapshotCreateAzureContainerStep extends CreateAzureContainerStep {
   public CreateSnapshotCreateAzureContainerStep(
       ResourceService resourceService, AzureContainerPdao azureContainerPdao) {
-    super(resourceService, azureContainerPdao);
-  }
-
-  @Override
-  protected String getStorageAccountContextKey() {
-    return CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE;
+    super(resourceService, azureContainerPdao, CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE);
   }
 
   @Override
@@ -24,6 +19,6 @@ public class CreateSnapshotCreateAzureContainerStep extends CreateAzureContainer
       FlightContext context, BillingProfileModel profileModel) throws InterruptedException {
     return context
         .getWorkingMap()
-        .get(getStorageAccountContextKey(), AzureStorageAccountResource.class);
+        .get(storageAccountContextKey, AzureStorageAccountResource.class);
   }
 }

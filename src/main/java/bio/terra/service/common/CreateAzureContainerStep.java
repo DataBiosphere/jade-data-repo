@@ -21,10 +21,14 @@ public abstract class CreateAzureContainerStep implements Step {
   protected final ResourceService resourceService;
   protected final AzureContainerPdao azureContainerPdao;
 
+  /* the key that will store the storage account metadata in the flight's context */
+  protected final String storageAccountContextKey;
+
   protected CreateAzureContainerStep(
-      ResourceService resourceService, AzureContainerPdao azureContainerPdao) {
+      ResourceService resourceService, AzureContainerPdao azureContainerPdao, String storageAccountContextKey) {
     this.resourceService = resourceService;
     this.azureContainerPdao = azureContainerPdao;
+    this.storageAccountContextKey = storageAccountContextKey;
   }
 
   @Override
@@ -46,7 +50,7 @@ public abstract class CreateAzureContainerStep implements Step {
     }
 
     // Store the storage account in the working map.  This will be used in case of needing to undo
-    context.getWorkingMap().put(getStorageAccountContextKey(), storageAccount);
+    context.getWorkingMap().put(storageAccountContextKey, storageAccount);
 
     return StepResult.getStepResultSuccess();
   }
@@ -56,7 +60,7 @@ public abstract class CreateAzureContainerStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     BillingProfileModel profileModel = getProfileModel(context);
     AzureStorageAccountResource datasetAzureStorageAccountResource =
-        workingMap.get(getStorageAccountContextKey(), AzureStorageAccountResource.class);
+        workingMap.get(storageAccountContextKey, AzureStorageAccountResource.class);
 
     // If the container was created, delete it
     Boolean shouldPerformRollback =
@@ -75,12 +79,6 @@ public abstract class CreateAzureContainerStep implements Step {
   protected BillingProfileModel getProfileModel(FlightContext context) {
     return context.getWorkingMap().get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
   }
-
-  /**
-   * Implement this method to return the key that will store the storage account metadata in the
-   * flight's context
-   */
-  protected abstract String getStorageAccountContextKey();
 
   /** Implement this method to return the AzureStorageAccountResource from the flight's context */
   protected abstract AzureStorageAccountResource getAzureStorageAccountResource(

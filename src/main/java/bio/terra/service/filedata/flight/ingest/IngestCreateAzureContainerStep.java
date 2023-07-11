@@ -15,13 +15,8 @@ public class IngestCreateAzureContainerStep extends CreateAzureContainerStep {
 
   public IngestCreateAzureContainerStep(
       ResourceService resourceService, AzureContainerPdao azureContainerPdao, Dataset dataset) {
-    super(resourceService, azureContainerPdao);
+    super(resourceService, azureContainerPdao, CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE);
     this.dataset = dataset;
-  }
-
-  @Override
-  protected String getStorageAccountContextKey() {
-    return CommonMapKeys.DATASET_STORAGE_ACCOUNT_RESOURCE;
   }
 
   @Override

@@ -11,11 +11,15 @@ import bio.terra.stairway.Step;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AzureStorageMonitoringProvider {
+/**
+ * This class provides methods to generate the steps needed to configure storage account logging and
+ * monitoring.
+ */
+public class AzureStorageMonitoringStepProvider {
 
   private final AzureMonitoringService monitoringService;
 
-  public AzureStorageMonitoringProvider(AzureMonitoringService monitoringService) {
+  public AzureStorageMonitoringStepProvider(AzureMonitoringService monitoringService) {
     this.monitoringService = monitoringService;
   }
 

@@ -468,7 +468,7 @@ public class AzureMonitoringService {
         .createOrUpdate(
             storageAccount.getApplicationResource().getAzureResourceGroupName(),
             storageAccount.getName(),
-            "UnauthorizedAccess",
+            UNAUTHORIZED_ACCESS_ALERT_NAME,
             new ScheduledAlertRule()
                 .withDisplayName("File access attempts by unauthorized user accounts")
                 .withQuery(

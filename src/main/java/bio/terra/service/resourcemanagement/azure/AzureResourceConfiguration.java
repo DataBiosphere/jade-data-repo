@@ -142,7 +142,7 @@ public class AzureResourceConfiguration {
    * @param tenantId The ID of the user's tenant
    * @param subscriptionId The ID of the subscription that will be charged for the resources created
    *     with this client
-   * @return An authenticated {@link LogAnalyticsManager} client
+   * @return An authenticated {@link SecurityInsightsManager} client
    */
   public SecurityInsightsManager getSecurityInsightsManagerClient(
       final UUID tenantId, final UUID subscriptionId) {

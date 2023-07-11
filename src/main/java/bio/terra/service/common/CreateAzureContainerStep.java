@@ -69,7 +69,7 @@ public abstract class CreateAzureContainerStep implements Step {
     return StepResult.getStepResultSuccess();
   }
 
-  /** Implement this method to return the billing profile model from the flight's context */
+  /** Return the billing profile model from the flight's context */
   protected BillingProfileModel getProfileModel(FlightContext context) {
     return context.getWorkingMap().get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
   }

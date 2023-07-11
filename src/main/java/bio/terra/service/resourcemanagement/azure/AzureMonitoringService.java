@@ -121,6 +121,7 @@ public class AzureMonitoringService {
         .withRegion(Region.fromName(storageAccount.getRegion().getValue()))
         .withExistingResourceGroup(
             storageAccount.getApplicationResource().getAzureResourceGroupName())
+        // Bill the user per GB of ingested log/event data
         .withSku(new WorkspaceSku().withName(WorkspaceSkuNameEnum.PER_GB2018))
         .withRetentionInDays(LOG_DATA_RETENTION_DAYS)
         .create()

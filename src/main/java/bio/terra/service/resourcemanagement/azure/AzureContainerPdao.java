@@ -59,7 +59,8 @@ public class AzureContainerPdao {
   }
 
   /**
-   * Delete a container in an Azure storage account
+   * Delete a container in an Azure storage account if it happens to exist. If it does not exist,
+   * nothing will happen.
    *
    * @param profileModel The profile that describes information needed to access the storage account
    * @param storageAccountResource Metadata describing the storage account that contains the

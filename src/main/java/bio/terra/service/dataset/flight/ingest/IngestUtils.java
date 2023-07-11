@@ -56,6 +56,8 @@ public final class IngestUtils {
   private static final String TARGET_DATA_SOURCE_PREFIX = "target_data_source_";
   private static final String INGEST_TABLE_NAME_PREFIX = "ingest_";
   private static final String SCRATCH_TABLE_NAME_PREFIX = "scratch_";
+  private static final String FLIGHT_ID_PREFIX = "flight_";
+  private static final String PARQUET_PATH_PREFIX = "parquet";
 
   private static final Logger logger = LoggerFactory.getLogger(IngestUtils.class);
 
@@ -386,7 +388,13 @@ public final class IngestUtils {
 
   // Note: this is the unqualified path (e.g. it gets used in metadata and scratch directories)
   public static String getParquetFilePath(String targetTableName, String flightId) {
-    return "parquet/" + targetTableName + "/" + flightId + ".parquet";
+    return PARQUET_PATH_PREFIX
+        + "/"
+        + targetTableName
+        + "/"
+        + FLIGHT_ID_PREFIX
+        + flightId
+        + ".parquet";
   }
 
   /**
@@ -397,7 +405,8 @@ public final class IngestUtils {
    * @return
    */
   public static String getSnapshotParquetFilePathForQuery(String targetTableName) {
-    return FolderType.METADATA.getPath("parquet/" + targetTableName + "/*.parquet/*");
+    return FolderType.METADATA.getPath(
+        PARQUET_PATH_PREFIX + "/" + targetTableName + "/*.parquet/*");
   }
 
   /**
@@ -412,11 +421,11 @@ public final class IngestUtils {
   public static String getSnapshotSliceParquetFilePath(
       String targetTableName, String snapshotSliceName) {
     return FolderType.METADATA.getPath(
-        "parquet/" + targetTableName + "/" + snapshotSliceName + ".parquet");
+        PARQUET_PATH_PREFIX + "/" + targetTableName + "/" + snapshotSliceName + ".parquet");
   }
 
   public static String getSourceDatasetParquetFilePath(String tableName) {
-    return FolderType.METADATA.getPath("parquet/" + tableName + "/*/*.parquet");
+    return FolderType.METADATA.getPath(PARQUET_PATH_PREFIX + "/" + tableName + "/*/*.parquet");
   }
 
   public static String formatSnapshotTableName(UUID snapshotId, String tableName) {

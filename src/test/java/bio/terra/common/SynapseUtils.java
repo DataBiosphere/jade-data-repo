@@ -232,23 +232,23 @@ public class SynapseUtils {
     try {
       azureSynapsePdao.dropTables(tableNames);
     } catch (Exception ex) {
-      logger.warn("[Cleanup exception] Unable to drop tables.", ex.getMessage());
+      logger.warn("[Cleanup exception] Unable to drop tables. {}", ex.getMessage());
     }
     try {
       azureSynapsePdao.dropDataSources(dataSources);
     } catch (Exception ex) {
-      logger.warn("[Cleanup exception] Unable to drop data sources", ex.getMessage());
+      logger.warn("[Cleanup exception] Unable to drop data sources. {}", ex.getMessage());
     }
     try {
       azureSynapsePdao.dropScopedCredentials(scopedCredentials);
     } catch (Exception ex) {
-      logger.warn("[Cleanup exception] Unable to drop scoped credentials", ex.getMessage());
+      logger.warn("[Cleanup exception] Unable to drop scoped credentials. {}", ex.getMessage());
     }
     for (String storageAccountId : storageAccountIds) {
       try {
         client.storageAccounts().deleteById(storageAccountId);
       } catch (Exception ex) {
-        logger.warn("[Cleanup exception] Unable to delete storage account", ex.getMessage());
+        logger.warn("[Cleanup exception] Unable to delete storage account. {}", ex.getMessage());
       }
     }
     // Parquet File delete is not currently operational
@@ -407,11 +407,11 @@ public class SynapseUtils {
     // 3 - Retrieve info about database schema so that we can populate the parquet create query
     String tableName = destinationTable.getName();
     String destinationParquetFile =
-        FolderType.METADATA.getPath("parquet/" + tableName + "/" + ingestFlightId + ".parquet");
+        FolderType.METADATA.getPath(IngestUtils.getParquetFilePath(tableName, ingestFlightId));
 
     String scratchParquetFile =
         FolderType.SCRATCH.getPath(
-            "parquet/" + SCRATCH_TABLE_NAME_PREFIX + tableName + "/" + ingestFlightId + ".parquet");
+            IngestUtils.getParquetFilePath(SCRATCH_TABLE_NAME_PREFIX + tableName, ingestFlightId));
 
     // 4 - Create parquet files via external table
     // All inputs should be sanitized before passed into this method
@@ -492,7 +492,8 @@ public class SynapseUtils {
 
     String scratchParquetFile =
         FolderType.SCRATCH.getPath(
-            "parquet/scratch_" + destinationTable.getName() + "/" + randomFlightId + ".parquet");
+            IngestUtils.getParquetFilePath(
+                SCRATCH_TABLE_NAME_PREFIX + destinationTable.getName(), randomFlightId));
     addParquetFileName(scratchParquetFile, datasetStorageAccountResource);
     addParquetFileName(
         IngestUtils.getParquetFilePath(destinationTable.getName(), randomFlightId),

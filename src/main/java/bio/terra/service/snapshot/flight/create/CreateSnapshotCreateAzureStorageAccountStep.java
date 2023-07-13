@@ -42,7 +42,11 @@ public class CreateSnapshotCreateAzureStorageAccountStep extends CreateAzureStor
 
     AzureStorageAccountResource storageAccountResource =
         resourceService.createSnapshotStorageAccount(
-            snapshotId, dataset.getStorageAccountRegion(), billingProfile, flightId);
+            snapshotId,
+            dataset.getStorageAccountRegion(),
+            billingProfile,
+            flightId,
+            dataset.isSecureMonitoringEnabled());
     workingMap.put(CommonMapKeys.SNAPSHOT_STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
 
     AzureStorageAuthInfo storageAuthInfo =

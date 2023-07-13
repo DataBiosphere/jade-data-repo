@@ -26,6 +26,8 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
+import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.tabulardata.google.bigquery.BigQueryDatasetPdao;
 import bio.terra.stairway.Flight;
@@ -59,9 +61,13 @@ public class DatasetCreateFlight extends Flight {
     GoogleResourceManagerService googleResourceManagerService =
         appContext.getBean(GoogleResourceManagerService.class);
     JournalService journalService = appContext.getBean(JournalService.class);
+    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
 
     DatasetRequestModel datasetRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+
+    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
+        new AzureStorageMonitoringStepProvider(monitoringService);
 
     var platform = CloudPlatformWrapper.of(datasetRequest.getCloudPlatform());
 
@@ -108,6 +114,11 @@ public class DatasetCreateFlight extends Flight {
       addStep(
           new CreateDatasetGetOrCreateContainerStep(
               resourceService, datasetRequest, azureContainerPdao));
+
+      // Turn on logging and monitoring for the storage account associated with the dataset
+      azureStorageMonitoringStepProvider
+          .configureSteps(datasetRequest.isEnableSecureMonitoring())
+          .forEach(s -> this.addStep(s.step(), s.retryRule()));
     }
 
     // Create dataset metadata objects in postgres and lock the dataset

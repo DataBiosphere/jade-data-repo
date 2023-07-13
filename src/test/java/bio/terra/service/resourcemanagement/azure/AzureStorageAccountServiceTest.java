@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement.azure;
 
+import static bio.terra.service.filedata.azure.util.AzureConstants.RESOURCE_NOT_FOUND_CODE;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -304,7 +305,7 @@ public class AzureStorageAccountServiceTest {
             new ManagementException(
                 "Could not find storage account",
                 null,
-                new ManagementError("ResourceNotFound", "Couldn't find resource")));
+                new ManagementError(RESOURCE_NOT_FOUND_CODE, "Couldn't find resource")));
   }
 
   /** Mocks the fluent interface needed to create a storage account with the Azure client */

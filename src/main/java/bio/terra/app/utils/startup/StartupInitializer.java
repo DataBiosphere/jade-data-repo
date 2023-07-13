@@ -1,5 +1,6 @@
 package bio.terra.app.utils.startup;
 
+import bio.terra.service.job.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -11,6 +12,6 @@ public final class StartupInitializer {
 
   public static void initialize(ApplicationContext applicationContext) {
     // Initialize jobService, stairway, migrate databases, perform recovery
-    applicationContext.getBean("jobService");
+    applicationContext.getBean(JobService.class);
   }
 }

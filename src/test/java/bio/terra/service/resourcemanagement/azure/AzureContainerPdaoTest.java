@@ -76,4 +76,10 @@ public class AzureContainerPdaoTest {
 
     verify(blobContainerClient, times(1)).create();
   }
+
+  @Test
+  public void testDeleteContainer() {
+    dao.deleteContainer(billingProfile, storageAccountResource);
+    verify(blobContainerClient).deleteIfExists();
+  }
 }

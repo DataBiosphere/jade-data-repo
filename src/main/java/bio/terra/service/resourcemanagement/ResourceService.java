@@ -29,7 +29,6 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotStorageAccountDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import com.azure.storage.blob.BlobContainerClient;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
@@ -273,7 +272,8 @@ public class ResourceService {
                 azureDataLocationSelector.createStorageAccountName(
                     applicationResource.getStorageAccountPrefix(),
                     dataset.getStorageAccountRegion(),
-                    billingProfile));
+                    billingProfile,
+                    dataset.isSecureMonitoringEnabled()));
 
     return storageAccountService.getOrCreateStorageAccount(
         storageAccountName, dataset.getId().toString(), applicationResource, region, flightId);
@@ -283,14 +283,18 @@ public class ResourceService {
       UUID snapshotId,
       AzureRegion datasetAzureRegion,
       BillingProfileModel billingProfile,
-      String flightId)
+      String flightId,
+      boolean isSecureMonitoringEnabled)
       throws InterruptedException {
 
     final AzureApplicationDeploymentResource applicationResource =
         applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
     String computedStorageAccountName =
         azureDataLocationSelector.createStorageAccountName(
-            applicationResource.getStorageAccountPrefix(), datasetAzureRegion, billingProfile);
+            applicationResource.getStorageAccountPrefix(),
+            datasetAzureRegion,
+            billingProfile,
+            isSecureMonitoringEnabled);
 
     AzureStorageAccountResource storageAccountResource =
         storageAccountService.getOrCreateStorageAccount(
@@ -369,16 +373,11 @@ public class ResourceService {
 
     sasToDelete.forEach(
         s -> {
-          logger.info("Deleting dataset storage account id {}", s);
-          // get container
+          logger.info("Deleting dataset storage account and container id {}", s);
           AzureStorageAccountResource storageAccountResource =
               storageAccountService.retrieveStorageAccountById(s);
-          BlobContainerClient container =
-              azureContainerPdao.getOrCreateContainer(
-                  dataset.getDatasetSummary().getDefaultBillingProfile(), storageAccountResource);
-          if (container != null && container.exists()) {
-            container.delete();
-          }
+          azureContainerPdao.deleteContainer(
+              dataset.getDatasetSummary().getDefaultBillingProfile(), storageAccountResource);
           storageAccountService.deleteCloudStorageAccountMetadata(
               storageAccountResource.getName(),
               storageAccountResource.getTopLevelContainer(),
@@ -401,11 +400,7 @@ public class ResourceService {
     // get container
     AzureStorageAccountResource storageAccountResource =
         storageAccountService.retrieveStorageAccountById(storageResourceId);
-    BlobContainerClient container =
-        azureContainerPdao.getOrCreateContainer(snapshotBillingProfile, storageAccountResource);
-    if (container != null && container.exists()) {
-      container.delete();
-    }
+    azureContainerPdao.deleteContainer(snapshotBillingProfile, storageAccountResource);
 
     storageAccountService.deleteCloudStorageAccountMetadata(
         storageAccountResource.getName(), storageAccountResource.getTopLevelContainer(), flightId);

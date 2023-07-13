@@ -1,11 +1,17 @@
 package bio.terra.service.resourcemanagement.azure;
 
+import bio.terra.app.model.AzureRegion;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.resourcemanager.loganalytics.LogAnalyticsManager;
+import com.azure.resourcemanager.securityinsights.SecurityInsightsManager;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +26,7 @@ public class AzureResourceConfiguration {
   private int maxRetries;
   private int retryTimeoutSeconds;
   private String apiVersion;
+  private Monitoring monitoring;
 
   public Credentials getCredentials() {
     return credentials;
@@ -61,6 +68,14 @@ public class AzureResourceConfiguration {
     this.apiVersion = apiVersion;
   }
 
+  public Monitoring getMonitoring() {
+    return monitoring;
+  }
+
+  public void setMonitoring(Monitoring monitoring) {
+    this.monitoring = monitoring;
+  }
+
   /**
    * Given a user tenant Id, return Azure credentials
    *
@@ -99,6 +114,41 @@ public class AzureResourceConfiguration {
         new AzureProfile(tenantId.toString(), subscriptionId.toString(), AzureEnvironment.AZURE);
     return AzureResourceManager.authenticate(getAppToken(tenantId), profile)
         .withSubscription(subscriptionId.toString());
+  }
+
+  /**
+   * Get a log analytics resource manager client to a user's tenant. This object can then be used to
+   * create/destroy resources Note: this is a separate method from the one above because the log
+   * analytics client is not GA yet so does not return a generic AzureResourceManager object
+   *
+   * @param tenantId The ID of the user's tenant
+   * @param subscriptionId The ID of the subscription that will be charged for the resources created
+   *     with this client
+   * @return An authenticated {@link LogAnalyticsManager} client
+   */
+  public LogAnalyticsManager getLogAnalyticsManagerClient(
+      final UUID tenantId, final UUID subscriptionId) {
+    final AzureProfile profile =
+        new AzureProfile(tenantId.toString(), subscriptionId.toString(), AzureEnvironment.AZURE);
+    return LogAnalyticsManager.authenticate(getAppToken(), profile);
+  }
+
+  /**
+   * Get a security insights (e.g. Sentinel) resource manager client to a user's tenant. This object
+   * can then be used to create/destroy resources Note: this is a separate method from the one above
+   * because the security insights client is not GA yet so does not return a generic
+   * AzureResourceManager object
+   *
+   * @param tenantId The ID of the user's tenant
+   * @param subscriptionId The ID of the subscription that will be charged for the resources created
+   *     with this client
+   * @return An authenticated {@link SecurityInsightsManager} client
+   */
+  public SecurityInsightsManager getSecurityInsightsManagerClient(
+      final UUID tenantId, final UUID subscriptionId) {
+    final AzureProfile profile =
+        new AzureProfile(tenantId.toString(), subscriptionId.toString(), AzureEnvironment.AZURE);
+    return SecurityInsightsManager.authenticate(getAppToken(), profile);
   }
 
   /**
@@ -153,6 +203,8 @@ public class AzureResourceConfiguration {
     private String sqlAdminPassword;
     private String databaseName;
     private String parquetFileFormatName;
+    private String encryptionKey;
+    private boolean initialize;
 
     public String getWorkspaceName() {
       return workspaceName;
@@ -192,6 +244,87 @@ public class AzureResourceConfiguration {
 
     public void setParquetFileFormatName(String parquetFileFormatName) {
       this.parquetFileFormatName = parquetFileFormatName;
+    }
+
+    public String getEncryptionKey() {
+      return encryptionKey;
+    }
+
+    public void setEncryptionKey(String encryptionKey) {
+      this.encryptionKey = encryptionKey;
+    }
+
+    public boolean isInitialize() {
+      return initialize;
+    }
+
+    public void setInitialize(boolean initialize) {
+      this.initialize = initialize;
+    }
+  }
+
+  /** Track the monitoring-related configuration */
+  public static class Monitoring {
+    // The resource ID of the Azure Logic app that handles sending Slack notifications
+    private String notificationApplicationId;
+    // The list of regional storage accounts to send long term logs to
+    private List<LogCollectionConfig> logCollectionConfigs;
+
+    public String getNotificationApplicationId() {
+      return notificationApplicationId;
+    }
+
+    public void setNotificationApplicationId(String notificationApplicationId) {
+      this.notificationApplicationId = notificationApplicationId;
+    }
+
+    public List<LogCollectionConfig> getLogCollectionConfigs() {
+      return logCollectionConfigs;
+    }
+
+    public void setLogCollectionConfigs(List<LogCollectionConfig> logCollectionConfigs) {
+      this.logCollectionConfigs = logCollectionConfigs;
+    }
+
+    public Map<AzureRegion, String> getLogCollectionConfigsAsMap() {
+      return logCollectionConfigs.stream()
+          .collect(
+              Collectors.toMap(
+                  LogCollectionConfig::getRegion,
+                  LogCollectionConfig::getTargetStorageAccountResourceId));
+    }
+  }
+
+  /**
+   * Configuration for Storage Accounts to send logs to for long term storage. The accounts must be
+   * in the same region as the Log Analytics workspace which is why there may be several of these
+   * objects in the service configuration
+   */
+  public static class LogCollectionConfig {
+
+    private AzureRegion region;
+    private String targetStorageAccountResourceId;
+
+    public AzureRegion getRegion() {
+      return region;
+    }
+
+    public void setRegion(String region) {
+      AzureRegion azureRegion = AzureRegion.fromValue(region);
+      if (azureRegion == null) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid region '%s' specified in azure.monitoring.logCollectionConfigs", region));
+      }
+      this.region = azureRegion;
+    }
+
+    public String getTargetStorageAccountResourceId() {
+      return targetStorageAccountResourceId;
+    }
+
+    public void setTargetStorageAccountResourceId(String targetStorageAccountResourceId) {
+      this.targetStorageAccountResourceId = targetStorageAccountResourceId;
     }
   }
 }

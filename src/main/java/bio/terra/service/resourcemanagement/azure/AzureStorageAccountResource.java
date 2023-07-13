@@ -119,6 +119,16 @@ public class AzureStorageAccountResource {
     return storageAccountURL.render();
   }
 
+  public String getStorageAccountId() {
+    String storageAccountIdTemplate =
+        "/subscriptions/<subscriptionId>/resourceGroups/<resourceGroup>/providers/Microsoft.Storage/storageAccounts/<storageAccount>";
+    return new ST(storageAccountIdTemplate)
+        .add("subscriptionId", applicationResource.getSubscriptionId())
+        .add("resourceGroup", applicationResource.getAzureResourceGroupName())
+        .add("storageAccount", name)
+        .render();
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {

@@ -41,9 +41,4 @@ public class CreateScratchFileForAzureStep extends DefaultUndoStep {
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), path);
     return StepResult.getStepResultSuccess();
   }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    return StepResult.getStepResultSuccess();
-  }
 }

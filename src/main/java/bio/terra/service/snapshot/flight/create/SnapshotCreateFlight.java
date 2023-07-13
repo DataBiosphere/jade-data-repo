@@ -38,6 +38,9 @@ import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureMonitoringService;
+import bio.terra.service.resourcemanagement.flight.AzureStorageMonitoringStepProvider;
 import bio.terra.service.resourcemanagement.google.GoogleResourceManagerService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -94,6 +97,10 @@ public class SnapshotCreateFlight extends Flight {
     DuosService duosService = appContext.getBean(DuosService.class);
     PolicyService policyService = appContext.getBean(PolicyService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
+    AzureMonitoringService monitoringService = appContext.getBean(AzureMonitoringService.class);
+    AzureStorageMonitoringStepProvider azureStorageMonitoringStepProvider =
+        new AzureStorageMonitoringStepProvider(monitoringService);
 
     SnapshotRequestModel snapshotReq =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -161,6 +168,13 @@ public class SnapshotCreateFlight extends Flight {
 
     if (platform.isAzure()) {
       addStep(new CreateSnapshotCreateAzureStorageAccountStep(resourceService, sourceDataset));
+      addStep(new CreateSnapshotCreateAzureContainerStep(resourceService, azureContainerPdao));
+
+      // Turn on logging and monitoring for the storage account associated with the snapshot
+      azureStorageMonitoringStepProvider
+          .configureSteps(sourceDataset.isSecureMonitoringEnabled())
+          .forEach(s -> this.addStep(s.step(), s.retryRule()));
+
       addStep(
           new CreateSnapshotSourceDatasetDataSourceAzureStep(
               azureSynapsePdao, azureBlobStorePdao, userReq));

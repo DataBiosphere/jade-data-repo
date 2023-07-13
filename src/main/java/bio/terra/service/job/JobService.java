@@ -106,8 +106,7 @@ public class JobService {
    * encapsulates all Stairway interaction.
    */
   public void initialize() {
-    SentryUtils.initializeSentry(
-        sentryConfiguration.getDsn(), sentryConfiguration.getEnvironment());
+    SentryUtils.initializeSentry(sentryConfiguration);
     migrate.migrateDatabase();
 
     // Initialize stairway - only do the stairway migration if we did the data repo migration

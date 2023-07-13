@@ -1,16 +1,24 @@
 package bio.terra.app.utils;
 
+import bio.terra.app.configuration.SentryConfiguration;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.ConflictException;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
 import io.sentry.Sentry;
+import java.util.Optional;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 public class SentryUtils {
-  public static void initializeSentry(String dsn, String environment) {
+  private static final String DEFAULT_UNDEFINED_ENVIRONMENT = "undefined";
+
+  public static void initializeSentry(SentryConfiguration sentryConfiguration) {
+    String dsn = Optional.ofNullable(sentryConfiguration.getDsn()).orElse("");
+    String environment =
+        Optional.ofNullable(sentryConfiguration.getEnvironment())
+            .orElse(DEFAULT_UNDEFINED_ENVIRONMENT);
     // in order to filter out exceptions, we must initialize sentry options
     // otherwise, they can be automatically configured via application.properties
     Sentry.init(

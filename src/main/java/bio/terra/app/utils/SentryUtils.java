@@ -5,7 +5,6 @@ import bio.terra.common.exception.ConflictException;
 import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
-import bio.terra.common.exception.ServiceUnavailableException;
 import io.sentry.Sentry;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -29,8 +28,7 @@ public class SentryUtils {
                     || throwable instanceof MethodArgumentNotValidException
                     || throwable instanceof IllegalArgumentException
                     || throwable instanceof NoHandlerFoundException
-                    || throwable instanceof ForbiddenException
-                    || throwable instanceof ServiceUnavailableException) {
+                    || throwable instanceof ForbiddenException) {
                   return null;
                 }
                 return event;

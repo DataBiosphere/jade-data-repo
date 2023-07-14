@@ -1,10 +1,8 @@
 package bio.terra.service.job;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.app.configuration.SentryConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
-import bio.terra.app.utils.SentryUtils;
 import bio.terra.common.iam.AuthenticatedUserRequest;
 import bio.terra.common.kubernetes.KubeService;
 import bio.terra.common.stairway.StairwayComponent;
@@ -64,7 +62,6 @@ public class JobService {
   private final ApplicationConfiguration appConfig;
   private final StairwayComponent stairwayComponent;
   private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
-  private final SentryConfiguration sentryConfiguration;
   private final KubeService kubeService;
   private final AtomicBoolean isRunning;
   private final Migrate migrate;
@@ -78,7 +75,6 @@ public class JobService {
       IamService samService,
       ApplicationConfiguration appConfig,
       StairwayJdbcConfiguration stairwayJdbcConfiguration,
-      SentryConfiguration sentryConfiguration,
       StairwayComponent stairwayComponent,
       KubeService kubeService,
       ApplicationContext applicationContext,
@@ -88,7 +84,6 @@ public class JobService {
       throws StairwayExecutionException {
     this.samService = samService;
     this.appConfig = appConfig;
-    this.sentryConfiguration = sentryConfiguration;
     this.stairwayComponent = stairwayComponent;
     this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
     this.isRunning = new AtomicBoolean(true);
@@ -106,7 +101,6 @@ public class JobService {
    * encapsulates all Stairway interaction.
    */
   public void initialize() {
-    SentryUtils.initializeSentry(sentryConfiguration);
     migrate.migrateDatabase();
 
     // Initialize stairway - only do the stairway migration if we did the data repo migration

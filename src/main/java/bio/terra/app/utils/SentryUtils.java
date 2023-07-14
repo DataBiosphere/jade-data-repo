@@ -7,7 +7,7 @@ import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
 import io.sentry.Sentry;
-import java.util.Optional;
+import java.util.Objects;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
@@ -15,10 +15,10 @@ public class SentryUtils {
   private static final String DEFAULT_UNDEFINED_ENVIRONMENT = "undefined";
 
   public static void initializeSentry(SentryConfiguration sentryConfiguration) {
-    String dsn = Optional.ofNullable(sentryConfiguration.getDsn()).orElse("");
+    String dsn = Objects.requireNonNullElse(sentryConfiguration.getDsn(), "");
     String environment =
-        Optional.ofNullable(sentryConfiguration.getEnvironment())
-            .orElse(DEFAULT_UNDEFINED_ENVIRONMENT);
+        Objects.requireNonNullElse(
+            sentryConfiguration.getEnvironment(), DEFAULT_UNDEFINED_ENVIRONMENT);
     // in order to filter out exceptions, we must initialize sentry options
     // otherwise, they can be automatically configured via application.properties
     Sentry.init(

@@ -7,12 +7,23 @@ import bio.terra.common.exception.ForbiddenException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
 import io.sentry.Sentry;
+import java.util.List;
 import java.util.Objects;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 public class SentryUtils {
   private static final String DEFAULT_UNDEFINED_ENVIRONMENT = "undefined";
+  private static final List<Class<? extends Exception>> FILTERED = List.of(
+      NotFoundException.class,
+      BadRequestException.class,
+      NotImplementedException.class,
+      ConflictException.class,
+      MethodArgumentNotValidException.class,
+      IllegalArgumentException.class,
+      NoHandlerFoundException.class,
+      ForbiddenException.class
+  );
 
   public static void initializeSentry(SentryConfiguration sentryConfiguration) {
     String dsn = Objects.requireNonNullElse(sentryConfiguration.getDsn(), "");
@@ -29,14 +40,7 @@ public class SentryUtils {
           options.setBeforeSend(
               (event, hint) -> {
                 Throwable throwable = event.getThrowable();
-                if (throwable instanceof NotFoundException
-                    || throwable instanceof BadRequestException
-                    || throwable instanceof NotImplementedException
-                    || throwable instanceof ConflictException
-                    || throwable instanceof MethodArgumentNotValidException
-                    || throwable instanceof IllegalArgumentException
-                    || throwable instanceof NoHandlerFoundException
-                    || throwable instanceof ForbiddenException) {
+                if (FILTERED.stream().anyMatch(e -> e.isInstance(throwable))) {
                   return null;
                 }
                 return event;

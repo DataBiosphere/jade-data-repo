@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.model.FileModel;
+import bio.terra.service.filedata.FileService;
 import com.azure.data.tables.models.TableEntity;
 import java.util.Objects;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -226,5 +228,16 @@ public class FireStoreFile {
         .addProperty(CHECKSUM_MD5_FIELD_NAME, f.getChecksumMd5())
         .addProperty(USER_SPECIFIED_MD5_FIELD_NAME, f.isUserSpecifiedMd5())
         .addProperty(SIZE_FIELD_NAME, f.getSize());
+  }
+
+  public static FileModel toFileModel(FireStoreFile f, String collectionName) {
+    return new FileModel()
+        .fileId(f.getFileId())
+        .collectionId(collectionName)
+        .path(f.getGspath())
+        .size(f.getSize())
+        .created(f.getFileCreatedDate())
+        .description(f.getDescription())
+        .checksums(FileService.makeChecksums(f.getChecksumCrc32c(), f.getChecksumMd5()));
   }
 }

@@ -28,6 +28,7 @@ import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestBulkFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestFlight;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
@@ -43,6 +44,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -175,6 +178,26 @@ public class FileService {
         .addParameter(JobMapKeys.IAM_RESOURCE_ID.getKeyName(), datasetId)
         .addParameter(JobMapKeys.IAM_ACTION.getKeyName(), IamAction.INGEST_DATA)
         .submit();
+  }
+
+  public List<FileModel> listDatasetFiles(String datasetId, Integer offset, Integer limit) {
+    List<FileModel> results = new ArrayList<>();
+    String collectionName = String.format("%s-files", datasetId);
+    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      try {
+        results =
+            fileDao.retrieveFiles(dataset, offset, limit).stream()
+                .map(f -> FireStoreFile.toFileModel(f, collectionName))
+                .collect(Collectors.toList());
+      } catch (InterruptedException | ExecutionException ex) {
+        throw new FileSystemExecutionException(
+            "Unexpected interruption during file system processing", ex);
+      }
+    }
+    return results;
   }
 
   // -- dataset lookups --
@@ -396,15 +419,19 @@ public class FileService {
    * any consequences downstream to DRS clients.
    */
   List<DRSChecksum> makeChecksums(FSItem fsItem) {
+    String fsItemCrc32c = fsItem.getChecksumCrc32c();
+    String fsItemMd5 = fsItem.getChecksumMd5();
+    return makeChecksums(fsItemCrc32c, fsItemMd5);
+  }
+
+  public static List<DRSChecksum> makeChecksums(String fsItemCrc32c, String fsItemMd5) {
     List<DRSChecksum> checksums = new ArrayList<>();
-    if (fsItem.getChecksumCrc32c() != null) {
-      DRSChecksum checksumCrc32 =
-          new DRSChecksum().checksum(fsItem.getChecksumCrc32c()).type("crc32c");
+    if (fsItemCrc32c != null) {
+      DRSChecksum checksumCrc32 = new DRSChecksum().checksum(fsItemCrc32c).type("crc32c");
       checksums.add(checksumCrc32);
     }
-
-    if (fsItem.getChecksumMd5() != null) {
-      DRSChecksum checksumMd5 = new DRSChecksum().checksum(fsItem.getChecksumMd5()).type("md5");
+    if (fsItemMd5 != null) {
+      DRSChecksum checksumMd5 = new DRSChecksum().checksum(fsItemMd5).type("md5");
       checksums.add(checksumMd5);
     }
 

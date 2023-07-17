@@ -64,6 +64,7 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
@@ -279,6 +280,18 @@ public class DatasetsApiController implements DatasetsApi {
     String jobId = fileService.deleteFile(id.toString(), fileid, userReq);
     // we can retrieve the job we just created
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
+  public ResponseEntity<List<FileModel>> listFiles(
+      @PathVariable("id") UUID id,
+      @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+      @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
+    List<FileModel> results = fileService.listDatasetFiles(id.toString(), offset, limit);
+    return new ResponseEntity<>(results, HttpStatus.OK);
   }
 
   @Override

@@ -48,6 +48,7 @@ import javax.validation.Valid;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
@@ -225,6 +226,18 @@ public class SnapshotsApiController implements SnapshotsApi {
     snapshotService.verifySnapshotListable(id, authenticatedInfo);
     SnapshotSummaryModel snapshotSummaryModel = snapshotService.retrieveSnapshotSummary(id);
     return ResponseEntity.ok(snapshotSummaryModel);
+  }
+
+  @Override
+  public ResponseEntity<List<FileModel>> listFiles(
+      @PathVariable("id") UUID id,
+      @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+      @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+    AuthenticatedUserRequest userRequest = getAuthenticatedInfo();
+    iamService.verifyAuthorization(
+        userRequest, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+    List<FileModel> results = fileService.listSnapshotFiles(id.toString(), offset, limit);
+    return new ResponseEntity<>(results, HttpStatus.OK);
   }
 
   @Override

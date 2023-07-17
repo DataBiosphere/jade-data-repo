@@ -181,16 +181,34 @@ public class FileService {
   }
 
   public List<FileModel> listDatasetFiles(String datasetId, Integer offset, Integer limit) {
-    List<FileModel> results = new ArrayList<>();
-    String collectionName = String.format("%s-files", datasetId);
+    String collectionId = String.format("%s-files", datasetId);
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-    CloudPlatformWrapper cloudPlatformWrapper =
-        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
+    List<FileModel> results = new ArrayList<>();
     if (cloudPlatformWrapper.isGcp()) {
       try {
         results =
-            fileDao.retrieveFiles(dataset, offset, limit).stream()
-                .map(f -> FireStoreFile.toFileModel(f, collectionName))
+            fileDao.retrieveFiles(dataset, collectionId, offset, limit).stream()
+                .map(f -> FireStoreFile.toFileModel(f, collectionId))
+                .collect(Collectors.toList());
+      } catch (InterruptedException | ExecutionException ex) {
+        throw new FileSystemExecutionException(
+            "Unexpected interruption during file system processing", ex);
+      }
+    }
+    return results;
+  }
+
+  public List<FileModel> listSnapshotFiles(String snapshotId, Integer offset, Integer limit) {
+    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(snapshot.getCloudPlatform());
+    List<FileModel> results = new ArrayList<>();
+    if (cloudPlatformWrapper.isGcp()) {
+      try {
+        results =
+            fileDao.retrieveFiles(snapshot, snapshot.getId().toString(), offset, limit).stream()
+                .map(f -> FireStoreFile.toFileModel(f, snapshot.getId().toString()))
                 .collect(Collectors.toList());
       } catch (InterruptedException | ExecutionException ex) {
         throw new FileSystemExecutionException(

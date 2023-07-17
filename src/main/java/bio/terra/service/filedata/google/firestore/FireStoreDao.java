@@ -515,11 +515,11 @@ public class FireStoreDao {
   }
 
   public List<FireStoreFile> retrieveFiles(
-      FSContainerInterface container, Integer offset, Integer limit)
+      FSContainerInterface container, String collectionId, Integer offset, Integer limit)
       throws InterruptedException, ExecutionException {
     Firestore firestore =
         FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
-    return fileDao.enumerateFiles(firestore, container.getId().toString(), offset, limit);
+    return fileDao.enumerateFiles(firestore, collectionId, offset, limit);
   }
 
   public List<FireStoreFile> retrieveAllWithEmptyField(Dataset dataset, String fieldName)

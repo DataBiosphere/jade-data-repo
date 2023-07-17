@@ -61,11 +61,13 @@ public class FireStoreFileDaoTest {
 
   private String datasetId;
   private Firestore firestore;
+  private String collectionId;
 
   @Before
   public void setup() throws Exception {
     configurationService.reset();
     datasetId = UUID.randomUUID().toString();
+    collectionId = String.format("%s-files", datasetId);
     firestore = TestFirestoreProvider.getFirestore();
   }
 
@@ -112,7 +114,7 @@ public class FireStoreFileDaoTest {
 
   @Test
   public void listAllFilesTest() throws Exception {
-    List<FireStoreFile> noFiles = fileDao.enumerateFiles(firestore, datasetId, 0, 10);
+    List<FireStoreFile> noFiles = fileDao.enumerateFiles(firestore, collectionId, 0, 10);
     assertEquals(noFiles.size(), 0);
 
     List<FireStoreFile> fileList = IntStream.range(0, 5).boxed().map(i -> makeFile()).toList();
@@ -123,13 +125,13 @@ public class FireStoreFileDaoTest {
       assertNotNull("File entry was created", existCheck);
     }
 
-    List<FireStoreFile> allFiles = fileDao.enumerateFiles(firestore, datasetId, 0, 10);
+    List<FireStoreFile> allFiles = fileDao.enumerateFiles(firestore, collectionId, 0, 10);
     assertEquals(allFiles.size(), 5);
 
-    List<FireStoreFile> offsetFiles = fileDao.enumerateFiles(firestore, datasetId, 1, 10);
+    List<FireStoreFile> offsetFiles = fileDao.enumerateFiles(firestore, collectionId, 1, 10);
     assertEquals(offsetFiles.size(), 4);
 
-    List<FireStoreFile> limitFiles = fileDao.enumerateFiles(firestore, datasetId, 0, 2);
+    List<FireStoreFile> limitFiles = fileDao.enumerateFiles(firestore, collectionId, 0, 2);
     assertEquals(limitFiles.size(), 2);
   }
 

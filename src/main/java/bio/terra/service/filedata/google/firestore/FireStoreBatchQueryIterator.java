@@ -14,6 +14,9 @@ public class FireStoreBatchQueryIterator {
   private final int batchSize;
   private List<QueryDocumentSnapshot> currentList;
   private int count;
+  private int totalSize;
+  private int offset;
+  private int limit;
   private FireStoreUtils fireStoreUtils;
   private Firestore firestore;
 
@@ -30,6 +33,22 @@ public class FireStoreBatchQueryIterator {
     this.batchSize = batchSize;
     this.currentList = null;
     this.count = 0;
+    this.totalSize = 0;
+    this.offset = 0;
+    this.limit = Integer.MAX_VALUE;
+    this.fireStoreUtils = fireStoreUtils;
+  }
+
+  public FireStoreBatchQueryIterator(
+      Query baseQuery, int batchSize, FireStoreUtils fireStoreUtils, int offset, int limit) {
+    this.baseQuery = baseQuery;
+    this.firestore = baseQuery.getFirestore();
+    this.batchSize = batchSize;
+    this.currentList = null;
+    this.count = 0;
+    this.totalSize = 0;
+    this.offset = offset;
+    this.limit = limit;
     this.fireStoreUtils = fireStoreUtils;
   }
 
@@ -43,15 +62,17 @@ public class FireStoreBatchQueryIterator {
     Query query;
     if (currentList == null) {
       // First time through we start at the beginning
-      query = baseQuery.limit(batchSize);
+      int queryLimit = Math.min(limit, batchSize);
+      query = baseQuery.offset(offset).limit(queryLimit);
     } else {
       int listSize = currentList.size();
-      if (listSize < batchSize) {
+      if (totalSize == limit || listSize < batchSize) {
         // We delivered our last list on the previous call
         return null;
       }
+      int currentBatchSize = Math.min(limit - totalSize, batchSize);
       QueryDocumentSnapshot lastDoc = currentList.get(listSize - 1);
-      query = baseQuery.startAfter(lastDoc).limit(batchSize);
+      query = baseQuery.startAfter(lastDoc).limit(currentBatchSize);
     }
 
     // Get the next batch
@@ -64,6 +85,7 @@ public class FireStoreBatchQueryIterator {
             xn -> xn.get(query).get().getDocuments(),
             "getBatch",
             "Retrieving batch " + count + " with batch size of " + batchSize);
+    totalSize += currentList.size();
 
     return currentList;
   }

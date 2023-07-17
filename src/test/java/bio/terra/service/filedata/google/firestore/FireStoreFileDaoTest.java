@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.isA;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -107,6 +108,29 @@ public class FireStoreFileDaoTest {
 
     fileExisted = fileDao.deleteFileMetadata(firestore, datasetId, objectId1);
     assertFalse("File doesn't exist after delete", fileExisted);
+  }
+
+  @Test
+  public void listAllFilesTest() throws Exception {
+    List<FireStoreFile> noFiles = fileDao.enumerateFiles(firestore, datasetId, 0, 10);
+    assertEquals(noFiles.size(), 0);
+
+    List<FireStoreFile> fileList = IntStream.range(0, 5).boxed().map(i -> makeFile()).toList();
+    fileDao.upsertFileMetadata(firestore, datasetId, fileList);
+    List<String> fileIds = fileList.stream().map(FireStoreFile::getFileId).toList();
+    for (String fileId : fileIds) {
+      FireStoreFile existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, fileId);
+      assertNotNull("File entry was created", existCheck);
+    }
+
+    List<FireStoreFile> allFiles = fileDao.enumerateFiles(firestore, datasetId, 0, 10);
+    assertEquals(allFiles.size(), 5);
+
+    List<FireStoreFile> offsetFiles = fileDao.enumerateFiles(firestore, datasetId, 1, 10);
+    assertEquals(offsetFiles.size(), 4);
+
+    List<FireStoreFile> limitFiles = fileDao.enumerateFiles(firestore, datasetId, 0, 2);
+    assertEquals(limitFiles.size(), 2);
   }
 
   @Test

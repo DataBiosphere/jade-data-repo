@@ -105,6 +105,7 @@ public class TableDependencyDaoTest {
 
     dao.storeSnapshotFileDependencies(tableServiceClient, datasetId, snapshotId, List.of(refId));
     verify(tableClient, times(0)).upsertEntity(any());
+    verify(tableClient, times(0)).submitTransaction(any());
   }
 
   @Test

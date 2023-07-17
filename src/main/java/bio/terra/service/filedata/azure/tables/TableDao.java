@@ -138,6 +138,12 @@ public class TableDao {
     return fileDao.retrieveFileMetadata(tableServiceClient, collectionId, fileId);
   }
 
+  public List<FireStoreFile> listFiles(
+      String collectionId, AzureStorageAuthInfo storageAuthInfo, int offset, int limit) {
+    TableServiceClient tableServiceClient = azureAuthService.getTableServiceClient(storageAuthInfo);
+    return fileDao.listFileMetadata(tableServiceClient, collectionId, offset, limit);
+  }
+
   public void snapshotCompute(
       Snapshot snapshot,
       TableServiceClient snapshotTableServiceClient,

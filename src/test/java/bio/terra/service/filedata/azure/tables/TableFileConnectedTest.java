@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -14,7 +16,9 @@ import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -84,5 +88,34 @@ public class TableFileConnectedTest {
     // Try to delete the entry again
     boolean isNotDeleted = tableFileDao.deleteFileMetadata(tableServiceClient, DATASET_ID, FILE_ID);
     assertFalse("File record was already deleted", isNotDeleted);
+  }
+
+  @Test
+  public void testListEntry() {
+    List<FireStoreFile> fileList = IntStream.range(0, 5).boxed().map(this::makeFile).toList();
+    for (FireStoreFile fsFile : fileList) {
+      tableFileDao.createFileMetadata(tableServiceClient, DATASET_ID, fsFile);
+    }
+    List<FireStoreFile> files =
+        tableFileDao.listFileMetadata(tableServiceClient, DATASET_ID, 0, 10);
+    assertThat(files, equalTo(fileList));
+
+    List<FireStoreFile> filesOffset =
+        tableFileDao.listFileMetadata(tableServiceClient, DATASET_ID, 1, 10);
+    assertThat(filesOffset.size(), equalTo(4));
+    //    assertThat(filesOffset, equalTo(fileList.subList(1, 5)));
+
+    List<FireStoreFile> filesLimit =
+        tableFileDao.listFileMetadata(tableServiceClient, DATASET_ID, 0, 2);
+    assertThat(filesLimit.size(), equalTo(2));
+    //    assertThat(filesLimit, equalTo(fileList.subList(0, 3)));
+  }
+
+  private FireStoreFile makeFile(int index) {
+    String fileId = UUID.randomUUID().toString();
+    TableEntity entity =
+        new TableEntity(PARTITION_KEY, index + fileId)
+            .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, index + fileId);
+    return FireStoreFile.fromTableEntity(entity);
   }
 }

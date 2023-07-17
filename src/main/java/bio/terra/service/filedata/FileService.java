@@ -42,6 +42,7 @@ import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -181,41 +182,64 @@ public class FileService {
   }
 
   public List<FileModel> listDatasetFiles(String datasetId, Integer offset, Integer limit) {
-    String collectionId = String.format("%s-files", datasetId);
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    List<FileModel> results = new ArrayList<>();
+    String collectionId = datasetId;
+    List<FireStoreFile> results;
     if (cloudPlatformWrapper.isGcp()) {
       try {
+        collectionId = String.format("%s-files", datasetId);
         results =
-            fileDao.retrieveFiles(dataset, collectionId, offset, limit).stream()
-                .map(f -> FireStoreFile.toFileModel(f, collectionId))
-                .collect(Collectors.toList());
+            fileDao.retrieveFiles(dataset, collectionId, offset, limit);
       } catch (InterruptedException | ExecutionException ex) {
         throw new FileSystemExecutionException(
             "Unexpected interruption during file system processing", ex);
       }
+    } else {
+      BillingProfileModel billingProfileModel =
+          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
+      AzureStorageAccountResource storageAccountResource =
+          resourceService.getDatasetStorageAccount(dataset, billingProfileModel);
+      AzureStorageAuthInfo storageAuthInfo =
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+              billingProfileModel, storageAccountResource);
+      results = tableDao.listFiles(collectionId, storageAuthInfo, offset, limit);
     }
-    return results;
+    String finalCollectionId = collectionId;
+    return results.stream()
+        .map(f -> FireStoreFile.toFileModel(f, finalCollectionId))
+        .collect(Collectors.toList());
   }
 
   public List<FileModel> listSnapshotFiles(String snapshotId, Integer offset, Integer limit) {
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform());
-    List<FileModel> results = new ArrayList<>();
+    List<FireStoreFile> results;
+    String collectionId = snapshot.getId().toString();
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        results =
-            fileDao.retrieveFiles(snapshot, snapshot.getId().toString(), offset, limit).stream()
-                .map(f -> FireStoreFile.toFileModel(f, snapshot.getId().toString()))
-                .collect(Collectors.toList());
+        results = fileDao.retrieveFiles(snapshot, collectionId, offset, limit);
       } catch (InterruptedException | ExecutionException ex) {
         throw new FileSystemExecutionException(
             "Unexpected interruption during file system processing", ex);
       }
+    } else {
+      BillingProfileModel billingProfileModel =
+          profileService.getProfileByIdNoCheck(snapshot.getProfileId());
+      AzureStorageAccountResource storageAccountResource = resourceService.getSnapshotStorageAccount(snapshot.getId())
+              .orElseThrow(
+                  () ->
+                      new StorageResourceNotFoundException(
+                          "Snapshot storage account was not found"));
+      AzureStorageAuthInfo storageAuthInfo =
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+              billingProfileModel, storageAccountResource);
+      results = tableDao.listFiles(collectionId, storageAuthInfo, offset, limit);
     }
-    return results;
+    return results.stream()
+        .map(f -> FireStoreFile.toFileModel(f, collectionId))
+        .collect(Collectors.toList());
   }
 
   // -- dataset lookups --

@@ -83,8 +83,7 @@ public class TableFileDao {
   /** results are sorted by partition key and row key * */
   public List<FireStoreFile> listFileMetadata(
       TableServiceClient tableServiceClient, String collectionId, int offset, int limit) {
-    TableClient tableClient =
-        tableServiceClient.getTableClient(FILES_TABLE.toTableName(UUID.fromString(collectionId)));
+    TableClient tableClient = tableServiceClient.getTableClient(collectionId);
     ListEntitiesOptions options = new ListEntitiesOptions();
     PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
     if (!entities.iterator().hasNext()) {

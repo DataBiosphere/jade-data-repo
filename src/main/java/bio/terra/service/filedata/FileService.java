@@ -1,5 +1,8 @@
 package bio.terra.service.filedata;
 
+import static bio.terra.service.common.azure.StorageTableName.FILES_TABLE;
+import static bio.terra.service.common.azure.StorageTableName.SNAPSHOT;
+
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.CollectionType;
 import bio.terra.common.exception.FeatureNotImplementedException;
@@ -42,7 +45,6 @@ import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -189,13 +191,13 @@ public class FileService {
     if (cloudPlatformWrapper.isGcp()) {
       try {
         collectionId = String.format("%s-files", datasetId);
-        results =
-            fileDao.retrieveFiles(dataset, collectionId, offset, limit);
+        results = fileDao.retrieveFiles(dataset, collectionId, offset, limit);
       } catch (InterruptedException | ExecutionException ex) {
         throw new FileSystemExecutionException(
             "Unexpected interruption during file system processing", ex);
       }
     } else {
+      collectionId = FILES_TABLE.toTableName(UUID.fromString(collectionId));
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
@@ -225,9 +227,12 @@ public class FileService {
             "Unexpected interruption during file system processing", ex);
       }
     } else {
+      collectionId = SNAPSHOT.toTableName(UUID.fromString(collectionId));
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(snapshot.getProfileId());
-      AzureStorageAccountResource storageAccountResource = resourceService.getSnapshotStorageAccount(snapshot.getId())
+      AzureStorageAccountResource storageAccountResource =
+          resourceService
+              .getSnapshotStorageAccount(snapshot.getId())
               .orElseThrow(
                   () ->
                       new StorageResourceNotFoundException(
@@ -237,8 +242,9 @@ public class FileService {
               billingProfileModel, storageAccountResource);
       results = tableDao.listFiles(collectionId, storageAuthInfo, offset, limit);
     }
+    String finalCollectionId = collectionId;
     return results.stream()
-        .map(f -> FireStoreFile.toFileModel(f, collectionId))
+        .map(f -> FireStoreFile.toFileModel(f, finalCollectionId))
         .collect(Collectors.toList());
   }
 

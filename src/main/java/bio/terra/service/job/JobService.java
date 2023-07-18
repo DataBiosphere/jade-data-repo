@@ -84,7 +84,6 @@ public class JobService {
       throws StairwayExecutionException {
     this.samService = samService;
     this.appConfig = appConfig;
-
     this.stairwayComponent = stairwayComponent;
     this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
     this.isRunning = new AtomicBoolean(true);

@@ -39,6 +39,8 @@ plugins {
     id "jacoco"
     id "com.diffplug.spotless" version "6.7.1"
     id "com.dorongold.task-tree" version "2.1.0"
+    // enables release info in sentry events
+    id "com.gorylenko.gradle-git-properties" version "2.4.1"
 }
 
 allprojects {
@@ -267,7 +269,9 @@ dependencies {
     implementation 'com.azure:azure-data-tables:12.3.11'
 
 
-    implementation 'io.sentry:sentry-logback:6.5.0'
+    implementation platform('io.sentry:sentry-bom:6.25.0') //import bom
+    implementation('io.sentry:sentry-spring-boot-starter')
+    implementation('io.sentry:sentry-logback')
 
     testImplementation "org.apache.parquet:parquet-common:1.12.0"
     testImplementation "org.apache.parquet:parquet-hadoop:1.12.0"

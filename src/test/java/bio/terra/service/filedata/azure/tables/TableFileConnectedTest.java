@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
+import static bio.terra.service.common.azure.StorageTableName.FILES_TABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -46,18 +47,7 @@ public class TableFileConnectedTest {
   private static final String PARTITION_KEY = "partitionKey";
   private static final String DATASET_ID = UUID.randomUUID().toString();
   private static final String FILE_ID = UUID.randomUUID().toString();
-  private final TableEntity entity =
-      new TableEntity(PARTITION_KEY, FILE_ID)
-          .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, FILE_ID)
-          .addProperty(FireStoreFile.MIME_TYPE_FIELD_NAME, "application/json")
-          .addProperty(FireStoreFile.DESCRIPTION_FIELD_NAME, "A test entity")
-          .addProperty(FireStoreFile.BUCKET_RESOURCE_ID_FIELD_NAME, "bucketResourceId")
-          .addProperty(FireStoreFile.LOAD_TAG_FIELD_NAME, "loadTag")
-          .addProperty(FireStoreFile.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
-          .addProperty(FireStoreFile.GS_PATH_FIELD_NAME, "gspath")
-          .addProperty(FireStoreFile.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
-          .addProperty(FireStoreFile.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")
-          .addProperty(FireStoreFile.SIZE_FIELD_NAME, 1L);
+  private final TableEntity entity = makeEntity(FILE_ID);
 
   @Before
   public void setUp() {
@@ -96,26 +86,39 @@ public class TableFileConnectedTest {
     for (FireStoreFile fsFile : fileList) {
       tableFileDao.createFileMetadata(tableServiceClient, DATASET_ID, fsFile);
     }
+    String collectionId = FILES_TABLE.toTableName(UUID.fromString(DATASET_ID));
     List<FireStoreFile> files =
-        tableFileDao.listFileMetadata(tableServiceClient, DATASET_ID, 0, 10);
+        tableFileDao.listFileMetadata(tableServiceClient, collectionId, 0, 10);
     assertThat(files, equalTo(fileList));
 
     List<FireStoreFile> filesOffset =
-        tableFileDao.listFileMetadata(tableServiceClient, DATASET_ID, 1, 10);
+        tableFileDao.listFileMetadata(tableServiceClient, collectionId, 1, 10);
     assertThat(filesOffset.size(), equalTo(4));
-    //    assertThat(filesOffset, equalTo(fileList.subList(1, 5)));
+    assertThat(filesOffset, equalTo(fileList.subList(1, 5)));
 
     List<FireStoreFile> filesLimit =
-        tableFileDao.listFileMetadata(tableServiceClient, DATASET_ID, 0, 2);
+        tableFileDao.listFileMetadata(tableServiceClient, collectionId, 0, 2);
     assertThat(filesLimit.size(), equalTo(2));
-    //    assertThat(filesLimit, equalTo(fileList.subList(0, 3)));
+    assertThat(filesLimit, equalTo(fileList.subList(0, 2)));
   }
 
   private FireStoreFile makeFile(int index) {
     String fileId = UUID.randomUUID().toString();
-    TableEntity entity =
-        new TableEntity(PARTITION_KEY, index + fileId)
-            .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, index + fileId);
+    TableEntity entity = makeEntity(index + fileId);
     return FireStoreFile.fromTableEntity(entity);
+  }
+
+  private TableEntity makeEntity(String rowKey) {
+    return new TableEntity(PARTITION_KEY, rowKey)
+        .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, rowKey)
+        .addProperty(FireStoreFile.MIME_TYPE_FIELD_NAME, "application/json")
+        .addProperty(FireStoreFile.DESCRIPTION_FIELD_NAME, "A test entity")
+        .addProperty(FireStoreFile.BUCKET_RESOURCE_ID_FIELD_NAME, "bucketResourceId")
+        .addProperty(FireStoreFile.LOAD_TAG_FIELD_NAME, "loadTag")
+        .addProperty(FireStoreFile.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
+        .addProperty(FireStoreFile.GS_PATH_FIELD_NAME, "gspath")
+        .addProperty(FireStoreFile.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
+        .addProperty(FireStoreFile.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")
+        .addProperty(FireStoreFile.SIZE_FIELD_NAME, 1L);
   }
 }

@@ -36,6 +36,7 @@ public class FireStoreFile {
   public static final String LOAD_TAG_FIELD_NAME = "loadTag";
   public static final String FILE_CREATED_DATE_FIELD_NAME = "fileCreatedDate";
   public static final String GS_PATH_FIELD_NAME = "gspath";
+  public static final String PATH_FIELD_NAME = "path";
   public static final String CHECKSUM_CRC32C_FIELD_NAME = "checksum_crc32c";
   public static final String CHECKSUM_MD5_FIELD_NAME = "checksum_md5";
   public static final String USER_SPECIFIED_MD5_FIELD_NAME = "userSpecifiedMd5";
@@ -205,7 +206,10 @@ public class FireStoreFile {
         .bucketResourceId((String) entity.getProperty(BUCKET_RESOURCE_ID_FIELD_NAME))
         .loadTag((String) entity.getProperty(LOAD_TAG_FIELD_NAME))
         .fileCreatedDate((String) entity.getProperty(FILE_CREATED_DATE_FIELD_NAME))
-        .gspath((String) entity.getProperty(GS_PATH_FIELD_NAME))
+        .gspath(
+            (String)
+                Objects.requireNonNullElse(
+                    entity.getProperty(GS_PATH_FIELD_NAME), entity.getProperty(PATH_FIELD_NAME)))
         .checksumCrc32c((String) entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME))
         .checksumMd5((String) entity.getProperty(CHECKSUM_MD5_FIELD_NAME))
         .userSpecifiedMd5(

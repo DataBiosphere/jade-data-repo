@@ -9,7 +9,7 @@ env:
   TDR_LOG_APPENDER: 'Console-Standard'
   JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
   RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
-  AZURE_SYNAPSE_WORKSPACE: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
+  AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
   CACHE_PATHS: |
     build/jacoco
     build/reports

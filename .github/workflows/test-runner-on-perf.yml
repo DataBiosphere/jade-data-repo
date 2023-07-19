@@ -194,6 +194,8 @@ jobs:
           ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
+        env:
+          AZURE_CREDENTIALS_APPLICATIONID: ${{ env.AZURE_CREDENTIALS_APPLICATIONID }}
       - name: 'Re-obtain GKE Credentials'
         if: always()
         uses: 'google-github-actions/get-gke-credentials@v1'

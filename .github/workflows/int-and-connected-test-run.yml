@@ -223,6 +223,9 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
+        env:
+          AZURE_CREDENTIALS_APPLICATIONID: ${{ env.AZURE_CREDENTIALS_APPLICATIONID }}
+          AZURE_CREDENTIALS_HOMETENANTID: ${{ env.AZURE_CREDENTIALS_HOMETENANTID }}
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.68.0

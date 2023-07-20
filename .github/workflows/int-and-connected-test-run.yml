@@ -7,6 +7,9 @@ env:
   GOOGLE_SA_CERT: 'jade-dev-account.pem'
   # This will make test logs not use JSON
   TDR_LOG_APPENDER: 'Console-Standard'
+  # The default Azure credentials to use to authenticate
+  AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
+  AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
   JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
   RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
   AZURE_SYNAPSE_WORKSPACENAME: tdr-snps-int-east-us-ondemand.sql.azuresynapse.net
@@ -111,8 +114,6 @@ jobs:
           roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
           secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/integration/azure-application-secrets tenant-id | AZURE_CREDENTIALS_HOMETENANTID ;
-            secret/dsde/datarepo/integration/azure-application-secrets client-id | AZURE_CREDENTIALS_APPLICATIONID ;
             secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
             secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-user | AZURE_SYNAPSE_SQLADMINUSER ;
             secret/dsde/datarepo/integration/azure-application-secrets synapse-sql-admin-password | AZURE_SYNAPSE_SQLADMINPASSWORD ;
@@ -176,9 +177,7 @@ jobs:
           roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
           secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/integration/azure-application-secrets tenant-id | AZURE_CREDENTIALS_HOMETENANTID ;
-            secret/dsde/datarepo/integration/azure-application-secrets client-id | AZURE_CREDENTIALS_APPLICATIONID ;
-            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
+            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET
       - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions/actions/main@0.68.0
         with:

@@ -9,6 +9,7 @@ env:
   K8_CLUSTER: jade-master-us-central1
   K8_NAMESPACES: perf
   TDR_LOG_APPENDER: Console-Standard
+  AZURE_CREDENTIALS_APPLICATIONID: 0e29ec36-04e8-44d5-ae7c-50dc15135571
 on:
   workflow_dispatch: {}
   schedule:
@@ -47,7 +48,6 @@ jobs:
           roleId: ${{ secrets.PERF_ROLE_ID }}
           secretId: ${{ secrets.PERF_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/perf/azure-application-secrets client-id | AZURE_CREDENTIALS_APPLICATIONID ;
             secret/dsde/datarepo/perf/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
             secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
       - name: "Perform IAM policy cleanup for perf"

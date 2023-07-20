@@ -176,7 +176,9 @@ jobs:
           roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
           secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET
+            secret/dsde/datarepo/integration/azure-application-secrets tenant-id | AZURE_CREDENTIALS_HOMETENANTID ;
+            secret/dsde/datarepo/integration/azure-application-secrets client-id | AZURE_CREDENTIALS_APPLICATIONID ;
+            secret/dsde/datarepo/integration/azure-application-secrets client-secret | AZURE_CREDENTIALS_SECRET ;
       - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions/actions/main@0.68.0
         with:

@@ -1335,6 +1335,8 @@ public class BigQueryDatasetPdao {
         return LegacySQLTypeName.INTEGER;
       case INT64:
         return LegacySQLTypeName.INTEGER; // match the SQL type
+      case JSON:
+        return LegacySQLTypeName.JSON;
       case NUMERIC:
         return LegacySQLTypeName.NUMERIC;
         // case RECORD:    return LegacySQLTypeName.RECORD;

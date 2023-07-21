@@ -87,7 +87,7 @@ public class Column {
 
   public boolean isTextType() {
     return switch (this.type) {
-      case TEXT, STRING, DIRREF, FILEREF -> true;
+      case TEXT, STRING, DIRREF, FILEREF, JSON -> true;
       default -> false;
     };
   }

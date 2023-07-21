@@ -110,6 +110,7 @@ public final class BQTestUtils {
       case NUMERIC:
         return extractData(fieldValue, FieldValue::getNumericValue);
       case STRING:
+      case JSON:
         return extractData(fieldValue, FieldValue::getStringValue);
       case TIMESTAMP:
         return extractData(fieldValue, FieldValue::getTimestampValue);

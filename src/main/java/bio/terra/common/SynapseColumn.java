@@ -87,6 +87,8 @@ public class SynapseColumn extends Column {
         // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest
       case RECORD:
         throw new NotSupportedException("RECORD type is not yet supported for synapse");
+      case JSON:
+        throw new NotSupportedException("JSON type is not yet supported for synapse");
       default:
         throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
     }

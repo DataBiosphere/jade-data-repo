@@ -3961,7 +3961,7 @@ components:
   schemas:
     TableDataType:
       type: string
-      enum: [ string, boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, numeric, record, text, time, timestamp ]
+      enum: [ string, boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, json, numeric, record, text, time, timestamp ]
       description: >
         The type of a column in a table.
     SqlSortDirection:

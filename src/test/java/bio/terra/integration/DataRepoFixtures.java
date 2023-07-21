@@ -852,12 +852,22 @@ public class DataRepoFixtures {
   public List<String> getRowIds(
       TestConfiguration.User user, DatasetModel dataset, String tableName, int limitRowsReturned)
       throws Exception {
+    return getColumnValues(user, dataset.getId(), tableName, PDAO_ROW_ID_COLUMN, limitRowsReturned);
+  }
+
+  public List<String> getColumnValues(
+      TestConfiguration.User user,
+      UUID datasetId,
+      String tableName,
+      String columnName,
+      int limitRowsReturned)
+      throws Exception {
     List<Object> dataModel =
-        retrieveDatasetData(user, dataset.getId(), tableName, 0, limitRowsReturned, null)
-            .getResult();
+        retrieveDatasetData(user, datasetId, tableName, 0, limitRowsReturned, null).getResult();
     assertThat("got right num of row ids back", dataModel.size(), equalTo(limitRowsReturned));
     return dataModel.stream()
-        .map(r -> ((LinkedHashMap) r).get(PDAO_ROW_ID_COLUMN).toString())
+        .filter(r -> ((LinkedHashMap) r).get(columnName) != null)
+        .map(r -> ((LinkedHashMap) r).get(columnName).toString())
         .toList();
   }
 

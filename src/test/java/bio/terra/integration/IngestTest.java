@@ -238,6 +238,23 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
+  public void ingestJsonData() throws Exception {
+    IngestRequestModel ingestRequest =
+        dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant-with-json-data.json");
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    List<String> vals =
+        dataRepoFixtures.getColumnValues(steward(), datasetId, "participant", "jsonData", 5);
+    assertThat(
+        "correct jsonData values",
+        vals,
+        containsInAnyOrder(
+            containsString("{\"testField\":\"Bye-bye\"}"),
+            containsString("{\"testField\":\"Hello\"}")));
+  }
+
+  @Test
   public void ingestWildcardSuffix() throws Exception {
     IngestRequestModel ingestRequest =
         dataRepoFixtures.buildSimpleIngest("participant", "ingest-test/ingest-test-participant*");

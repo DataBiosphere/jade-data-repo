@@ -4612,6 +4612,8 @@ components:
             - csv
             - json
             - array
+          description: >
+            Note: Ingest into a field with data type "JSON" is only supported with JSON ingest format.
         load_tag:
           $ref: '#/components/schemas/LoadTagModel'
         profile_id:

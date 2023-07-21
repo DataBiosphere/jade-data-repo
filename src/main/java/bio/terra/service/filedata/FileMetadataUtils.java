@@ -1,8 +1,11 @@
 package bio.terra.service.filedata;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult.Md5Type;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.nio.file.Path;
@@ -185,5 +188,46 @@ public class FileMetadataUtils {
       return new Md5ValidationResult(
           cloudMd5, StringUtils.isEmpty(cloudMd5) ? Md5Type.NEITHER : Md5Type.CLOUD_PROVIDED);
     }
+  }
+
+  /**
+   * Format a list of directory entries and their corresponding firestore files into FSFiles
+   *
+   * @param directoryEntries - list of directory entries
+   * @param files - list of firestore files
+   * @return list of FSItem of retrieved files; throws on not found
+   */
+  public static List<FSFile> toFSFiles(
+      List<FireStoreDirectoryEntry> directoryEntries, List<FireStoreFile> files) {
+    List<FSFile> resultList = new ArrayList<>();
+    if (directoryEntries.size() != files.size()) {
+      throw new FileSystemExecutionException("List sizes should be identical");
+    }
+
+    for (int i = 0; i < files.size(); i++) {
+      FireStoreFile file = files.get(i);
+      FireStoreDirectoryEntry entry = directoryEntries.get(i);
+
+      FSFile fsFile =
+          new FSFile()
+              .fileId(UUID.fromString(entry.getFileId()))
+              .collectionId(UUID.fromString(entry.getDatasetId()))
+              .datasetId(UUID.fromString(entry.getDatasetId()))
+              .createdDate(Instant.parse(file.getFileCreatedDate()))
+              .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
+              .checksumCrc32c(file.getChecksumCrc32c())
+              .checksumMd5(file.getChecksumMd5())
+              .size(file.getSize())
+              .description(file.getDescription())
+              .cloudPath(file.getGspath())
+              .cloudPlatform(CloudPlatform.GCP)
+              .mimeType(file.getMimeType())
+              .bucketResourceId(file.getBucketResourceId())
+              .loadTag(file.getLoadTag());
+
+      resultList.add(fsFile);
+    }
+
+    return resultList;
   }
 }

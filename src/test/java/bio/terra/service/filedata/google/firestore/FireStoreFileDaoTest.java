@@ -22,6 +22,7 @@ import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileAlreadyExistsException;
+import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.cloud.firestore.Firestore;
 import io.grpc.StatusRuntimeException;
@@ -110,29 +111,6 @@ public class FireStoreFileDaoTest {
 
     fileExisted = fileDao.deleteFileMetadata(firestore, datasetId, objectId1);
     assertFalse("File doesn't exist after delete", fileExisted);
-  }
-
-  @Test
-  public void listAllFilesTest() throws Exception {
-    List<FireStoreFile> noFiles = fileDao.enumerateFiles(firestore, collectionId, 0, 10);
-    assertEquals(noFiles.size(), 0);
-
-    List<FireStoreFile> fileList = IntStream.range(0, 5).boxed().map(i -> makeFile()).toList();
-    fileDao.upsertFileMetadata(firestore, datasetId, fileList);
-    List<String> fileIds = fileList.stream().map(FireStoreFile::getFileId).toList();
-    for (String fileId : fileIds) {
-      FireStoreFile existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, fileId);
-      assertNotNull("File entry was created", existCheck);
-    }
-
-    List<FireStoreFile> allFiles = fileDao.enumerateFiles(firestore, collectionId, 0, 10);
-    assertEquals(allFiles.size(), 5);
-
-    List<FireStoreFile> offsetFiles = fileDao.enumerateFiles(firestore, collectionId, 1, 10);
-    assertEquals(offsetFiles.size(), 4);
-
-    List<FireStoreFile> limitFiles = fileDao.enumerateFiles(firestore, collectionId, 0, 2);
-    assertEquals(limitFiles.size(), 2);
   }
 
   @Test
@@ -239,8 +217,41 @@ public class FireStoreFileDaoTest {
         isA(FileAlreadyExistsException.class));
   }
 
+  @Test
+  public void testBatchRetrieveFileMetadata() throws InterruptedException {
+    List<FireStoreDirectoryEntry> directoryEntries =
+        IntStream.range(0, 5)
+            .boxed()
+            .map(i -> new FireStoreDirectoryEntry().fileId(UUID.randomUUID().toString()))
+            .toList();
+    List<FireStoreFile> files =
+        directoryEntries.stream()
+            .map(FireStoreDirectoryEntry::getFileId)
+            .map(this::makeFile)
+            .toList();
+    for (FireStoreFile file : files) {
+      fileDao.upsertFileMetadata(firestore, datasetId, file);
+    }
+    List<FireStoreFile> retrievedFiles =
+        fileDao.batchRetrieveFileMetadata(firestore, datasetId, directoryEntries);
+    assertEquals(files, retrievedFiles);
+  }
+
+  @Test
+  public void testBatchRetrieveNonExistentFileMetadata() {
+    FireStoreDirectoryEntry directoryEntry =
+        new FireStoreDirectoryEntry().fileId(UUID.randomUUID().toString());
+    assertThrows(
+        FileSystemCorruptException.class,
+        () -> fileDao.batchRetrieveFileMetadata(firestore, datasetId, List.of(directoryEntry)));
+  }
+
   private FireStoreFile makeFile() {
     String fileId = UUID.randomUUID().toString();
+    return makeFile(fileId);
+  }
+
+  private FireStoreFile makeFile(String fileId) {
     return new FireStoreFile()
         .fileId(fileId)
         .mimeType("application/test")

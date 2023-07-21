@@ -206,10 +206,7 @@ public class FireStoreFile {
         .bucketResourceId((String) entity.getProperty(BUCKET_RESOURCE_ID_FIELD_NAME))
         .loadTag((String) entity.getProperty(LOAD_TAG_FIELD_NAME))
         .fileCreatedDate((String) entity.getProperty(FILE_CREATED_DATE_FIELD_NAME))
-        .gspath(
-            (String)
-                Objects.requireNonNullElse(
-                    entity.getProperty(GS_PATH_FIELD_NAME), entity.getProperty(PATH_FIELD_NAME)))
+        .gspath((String) entity.getProperty(GS_PATH_FIELD_NAME))
         .checksumCrc32c((String) entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME))
         .checksumMd5((String) entity.getProperty(CHECKSUM_MD5_FIELD_NAME))
         .userSpecifiedMd5(
@@ -234,11 +231,10 @@ public class FireStoreFile {
         .addProperty(SIZE_FIELD_NAME, f.getSize());
   }
 
-  public static FileModel toFileModel(FireStoreFile f, String collectionName) {
+  public static FileModel toFileModel(FireStoreFile f, String collectionName, String datasetId) {
     return new FileModel()
         .fileId(f.getFileId())
         .collectionId(collectionName)
-        .path(f.getGspath())
         .size(f.getSize())
         .created(f.getFileCreatedDate())
         .description(f.getDescription())

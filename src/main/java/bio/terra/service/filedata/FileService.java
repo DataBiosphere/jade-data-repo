@@ -47,7 +47,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -186,18 +185,17 @@ public class FileService {
   public List<FileModel> listDatasetFiles(String datasetId, Integer offset, Integer limit) {
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
     CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper.of(dataset.getCloudPlatform());
-    String collectionId = datasetId;
-    List<FireStoreFile> results;
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        collectionId = String.format("%s-files", datasetId);
-        results = fileDao.retrieveFiles(dataset, collectionId, offset, limit);
-      } catch (InterruptedException | ExecutionException ex) {
+        return fileDao.batchRetrieveFiles(dataset, dataset, offset, limit).stream()
+            .map(this::fileModelFromFSItem)
+            .collect(Collectors.toList());
+      } catch (InterruptedException ex) {
         throw new FileSystemExecutionException(
             "Unexpected interruption during file system processing", ex);
       }
     } else {
-      collectionId = FILES_TABLE.toTableName(UUID.fromString(collectionId));
+      String collectionId = FILES_TABLE.toTableName(UUID.fromString(datasetId));
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
@@ -205,29 +203,29 @@ public class FileService {
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
-      results = tableDao.listFiles(collectionId, storageAuthInfo, offset, limit);
+      return tableDao.listFiles(collectionId, storageAuthInfo, offset, limit).stream()
+          .map(f -> FireStoreFile.toFileModel(f, collectionId, datasetId))
+          .collect(Collectors.toList());
     }
-    String finalCollectionId = collectionId;
-    return results.stream()
-        .map(f -> FireStoreFile.toFileModel(f, finalCollectionId))
-        .collect(Collectors.toList());
   }
 
   public List<FileModel> listSnapshotFiles(String snapshotId, Integer offset, Integer limit) {
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(snapshot.getCloudPlatform());
-    List<FireStoreFile> results;
-    String collectionId = snapshot.getId().toString();
     if (cloudPlatformWrapper.isGcp()) {
       try {
-        results = fileDao.retrieveFiles(snapshot, collectionId, offset, limit);
-      } catch (InterruptedException | ExecutionException ex) {
+        return fileDao
+            .batchRetrieveFiles(snapshot, snapshot.getSourceDataset(), offset, limit)
+            .stream()
+            .map(this::fileModelFromFSItem)
+            .collect(Collectors.toList());
+      } catch (InterruptedException ex) {
         throw new FileSystemExecutionException(
             "Unexpected interruption during file system processing", ex);
       }
     } else {
-      collectionId = SNAPSHOT.toTableName(UUID.fromString(collectionId));
+      String collectionId = SNAPSHOT.toTableName(UUID.fromString(snapshotId));
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(snapshot.getProfileId());
       AzureStorageAccountResource storageAccountResource =
@@ -240,12 +238,13 @@ public class FileService {
       AzureStorageAuthInfo storageAuthInfo =
           AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
-      results = tableDao.listFiles(collectionId, storageAuthInfo, offset, limit);
+      return tableDao.listFiles(collectionId, storageAuthInfo, offset, limit).stream()
+          .map(
+              f ->
+                  FireStoreFile.toFileModel(
+                      f, collectionId, snapshot.getSourceDataset().getId().toString()))
+          .collect(Collectors.toList());
     }
-    String finalCollectionId = collectionId;
-    return results.stream()
-        .map(f -> FireStoreFile.toFileModel(f, finalCollectionId))
-        .collect(Collectors.toList());
   }
 
   // -- dataset lookups --
@@ -466,7 +465,7 @@ public class FileService {
    * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
    * any consequences downstream to DRS clients.
    */
-  List<DRSChecksum> makeChecksums(FSItem fsItem) {
+  static List<DRSChecksum> makeChecksums(FSItem fsItem) {
     String fsItemCrc32c = fsItem.getChecksumCrc32c();
     String fsItemMd5 = fsItem.getChecksumMd5();
     return makeChecksums(fsItemCrc32c, fsItemMd5);

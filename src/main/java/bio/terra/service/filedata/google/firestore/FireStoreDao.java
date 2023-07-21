@@ -421,6 +421,23 @@ public class FireStoreDao {
         fileId);
   }
 
+  public List<FSFile> batchRetrieveFiles(
+      FSContainerInterface container, FSContainerInterface dataset, Integer offset, Integer limit)
+      throws InterruptedException {
+    Firestore firestore =
+        FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
+    List<FireStoreDirectoryEntry> directoryEntries =
+        directoryDao.enumerateFileRefEntries(
+            firestore, container.getId().toString(), offset, limit);
+
+    Firestore datasetFirestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
+    List<FireStoreFile> files =
+        fileDao.batchRetrieveFileMetadata(
+            datasetFirestore, dataset.getId().toString(), directoryEntries);
+    return FileMetadataUtils.toFSFiles(directoryEntries, files);
+  }
+
   /**
    * Retrieve a batch of FSFile by id
    *
@@ -438,42 +455,11 @@ public class FireStoreDao {
 
     List<FireStoreDirectoryEntry> directoryEntries =
         directoryDao.batchRetrieveById(firestore, containerId, fileIds);
-
     // TODO: When we have more than one dataset in a snapshot then we will have to
     //  split entries by underlying dataset. For now we know that they all come from one dataset.
     List<FireStoreFile> files =
         fileDao.batchRetrieveFileMetadata(firestore, containerId, directoryEntries);
-
-    List<FSFile> resultList = new ArrayList<>();
-    if (directoryEntries.size() != files.size()) {
-      throw new FileSystemExecutionException("List sizes should be identical");
-    }
-
-    for (int i = 0; i < files.size(); i++) {
-      FireStoreFile file = files.get(i);
-      FireStoreDirectoryEntry entry = directoryEntries.get(i);
-
-      FSFile fsFile =
-          new FSFile()
-              .fileId(UUID.fromString(entry.getFileId()))
-              .collectionId(UUID.fromString(entry.getDatasetId()))
-              .datasetId(UUID.fromString(entry.getDatasetId()))
-              .createdDate(Instant.parse(file.getFileCreatedDate()))
-              .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
-              .checksumCrc32c(file.getChecksumCrc32c())
-              .checksumMd5(file.getChecksumMd5())
-              .size(file.getSize())
-              .description(file.getDescription())
-              .cloudPath(file.getGspath())
-              .cloudPlatform(CloudPlatform.GCP)
-              .mimeType(file.getMimeType())
-              .bucketResourceId(file.getBucketResourceId())
-              .loadTag(file.getLoadTag());
-
-      resultList.add(fsFile);
-    }
-
-    return resultList;
+    return FileMetadataUtils.toFSFiles(directoryEntries, files);
   }
 
   public List<String> validateRefIds(Dataset dataset, List<String> refIdArray)
@@ -512,14 +498,6 @@ public class FireStoreDao {
           .map(FireStoreFile::getFileId)
           .toList();
     }
-  }
-
-  public List<FireStoreFile> retrieveFiles(
-      FSContainerInterface container, String collectionId, Integer offset, Integer limit)
-      throws InterruptedException, ExecutionException {
-    Firestore firestore =
-        FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
-    return fileDao.enumerateFiles(firestore, collectionId, offset, limit);
   }
 
   public List<FireStoreFile> retrieveAllWithEmptyField(Dataset dataset, String fieldName)

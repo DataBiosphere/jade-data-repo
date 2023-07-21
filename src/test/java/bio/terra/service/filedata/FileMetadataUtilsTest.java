@@ -5,19 +5,25 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult;
 import bio.terra.service.filedata.FileMetadataUtils.Md5ValidationResult.Md5Type;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidFileChecksumException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -226,6 +232,55 @@ public class FileMetadataUtilsTest {
         equalTo("/foo"));
     assertThat(
         "2nd level directory file looks ok", FileMetadataUtils.getName("/foo/bar"), equalTo("bar"));
+  }
+
+  @Test
+  public void testToFSFiles() {
+    UUID fileId = UUID.randomUUID();
+    FireStoreDirectoryEntry entry =
+        new FireStoreDirectoryEntry()
+            .fileId(fileId.toString())
+            .datasetId(UUID.randomUUID().toString())
+            .path("/files/foo.txt")
+            .name("foo.txt");
+    FireStoreFile file =
+        new FireStoreFile()
+            .fileId(fileId.toString())
+            .fileCreatedDate(Instant.now().toString())
+            .checksumCrc32c("25f9e794323b453885f5181f1b624d0b")
+            .checksumMd5("0xCBF43926")
+            .size(300L)
+            .description("Test file")
+            .gspath("gs://testbucket/files/foo.txt")
+            .mimeType("text/plain")
+            .bucketResourceId("bucketResourceId")
+            .loadTag("loadTag");
+
+    FSFile fsFile =
+        new FSFile()
+            .fileId(UUID.fromString(entry.getFileId()))
+            .collectionId(UUID.fromString(entry.getDatasetId()))
+            .datasetId(UUID.fromString(entry.getDatasetId()))
+            .createdDate(Instant.parse(file.getFileCreatedDate()))
+            .path(FileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
+            .checksumCrc32c(file.getChecksumCrc32c())
+            .checksumMd5(file.getChecksumMd5())
+            .size(file.getSize())
+            .description(file.getDescription())
+            .cloudPath(file.getGspath())
+            .cloudPlatform(CloudPlatform.GCP)
+            .mimeType(file.getMimeType())
+            .bucketResourceId(file.getBucketResourceId())
+            .loadTag(file.getLoadTag());
+    assertEquals(List.of(fsFile), FileMetadataUtils.toFSFiles(List.of(entry), List.of(file)));
+  }
+
+  @Test
+  public void testToFSFilesMismatchedSizes() {
+    List<FireStoreDirectoryEntry> entries = List.of(new FireStoreDirectoryEntry());
+    List<FireStoreFile> files = List.of(new FireStoreFile(), new FireStoreFile());
+    assertThrows(
+        FileSystemExecutionException.class, () -> FileMetadataUtils.toFSFiles(entries, files));
   }
 
   private List<FireStoreDirectoryEntry> initTestEntries(int numDirectories) {

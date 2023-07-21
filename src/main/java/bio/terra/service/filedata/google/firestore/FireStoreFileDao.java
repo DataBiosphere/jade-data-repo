@@ -219,13 +219,6 @@ class FireStoreFileDao {
     return fireStoreUtils.query(fileColl, FireStoreFile.class);
   }
 
-  /** Enumerate all file entries in a dataset or snapshot provided an offset and limit */
-  List<FireStoreFile> enumerateFiles(
-      Firestore firestore, String collectionId, int offset, int limit) throws InterruptedException {
-    Query fileColl = firestore.collection(collectionId).orderBy(FireStoreFile.GS_PATH_FIELD_NAME);
-    return fireStoreUtils.query(fileColl, FireStoreFile.class, offset, limit);
-  }
-
   List<FireStoreFile> enumerateAllWithEmptyField(
       Firestore firestore, String datasetId, String fieldName) throws InterruptedException {
     Query fileColl =

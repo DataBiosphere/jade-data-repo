@@ -440,7 +440,7 @@ public class DatasetRequestValidatorTest {
         containsString(
             "invalid datatype in table column(s): bad_column, "
                 + "DataTypes must be lowercase, valid DataTypes are [string, boolean, bytes, date, datetime, dirref, fileref, "
-                + "float, float64, integer, int64, numeric, record, text, time, timestamp]"));
+                + "float, float64, integer, int64, json, numeric, record, text, time, timestamp]"));
   }
 
   @Test
